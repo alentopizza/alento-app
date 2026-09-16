@@ -93,25 +93,27 @@ model Category {
 }
 
 model Product {
-  id             Int              @id @default(autoincrement())
-  categoryId     Int
-  name           String
-  description    String?
-  imageUrl       String?
-  imageUrl2      String?
-  type           ProductType      @default(STANDARD)
-  basePrice      Decimal?         @db.Decimal(12, 2)
-  active         Boolean          @default(true)
-  visibleInPos   Boolean          @default(true)
-  featured       Boolean          @default(false)
-  sortOrder      Int              @default(0)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  category       Category         @relation(fields: [categoryId], references: [id])
-  variants       ProductVariant[]
-  orderItems     OrderItem[]
-  comboGroups    ComboGroup[]     @relation("ComboProductGroups")
-  comboOptions   ComboOption[]    @relation("ComboOptionProduct")
+  id                  Int                      @id @default(autoincrement())
+  categoryId          Int
+  name                String
+  description         String?
+  imageUrl            String?
+  imageUrl2           String?
+  type                ProductType              @default(STANDARD)
+  basePrice           Decimal?                 @db.Decimal(12, 2)
+  active              Boolean                  @default(true)
+  visibleInPos        Boolean                  @default(true)
+  featured            Boolean                  @default(false)
+  sortOrder           Int                      @default(0)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  category            Category                 @relation(fields: [categoryId], references: [id])
+  variants            ProductVariant[]
+  orderItems          OrderItem[]
+  comboGroups         ComboGroup[]             @relation("ComboProductGroups")
+  comboOptions        ComboOption[]            @relation("ComboOptionProduct")
+  comboPizzaRules     ComboPizzaRule[]         @relation("ComboPizzaProduct")
+  comboFlavorOptions  ComboPizzaFlavorOption[] @relation("ComboFlavorProduct")
 
   @@unique([categoryId, name])
   @@index([categoryId])
@@ -136,15 +138,16 @@ model ProductVariant {
 }
 
 model PizzaSize {
-  id         Int               @id @default(autoincrement())
-  name       String            @unique
-  diameterCm Int
-  basePrice  Decimal           @db.Decimal(12, 2)
-  active     Boolean           @default(true)
-  sortOrder  Int               @default(0)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  crustPrices PizzaCrustPrice[]
+  id               Int                    @id @default(autoincrement())
+  name             String                 @unique
+  diameterCm       Int
+  basePrice        Decimal                @db.Decimal(12, 2)
+  active           Boolean                @default(true)
+  sortOrder        Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  crustPrices      PizzaCrustPrice[]
+  comboSizeOptions ComboPizzaSizeOption[]
 }
 
 model PizzaCrust {
@@ -169,15 +172,49 @@ model PizzaCrustPrice {
   @@index([sizeId])
 }
 
-model ComboGroup {
-  id            Int           @id @default(autoincrement())
+model ComboPizzaRule {
+  id             Int                      @id @default(autoincrement())
   comboProductId Int
-  name          String
-  minSelections Int           @default(1)
-  maxSelections Int           @default(1)
-  sortOrder     Int           @default(0)
-  comboProduct  Product       @relation("ComboProductGroups", fields: [comboProductId], references: [id], onDelete: Cascade)
-  options       ComboOption[]
+  quantity       Int                      @default(1)
+  sortOrder      Int                      @default(0)
+  comboProduct   Product                  @relation("ComboPizzaProduct", fields: [comboProductId], references: [id], onDelete: Cascade)
+  sizes          ComboPizzaSizeOption[]
+  flavors        ComboPizzaFlavorOption[]
+
+  @@index([comboProductId])
+}
+
+model ComboPizzaSizeOption {
+  id     Int            @id @default(autoincrement())
+  ruleId Int
+  sizeId Int
+  rule   ComboPizzaRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  size   PizzaSize      @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, sizeId])
+  @@index([sizeId])
+}
+
+model ComboPizzaFlavorOption {
+  id        Int            @id @default(autoincrement())
+  ruleId    Int
+  productId Int
+  rule      ComboPizzaRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  product   Product        @relation("ComboFlavorProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, productId])
+  @@index([productId])
+}
+
+model ComboGroup {
+  id             Int           @id @default(autoincrement())
+  comboProductId Int
+  name           String
+  minSelections  Int           @default(1)
+  maxSelections  Int           @default(1)
+  sortOrder      Int           @default(0)
+  comboProduct   Product       @relation("ComboProductGroups", fields: [comboProductId], references: [id], onDelete: Cascade)
+  options        ComboOption[]
 
   @@index([comboProductId])
 }
