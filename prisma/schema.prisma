@@ -253,26 +253,29 @@ model Coupon {
 }
 
 model Order {
-  id              Int               @id @default(autoincrement())
-  customerId      Int?
-  addressId       Int?
-  couponId        Int?
-  couponName      String?
-  status          OrderStatus       @default(DRAFT)
-  fulfillmentType FulfillmentType   @default(DELIVERY)
-  source          OrderSource       @default(POS)
-  subtotal        Decimal           @default(0) @db.Decimal(12, 2)
-  deliveryFee     Decimal           @default(0) @db.Decimal(12, 2)
-  discount        Decimal           @default(0) @db.Decimal(12, 2)
-  total           Decimal           @default(0) @db.Decimal(12, 2)
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  customer        Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  address         CustomerAddress?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  coupon          Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  items           OrderItem[]
-  payments        Payment[]
+  id               Int               @id @default(autoincrement())
+  customerId       Int?
+  addressId        Int?
+  couponId         Int?
+  couponName       String?
+  deliveryZoneId   String?
+  deliveryZoneName String?
+  discountSource   String            @default("NONE")
+  status           OrderStatus       @default(DRAFT)
+  fulfillmentType  FulfillmentType   @default(DELIVERY)
+  source           OrderSource       @default(POS)
+  subtotal         Decimal           @default(0) @db.Decimal(12, 2)
+  deliveryFee      Decimal           @default(0) @db.Decimal(12, 2)
+  discount         Decimal           @default(0) @db.Decimal(12, 2)
+  total            Decimal           @default(0) @db.Decimal(12, 2)
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  address          CustomerAddress?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+  payments         Payment[]
 
   @@index([customerId])
   @@index([addressId])
