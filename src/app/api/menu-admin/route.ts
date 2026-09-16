@@ -229,8 +229,12 @@ export async function POST(request: NextRequest) {
     const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
     const imageUrl2 = typeof body.imageUrl2 === "string" ? body.imageUrl2.trim() : "";
     const finalPrice = Number(body.finalPrice);
-    const rawProductIds = Array.isArray(body.productIds) ? body.productIds : [];
-    const productIds = [...new Set(rawProductIds.map((value) => Number(value)).filter((value) => Number.isInteger(value)))];
+    const rawProductIds: unknown[] = Array.isArray(body.productIds) ? body.productIds : [];
+    const productIds = [...new Set(
+      rawProductIds
+        .map((value: unknown) => Number(value))
+        .filter((value: number) => Number.isInteger(value)),
+    )];
 
     if (!name) {
       return NextResponse.json({ error: "El nombre del combo es obligatorio." }, { status: 400 });
@@ -328,7 +332,7 @@ export async function POST(request: NextRequest) {
   }
 
   const comboProductId = Number(body.comboProductId);
-  const groups = Array.isArray(body.groups) ? body.groups : [];
+  const rawGroups: unknown[] = Array.isArray(body.groups) ? body.groups : [];
 
   if (!Number.isInteger(comboProductId)) {
     return NextResponse.json({ error: "Combo inválido." }, { status: 400 });
@@ -342,9 +346,14 @@ export async function POST(request: NextRequest) {
   await prisma.$transaction(async (tx) => {
     await tx.comboGroup.deleteMany({ where: { comboProductId } });
 
-    for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
-      const group = groups[groupIndex];
-      const options = Array.isArray(group.options) ? group.options : [];
+    for (let groupIndex = 0; groupIndex < rawGroups.length; groupIndex += 1) {
+      const group = rawGroups[groupIndex] as {
+        name?: unknown;
+        minSelections?: unknown;
+        maxSelections?: unknown;
+        options?: unknown;
+      };
+      const rawOptions: unknown[] = Array.isArray(group.options) ? group.options : [];
       const createdGroup = await tx.comboGroup.create({
         data: {
           comboProductId,
@@ -355,8 +364,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      for (let optionIndex = 0; optionIndex < options.length; optionIndex += 1) {
-        const option = options[optionIndex];
+      for (let optionIndex = 0; optionIndex < rawOptions.length; optionIndex += 1) {
+        const option = rawOptions[optionIndex] as {
+          productId?: unknown;
+          quantity?: unknown;
+          priceDelta?: unknown;
+        };
         const productId = Number(option.productId);
         if (!Number.isInteger(productId)) continue;
 
