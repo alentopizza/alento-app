@@ -23,6 +23,8 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Selección manual de zona/tarifa de domicilio desde Configuración.
 - Selección de medio de pago desde Configuración.
 - Descuento mediante cupón o descuento manual.
+- Cálculo de subtotal elegible para descuentos.
+- Exclusión automática de combos y productos promocionales del descuento.
 - Revisión de subtotal, domicilio, descuento y total.
 - El cierre validado se refleja en el resumen lateral.
 - El bloque inferior del resumen lateral permanece visible en escritorio para evitar scroll innecesario.
@@ -56,6 +58,8 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 - Administración de categorías y productos.
 - Categoría Combos.
 - Reglas configurables de combos.
+- `Product.couponEligible` define si un producto normal puede participar en descuentos.
+- Los productos `COMBO` son siempre no elegibles para cupones aunque el campo anterior estuviera activo.
 
 ### Configuración
 
@@ -72,6 +76,7 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 - Administración de menú.
 - Configuración.
 - Cupones: `/api/coupons` y `/api/coupons/[id]`.
+- Elegibilidad de descuentos: `/api/discount/eligibility`.
 - `/api/delivery/quote` se conserva para futura integración automática basada en distancia.
 
 ## Flujo de cierre actual
@@ -81,28 +86,31 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 1. Cliente seleccionado y con dirección.
 2. Abrir cierre.
 3. Seleccionar zona/tarifa de domicilio.
-4. Elegir descuento: sin descuento, cupón o manual.
-5. Elegir medio de pago.
-6. Revisar subtotal, domicilio, descuento y total.
-7. Validar cierre.
+4. El sistema calcula la base elegible de productos.
+5. Elegir descuento: sin descuento, cupón o manual.
+6. Elegir medio de pago.
+7. Revisar subtotal, domicilio, descuento y total.
+8. Validar cierre.
 
 ### Recoger en tienda
 
 1. Cliente seleccionado.
 2. Abrir cierre.
-3. Elegir descuento: sin descuento, cupón o manual.
-4. Elegir medio de pago.
-5. Revisar pedido.
-6. Validar cierre.
+3. El sistema calcula la base elegible de productos.
+4. Elegir descuento: sin descuento, cupón o manual.
+5. Elegir medio de pago.
+6. Revisar pedido.
+7. Validar cierre.
 
 ### Local
 
 1. Cliente opcional.
 2. Abrir cierre.
-3. Elegir descuento: sin descuento, cupón o manual.
-4. Elegir medio de pago.
-5. Revisar pedido.
-6. Validar cierre.
+3. El sistema calcula la base elegible de productos.
+4. Elegir descuento: sin descuento, cupón o manual.
+5. Elegir medio de pago.
+6. Revisar pedido.
+7. Validar cierre.
 
 Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL.
 
@@ -116,29 +124,52 @@ Un pedido solo puede tener una fuente de descuento operativo:
 
 No se permite combinar cupón + descuento manual.
 
+### Base elegible
+
+Los descuentos se calculan únicamente sobre productos elegibles.
+
+Reglas:
+
+- el domicilio nunca forma parte de la base de descuento;
+- los productos `COMBO` nunca acumulan cupones ni descuento manual;
+- cualquier producto con `couponEligible = false` queda excluido;
+- futuras promociones u ofertas que ya reduzcan el precio original deben marcar el producto como `couponEligible = false`;
+- el servidor calcula la base elegible mediante `/api/discount/eligibility`; el navegador no decide por sí solo qué líneas son elegibles.
+
+El cierre muestra dos cifras al operador:
+
+- `Base elegible`: productos que sí pueden recibir descuento;
+- `Promos excluidas`: productos que ya tienen una promoción o no acumulan.
+
 ### Cupón porcentual
 
-El porcentaje se calcula únicamente sobre el subtotal de productos. El domicilio no forma parte de la base del porcentaje.
+El porcentaje se calcula únicamente sobre la base elegible.
 
 Ejemplo:
 
-- subtotal productos: $50.000;
+- pizza normal: $40.000;
+- combo promocional: $30.000;
 - domicilio: $10.000;
+- base elegible: $40.000;
 - Cupón Trabajador: 60%;
-- descuento: $30.000;
-- total: $30.000.
+- descuento: $24.000;
+- total: $56.000.
+
+El combo y el domicilio no reciben el 60%.
 
 ### Cupón plano
 
-El valor fijo se descuenta del subtotal de productos y nunca puede reducir los productos por debajo de $0. El domicilio permanece intacto.
+El valor fijo se descuenta únicamente de la base elegible y queda limitado a ella.
+
+Ejemplo: si el cupón es de $10.000 pero solo existen $7.000 en productos elegibles, el descuento aplicado será $7.000.
 
 ### Descuento manual
 
-Se mantiene para excepciones operativas. Puede descontar hasta el valor completo de `subtotal + deliveryFee` y nunca puede dejar un total negativo.
+El descuento manual también respeta la base elegible. No puede reducir combos, promociones ni domicilio. Su máximo es el valor de `Base elegible`.
 
 ## Persistencia futura del descuento
 
-Prisma incluye ahora el modelo `Coupon` y `Order` dispone de:
+Prisma incluye el modelo `Coupon` y `Order` dispone de:
 
 - `couponId` opcional;
 - `couponName` opcional como snapshot del nombre usado;
@@ -148,7 +179,9 @@ La intención es que un pedido histórico conserve el valor final aplicado inclu
 
 ## Base de datos / despliegue
 
-La incorporación de cupones agrega el modelo `Coupon` y nuevas columnas en `Order`. Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar esta versión se debe ejecutar una vez en la consola del servicio:
+La incorporación de cupones agregó el modelo `Coupon`, nuevas columnas en `Order` y ahora `Product.couponEligible`.
+
+Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar esta versión se debe ejecutar una vez en la consola del servicio:
 
 ```bash
 npx prisma db push
@@ -162,7 +195,7 @@ Google Maps NO es dependencia operativa en esta etapa. La selección de tarifa d
 
 ## Pendiente inmediato
 
-Después de aprobar cupones, el siguiente bloque es la persistencia real del pedido:
+Después de aprobar cupones y reglas de elegibilidad, el siguiente bloque es la persistencia real del pedido:
 
 1. Endpoint de creación.
 2. Crear `Order` con tipo, cliente, dirección, subtotal, domicilio, descuento, cupón y total.
