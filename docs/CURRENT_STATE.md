@@ -32,12 +32,19 @@ Reglas visuales actuales:
 - encabezado principal más compacto para recuperar espacio vertical;
 - texto operativo del encabezado: `Toma pedidos y confirma ventas desde una sola pantalla.`;
 - bloque de tipo de pedido y cliente reducido en altura;
+- se retiró el rótulo `Preparar pedido` del panel derecho;
+- el rótulo de modalidad ahora es `* SELECCIONE TIPO DE PEDIDO`, con mayor tamaño y peso visual;
+- el rótulo de cliente ahora es `* INFORMACIÓN CLIENTE`, con mayor tamaño y peso visual;
+- ya no se muestran los pasos `1. Tipo`, `2. Cliente`, `OBLIGATORIO` u `OPCIONAL` como parte de esas cabeceras;
+- la obligatoriedad de cliente para Domicilio y Recoger se mantiene en la lógica aunque ya no se repita visualmente en la cabecera;
 - el selector de modalidad usa ahora un control compacto tipo segmented control;
-- las etiquetas operativas visibles son `Domicilio`, `Recoger` y `Local`;
+- las etiquetas operativas visibles son `DOMICILIO`, `RECOGER` y `LOCAL`;
 - `Recoger` representa internamente `PICKUP` / `Recoger en tienda`; solo se abrevia en la UI;
 - la modalidad seleccionada se distingue con borde rojo suave, fondo blanco y sombra mínima;
 - el bloque de cliente dejó de verse como una segunda columna separada por un divisor fuerte y pasa a una tarjeta secundaria compacta;
-- `+ Nuevo cliente` se presenta como acción discreta dentro del bloque de cliente;
+- buscar cliente usa botón negro solo con icono de lupa;
+- crear cliente usa botón rojo solo con icono `+`;
+- ambos controles tienen la misma altura y tamaño;
 - `Editar` y `Cambiar` usan botones secundarios compactos;
 - catálogo mantiene tarjetas compactas con imagen 1:1;
 - el panel derecho funciona como área fija de pedido actual en escritorio;
@@ -225,7 +232,7 @@ No se acumula cupón + descuento manual.
 
 Este refactor de integridad estructurada utiliza el campo JSON `OrderItem.configuration` ya existente y no agrega columnas nuevas.
 
-La recuperación de `/menu` y la eliminación segura de productos tampoco agregan columnas nuevas.
+La recuperación de `/menu`, la eliminación segura de productos y los últimos ajustes visuales del POS tampoco agregan columnas nuevas.
 
 Si el schema anterior ya fue sincronizado, este bloque **no requiere `npx prisma db push`**.
 
@@ -255,7 +262,8 @@ Después del despliegue:
 12. revisar `/pedidos` y el ticket 80 mm;
 13. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
 14. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-15. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+15. verificar que el panel derecho del POS muestre `* SELECCIONE TIPO DE PEDIDO` y `* INFORMACIÓN CLIENTE` sin pasos numerados ni `Preparar pedido`;
+16. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
