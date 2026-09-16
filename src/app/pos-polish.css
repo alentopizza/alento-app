@@ -1,0 +1,55 @@
+/* Ajustes visuales finales específicos del POS.
+   Se cargan después de globals.css para evitar mezclar reglas operativas con el estilo global. */
+
+/* Tipo de pedido: solo texto, compacto y en mayúsculas. */
+main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > span {
+  display: none !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > b {
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.055em !important;
+  text-transform: uppercase !important;
+}
+
+/* La regla antigua acortaba Recoger mediante pseudo-elemento. Restauramos el texto real y lo capitalizamos por CSS. */
+main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b {
+  font-size: 11px !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b::after {
+  content: none !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button {
+  min-height: 42px !important;
+  gap: 0 !important;
+  padding: 0 8px !important;
+}
+
+/* Nuevo cliente: misma presencia que Buscar, pero en rojo Alentó. */
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+  width: 74px !important;
+  min-height: 42px !important;
+  border: 1px solid var(--brand-red) !important;
+  border-radius: 12px !important;
+  background: var(--brand-red) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 16px rgba(229, 28, 17, 0.18) !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button:hover {
+  background: var(--brand-red-dark) !important;
+  border-color: var(--brand-red-dark) !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
+  content: "+ NUEVO" !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.025em !important;
+  color: #fff !important;
+}
