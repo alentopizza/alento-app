@@ -476,3 +476,83 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
     width: 70mm !important;
   }
 }
+
+/* Ajustes finales del layout POS de dos columnas. */
+@media screen {
+  main > div > section.grid > div:first-child > header.alento-dark {
+    width: 100%;
+    max-width: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child {
+    position: relative;
+    padding: 12px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child {
+    margin-bottom: 8px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child h2 {
+    display: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child p {
+    font-size: 9px !important;
+    letter-spacing: 0.17em !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 6;
+    display: inline-flex !important;
+    width: 72px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(229, 28, 17, 0.22) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    padding: 0 9px !important;
+    color: var(--brand-red) !important;
+    font-size: 0 !important;
+    box-shadow: 0 5px 14px rgba(229, 28, 17, 0.06);
+    white-space: nowrap;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
+    content: "+ Nuevo";
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:not(:has(input[placeholder="Nombre, teléfono o correo"])) > div:first-child > button {
+    display: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
+    padding-right: 80px;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.mt-2.overflow-hidden {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: calc(100% + 5px);
+    z-index: 30;
+    margin-top: 0 !important;
+    box-shadow: 0 14px 35px rgba(20, 18, 16, 0.14);
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) {
+    gap: 10px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > p,
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:nth-child(2) > p {
+    margin-bottom: 5px !important;
+  }
+}
