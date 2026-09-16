@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy"
+    "prisma:migrate": "prisma migrate deploy",
+    "catalog:seed": "node scripts/seed-catalog.js"
   },
   "dependencies": {
     "@prisma/client": "6.15.0",
