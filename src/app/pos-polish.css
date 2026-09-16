@@ -4,6 +4,56 @@
 
 /* El POS actual se reconoce porque el header vive dentro de la primera columna del grid. */
 
+/*
+ * Cabecera operativa del armado del pedido.
+ * Se elimina el rótulo redundante "Preparar pedido" y los pasos numerados se
+ * convierten en instrucciones directas, más legibles para operación rápida.
+ */
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:first-child > div:first-child {
+  display: none !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:first-child {
+  min-height: 0 !important;
+  margin-bottom: 8px !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > p {
+  margin-bottom: 8px !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > p::after {
+  content: "* SELECCIONE TIPO DE PEDIDO";
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  color: #111;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:nth-child(2) > p {
+  margin-bottom: 8px !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:nth-child(2) > p > span {
+  display: none !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:nth-child(2) > p::after {
+  content: "* INFORMACIÓN CLIENTE";
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  color: #111;
+}
+
 /* Tipo de pedido: solo texto, compacto y en mayúsculas. */
 main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > span {
   display: none !important;
