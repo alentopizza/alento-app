@@ -6,7 +6,7 @@ Aplicación operativa propia de Alentó Pizza para reemplazar gradualmente Glide
 
 La prioridad es terminar el flujo completo del punto de venta (POS):
 
-**Tipo de pedido → Cliente → Productos → Cobertura/Domicilio → Pago → Revisión → Pedido → Cocina**
+**Tipo de pedido → Cliente → Productos → Cobertura/Domicilio → Descuento → Pago → Revisión → Pedido → Cocina**
 
 ## Arquitectura
 
@@ -46,18 +46,27 @@ Ya están implementados:
 - carrito;
 - selector de tipo de pedido;
 - edición de cliente desde POS;
-- configuración persistente de cobertura, tarifas de domicilio y medios de pago;
-- API de cotización por distancia conocida.
+- configuración persistente de zonas/tarifas de domicilio y medios de pago;
+- cierre del pedido con tarifa, descuentos, cupones y forma de pago;
+- reglas de elegibilidad para evitar acumular cupones sobre combos/promociones;
+- administración de cupones.
 
-El siguiente bloque es el cierre del pedido con domicilio/cobertura, pago, revisión y persistencia real del `Order`.
+El siguiente bloque es la persistencia real de `Order`, `OrderItem` y `Payment`, seguida de la conexión con Cocina y Pedidos.
 
 ## Documentación técnica
 
-La documentación es parte del proyecto y debe actualizarse cuando cambie una decisión estructural.
+La documentación forma parte del producto y debe mantenerse junto con el código.
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura, responsabilidades, flujos y reglas del sistema.
+**Si estás retomando este proyecto en un chat nuevo o eres una nueva IA/desarrollador, empieza por [`docs/HANDOFF.md`](docs/HANDOFF.md).**
+
+Después consulta:
+
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual y próximos pasos.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura, responsabilidades, flujos y reglas del sistema.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel, Prisma, despliegue y resolución de problemas.
+- [`docs/HANDOFF.md`](docs/HANDOFF.md): orden de lectura, reglas obligatorias de documentación y procedimiento para retomar el proyecto.
+
+Todo cambio funcional o estructural importante debe actualizar la documentación relacionada antes de considerarse terminado.
 
 ## Prisma en producción
 
@@ -83,10 +92,9 @@ Los pedidos creados desde POS, WhatsApp/Chatwoot y la futura app de clientes deb
 
 ## Roadmap
 
-1. Finalizar cierre del pedido POS.
-2. Persistencia y gestión de pedidos.
-3. Cocina conectada a pedidos reales.
-4. Caja y conciliación de pagos.
-5. Integración con Chatwoot.
-6. Migración gradual desde Glide.
-7. App para clientes con experiencia móvil visual.
+1. Persistencia real y gestión de pedidos.
+2. Cocina conectada a pedidos reales.
+3. Caja y conciliación de pagos.
+4. Integración con Chatwoot.
+5. Migración gradual desde Glide.
+6. App para clientes con experiencia móvil visual.
