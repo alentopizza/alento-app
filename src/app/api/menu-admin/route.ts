@@ -46,12 +46,7 @@ export async function GET() {
           include: {
             comboGroups: {
               orderBy: { sortOrder: "asc" },
-              include: {
-                options: {
-                  orderBy: { sortOrder: "asc" },
-                  include: { product: true },
-                },
-              },
+              include: { options: { orderBy: { sortOrder: "asc" }, include: { product: true } } },
             },
             comboPizzaRules: {
               orderBy: { sortOrder: "asc" },
@@ -72,16 +67,10 @@ export async function GET() {
       where: { featured: true, type: { notIn: ["MODIFIER", "INTERNAL"] } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
-        comboGroups: {
-          orderBy: { sortOrder: "asc" },
-          include: { options: { orderBy: { sortOrder: "asc" }, include: { product: true } } },
-        },
+        comboGroups: { orderBy: { sortOrder: "asc" }, include: { options: { orderBy: { sortOrder: "asc" }, include: { product: true } } } },
         comboPizzaRules: {
           orderBy: { sortOrder: "asc" },
-          include: {
-            sizes: { include: { size: true } },
-            flavors: { include: { product: true } },
-          },
+          include: { sizes: { include: { size: true } }, flavors: { include: { product: true } } },
         },
       },
     }),
@@ -92,7 +81,6 @@ export async function GET() {
   const serializeProduct = (product: (typeof featuredProducts)[number]) => {
     const storedBasePrice = product.basePrice == null ? null : Number(product.basePrice);
     const comboDiscount = product.comboDiscount == null ? 0 : Number(product.comboDiscount);
-
     let regularMin = 0;
     let regularMax = 0;
 
@@ -169,9 +157,7 @@ export async function GET() {
       active: category.active,
       visibleInPos: category.visibleInPos,
       sortOrder: category.sortOrder,
-      products: category.slug === "destacados"
-        ? featuredProducts.map(serializeProduct)
-        : category.products.map(serializeProduct),
+      products: category.slug === "destacados" ? featuredProducts.map(serializeProduct) : category.products.map(serializeProduct),
     })),
     sizes: sizes.map((size) => ({ id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: Number(size.basePrice) })),
   });
@@ -197,6 +183,58 @@ export async function PATCH(request: NextRequest) {
   });
 
   return NextResponse.json({ product: { ...product, basePrice: product.basePrice == null ? null : Number(product.basePrice) } });
+}
+
+export async function DELETE(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const productId = Number(body.productId);
+  if (!Number.isInteger(productId)) return NextResponse.json({ error: "Producto inválido." }, { status: 400 });
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      _count: {
+        select: {
+          orderItems: true,
+          comboOptions: true,
+          comboFlavorOptions: true,
+        },
+      },
+    },
+  });
+
+  if (!product) return NextResponse.json({ error: "El producto ya no existe." }, { status: 404 });
+
+  const hasOrderHistory = product._count.orderItems > 0;
+  const usedByCombos = product._count.comboOptions > 0 || product._count.comboFlavorOptions > 0;
+
+  if (hasOrderHistory || usedByCombos) {
+    return NextResponse.json({
+      error: hasOrderHistory
+        ? "Este producto ya tiene historial de pedidos y no puede eliminarse. Desactívalo u ocúltalo del POS para conservar la integridad histórica."
+        : "Este producto está siendo usado por uno o más combos. Retíralo primero de esos combos o desactívalo.",
+      canDelete: false,
+      dependencies: {
+        orderItems: product._count.orderItems,
+        comboOptions: product._count.comboOptions,
+        comboFlavorOptions: product._count.comboFlavorOptions,
+      },
+    }, { status: 409 });
+  }
+
+  try {
+    await prisma.product.delete({ where: { id: productId } });
+    return NextResponse.json({ deleted: true, productId, name: product.name });
+  } catch (error) {
+    const prismaError = error as { code?: string };
+    if (prismaError.code === "P2003") {
+      return NextResponse.json({ error: "El producto tiene relaciones activas y no puede eliminarse. Desactívalo en su lugar." }, { status: 409 });
+    }
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -330,9 +368,7 @@ export async function POST(request: NextRequest) {
         return tx.product.findUniqueOrThrow({ where: { id: productId } });
       });
 
-      return NextResponse.json({
-        combo: { ...combo, regularMin, regularMax, discountAmount, finalMin, finalMax },
-      }, { status: body.action === "createCombo" ? 201 : 200 });
+      return NextResponse.json({ combo: { ...combo, regularMin, regularMax, discountAmount, finalMin, finalMax } }, { status: body.action === "createCombo" ? 201 : 200 });
     } catch (error) {
       const prismaError = error as { code?: string; message?: string };
       if (prismaError.code === "P2002") return NextResponse.json({ error: "Ya existe un combo con ese nombre." }, { status: 409 });
