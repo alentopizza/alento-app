@@ -27,6 +27,12 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Combos configurables.
 - Combos con descuento fijo.
 - Carrito con cantidades y subtotal.
+- Modal de cierre del pedido.
+- Validación manual temporal de distancia para Domicilio.
+- Consulta a `/api/delivery/quote` para determinar cobertura y tarifa.
+- Selección de medio de pago desde los métodos activos de Configuración.
+- Revisión de subtotal, domicilio y total antes de persistir el pedido.
+- El resultado del cierre validado se refleja de nuevo en el resumen lateral del POS.
 
 ### Clientes
 
@@ -58,44 +64,61 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Configuración.
 - Cotización de domicilio por distancia conocida.
 
-## Pendiente inmediato
-
-El siguiente bloque es el cierre operativo del pedido.
+## Flujo de cierre actual
 
 ### Domicilio
 
-1. Leer la dirección seleccionada del cliente.
-2. Obtener o capturar la distancia al local.
-3. Consultar `/api/delivery/quote`.
-4. Mostrar si existe cobertura.
-5. Aplicar automáticamente `deliveryFee`.
-6. Elegir medio de pago desde los métodos activos de Configuración.
-7. Mostrar revisión final.
-8. Crear el pedido persistente en PostgreSQL.
-9. Crear el pago asociado.
-10. Enviar el pedido a Cocina.
+1. Cliente ya seleccionado y con dirección registrada.
+2. Abrir cierre del pedido.
+3. Capturar manualmente la distancia en metros desde el local.
+4. Consultar `/api/delivery/quote`.
+5. Validar cobertura.
+6. Aplicar la tarifa de domicilio configurada.
+7. Elegir un medio de pago activo.
+8. Revisar productos, subtotal, domicilio y total.
+9. Validar el cierre.
 
 ### Recoger en tienda
 
 1. Cliente ya seleccionado.
-2. Medio de pago.
-3. Revisión final.
-4. Crear pedido y pago.
-5. Enviar a Cocina.
+2. Abrir cierre del pedido.
+3. Elegir medio de pago.
+4. Revisar el pedido.
+5. Validar el cierre.
 
 ### Local
 
 1. Cliente opcional.
-2. Medio de pago.
-3. Revisión final.
-4. Crear pedido y pago.
-5. Enviar a Cocina.
+2. Abrir cierre del pedido.
+3. Elegir medio de pago.
+4. Revisar el pedido.
+5. Validar el cierre.
+
+Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL. Este paso es intencional para aprobar primero el flujo operativo antes de persistir pedidos reales.
+
+## Pendiente inmediato
+
+El siguiente bloque aprobado es la persistencia real del pedido.
+
+Debe incluir:
+
+1. Endpoint de creación de pedido.
+2. Crear `Order` con tipo de pedido, cliente, dirección, subtotal, domicilio y total.
+3. Crear `OrderItem` para cada línea del carrito.
+4. Conservar suficiente configuración de pizzas y combos dentro de `configuration` para Cocina e historial.
+5. Crear `Payment` con el medio de pago validado.
+6. Definir correctamente el estado inicial del pago.
+7. Confirmar el pedido y limpiar el POS después de una creación exitosa.
+8. Conectar el pedido nuevo a Cocina.
+9. Crear o habilitar la pantalla de Pedidos.
 
 ## Decisión pendiente: cálculo automático de distancia
 
 Todavía no hay integración con un proveedor de mapas.
 
 Mientras esto no exista, `/api/delivery/quote` solo debe recibir una distancia ya conocida. No inferir distancias desde texto de dirección.
+
+La captura manual del cierre está marcada visualmente como temporal. La futura integración debe reemplazar solamente la obtención de `distanceMeters`; las reglas de cobertura y tarifas seguirán viviendo en Configuración.
 
 La integración futura debe resolver:
 
@@ -105,14 +128,13 @@ La integración futura debe resolver:
 - manejo de errores de dirección;
 - costos y límites del proveedor.
 
-## Próximos módulos después del cierre del pedido
+## Próximos módulos después de persistir pedidos
 
-1. Persistencia real de pedidos.
-2. Pantalla Pedidos.
-3. Cocina conectada a pedidos reales.
-4. Caja y conciliación de pagos.
-5. Integración con Chatwoot.
-6. App para clientes.
+1. Pantalla Pedidos.
+2. Cocina conectada a pedidos reales.
+3. Caja y conciliación de pagos.
+4. Integración con Chatwoot.
+5. App para clientes.
 
 ## Regla de continuidad
 
