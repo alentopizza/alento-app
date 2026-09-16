@@ -66,9 +66,10 @@ Destino operativo de pedidos confirmados. La conexión real depende de terminar 
 6. Cálculo de base elegible para descuento.
 7. Descuento: ninguno, cupón o manual.
 8. Medio de pago.
-9. Revisión final.
-10. Creación persistente del pedido.
-11. Envío a Cocina.
+9. Si es Efectivo, captura de `Paga con` y cálculo de vueltas.
+10. Revisión final.
+11. Creación persistente del pedido.
+12. Envío a Cocina.
 
 ## Configuración operativa
 
@@ -173,6 +174,38 @@ Un pedido usa una sola fuente:
 
 No acumular cupón + manual.
 
+## Arquitectura de pagos
+
+`Payment` representa el pago registrado para un pedido.
+
+Campos principales:
+
+```ts
+Payment {
+  method
+  amount
+  cashReceived?
+  changeDue?
+  status
+  reference?
+}
+```
+
+### Efectivo
+
+Cuando el método configurado corresponde a Efectivo:
+
+- el POS exige `cashReceived` (`Paga con`);
+- `cashReceived` debe ser igual o mayor al total;
+- `changeDue = cashReceived - total`;
+- en Domicilio, `changeDue` representa las vueltas que debe llevar el domiciliario;
+- en Local o Recoger, representa lo que debe devolver el cajero;
+- pago exacto guarda `changeDue = 0`.
+
+`cashReceived` y `changeDue` son opcionales porque no aplican a Nequi, DaviPlata, Tarjeta, Llave u otros medios no efectivos.
+
+El cierre del POS ya calcula estos valores. Cuando se implemente la creación persistente del pedido, deben guardarse en `Payment` y mostrarse en Cocina/Pedidos cuando sea operacionalmente útil.
+
 ## Snapshot del descuento en el pedido
 
 `Order` contiene:
@@ -198,6 +231,8 @@ El snapshot permite que el historial conserve lo ocurrido aunque el cupón sea r
 Prisma contiene `Order`, `OrderItem`, `Payment`, `Customer`, `CustomerAddress` y `Coupon`.
 
 `Order` dispone de subtotal, domicilio, descuento, total, tipo, fuente, relaciones con cliente/dirección/cupón, items y pagos.
+
+`Payment` dispone del método, valor del pago, estado y datos opcionales de efectivo (`cashReceived`, `changeDue`).
 
 ## Base de datos
 
