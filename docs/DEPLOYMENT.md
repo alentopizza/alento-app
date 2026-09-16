@@ -74,6 +74,35 @@ No hacer ese cambio de estrategia sin validar primero producción y una copia de
 
 Revisar errores TypeScript/Next.js en `npm run build`.
 
+### `number | null` al agregar productos simples al carrito
+
+Durante el rediseño final del POS, `CatalogProduct.basePrice` sigue correctamente tipado como `number | null` porque algunos productos pueden no tener precio base directo.
+
+Aunque `addSimpleProduct()` valida primero:
+
+```ts
+if (product.basePrice == null) return;
+```
+
+TypeScript no garantiza mantener ese narrowing dentro de un callback diferido como `setCart((current) => ...)` si dentro del callback se vuelve a acceder a `product.basePrice`.
+
+El síntoma de build es similar a:
+
+```text
+Type 'number | null' is not assignable to type 'number'
+```
+
+La solución aprobada es capturar el valor validado antes del callback:
+
+```ts
+if (product.basePrice == null) return;
+const unitPrice = product.basePrice;
+```
+
+y usar `unitPrice` al construir `CartItem`.
+
+No resolver este caso relajando el tipo de `CartItem.unitPrice`; debe seguir siendo `number` para preservar integridad de cálculos y persistencia.
+
 ### Excepción temporal de lint del POS estructurado
 
 Durante el refactor de integridad estructurada, `src/components/StructuredPosPage.tsx` contiene una aserción no nula posterior a una búsqueda opcional dentro del constructor de combos. ESLint 9 bloqueó el build con la regla `@typescript-eslint/no-non-null-asserted-optional-chain`.
