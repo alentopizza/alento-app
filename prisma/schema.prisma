@@ -294,3 +294,10 @@ model Payment {
 
   @@index([orderId])
 }
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
