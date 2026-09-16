@@ -20,6 +20,31 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Base elegible de descuentos validada en servidor.
 - Efectivo con `Paga con` y `Vueltas`.
 - Creación real y transaccional en PostgreSQL.
+- El carrito puede armarse antes de seleccionar tipo de pedido o cliente.
+- Las validaciones de tipo de pedido, cliente y dirección se aplican al cierre, no al botón `Agregar`.
+
+### Flujo operativo del carrito
+
+El POS no obliga a seguir un orden rígido para tomar el pedido.
+
+Se permite:
+
+1. agregar primero productos al carrito;
+2. después seleccionar Domicilio / Recoger / Local;
+3. después buscar o crear el cliente;
+4. finalmente continuar al cierre.
+
+Esto cubre llamadas o pedidos presenciales donde el cliente primero dicta los productos y entrega sus datos al final.
+
+Reglas:
+
+- `Agregar` debe estar disponible aunque todavía no exista cliente o tipo seleccionado;
+- pizzas y combos siguen abriendo sus configuradores normalmente;
+- el carrito conserva toda la configuración estructurada de productos;
+- `Continuar pedido` sí permanece bloqueado hasta que exista al menos un producto y se cumplan las reglas comerciales;
+- Domicilio requiere tipo `DELIVERY`, cliente y dirección;
+- Recoger requiere tipo `PICKUP` y cliente;
+- Local permite cliente opcional.
 
 ### Diseño operativo del POS
 
@@ -33,8 +58,8 @@ Reglas visuales actuales:
 - texto operativo del encabezado: `Toma pedidos y confirma ventas desde una sola pantalla.`;
 - bloque de tipo de pedido y cliente reducido en altura;
 - se retiró el rótulo `Preparar pedido` del panel derecho;
-- el rótulo de modalidad ahora es `* SELECCIONE TIPO DE PEDIDO`, con mayor tamaño y peso visual;
-- el rótulo de cliente ahora es `* INFORMACIÓN CLIENTE`, con mayor tamaño y peso visual;
+- el rótulo de modalidad ahora es `SELECCIONE TIPO DE PEDIDO`, centrado y en rojo;
+- el rótulo de cliente ahora es `INFORMACIÓN CLIENTE`, centrado y en rojo;
 - ya no se muestran los pasos `1. Tipo`, `2. Cliente`, `OBLIGATORIO` u `OPCIONAL` como parte de esas cabeceras;
 - la obligatoriedad de cliente para Domicilio y Recoger se mantiene en la lógica aunque ya no se repita visualmente en la cabecera;
 - el selector de modalidad usa ahora un control compacto tipo segmented control;
@@ -232,7 +257,7 @@ No se acumula cupón + descuento manual.
 
 Este refactor de integridad estructurada utiliza el campo JSON `OrderItem.configuration` ya existente y no agrega columnas nuevas.
 
-La recuperación de `/menu`, la eliminación segura de productos y los últimos ajustes visuales del POS tampoco agregan columnas nuevas.
+La recuperación de `/menu`, la eliminación segura de productos y los últimos ajustes visuales/operativos del POS tampoco agregan columnas nuevas.
 
 Si el schema anterior ya fue sincronizado, este bloque **no requiere `npx prisma db push`**.
 
@@ -254,16 +279,19 @@ Después del despliegue:
 4. crear un producto de prueba y eliminarlo si todavía no tiene dependencias;
 5. intentar eliminar un producto usado en un pedido o combo y confirmar que el sistema lo bloquee con mensaje claro;
 6. cancelar y eliminar los pedidos de prueba antiguos;
-7. crear una pizza de un sabor;
-8. crear una pizza dos sabores;
-9. crear una pizza con borde y extra;
-10. crear un combo con pizza + antojo + bebida;
-11. crear un producto simple;
-12. revisar `/pedidos` y el ticket 80 mm;
-13. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
-14. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-15. verificar que el panel derecho del POS muestre `* SELECCIONE TIPO DE PEDIDO` y `* INFORMACIÓN CLIENTE` sin pasos numerados ni `Preparar pedido`;
-16. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+7. sin seleccionar tipo ni cliente, agregar un producto simple y confirmar que entra al carrito;
+8. sin seleccionar cliente, abrir y configurar una pizza y confirmar que entra al carrito;
+9. sin seleccionar cliente, abrir y configurar un combo y confirmar que entra al carrito;
+10. comprobar que `Continuar pedido` siga bloqueado hasta completar tipo/cliente/dirección según corresponda;
+11. crear una pizza de un sabor;
+12. crear una pizza dos sabores;
+13. crear una pizza con borde y extra;
+14. crear un combo con pizza + antojo + bebida;
+15. crear un producto simple;
+16. revisar `/pedidos` y el ticket 80 mm;
+17. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
+18. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
+19. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
