@@ -8,21 +8,34 @@ const PRODUCT_CATEGORY_TYPES = {
   ingredientes: "MODIFIER",
 } as const;
 
-async function getMinimumPizzaSizePrice() {
-  const size = await prisma.pizzaSize.findFirst({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
+async function ensureCombosCategory() {
+  const category = await prisma.category.upsert({
+    where: { slug: "combos" },
+    update: { name: "Combos", active: true, visibleInPos: true, sortOrder: 5 },
+    create: { name: "Combos", slug: "combos", active: true, visibleInPos: true, sortOrder: 5 },
   });
-  return size ? Number(size.basePrice) : 0;
+
+  await prisma.product.updateMany({
+    where: { type: "COMBO", categoryId: { not: category.id } },
+    data: { categoryId: category.id },
+  });
+
+  return category;
 }
 
 function regularProductPrice(product: { type: string; basePrice: unknown }, minPizzaSizePrice: number) {
   const basePrice = product.basePrice == null ? 0 : Number(product.basePrice);
-  if (product.type === "PIZZA_SINGLE") return minPizzaSizePrice + basePrice;
-  return basePrice;
+  return product.type === "PIZZA_SINGLE" ? minPizzaSizePrice + basePrice : basePrice;
+}
+
+function uniqueIntegerArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item: unknown) => Number(item)).filter((item: number) => Number.isInteger(item)))];
 }
 
 export async function GET() {
+  await ensureCombosCategory();
+
   const [categories, sizes, featuredProducts] = await Promise.all([
     prisma.category.findMany({
       where: { slug: { not: "insumos" } },
@@ -40,6 +53,13 @@ export async function GET() {
                 },
               },
             },
+            comboPizzaRules: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                sizes: { include: { size: true } },
+                flavors: { include: { product: true } },
+              },
+            },
           },
         },
       },
@@ -49,19 +69,18 @@ export async function GET() {
       orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
     }),
     prisma.product.findMany({
-      where: {
-        featured: true,
-        type: { notIn: ["MODIFIER", "INTERNAL"] },
-      },
+      where: { featured: true, type: { notIn: ["MODIFIER", "INTERNAL"] } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       include: {
         comboGroups: {
           orderBy: { sortOrder: "asc" },
+          include: { options: { orderBy: { sortOrder: "asc" }, include: { product: true } } },
+        },
+        comboPizzaRules: {
+          orderBy: { sortOrder: "asc" },
           include: {
-            options: {
-              orderBy: { sortOrder: "asc" },
-              include: { product: true },
-            },
+            sizes: { include: { size: true } },
+            flavors: { include: { product: true } },
           },
         },
       },
@@ -71,12 +90,29 @@ export async function GET() {
   const minPizzaSizePrice = sizes.length ? Math.min(...sizes.map((size) => Number(size.basePrice))) : 0;
 
   const serializeProduct = (product: (typeof featuredProducts)[number]) => {
-    const comboRegularTotal = product.type === "COMBO"
-      ? product.comboGroups.reduce((total, group) => total + group.options.reduce((groupTotal, option) => {
-          return groupTotal + regularProductPrice(option.product, minPizzaSizePrice) * option.quantity;
-        }, 0), 0)
-      : null;
     const finalPrice = product.basePrice == null ? null : Number(product.basePrice);
+
+    let regularMin = 0;
+    let regularMax = 0;
+
+    if (product.type === "COMBO") {
+      for (const rule of product.comboPizzaRules) {
+        const sizePrices = rule.sizes.map((item) => Number(item.size.basePrice));
+        const flavorPrices = rule.flavors.map((item) => Number(item.product.basePrice ?? 0));
+        if (sizePrices.length && flavorPrices.length) {
+          regularMin += (Math.min(...sizePrices) + Math.min(...flavorPrices)) * rule.quantity;
+          regularMax += (Math.max(...sizePrices) + Math.max(...flavorPrices)) * rule.quantity;
+        }
+      }
+
+      for (const group of product.comboGroups) {
+        const prices = group.options.map((option) => regularProductPrice(option.product, minPizzaSizePrice));
+        if (prices.length) {
+          regularMin += Math.min(...prices) * group.minSelections;
+          regularMax += Math.max(...prices) * group.maxSelections;
+        }
+      }
+    }
 
     return {
       id: product.id,
@@ -91,10 +127,19 @@ export async function GET() {
       visibleInPos: product.visibleInPos,
       featured: product.featured,
       sortOrder: product.sortOrder,
-      comboRegularTotal,
-      comboDiscount: comboRegularTotal != null && finalPrice != null ? Math.max(0, comboRegularTotal - finalPrice) : null,
+      comboRegularMin: product.type === "COMBO" ? regularMin : null,
+      comboRegularMax: product.type === "COMBO" ? regularMax : null,
+      comboDiscountMin: product.type === "COMBO" && finalPrice != null ? Math.max(0, regularMin - finalPrice) : null,
+      comboDiscountMax: product.type === "COMBO" && finalPrice != null ? Math.max(0, regularMax - finalPrice) : null,
+      comboPizzaRules: product.comboPizzaRules.map((rule) => ({
+        id: rule.id,
+        quantity: rule.quantity,
+        sizeIds: rule.sizes.map((item) => item.sizeId),
+        flavorIds: rule.flavors.map((item) => item.productId),
+      })),
       comboGroups: product.comboGroups.map((group) => ({
         id: group.id,
+        kind: group.kind,
         name: group.name,
         minSelections: group.minSelections,
         maxSelections: group.maxSelections,
@@ -123,22 +168,14 @@ export async function GET() {
         ? featuredProducts.map(serializeProduct)
         : category.products.map(serializeProduct),
     })),
-    sizes: sizes.map((size) => ({
-      id: size.id,
-      name: size.name,
-      diameterCm: size.diameterCm,
-      basePrice: Number(size.basePrice),
-    })),
+    sizes: sizes.map((size) => ({ id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: Number(size.basePrice) })),
   });
 }
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
   const productId = Number(body.productId);
-
-  if (!Number.isInteger(productId)) {
-    return NextResponse.json({ error: "Producto inválido." }, { status: 400 });
-  }
+  if (!Number.isInteger(productId)) return NextResponse.json({ error: "Producto inválido." }, { status: 400 });
 
   const product = await prisma.product.update({
     where: { id: productId },
@@ -150,20 +187,11 @@ export async function PATCH(request: NextRequest) {
       ...(typeof body.active === "boolean" ? { active: body.active } : {}),
       ...(typeof body.visibleInPos === "boolean" ? { visibleInPos: body.visibleInPos } : {}),
       ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}),
-      ...(body.basePrice === null || body.basePrice === ""
-        ? { basePrice: null }
-        : Number.isFinite(Number(body.basePrice))
-          ? { basePrice: Number(body.basePrice) }
-          : {}),
+      ...(body.basePrice === null || body.basePrice === "" ? { basePrice: null } : Number.isFinite(Number(body.basePrice)) ? { basePrice: Number(body.basePrice) } : {}),
     },
   });
 
-  return NextResponse.json({
-    product: {
-      ...product,
-      basePrice: product.basePrice == null ? null : Number(product.basePrice),
-    },
-  });
+  return NextResponse.json({ product: { ...product, basePrice: product.basePrice == null ? null : Number(product.basePrice) } });
 }
 
 export async function POST(request: NextRequest) {
@@ -172,9 +200,7 @@ export async function POST(request: NextRequest) {
   if (body.action === "createProduct") {
     const categorySlug = typeof body.categorySlug === "string" ? body.categorySlug.trim() : "";
     const productType = PRODUCT_CATEGORY_TYPES[categorySlug as keyof typeof PRODUCT_CATEGORY_TYPES];
-    if (!productType) {
-      return NextResponse.json({ error: "Categoría no permitida para crear productos." }, { status: 400 });
-    }
+    if (!productType) return NextResponse.json({ error: "Categoría no permitida para crear productos." }, { status: 400 });
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
@@ -182,209 +208,129 @@ export async function POST(request: NextRequest) {
     const imageUrl2 = typeof body.imageUrl2 === "string" ? body.imageUrl2.trim() : "";
     const basePrice = Number(body.basePrice);
 
-    if (!name) {
-      return NextResponse.json({ error: "El nombre es obligatorio." }, { status: 400 });
-    }
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-      return NextResponse.json({ error: "El precio debe ser válido." }, { status: 400 });
-    }
+    if (!name) return NextResponse.json({ error: "El nombre es obligatorio." }, { status: 400 });
+    if (!Number.isFinite(basePrice) || basePrice < 0) return NextResponse.json({ error: "El precio debe ser válido." }, { status: 400 });
 
     const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
-    if (!category) {
-      return NextResponse.json({ error: "No existe la categoría seleccionada." }, { status: 400 });
-    }
-
+    if (!category) return NextResponse.json({ error: "No existe la categoría seleccionada." }, { status: 400 });
     const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
 
     try {
       const product = await prisma.product.create({
-        data: {
-          categoryId: category.id,
-          name,
-          description: description || null,
-          imageUrl: imageUrl || null,
-          imageUrl2: imageUrl2 || null,
-          type: productType,
-          basePrice,
-          active: true,
-          visibleInPos: productType !== "MODIFIER",
-          featured: false,
-          sortOrder,
-        },
+        data: { categoryId: category.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: productType, basePrice, active: true, visibleInPos: productType !== "MODIFIER", featured: false, sortOrder },
       });
-
       return NextResponse.json({ product }, { status: 201 });
     } catch (error) {
       const prismaError = error as { code?: string };
-      if (prismaError.code === "P2002") {
-        return NextResponse.json({ error: "Ya existe un producto con ese nombre en la categoría." }, { status: 409 });
-      }
+      if (prismaError.code === "P2002") return NextResponse.json({ error: "Ya existe un producto con ese nombre en la categoría." }, { status: 409 });
       throw error;
     }
   }
 
-  if (body.action === "createCombo") {
+  if (body.action === "createCombo" || body.action === "saveCombo") {
+    const comboProductId = Number(body.comboProductId);
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
     const imageUrl2 = typeof body.imageUrl2 === "string" ? body.imageUrl2.trim() : "";
     const finalPrice = Number(body.finalPrice);
-    const rawProductIds: unknown[] = Array.isArray(body.productIds) ? body.productIds : [];
-    const productIds = [...new Set(
-      rawProductIds
-        .map((value: unknown) => Number(value))
-        .filter((value: number) => Number.isInteger(value)),
-    )];
+    const pizzaQuantity = Math.max(0, Number(body.pizzaQuantity) || 0);
+    const pizzaSizeIds = uniqueIntegerArray(body.pizzaSizeIds);
+    const pizzaFlavorIds = uniqueIntegerArray(body.pizzaFlavorIds);
+    const snackQuantity = Math.max(0, Number(body.snackQuantity) || 0);
+    const snackProductIds = uniqueIntegerArray(body.snackProductIds);
+    const beverageQuantity = Math.max(0, Number(body.beverageQuantity) || 0);
+    const beverageProductIds = uniqueIntegerArray(body.beverageProductIds);
 
-    if (!name) {
-      return NextResponse.json({ error: "El nombre del combo es obligatorio." }, { status: 400 });
-    }
-    if (!Number.isFinite(finalPrice) || finalPrice < 0) {
-      return NextResponse.json({ error: "El valor final del combo debe ser válido." }, { status: 400 });
-    }
-    if (productIds.length < 2) {
-      return NextResponse.json({ error: "Selecciona al menos dos productos para el combo." }, { status: 400 });
-    }
+    if (body.action === "createCombo" && !name) return NextResponse.json({ error: "El nombre del combo es obligatorio." }, { status: 400 });
+    if (!Number.isFinite(finalPrice) || finalPrice < 0) return NextResponse.json({ error: "El valor final del combo debe ser válido." }, { status: 400 });
+    if (pizzaQuantity > 0 && (!pizzaSizeIds.length || !pizzaFlavorIds.length)) return NextResponse.json({ error: "Selecciona tamaños y sabores permitidos para la pizza." }, { status: 400 });
+    if (snackQuantity > 0 && !snackProductIds.length) return NextResponse.json({ error: "Selecciona al menos un antojo permitido." }, { status: 400 });
+    if (beverageQuantity > 0 && !beverageProductIds.length) return NextResponse.json({ error: "Selecciona al menos una bebida permitida." }, { status: 400 });
+    if (pizzaQuantity + snackQuantity + beverageQuantity === 0) return NextResponse.json({ error: "El combo debe incluir al menos un componente." }, { status: 400 });
 
-    const [category, products, minPizzaSizePrice] = await Promise.all([
-      prisma.category.findUnique({ where: { slug: "destacados" } }),
-      prisma.product.findMany({
-        where: {
-          id: { in: productIds },
-          type: { in: ["STANDARD", "PIZZA_SINGLE"] },
-        },
-      }),
-      getMinimumPizzaSizePrice(),
+    const combosCategory = await ensureCombosCategory();
+
+    const [sizes, flavors, snacks, beverages] = await Promise.all([
+      prisma.pizzaSize.findMany({ where: { id: { in: pizzaSizeIds }, active: true } }),
+      prisma.product.findMany({ where: { id: { in: pizzaFlavorIds }, type: "PIZZA_SINGLE", active: true } }),
+      prisma.product.findMany({ where: { id: { in: snackProductIds }, category: { slug: "antojos" }, active: true } }),
+      prisma.product.findMany({ where: { id: { in: beverageProductIds }, category: { slug: "bebidas" }, active: true } }),
     ]);
 
-    if (!category) {
-      return NextResponse.json({ error: "No existe la categoría Destacados." }, { status: 400 });
+    if (pizzaQuantity > 0 && (sizes.length !== pizzaSizeIds.length || flavors.length !== pizzaFlavorIds.length)) return NextResponse.json({ error: "Hay tamaños o sabores inválidos en el combo." }, { status: 400 });
+    if (snackQuantity > 0 && snacks.length !== snackProductIds.length) return NextResponse.json({ error: "Hay antojos inválidos en el combo." }, { status: 400 });
+    if (beverageQuantity > 0 && beverages.length !== beverageProductIds.length) return NextResponse.json({ error: "Hay bebidas inválidas en el combo." }, { status: 400 });
+
+    const sizePrices = sizes.map((item) => Number(item.basePrice));
+    const flavorPrices = flavors.map((item) => Number(item.basePrice ?? 0));
+    const snackPrices = snacks.map((item) => Number(item.basePrice ?? 0));
+    const beveragePrices = beverages.map((item) => Number(item.basePrice ?? 0));
+
+    let regularMin = 0;
+    let regularMax = 0;
+    if (pizzaQuantity > 0) {
+      regularMin += (Math.min(...sizePrices) + Math.min(...flavorPrices)) * pizzaQuantity;
+      regularMax += (Math.max(...sizePrices) + Math.max(...flavorPrices)) * pizzaQuantity;
     }
-    if (products.length !== productIds.length) {
-      return NextResponse.json({ error: "Uno o más productos no son válidos para un combo." }, { status: 400 });
+    if (snackQuantity > 0) {
+      regularMin += Math.min(...snackPrices) * snackQuantity;
+      regularMax += Math.max(...snackPrices) * snackQuantity;
+    }
+    if (beverageQuantity > 0) {
+      regularMin += Math.min(...beveragePrices) * beverageQuantity;
+      regularMax += Math.max(...beveragePrices) * beverageQuantity;
     }
 
-    const regularTotal = products.reduce((total, product) => total + regularProductPrice(product, minPizzaSizePrice), 0);
-    if (finalPrice > regularTotal) {
-      return NextResponse.json({ error: "El valor del combo no puede superar el valor normal de los productos." }, { status: 400 });
-    }
-
-    const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
+    if (finalPrice > regularMax) return NextResponse.json({ error: "El valor del combo no puede superar el valor normal máximo de las opciones permitidas." }, { status: 400 });
 
     try {
       const combo = await prisma.$transaction(async (tx) => {
-        const createdCombo = await tx.product.create({
-          data: {
-            categoryId: category.id,
-            name,
-            description: description || null,
-            imageUrl: imageUrl || null,
-            imageUrl2: imageUrl2 || null,
-            type: "COMBO",
-            basePrice: finalPrice,
-            active: true,
-            visibleInPos: true,
-            featured: true,
-            sortOrder,
-          },
-        });
-
-        const group = await tx.comboGroup.create({
-          data: {
-            comboProductId: createdCombo.id,
-            name: "Incluye",
-            minSelections: products.length,
-            maxSelections: products.length,
-            sortOrder: 0,
-          },
-        });
-
-        for (let index = 0; index < products.length; index += 1) {
-          await tx.comboOption.create({
-            data: {
-              groupId: group.id,
-              productId: products[index].id,
-              quantity: 1,
-              priceDelta: 0,
-              sortOrder: index,
-            },
+        let productId = comboProductId;
+        if (body.action === "createCombo") {
+          const sortOrder = await tx.product.count({ where: { categoryId: combosCategory.id } });
+          const created = await tx.product.create({
+            data: { categoryId: combosCategory.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: "COMBO", basePrice: finalPrice, active: true, visibleInPos: true, featured: true, sortOrder },
           });
+          productId = created.id;
+        } else {
+          if (!Number.isInteger(productId)) throw new Error("Combo inválido.");
+          await tx.product.update({
+            where: { id: productId },
+            data: { categoryId: combosCategory.id, basePrice: finalPrice, ...(name ? { name } : {}), description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null },
+          });
+          await tx.comboPizzaRule.deleteMany({ where: { comboProductId: productId } });
+          await tx.comboGroup.deleteMany({ where: { comboProductId: productId } });
         }
 
-        return createdCombo;
+        if (pizzaQuantity > 0) {
+          const rule = await tx.comboPizzaRule.create({ data: { comboProductId: productId, quantity: pizzaQuantity, sortOrder: 0 } });
+          await tx.comboPizzaSizeOption.createMany({ data: pizzaSizeIds.map((sizeId) => ({ ruleId: rule.id, sizeId })) });
+          await tx.comboPizzaFlavorOption.createMany({ data: pizzaFlavorIds.map((pizzaProductId) => ({ ruleId: rule.id, productId: pizzaProductId })) });
+        }
+
+        if (snackQuantity > 0) {
+          const group = await tx.comboGroup.create({ data: { comboProductId: productId, kind: "ANTOJO", name: "Antojo", minSelections: snackQuantity, maxSelections: snackQuantity, sortOrder: 1 } });
+          await tx.comboOption.createMany({ data: snackProductIds.map((productId) => ({ groupId: group.id, productId, quantity: 1, priceDelta: 0 })) });
+        }
+
+        if (beverageQuantity > 0) {
+          const group = await tx.comboGroup.create({ data: { comboProductId: productId, kind: "BEBIDA", name: "Bebida", minSelections: beverageQuantity, maxSelections: beverageQuantity, sortOrder: 2 } });
+          await tx.comboOption.createMany({ data: beverageProductIds.map((productId) => ({ groupId: group.id, productId, quantity: 1, priceDelta: 0 })) });
+        }
+
+        return tx.product.findUniqueOrThrow({ where: { id: productId } });
       });
 
       return NextResponse.json({
-        combo: {
-          ...combo,
-          regularTotal,
-          discount: Math.max(0, regularTotal - finalPrice),
-          finalPrice,
-        },
-      }, { status: 201 });
+        combo: { ...combo, regularMin, regularMax, discountMin: Math.max(0, regularMin - finalPrice), discountMax: Math.max(0, regularMax - finalPrice), finalPrice },
+      }, { status: body.action === "createCombo" ? 201 : 200 });
     } catch (error) {
-      const prismaError = error as { code?: string };
-      if (prismaError.code === "P2002") {
-        return NextResponse.json({ error: "Ya existe un combo con ese nombre." }, { status: 409 });
-      }
-      throw error;
+      const prismaError = error as { code?: string; message?: string };
+      if (prismaError.code === "P2002") return NextResponse.json({ error: "Ya existe un combo con ese nombre." }, { status: 409 });
+      return NextResponse.json({ error: prismaError.message || "No fue posible guardar el combo." }, { status: 500 });
     }
   }
 
-  const comboProductId = Number(body.comboProductId);
-  const rawGroups: unknown[] = Array.isArray(body.groups) ? body.groups : [];
-
-  if (!Number.isInteger(comboProductId)) {
-    return NextResponse.json({ error: "Combo inválido." }, { status: 400 });
-  }
-
-  const combo = await prisma.product.findUnique({ where: { id: comboProductId } });
-  if (!combo || combo.type !== "COMBO") {
-    return NextResponse.json({ error: "El producto no es un combo." }, { status: 400 });
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.comboGroup.deleteMany({ where: { comboProductId } });
-
-    for (let groupIndex = 0; groupIndex < rawGroups.length; groupIndex += 1) {
-      const group = rawGroups[groupIndex] as {
-        name?: unknown;
-        minSelections?: unknown;
-        maxSelections?: unknown;
-        options?: unknown;
-      };
-      const rawOptions: unknown[] = Array.isArray(group.options) ? group.options : [];
-      const createdGroup = await tx.comboGroup.create({
-        data: {
-          comboProductId,
-          name: String(group.name || `Grupo ${groupIndex + 1}`),
-          minSelections: Math.max(0, Number(group.minSelections) || 0),
-          maxSelections: Math.max(1, Number(group.maxSelections) || 1),
-          sortOrder: groupIndex,
-        },
-      });
-
-      for (let optionIndex = 0; optionIndex < rawOptions.length; optionIndex += 1) {
-        const option = rawOptions[optionIndex] as {
-          productId?: unknown;
-          quantity?: unknown;
-          priceDelta?: unknown;
-        };
-        const productId = Number(option.productId);
-        if (!Number.isInteger(productId)) continue;
-
-        await tx.comboOption.create({
-          data: {
-            groupId: createdGroup.id,
-            productId,
-            quantity: Math.max(1, Number(option.quantity) || 1),
-            priceDelta: Number(option.priceDelta) || 0,
-            sortOrder: optionIndex,
-          },
-        });
-      }
-    }
-  });
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ error: "Acción no válida." }, { status: 400 });
 }
