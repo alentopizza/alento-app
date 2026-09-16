@@ -129,6 +129,70 @@ article.alento-card-soft p {
   line-height: 1.1rem;
 }
 
+/* Configuradores de producto del POS: más densos y rápidos de recorrer. */
+.fixed.inset-0.z-50 > .alento-card {
+  border-radius: 24px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child {
+  padding: 14px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child h2 {
+  font-size: 1.35rem !important;
+  line-height: 1.55rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll {
+  padding: 16px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll > div {
+  gap: 16px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section h3 {
+  margin-bottom: 8px !important;
+  font-size: 0.98rem !important;
+  line-height: 1.2rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section .grid,
+.fixed.inset-0.z-50 > .alento-card section .flex.flex-wrap {
+  gap: 6px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button {
+  border-radius: 12px !important;
+  padding: 9px 11px !important;
+  min-height: 48px;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button b {
+  font-size: 0.9rem !important;
+  line-height: 1.05rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button span {
+  font-size: 0.68rem !important;
+  line-height: 0.95rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child {
+  padding: 12px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child p.text-3xl {
+  font-size: 1.7rem !important;
+  line-height: 2rem !important;
+}
+
+@media (min-width: 768px) {
+  .fixed.inset-0.z-50 > .alento-card section .md\:grid-cols-3 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
 @media (max-width: 640px) {
   div:has(> article.alento-card-soft) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -136,5 +200,12 @@ article.alento-card-soft p {
 
   article.alento-card-soft > div:last-child {
     padding: 12px !important;
+  }
+
+  .fixed.inset-0.z-50 > .alento-card > div:first-child,
+  .fixed.inset-0.z-50 > .alento-card > .alento-scroll,
+  .fixed.inset-0.z-50 > .alento-card > div:last-child {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
   }
 }
