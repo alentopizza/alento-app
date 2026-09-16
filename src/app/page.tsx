@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
 type Modifier = { id: number; name: string; description: string | null; imageUrl: string | null; basePrice: number };
 type Crust = { id: number; name: string; prices: { sizeId: number; price: number }[] };
@@ -18,12 +19,22 @@ type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavor
 type ComboPizzaChoice = { sizeId: number | null; flavorId: number | null };
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
+const fulfillmentOptions: { type: FulfillmentType; icon: string; title: string; description: string }[] = [
+  { type: "DELIVERY", icon: "🛵", title: "Domicilio", description: "Entregar en la dirección del cliente." },
+  { type: "PICKUP", icon: "🛍️", title: "Recoger en tienda", description: "El cliente viene a Alentó Pizza por su pedido." },
+  { type: "STORE", icon: "🍽️", title: "Local", description: "Pedido para consumir en el local." },
+];
+
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
 }
 
 function isTwoFlavorPizza(product: CatalogProduct) {
   return product.type === "PIZZA_TWO_FLAVORS" || product.name.toLowerCase().includes("2 sabores");
+}
+
+function fulfillmentLabel(type: FulfillmentType | null) {
+  return fulfillmentOptions.find((option) => option.type === type)?.title ?? null;
 }
 
 export default function Home() {
@@ -50,6 +61,9 @@ export default function Home() {
   const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
   const [comboConfig, setComboConfig] = useState<ComboConfig | null>(null);
   const [configError, setConfigError] = useState("");
+  const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
+  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
+  const [pendingFulfillmentType, setPendingFulfillmentType] = useState<FulfillmentType | null>(null);
 
   useEffect(() => {
     async function loadCatalog() {
@@ -310,8 +324,21 @@ export default function Home() {
     setCart((current) => current.map((item) => item.key === key ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   }
 
+  function openConfirmOrder() {
+    if (!cart.length) return;
+    setPendingFulfillmentType(fulfillmentType);
+    setShowFulfillmentModal(true);
+  }
+
+  function confirmFulfillmentType() {
+    if (!pendingFulfillmentType) return;
+    setFulfillmentType(pendingFulfillmentType);
+    setShowFulfillmentModal(false);
+  }
+
   const selectedAddress = selectedCustomer?.addresses?.[0];
   const configuringTwoFlavors = pizzaConfig ? isTwoFlavorPizza(pizzaConfig.product) : false;
+  const selectedFulfillmentLabel = fulfillmentLabel(fulfillmentType);
 
   return (
     <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
@@ -364,14 +391,38 @@ export default function Home() {
           </div>
 
           <aside className="alento-card rounded-[30px] p-4 xl:sticky xl:top-7 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
-            <div className="mb-3 shrink-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><div className="mt-1 flex items-end justify-between gap-3"><h2 className="text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{cart.length > 0 && <span className="text-xs font-bold text-neutral-400">{cart.length} línea{cart.length === 1 ? "" : "s"}</span>}</div>{selectedCustomer && <p className="mt-1 text-sm text-[var(--muted)]">Para {selectedCustomer.name}</p>}</div>
+            <div className="mb-3 shrink-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><div className="mt-1 flex items-end justify-between gap-3"><h2 className="text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{cart.length > 0 && <span className="text-xs font-bold text-neutral-400">{cart.length} línea{cart.length === 1 ? "" : "s"}</span>}</div>{selectedCustomer && <p className="mt-1 text-sm text-[var(--muted)]">Para {selectedCustomer.name}</p>}{selectedFulfillmentLabel && <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-[11px] font-black"><span className="h-2 w-2 rounded-full bg-[var(--brand-red)]" />{selectedFulfillmentLabel}</div>}</div>
             {cart.length === 0 ? <div className="rounded-[20px] border border-dashed bg-[#faf9f7] px-4 py-9 text-center xl:flex xl:flex-1 xl:flex-col xl:items-center xl:justify-center"><p className="font-bold">Tu pedido está vacío</p><p className="mt-1 text-xs text-neutral-400">Agrega productos para comenzar.</p></div> : <div className="alento-scroll min-h-0 space-y-2 overflow-y-auto pr-1 xl:flex-1">{cart.map((item) => <div key={item.key} className="rounded-xl border border-neutral-200 bg-white p-2.5"><div className="flex items-start justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p><p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-neutral-500">{item.detail}</p></div><b className="whitespace-nowrap text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1.5"><button onClick={() => changeQty(item.key, -1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">−</button><span className="min-w-5 text-center text-sm font-black">{item.quantity}</span><button onClick={() => changeQty(item.key, 1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">+</button></div></div></div>)}</div>}
-            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div><div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>$0</strong></div><div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(subtotal)}</strong></div></div><button disabled={!cart.length} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Confirmar pedido</button></div>
+            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>$0</strong></div>}{selectedFulfillmentLabel && <div className="flex justify-between"><span className="text-neutral-500">Tipo de pedido</span><strong>{selectedFulfillmentLabel}</strong></div>}<div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(subtotal)}</strong></div></div><button onClick={openConfirmOrder} disabled={!cart.length} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Confirmar pedido</button></div>
           </aside>
         </section>
       </div>
 
       {showCreateCustomer && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="alento-card max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[30px] p-6"><div className="mb-5 flex justify-between"><h2 className="text-2xl font-black">Nuevo cliente</h2><button onClick={() => setShowCreateCustomer(false)}>Cerrar</button></div><form onSubmit={createCustomer} className="space-y-4"><input value={name} onChange={(event) => setName(event.target.value)} className="alento-input w-full" placeholder="Nombre *" /><div className="grid grid-cols-[100px_1fr] gap-3"><select value={countryCode} onChange={(event) => setCountryCode(event.target.value)} className="alento-input"><option>+57</option><option>+1</option></select><input value={phone} onChange={(event) => setPhone(event.target.value)} className="alento-input" placeholder="Teléfono *" /></div><input value={address} onChange={(event) => setAddress(event.target.value)} className="alento-input w-full" placeholder="Dirección (opcional)" /><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="alento-input w-full" placeholder="Notas" /><input value={email} onChange={(event) => setEmail(event.target.value)} className="alento-input w-full" placeholder="Correo (opcional)" />{customerError && <div className="rounded-xl bg-red-50 p-3 text-red-700">{customerError}</div>}<button disabled={savingCustomer} className="w-full rounded-2xl bg-[var(--brand-red)] p-3 font-black text-white">{savingCustomer ? "Guardando..." : "Crear cliente"}</button></form></div></div>}
+
+      {showFulfillmentModal && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4">
+        <div className="alento-card w-full max-w-3xl overflow-hidden rounded-[30px]">
+          <div className="border-b border-neutral-100 px-6 py-5 md:px-7">
+            <div className="flex items-start justify-between gap-4">
+              <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Confirmar pedido</p><h2 className="mt-1 text-2xl font-black md:text-3xl">¿Cómo se entregará este pedido?</h2><p className="mt-1 text-sm text-neutral-500">Selecciona una modalidad para continuar con el cierre.</p></div>
+              <button onClick={() => setShowFulfillmentModal(false)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
+            </div>
+          </div>
+          <div className="grid gap-3 p-6 md:grid-cols-3 md:p-7">
+            {fulfillmentOptions.map((option) => {
+              const selected = pendingFulfillmentType === option.type;
+              return <button key={option.type} onClick={() => setPendingFulfillmentType(option.type)} className={`group rounded-[24px] border-2 p-5 text-left transition ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_12px_30px_rgba(229,28,17,.10)]" : "border-neutral-200 bg-white hover:border-neutral-400"}`}>
+                <div className="flex items-start justify-between gap-3"><span className="text-3xl">{option.icon}</span><span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${selected ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white" : "border-neutral-300 text-transparent"}`}>✓</span></div>
+                <h3 className="mt-5 text-lg font-black">{option.title}</h3><p className="mt-1 text-sm leading-5 text-neutral-500">{option.description}</p>
+              </button>;
+            })}
+          </div>
+          <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:items-center sm:justify-end md:px-7">
+            <button onClick={() => setShowFulfillmentModal(false)} className="rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-sm font-black">Cancelar</button>
+            <button onClick={confirmFulfillmentType} disabled={!pendingFulfillmentType} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Continuar</button>
+          </div>
+        </div>
+      </div>}
 
       {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[30px]">
         <div className="shrink-0 border-b border-neutral-100 bg-white px-6 py-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase text-neutral-400">Configurar pizza</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2>{configuringTwoFlavors && <p className="mt-1 text-xs text-neutral-500">El precio toma el sabor de mayor valor.</p>}</div><div className="flex items-center gap-3"><div className="hidden rounded-2xl bg-red-50 px-4 py-2 text-right sm:block"><p className="text-[10px] font-bold uppercase tracking-wide text-red-400">Total actual</p><p className="text-lg font-black text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</p></div><button onClick={() => setPizzaConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button></div></div></div>
