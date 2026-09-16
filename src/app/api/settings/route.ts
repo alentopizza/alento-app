@@ -5,6 +5,7 @@ const SETTINGS_KEY = "pos_settings";
 
 type DeliveryBand = {
   id: string;
+  name: string;
   minMeters: number;
   maxMeters: number;
   fee: number;
@@ -26,14 +27,20 @@ type PosSettings = {
   paymentMethods: PaymentMethodSetting[];
 };
 
+function defaultBandName(fee: number, index: number) {
+  if (fee === 0) return "Domicilio sin costo";
+  return `Domicilio ${index + 1}`;
+}
+
 const DEFAULT_POS_SETTINGS: PosSettings = {
   store: {
     address: "Av. Calle 43 Sur #79A-33, Bogotá",
     mapsUrl: "https://maps.app.goo.gl/po5MesvuTLifpwyz7",
   },
   deliveryBands: [
-    { id: "band-1", minMeters: 0, maxMeters: 200, fee: 0, active: true },
-    { id: "band-2", minMeters: 201, maxMeters: 500, fee: 5000, active: true },
+    { id: "band-1", name: "Zona cercana", minMeters: 0, maxMeters: 200, fee: 0, active: true },
+    { id: "band-2", name: "Zona intermedia", minMeters: 201, maxMeters: 500, fee: 5000, active: true },
+    { id: "band-3", name: "Zona extendida", minMeters: 501, maxMeters: 1000, fee: 10000, active: true },
   ],
   paymentMethods: [
     { id: "cash", name: "Efectivo", active: true },
@@ -57,13 +64,17 @@ function normalizeSettings(value: unknown): PosSettings {
 
   const deliveryBands = Array.isArray(raw.deliveryBands)
     ? raw.deliveryBands
-        .map((band, index) => ({
-          id: typeof band?.id === "string" && band.id ? band.id : `band-${index + 1}`,
-          minMeters: Math.max(0, Number(band?.minMeters ?? 0)),
-          maxMeters: Math.max(0, Number(band?.maxMeters ?? 0)),
-          fee: Math.max(0, Number(band?.fee ?? 0)),
-          active: band?.active !== false,
-        }))
+        .map((band, index) => {
+          const fee = Math.max(0, Number(band?.fee ?? 0));
+          return {
+            id: typeof band?.id === "string" && band.id ? band.id : `band-${index + 1}`,
+            name: typeof band?.name === "string" && band.name.trim() ? band.name.trim() : defaultBandName(fee, index),
+            minMeters: Math.max(0, Number(band?.minMeters ?? index * 500)),
+            maxMeters: Math.max(0, Number(band?.maxMeters ?? ((index + 1) * 500))),
+            fee,
+            active: band?.active !== false,
+          };
+        })
         .filter((band) => Number.isFinite(band.minMeters) && Number.isFinite(band.maxMeters) && Number.isFinite(band.fee))
     : DEFAULT_POS_SETTINGS.deliveryBands;
 
@@ -94,17 +105,12 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const settings = normalizeSettings(body?.settings);
 
-  for (const band of settings.deliveryBands) {
-    if (band.maxMeters < band.minMeters) {
-      return NextResponse.json({ error: "Cada rango debe terminar en una distancia mayor o igual a su inicio." }, { status: 400 });
-    }
+  if (!settings.deliveryBands.some((band) => band.active)) {
+    return NextResponse.json({ error: "Debe existir al menos una tarifa de domicilio activa." }, { status: 400 });
   }
 
-  const activeBands = settings.deliveryBands.filter((band) => band.active).sort((a, b) => a.minMeters - b.minMeters);
-  for (let index = 1; index < activeBands.length; index += 1) {
-    if (activeBands[index].minMeters <= activeBands[index - 1].maxMeters) {
-      return NextResponse.json({ error: "Los rangos activos de domicilio no pueden superponerse." }, { status: 400 });
-    }
+  if (!settings.paymentMethods.some((method) => method.active)) {
+    return NextResponse.json({ error: "Debe existir al menos un medio de pago activo." }, { status: 400 });
   }
 
   const saved = await prisma.appSetting.upsert({
