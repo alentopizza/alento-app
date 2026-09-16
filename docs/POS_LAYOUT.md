@@ -38,19 +38,15 @@ El listado de productos es la zona que debe hacer scroll. Los controles iniciale
 
 ## Tipo de pedido
 
-El selector vive dentro del panel `Pedido actual` y usa tres opciones compactas:
+El selector vive dentro del panel del pedido y usa tres opciones compactas:
 
 - `DOMICILIO` → `DELIVERY`;
 - `RECOGER` → `PICKUP` / Recoger en tienda;
 - `LOCAL` → `STORE`.
 
-Reglas visuales aprobadas:
+La interfaz no muestra emojis en estas opciones. Los rótulos se presentan en mayúsculas para mantener una lectura limpia y uniforme.
 
-- no mostrar emojis ni iconos decorativos;
-- mostrar las tres opciones en mayúscula;
-- mantener los botones bajos y compactos;
-- conservar borde rojo/fondo suave para la opción activa;
-- `RECOGER` es una abreviación visual; el valor persistido sigue siendo `PICKUP`.
+`RECOGER` es solo una abreviación visual. El valor persistido y las reglas internas continúan usando `PICKUP`.
 
 ## Cliente
 
@@ -63,15 +59,12 @@ No mostrar un título grande adicional como `Tipo de pedido y cliente`; el bloqu
 Mostrar en una sola línea operativa:
 
 - campo de búsqueda por nombre, teléfono o correo;
-- botón `Buscar`;
-- acción compacta `+ NUEVO` para crear cliente.
+- botón negro cuadrado de búsqueda representado solo por una lupa;
+- botón rojo cuadrado de nuevo cliente representado solo por `+`.
 
-Reglas visuales:
+Ambos botones deben tener exactamente el mismo tamaño, radio y peso visual; solo cambia el color de acción.
 
-- `Buscar` usa fondo negro y texto blanco;
-- `+ NUEVO` debe tener la misma altura, radio y peso visual que `Buscar`;
-- `+ NUEVO` usa fondo rojo Alentó y texto blanco;
-- ambos botones deben permanecer en una sola línea cuando el ancho lo permita.
+El objetivo es maximizar el ancho disponible del campo del cliente y evitar texto redundante dentro de controles muy pequeños.
 
 Los resultados de búsqueda pueden desplegarse por encima del contenido siguiente para no aumentar innecesariamente la altura del panel.
 
@@ -99,24 +92,32 @@ Esto permite:
 - mantener el pedido siempre visible a la derecha;
 - concentrar toda la información propia del pedido dentro de un solo módulo.
 
-## Pedido actual
+## Productos y totales
 
-El panel derecho debe comunicar una sola jerarquía:
+No mostrar un bloque intermedio con textos como:
 
 ```text
-Preparar pedido
-  Tipo
-  Cliente
-
 Pedido actual
-  Productos
+Sin productos
+Local
+```
 
+Ese bloque no agrega información operativa porque:
+
+- el tipo ya está visible arriba;
+- el cliente ya está visible arriba;
+- si no hay productos, el estado vacío del carrito ya lo comunica;
+- si hay productos, la lista de líneas ya funciona como contenido principal del pedido.
+
+El panel debe pasar directamente desde Cliente hacia el carrito/listado de productos y luego a los totales.
+
+El cierre mantiene:
+
+```text
 Subtotal
 Total productos
 Continuar pedido
 ```
-
-No mostrar etiquetas técnicas como `Estructurado`, `Datos estructurados`, IDs internos o mensajes de inventario/costos dentro de esta pantalla.
 
 ## Responsabilidad de datos
 
