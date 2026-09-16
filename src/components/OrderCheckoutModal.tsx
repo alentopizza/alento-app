@@ -57,6 +57,7 @@ type PosSettings = {
 
 type CheckoutResult = {
   deliveryFee: number;
+  distanceMeters: number | null;
   deliveryZoneId: string | null;
   deliveryZoneName: string | null;
   paymentMethodId: string;
@@ -176,6 +177,7 @@ export default function OrderCheckoutModal({
 
     onValidated({
       deliveryFee,
+      distanceMeters: null,
       deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
       deliveryZoneName: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.name ?? null : null,
       paymentMethodId,
