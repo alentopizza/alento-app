@@ -25,19 +25,12 @@ export async function GET() {
   });
 
   const modifiers = await prisma.product.findMany({
-    where: { active: true, type: "MODIFIER", category: { slug: "ingredientes" } },
+    where: {
+      active: true,
+      type: "MODIFIER",
+      category: { slug: "ingredientes" },
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-  });
-
-  const normalizeProduct = (product: any) => ({
-    id: product.id,
-    name: product.name,
-    description: product.description,
-    imageUrl: product.imageUrl,
-    imageUrl2: product.imageUrl2,
-    type: product.type,
-    basePrice: product.basePrice == null ? null : Number(product.basePrice),
-    featured: product.featured,
   });
 
   const normalizedCategories = categories.map((category) => ({
@@ -45,14 +38,46 @@ export async function GET() {
     name: category.name,
     slug: category.slug,
     imageUrl: category.imageUrl,
-    products: category.products.map(normalizeProduct),
+    products: category.products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      imageUrl2: product.imageUrl2,
+      type: product.type,
+      basePrice: product.basePrice == null ? null : Number(product.basePrice),
+      featured: product.featured,
+    })),
   }));
 
   return NextResponse.json({
     categories: normalizedCategories,
-    pizzaFlavors: normalizedCategories.flatMap((category) => category.products).filter((product) => product.type === "PIZZA_SINGLE"),
-    sizes: sizes.map((size) => ({ id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: Number(size.basePrice) })),
-    crusts: crusts.map((crust) => ({ id: crust.id, name: crust.name, prices: crust.prices.map((price) => ({ sizeId: price.sizeId, price: Number(price.price) })) })),
-    modifiers: modifiers.map(normalizeProduct),
+    pizzaFlavors: normalizedCategories
+      .flatMap((category) => category.products)
+      .filter((product) => product.type === "PIZZA_SINGLE"),
+    sizes: sizes.map((size) => ({
+      id: size.id,
+      name: size.name,
+      diameterCm: size.diameterCm,
+      basePrice: Number(size.basePrice),
+    })),
+    crusts: crusts.map((crust) => ({
+      id: crust.id,
+      name: crust.name,
+      prices: crust.prices.map((price) => ({
+        sizeId: price.sizeId,
+        price: Number(price.price),
+      })),
+    })),
+    modifiers: modifiers.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      imageUrl: product.imageUrl,
+      imageUrl2: product.imageUrl2,
+      type: product.type,
+      basePrice: product.basePrice == null ? null : Number(product.basePrice),
+      featured: product.featured,
+    })),
   });
 }
