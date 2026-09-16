@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 
 type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
@@ -18,6 +19,7 @@ type CartItem = { key: string; productId: number; name: string; detail: string; 
 type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavorId: number | null; secondFlavorId: number | null; crustId: number | null; modifierIds: number[] };
 type ComboPizzaChoice = { sizeId: number | null; flavorId: number | null };
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
+type CheckoutResult = { deliveryFee: number; distanceMeters: number | null; paymentMethodId: string; paymentMethodName: string };
 
 const fulfillmentOptions: { type: FulfillmentType; icon: string; title: string; description: string }[] = [
   { type: "DELIVERY", icon: "🛵", title: "Domicilio", description: "Entregar en la dirección del cliente." },
@@ -64,6 +66,8 @@ export default function Home() {
   const [configError, setConfigError] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
   const [flowMessage, setFlowMessage] = useState("");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
 
   useEffect(() => {
     async function loadCatalog() {
@@ -85,10 +89,20 @@ export default function Home() {
     void loadCatalog();
   }, []);
 
+  useEffect(() => {
+    setCheckoutResult(null);
+    setFlowMessage("");
+  }, [fulfillmentType, selectedCustomer?.id, selectedCustomer?.addresses?.[0]?.address]);
+
   const selectedCategory = useMemo(() => catalog?.categories.find((category) => category.slug === activeCategory) ?? catalog?.categories[0], [catalog, activeCategory]);
   const minPizzaSizePrice = useMemo(() => catalog?.sizes?.length ? Math.min(...catalog.sizes.map((size) => size.basePrice)) : 0, [catalog]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+
+  useEffect(() => {
+    setCheckoutResult(null);
+    setFlowMessage("");
+  }, [subtotal]);
 
   function displayPrice(product: CatalogProduct) {
     if (isTwoFlavorPizza(product)) {
@@ -362,6 +376,7 @@ export default function Home() {
 
   function selectFulfillment(type: FulfillmentType) {
     setFulfillmentType(type);
+    setCheckoutResult(null);
     setFlowMessage("");
   }
 
@@ -369,12 +384,13 @@ export default function Home() {
     if (!fulfillmentType || !cart.length) return;
     if ((fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP") && !selectedCustomer) return;
     if (fulfillmentType === "DELIVERY" && !selectedCustomer?.addresses?.[0]?.address) return;
-    const next = fulfillmentType === "DELIVERY"
-      ? "Siguiente: cobertura, valor del domicilio y pago."
-      : fulfillmentType === "PICKUP"
-        ? "Siguiente: datos de recogida y pago."
-        : "Siguiente: datos del pedido en local y pago.";
-    setFlowMessage(next);
+    setCheckoutOpen(true);
+  }
+
+  function handleCheckoutValidated(result: CheckoutResult) {
+    setCheckoutResult(result);
+    setCheckoutOpen(false);
+    setFlowMessage(`Cierre validado · ${result.paymentMethodName}${result.deliveryFee > 0 ? ` · Domicilio ${formatCOP(result.deliveryFee)}` : ""}`);
   }
 
   const selectedAddress = selectedCustomer?.addresses?.[0];
@@ -385,6 +401,8 @@ export default function Home() {
   const hasDeliveryAddress = Boolean(selectedAddress?.address?.trim());
   const canAddProducts = Boolean(fulfillmentType && (!requiresCustomer || selectedCustomer));
   const canContinueOrder = Boolean(cart.length && fulfillmentType && (!requiresCustomer || selectedCustomer) && (fulfillmentType !== "DELIVERY" || hasDeliveryAddress));
+  const deliveryFee = fulfillmentType === "DELIVERY" ? checkoutResult?.deliveryFee ?? 0 : 0;
+  const orderTotal = subtotal + deliveryFee;
   const continueOrderLabel = !fulfillmentType
     ? "Selecciona tipo de pedido"
     : requiresCustomer && !selectedCustomer
@@ -393,7 +411,9 @@ export default function Home() {
         ? "Agrega productos"
         : fulfillmentType === "DELIVERY" && !hasDeliveryAddress
           ? "Agrega dirección para continuar"
-          : "Continuar pedido";
+          : checkoutResult
+            ? "Revisar cierre"
+            : "Continuar pedido";
   const addProductLabel = !fulfillmentType ? "Elige tipo" : requiresCustomer && !selectedCustomer ? "Elige cliente" : "Agregar";
 
   return (
@@ -446,7 +466,7 @@ export default function Home() {
                     {selectedCustomer ? <>
                       <div className="flex items-center justify-between gap-3 rounded-2xl border bg-[#faf9f7] px-4 py-3">
                         <div className="min-w-0"><p className="truncate text-sm font-black">{selectedCustomer.name}</p><p className="truncate text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone || "Sin teléfono"}{fulfillmentType === "DELIVERY" && selectedAddress?.address ? ` · ${selectedAddress.address}` : ""}</p></div>
-                        <div className="flex shrink-0 gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); setFlowMessage(""); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Cambiar</button></div>
+                        <div className="flex shrink-0 gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); setFlowMessage(""); setCheckoutResult(null); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Cambiar</button></div>
                       </div>
                       {fulfillmentType === "DELIVERY" && !hasDeliveryAddress && <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5"><div><p className="text-xs font-black text-red-700">Falta la dirección de entrega</p><p className="mt-0.5 text-[10px] text-red-600">Este cliente existe, pero aún no tiene una dirección registrada.</p></div><button onClick={() => openEditCustomer(selectedCustomer)} className="shrink-0 rounded-lg bg-[var(--brand-red)] px-3 py-2 text-[10px] font-black text-white">Agregar dirección</button></div>}
                     </> : <>
@@ -475,12 +495,22 @@ export default function Home() {
           </div>
 
           <aside className="alento-card rounded-[30px] p-4 xl:sticky xl:top-7 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
-            <div className="mb-3 shrink-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><div className="mt-1 flex items-end justify-between gap-3"><h2 className="text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{cart.length > 0 && <span className="text-xs font-bold text-neutral-400">{cart.length} línea{cart.length === 1 ? "" : "s"}</span>}</div>{selectedCustomer && <p className="mt-1 text-sm text-[var(--muted)]">Para {selectedCustomer.name}</p>}{selectedFulfillmentLabel && <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-[11px] font-black"><span className="h-2 w-2 rounded-full bg-[var(--brand-red)]" />{selectedFulfillmentLabel}</div>}</div>
+            <div className="mb-3 shrink-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><div className="mt-1 flex items-end justify-between gap-3"><h2 className="text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{cart.length > 0 && <span className="text-xs font-bold text-neutral-400">{cart.length} línea{cart.length === 1 ? "" : "s"}</span>}</div>{selectedCustomer && <p className="mt-1 text-sm text-[var(--muted)]">Para {selectedCustomer.name}</p>}{selectedFulfillmentLabel && <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-[11px] font-black"><span className="h-2 w-2 rounded-full bg-[var(--brand-red)]" />{selectedFulfillmentLabel}</div>}{checkoutResult && <div className="ml-2 mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-black text-emerald-700">✓ {checkoutResult.paymentMethodName}</div>}</div>
             {cart.length === 0 ? <div className="rounded-[20px] border border-dashed bg-[#faf9f7] px-4 py-9 text-center xl:flex xl:flex-1 xl:flex-col xl:items-center xl:justify-center"><p className="font-bold">Tu pedido está vacío</p><p className="mt-1 text-xs text-neutral-400">{!fulfillmentType ? "Selecciona el tipo de pedido para comenzar." : requiresCustomer && !selectedCustomer ? "Selecciona el cliente para habilitar el catálogo." : "Agrega productos para comenzar."}</p></div> : <div className="alento-scroll min-h-0 space-y-2 overflow-y-auto pr-1 xl:flex-1">{cart.map((item) => <div key={item.key} className="rounded-xl border border-neutral-200 bg-white p-2.5"><div className="flex items-start justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p><p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-neutral-500">{item.detail}</p></div><b className="whitespace-nowrap text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1.5"><button onClick={() => changeQty(item.key, -1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">−</button><span className="min-w-5 text-center text-sm font-black">{item.quantity}</span><button onClick={() => changeQty(item.key, 1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">+</button></div></div></div>)}</div>}
-            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>$0</strong></div>}{selectedFulfillmentLabel && <div className="flex justify-between"><span className="text-neutral-500">Tipo de pedido</span><strong>{selectedFulfillmentLabel}</strong></div>}<div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(subtotal)}</strong></div></div>{flowMessage && <div className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-600">{flowMessage}</div>}<button onClick={continueOrder} disabled={!canContinueOrder} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">{continueOrderLabel}</button>{fulfillmentType === "DELIVERY" && selectedCustomer && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección al cliente</button>}</div>
+            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>{checkoutResult ? formatCOP(deliveryFee) : "Pendiente"}</strong></div>}{selectedFulfillmentLabel && <div className="flex justify-between"><span className="text-neutral-500">Tipo de pedido</span><strong>{selectedFulfillmentLabel}</strong></div>}{checkoutResult && <div className="flex justify-between"><span className="text-neutral-500">Forma de pago</span><strong>{checkoutResult.paymentMethodName}</strong></div>}<div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(orderTotal)}</strong></div></div>{flowMessage && <div className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-600">{flowMessage}</div>}<button onClick={continueOrder} disabled={!canContinueOrder} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">{continueOrderLabel}</button>{fulfillmentType === "DELIVERY" && selectedCustomer && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección al cliente</button>}</div>
           </aside>
         </section>
       </div>
+
+      <OrderCheckoutModal
+        open={checkoutOpen}
+        fulfillmentType={fulfillmentType}
+        customer={selectedCustomer}
+        cart={cart}
+        subtotal={subtotal}
+        onClose={() => setCheckoutOpen(false)}
+        onValidated={handleCheckoutValidated}
+      />
 
       {showCustomerModal && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4"><div className="alento-card max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[30px] shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-5 md:px-7">
