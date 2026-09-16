@@ -37,7 +37,7 @@ Administración del catálogo, categorías, pizzas, modificadores y combos.
 Administración de descuentos reutilizables. Soporta:
 
 - `FIXED`: descuento plano en pesos;
-- `PERCENTAGE`: porcentaje sobre el subtotal de productos;
+- `PERCENTAGE`: porcentaje sobre productos elegibles;
 - estado activo/inactivo.
 
 Los cupones activos se consumen desde el cierre del POS mediante `/api/coupons?active=1`.
@@ -63,11 +63,12 @@ Destino operativo de pedidos confirmados. La conexión real depende de terminar 
 3. Productos y configuración.
 4. Cierre.
 5. Tarifa de domicilio cuando corresponde.
-6. Descuento: ninguno, cupón o manual.
-7. Medio de pago.
-8. Revisión final.
-9. Creación persistente del pedido.
-10. Envío a Cocina.
+6. Cálculo de base elegible para descuento.
+7. Descuento: ninguno, cupón o manual.
+8. Medio de pago.
+9. Revisión final.
+10. Creación persistente del pedido.
+11. Envío a Cocina.
 
 ## Configuración operativa
 
@@ -95,15 +96,72 @@ Coupon {
 }
 ```
 
-Reglas:
+Los cupones nunca se calculan directamente sobre `Order.subtotal`. Antes se obtiene una **base elegible**.
 
-- porcentaje: se calcula sobre `Order.subtotal`, nunca sobre `deliveryFee`;
-- fijo: descuenta hasta el subtotal de productos, sin volver negativo ese subtotal;
-- solo cupones activos aparecen en el POS.
+### Elegibilidad de productos
+
+`Product` contiene:
+
+```ts
+couponEligible Boolean @default(true)
+```
+
+La regla comercial es:
+
+- un producto normal participa si `couponEligible = true`;
+- cualquier `COMBO` queda excluido siempre, aunque el campo estuviera activo;
+- futuras ofertas o promociones que ya reduzcan el precio original deben guardar `couponEligible = false`;
+- el domicilio (`deliveryFee`) nunca forma parte de la base elegible.
+
+La elegibilidad se calcula del lado servidor mediante:
+
+`POST /api/discount/eligibility`
+
+El endpoint recibe líneas del carrito con `productId`, `unitPrice` y `quantity`, consulta los productos reales y devuelve:
+
+```ts
+{
+  eligibleSubtotal,
+  excludedSubtotal,
+  eligibleProductIds,
+  excludedProductIds
+}
+```
+
+Esto evita confiar en una bandera enviada por el navegador y centraliza la regla comercial.
+
+### Cupón porcentual
+
+Se calcula así:
+
+```text
+desconto = eligibleSubtotal × porcentaje
+```
+
+Ejemplo:
+
+- pizza normal: $40.000;
+- combo promocional: $30.000;
+- domicilio: $10.000;
+- base elegible: $40.000;
+- cupón 60%: $24.000;
+- total final: $56.000.
+
+Ni el combo ni el domicilio reciben el descuento.
+
+### Cupón fijo
+
+El descuento queda limitado a la base elegible:
+
+```text
+desconto = min(valorCupón, eligibleSubtotal)
+```
+
+Un cupón de $10.000 sobre solo $7.000 elegibles descuenta $7.000.
 
 ### Descuento manual
 
-Excepción operativa escrita directamente en el cierre. No puede combinarse con cupón y no puede dejar el total negativo.
+Es una excepción operativa, pero respeta exactamente la misma base elegible. No puede rebajar combos, productos promocionales ni domicilio y nunca puede superar `eligibleSubtotal`.
 
 ### Regla de exclusividad
 
@@ -132,6 +190,7 @@ El snapshot permite que el historial conserve lo ocurrido aunque el cupón sea r
 - `/api/settings`: configuración operativa.
 - `/api/coupons`: listar y crear cupones.
 - `/api/coupons/[id]`: editar/eliminar cupones.
+- `/api/discount/eligibility`: calcula el subtotal que puede recibir descuentos.
 - `/api/delivery/quote`: reservado para automatización futura basada en distancia.
 
 ## Datos de pedidos
