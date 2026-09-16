@@ -21,10 +21,10 @@ type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavor
 type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
-const fulfillmentOptions: { type: FulfillmentType; icon: string; title: string }[] = [
-  { type: "DELIVERY", icon: "🛵", title: "Domicilio" },
-  { type: "PICKUP", icon: "🛍️", title: "Recoger en tienda" },
-  { type: "STORE", icon: "🍽️", title: "Local" },
+const fulfillmentOptions: { type: FulfillmentType; icon: string; title: string; shortTitle: string }[] = [
+  { type: "DELIVERY", icon: "🛵", title: "Domicilio", shortTitle: "Domicilio" },
+  { type: "PICKUP", icon: "🛍️", title: "Recoger en tienda", shortTitle: "Recoger" },
+  { type: "STORE", icon: "🍽️", title: "Local", shortTitle: "Local" },
 ];
 
 function formatCOP(value: number) {
@@ -126,17 +126,30 @@ export default function StructuredPosPage() {
   }
 
   function resetCustomerForm() {
-    setName(""); setCountryCode("+57"); setPhone(""); setAddress(""); setEmail(""); setNotes(""); setCustomerError("");
+    setName("");
+    setCountryCode("+57");
+    setPhone("");
+    setAddress("");
+    setEmail("");
+    setNotes("");
+    setCustomerError("");
   }
 
   function openNewCustomer() {
-    setEditingCustomer(null); resetCustomerForm(); setShowCustomerModal(true);
+    setEditingCustomer(null);
+    resetCustomerForm();
+    setShowCustomerModal(true);
   }
 
   function openEditCustomer(customer: Customer) {
     setEditingCustomer(customer);
-    setName(customer.name); setCountryCode(customer.countryCode || "+57"); setPhone(customer.phone || "");
-    setAddress(customer.addresses?.[0]?.address || ""); setEmail(customer.email || ""); setNotes(customer.notes || ""); setCustomerError("");
+    setName(customer.name);
+    setCountryCode(customer.countryCode || "+57");
+    setPhone(customer.phone || "");
+    setAddress(customer.addresses?.[0]?.address || "");
+    setEmail(customer.email || "");
+    setNotes(customer.notes || "");
+    setCustomerError("");
     setShowCustomerModal(true);
   }
 
@@ -154,7 +167,9 @@ export default function StructuredPosPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible guardar el cliente.");
       chooseCustomer(data.customer);
-      setShowCustomerModal(false); setEditingCustomer(null); resetCustomerForm();
+      setShowCustomerModal(false);
+      setEditingCustomer(null);
+      resetCustomerForm();
     } catch (error) {
       setCustomerError(error instanceof Error ? error.message : "No fue posible guardar el cliente.");
     } finally {
@@ -170,7 +185,7 @@ export default function StructuredPosPage() {
       const existing = current.find((item) => item.key === key);
       return existing
         ? current.map((item) => item.key === key ? { ...item, quantity: item.quantity + 1 } : item)
-        : [...current, { key, productId: product.id, name: product.name, detail: "Producto", unitPrice: product.basePrice!, quantity: 1, configuration }];
+        : [...current, { key, productId: product.id, name: product.name, detail: "Producto", unitPrice: product.basePrice, quantity: 1, configuration }];
     });
   }
 
@@ -256,7 +271,8 @@ export default function StructuredPosPage() {
       quantity: 1,
       configuration,
     }]);
-    setPizzaConfig(null); setConfigError("");
+    setPizzaConfig(null);
+    setConfigError("");
   }
 
   function comboPrice(config: ComboConfig) {
@@ -339,7 +355,8 @@ export default function StructuredPosPage() {
       quantity: 1,
       configuration,
     }]);
-    setComboConfig(null); setConfigError("");
+    setComboConfig(null);
+    setConfigError("");
   }
 
   function changeQty(key: string, delta: number) {
@@ -348,28 +365,60 @@ export default function StructuredPosPage() {
 
   return (
     <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
-      <div className="mx-auto max-w-[1500px] space-y-5">
-        <header className="alento-dark rounded-[26px] px-6 py-4 md:px-8 md:py-5">
-          <div className="flex items-center justify-between gap-4"><div><p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p><h1 className="text-2xl font-black md:text-3xl">Punto de venta</h1><p className="mt-1 text-xs text-white/60">Pedidos estructurados y preparados para inventario y costos.</p></div><span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white/70">POS activo</span></div>
-        </header>
-
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="space-y-5">
-            <section className="alento-card rounded-[26px] p-4 md:p-5">
-              <div className="mb-4 flex items-center justify-between"><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p><h2 className="mt-1 text-xl font-black">Tipo de pedido y cliente</h2></div><span className="text-[10px] font-black uppercase text-emerald-600">Datos estructurados</span></div>
-              <div className="grid gap-4 lg:grid-cols-[1fr_1.15fr]">
-                <div><p className="mb-2 text-xs font-black">1. Tipo de pedido</p><div className="grid grid-cols-3 gap-2">{fulfillmentOptions.map((option) => <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`rounded-2xl border-2 px-3 py-3 text-left ${fulfillmentType === option.type ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white"}`}><span className="text-xl">{option.icon}</span><b className="mt-1 block text-xs sm:text-sm">{option.title}</b></button>)}</div></div>
-                <div className="border-t pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0"><div className="mb-2 flex items-center justify-between"><p className="text-xs font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p><button onClick={openNewCustomer} className="text-xs font-black text-[var(--brand-red)]">+ Nuevo cliente</button></div>
-                  {selectedCustomer ? <div><div className="flex items-center justify-between rounded-2xl border bg-[#faf9f7] px-4 py-3"><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="block truncate text-xs text-neutral-500">{selectedAddress.address}</span>}</div><div className="flex gap-1"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-xl border bg-white px-3 py-2 text-xs font-bold">Cambiar</button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2 w-full rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección de domicilio</button>}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}
+      <div className="mx-auto max-w-[1500px] space-y-4">
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+          <div className="space-y-4">
+            <header className="alento-dark max-w-[820px] rounded-[22px] px-6 py-4 md:px-7 md:py-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p>
+                  <h1 className="text-2xl font-black md:text-[2rem] md:leading-9">Punto de venta</h1>
+                  <p className="mt-1 text-xs text-white/60">Toma pedidos y confirma ventas desde una sola pantalla.</p>
                 </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white/70">POS activo</span>
               </div>
-            </section>
+            </header>
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <><div className="flex gap-2 overflow-x-auto">{catalog?.categories.map((category) => <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>)}</div><div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">{selectedCategory?.products.map((product) => <article key={product.id} className="alento-card-soft overflow-hidden rounded-[24px]"><div className="aspect-square bg-[#f7f6f3]">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-2"/> : <div className="flex h-full items-center justify-center text-5xl">🍕</div>}</div><div className="p-4"><h3 className="font-black">{product.name}</h3><p className="mt-1 line-clamp-2 min-h-9 text-xs text-neutral-500">{product.description || "Producto Alentó Pizza"}</p><div className="mt-4 flex items-end justify-between"><div><span className="text-[10px] font-bold uppercase text-neutral-400">Precio</span><b className="block">{displayPrice(product)}</b></div><button onClick={() => startAdd(product)} disabled={!canAddProducts} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Agregar</button></div></div></article>)}</div></>}
           </div>
 
-          <aside className="alento-card rounded-[30px] p-4 xl:sticky xl:top-7 xl:flex xl:h-[calc(100vh-4rem)] xl:flex-col"><div className="mb-3"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><h2 className="mt-1 text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-sm text-neutral-500">Para {selectedCustomer.name}</p>}</div>
-            {cart.length ? <div className="alento-scroll min-h-0 flex-1 space-y-2 overflow-y-auto">{cart.map((item) => <div key={item.key} className="rounded-xl border p-2.5"><div className="flex justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{item.name}</b><p className="line-clamp-3 text-[11px] text-neutral-500">{item.detail}</p><span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ Estructurado</span></div><b className="text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between"><span className="text-[10px] text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1"><button onClick={() => changeQty(item.key, -1)} className="h-7 w-7 rounded-lg bg-neutral-100">−</button><b className="w-6 text-center text-sm">{item.quantity}</b><button onClick={() => changeQty(item.key, 1)} className="h-7 w-7 rounded-lg bg-neutral-100">+</button></div></div></div>)}</div> : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
+          <aside className="alento-card rounded-[28px] p-4 xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
+            <div className="mb-3 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p>
+                  <h2 className="mt-1 text-lg font-black">Tipo de pedido y cliente</h2>
+                </div>
+                <button onClick={openNewCustomer} className="rounded-full border border-[rgba(229,28,17,0.14)] bg-white px-3 py-1.5 text-[11px] font-black text-[var(--brand-red)]">+ Nuevo cliente</button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="mb-1.5 text-[11px] font-black">1. Tipo</p>
+                  <div className="grid grid-cols-3 gap-1 rounded-2xl border border-neutral-200 bg-white p-1">
+                    {fulfillmentOptions.map((option) => {
+                      const selected = fulfillmentType === option.type;
+                      return <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`flex min-h-[46px] items-center justify-center gap-2 rounded-xl px-2 text-center ${selected ? "border border-[var(--brand-red)] bg-red-50 shadow-[0_4px_14px_rgba(229,28,17,0.12)]" : "border border-transparent bg-transparent hover:bg-neutral-50"}`}><span className="text-[16px] leading-none">{option.icon}</span><b className="text-[12px] leading-4">{option.shortTitle}</b></button>;
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>
+                  {selectedCustomer ? <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="block truncate text-xs text-neutral-500">{selectedAddress.address}</span>}</div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Cambiar</button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2.5 w-full rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección de domicilio</button>}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p>
+              <h2 className="mt-1 text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>
+              {selectedCustomer && <p className="text-sm text-neutral-500">Para {selectedCustomer.name}</p>}
+              {fulfillmentType && <p className="mt-1 text-xs font-bold text-neutral-400">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</p>}
+            </div>
+
+            {cart.length ? <div className="alento-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">{cart.map((item) => <div key={item.key} className="rounded-xl border p-2.5"><div className="flex justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{item.name}</b><p className="line-clamp-3 text-[11px] text-neutral-500">{item.detail}</p></div><b className="text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between"><span className="text-[10px] text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1"><button onClick={() => changeQty(item.key, -1)} className="h-7 w-7 rounded-lg bg-neutral-100">−</button><b className="w-6 text-center text-sm">{item.quantity}</b><button onClick={() => changeQty(item.key, 1)} className="h-7 w-7 rounded-lg bg-neutral-100">+</button></div></div></div>)}</div> : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
+
             <div className="mt-3 border-t pt-3"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{formatCOP(subtotal)}</b></div><div className="mt-3 flex items-end justify-between border-t border-dashed pt-3"><b>Total productos</b><b className="text-2xl text-[var(--brand-red)]">{formatCOP(subtotal)}</b></div><button onClick={() => setCheckoutOpen(true)} disabled={!canContinue} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Continuar pedido</button></div>
           </aside>
         </section>
