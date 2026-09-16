@@ -47,6 +47,40 @@ Reglas visuales actuales:
 
 La UI puede seguir recibiendo ajustes menores, pero no se deben sacrificar las reglas de integridad de `OrderItem.configuration` por decisiones visuales.
 
+### Administración de Menú
+
+`/menu` vuelve a funcionar como módulo administrativo independiente del POS.
+
+Reglas actuales:
+
+- los estilos exclusivos del POS quedan encapsulados y no deben afectar `/menu`, `/pedidos`, `/clientes` o `/configuracion`;
+- la columna lateral de categorías debe mostrar todas las categorías administrativas y su cantidad de productos;
+- el encabezado de Menú conserva su propio texto: `Productos, precios, imágenes, destacados y combos configurables.`;
+- se mantiene búsqueda por producto;
+- se mantiene creación y edición de productos;
+- se mantiene activar/desactivar y mostrar/ocultar del POS;
+- se mantiene constructor/configuración de combos;
+- cada tarjeta de producto incluye ahora acción `Eliminar`.
+
+#### Eliminación segura de productos
+
+`DELETE /api/menu-admin` recibe `{ productId }`.
+
+El borrado físico solo se permite si el producto:
+
+- no tiene `OrderItem` históricos;
+- no es opción de ningún combo;
+- no es sabor permitido de ningún combo;
+- no tiene otras relaciones que provoquen una restricción de integridad.
+
+Si existe historial de pedidos o dependencias de combos, la API responde `409` y el producto **no se elimina**. En esos casos la operación correcta es:
+
+1. desactivar el producto;
+2. ocultarlo del POS;
+3. retirarlo de combos si corresponde.
+
+Esta regla protege el futuro inventario/costos y evita romper pedidos históricos.
+
 ### Integridad estructurada del carrito
 
 El POS usa ahora `src/components/StructuredPosPage.tsx`.
@@ -179,6 +213,7 @@ No se acumula cupón + descuento manual.
 - `GET/PUT /api/settings`
 - `GET/POST /api/coupons`
 - `PATCH/DELETE /api/coupons/[id]`
+- `GET/PATCH/POST/DELETE /api/menu-admin`
 - `POST /api/discount/eligibility`
 - `GET /api/orders`
 - `POST /api/orders`
@@ -189,6 +224,8 @@ No se acumula cupón + descuento manual.
 ## Base de datos / despliegue
 
 Este refactor de integridad estructurada utiliza el campo JSON `OrderItem.configuration` ya existente y no agrega columnas nuevas.
+
+La recuperación de `/menu` y la eliminación segura de productos tampoco agregan columnas nuevas.
 
 Si el schema anterior ya fue sincronizado, este bloque **no requiere `npx prisma db push`**.
 
@@ -204,21 +241,25 @@ No usar `prisma migrate deploy`.
 
 Después del despliegue:
 
-1. cancelar y eliminar los pedidos de prueba antiguos;
-2. crear una pizza de un sabor;
-3. crear una pizza dos sabores;
-4. crear una pizza con borde y extra;
-5. crear un combo con pizza + antojo + bebida;
-6. crear un producto simple;
-7. revisar `/pedidos` y el ticket 80 mm;
-8. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
-9. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-10. validar que el selector `Domicilio / Recoger / Local` sea rápido de leer y usar en escritorio y móvil;
-11. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+1. abrir `/menu` y comprobar que todas las categorías vuelvan a mostrarse;
+2. comprobar que el encabezado de Menú ya no herede texto del POS;
+3. editar/activar/ocultar un producto y comprobar recarga correcta;
+4. crear un producto de prueba y eliminarlo si todavía no tiene dependencias;
+5. intentar eliminar un producto usado en un pedido o combo y confirmar que el sistema lo bloquee con mensaje claro;
+6. cancelar y eliminar los pedidos de prueba antiguos;
+7. crear una pizza de un sabor;
+8. crear una pizza dos sabores;
+9. crear una pizza con borde y extra;
+10. crear un combo con pizza + antojo + bebida;
+11. crear un producto simple;
+12. revisar `/pedidos` y el ticket 80 mm;
+13. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
+14. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
+15. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
-Primero validar en producción la integridad estructurada de las órdenes nuevas y el layout casi final del POS.
+Primero validar en producción la integridad estructurada de las órdenes nuevas, el layout casi final del POS y la recuperación del módulo Menú.
 
 Después:
 
