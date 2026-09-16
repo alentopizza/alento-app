@@ -15,9 +15,77 @@ Una orden nueva nace con:
 
 La creación es transaccional: `Order`, `OrderItem` y `Payment` se guardan dentro de una única transacción Prisma.
 
+## Integridad estructurada obligatoria
+
+A partir del refactor inventory-ready, toda pizza y combo nuevo debe llegar a `POST /api/orders` con `OrderItem.configuration` estructurada.
+
+El servidor ya no acepta una pizza o combo nuevo basado solamente en texto o precio enviado por el navegador.
+
+El servidor valida IDs y recalcula el precio desde PostgreSQL.
+
+Ver `docs/ORDER_DATA_INTEGRITY.md` para la especificación completa.
+
+### Pizza
+
+Guarda de forma estructurada:
+
+- `productId` de la pizza;
+- tamaño con `PizzaSize.id`, nombre, diámetro y precio snapshot;
+- sabor o sabores con `Product.id`, nombre, precio snapshot y `portion` (`1` o `0.5`);
+- borde con `PizzaCrust.id`, nombre y precio snapshot;
+- modificadores con `Product.id`, nombre, cantidad y precio unitario snapshot.
+
+Una pizza de dos sabores conserva ambos sabores por separado con `portion = 0.5`.
+
+### Combo
+
+Guarda:
+
+- `comboProductId`;
+- pizzas incluidas con `ruleId`, tamaño y sabor;
+- cada grupo del combo por `groupId`;
+- cada opción seleccionada por `optionId` y `productId`;
+- cantidad incluida de cada opción;
+- precio snapshot y `priceDelta`;
+- descuento propio del combo.
+
+Esto evita que un combo sea una caja negra para inventario.
+
+### Producto estándar
+
+Bebidas, antojos y productos simples usan `kind = STANDARD` y conservan `productId` y nombre snapshot.
+
+## Recalculo server-side
+
+`POST /api/orders` recalcula:
+
+- precio de tamaño;
+- precio del sabor de mayor valor en dos sabores;
+- precio del borde por tamaño;
+- modificadores y cantidades;
+- componentes permitidos de combos;
+- cantidades incluidas en grupos de combo;
+- descuento propio del combo;
+- subtotal;
+- descuentos/cupones;
+- domicilio;
+- total.
+
+Una configuración inválida o que use IDs no permitidos es rechazada.
+
+El `unitPrice` enviado por el navegador es solamente una vista previa y no es la fuente final para pizzas/combos.
+
+## Pedidos históricos
+
+Los pedidos creados antes del refactor pueden contener `POS_SNAPSHOT`.
+
+Ese formato se conserva únicamente para compatibilidad visual e impresión histórica. No debe utilizarse como fuente fiable para inventario o costos y no debe generarse en órdenes nuevas.
+
+`src/lib/orderPresentation.ts` puede interpretar esos snapshots antiguos para visualización.
+
 ## Pantalla `/pedidos`
 
-La pantalla de Pedidos muestra:
+La pantalla muestra:
 
 - código;
 - fecha/hora;
@@ -26,62 +94,72 @@ La pantalla de Pedidos muestra:
 - cliente;
 - teléfono;
 - dirección y zona cuando aplica;
-- detalle de cada producto;
-- tamaño, sabores, borde y extras cuando la configuración lo permite;
-- subtotal;
-- domicilio;
-- descuento;
-- total;
+- detalle estructurado de cada producto;
+- tamaño, sabores, borde, extras y cantidades;
+- componentes internos del combo;
+- subtotal, domicilio, descuento y total;
 - medio de pago;
 - `Paga con` y `Vueltas` para efectivo;
 - cupón usado.
 
-Los pedidos históricos creados antes de transportar configuración estructurada usan `POS_SNAPSHOT`; `src/lib/orderPresentation.ts` interpreta el texto guardado para presentar tamaño, sabores, borde, extras y opciones de combo de forma legible.
-
 ## Edición controlada
 
-Endpoint:
+Endpoints:
 
-- `GET /api/orders/[id]`: detalle completo.
+- `GET /api/orders/[id]`: detalle completo;
 - `PATCH /api/orders/[id]`: modificación controlada.
 
-### Regla de estado
+Solo una orden con `status = CONFIRMED` puede editarse normalmente. Cuando Cocina la mueva a `PREPARING`, la edición queda bloqueada.
 
-Solo una orden con `status = CONFIRMED` puede editarse.
+Actualmente permite:
 
-Una vez Cocina la mueva a `PREPARING`, la edición desde Pedidos debe quedar bloqueada. Esto evita modificar una orden que ya está siendo elaborada.
+- cambiar modalidad;
+- cambiar zona/tarifa al pasar a Domicilio;
+- modificar cantidades de líneas existentes;
+- quitar líneas llevando cantidad a cero;
+- agregar productos simples activos;
+- actualizar `Paga con` si el total aumenta.
 
-### Cambios permitidos actualmente
+La edición completa de pizzas/combos debe reutilizar más adelante el mismo constructor estructurado del POS. Nunca debe modificar texto descriptivo para representar un cambio de configuración.
 
-- cambiar modalidad entre Domicilio, Recoger en tienda y Local;
-- seleccionar tarifa/zona al cambiar a Domicilio;
-- modificar cantidades de líneas ya existentes;
-- eliminar una línea llevando su cantidad a cero, siempre que el pedido conserve al menos un producto;
-- agregar productos simples activos del catálogo, especialmente bebidas y antojos;
-- actualizar `Paga con` cuando el medio original es Efectivo y el nuevo total aumenta.
+## Cancelar y eliminar pedidos
 
-### Cambios no disponibles todavía
+### Cancelar
 
-- reconfigurar tamaño, sabores, borde o extras de una pizza ya creada;
-- agregar una pizza configurable o combo desde el editor de Pedidos;
-- cambiar cliente desde el editor;
-- cambiar medio de pago desde el editor.
+`PATCH /api/orders/[id]` con:
 
-Para agregar una pizza o combo con configuración completa debe usarse por ahora el constructor del POS.
+```json
+{ "action": "cancel" }
+```
+
+Solo permite cancelar pedidos que todavía no iniciaron Cocina (`DRAFT` o `CONFIRMED`).
+
+Al cancelar:
+
+- `Order.status` pasa a `CANCELED`;
+- los pagos asociados pasan a `CANCELED` salvo un eventual pago ya `REFUNDED`;
+- el historial se conserva.
+
+Esta es la operación recomendada para pedidos reales que fueron anulados.
+
+### Eliminar definitivamente
+
+`DELETE /api/orders/[id]` solo funciona si el pedido ya tiene `status = CANCELED`.
+
+La eliminación borra el `Order` y, por las relaciones `onDelete: Cascade`, sus `OrderItem` y `Payment`.
+
+Debe reservarse principalmente para pruebas o limpieza administrativa. Una venta real normalmente debe permanecer como `CANCELED` para conservar trazabilidad.
+
+En `/pedidos`:
+
+1. `Cancelar pedido` aparece para órdenes todavía no preparadas.
+2. `Eliminar definitivamente` aparece únicamente después de cancelar.
 
 ## Recalculo al editar
 
-Al guardar una edición se recalculan:
-
-- subtotal;
-- domicilio;
-- total;
-- `Payment.amount`;
-- `changeDue` si el pago es Efectivo.
+Al guardar una edición se recalculan subtotal, domicilio, total, `Payment.amount` y `changeDue` si es efectivo.
 
 El descuento monetario ya confirmado se conserva como snapshot histórico y se limita a la nueva base elegible si fuese necesario. En esta etapa no se reevalúa automáticamente el porcentaje de un cupón sobre productos agregados después de la confirmación original.
-
-Si el nuevo total supera `cashReceived`, la API rechaza la edición hasta que el operador actualice `Paga con`.
 
 ## Comprobante térmico 80 mm
 
@@ -89,37 +167,34 @@ Ruta:
 
 `/pedidos/[id]/imprimir`
 
-La vista está diseñada para impresora térmica de 80 mm y contiene:
+Incluye:
 
-- logo y datos de Alentó Pizza;
+- identidad del local;
 - fecha/hora;
-- número y código del pedido;
-- modalidad destacada;
-- cliente y teléfono;
-- dirección/zona para domicilio;
+- número/código;
+- modalidad;
+- cliente y dirección;
 - checklist de despacho;
-- productos con configuración;
+- configuración estructurada del producto;
 - subtotal, domicilio, descuento y total;
 - medio de pago;
-- efectivo recibido y vueltas cuando aplica;
-- cupón cuando aplica;
-- mensaje final.
+- efectivo recibido y vueltas;
+- cupón.
 
-El botón `Imprimir` ejecuta `window.print()` y los estilos `@media print` de `src/app/globals.css` ocultan toda la interfaz de Alentó App para imprimir únicamente el comprobante a 80 mm.
+`window.print()` dispara la impresión y `@media print` oculta la interfaz general.
 
-Este documento es un comprobante operativo/de entrega. La implementación actual no pretende sustituir una factura electrónica fiscal ni un documento equivalente exigido por normativa tributaria.
+Este comprobante es operativo/de entrega y no sustituye facturación electrónica fiscal.
 
-## Configuración de productos históricos
+## Próximo paso
 
-`OrderItem.configuration` puede contener:
+Antes de Cocina se debe desplegar y probar una nueva muestra de órdenes estructuradas:
 
-- `PIZZA`: snapshot estructurado de tamaño, sabores, borde y modificadores;
-- `COMBO`: pizzas y grupos/opciones del combo;
-- `STANDARD`: producto simple;
-- `POS_SNAPSHOT`: snapshot transitorio con el detalle textual original del carrito.
+1. pizza de un sabor;
+2. pizza de dos sabores;
+3. pizza con borde y extra;
+4. combo con pizza, antojo y bebida;
+5. producto estándar.
 
-`src/lib/orderPresentation.ts` centraliza la presentación de estas variantes para Pedidos e impresión.
+Se debe revisar en PostgreSQL/Pedidos que todos los IDs, cantidades y porciones estén presentes.
 
-## Próximo paso relacionado
-
-Antes de habilitar edición completa de pizzas y combos, el POS debe transportar `CartItem.configuration` estructurada con IDs de tamaño, sabores, borde, modificadores y selecciones de combo. Después el servidor podrá reutilizar el mismo constructor/recalculador en creación y edición.
+Después de validar esta integridad, Cocina puede consumir la misma estructura sin inferir texto.
