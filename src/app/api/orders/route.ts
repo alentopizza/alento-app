@@ -10,6 +10,9 @@ type DiscountMode = "NONE" | "COUPON" | "MANUAL";
 type CartLine = {
   productId: number;
   quantity: number;
+  name?: string;
+  detail?: string;
+  unitPrice?: number;
   configuration?: unknown;
 };
 
@@ -45,6 +48,19 @@ function isCash(method: PaymentMethod) {
   return method.id.toLowerCase() === "cash" || method.name.trim().toLowerCase() === "efectivo";
 }
 
+function clientSnapshot(line: CartLine, productName: string) {
+  const unitPrice = money(Number(line.unitPrice ?? 0));
+  if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error(`El precio de ${productName} no es válido.`);
+  return {
+    unitPrice,
+    configuration: {
+      kind: "POS_SNAPSHOT",
+      detail: typeof line.detail === "string" ? line.detail : "",
+      capturedName: typeof line.name === "string" ? line.name : productName,
+    },
+  };
+}
+
 async function priceLine(line: CartLine) {
   const product = await prisma.product.findUnique({
     where: { id: line.productId },
@@ -69,7 +85,18 @@ async function priceLine(line: CartLine) {
 
   if (product.type === "PIZZA_SINGLE" || product.type === "PIZZA_TWO_FLAVORS") {
     const config = configuration as unknown as PizzaConfiguration;
-    if (config.kind !== "PIZZA" || !Number.isInteger(config.sizeId)) throw new Error(`La configuración de ${product.name} no es válida.`);
+
+    if (config.kind !== "PIZZA" || !Number.isInteger(config.sizeId)) {
+      const snapshot = clientSnapshot(line, product.name);
+      return {
+        product,
+        quantity,
+        unitPrice: snapshot.unitPrice,
+        lineTotal: snapshot.unitPrice * quantity,
+        eligible: product.couponEligible,
+        configuration: snapshot.configuration,
+      };
+    }
 
     const size = await prisma.pizzaSize.findFirst({ where: { id: config.sizeId, active: true } });
     if (!size) throw new Error(`El tamaño seleccionado para ${product.name} ya no está disponible.`);
@@ -129,11 +156,23 @@ async function priceLine(line: CartLine) {
 
   if (product.type === "COMBO") {
     const config = configuration as unknown as ComboConfiguration;
-    if (config.kind !== "COMBO") throw new Error(`La configuración de ${product.name} no es válida.`);
+
+    if (config.kind !== "COMBO") {
+      const snapshot = clientSnapshot(line, product.name);
+      return {
+        product,
+        quantity,
+        unitPrice: snapshot.unitPrice,
+        lineTotal: snapshot.unitPrice * quantity,
+        eligible: false,
+        configuration: snapshot.configuration,
+      };
+    }
+
     let regularPrice = 0;
     const pizzaSnapshots: unknown[] = [];
-
     const rule = product.comboPizzaRules[0];
+
     if (rule) {
       if (!Array.isArray(config.pizzas) || config.pizzas.length !== rule.quantity) throw new Error(`Completa las pizzas del combo ${product.name}.`);
       for (const choice of config.pizzas) {
@@ -149,9 +188,7 @@ async function priceLine(line: CartLine) {
     for (const group of product.comboGroups) {
       const selectedIds = Array.isArray(config.groupSelections?.[String(group.id)])
         ? config.groupSelections[String(group.id)].map(Number)
-        : Array.isArray((config.groupSelections as Record<number, number[]> | undefined)?.[group.id])
-          ? (config.groupSelections as Record<number, number[]>)[group.id].map(Number)
-          : [];
+        : [];
       if (selectedIds.length < group.minSelections || selectedIds.length > group.maxSelections) throw new Error(`Completa la selección de ${group.name}.`);
       const selectedOptions = group.options.filter((option) => selectedIds.includes(option.productId));
       if (selectedOptions.length !== selectedIds.length) throw new Error(`Una opción de ${group.name} ya no está disponible.`);
@@ -266,7 +303,7 @@ export async function POST(request: NextRequest) {
     if (cashPayment && (!Number.isFinite(cashReceived) || cashReceived! < total)) return NextResponse.json({ error: "El efectivo recibido debe ser igual o mayor al total." }, { status: 400 });
 
     const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
+      return tx.order.create({
         data: {
           customerId: customer?.id ?? null,
           addressId: fulfillmentType === "DELIVERY" ? address?.id ?? null : null,
@@ -305,7 +342,6 @@ export async function POST(request: NextRequest) {
         },
         include: { customer: true, address: true, items: true, payments: true },
       });
-      return created;
     });
 
     return NextResponse.json({
