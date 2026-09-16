@@ -40,11 +40,17 @@ El listado de productos es la zona que debe hacer scroll. Los controles iniciale
 
 El selector vive dentro del panel `Pedido actual` y usa tres opciones compactas:
 
-- `Domicilio` → `DELIVERY`;
-- `Recoger` → `PICKUP` / Recoger en tienda;
-- `Local` → `STORE`.
+- `DOMICILIO` → `DELIVERY`;
+- `RECOGER` → `PICKUP` / Recoger en tienda;
+- `LOCAL` → `STORE`.
 
-`Recoger` es solo una abreviación visual. El valor persistido y las reglas internas continúan usando `PICKUP`.
+Reglas visuales aprobadas:
+
+- no mostrar emojis ni iconos decorativos;
+- mostrar las tres opciones en mayúscula;
+- mantener los botones bajos y compactos;
+- conservar borde rojo/fondo suave para la opción activa;
+- `RECOGER` es una abreviación visual; el valor persistido sigue siendo `PICKUP`.
 
 ## Cliente
 
@@ -58,9 +64,14 @@ Mostrar en una sola línea operativa:
 
 - campo de búsqueda por nombre, teléfono o correo;
 - botón `Buscar`;
-- acción compacta `+ Nuevo` para crear cliente.
+- acción compacta `+ NUEVO` para crear cliente.
 
-`+ Nuevo` debe vivir junto a `Buscar` para evitar ocupar una fila independiente y para no partir el texto en dos líneas.
+Reglas visuales:
+
+- `Buscar` usa fondo negro y texto blanco;
+- `+ NUEVO` debe tener la misma altura, radio y peso visual que `Buscar`;
+- `+ NUEVO` usa fondo rojo Alentó y texto blanco;
+- ambos botones deben permanecer en una sola línea cuando el ancho lo permita.
 
 Los resultados de búsqueda pueden desplegarse por encima del contenido siguiente para no aumentar innecesariamente la altura del panel.
 
