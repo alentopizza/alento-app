@@ -14,10 +14,18 @@ type ComboOption = {
 
 type ComboGroup = {
   id?: number;
+  kind: string;
   name: string;
   minSelections: number;
   maxSelections: number;
   options: ComboOption[];
+};
+
+type ComboPizzaRule = {
+  id?: number;
+  quantity: number;
+  sizeIds: number[];
+  flavorIds: number[];
 };
 
 type Product = {
@@ -33,8 +41,11 @@ type Product = {
   visibleInPos: boolean;
   featured: boolean;
   sortOrder: number;
-  comboRegularTotal?: number | null;
-  comboDiscount?: number | null;
+  comboRegularMin?: number | null;
+  comboRegularMax?: number | null;
+  comboDiscountMin?: number | null;
+  comboDiscountMax?: number | null;
+  comboPizzaRules: ComboPizzaRule[];
   comboGroups: ComboGroup[];
 };
 
@@ -80,12 +91,19 @@ type CreateState = {
 };
 
 type ComboState = {
+  id?: number;
   name: string;
   description: string;
   finalPrice: string;
   imageUrl: string;
   imageUrl2: string;
-  productIds: number[];
+  pizzaQuantity: number;
+  pizzaSizeIds: number[];
+  pizzaFlavorIds: number[];
+  snackQuantity: number;
+  snackProductIds: number[];
+  beverageQuantity: number;
+  beverageProductIds: number[];
 };
 
 const priority = new Map([
@@ -93,6 +111,7 @@ const priority = new Map([
   ["pizzas", 2],
   ["antojos", 3],
   ["bebidas", 4],
+  ["combos", 5],
   ["ingredientes", 20],
 ]);
 
@@ -103,6 +122,10 @@ function formatCOP(value: number | null | undefined) {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function toggleId(values: number[], id: number) {
+  return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
 }
 
 export default function MenuPage() {
@@ -117,7 +140,7 @@ export default function MenuPage() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [comboState, setComboState] = useState<ComboState | null>(null);
-  const [creatingCombo, setCreatingCombo] = useState(false);
+  const [savingCombo, setSavingCombo] = useState(false);
   const [comboError, setComboError] = useState("");
 
   async function loadMenu(preserveCategory = true) {
@@ -146,7 +169,7 @@ export default function MenuPage() {
   }
 
   useEffect(() => {
-    loadMenu(false);
+    void loadMenu(false);
   }, []);
 
   const activeCategory = useMemo(
@@ -166,31 +189,20 @@ export default function MenuPage() {
     return products.filter((product) => product.name.toLowerCase().includes(value) || product.description?.toLowerCase().includes(value));
   }, [activeCategory, query]);
 
-  const comboCandidates = useMemo(() => {
-    const allowed = new Set(["pizzas", "antojos", "bebidas"]);
-    return (data?.categories ?? [])
-      .filter((category) => allowed.has(category.slug))
-      .flatMap((category) => category.products.map((product) => ({ product, category: category.name })))
-      .filter(({ product }) => product.active && ["STANDARD", "PIZZA_SINGLE"].includes(product.type))
-      .filter((item, index, array) => array.findIndex((candidate) => candidate.product.id === item.product.id) === index)
-      .sort((a, b) => a.product.name.localeCompare(b.product.name, "es"));
+  const pizzas = useMemo(() => {
+    const category = data?.categories.find((item) => item.slug === "pizzas");
+    return (category?.products ?? []).filter((product) => product.type === "PIZZA_SINGLE" && product.active);
   }, [data]);
 
-  function regularPrice(product: Product) {
-    if (product.type === "PIZZA_SINGLE") return minPizzaSizePrice + (product.basePrice ?? 0);
-    return product.basePrice ?? 0;
-  }
+  const snacks = useMemo(() => {
+    const category = data?.categories.find((item) => item.slug === "antojos");
+    return (category?.products ?? []).filter((product) => product.active);
+  }, [data]);
 
-  const comboRegularTotal = useMemo(() => {
-    if (!comboState) return 0;
-    return comboState.productIds.reduce((total, id) => {
-      const found = comboCandidates.find(({ product }) => product.id === id)?.product;
-      return total + (found ? regularPrice(found) : 0);
-    }, 0);
-  }, [comboState, comboCandidates, minPizzaSizePrice]);
-
-  const comboFinalPrice = comboState ? Number(comboState.finalPrice) || 0 : 0;
-  const comboDiscount = Math.max(0, comboRegularTotal - comboFinalPrice);
+  const beverages = useMemo(() => {
+    const category = data?.categories.find((item) => item.slug === "bebidas");
+    return (category?.products ?? []).filter((product) => product.active);
+  }, [data]);
 
   function displayProductPrice(product: Product) {
     if (product.type === "PIZZA_SINGLE") return `Desde ${formatCOP(minPizzaSizePrice + (product.basePrice ?? 0))}`;
@@ -287,48 +299,105 @@ export default function MenuPage() {
     }
   }
 
-  function startCombo() {
+  function startCombo(product?: Product) {
     setComboError("");
-    setComboState({ name: "", description: "", finalPrice: "", imageUrl: "", imageUrl2: "", productIds: [] });
-  }
+    const pizzaRule = product?.comboPizzaRules?.[0];
+    const snackGroup = product?.comboGroups?.find((group) => group.kind === "ANTOJO");
+    const beverageGroup = product?.comboGroups?.find((group) => group.kind === "BEBIDA");
 
-  function toggleComboProduct(productId: number) {
-    if (!comboState) return;
     setComboState({
-      ...comboState,
-      productIds: comboState.productIds.includes(productId)
-        ? comboState.productIds.filter((id) => id !== productId)
-        : [...comboState.productIds, productId],
+      id: product?.id,
+      name: product?.name ?? "",
+      description: product?.description ?? "",
+      finalPrice: product?.basePrice == null ? "" : String(product.basePrice),
+      imageUrl: product?.imageUrl ?? "",
+      imageUrl2: product?.imageUrl2 ?? "",
+      pizzaQuantity: pizzaRule?.quantity ?? 0,
+      pizzaSizeIds: pizzaRule?.sizeIds ?? [],
+      pizzaFlavorIds: pizzaRule?.flavorIds ?? [],
+      snackQuantity: snackGroup?.minSelections ?? 0,
+      snackProductIds: snackGroup?.options.map((option) => option.productId) ?? [],
+      beverageQuantity: beverageGroup?.minSelections ?? 0,
+      beverageProductIds: beverageGroup?.options.map((option) => option.productId) ?? [],
     });
   }
 
-  async function createCombo(event: FormEvent<HTMLFormElement>) {
+  const comboPreview = useMemo(() => {
+    if (!comboState) return { min: 0, max: 0, discountMin: 0, discountMax: 0, final: 0 };
+    let min = 0;
+    let max = 0;
+
+    if (comboState.pizzaQuantity > 0 && comboState.pizzaSizeIds.length && comboState.pizzaFlavorIds.length) {
+      const selectedSizes = (data?.sizes ?? []).filter((size) => comboState.pizzaSizeIds.includes(size.id));
+      const selectedFlavors = pizzas.filter((pizza) => comboState.pizzaFlavorIds.includes(pizza.id));
+      const sizePrices = selectedSizes.map((size) => size.basePrice);
+      const flavorPrices = selectedFlavors.map((pizza) => pizza.basePrice ?? 0);
+      if (sizePrices.length && flavorPrices.length) {
+        min += (Math.min(...sizePrices) + Math.min(...flavorPrices)) * comboState.pizzaQuantity;
+        max += (Math.max(...sizePrices) + Math.max(...flavorPrices)) * comboState.pizzaQuantity;
+      }
+    }
+
+    if (comboState.snackQuantity > 0 && comboState.snackProductIds.length) {
+      const prices = snacks.filter((item) => comboState.snackProductIds.includes(item.id)).map((item) => item.basePrice ?? 0);
+      if (prices.length) {
+        min += Math.min(...prices) * comboState.snackQuantity;
+        max += Math.max(...prices) * comboState.snackQuantity;
+      }
+    }
+
+    if (comboState.beverageQuantity > 0 && comboState.beverageProductIds.length) {
+      const prices = beverages.filter((item) => comboState.beverageProductIds.includes(item.id)).map((item) => item.basePrice ?? 0);
+      if (prices.length) {
+        min += Math.min(...prices) * comboState.beverageQuantity;
+        max += Math.max(...prices) * comboState.beverageQuantity;
+      }
+    }
+
+    const final = Number(comboState.finalPrice) || 0;
+    return {
+      min,
+      max,
+      discountMin: Math.max(0, min - final),
+      discountMax: Math.max(0, max - final),
+      final,
+    };
+  }, [comboState, data, pizzas, snacks, beverages]);
+
+  async function saveCombo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!comboState) return;
-    setCreatingCombo(true);
+    setSavingCombo(true);
     setComboError("");
     try {
       const response = await fetch("/api/menu-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "createCombo",
+          action: comboState.id ? "saveCombo" : "createCombo",
+          comboProductId: comboState.id,
           name: comboState.name,
           description: comboState.description,
           imageUrl: comboState.imageUrl,
           imageUrl2: comboState.imageUrl2,
           finalPrice: comboState.finalPrice,
-          productIds: comboState.productIds,
+          pizzaQuantity: comboState.pizzaQuantity,
+          pizzaSizeIds: comboState.pizzaSizeIds,
+          pizzaFlavorIds: comboState.pizzaFlavorIds,
+          snackQuantity: comboState.snackQuantity,
+          snackProductIds: comboState.snackProductIds,
+          beverageQuantity: comboState.beverageQuantity,
+          beverageProductIds: comboState.beverageProductIds,
         }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No fue posible crear el combo.");
+      if (!response.ok) throw new Error(result.error || "No fue posible guardar el combo.");
       setComboState(null);
       await loadMenu(false);
-    } catch (createComboError) {
-      setComboError(createComboError instanceof Error ? createComboError.message : "No fue posible crear el combo.");
+    } catch (comboSaveError) {
+      setComboError(comboSaveError instanceof Error ? comboSaveError.message : "No fue posible guardar el combo.");
     } finally {
-      setCreatingCombo(false);
+      setSavingCombo(false);
     }
   }
 
@@ -344,9 +413,9 @@ export default function MenuPage() {
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">Administración</p>
               <h1 className="mt-1 text-3xl font-black tracking-[-0.04em]">Menú</h1>
-              <p className="mt-1 text-sm text-white/55">Productos, precios, imágenes, destacados y combos.</p>
+              <p className="mt-1 text-sm text-white/55">Productos, precios, imágenes, destacados y combos configurables.</p>
             </div>
-            <button onClick={startCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">+ Crear combo</button>
+            <button onClick={() => startCombo()} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">+ Crear combo</button>
           </div>
         </header>
 
@@ -369,6 +438,7 @@ export default function MenuPage() {
                 <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Categoría</p><h2 className="mt-1 text-2xl font-black">{activeCategory?.name ?? "Productos"}</h2></div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && <button onClick={() => startCreateProduct(activeCategory)} className="rounded-2xl bg-black px-4 py-3 text-sm font-black text-white">+ {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}</button>}
+                  {activeCategory?.slug === "combos" && <button onClick={() => startCombo()} className="rounded-2xl bg-[var(--brand-red)] px-4 py-3 text-sm font-black text-white">+ Combo</button>}
                   <input value={query} onChange={(event) => setQuery(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3 sm:w-72" placeholder="Buscar producto..." />
                 </div>
               </div>
@@ -385,9 +455,14 @@ export default function MenuPage() {
                     <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-400">{product.type}</p>
                     <h3 className="mt-1 text-base font-black leading-tight">{product.name}</h3>
                     <p className="mt-1 text-sm font-black text-[var(--brand-red)]">{displayProductPrice(product)}</p>
-                    {product.type === "COMBO" && product.comboRegularTotal != null && <div className="mt-2 rounded-xl bg-[#faf9f7] p-2.5 text-[11px]"><div className="flex justify-between text-neutral-500"><span>Valor productos</span><strong>{formatCOP(product.comboRegularTotal)}</strong></div><div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento</span><strong>- {formatCOP(product.comboDiscount ?? 0)}</strong></div><div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-black"><span>Combo</span><strong>{formatCOP(product.basePrice)}</strong></div></div>}
+                    {product.type === "COMBO" && product.comboRegularMin != null && product.comboRegularMax != null && (
+                      <div className="mt-2 rounded-xl bg-[#faf9f7] p-2.5 text-[11px]">
+                        <div className="flex justify-between text-neutral-500"><span>Valor normal</span><strong>{product.comboRegularMin === product.comboRegularMax ? formatCOP(product.comboRegularMin) : `${formatCOP(product.comboRegularMin)} – ${formatCOP(product.comboRegularMax)}`}</strong></div>
+                        <div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento</span><strong>{product.comboDiscountMin === product.comboDiscountMax ? `- ${formatCOP(product.comboDiscountMin)}` : `${formatCOP(product.comboDiscountMin)} – ${formatCOP(product.comboDiscountMax)}`}</strong></div>
+                      </div>
+                    )}
                     <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5"><button onClick={() => openEditor(product)} className="rounded-xl bg-black px-3 py-2 text-[11px] font-black text-white">Editar</button><button onClick={() => quickToggle(product, "active")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.active ? "Desactivar" : "Activar"}</button>{product.type !== "MODIFIER" && <button onClick={() => quickToggle(product, "visibleInPos")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.visibleInPos ? "Ocultar POS" : "Mostrar POS"}</button>}</div>
+                    <div className="mt-3 flex flex-wrap gap-1.5"><button onClick={() => openEditor(product)} className="rounded-xl bg-black px-3 py-2 text-[11px] font-black text-white">Editar</button><button onClick={() => quickToggle(product, "active")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.active ? "Desactivar" : "Activar"}</button>{product.type !== "MODIFIER" && <button onClick={() => quickToggle(product, "visibleInPos")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.visibleInPos ? "Ocultar POS" : "Mostrar POS"}</button>}{product.type === "COMBO" && <button onClick={() => startCombo(product)} className="rounded-xl bg-[var(--brand-red)] px-3 py-2 text-[11px] font-black text-white">Configurar</button>}</div>
                   </div>
                 </article>
               ))}
@@ -401,7 +476,30 @@ export default function MenuPage() {
 
       {createState && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={createProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-6"><div className="mb-5 flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo producto</p><h2 className="mt-1 text-2xl font-black">Crear en {activeCategory?.name}</h2></div><button type="button" onClick={() => setCreateState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div><div className="grid gap-4 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre *</span><input value={createState.name} onChange={(event) => setCreateState({ ...createState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" autoFocus /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span><input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} /></label><div className="rounded-2xl bg-neutral-100 p-3 text-sm text-neutral-500">{createState.categorySlug === "pizzas" ? `Al POS se mostrará sumando el tamaño Personal (${formatCOP(minPizzaSizePrice)}).` : createState.categorySlug === "ingredientes" ? "Se creará como ingrediente adicional y no como producto independiente del POS." : "Producto estándar con precio fijo."}</div><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={createState.imageUrl} onChange={(event) => setCreateState({ ...createState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={createState.imageUrl2} onChange={(event) => setCreateState({ ...createState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div>{createError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{createError}</p>}<div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCreateState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creating} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creating ? "Creando..." : "Crear producto"}</button></div></form></div>}
 
-      {comboState && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"><form onSubmit={createCombo} className="alento-card max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[30px] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo destacado</p><h2 className="mt-1 text-2xl font-black">Crear combo</h2><p className="mt-1 text-sm text-neutral-500">Agrupa productos y define un precio especial. El combo se publica automáticamente en Destacados.</p></div><button type="button" onClick={() => setComboState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div><div className="grid gap-5 lg:grid-cols-[1fr_360px]"><div><div className="grid gap-3 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre del combo *</span><input value={comboState.name} onChange={(event) => setComboState({ ...comboState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Ej. Combo Familiar" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={comboState.description} onChange={(event) => setComboState({ ...comboState, description: event.target.value })} className="alento-input min-h-20 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen principal · URL</span><input value={comboState.imageUrl} onChange={(event) => setComboState({ ...comboState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={comboState.imageUrl2} onChange={(event) => setComboState({ ...comboState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div><div className="mt-5"><p className="mb-2 text-sm font-black">Selecciona los productos</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{comboCandidates.map(({ product, category }) => { const selected = comboState.productIds.includes(product.id); return <button key={product.id} type="button" onClick={() => toggleComboProduct(product.id)} className={`rounded-2xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className={`text-[9px] font-bold uppercase tracking-[0.13em] ${selected ? "text-white/50" : "text-neutral-400"}`}>{category}</span><span className="mt-1 block text-sm font-black">{product.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/65" : "text-neutral-500"}`}>{formatCOP(regularPrice(product))}</span></button>; })}</div></div></div><aside className="h-fit rounded-[24px] bg-[#111112] p-5 text-white lg:sticky lg:top-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Resumen</p><h3 className="mt-1 text-xl font-black">{comboState.name || "Nuevo combo"}</h3><div className="mt-4 space-y-2">{comboState.productIds.length === 0 ? <p className="text-sm text-white/40">Selecciona productos.</p> : comboState.productIds.map((id) => { const product = comboCandidates.find((item) => item.product.id === id)?.product; return product ? <div key={id} className="flex justify-between gap-3 text-sm"><span className="text-white/65">{product.name}</span><strong>{formatCOP(regularPrice(product))}</strong></div> : null; })}</div><div className="mt-5 space-y-3 border-t border-white/10 pt-4"><div className="flex justify-between text-sm"><span className="text-white/55">Valor normal</span><strong>{formatCOP(comboRegularTotal)}</strong></div><label className="block"><span className="text-xs font-bold text-white/55">Valor final del combo</span><input value={comboState.finalPrice} onChange={(event) => setComboState({ ...comboState, finalPrice: event.target.value })} inputMode="numeric" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xl font-black text-white outline-none" placeholder="19900" /></label><div className="flex justify-between rounded-2xl bg-[var(--brand-red)]/15 px-3 py-2.5 text-sm"><span className="text-white/70">Descuento</span><strong className="text-red-300">- {formatCOP(comboDiscount)}</strong></div><div className="flex justify-between border-t border-white/10 pt-3"><span className="font-black">Precio combo</span><strong className="text-2xl text-white">{formatCOP(comboFinalPrice)}</strong></div></div></aside></div>{comboError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{comboError}</p>}<div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setComboState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creatingCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creatingCombo ? "Creando combo..." : "Crear combo"}</button></div></form></div>}
+      {comboState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+          <form onSubmit={saveCombo} className="alento-card max-h-[95vh] w-full max-w-6xl overflow-y-auto rounded-[30px] p-6">
+            <div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Constructor de combo</p><h2 className="mt-1 text-2xl font-black">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2><p className="mt-1 text-sm text-neutral-500">Define qué tamaños, sabores y productos puede escoger el cliente.</p></div><button type="button" onClick={() => setComboState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
+
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="space-y-4">
+                <section className="rounded-[24px] border border-neutral-200 p-4"><h3 className="font-black">Información del combo</h3><div className="mt-3 grid gap-3 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre *</span><input value={comboState.name} onChange={(event) => setComboState({ ...comboState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={comboState.description} onChange={(event) => setComboState({ ...comboState, description: event.target.value })} className="alento-input min-h-20 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen principal · URL</span><input value={comboState.imageUrl} onChange={(event) => setComboState({ ...comboState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={comboState.imageUrl2} onChange={(event) => setComboState({ ...comboState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div></section>
+
+                <section className="rounded-[24px] border border-neutral-200 bg-[#faf9f7] p-4"><div className="flex items-center justify-between gap-4"><div><h3 className="font-black">Pizza</h3><p className="text-xs text-neutral-500">Cantidad de pizzas, tamaños permitidos y sabores disponibles.</p></div><label className="flex items-center gap-2"><span className="text-xs font-bold">Cantidad</span><input type="number" min="0" max="10" value={comboState.pizzaQuantity} onChange={(event) => setComboState({ ...comboState, pizzaQuantity: Math.max(0, Number(event.target.value) || 0) })} className="alento-input w-20 rounded-xl px-3 py-2" /></label></div>{comboState.pizzaQuantity > 0 && <><p className="mb-2 mt-4 text-xs font-black uppercase tracking-[0.12em] text-neutral-400">Tamaños permitidos</p><div className="flex flex-wrap gap-2">{data?.sizes.map((size) => { const selected = comboState.pizzaSizeIds.includes(size.id); return <button key={size.id} type="button" onClick={() => setComboState({ ...comboState, pizzaSizeIds: toggleId(comboState.pizzaSizeIds, size.id) })} className={`rounded-xl border px-3 py-2 text-sm font-bold ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}>{size.name} · {formatCOP(size.basePrice)}</button>; })}</div><p className="mb-2 mt-4 text-xs font-black uppercase tracking-[0.12em] text-neutral-400">Sabores permitidos</p><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{pizzas.map((pizza) => { const selected = comboState.pizzaFlavorIds.includes(pizza.id); return <button key={pizza.id} type="button" onClick={() => setComboState({ ...comboState, pizzaFlavorIds: toggleId(comboState.pizzaFlavorIds, pizza.id) })} className={`rounded-xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className="block text-sm font-black">{pizza.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/55" : "text-neutral-400"}`}>Sabor {formatCOP(pizza.basePrice)}</span></button>; })}</div></>}</section>
+
+                <section className="rounded-[24px] border border-neutral-200 bg-[#faf9f7] p-4"><div className="flex items-center justify-between gap-4"><div><h3 className="font-black">Antojo</h3><p className="text-xs text-neutral-500">Opciones permitidas dentro del combo.</p></div><label className="flex items-center gap-2"><span className="text-xs font-bold">Cantidad</span><input type="number" min="0" max="10" value={comboState.snackQuantity} onChange={(event) => setComboState({ ...comboState, snackQuantity: Math.max(0, Number(event.target.value) || 0) })} className="alento-input w-20 rounded-xl px-3 py-2" /></label></div>{comboState.snackQuantity > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{snacks.map((product) => { const selected = comboState.snackProductIds.includes(product.id); return <button key={product.id} type="button" onClick={() => setComboState({ ...comboState, snackProductIds: toggleId(comboState.snackProductIds, product.id) })} className={`rounded-xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className="block text-sm font-black">{product.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/55" : "text-neutral-400"}`}>{formatCOP(product.basePrice)}</span></button>; })}</div>}</section>
+
+                <section className="rounded-[24px] border border-neutral-200 bg-[#faf9f7] p-4"><div className="flex items-center justify-between gap-4"><div><h3 className="font-black">Bebida</h3><p className="text-xs text-neutral-500">Selecciona las presentaciones que aplican.</p></div><label className="flex items-center gap-2"><span className="text-xs font-bold">Cantidad</span><input type="number" min="0" max="10" value={comboState.beverageQuantity} onChange={(event) => setComboState({ ...comboState, beverageQuantity: Math.max(0, Number(event.target.value) || 0) })} className="alento-input w-20 rounded-xl px-3 py-2" /></label></div>{comboState.beverageQuantity > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{beverages.map((product) => { const selected = comboState.beverageProductIds.includes(product.id); return <button key={product.id} type="button" onClick={() => setComboState({ ...comboState, beverageProductIds: toggleId(comboState.beverageProductIds, product.id) })} className={`rounded-xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className="block text-sm font-black">{product.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/55" : "text-neutral-400"}`}>{formatCOP(product.basePrice)}</span></button>; })}</div>}</section>
+              </div>
+
+              <aside className="h-fit rounded-[24px] bg-[#111112] p-5 text-white xl:sticky xl:top-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Resumen</p><h3 className="mt-1 text-xl font-black">{comboState.name || "Nuevo combo"}</h3><div className="mt-4 space-y-2 text-sm text-white/65">{comboState.pizzaQuantity > 0 && <p>{comboState.pizzaQuantity} × pizza · {comboState.pizzaSizeIds.length} tamaños · {comboState.pizzaFlavorIds.length} sabores</p>}{comboState.snackQuantity > 0 && <p>{comboState.snackQuantity} × antojo · {comboState.snackProductIds.length} opciones</p>}{comboState.beverageQuantity > 0 && <p>{comboState.beverageQuantity} × bebida · {comboState.beverageProductIds.length} opciones</p>}</div><div className="mt-5 space-y-3 border-t border-white/10 pt-4"><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal mínimo</span><strong>{formatCOP(comboPreview.min)}</strong></div><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal máximo</span><strong>{formatCOP(comboPreview.max)}</strong></div><label className="block"><span className="text-xs font-bold text-white/55">Valor final del combo</span><input value={comboState.finalPrice} onChange={(event) => setComboState({ ...comboState, finalPrice: event.target.value })} inputMode="numeric" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xl font-black text-white outline-none" placeholder="19900" /></label><div className="rounded-2xl bg-[var(--brand-red)]/15 px-3 py-2.5 text-sm"><div className="flex justify-between"><span className="text-white/70">Descuento mínimo</span><strong className="text-red-300">{formatCOP(comboPreview.discountMin)}</strong></div><div className="mt-1 flex justify-between"><span className="text-white/70">Descuento máximo</span><strong className="text-red-300">{formatCOP(comboPreview.discountMax)}</strong></div></div><div className="flex justify-between border-t border-white/10 pt-3"><span className="font-black">Precio combo</span><strong className="text-2xl">{formatCOP(comboPreview.final)}</strong></div></div></aside>
+            </div>
+
+            {comboError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{comboError}</p>}
+            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setComboState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={savingCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{savingCombo ? "Guardando..." : comboState.id ? "Guardar combo" : "Crear combo"}</button></div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }
