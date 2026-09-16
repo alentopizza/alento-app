@@ -49,6 +49,11 @@ enum ProductType {
   INTERNAL
 }
 
+enum CouponType {
+  FIXED
+  PERCENTAGE
+}
+
 model Customer {
   id          Int               @id @default(autoincrement())
   name        String
@@ -235,10 +240,23 @@ model ComboOption {
   @@index([productId])
 }
 
+model Coupon {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  type      CouponType
+  value     Decimal    @db.Decimal(12, 2)
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  orders    Order[]
+}
+
 model Order {
   id              Int               @id @default(autoincrement())
   customerId      Int?
   addressId       Int?
+  couponId        Int?
+  couponName      String?
   status          OrderStatus       @default(DRAFT)
   fulfillmentType FulfillmentType   @default(DELIVERY)
   source          OrderSource       @default(POS)
@@ -251,11 +269,13 @@ model Order {
   updatedAt       DateTime          @updatedAt
   customer        Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   address         CustomerAddress?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  coupon          Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   payments        Payment[]
 
   @@index([customerId])
   @@index([addressId])
+  @@index([couponId])
   @@index([status])
   @@index([createdAt])
 }
