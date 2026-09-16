@@ -14,33 +14,40 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Cliente obligatorio para Recoger en tienda.
 - Cliente opcional para Local.
 - Búsqueda de clientes.
-- Creación de clientes desde el POS.
-- Edición de clientes desde el POS.
+- Creación y edición de clientes desde el POS.
 - Validación de dirección para Domicilio.
 - Catálogo por categorías.
-- Productos simples.
-- Pizzas de un sabor.
-- Pizza de dos sabores.
-- Tamaños.
-- Bordes.
-- Ingredientes extra.
-- Combos configurables.
-- Combos con descuento fijo.
+- Productos simples, pizzas, dos sabores, tamaños, bordes, ingredientes extra y combos configurables.
 - Carrito con cantidades y subtotal.
 - Modal de cierre del pedido.
-- Selección manual de zona/tarifa de domicilio desde opciones activas de Configuración.
-- Selección de medio de pago desde los métodos activos de Configuración.
-- Descuento manual en pesos durante el cierre del pedido.
-- Validación para que el descuento nunca supere subtotal + domicilio.
-- Revisión de subtotal, domicilio, descuento y total antes de persistir el pedido.
-- El resultado del cierre validado se refleja de nuevo en el resumen lateral del POS.
-- El bloque inferior del resumen lateral permanece visible en escritorio para evitar hacer scroll hasta encontrar `Continuar pedido` o `Revisar cierre`.
+- Selección manual de zona/tarifa de domicilio desde Configuración.
+- Selección de medio de pago desde Configuración.
+- Descuento mediante cupón o descuento manual.
+- Revisión de subtotal, domicilio, descuento y total.
+- El cierre validado se refleja en el resumen lateral.
+- El bloque inferior del resumen lateral permanece visible en escritorio para evitar scroll innecesario.
+
+### Cupones
+
+Existe una pestaña propia `/cupones` para administrar descuentos reutilizables.
+
+Cada cupón tiene:
+
+- nombre;
+- tipo `FIXED` (plano) o `PERCENTAGE` (porcentaje);
+- valor;
+- estado activo/inactivo.
+
+Ejemplos esperados:
+
+- `Cupón Trabajador` → porcentaje → `60%`.
+- `Cupón Fidelización` → plano → `$10.000`.
+
+Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 
 ### Clientes
 
-- Directorio.
-- Búsqueda.
-- Edición.
+- Directorio, búsqueda y edición.
 - Dirección principal.
 - Protección contra eliminación de clientes con pedidos asociados.
 
@@ -56,7 +63,7 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Zonas/tarifas de domicilio editables por nombre, costo y estado.
 - Medios de pago configurables.
 - Persistencia mediante `AppSetting`.
-- Los rangos históricos en metros se conservan internamente para una futura automatización con mapas, pero ya no se muestran como requisito operativo en el POS.
+- Los rangos históricos en metros se conservan internamente para futura automatización con mapas.
 
 ### APIs
 
@@ -64,94 +71,107 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Clientes.
 - Administración de menú.
 - Configuración.
-- `/api/delivery/quote` se conserva para una futura integración automática basada en distancia.
+- Cupones: `/api/coupons` y `/api/coupons/[id]`.
+- `/api/delivery/quote` se conserva para futura integración automática basada en distancia.
 
 ## Flujo de cierre actual
 
 ### Domicilio
 
-1. Cliente ya seleccionado y con dirección registrada.
-2. Abrir cierre del pedido.
-3. Seleccionar manualmente una zona/tarifa activa, por ejemplo `Zona cercana - $0`, `Zona intermedia - $5.000` o `Zona extendida - $10.000`.
-4. Aplicar un descuento manual en pesos si corresponde. El valor por defecto es $0.
-5. Elegir un medio de pago activo.
-6. Revisar productos, subtotal, domicilio, descuento y total.
-7. Validar el cierre.
+1. Cliente seleccionado y con dirección.
+2. Abrir cierre.
+3. Seleccionar zona/tarifa de domicilio.
+4. Elegir descuento: sin descuento, cupón o manual.
+5. Elegir medio de pago.
+6. Revisar subtotal, domicilio, descuento y total.
+7. Validar cierre.
 
 ### Recoger en tienda
 
-1. Cliente ya seleccionado.
-2. Abrir cierre del pedido.
-3. Aplicar un descuento manual si corresponde.
+1. Cliente seleccionado.
+2. Abrir cierre.
+3. Elegir descuento: sin descuento, cupón o manual.
 4. Elegir medio de pago.
-5. Revisar el pedido.
-6. Validar el cierre.
+5. Revisar pedido.
+6. Validar cierre.
 
 ### Local
 
 1. Cliente opcional.
-2. Abrir cierre del pedido.
-3. Aplicar un descuento manual si corresponde.
+2. Abrir cierre.
+3. Elegir descuento: sin descuento, cupón o manual.
 4. Elegir medio de pago.
-5. Revisar el pedido.
-6. Validar el cierre.
+5. Revisar pedido.
+6. Validar cierre.
 
-Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL. Este paso es intencional para aprobar primero el flujo operativo antes de persistir pedidos reales.
+Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL.
 
-## Descuento manual
+## Reglas de descuentos
 
-El descuento del cierre es un valor absoluto en pesos colombianos, no un porcentaje.
+Un pedido solo puede tener una fuente de descuento operativo:
+
+- `NONE`: sin descuento;
+- `COUPON`: cupón administrado desde `/cupones`;
+- `MANUAL`: valor escrito manualmente por el operador.
+
+No se permite combinar cupón + descuento manual.
+
+### Cupón porcentual
+
+El porcentaje se calcula únicamente sobre el subtotal de productos. El domicilio no forma parte de la base del porcentaje.
 
 Ejemplo:
 
-- Subtotal: $39.900.
-- Domicilio: $5.000.
-- Descuento: $5.000.
-- Total: $39.900.
+- subtotal productos: $50.000;
+- domicilio: $10.000;
+- Cupón Trabajador: 60%;
+- descuento: $30.000;
+- total: $30.000.
 
-El cierre expone el valor como `discount` para que el siguiente bloque lo persista directamente en `Order.discount`.
+### Cupón plano
 
-Reglas:
+El valor fijo se descuenta del subtotal de productos y nunca puede reducir los productos por debajo de $0. El domicilio permanece intacto.
 
-- valor por defecto: $0;
-- solo se aceptan valores no negativos;
-- nunca puede superar `subtotal + deliveryFee`;
-- modificar productos, cliente o tipo de pedido invalida el cierre anterior y obliga a revisarlo nuevamente.
+### Descuento manual
+
+Se mantiene para excepciones operativas. Puede descontar hasta el valor completo de `subtotal + deliveryFee` y nunca puede dejar un total negativo.
+
+## Persistencia futura del descuento
+
+Prisma incluye ahora el modelo `Coupon` y `Order` dispone de:
+
+- `couponId` opcional;
+- `couponName` opcional como snapshot del nombre usado;
+- `discount` como valor monetario finalmente aplicado.
+
+La intención es que un pedido histórico conserve el valor final aplicado incluso si el cupón cambia posteriormente.
+
+## Base de datos / despliegue
+
+La incorporación de cupones agrega el modelo `Coupon` y nuevas columnas en `Order`. Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar esta versión se debe ejecutar una vez en la consola del servicio:
+
+```bash
+npx prisma db push
+```
+
+No usar `prisma migrate deploy` mientras la base de producción siga sin baseline formal.
 
 ## Decisión sobre Google Maps
 
-Google Maps NO es dependencia operativa en esta etapa.
-
-La decisión actual es priorizar estabilidad y velocidad del POS mediante selección manual de zona/tarifa. Esto evita que la operación dependa de geocodificación, claves externas, facturación, cuotas o errores de direcciones.
-
-La integración futura con mapas deberá automatizar solamente la selección de la zona/tarifa. La estructura comercial actual se mantiene: Configuración sigue siendo la fuente de verdad para nombres, costos y estado de las tarifas.
-
-Los campos internos `minMeters` y `maxMeters` se conservan para facilitar esa automatización futura, pero no deben exigirse al operador.
+Google Maps NO es dependencia operativa en esta etapa. La selección de tarifa de domicilio sigue siendo manual para maximizar estabilidad. La futura integración con mapas deberá automatizar solamente la selección de zona/tarifa.
 
 ## Pendiente inmediato
 
-El siguiente bloque aprobado es la persistencia real del pedido.
+Después de aprobar cupones, el siguiente bloque es la persistencia real del pedido:
 
-Debe incluir:
-
-1. Endpoint de creación de pedido.
-2. Crear `Order` con tipo de pedido, cliente, dirección, subtotal, domicilio, descuento y total.
-3. Crear `OrderItem` para cada línea del carrito.
-4. Conservar suficiente configuración de pizzas y combos dentro de `configuration` para Cocina e historial.
-5. Crear `Payment` con el medio de pago validado.
-6. Definir correctamente el estado inicial del pago.
-7. Confirmar el pedido y limpiar el POS después de una creación exitosa.
-8. Conectar el pedido nuevo a Cocina.
-9. Crear o habilitar la pantalla de Pedidos.
-
-## Próximos módulos después de persistir pedidos
-
-1. Pantalla Pedidos.
-2. Cocina conectada a pedidos reales.
-3. Caja y conciliación de pagos.
-4. Integración con Chatwoot.
-5. App para clientes.
+1. Endpoint de creación.
+2. Crear `Order` con tipo, cliente, dirección, subtotal, domicilio, descuento, cupón y total.
+3. Crear `OrderItem` por cada línea.
+4. Conservar configuración de pizzas y combos para Cocina e historial.
+5. Crear `Payment` con el medio validado.
+6. Confirmar pedido, limpiar POS y enviar a Cocina.
+7. Habilitar pantalla de Pedidos.
 
 ## Regla de continuidad
 
-Antes de iniciar una nueva funcionalidad importante, actualizar este documento y/o `ARCHITECTURE.md` si cambia una decisión estructural.
+Antes de iniciar una funcionalidad importante, actualizar este documento y/o `ARCHITECTURE.md` si cambia una decisión estructural.
