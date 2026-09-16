@@ -72,11 +72,26 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const current = await loadOrder(id);
     if (!current) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+
+    const body = await request.json();
+    if (body?.action === "cancel") {
+      if (!["DRAFT", "CONFIRMED"].includes(current.status)) {
+        return NextResponse.json({ error: "Solo se pueden cancelar pedidos que aún no han iniciado preparación." }, { status: 409 });
+      }
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.payment.updateMany({
+          where: { orderId: current.id, status: { not: "REFUNDED" } },
+          data: { status: "CANCELED" },
+        });
+        return tx.order.update({ where: { id: current.id }, data: { status: "CANCELED" } });
+      });
+      return NextResponse.json({ order: { ...serializeOrder(current), status: updated.status } });
+    }
+
     if (current.status !== "CONFIRMED") {
       return NextResponse.json({ error: "Solo los pedidos confirmados y aún no iniciados en Cocina pueden editarse." }, { status: 409 });
     }
 
-    const body = await request.json();
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) {
       return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
@@ -128,7 +143,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       const product = addedProducts.find((item) => item.id === Number(addition.productId));
       if (!product) return NextResponse.json({ error: "Uno de los productos adicionales ya no está disponible." }, { status: 400 });
       if (["PIZZA_SINGLE", "PIZZA_TWO_FLAVORS", "COMBO"].includes(product.type)) {
-        return NextResponse.json({ error: `Para agregar ${product.name} debes crear su configuración desde el POS. Por ahora la edición admite productos simples.` }, { status: 400 });
+        return NextResponse.json({ error: `Para agregar ${product.name} debes crear su configuración estructurada desde el POS.` }, { status: 400 });
       }
       if (product.basePrice == null) return NextResponse.json({ error: `${product.name} no tiene precio.` }, { status: 400 });
     }
@@ -177,10 +192,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
         if (quantity <= 0) await tx.orderItem.delete({ where: { id: entry.id } });
         else if (quantity !== entry.quantity) {
-          await tx.orderItem.update({
-            where: { id: entry.id },
-            data: { quantity, lineTotal: Number(entry.unitPrice) * quantity },
-          });
+          await tx.orderItem.update({ where: { id: entry.id }, data: { quantity, lineTotal: Number(entry.unitPrice) * quantity } });
         }
       }
 
@@ -197,33 +209,25 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             unitPrice,
             quantity,
             lineTotal: unitPrice * quantity,
-            configuration: { kind: "STANDARD" },
+            configuration: {
+              schemaVersion: 1,
+              kind: "STANDARD",
+              productId: product.id,
+              productName: product.name,
+            },
           },
         });
       }
 
       await tx.order.update({
         where: { id: current.id },
-        data: {
-          fulfillmentType,
-          addressId,
-          deliveryZoneId,
-          deliveryZoneName,
-          deliveryFee,
-          subtotal,
-          discount,
-          total,
-        },
+        data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total },
       });
 
       if (payment) {
         await tx.payment.update({
           where: { id: payment.id },
-          data: {
-            amount: total,
-            cashReceived: isCash ? cashReceivedInput : payment.cashReceived,
-            changeDue: isCash ? changeDue : payment.changeDue,
-          },
+          data: { amount: total, cashReceived: isCash ? cashReceivedInput : payment.cashReceived, changeDue: isCash ? changeDue : payment.changeDue },
         });
       }
     });
@@ -233,5 +237,25 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   } catch (error) {
     console.error("Order update error", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "No fue posible actualizar el pedido." }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: rawId } = await context.params;
+    const id = Number(rawId);
+    if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
+
+    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
+    if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (order.status !== "CANCELED") {
+      return NextResponse.json({ error: "Por seguridad, un pedido debe estar Cancelado antes de eliminarlo definitivamente." }, { status: 409 });
+    }
+
+    await prisma.order.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Order delete error", error);
+    return NextResponse.json({ error: "No fue posible eliminar el pedido." }, { status: 500 });
   }
 }
