@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 const SETTINGS_KEY = "pos_settings";
 
-export type DeliveryBand = {
+type DeliveryBand = {
   id: string;
   minMeters: number;
   maxMeters: number;
@@ -11,13 +11,13 @@ export type DeliveryBand = {
   active: boolean;
 };
 
-export type PaymentMethodSetting = {
+type PaymentMethodSetting = {
   id: string;
   name: string;
   active: boolean;
 };
 
-export type PosSettings = {
+type PosSettings = {
   store: {
     address: string;
     mapsUrl: string;
@@ -26,7 +26,7 @@ export type PosSettings = {
   paymentMethods: PaymentMethodSetting[];
 };
 
-export const DEFAULT_POS_SETTINGS: PosSettings = {
+const DEFAULT_POS_SETTINGS: PosSettings = {
   store: {
     address: "Av. Calle 43 Sur #79A-33, Bogotá",
     mapsUrl: "https://maps.app.goo.gl/po5MesvuTLifpwyz7",
