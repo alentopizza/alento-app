@@ -10,45 +10,54 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 
 - Selección inicial de tipo de pedido.
 - Domicilio, Recoger en tienda y Local.
-- Cliente obligatorio para Domicilio.
-- Cliente obligatorio para Recoger en tienda.
+- Cliente obligatorio para Domicilio y Recoger en tienda.
 - Cliente opcional para Local.
-- Búsqueda de clientes.
-- Creación y edición de clientes desde el POS.
-- Validación de dirección para Domicilio.
+- Búsqueda, creación y edición de clientes desde el POS.
+- Dirección obligatoria para Domicilio.
 - Catálogo por categorías.
 - Productos simples, pizzas, dos sabores, tamaños, bordes, ingredientes extra y combos configurables.
 - Carrito con cantidades y subtotal.
-- Modal de cierre del pedido en diseño compacto.
-- Selección manual de zona/tarifa de domicilio desde Configuración.
-- Selección de medio de pago desde Configuración.
-- Descuento mediante cupón o descuento manual.
-- Cálculo de subtotal elegible para descuentos.
-- Exclusión automática de combos y productos promocionales del descuento.
-- Revisión de subtotal, domicilio, descuento y total.
-- Para pagos en Efectivo, captura de `Paga con` y cálculo automático de `Vueltas`.
-- Botones rápidos de efectivo: pago exacto y denominaciones sugeridas iguales o superiores al total.
-- Validación que impide cerrar un pago en efectivo si `Paga con` es menor al total.
-- El cierre validado se refleja en el resumen lateral.
-- El bloque inferior del resumen lateral permanece visible en escritorio para evitar scroll innecesario.
+- Modal compacto de cierre del pedido.
+- Tarifa de domicilio seleccionable desde Configuración.
+- Medios de pago configurables.
+- Cupones y descuento manual.
+- Base elegible de descuentos calculada en servidor.
+- Combos y productos no acumulables excluidos de cupones/descuentos.
+- Efectivo con `Paga con` y cálculo automático de `Vueltas`.
+- Creación real y transaccional del pedido en PostgreSQL.
+- Confirmación visual del pedido con código `ALT-000001`, `ALT-000002`, etc.
+
+### Pedidos
+
+Existe `/pedidos` para consultar las órdenes persistidas.
+
+La pantalla muestra:
+
+- código del pedido;
+- fecha/hora;
+- estado;
+- tipo de entrega;
+- cliente y dirección cuando aplica;
+- productos;
+- subtotal, domicilio, descuento y total;
+- forma de pago;
+- efectivo recibido y vueltas cuando aplica;
+- cupón usado cuando aplica.
+
+Actualmente lista las 100 órdenes más recientes mediante `GET /api/orders`.
 
 ### Cupones
 
-Existe una pestaña propia `/cupones` para administrar descuentos reutilizables.
+Existe `/cupones` para administrar descuentos reutilizables.
 
 Cada cupón tiene:
 
 - nombre;
-- tipo `FIXED` (plano) o `PERCENTAGE` (porcentaje);
+- tipo `FIXED` o `PERCENTAGE`;
 - valor;
 - estado activo/inactivo.
 
-Ejemplos esperados:
-
-- `Cupón Trabajador` → porcentaje → `60%`.
-- `Cupón Fidelización` → plano → `$10.000`.
-
-Los cupones activos aparecen automáticamente en el popup de cierre del POS.
+Los cupones activos aparecen automáticamente en el cierre del POS.
 
 ### Clientes
 
@@ -61,181 +70,181 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 - Administración de categorías y productos.
 - Categoría Combos.
 - Reglas configurables de combos.
-- `Product.couponEligible` define si un producto normal puede participar en descuentos.
-- Los productos `COMBO` son siempre no elegibles para cupones aunque el campo anterior estuviera activo.
+- `Product.couponEligible` controla si un producto normal puede recibir descuentos.
+- Los `COMBO` quedan siempre excluidos de cupones/descuento manual.
 
 ### Configuración
 
 - Ubicación del local.
-- Zonas/tarifas de domicilio editables por nombre, costo y estado.
+- Zonas/tarifas de domicilio editables.
 - Medios de pago configurables.
 - Persistencia mediante `AppSetting`.
-- Los rangos históricos en metros se conservan internamente para futura automatización con mapas.
+- Google Maps no es dependencia operativa actual.
 
-### APIs
-
-- Catálogo.
-- Clientes.
-- Administración de menú.
-- Configuración.
-- Cupones: `/api/coupons` y `/api/coupons/[id]`.
-- Elegibilidad de descuentos: `/api/discount/eligibility`.
-- `/api/delivery/quote` se conserva para futura integración automática basada en distancia.
-
-## Flujo de cierre actual
+## Flujo real de creación de pedido
 
 ### Domicilio
 
-1. Cliente seleccionado y con dirección.
-2. Abrir cierre.
-3. Seleccionar zona/tarifa de domicilio.
-4. El sistema calcula la base elegible de productos.
-5. Elegir descuento: sin descuento, cupón o manual.
-6. Elegir medio de pago.
-7. Si el medio es Efectivo, ingresar `Paga con`.
-8. El sistema calcula `Vueltas = Paga con - Total`.
-9. Revisar subtotal, domicilio, descuento, total y vueltas.
-10. Validar cierre.
+1. Seleccionar Domicilio.
+2. Seleccionar/crear cliente con dirección.
+3. Agregar productos.
+4. Abrir cierre.
+5. Seleccionar tarifa/zona de domicilio.
+6. Calcular base elegible.
+7. Elegir descuento: ninguno, cupón o manual.
+8. Elegir medio de pago.
+9. Si es Efectivo, indicar `Paga con` y calcular vueltas.
+10. Revisar el pedido.
+11. Pulsar `Crear pedido`.
+12. El servidor valida y crea `Order + OrderItem + Payment` dentro de una transacción.
+13. Se muestra el código `ALT-XXXXXX`.
+14. `Nuevo pedido` recarga el POS limpio.
 
-### Recoger en tienda
+Recoger en tienda y Local siguen el mismo cierre, omitiendo la tarifa de domicilio. Recoger requiere cliente; Local permite cliente opcional.
 
-1. Cliente seleccionado.
-2. Abrir cierre.
-3. El sistema calcula la base elegible de productos.
-4. Elegir descuento: sin descuento, cupón o manual.
-5. Elegir medio de pago.
-6. Si es Efectivo, ingresar `Paga con` y calcular vueltas para caja.
-7. Revisar pedido.
-8. Validar cierre.
+## Persistencia real
 
-### Local
+`POST /api/orders` crea la orden.
 
-1. Cliente opcional.
-2. Abrir cierre.
-3. El sistema calcula la base elegible de productos.
-4. Elegir descuento: sin descuento, cupón o manual.
-5. Elegir medio de pago.
-6. Si es Efectivo, ingresar `Paga con` y calcular vueltas para caja.
-7. Revisar pedido.
-8. Validar cierre.
+El servidor vuelve a validar antes de persistir:
 
-Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL.
+- tipo de pedido;
+- cliente y dirección cuando corresponden;
+- existencia/estado de productos;
+- tarifa de domicilio activa;
+- medio de pago activo;
+- elegibilidad de descuentos;
+- cupón activo;
+- límite del descuento manual;
+- efectivo recibido cuando aplica.
 
-## Regla de efectivo y vueltas
+La escritura se realiza con `prisma.$transaction` para crear de forma atómica:
 
-La forma de pago `Efectivo` tiene información adicional que no aplica a otros medios de pago:
+- `Order`;
+- sus `OrderItem`;
+- su `Payment`.
 
-- `cashReceived`: valor con el que paga el cliente (`Paga con`).
-- `changeDue`: vueltas que deben entregarse al cliente.
+Si la transacción falla, no debe quedar una orden parcial.
 
-Reglas:
+## Estado inicial de una orden POS
 
-- `cashReceived` debe ser igual o mayor al total del pedido;
-- `changeDue = cashReceived - total`;
-- para Domicilio, este dato indica cuánto cambio debe llevar el domiciliario;
-- para Local o Recoger en tienda, indica cuánto debe devolver el cajero;
-- si el cliente paga exacto, `changeDue = 0`;
-- estos valores deben persistirse en `Payment` cuando se active la creación real del pedido.
+Una orden creada desde el POS nace con:
 
-Prisma ya contiene campos opcionales `Payment.cashReceived` y `Payment.changeDue` para este fin.
+- `status = CONFIRMED`;
+- `source = POS`;
+- pago con `status = PENDING`.
+
+El siguiente módulo debe definir cuándo el pago pasa a `PAID` y cómo avanza el estado operativo desde Cocina/Caja.
+
+## Snapshot comercial en Order
+
+Además de los totales, `Order` guarda snapshots para conservar el contexto histórico:
+
+- `couponId`;
+- `couponName`;
+- `discountSource` (`NONE`, `COUPON`, `MANUAL`);
+- `deliveryZoneId`;
+- `deliveryZoneName`;
+- `deliveryFee`;
+- `discount`;
+- `subtotal`;
+- `total`.
+
+Así un pedido histórico no cambia aunque luego se renombre una tarifa o un cupón.
+
+## OrderItem y configuración
+
+Cada línea guarda:
+
+- `productId`;
+- `productName`;
+- `unitPrice`;
+- `quantity`;
+- `lineTotal`;
+- `configuration` JSON.
+
+### Estado transitorio importante
+
+El constructor visual actual del POS todavía no transporta todos los IDs estructurados de pizzas y combos dentro de `CartItem`.
+
+Por eso, mientras se completa esa refactorización, `POST /api/orders` guarda para esas líneas un snapshot `POS_SNAPSHOT` con el detalle legible que vio el operador y el precio calculado por el POS.
+
+Productos estándar sí pueden verificarse directamente contra su precio actual en PostgreSQL.
+
+**Pendiente recomendado:** enriquecer `CartItem.configuration` con IDs de tamaño, sabores, borde, modificadores y selecciones de combo. La API ya acepta un campo `configuration` y debe evolucionar para recalcular completamente pizzas/combos del lado servidor antes de crear la orden.
 
 ## Reglas de descuentos
 
-Un pedido solo puede tener una fuente de descuento operativo:
+Un pedido usa una sola fuente:
 
-- `NONE`: sin descuento;
-- `COUPON`: cupón administrado desde `/cupones`;
-- `MANUAL`: valor escrito manualmente por el operador.
+- `NONE`;
+- `COUPON`;
+- `MANUAL`.
 
-No se permite combinar cupón + descuento manual.
+No se acumula cupón + manual.
 
-### Base elegible
+La base elegible excluye:
 
-Los descuentos se calculan únicamente sobre productos elegibles.
+- domicilio;
+- combos;
+- productos con `couponEligible = false`.
 
-Reglas:
+La elegibilidad se consulta mediante `POST /api/discount/eligibility` y se recalcula nuevamente durante la creación del pedido.
 
-- el domicilio nunca forma parte de la base de descuento;
-- los productos `COMBO` nunca acumulan cupones ni descuento manual;
-- cualquier producto con `couponEligible = false` queda excluido;
-- futuras promociones u ofertas que ya reduzcan el precio original deben marcar el producto como `couponEligible = false`;
-- el servidor calcula la base elegible mediante `/api/discount/eligibility`; el navegador no decide por sí solo qué líneas son elegibles.
+## Regla de efectivo y vueltas
 
-El cierre muestra dos cifras al operador:
+Para Efectivo:
 
-- `Base elegible`: productos que sí pueden recibir descuento;
-- `Promos excluidas`: productos que ya tienen una promoción o no acumulan.
+- `Payment.cashReceived` = valor entregado por el cliente;
+- `Payment.changeDue` = `cashReceived - total`;
+- no se crea el pedido si `cashReceived < total`.
 
-### Cupón porcentual
+En Domicilio indica las vueltas que debe llevar el domiciliario. En Local/Recoger ayuda al cajero.
 
-El porcentaje se calcula únicamente sobre la base elegible.
+## APIs principales
 
-Ejemplo:
-
-- pizza normal: $40.000;
-- combo promocional: $30.000;
-- domicilio: $10.000;
-- base elegible: $40.000;
-- Cupón Trabajador: 60%;
-- descuento: $24.000;
-- total: $56.000.
-
-El combo y el domicilio no reciben el 60%.
-
-### Cupón plano
-
-El valor fijo se descuenta únicamente de la base elegible y queda limitado a ella.
-
-Ejemplo: si el cupón es de $10.000 pero solo existen $7.000 en productos elegibles, el descuento aplicado será $7.000.
-
-### Descuento manual
-
-El descuento manual también respeta la base elegible. No puede reducir combos, promociones ni domicilio. Su máximo es el valor de `Base elegible`.
-
-## Persistencia futura del descuento
-
-Prisma incluye el modelo `Coupon` y `Order` dispone de:
-
-- `couponId` opcional;
-- `couponName` opcional como snapshot del nombre usado;
-- `discount` como valor monetario finalmente aplicado.
-
-La intención es que un pedido histórico conserve el valor final aplicado incluso si el cupón cambia posteriormente.
+- `GET /api/catalog`
+- `GET/POST /api/customers`
+- `PATCH/DELETE /api/customers/[id]`
+- `GET/PUT /api/settings`
+- `GET/POST /api/coupons`
+- `PATCH/DELETE /api/coupons/[id]`
+- `POST /api/discount/eligibility`
+- `GET /api/orders`: lista pedidos recientes.
+- `POST /api/orders`: crea una orden real.
+- `POST /api/delivery/quote`: reservado para automatización futura por distancia.
 
 ## Base de datos / despliegue
 
-El schema actual incluye:
+El schema actual incluye, entre otros cambios recientes:
 
 - modelo `Coupon`;
-- columnas de cupón en `Order`;
 - `Product.couponEligible`;
 - `Payment.cashReceived`;
-- `Payment.changeDue`.
+- `Payment.changeDue`;
+- `Order.deliveryZoneId`;
+- `Order.deliveryZoneName`;
+- `Order.discountSource`.
 
-Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar una versión que aún no tenga estos cambios aplicados en producción se debe ejecutar una vez en la consola del servicio:
+Como producción sigue sin baseline formal de Prisma Migrate, después de desplegar esta versión se debe ejecutar:
 
 ```bash
 npx prisma db push
 ```
 
-No usar `prisma migrate deploy` mientras la base de producción siga sin baseline formal.
-
-## Decisión sobre Google Maps
-
-Google Maps NO es dependencia operativa en esta etapa. La selección de tarifa de domicilio sigue siendo manual para maximizar estabilidad. La futura integración con mapas deberá automatizar solamente la selección de zona/tarifa.
+No usar `prisma migrate deploy`.
 
 ## Pendiente inmediato
 
-El siguiente bloque es la persistencia real del pedido:
+Con pedidos reales ya creados, el siguiente bloque recomendado es conectar la operación:
 
-1. Endpoint de creación.
-2. Crear `Order` con tipo, cliente, dirección, subtotal, domicilio, descuento, cupón y total.
-3. Crear `OrderItem` por cada línea.
-4. Conservar configuración de pizzas y combos para Cocina e historial.
-5. Crear `Payment` con medio, valor pagado y, cuando sea efectivo, `cashReceived` y `changeDue`.
-6. Confirmar pedido, limpiar POS y enviar a Cocina.
-7. Habilitar pantalla de Pedidos.
+1. Cocina leyendo órdenes `CONFIRMED`.
+2. Cambio de estados `CONFIRMED → PREPARING → READY`.
+3. Flujo posterior según tipo: domicilio, recoger o local.
+4. Definir cuándo `Payment.status` pasa de `PENDING` a `PAID`.
+5. Mejorar detalle estructurado de pizzas/combos en `OrderItem.configuration`.
+6. Después, Caja y conciliación.
 
 ## Regla de continuidad
 
-Antes de iniciar una funcionalidad importante, actualizar este documento y/o `ARCHITECTURE.md` si cambia una decisión estructural.
+Todo cambio funcional o estructural debe actualizar este documento y/o `ARCHITECTURE.md` en el mismo bloque de trabajo. Ver `docs/HANDOFF.md`.
