@@ -62,11 +62,13 @@ Mostrar en una sola línea operativa:
 - botón negro cuadrado de búsqueda representado solo por una lupa;
 - botón rojo cuadrado de nuevo cliente representado solo por `+`.
 
-Ambos botones deben tener exactamente el mismo tamaño, radio y peso visual; solo cambia el color de acción.
+Ambos botones deben tener exactamente el mismo tamaño, alto, ancho, radio y alineación vertical. Solo cambia el color de acción.
 
 El objetivo es maximizar el ancho disponible del campo del cliente y evitar texto redundante dentro de controles muy pequeños.
 
-Los resultados de búsqueda pueden desplegarse por encima del contenido siguiente para no aumentar innecesariamente la altura del panel.
+Los mensajes auxiliares de búsqueda, por ejemplo `Escribe al menos 2 caracteres`, no deben quedar fijos ocupando espacio. Pueden mostrarse brevemente como feedback y desaparecer automáticamente.
+
+Los resultados reales de búsqueda sí pueden desplegarse por encima del contenido siguiente para no aumentar innecesariamente la altura del panel.
 
 ### Con cliente seleccionado
 
