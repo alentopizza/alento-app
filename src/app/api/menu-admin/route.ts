@@ -2,25 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const categories = await prisma.category.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      products: {
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        include: {
-          comboGroups: {
-            orderBy: { sortOrder: "asc" },
-            include: {
-              options: {
-                orderBy: { sortOrder: "asc" },
-                include: { product: true },
+  const [categories, sizes] = await Promise.all([
+    prisma.category.findMany({
+      where: { slug: { not: "insumos" } },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        products: {
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          include: {
+            comboGroups: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                options: {
+                  orderBy: { sortOrder: "asc" },
+                  include: { product: true },
+                },
               },
             },
           },
         },
       },
-    },
-  });
+    }),
+    prisma.pizzaSize.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
+    }),
+  ]);
 
   return NextResponse.json({
     categories: categories.map((category) => ({
@@ -59,6 +66,12 @@ export async function GET() {
           })),
         })),
       })),
+    })),
+    sizes: sizes.map((size) => ({
+      id: size.id,
+      name: size.name,
+      diameterCm: size.diameterCm,
+      basePrice: Number(size.basePrice),
     })),
   });
 }
@@ -99,6 +112,53 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+
+  if (body.action === "createIngredient") {
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const description = typeof body.description === "string" ? body.description.trim() : "";
+    const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
+    const price = Number(body.basePrice);
+
+    if (!name) {
+      return NextResponse.json({ error: "El nombre del ingrediente es obligatorio." }, { status: 400 });
+    }
+
+    const category = await prisma.category.findUnique({ where: { slug: "ingredientes" } });
+    if (!category) {
+      return NextResponse.json({ error: "No existe la categoría Ingredientes." }, { status: 400 });
+    }
+
+    try {
+      const ingredient = await prisma.product.create({
+        data: {
+          categoryId: category.id,
+          name,
+          description: description || null,
+          imageUrl: imageUrl || null,
+          type: "MODIFIER",
+          basePrice: Number.isFinite(price) && price >= 0 ? price : 5000,
+          active: true,
+          visibleInPos: false,
+          featured: false,
+          sortOrder: category.products?.length ?? 0,
+        },
+      });
+
+      return NextResponse.json({
+        ingredient: {
+          ...ingredient,
+          basePrice: ingredient.basePrice == null ? null : Number(ingredient.basePrice),
+        },
+      }, { status: 201 });
+    } catch (error) {
+      const prismaError = error as { code?: string };
+      if (prismaError.code === "P2002") {
+        return NextResponse.json({ error: "Ya existe un ingrediente con ese nombre." }, { status: 409 });
+      }
+      throw error;
+    }
+  }
+
   const comboProductId = Number(body.comboProductId);
   const groups = Array.isArray(body.groups) ? body.groups : [];
 
