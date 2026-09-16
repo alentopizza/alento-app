@@ -64,10 +64,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "El teléfono es obligatorio." }, { status: 400 });
   }
 
-  if (!address) {
-    return NextResponse.json({ error: "La dirección es obligatoria." }, { status: 400 });
-  }
-
   try {
     const customer = await prisma.customer.create({
       data: {
@@ -76,12 +72,16 @@ export async function POST(request: NextRequest) {
         phone,
         email: email || null,
         notes: notes || null,
-        addresses: {
-          create: {
-            address,
-            isDefault: true,
-          },
-        },
+        ...(address
+          ? {
+              addresses: {
+                create: {
+                  address,
+                  isDefault: true,
+                },
+              },
+            }
+          : {}),
       },
       select: {
         id: true,
