@@ -19,13 +19,16 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Catálogo por categorías.
 - Productos simples, pizzas, dos sabores, tamaños, bordes, ingredientes extra y combos configurables.
 - Carrito con cantidades y subtotal.
-- Modal de cierre del pedido.
+- Modal de cierre del pedido en diseño compacto.
 - Selección manual de zona/tarifa de domicilio desde Configuración.
 - Selección de medio de pago desde Configuración.
 - Descuento mediante cupón o descuento manual.
 - Cálculo de subtotal elegible para descuentos.
 - Exclusión automática de combos y productos promocionales del descuento.
 - Revisión de subtotal, domicilio, descuento y total.
+- Para pagos en Efectivo, captura de `Paga con` y cálculo automático de `Vueltas`.
+- Botones rápidos de efectivo: pago exacto y denominaciones sugeridas iguales o superiores al total.
+- Validación que impide cerrar un pago en efectivo si `Paga con` es menor al total.
 - El cierre validado se refleja en el resumen lateral.
 - El bloque inferior del resumen lateral permanece visible en escritorio para evitar scroll innecesario.
 
@@ -89,8 +92,10 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 4. El sistema calcula la base elegible de productos.
 5. Elegir descuento: sin descuento, cupón o manual.
 6. Elegir medio de pago.
-7. Revisar subtotal, domicilio, descuento y total.
-8. Validar cierre.
+7. Si el medio es Efectivo, ingresar `Paga con`.
+8. El sistema calcula `Vueltas = Paga con - Total`.
+9. Revisar subtotal, domicilio, descuento, total y vueltas.
+10. Validar cierre.
 
 ### Recoger en tienda
 
@@ -99,8 +104,9 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 3. El sistema calcula la base elegible de productos.
 4. Elegir descuento: sin descuento, cupón o manual.
 5. Elegir medio de pago.
-6. Revisar pedido.
-7. Validar cierre.
+6. Si es Efectivo, ingresar `Paga con` y calcular vueltas para caja.
+7. Revisar pedido.
+8. Validar cierre.
 
 ### Local
 
@@ -109,10 +115,29 @@ Los cupones activos aparecen automáticamente en el popup de cierre del POS.
 3. El sistema calcula la base elegible de productos.
 4. Elegir descuento: sin descuento, cupón o manual.
 5. Elegir medio de pago.
-6. Revisar pedido.
-7. Validar cierre.
+6. Si es Efectivo, ingresar `Paga con` y calcular vueltas para caja.
+7. Revisar pedido.
+8. Validar cierre.
 
 Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL.
+
+## Regla de efectivo y vueltas
+
+La forma de pago `Efectivo` tiene información adicional que no aplica a otros medios de pago:
+
+- `cashReceived`: valor con el que paga el cliente (`Paga con`).
+- `changeDue`: vueltas que deben entregarse al cliente.
+
+Reglas:
+
+- `cashReceived` debe ser igual o mayor al total del pedido;
+- `changeDue = cashReceived - total`;
+- para Domicilio, este dato indica cuánto cambio debe llevar el domiciliario;
+- para Local o Recoger en tienda, indica cuánto debe devolver el cajero;
+- si el cliente paga exacto, `changeDue = 0`;
+- estos valores deben persistirse en `Payment` cuando se active la creación real del pedido.
+
+Prisma ya contiene campos opcionales `Payment.cashReceived` y `Payment.changeDue` para este fin.
 
 ## Reglas de descuentos
 
@@ -179,9 +204,15 @@ La intención es que un pedido histórico conserve el valor final aplicado inclu
 
 ## Base de datos / despliegue
 
-La incorporación de cupones agregó el modelo `Coupon`, nuevas columnas en `Order` y ahora `Product.couponEligible`.
+El schema actual incluye:
 
-Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar esta versión se debe ejecutar una vez en la consola del servicio:
+- modelo `Coupon`;
+- columnas de cupón en `Order`;
+- `Product.couponEligible`;
+- `Payment.cashReceived`;
+- `Payment.changeDue`.
+
+Como este proyecto continúa usando sincronización manual de Prisma, después de desplegar una versión que aún no tenga estos cambios aplicados en producción se debe ejecutar una vez en la consola del servicio:
 
 ```bash
 npx prisma db push
@@ -195,13 +226,13 @@ Google Maps NO es dependencia operativa en esta etapa. La selección de tarifa d
 
 ## Pendiente inmediato
 
-Después de aprobar cupones y reglas de elegibilidad, el siguiente bloque es la persistencia real del pedido:
+El siguiente bloque es la persistencia real del pedido:
 
 1. Endpoint de creación.
 2. Crear `Order` con tipo, cliente, dirección, subtotal, domicilio, descuento, cupón y total.
 3. Crear `OrderItem` por cada línea.
 4. Conservar configuración de pizzas y combos para Cocina e historial.
-5. Crear `Payment` con el medio validado.
+5. Crear `Payment` con medio, valor pagado y, cuando sea efectivo, `cashReceived` y `changeDue`.
 6. Confirmar pedido, limpiar POS y enviar a Cocina.
 7. Habilitar pantalla de Pedidos.
 
