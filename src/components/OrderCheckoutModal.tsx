@@ -8,7 +8,7 @@ type CouponType = "FIXED" | "PERCENTAGE";
 
 type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
-type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number };
+type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown };
 type DeliveryBand = { id: string; name: string; minMeters: number; maxMeters: number; fee: number; active: boolean };
 type PaymentMethodSetting = { id: string; name: string; active: boolean };
 type PosSettings = { store: { address: string; mapsUrl: string }; deliveryBands: DeliveryBand[]; paymentMethods: PaymentMethodSetting[] };
@@ -30,6 +30,17 @@ type CheckoutResult = {
   changeDue: number | null;
 };
 
+type CreatedOrder = {
+  id: number;
+  code: string;
+  status: string;
+  fulfillmentType: FulfillmentType;
+  subtotal: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+};
+
 type Props = {
   open: boolean;
   fulfillmentType: FulfillmentType | null;
@@ -37,7 +48,7 @@ type Props = {
   cart: CartItem[];
   subtotal: number;
   onClose: () => void;
-  onValidated: (result: CheckoutResult) => void;
+  onValidated?: (result: CheckoutResult) => void;
 };
 
 function formatCOP(value: number) {
@@ -63,7 +74,7 @@ function cashSuggestions(total: number) {
   return denominations.filter((value) => value >= total).slice(0, 3);
 }
 
-export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, onClose, onValidated }: Props) {
+export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, onClose }: Props) {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [eligibility, setEligibility] = useState<Eligibility>({ eligibleSubtotal: 0, excludedSubtotal: 0, eligibleProductIds: [], excludedProductIds: [] });
@@ -76,6 +87,8 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const [discountInput, setDiscountInput] = useState("");
   const [cashReceivedInput, setCashReceivedInput] = useState("");
   const [error, setError] = useState("");
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -86,6 +99,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     setCouponId(null);
     setDiscountInput("");
     setCashReceivedInput("");
+    setCreatedOrder(null);
 
     async function loadCheckoutData() {
       setLoadingSettings(true);
@@ -163,7 +177,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     setError("");
   }
 
-  function validateCheckout() {
+  async function createOrder() {
     setError("");
     if (!fulfillmentType) return setError("Falta definir el tipo de pedido.");
     if (fulfillmentType === "DELIVERY") {
@@ -177,23 +191,60 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     if (!selectedPaymentMethod) return setError("El medio de pago seleccionado ya no está disponible.");
     if (cashPayment && !validCashReceived) return setError(`En efectivo, "Paga con" debe ser igual o mayor al total de ${formatCOP(total)}.`);
 
-    onValidated({
-      deliveryFee,
-      discount,
-      discountMode,
-      couponId: discountMode === "COUPON" ? selectedCoupon?.id ?? null : null,
-      couponName: discountMode === "COUPON" ? selectedCoupon?.name ?? null : null,
-      distanceMeters: null,
-      deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
-      deliveryZoneName: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.name ?? null : null,
-      paymentMethodId,
-      paymentMethodName: selectedPaymentMethod.name,
-      cashReceived: cashPayment ? cashReceived : null,
-      changeDue: cashPayment ? changeDue : null,
-    });
+    setCreatingOrder(true);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fulfillmentType,
+          customerId: customer?.id ?? null,
+          addressId: fulfillmentType === "DELIVERY" ? customer?.addresses?.[0]?.id ?? null : null,
+          deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
+          discountMode,
+          couponId: discountMode === "COUPON" ? selectedCoupon?.id ?? null : null,
+          manualDiscount: discountMode === "MANUAL" ? manualDiscount : 0,
+          paymentMethodId,
+          cashReceived: cashPayment ? cashReceived : null,
+          items: cart.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            detail: item.detail,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            configuration: item.configuration,
+          })),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible crear el pedido.");
+      setCreatedOrder(data.order);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "No fue posible crear el pedido.");
+    } finally {
+      setCreatingOrder(false);
+    }
   }
 
   if (!open) return null;
+
+  if (createdOrder) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3">
+        <div className="alento-card w-full max-w-md rounded-[28px] p-6 text-center shadow-2xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl">✓</div>
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Pedido creado</p>
+          <h2 className="mt-1 text-3xl font-black">{createdOrder.code}</h2>
+          <p className="mt-2 text-sm text-neutral-500">La orden quedó guardada en PostgreSQL y lista para continuar al flujo operativo.</p>
+          <div className="mt-5 rounded-2xl bg-[#faf9f7] p-4 text-left text-sm">
+            <div className="flex justify-between"><span className="text-neutral-500">Tipo</span><b>{fulfillmentLabel(createdOrder.fulfillmentType)}</b></div>
+            <div className="mt-2 flex justify-between"><span className="text-neutral-500">Total</span><b className="text-lg text-[var(--brand-red)]">{formatCOP(createdOrder.total)}</b></div>
+          </div>
+          <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white">Nuevo pedido</button>
+        </div>
+      </div>
+    );
+  }
 
   const sectionNumber = (base: number) => fulfillmentType === "DELIVERY" ? base : base - 1;
 
@@ -206,7 +257,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
             <h2 className="mt-1 text-xl font-black md:text-2xl">Domicilio, descuento y pago</h2>
             <p className="mt-0.5 text-[11px] text-neutral-500">Descuentos solo sobre productos elegibles. El domicilio nunca se descuenta.</p>
           </div>
-          <button onClick={onClose} className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold">Cerrar</button>
+          <button onClick={onClose} disabled={creatingOrder} className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold disabled:opacity-50">Cerrar</button>
         </div>
 
         <div className="alento-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
@@ -224,22 +275,18 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                     {[{ mode: "NONE" as const, label: "Sin descuento" }, { mode: "COUPON" as const, label: "Cupón" }, { mode: "MANUAL" as const, label: "Manual" }].map((option) => <button key={option.mode} onClick={() => chooseDiscountMode(option.mode)} className={`rounded-lg border-2 px-2 py-1.5 text-[11px] font-black ${discountMode === option.mode ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{option.label}</button>)}
                   </div>
                   {eligibility.excludedSubtotal > 0 && <p className="mt-1.5 text-[9px] text-neutral-400">Promos excluidas: {formatCOP(eligibility.excludedSubtotal)} · no acumulan descuento.</p>}
-
                   {discountMode === "COUPON" && <div className="mt-2">{coupons.length ? <div className="grid gap-1.5 sm:grid-cols-2">{coupons.map((coupon) => { const selected = couponId === coupon.id; return <button key={coupon.id} onClick={() => { setCouponId(coupon.id); setError(""); }} disabled={eligibleSubtotal <= 0} className={`rounded-xl border-2 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-40 ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200"}`}><div className="flex items-center justify-between gap-2"><b className="text-xs">{coupon.name}</b><span className="text-[10px] font-black text-[var(--brand-red)]">{coupon.type === "PERCENTAGE" ? `${coupon.value}%` : formatCOP(coupon.value)}</span></div></button>; })}</div> : <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">No hay cupones activos.</p>}</div>}
-
                   {discountMode === "MANUAL" && <div className="mt-2"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-400">$</span><input value={discountInput} onChange={(event) => { setDiscountInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" disabled={eligibleSubtotal <= 0} className="alento-input w-full rounded-xl py-2 pl-7 pr-3 text-sm font-black" placeholder="0" /></div></div>}
                 </section>
 
                 <section className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
                   <p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">{sectionNumber(3)}. Forma de pago</p><h3 className="mt-0.5 text-base font-black">¿Cómo paga el cliente?</h3>
                   <div className="mt-2 grid gap-1.5 sm:grid-cols-3">{activePaymentMethods.map((method) => { const selected = paymentMethodId === method.id; return <button key={method.id} onClick={() => choosePaymentMethod(method.id)} className={`flex items-center justify-between rounded-xl border-2 px-3 py-2 text-left ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200"}`}><span className="text-xs font-black">{method.name}</span><span className={`flex h-4 w-4 items-center justify-center rounded-full border text-[9px] font-black ${selected ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white" : "border-neutral-300 text-transparent"}`}>✓</span></button>; })}</div>
-
                   {cashPayment && <div className="mt-3 rounded-xl bg-[#faf9f7] p-3">
                     <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Efectivo</p><h4 className="text-sm font-black">¿Con cuánto paga?</h4></div><div className="text-right"><p className="text-[9px] text-neutral-400">Total</p><b className="text-sm">{formatCOP(total)}</b></div></div>
                     <div className="mt-2 grid grid-cols-[1fr_auto] gap-2"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-400">$</span><input value={cashReceivedInput} onChange={(event) => { setCashReceivedInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" className="alento-input w-full rounded-xl py-2 pl-7 pr-3 text-sm font-black" placeholder="Ej. 100000" /></div><button onClick={() => setCashReceivedInput(String(total))} className="rounded-xl border bg-white px-3 py-2 text-[10px] font-black">Exacto</button></div>
                     <div className="mt-2 flex flex-wrap gap-1.5">{suggestions.map((value) => <button key={value} onClick={() => { setCashReceivedInput(String(value)); setError(""); }} className="rounded-lg border bg-white px-2.5 py-1.5 text-[10px] font-black">{formatCOP(value)}</button>)}</div>
                     {cashReceivedInput && <div className={`mt-2 flex items-center justify-between rounded-lg px-3 py-2 ${validCashReceived ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}><span className="text-xs font-black">{validCashReceived ? "Vueltas" : "Falta para completar"}</span><b className="text-sm">{validCashReceived ? formatCOP(changeDue) : formatCOP(Math.max(0, total - cashReceived))}</b></div>}
-                    <p className="mt-1.5 text-[9px] text-neutral-400">Domicilio: indica las vueltas que debe llevar el domiciliario. Local/recoger: ayuda al cajero a devolver correctamente.</p>
                   </div>}
                 </section>
               </div>
@@ -247,20 +294,17 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
               <section className="h-fit rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5 lg:sticky lg:top-0">
                 <div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">Resumen</p><h3 className="mt-0.5 text-base font-black">Revisión del pedido</h3></div><span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold text-neutral-500">{cart.length} línea{cart.length === 1 ? "" : "s"}</span></div>
                 <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-b border-neutral-200 pb-3 text-[10px]"><span className="text-neutral-500">Tipo</span><b className="text-right">{fulfillmentLabel(fulfillmentType)}</b>{customer && <><span className="text-neutral-500">Cliente</span><b className="truncate text-right">{customer.name}</b></>}{fulfillmentType === "DELIVERY" && selectedDeliveryZone && <><span className="text-neutral-500">Zona</span><b className="text-right">{selectedDeliveryZone.name}</b></>}{selectedCoupon && discountMode === "COUPON" && <><span className="text-neutral-500">Cupón</span><b className="text-right">{selectedCoupon.name}</b></>}{selectedPaymentMethod && <><span className="text-neutral-500">Pago</span><b className="text-right">{selectedPaymentMethod.name}</b></>}{cashPayment && validCashReceived && <><span className="text-neutral-500">Paga con</span><b className="text-right">{formatCOP(cashReceived)}</b><span className="text-neutral-500">Vueltas</span><b className="text-right text-emerald-700">{formatCOP(changeDue)}</b></>}</div>
-
                 <div className="alento-scroll mt-3 max-h-32 space-y-1.5 overflow-y-auto pr-1">{cart.map((item) => { const excluded = eligibility.excludedProductIds.includes(item.productId); return <div key={item.key} className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2"><div className="flex justify-between gap-3"><div className="min-w-0"><p className="truncate text-[11px] font-black">{item.quantity} × {item.name}</p><p className="line-clamp-1 text-[9px] text-neutral-500">{item.detail}</p>{excluded && <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-black text-amber-700">No acumula cupón</span>}</div><b className="whitespace-nowrap text-[11px]">{formatCOP(item.unitPrice * item.quantity)}</b></div></div>; })}</div>
-
                 <div className="mt-3 space-y-1.5 border-t border-neutral-200 pt-3 text-xs"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{formatCOP(subtotal)}</b></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{selectedDeliveryZone ? formatCOP(deliveryFee) : "Pendiente"}</b></div>}{discount > 0 && <div className="flex justify-between text-emerald-700"><span>{discountMode === "COUPON" ? `Cupón · ${selectedCoupon?.name}` : "Descuento manual"}</span><b>− {formatCOP(discount)}</b></div>}<div className="flex items-end justify-between border-t border-dashed pt-2.5"><span className="font-black">Total</span><b className="text-xl font-black text-[var(--brand-red)]">{formatCOP(total)}</b></div></div>
               </section>
             </div>
           )}
-
           {error && <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700">{error}</div>}
         </div>
 
         <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-5">
-          <p className="text-[9px] leading-4 text-neutral-400">Promos no acumulan descuento. En efectivo se calcula y conserva el valor de vueltas.</p>
-          <div className="flex gap-2"><button onClick={onClose} className="rounded-xl border bg-white px-4 py-2.5 text-xs font-black">Volver</button><button onClick={validateCheckout} disabled={loadingSettings || Boolean(settingsError)} className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-xs font-black text-white disabled:bg-neutral-300">Validar cierre</button></div>
+          <p className="text-[9px] leading-4 text-neutral-400">Al crear el pedido se guardan orden, líneas, descuento y pago en PostgreSQL.</p>
+          <div className="flex gap-2"><button onClick={onClose} disabled={creatingOrder} className="rounded-xl border bg-white px-4 py-2.5 text-xs font-black disabled:opacity-50">Volver</button><button onClick={() => void createOrder()} disabled={loadingSettings || Boolean(settingsError) || creatingOrder} className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-xs font-black text-white disabled:bg-neutral-300">{creatingOrder ? "Creando pedido..." : "Crear pedido"}</button></div>
         </div>
       </div>
     </div>
