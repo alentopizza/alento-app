@@ -33,6 +33,8 @@ type Product = {
   visibleInPos: boolean;
   featured: boolean;
   sortOrder: number;
+  comboRegularTotal?: number | null;
+  comboDiscount?: number | null;
   comboGroups: ComboGroup[];
 };
 
@@ -68,6 +70,24 @@ type EditorState = {
   type: ProductType;
 };
 
+type CreateState = {
+  categorySlug: string;
+  name: string;
+  description: string;
+  basePrice: string;
+  imageUrl: string;
+  imageUrl2: string;
+};
+
+type ComboState = {
+  name: string;
+  description: string;
+  finalPrice: string;
+  imageUrl: string;
+  imageUrl2: string;
+  productIds: number[];
+};
+
 const priority = new Map([
   ["destacados", 1],
   ["pizzas", 2],
@@ -76,7 +96,7 @@ const priority = new Map([
   ["ingredientes", 20],
 ]);
 
-function formatCOP(value: number | null) {
+function formatCOP(value: number | null | undefined) {
   if (value == null) return "Sin precio";
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -93,17 +113,12 @@ export default function MenuPage() {
   const [query, setQuery] = useState("");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState("");
-  const [comboProduct, setComboProduct] = useState<Product | null>(null);
-  const [comboGroups, setComboGroups] = useState<ComboGroup[]>([]);
-  const [savingCombo, setSavingCombo] = useState(false);
-  const [showIngredientCreator, setShowIngredientCreator] = useState(false);
-  const [ingredientName, setIngredientName] = useState("");
-  const [ingredientDescription, setIngredientDescription] = useState("");
-  const [ingredientPrice, setIngredientPrice] = useState("5000");
-  const [ingredientImage, setIngredientImage] = useState("");
-  const [ingredientError, setIngredientError] = useState("");
-  const [creatingIngredient, setCreatingIngredient] = useState(false);
+  const [createState, setCreateState] = useState<CreateState | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [comboState, setComboState] = useState<ComboState | null>(null);
+  const [creatingCombo, setCreatingCombo] = useState(false);
+  const [comboError, setComboError] = useState("");
 
   async function loadMenu(preserveCategory = true) {
     setLoading(true);
@@ -139,6 +154,11 @@ export default function MenuPage() {
     [data, activeCategoryId],
   );
 
+  const minPizzaSizePrice = useMemo(() => {
+    if (!data?.sizes?.length) return 0;
+    return Math.min(...data.sizes.map((size) => size.basePrice));
+  }, [data]);
+
   const visibleProducts = useMemo(() => {
     const value = query.trim().toLowerCase();
     const products = activeCategory?.products ?? [];
@@ -146,40 +166,39 @@ export default function MenuPage() {
     return products.filter((product) => product.name.toLowerCase().includes(value) || product.description?.toLowerCase().includes(value));
   }, [activeCategory, query]);
 
-  const minPizzaSize = useMemo(() => {
-    if (!data?.sizes?.length) return 0;
-    return Math.min(...data.sizes.map((size) => size.basePrice));
-  }, [data]);
-
-  const minFlavorPrice = useMemo(() => {
-    const flavors = (data?.categories ?? [])
-      .flatMap((category) => category.products)
-      .filter((product) => product.type === "PIZZA_SINGLE" && product.basePrice != null)
-      .map((product) => product.basePrice as number);
-    return flavors.length ? Math.min(...flavors) : 0;
-  }, [data]);
-
   const comboCandidates = useMemo(() => {
+    const allowed = new Set(["pizzas", "antojos", "bebidas"]);
     return (data?.categories ?? [])
-      .filter((category) => category.slug !== "destacados")
-      .flatMap((category) => category.products)
-      .filter((product) => product.type !== "INTERNAL" && product.type !== "MODIFIER" && product.id !== comboProduct?.id)
-      .filter((product, index, array) => array.findIndex((candidate) => candidate.id === product.id) === index)
-      .sort((a, b) => a.name.localeCompare(b.name, "es"));
-  }, [data, comboProduct]);
+      .filter((category) => allowed.has(category.slug))
+      .flatMap((category) => category.products.map((product) => ({ product, category: category.name })))
+      .filter(({ product }) => product.active && ["STANDARD", "PIZZA_SINGLE"].includes(product.type))
+      .filter((item, index, array) => array.findIndex((candidate) => candidate.product.id === item.product.id) === index)
+      .sort((a, b) => a.product.name.localeCompare(b.product.name, "es"));
+  }, [data]);
 
-  function displayPrice(product: Product) {
-    if (product.type === "PIZZA_SINGLE") {
-      return formatCOP(minPizzaSize + (product.basePrice ?? 0));
-    }
-    if (product.type === "PIZZA_TWO_FLAVORS") {
-      return `Desde ${formatCOP(minPizzaSize + minFlavorPrice)}`;
-    }
+  function regularPrice(product: Product) {
+    if (product.type === "PIZZA_SINGLE") return minPizzaSizePrice + (product.basePrice ?? 0);
+    return product.basePrice ?? 0;
+  }
+
+  const comboRegularTotal = useMemo(() => {
+    if (!comboState) return 0;
+    return comboState.productIds.reduce((total, id) => {
+      const found = comboCandidates.find(({ product }) => product.id === id)?.product;
+      return total + (found ? regularPrice(found) : 0);
+    }, 0);
+  }, [comboState, comboCandidates, minPizzaSizePrice]);
+
+  const comboFinalPrice = comboState ? Number(comboState.finalPrice) || 0 : 0;
+  const comboDiscount = Math.max(0, comboRegularTotal - comboFinalPrice);
+
+  function displayProductPrice(product: Product) {
+    if (product.type === "PIZZA_SINGLE") return `Desde ${formatCOP(minPizzaSizePrice + (product.basePrice ?? 0))}`;
+    if (product.type === "PIZZA_TWO_FLAVORS") return "Precio según sabores";
     return formatCOP(product.basePrice);
   }
 
   function openEditor(product: Product) {
-    setSaveMessage("");
     setEditor({
       id: product.id,
       name: product.name,
@@ -198,7 +217,6 @@ export default function MenuPage() {
     event.preventDefault();
     if (!editor) return;
     setSaving(true);
-    setSaveMessage("");
     try {
       const response = await fetch("/api/menu-admin", {
         method: "PATCH",
@@ -217,10 +235,10 @@ export default function MenuPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible guardar el producto.");
+      setEditor(null);
       await loadMenu();
-      setSaveMessage("Cambios guardados.");
     } catch (saveError) {
-      setSaveMessage(saveError instanceof Error ? saveError.message : "No fue posible guardar el producto.");
+      setError(saveError instanceof Error ? saveError.message : "No fue posible guardar el producto.");
     } finally {
       setSaving(false);
     }
@@ -235,79 +253,82 @@ export default function MenuPage() {
     await loadMenu();
   }
 
-  async function createIngredient(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIngredientError("");
-    if (!ingredientName.trim()) {
-      setIngredientError("Escribe el nombre del ingrediente.");
-      return;
-    }
+  function startCreateProduct(category: Category) {
+    setCreateError("");
+    setCreateState({
+      categorySlug: category.slug,
+      name: "",
+      description: "",
+      basePrice: category.slug === "ingredientes" ? "5000" : "",
+      imageUrl: "",
+      imageUrl2: "",
+    });
+  }
 
-    setCreatingIngredient(true);
+  async function createProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!createState) return;
+    setCreating(true);
+    setCreateError("");
+    try {
+      const response = await fetch("/api/menu-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "createProduct", ...createState }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible crear el producto.");
+      setCreateState(null);
+      await loadMenu();
+    } catch (createProductError) {
+      setCreateError(createProductError instanceof Error ? createProductError.message : "No fue posible crear el producto.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function startCombo() {
+    setComboError("");
+    setComboState({ name: "", description: "", finalPrice: "", imageUrl: "", imageUrl2: "", productIds: [] });
+  }
+
+  function toggleComboProduct(productId: number) {
+    if (!comboState) return;
+    setComboState({
+      ...comboState,
+      productIds: comboState.productIds.includes(productId)
+        ? comboState.productIds.filter((id) => id !== productId)
+        : [...comboState.productIds, productId],
+    });
+  }
+
+  async function createCombo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!comboState) return;
+    setCreatingCombo(true);
+    setComboError("");
     try {
       const response = await fetch("/api/menu-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "createIngredient",
-          name: ingredientName,
-          description: ingredientDescription,
-          basePrice: ingredientPrice,
-          imageUrl: ingredientImage,
+          action: "createCombo",
+          name: comboState.name,
+          description: comboState.description,
+          imageUrl: comboState.imageUrl,
+          imageUrl2: comboState.imageUrl2,
+          finalPrice: comboState.finalPrice,
+          productIds: comboState.productIds,
         }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No fue posible crear el ingrediente.");
-      setIngredientName("");
-      setIngredientDescription("");
-      setIngredientPrice("5000");
-      setIngredientImage("");
-      setShowIngredientCreator(false);
-      await loadMenu();
-    } catch (createError) {
-      setIngredientError(createError instanceof Error ? createError.message : "No fue posible crear el ingrediente.");
+      if (!response.ok) throw new Error(result.error || "No fue posible crear el combo.");
+      setComboState(null);
+      await loadMenu(false);
+    } catch (createComboError) {
+      setComboError(createComboError instanceof Error ? createComboError.message : "No fue posible crear el combo.");
     } finally {
-      setCreatingIngredient(false);
-    }
-  }
-
-  function openComboBuilder(product: Product) {
-    setComboProduct(product);
-    setComboGroups(product.comboGroups?.length ? product.comboGroups.map((group) => ({
-      ...group,
-      options: group.options.map((option) => ({ ...option })),
-    })) : [{ name: "Incluye", minSelections: 1, maxSelections: 1, options: [] }]);
-  }
-
-  function toggleComboOption(groupIndex: number, product: Product) {
-    setComboGroups((current) => current.map((group, index) => {
-      if (index !== groupIndex) return group;
-      const exists = group.options.some((option) => option.productId === product.id);
-      return {
-        ...group,
-        options: exists
-          ? group.options.filter((option) => option.productId !== product.id)
-          : [...group.options, { productId: product.id, productName: product.name, quantity: 1, priceDelta: 0 }],
-      };
-    }));
-  }
-
-  async function saveCombo() {
-    if (!comboProduct) return;
-    setSavingCombo(true);
-    try {
-      const response = await fetch("/api/menu-admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comboProductId: comboProduct.id, groups: comboGroups }),
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "No fue posible guardar el combo.");
-      await loadMenu();
-      setComboProduct(null);
-      setComboGroups([]);
-    } finally {
-      setSavingCombo(false);
+      setCreatingCombo(false);
     }
   }
 
@@ -317,162 +338,70 @@ export default function MenuPage() {
 
   return (
     <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
-      <div className="mx-auto max-w-[1450px] space-y-6">
-        <header className="alento-dark rounded-[32px] px-6 py-6 md:px-8 md:py-7">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto max-w-[1500px] space-y-5">
+        <header className="alento-dark rounded-[30px] px-6 py-5 md:px-8 md:py-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
-              <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] md:text-4xl">Menú</h1>
-              <p className="mt-2 max-w-2xl text-sm text-white/55">Controla categorías, productos, precios, imágenes, visibilidad y combos desde un solo lugar.</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">Administración</p>
+              <h1 className="mt-1 text-3xl font-black tracking-[-0.04em]">Menú</h1>
+              <p className="mt-1 text-sm text-white/55">Productos, precios, imágenes, destacados y combos.</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/65">Los cambios se reflejan en el POS.</div>
+            <button onClick={startCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">+ Crear combo</button>
           </div>
         </header>
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-        <section className="grid gap-5 xl:grid-cols-[235px_minmax(0,1fr)]">
-          <aside className="alento-card h-fit rounded-[26px] p-4 xl:sticky xl:top-7">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Catálogo</p>
-                <h2 className="mt-1 text-lg font-black">Categorías</h2>
-              </div>
-              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-bold text-neutral-500">{data?.categories.length ?? 0}</span>
-            </div>
-            <div className="space-y-2">
+        <section className="grid gap-4 xl:grid-cols-[230px_minmax(0,1fr)]">
+          <aside className="alento-card h-fit rounded-[24px] p-3 xl:sticky xl:top-5">
+            <div className="mb-3 px-1"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Catálogo</p><h2 className="mt-1 text-lg font-black">Categorías</h2></div>
+            <div className="space-y-1.5">
               {data?.categories.map((category) => {
                 const active = activeCategory?.id === category.id;
-                return (
-                  <button key={category.id} onClick={() => { setActiveCategoryId(category.id); setQuery(""); }} className={`flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left ${active ? "bg-black text-white" : "bg-[#faf9f7] text-neutral-700 hover:bg-neutral-100"}`}>
-                    <span>
-                      <span className="block text-sm font-black">{category.name}</span>
-                      <span className={`mt-0.5 block text-[10px] ${active ? "text-white/50" : "text-neutral-400"}`}>{category.products.length} productos</span>
-                    </span>
-                    {!category.visibleInPos && category.slug !== "ingredientes" && <span className="text-[10px] opacity-60">Oculta</span>}
-                  </button>
-                );
+                return <button key={category.id} onClick={() => { setActiveCategoryId(category.id); setQuery(""); }} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left ${active ? "bg-black text-white" : "bg-[#faf9f7] text-neutral-700 hover:bg-neutral-100"}`}><span><span className="block text-sm font-black">{category.name}</span><span className={`block text-[10px] ${active ? "text-white/50" : "text-neutral-400"}`}>{category.products.length} productos</span></span></button>;
               })}
             </div>
           </aside>
 
-          <div className="space-y-4">
-            <div className="alento-card rounded-[26px] p-4">
+          <div className="space-y-3">
+            <div className="alento-card rounded-[24px] p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Categoría</p>
-                  <h2 className="mt-1 text-2xl font-black tracking-[-0.03em]">{activeCategory?.name ?? "Productos"}</h2>
-                </div>
-                <div className="flex w-full gap-2 md:w-auto">
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} className="alento-input min-w-0 flex-1 rounded-2xl px-4 py-3 md:w-80" placeholder="Buscar producto..." />
-                  {activeCategory?.slug === "ingredientes" && (
-                    <button onClick={() => setShowIngredientCreator(true)} className="whitespace-nowrap rounded-2xl bg-[var(--brand-red)] px-4 py-3 text-sm font-black text-white">+ Ingrediente</button>
-                  )}
+                <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Categoría</p><h2 className="mt-1 text-2xl font-black">{activeCategory?.name ?? "Productos"}</h2></div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && <button onClick={() => startCreateProduct(activeCategory)} className="rounded-2xl bg-black px-4 py-3 text-sm font-black text-white">+ {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}</button>}
+                  <input value={query} onChange={(event) => setQuery(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3 sm:w-72" placeholder="Buscar producto..." />
                 </div>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {visibleProducts.map((product) => (
-                <article key={product.id} className="alento-card overflow-hidden rounded-[22px]">
-                  <div className="relative aspect-square overflow-hidden bg-[#f5f3f0] p-2">
+                <article key={product.id} className="alento-card overflow-hidden rounded-[20px]">
+                  <div className="relative aspect-square overflow-hidden bg-[#f7f6f3] p-1.5">
                     {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center text-4xl">🍕</div>}
-                    <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
-                      <span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>{product.active ? "Activo" : "Inactivo"}</span>
-                      {product.featured && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>}
-                      {!product.visibleInPos && product.type !== "MODIFIER" && <span className="rounded-full bg-black/70 px-2 py-1 text-[9px] font-black text-white">Oculto POS</span>}
-                    </div>
+                    <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5"><span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>{product.active ? "Activo" : "Inactivo"}</span>{product.featured && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>}</div>
                   </div>
                   <div className="p-3.5">
                     <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-400">{product.type}</p>
-                    <h3 className="mt-1 line-clamp-1 text-base font-black leading-tight">{product.name}</h3>
-                    <p className="mt-1 text-sm font-black text-[var(--brand-red)]">{displayPrice(product)}</p>
-                    <p className="mt-2 line-clamp-2 min-h-9 text-[11px] leading-[18px] text-neutral-500">{product.description || "Sin descripción"}</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <button onClick={() => openEditor(product)} className="rounded-xl bg-black px-2.5 py-2 text-[11px] font-black text-white">Editar</button>
-                      <button onClick={() => quickToggle(product, "active")} className="rounded-xl border border-neutral-200 px-2.5 py-2 text-[11px] font-bold text-neutral-700">{product.active ? "Desactivar" : "Activar"}</button>
-                      {product.type !== "MODIFIER" && <button onClick={() => quickToggle(product, "visibleInPos")} className="rounded-xl border border-neutral-200 px-2.5 py-2 text-[11px] font-bold text-neutral-700">{product.visibleInPos ? "Ocultar POS" : "Mostrar POS"}</button>}
-                      {product.type === "COMBO" && <button onClick={() => openComboBuilder(product)} className="rounded-xl bg-[var(--brand-red)] px-2.5 py-2 text-[11px] font-black text-white">Armar combo</button>}
-                    </div>
+                    <h3 className="mt-1 text-base font-black leading-tight">{product.name}</h3>
+                    <p className="mt-1 text-sm font-black text-[var(--brand-red)]">{displayProductPrice(product)}</p>
+                    {product.type === "COMBO" && product.comboRegularTotal != null && <div className="mt-2 rounded-xl bg-[#faf9f7] p-2.5 text-[11px]"><div className="flex justify-between text-neutral-500"><span>Valor productos</span><strong>{formatCOP(product.comboRegularTotal)}</strong></div><div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento</span><strong>- {formatCOP(product.comboDiscount ?? 0)}</strong></div><div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-black"><span>Combo</span><strong>{formatCOP(product.basePrice)}</strong></div></div>}
+                    <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
+                    <div className="mt-3 flex flex-wrap gap-1.5"><button onClick={() => openEditor(product)} className="rounded-xl bg-black px-3 py-2 text-[11px] font-black text-white">Editar</button><button onClick={() => quickToggle(product, "active")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.active ? "Desactivar" : "Activar"}</button>{product.type !== "MODIFIER" && <button onClick={() => quickToggle(product, "visibleInPos")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.visibleInPos ? "Ocultar POS" : "Mostrar POS"}</button>}</div>
                   </div>
                 </article>
               ))}
             </div>
-
-            {visibleProducts.length === 0 && <div className="alento-card rounded-[28px] p-10 text-center text-sm text-neutral-400">No hay productos para mostrar.</div>}
+            {visibleProducts.length === 0 && <div className="alento-card rounded-[24px] p-8 text-center text-sm text-neutral-400">No hay productos para mostrar.</div>}
           </div>
         </section>
       </div>
 
-      {editor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <form onSubmit={saveProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[30px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Editar producto</p><h2 className="mt-1 text-2xl font-black">{editor.name}</h2></div>
-              <button type="button" onClick={() => setEditor(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre</span><input value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5"><span className="text-sm font-bold">{editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}</span><input value={editor.basePrice} onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <div className="rounded-2xl bg-neutral-100 px-4 py-3 text-sm"><p className="font-bold">Tipo</p><p className="mt-1 text-neutral-500">{editor.type}</p></div>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={editor.imageUrl} onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={editor.imageUrl2} onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-            </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.active} onChange={(event) => setEditor({ ...editor, active: event.target.checked })} /><span className="text-sm font-bold">Activo</span></label>
-              {editor.type !== "MODIFIER" && <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.visibleInPos} onChange={(event) => setEditor({ ...editor, visibleInPos: event.target.checked })} /><span className="text-sm font-bold">Visible en POS</span></label>}
-              {editor.type !== "MODIFIER" && <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.featured} onChange={(event) => setEditor({ ...editor, featured: event.target.checked })} /><span className="text-sm font-bold">Destacado</span></label>}
-            </div>
-            {editor.type === "PIZZA_SINGLE" && <p className="mt-4 rounded-2xl bg-neutral-100 px-4 py-3 text-sm text-neutral-600">En el menú se muestra el precio real mínimo: tamaño Personal + valor del sabor.</p>}
-            {saveMessage && <p className="mt-4 rounded-2xl bg-neutral-100 px-4 py-3 text-sm font-medium">{saveMessage}</p>}
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={saving} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{saving ? "Guardando..." : "Guardar cambios"}</button></div>
-          </form>
-        </div>
-      )}
+      {editor && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={saveProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-6"><div className="mb-5 flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Editar producto</p><h2 className="mt-1 text-2xl font-black">{editor.name}</h2></div><button type="button" onClick={() => setEditor(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div><div className="grid gap-4 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre</span><input value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">{editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}</span><input value={editor.basePrice} onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" /></label><div className="rounded-2xl bg-neutral-100 px-4 py-3 text-sm"><p className="font-bold">Tipo</p><p className="mt-1 text-neutral-500">{editor.type}</p></div><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={editor.imageUrl} onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={editor.imageUrl2} onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div><div className="mt-5 grid gap-3 sm:grid-cols-3"><label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.active} onChange={(event) => setEditor({ ...editor, active: event.target.checked })} /><span className="text-sm font-bold">Activo</span></label><label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.visibleInPos} onChange={(event) => setEditor({ ...editor, visibleInPos: event.target.checked })} disabled={editor.type === "MODIFIER"} /><span className="text-sm font-bold">Visible en POS</span></label><label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.featured} onChange={(event) => setEditor({ ...editor, featured: event.target.checked })} disabled={editor.type === "MODIFIER"} /><span className="text-sm font-bold">Destacado</span></label></div><div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={saving} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{saving ? "Guardando..." : "Guardar cambios"}</button></div></form></div>}
 
-      {showIngredientCreator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <form onSubmit={createIngredient} className="alento-card w-full max-w-lg rounded-[30px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Ingredientes</p><h2 className="mt-1 text-2xl font-black">Nuevo ingrediente</h2></div><button type="button" onClick={() => setShowIngredientCreator(false)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
-            <div className="space-y-4">
-              <label className="block space-y-1.5"><span className="text-sm font-bold">Nombre *</span><input value={ingredientName} onChange={(event) => setIngredientName(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Ej. Extra Queso Mozzarella" autoFocus /></label>
-              <label className="block space-y-1.5"><span className="text-sm font-bold">Descripción</span><textarea value={ingredientDescription} onChange={(event) => setIngredientDescription(event.target.value)} className="alento-input min-h-20 w-full rounded-2xl px-4 py-3" /></label>
-              <label className="block space-y-1.5"><span className="text-sm font-bold">Precio</span><input value={ingredientPrice} onChange={(event) => setIngredientPrice(event.target.value)} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" placeholder="5000" /></label>
-              <label className="block space-y-1.5"><span className="text-sm font-bold">Imagen · URL <span className="font-normal text-neutral-400">(opcional)</span></span><input value={ingredientImage} onChange={(event) => setIngredientImage(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-            </div>
-            {ingredientError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{ingredientError}</p>}
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setShowIngredientCreator(false)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creatingIngredient} className="rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creatingIngredient ? "Creando..." : "Crear ingrediente"}</button></div>
-          </form>
-        </div>
-      )}
+      {createState && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={createProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-6"><div className="mb-5 flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo producto</p><h2 className="mt-1 text-2xl font-black">Crear en {activeCategory?.name}</h2></div><button type="button" onClick={() => setCreateState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div><div className="grid gap-4 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre *</span><input value={createState.name} onChange={(event) => setCreateState({ ...createState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" autoFocus /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span><input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} /></label><div className="rounded-2xl bg-neutral-100 p-3 text-sm text-neutral-500">{createState.categorySlug === "pizzas" ? `Al POS se mostrará sumando el tamaño Personal (${formatCOP(minPizzaSizePrice)}).` : createState.categorySlug === "ingredientes" ? "Se creará como ingrediente adicional y no como producto independiente del POS." : "Producto estándar con precio fijo."}</div><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={createState.imageUrl} onChange={(event) => setCreateState({ ...createState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={createState.imageUrl2} onChange={(event) => setCreateState({ ...createState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div>{createError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{createError}</p>}<div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCreateState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creating} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creating ? "Creando..." : "Crear producto"}</button></div></form></div>}
 
-      {comboProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-          <div className="alento-card max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[30px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Constructor de combo</p><h2 className="mt-1 text-2xl font-black">{comboProduct.name}</h2><p className="mt-1 text-sm text-neutral-500">Crea grupos como “Incluye” o “Elige una bebida” y define cuántas opciones puede seleccionar el cliente.</p></div><button onClick={() => setComboProduct(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
-            <div className="space-y-4">
-              {comboGroups.map((group, groupIndex) => (
-                <section key={groupIndex} className="rounded-[24px] border border-neutral-200 bg-[#faf9f7] p-4">
-                  <div className="grid gap-3 md:grid-cols-[1fr_130px_130px_auto]">
-                    <input value={group.name} onChange={(event) => setComboGroups((current) => current.map((item, index) => index === groupIndex ? { ...item, name: event.target.value } : item))} className="alento-input rounded-2xl px-4 py-3" placeholder="Nombre del grupo" />
-                    <input type="number" min="0" value={group.minSelections} onChange={(event) => setComboGroups((current) => current.map((item, index) => index === groupIndex ? { ...item, minSelections: Number(event.target.value) } : item))} className="alento-input rounded-2xl px-4 py-3" title="Mínimo" />
-                    <input type="number" min="1" value={group.maxSelections} onChange={(event) => setComboGroups((current) => current.map((item, index) => index === groupIndex ? { ...item, maxSelections: Number(event.target.value) } : item))} className="alento-input rounded-2xl px-4 py-3" title="Máximo" />
-                    <button onClick={() => setComboGroups((current) => current.filter((_, index) => index !== groupIndex))} className="rounded-2xl border border-red-200 px-4 py-3 text-sm font-bold text-red-600">Eliminar</button>
-                  </div>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {comboCandidates.map((candidate) => {
-                      const selected = group.options.some((option) => option.productId === candidate.id);
-                      return <button key={candidate.id} onClick={() => toggleComboOption(groupIndex, candidate)} className={`rounded-2xl border px-3 py-3 text-left text-sm ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white text-neutral-700"}`}><span className="block font-black">{candidate.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/55" : "text-neutral-400"}`}>{selected ? "Incluido" : "Agregar al grupo"}</span></button>;
-                    })}
-                  </div>
-                </section>
-              ))}
-            </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3"><button onClick={() => setComboGroups((current) => [...current, { name: `Grupo ${current.length + 1}`, minSelections: 1, maxSelections: 1, options: [] }])} className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 font-bold">+ Agregar grupo</button><div className="flex gap-2"><button onClick={() => setComboProduct(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button onClick={saveCombo} disabled={savingCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{savingCombo ? "Guardando..." : "Guardar combo"}</button></div></div>
-          </div>
-        </div>
-      )}
+      {comboState && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"><form onSubmit={createCombo} className="alento-card max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[30px] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo destacado</p><h2 className="mt-1 text-2xl font-black">Crear combo</h2><p className="mt-1 text-sm text-neutral-500">Agrupa productos y define un precio especial. El combo se publica automáticamente en Destacados.</p></div><button type="button" onClick={() => setComboState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div><div className="grid gap-5 lg:grid-cols-[1fr_360px]"><div><div className="grid gap-3 md:grid-cols-2"><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre del combo *</span><input value={comboState.name} onChange={(event) => setComboState({ ...comboState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Ej. Combo Familiar" /></label><label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={comboState.description} onChange={(event) => setComboState({ ...comboState, description: event.target.value })} className="alento-input min-h-20 w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen principal · URL</span><input value={comboState.imageUrl} onChange={(event) => setComboState({ ...comboState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label><label className="space-y-1.5"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={comboState.imageUrl2} onChange={(event) => setComboState({ ...comboState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label></div><div className="mt-5"><p className="mb-2 text-sm font-black">Selecciona los productos</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{comboCandidates.map(({ product, category }) => { const selected = comboState.productIds.includes(product.id); return <button key={product.id} type="button" onClick={() => toggleComboProduct(product.id)} className={`rounded-2xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className={`text-[9px] font-bold uppercase tracking-[0.13em] ${selected ? "text-white/50" : "text-neutral-400"}`}>{category}</span><span className="mt-1 block text-sm font-black">{product.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/65" : "text-neutral-500"}`}>{formatCOP(regularPrice(product))}</span></button>; })}</div></div></div><aside className="h-fit rounded-[24px] bg-[#111112] p-5 text-white lg:sticky lg:top-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Resumen</p><h3 className="mt-1 text-xl font-black">{comboState.name || "Nuevo combo"}</h3><div className="mt-4 space-y-2">{comboState.productIds.length === 0 ? <p className="text-sm text-white/40">Selecciona productos.</p> : comboState.productIds.map((id) => { const product = comboCandidates.find((item) => item.product.id === id)?.product; return product ? <div key={id} className="flex justify-between gap-3 text-sm"><span className="text-white/65">{product.name}</span><strong>{formatCOP(regularPrice(product))}</strong></div> : null; })}</div><div className="mt-5 space-y-3 border-t border-white/10 pt-4"><div className="flex justify-between text-sm"><span className="text-white/55">Valor normal</span><strong>{formatCOP(comboRegularTotal)}</strong></div><label className="block"><span className="text-xs font-bold text-white/55">Valor final del combo</span><input value={comboState.finalPrice} onChange={(event) => setComboState({ ...comboState, finalPrice: event.target.value })} inputMode="numeric" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xl font-black text-white outline-none" placeholder="19900" /></label><div className="flex justify-between rounded-2xl bg-[var(--brand-red)]/15 px-3 py-2.5 text-sm"><span className="text-white/70">Descuento</span><strong className="text-red-300">- {formatCOP(comboDiscount)}</strong></div><div className="flex justify-between border-t border-white/10 pt-3"><span className="font-black">Precio combo</span><strong className="text-2xl text-white">{formatCOP(comboFinalPrice)}</strong></div></div></aside></div>{comboError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{comboError}</p>}<div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setComboState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creatingCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creatingCombo ? "Creando combo..." : "Crear combo"}</button></div></form></div>}
     </main>
   );
 }
