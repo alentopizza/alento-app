@@ -4,210 +4,152 @@ Este documento describe cómo está organizada Alentó App, cuál es la responsa
 
 ## Objetivo del proyecto
 
-Alentó App es la aplicación operativa propia de Alentó Pizza. Su objetivo es reemplazar gradualmente Glide y convertirse en la fuente principal de verdad para:
+Alentó App es la aplicación operativa propia de Alentó Pizza. Su objetivo es reemplazar gradualmente Glide y convertirse en la fuente principal de verdad para clientes, catálogo, precios, descuentos, pedidos, cocina, caja, pagos, configuración operativa y futuras integraciones.
 
-- clientes;
-- catálogo y precios;
-- construcción de pedidos;
-- pedidos y estados;
-- cocina;
-- caja y pagos;
-- configuración operativa;
-- futuras integraciones con Chatwoot y canales de venta.
+Chatwoot debe funcionar como canal de atención, no como un segundo sistema de pedidos. Alentó App conserva las reglas y los datos comerciales.
 
-Chatwoot no debe convertirse en un segundo sistema de pedidos. En la arquitectura objetivo, Chatwoot es un canal de atención y Alentó App conserva la lógica y los datos del pedido.
+## Stack e infraestructura
 
-## Stack
-
-- Next.js 15 con App Router.
-- React 19.
-- TypeScript.
-- Tailwind CSS 4.
-- Prisma 6.
-- PostgreSQL.
-- EasyPanel sobre VPS para despliegue.
-
-## Infraestructura
-
-- Proyecto EasyPanel: `app_alento`.
-- Servicio web: `alento-app`.
-- Servicio PostgreSQL: `alento-db`.
-- Dominio POS: `https://pos.alentopizza.com/`.
-- PostgreSQL es accesible por la aplicación usando `DATABASE_URL` dentro de la red interna de EasyPanel.
+- Next.js 15 + React 19 + TypeScript + Tailwind CSS 4.
+- Prisma 6 + PostgreSQL.
+- EasyPanel/VPS.
+- Proyecto: `app_alento`.
+- Servicio: `alento-app`.
+- PostgreSQL: `alento-db`.
+- POS: `https://pos.alentopizza.com/`.
 
 ## Módulos principales
 
 ### `/`
 
-Punto de venta. Actualmente contiene:
-
-- selección de tipo de pedido;
-- búsqueda, selección, creación y edición de cliente;
-- catálogo por categorías;
-- pizzas de un sabor;
-- pizza de dos sabores;
-- selección de tamaño;
-- selección de borde;
-- ingredientes extra;
-- combos configurables;
-- carrito y cantidades;
-- subtotal y resumen del pedido;
-- cierre con tarifa de domicilio y forma de pago.
+Punto de venta: tipo de pedido, cliente, catálogo, configuración de productos, carrito, domicilio, descuentos, medio de pago y revisión de cierre.
 
 ### `/clientes`
 
-Directorio de clientes. Permite consultar y editar clientes existentes. Los pedidos a domicilio y recoger en tienda deben quedar asociados a un cliente para mantener historial.
+Directorio, búsqueda y edición de clientes. Domicilio y Recoger en tienda requieren cliente para conservar historial.
 
 ### `/menu`
 
-Administración de categorías y productos. Contiene la configuración comercial del catálogo, incluyendo pizzas, modificadores y combos.
+Administración del catálogo, categorías, pizzas, modificadores y combos.
 
-### `/cocina`
+### `/cupones`
 
-Módulo destinado a recibir pedidos confirmados y moverlos por estados operativos. La estructura visual existe, pero su flujo real depende de terminar primero la creación persistente de pedidos.
+Administración de descuentos reutilizables. Soporta:
+
+- `FIXED`: descuento plano en pesos;
+- `PERCENTAGE`: porcentaje sobre el subtotal de productos;
+- estado activo/inactivo.
+
+Los cupones activos se consumen desde el cierre del POS mediante `/api/coupons?active=1`.
 
 ### `/configuracion`
 
-Configuración operativa persistente. Contiene:
+Fuente de verdad para ubicación del local, zonas/tarifas de domicilio y medios de pago.
 
-- ubicación del local como referencia;
-- zonas/tarifas de domicilio;
-- medios de pago activos.
+### `/cocina`
 
-Estos datos no deben quedar codificados en el POS. El POS debe consumirlos desde la API de configuración.
+Destino operativo de pedidos confirmados. La conexión real depende de terminar primero la persistencia de pedidos.
 
 ## Tipos de pedido
 
-El modelo maneja tres tipos:
-
-- `DELIVERY`: Domicilio.
-- `PICKUP`: Recoger en tienda.
-- `STORE`: Consumo en el local.
-
-Reglas actuales:
-
-- Domicilio: cliente obligatorio y dirección obligatoria.
-- Recoger en tienda: cliente obligatorio para conservar historial.
-- Local: cliente opcional.
+- `DELIVERY`: Domicilio. Cliente y dirección obligatorios.
+- `PICKUP`: Recoger en tienda. Cliente obligatorio.
+- `STORE`: Local. Cliente opcional.
 
 ## Flujo del POS
-
-La secuencia operativa aprobada es:
 
 1. Tipo de pedido.
 2. Cliente cuando corresponde.
 3. Productos y configuración.
-4. Cierre del pedido.
+4. Cierre.
 5. Tarifa de domicilio cuando corresponde.
-6. Medio de pago.
-7. Revisión final.
-8. Creación persistente del pedido.
-9. Envío a Cocina.
-
-No volver a pedir el tipo de pedido al final: debe quedar definido desde el inicio.
+6. Descuento: ninguno, cupón o manual.
+7. Medio de pago.
+8. Revisión final.
+9. Creación persistente del pedido.
+10. Envío a Cocina.
 
 ## Configuración operativa
 
-La tabla `AppSetting` guarda configuraciones de aplicación en JSON. Actualmente se usa la clave `pos_settings`.
+`AppSetting` almacena `pos_settings` en JSON. Incluye ubicación, `deliveryBands` y `paymentMethods`.
 
-La configuración incluye:
+En la operación actual, `deliveryBands` funciona como catálogo manual de zonas/tarifas. El operador usa `name`, `fee` y `active`. `minMeters` y `maxMeters` quedan reservados para automatización futura con mapas.
+
+Google Maps no es dependencia operativa por ahora. Una integración futura debe automatizar la selección de zona, no sustituir la configuración comercial.
+
+## Arquitectura de descuentos
+
+Hay dos clases de descuento operativo en el cierre:
+
+### Cupón
+
+Entidad persistente `Coupon`:
 
 ```ts
-{
-  store: {
-    address: string,
-    mapsUrl: string
-  },
-  deliveryBands: [
-    {
-      id: string,
-      name: string,
-      minMeters: number,
-      maxMeters: number,
-      fee: number,
-      active: boolean
-    }
-  ],
-  paymentMethods: [
-    {
-      id: string,
-      name: string,
-      active: boolean
-    }
-  ]
+Coupon {
+  id
+  name
+  type: FIXED | PERCENTAGE
+  value
+  active
 }
 ```
 
-En la operación actual, `deliveryBands` funciona como catálogo de zonas/tarifas seleccionables manualmente. El operador ve principalmente `name`, `fee` y `active`.
+Reglas:
 
-Ejemplos:
+- porcentaje: se calcula sobre `Order.subtotal`, nunca sobre `deliveryFee`;
+- fijo: descuenta hasta el subtotal de productos, sin volver negativo ese subtotal;
+- solo cupones activos aparecen en el POS.
 
-- Zona cercana: $0.
-- Zona intermedia: $5.000.
-- Zona extendida: $10.000.
+### Descuento manual
 
-Los campos `minMeters` y `maxMeters` se conservan como metadatos internos para una futura automatización con mapas, pero no deben pedirse al operador ni mostrarse como requisito del flujo actual.
+Excepción operativa escrita directamente en el cierre. No puede combinarse con cupón y no puede dejar el total negativo.
 
-Medios de pago iniciales:
+### Regla de exclusividad
 
-- Efectivo.
-- Nequi.
-- DaviPlata.
-- Tarjeta.
-- Llave.
+Un pedido usa una sola fuente:
 
-Todos estos valores son editables desde Configuración y no deben asumirse como permanentes en código nuevo.
+- sin descuento;
+- cupón;
+- manual.
+
+No acumular cupón + manual.
+
+## Snapshot del descuento en el pedido
+
+`Order` contiene:
+
+- `couponId`: relación opcional con el cupón;
+- `couponName`: snapshot del nombre usado;
+- `discount`: valor monetario final aplicado.
+
+El snapshot permite que el historial conserve lo ocurrido aunque el cupón sea renombrado o modificado después.
 
 ## APIs relevantes
 
-### `/api/catalog`
-
-Devuelve el catálogo necesario para construir pedidos en el POS.
-
-### `/api/customers`
-
-Consulta y crea clientes.
-
-### `/api/customers/[id]`
-
-Actualiza y elimina clientes según las reglas existentes.
-
-### `/api/settings`
-
-- `GET`: obtiene la configuración operativa.
-- `PUT`: guarda la configuración operativa.
-
-### `/api/delivery/quote`
-
-Se conserva como pieza futura para automatizar una tarifa a partir de distancia. No es necesaria para el flujo manual actual.
-
-## Zonas, distancia y mapas
-
-Decisión arquitectónica actual: Google Maps no es una dependencia operativa.
-
-El operador selecciona manualmente una zona/tarifa activa durante el cierre del pedido. Esto evita que el POS dependa de geocodificación, API keys, facturación, cuotas o errores de direcciones.
-
-La automatización futura podrá:
-
-1. geocodificar la dirección del cliente;
-2. calcular distancia o ruta desde el local;
-3. usar `minMeters`/`maxMeters` o reglas equivalentes para identificar la zona;
-4. seleccionar automáticamente la tarifa ya configurada.
-
-La futura integración con mapas debe automatizar la selección, no reemplazar la Configuración como fuente de verdad comercial.
+- `/api/catalog`: catálogo POS.
+- `/api/customers` y `/api/customers/[id]`: clientes.
+- `/api/settings`: configuración operativa.
+- `/api/coupons`: listar y crear cupones.
+- `/api/coupons/[id]`: editar/eliminar cupones.
+- `/api/delivery/quote`: reservado para automatización futura basada en distancia.
 
 ## Datos de pedidos
 
-Prisma ya contiene modelos para:
+Prisma contiene `Order`, `OrderItem`, `Payment`, `Customer`, `CustomerAddress` y `Coupon`.
 
-- `Order`;
-- `OrderItem`;
-- `Payment`;
-- `Customer`;
-- `CustomerAddress`.
+`Order` dispone de subtotal, domicilio, descuento, total, tipo, fuente, relaciones con cliente/dirección/cupón, items y pagos.
 
-`Order` ya dispone de `deliveryFee`, `discount`, `subtotal`, `total`, `fulfillmentType`, `source` y relación con pagos.
+## Base de datos
+
+La base de producción existente no tiene baseline de Prisma Migrate. Por ahora los cambios de schema se aplican manualmente con:
+
+```bash
+npx prisma db push
+```
+
+No usar `prisma migrate deploy` hasta realizar un baseline formal.
 
 ## Principio de diseño
 
-El POS, Chatwoot y la futura app de clientes deben terminar usando el mismo motor de pedidos y las mismas reglas de catálogo, cobertura, precios y pagos. Evitar duplicar lógica comercial en cada canal.
+POS, Chatwoot y futura app de clientes deben compartir el mismo motor de catálogo, precios, descuentos, cobertura, pedidos y pagos. Evitar duplicar reglas comerciales por canal.
