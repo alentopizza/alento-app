@@ -72,6 +72,12 @@ export default function CustomersPage() {
     setMessage("");
   }
 
+  function closeEdit() {
+    if (saving) return;
+    setEditing(null);
+    setMessage("");
+  }
+
   async function saveCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editing) return;
@@ -179,31 +185,65 @@ export default function CustomersPage() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-neutral-500">Cliente #{editing.id}</p>
-                <h2 className="text-2xl font-black">Editar cliente</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+          <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[30px] bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-5 md:px-7">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-xl">👤</div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cliente #{editing.id}</p>
+                  <h2 className="mt-0.5 text-2xl font-black">Editar cliente</h2>
+                  <p className="mt-0.5 text-xs text-neutral-500">Actualiza sus datos sin perder el historial de pedidos.</p>
+                </div>
               </div>
-              <button onClick={() => setEditing(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm">Cerrar</button>
+              <button onClick={closeEdit} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
             </div>
 
-            <form onSubmit={saveCustomer} className="space-y-4">
-              <label className="block space-y-1.5"><span className="text-sm font-semibold">Nombre *</span><input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-black" /></label>
-              <div className="grid grid-cols-[110px_1fr] gap-3">
-                <label className="block space-y-1.5"><span className="text-sm font-semibold">Indicativo</span><select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-3"><option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option></select></label>
-                <label className="block space-y-1.5"><span className="text-sm font-semibold">Teléfono *</span><input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-black" /></label>
+            <form onSubmit={saveCustomer}>
+              <div className="space-y-4 px-6 py-5 md:px-7">
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Nombre <span className="text-[var(--brand-red)]">*</span></label>
+                  <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre del cliente" />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[110px_1fr]">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-black">Indicativo</label>
+                    <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input w-full rounded-2xl px-3 py-3">
+                      <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-black">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
+                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Número de teléfono" />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-[#faf9f7] p-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <label className="text-xs font-black">Dirección <span className="font-medium text-neutral-400">(opcional)</span></label>
+                    {!editing.addresses?.[0]?.address && <span className="rounded-full bg-neutral-200 px-2 py-1 text-[9px] font-black uppercase text-neutral-600">Sin registrar</span>}
+                  </div>
+                  <input value={address} onChange={(e) => setAddress(e.target.value)} className="alento-input w-full rounded-xl bg-white px-4 py-3" placeholder="Ej. Av. Calle 43 Sur #79A-33" />
+                  <p className="mt-1.5 text-[10px] text-neutral-500">Se guardará como dirección principal del cliente.</p>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Correo <span className="font-medium text-neutral-400">(opcional)</span></label>
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="correo@ejemplo.com" />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Notas <span className="font-medium text-neutral-400">(opcional)</span></label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="alento-input w-full resize-none rounded-2xl px-4 py-3" placeholder="Información útil del cliente" />
+                </div>
+
+                {message && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>}
               </div>
-              <label className="block space-y-1.5"><span className="text-sm font-semibold">Dirección</span><input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-black" placeholder="Opcional" /></label>
-              <label className="block space-y-1.5"><span className="text-sm font-semibold">Correo</span><input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-black" placeholder="Opcional" /></label>
-              <label className="block space-y-1.5"><span className="text-sm font-semibold">Notas</span><textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-24 w-full rounded-xl border border-neutral-200 px-4 py-3 outline-none focus:border-black" /></label>
 
-              {message && <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{message}</div>}
-
-              <div className="flex gap-2 pt-2">
-                <button type="button" onClick={() => setEditing(null)} className="flex-1 rounded-xl border border-neutral-200 px-4 py-3 font-semibold">Cancelar</button>
-                <button type="submit" disabled={saving} className="flex-1 rounded-xl bg-black px-4 py-3 font-semibold text-white disabled:opacity-50">{saving ? "Guardando..." : "Guardar cambios"}</button>
+              <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:justify-end md:px-7">
+                <button type="button" onClick={closeEdit} className="rounded-2xl border bg-white px-5 py-3 text-sm font-black">Cancelar</button>
+                <button type="submit" disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar cambios"}</button>
               </div>
             </form>
           </div>
