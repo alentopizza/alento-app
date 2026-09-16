@@ -53,7 +53,11 @@ Ya están implementados:
 - efectivo con `Paga con` y cálculo de vueltas;
 - creación real y transaccional de `Order`, `OrderItem` y `Payment`;
 - códigos visibles `ALT-XXXXXX`;
-- pestaña `/pedidos` para consultar las órdenes guardadas.
+- pestaña `/pedidos` con detalle de productos;
+- edición controlada de pedidos `CONFIRMED`;
+- cambio de modalidad y tarifa de domicilio desde Pedidos;
+- ajuste de cantidades y adición de productos simples a una orden confirmada;
+- impresión térmica de comprobante a 80 mm.
 
 El siguiente bloque es conectar **Cocina** a pedidos reales y manejar las transiciones de estado operativas.
 
@@ -67,6 +71,7 @@ Después consulta:
 
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual y próximos pasos.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura, responsabilidades, flujos y reglas del sistema.
+- [`docs/ORDERS.md`](docs/ORDERS.md): persistencia, edición controlada y comprobante térmico de pedidos.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel, Prisma, despliegue y resolución de problemas.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): orden de lectura, reglas obligatorias de documentación y procedimiento para retomar el proyecto.
 
@@ -100,6 +105,7 @@ Los pedidos creados desde POS, WhatsApp/Chatwoot y la futura app de clientes deb
 2. Transiciones de estado y entrega/cierre.
 3. Caja y conciliación de pagos.
 4. Mejorar configuración estructurada de pizzas/combos en `OrderItem.configuration`.
-5. Integración con Chatwoot.
-6. Migración gradual desde Glide.
-7. App para clientes con experiencia móvil visual.
+5. Edición completa de pizzas/combos reutilizando el constructor del POS.
+6. Integración con Chatwoot.
+7. Migración gradual desde Glide.
+8. App para clientes con experiencia móvil visual.
