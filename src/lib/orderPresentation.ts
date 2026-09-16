@@ -13,6 +13,11 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function quantity(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
 function fromPosSnapshot(detail: string): PresentedDetail[] {
   const parts = detail.split("·").map((part) => part.trim()).filter(Boolean);
   const result: PresentedDetail[] = [];
@@ -57,13 +62,15 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
     const result: PresentedDetail[] = [];
     if (isObject(configuration.size)) {
       const name = text(configuration.size.name);
-      if (name) result.push({ label: "Tamaño", value: name });
+      const diameter = Number(configuration.size.diameterCm);
+      if (name) result.push({ label: "Tamaño", value: Number.isFinite(diameter) && diameter > 0 ? `${name} · ${diameter} cm` : name });
     }
     if (Array.isArray(configuration.flavors)) {
       configuration.flavors.forEach((flavor, index) => {
         if (isObject(flavor)) {
           const name = text(flavor.name);
-          if (name) result.push({ label: `Sabor ${index + 1}`, value: name });
+          const portion = Number(flavor.portion);
+          if (name) result.push({ label: `Sabor ${index + 1}`, value: portion === 0.5 ? `½ ${name}` : name });
         }
       });
     }
@@ -75,7 +82,8 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
       configuration.modifiers.forEach((modifier) => {
         if (isObject(modifier)) {
           const name = text(modifier.name);
-          if (name) result.push({ label: "Extra", value: name });
+          const count = quantity(modifier.quantity);
+          if (name) result.push({ label: "Extra", value: count > 1 ? `${count} × ${name}` : name });
         }
       });
     }
@@ -98,12 +106,21 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
         if (!isObject(group)) return;
         const label = text(group.name) || "Opción";
         const selections = Array.isArray(group.selections)
-          ? group.selections.flatMap((selection) => isObject(selection) && text(selection.name) ? [text(selection.name)] : [])
+          ? group.selections.flatMap((selection) => {
+              if (!isObject(selection) || !text(selection.name)) return [];
+              const count = quantity(selection.quantity);
+              return [count > 1 ? `${count} × ${text(selection.name)}` : text(selection.name)];
+            })
           : [];
         if (selections.length) result.push({ label, value: selections.join(", ") });
       });
     }
     return result;
+  }
+
+  if (kind === "STANDARD") {
+    const name = text(configuration.productName);
+    return name ? [{ label: "Producto", value: name }] : [];
   }
 
   if (kind === "POS_SNAPSHOT") {
