@@ -30,8 +30,11 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Modal de cierre del pedido.
 - Selección manual de zona/tarifa de domicilio desde opciones activas de Configuración.
 - Selección de medio de pago desde los métodos activos de Configuración.
-- Revisión de subtotal, domicilio y total antes de persistir el pedido.
+- Descuento manual en pesos durante el cierre del pedido.
+- Validación para que el descuento nunca supere subtotal + domicilio.
+- Revisión de subtotal, domicilio, descuento y total antes de persistir el pedido.
 - El resultado del cierre validado se refleja de nuevo en el resumen lateral del POS.
+- El bloque inferior del resumen lateral permanece visible en escritorio para evitar hacer scroll hasta encontrar `Continuar pedido` o `Revisar cierre`.
 
 ### Clientes
 
@@ -70,27 +73,50 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 1. Cliente ya seleccionado y con dirección registrada.
 2. Abrir cierre del pedido.
 3. Seleccionar manualmente una zona/tarifa activa, por ejemplo `Zona cercana - $0`, `Zona intermedia - $5.000` o `Zona extendida - $10.000`.
-4. Elegir un medio de pago activo.
-5. Revisar productos, subtotal, domicilio y total.
-6. Validar el cierre.
+4. Aplicar un descuento manual en pesos si corresponde. El valor por defecto es $0.
+5. Elegir un medio de pago activo.
+6. Revisar productos, subtotal, domicilio, descuento y total.
+7. Validar el cierre.
 
 ### Recoger en tienda
 
 1. Cliente ya seleccionado.
 2. Abrir cierre del pedido.
-3. Elegir medio de pago.
-4. Revisar el pedido.
-5. Validar el cierre.
+3. Aplicar un descuento manual si corresponde.
+4. Elegir medio de pago.
+5. Revisar el pedido.
+6. Validar el cierre.
 
 ### Local
 
 1. Cliente opcional.
 2. Abrir cierre del pedido.
-3. Elegir medio de pago.
-4. Revisar el pedido.
-5. Validar el cierre.
+3. Aplicar un descuento manual si corresponde.
+4. Elegir medio de pago.
+5. Revisar el pedido.
+6. Validar el cierre.
 
 Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL. Este paso es intencional para aprobar primero el flujo operativo antes de persistir pedidos reales.
+
+## Descuento manual
+
+El descuento del cierre es un valor absoluto en pesos colombianos, no un porcentaje.
+
+Ejemplo:
+
+- Subtotal: $39.900.
+- Domicilio: $5.000.
+- Descuento: $5.000.
+- Total: $39.900.
+
+El cierre expone el valor como `discount` para que el siguiente bloque lo persista directamente en `Order.discount`.
+
+Reglas:
+
+- valor por defecto: $0;
+- solo se aceptan valores no negativos;
+- nunca puede superar `subtotal + deliveryFee`;
+- modificar productos, cliente o tipo de pedido invalida el cierre anterior y obliga a revisarlo nuevamente.
 
 ## Decisión sobre Google Maps
 
@@ -109,7 +135,7 @@ El siguiente bloque aprobado es la persistencia real del pedido.
 Debe incluir:
 
 1. Endpoint de creación de pedido.
-2. Crear `Order` con tipo de pedido, cliente, dirección, subtotal, domicilio y total.
+2. Crear `Order` con tipo de pedido, cliente, dirección, subtotal, domicilio, descuento y total.
 3. Crear `OrderItem` para cada línea del carrito.
 4. Conservar suficiente configuración de pizzas y combos dentro de `configuration` para Cocina e historial.
 5. Crear `Payment` con el medio de pago validado.
