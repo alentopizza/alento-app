@@ -4,9 +4,9 @@ Aplicación operativa propia de Alentó Pizza para reemplazar gradualmente Glide
 
 ## Objetivo actual
 
-La prioridad es terminar el flujo completo del punto de venta (POS):
+La prioridad es completar la operación después de crear el pedido:
 
-**Tipo de pedido → Cliente → Productos → Cobertura/Domicilio → Descuento → Pago → Revisión → Pedido → Cocina**
+**Tipo de pedido → Cliente → Productos → Cobertura/Domicilio → Descuento → Pago → Crear pedido → Cocina → Entrega/Cierre**
 
 ## Arquitectura
 
@@ -47,11 +47,15 @@ Ya están implementados:
 - selector de tipo de pedido;
 - edición de cliente desde POS;
 - configuración persistente de zonas/tarifas de domicilio y medios de pago;
-- cierre del pedido con tarifa, descuentos, cupones y forma de pago;
-- reglas de elegibilidad para evitar acumular cupones sobre combos/promociones;
-- administración de cupones.
+- cierre con tarifa, descuentos, cupones y forma de pago;
+- reglas de elegibilidad para excluir combos/promociones de cupones;
+- administración de cupones;
+- efectivo con `Paga con` y cálculo de vueltas;
+- creación real y transaccional de `Order`, `OrderItem` y `Payment`;
+- códigos visibles `ALT-XXXXXX`;
+- pestaña `/pedidos` para consultar las órdenes guardadas.
 
-El siguiente bloque es la persistencia real de `Order`, `OrderItem` y `Payment`, seguida de la conexión con Cocina y Pedidos.
+El siguiente bloque es conectar **Cocina** a pedidos reales y manejar las transiciones de estado operativas.
 
 ## Documentación técnica
 
@@ -92,9 +96,10 @@ Los pedidos creados desde POS, WhatsApp/Chatwoot y la futura app de clientes deb
 
 ## Roadmap
 
-1. Persistencia real y gestión de pedidos.
-2. Cocina conectada a pedidos reales.
+1. Cocina conectada a pedidos reales.
+2. Transiciones de estado y entrega/cierre.
 3. Caja y conciliación de pagos.
-4. Integración con Chatwoot.
-5. Migración gradual desde Glide.
-6. App para clientes con experiencia móvil visual.
+4. Mejorar configuración estructurada de pizzas/combos en `OrderItem.configuration`.
+5. Integración con Chatwoot.
+6. Migración gradual desde Glide.
+7. App para clientes con experiencia móvil visual.
