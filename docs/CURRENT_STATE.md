@@ -32,6 +32,13 @@ Reglas visuales actuales:
 - encabezado principal más compacto para recuperar espacio vertical;
 - texto operativo del encabezado: `Toma pedidos y confirma ventas desde una sola pantalla.`;
 - bloque de tipo de pedido y cliente reducido en altura;
+- el selector de modalidad usa ahora un control compacto tipo segmented control;
+- las etiquetas operativas visibles son `Domicilio`, `Recoger` y `Local`;
+- `Recoger` representa internamente `PICKUP` / `Recoger en tienda`; solo se abrevia en la UI;
+- la modalidad seleccionada se distingue con borde rojo suave, fondo blanco y sombra mínima;
+- el bloque de cliente dejó de verse como una segunda columna separada por un divisor fuerte y pasa a una tarjeta secundaria compacta;
+- `+ Nuevo cliente` se presenta como acción discreta dentro del bloque de cliente;
+- `Editar` y `Cambiar` usan botones secundarios compactos;
 - catálogo mantiene tarjetas compactas con imagen 1:1;
 - el panel derecho funciona como área fija de pedido actual en escritorio;
 - el listado de productos del carrito es la zona que hace scroll;
@@ -206,7 +213,8 @@ Después del despliegue:
 7. revisar `/pedidos` y el ticket 80 mm;
 8. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
 9. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-10. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+10. validar que el selector `Domicilio / Recoger / Local` sea rápido de leer y usar en escritorio y móvil;
+11. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
