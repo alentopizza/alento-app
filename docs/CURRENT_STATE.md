@@ -22,6 +22,8 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Creación real y transaccional en PostgreSQL.
 - El carrito puede armarse antes de seleccionar tipo de pedido o cliente.
 - Las validaciones de tipo de pedido, cliente y dirección se aplican al cierre, no al botón `Agregar`.
+- El configurador de pizzas muestra el precio real del borde según el tamaño seleccionado.
+- Los ingredientes extra y grupos de combo usan tarjetas compactas, selección visual y conteo de elecciones.
 
 ### Flujo operativo del carrito
 
@@ -45,6 +47,38 @@ Reglas:
 - Domicilio requiere tipo `DELIVERY`, cliente y dirección;
 - Recoger requiere tipo `PICKUP` y cliente;
 - Local permite cliente opcional.
+
+### Configuradores de producto
+
+Los configuradores de pizza y combo se están cerrando visualmente para operación rápida.
+
+#### Pizza
+
+- Tamaños se presentan como opciones compactas.
+- Al cambiar de tamaño, el sistema verifica que el borde seleccionado tenga precio configurado para ese tamaño.
+- Si el borde actual no aplica al nuevo tamaño, se selecciona automáticamente el primer borde disponible para evitar una configuración inválida.
+- Cada borde muestra el precio correspondiente al tamaño actualmente seleccionado.
+- Precio `0` se presenta como `Incluido`.
+- Un borde sin precio para el tamaño seleccionado se presenta como `No disponible` y queda deshabilitado.
+- Ingredientes extra se muestran en cuadrícula compacta con nombre, precio y control visual de selección.
+- El encabezado de extras muestra cuántos modificadores están seleccionados.
+- El total inferior se recalcula inmediatamente al cambiar tamaño, borde o extras.
+
+Ejemplo operativo: si la pizza está en tamaño Mediana y Bocadillo cuesta $3.900 para ese tamaño, el botón muestra `Bocadillo` y `+ $3.900`. Al cambiar a otro tamaño se muestra el precio correspondiente a ese nuevo tamaño.
+
+#### Pizza 2 sabores
+
+- Los sabores 1 y 2 se agrupan visualmente en módulos separados.
+- Un mismo sabor no puede seleccionarse en ambas mitades.
+- Tamaño, borde y extras comparten las mismas reglas de precio y disponibilidad de una pizza normal.
+
+#### Combos
+
+- Cada pizza incluida se presenta en una tarjeta propia con Tamaño y Sabor claramente separados.
+- Antojos, bebidas y otros grupos se presentan en tarjetas compactas.
+- Cada grupo muestra selección actual / máximo permitido.
+- Las opciones seleccionadas tienen estado visual fuerte y check.
+- Se conserva íntegramente `ComboOrderConfiguration`; los cambios son de UX y no alteran los IDs ni snapshots estructurados.
 
 ### Diseño operativo del POS
 
@@ -283,15 +317,19 @@ Después del despliegue:
 8. sin seleccionar cliente, abrir y configurar una pizza y confirmar que entra al carrito;
 9. sin seleccionar cliente, abrir y configurar un combo y confirmar que entra al carrito;
 10. comprobar que `Continuar pedido` siga bloqueado hasta completar tipo/cliente/dirección según corresponda;
-11. crear una pizza de un sabor;
-12. crear una pizza dos sabores;
-13. crear una pizza con borde y extra;
-14. crear un combo con pizza + antojo + bebida;
-15. crear un producto simple;
-16. revisar `/pedidos` y el ticket 80 mm;
-17. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
-18. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-19. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+11. abrir una pizza y cambiar Personal → Mediana → Grande → Extra, confirmando que cada borde muestra su precio por tamaño;
+12. confirmar que un borde sin precio configurado se muestre deshabilitado como `No disponible`;
+13. seleccionar varios extras y comprobar el contador y el total actualizado;
+14. crear una pizza de un sabor;
+15. crear una pizza dos sabores;
+16. crear una pizza con borde y extra;
+17. abrir un combo y comprobar que cada grupo muestre selección actual / máximo;
+18. crear un combo con pizza + antojo + bebida;
+19. crear un producto simple;
+20. revisar `/pedidos` y el ticket 80 mm;
+21. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
+22. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
+23. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
