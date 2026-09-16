@@ -7,20 +7,23 @@ function normalizePhone(value: string) {
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const listAll = request.nextUrl.searchParams.get("all") === "1";
   const normalizedQuery = normalizePhone(query);
 
-  if (query.length < 2) {
+  if (!listAll && query.length < 2) {
     return NextResponse.json({ customers: [] });
   }
 
   const customers = await prisma.customer.findMany({
-    where: {
-      OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { phone: { contains: normalizedQuery || query } },
-        { email: { contains: query, mode: "insensitive" } },
-      ],
-    },
+    where: query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { phone: { contains: normalizedQuery || query } },
+            { email: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     select: {
       id: true,
       name: true,
@@ -29,19 +32,22 @@ export async function GET(request: NextRequest) {
       email: true,
       notes: true,
       addresses: {
-        where: { isDefault: true },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
         select: {
           id: true,
           address: true,
           neighborhood: true,
           city: true,
           notes: true,
+          isDefault: true,
         },
-        take: 1,
+      },
+      _count: {
+        select: { orders: true },
       },
     },
     orderBy: { name: "asc" },
-    take: 10,
+    take: listAll ? 100 : 10,
   });
 
   return NextResponse.json({ customers });
@@ -91,15 +97,18 @@ export async function POST(request: NextRequest) {
         email: true,
         notes: true,
         addresses: {
-          where: { isDefault: true },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
           select: {
             id: true,
             address: true,
             neighborhood: true,
             city: true,
             notes: true,
+            isDefault: true,
           },
-          take: 1,
+        },
+        _count: {
+          select: { orders: true },
         },
       },
     });
