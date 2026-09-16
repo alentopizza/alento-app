@@ -35,6 +35,11 @@ function isTwoFlavorPizza(product: CatalogProduct) {
   return product.type === "PIZZA_TWO_FLAVORS" || product.name.toLowerCase().includes("2 sabores");
 }
 
+function crustPriceForSize(crust: Crust, sizeId: number | null) {
+  if (!sizeId) return null;
+  return crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null;
+}
+
 export default function StructuredPosPage() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -218,6 +223,16 @@ export default function StructuredPosPage() {
       return;
     }
     addSimpleProduct(product);
+  }
+
+  function updatePizzaSize(sizeId: number) {
+    if (!pizzaConfig || !catalog) return;
+    const currentCrust = catalog.crusts.find((crust) => crust.id === pizzaConfig.crustId);
+    const currentCrustAvailable = currentCrust ? crustPriceForSize(currentCrust, sizeId) != null : false;
+    const nextCrustId = currentCrustAvailable
+      ? pizzaConfig.crustId
+      : catalog.crusts.find((crust) => crustPriceForSize(crust, sizeId) != null)?.id ?? null;
+    setPizzaConfig({ ...pizzaConfig, sizeId, crustId: nextCrustId });
   }
 
   function pizzaPrice(config: PizzaConfig) {
@@ -474,9 +489,108 @@ export default function StructuredPosPage() {
 
       {showCustomerModal && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4"><div className="alento-card w-full max-w-xl rounded-[28px]"><div className="flex items-start justify-between border-b px-6 py-5"><div><p className="text-[10px] font-black uppercase text-neutral-400">Cliente</p><h2 className="text-2xl font-black">{editingCustomer ? "Editar cliente" : "Nuevo cliente"}</h2></div><button onClick={() => setShowCustomerModal(false)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><form onSubmit={saveCustomer}><div className="space-y-4 p-6"><input value={name} onChange={(event) => setName(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre *"/><div className="grid grid-cols-[100px_1fr] gap-3"><select value={countryCode} onChange={(event) => setCountryCode(event.target.value)} className="alento-input rounded-2xl px-3"><option>+57</option><option>+1</option></select><input value={phone} onChange={(event) => setPhone(event.target.value)} className="alento-input rounded-2xl px-4 py-3" placeholder="Teléfono *"/></div><input value={address} onChange={(event) => setAddress(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder={fulfillmentType === "DELIVERY" ? "Dirección *" : "Dirección (opcional)"}/><input value={email} onChange={(event) => setEmail(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Correo (opcional)"/><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" rows={3} placeholder="Notas"/>{customerError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{customerError}</p>}</div><div className="flex justify-end gap-2 border-t p-4"><button type="button" onClick={() => setShowCustomerModal(false)} className="rounded-2xl border px-5 py-3 text-sm font-black">Cancelar</button><button disabled={savingCustomer} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white">{savingCustomer ? "Guardando..." : "Guardar"}</button></div></form></div></div>}
 
-      {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">Configurar pizza</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2></div><button onClick={() => setPizzaConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-5 overflow-y-auto p-5"><section><h3 className="mb-2 font-black">Tamaño</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.sizes.map((size) => <button key={size.id} onClick={() => setPizzaConfig({ ...pizzaConfig, sizeId: size.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}><b>{size.name}</b><span className="block text-xs opacity-70">{size.diameterCm} cm</span></button>)}</div></section>{isTwoFlavorPizza(pizzaConfig.product) && <><section><h3 className="mb-2 font-black">Sabor 1</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, firstFlavorId: flavor.id, secondFlavorId: pizzaConfig.secondFlavorId === flavor.id ? null : pizzaConfig.secondFlavorId })} className={`rounded-xl border p-3 text-left ${pizzaConfig.firstFlavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section><section><h3 className="mb-2 font-black">Sabor 2</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} disabled={pizzaConfig.firstFlavorId === flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.secondFlavorId === flavor.id ? "bg-black text-white" : pizzaConfig.firstFlavorId === flavor.id ? "bg-neutral-100 text-neutral-300" : "bg-white"}`}>{flavor.name}</button>)}</div></section></>}<section><h3 className="mb-2 font-black">Borde</h3><div className="grid grid-cols-2 gap-2">{catalog.crusts.map((crust) => <button key={crust.id} onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.crustId === crust.id ? "bg-black text-white" : "bg-white"}`}>{crust.name}</button>)}</div></section><section><h3 className="mb-2 font-black">Ingredientes extra</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.modifiers.map((modifier) => <button key={modifier.id} onClick={() => setPizzaConfig({ ...pizzaConfig, modifierIds: pizzaConfig.modifierIds.includes(modifier.id) ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id) : [...pizzaConfig.modifierIds, modifier.id] })} className={`rounded-xl border p-3 text-left ${pizzaConfig.modifierIds.includes(modifier.id) ? "border-[var(--brand-red)] bg-red-50" : "bg-white"}`}><b>{modifier.name}</b><span className="block text-xs text-neutral-500">+{formatCOP(modifier.basePrice)}</span></button>)}</div></section>{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><b className="text-2xl text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</b><button onClick={confirmPizza} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">Agregar al pedido</button></div></div></div>}
+      {pizzaConfig && catalog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+          <div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px]">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div><p className="text-[10px] font-black uppercase text-neutral-400">Configurar pizza</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2></div>
+              <button onClick={() => setPizzaConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button>
+            </div>
+            <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+              <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5">
+                <div className="mb-2 flex items-center justify-between"><h3 className="font-black">Tamaño</h3><span className="text-[11px] text-neutral-400">Define precio base y borde</span></div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.sizes.map((size) => <button key={size.id} onClick={() => updatePizzaSize(size.id)} className={`rounded-xl border p-3 text-left ${pizzaConfig.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}><b>{size.name}</b><span className="block text-xs opacity-70">{size.diameterCm} cm</span></button>)}</div>
+              </section>
 
-      {comboConfig && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">Configurar combo</p><h2 className="text-2xl font-black">{comboConfig.product.name}</h2></div><button onClick={() => setComboConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-5 overflow-y-auto p-5">{comboConfig.pizzas.map((choice, index) => { const rule = comboConfig.product.comboPizzaRules?.find((item) => item.id === choice.ruleId); if (!rule) return null; return <section key={`${choice.ruleId}-${index}`} className="rounded-2xl border p-4"><h3 className="font-black">Pizza {index + 1}</h3><div className="mt-3 flex flex-wrap gap-2">{rule.sizes.map((size) => <button key={size.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], sizeId: size.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border px-3 py-2 text-sm ${choice.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}>{size.name}</button>)}</div><div className="mt-3 grid grid-cols-2 gap-2">{rule.flavors.map((flavor) => <button key={flavor.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], flavorId: flavor.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border p-3 text-left text-sm ${choice.flavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section>; })}{comboConfig.product.comboGroups?.map((group) => <section key={group.id}><h3 className="font-black">{group.name} <span className="text-xs font-normal text-neutral-400">elige {group.minSelections}{group.maxSelections !== group.minSelections ? ` a ${group.maxSelections}` : ""}</span></h3><div className="mt-2 grid grid-cols-2 gap-2">{group.options.map((option) => { const selected = (comboConfig.groupSelections[group.id] ?? []).includes(option.productId); return <button key={option.id} onClick={() => toggleComboOption(group, option.productId)} className={`rounded-xl border p-3 text-left ${selected ? "bg-black text-white" : "bg-white"}`}><b>{option.productName}</b>{option.quantity > 1 && <span className="block text-xs opacity-60">Cantidad incluida: {option.quantity}</span>}</button>; })}</div></section>)}{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><div><b className="block text-2xl text-[var(--brand-red)]">{formatCOP(comboPrice(comboConfig))}</b>{(comboConfig.product.comboDiscount ?? 0) > 0 && <span className="text-xs font-bold text-emerald-600">Ahorra {formatCOP(comboConfig.product.comboDiscount ?? 0)}</span>}</div><button onClick={confirmCombo} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">Agregar combo</button></div></div></div>}
+              {isTwoFlavorPizza(pizzaConfig.product) && <>
+                <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 1</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, firstFlavorId: flavor.id, secondFlavorId: pizzaConfig.secondFlavorId === flavor.id ? null : pizzaConfig.secondFlavorId })} className={`rounded-xl border p-3 text-left ${pizzaConfig.firstFlavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section>
+                <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 2</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} disabled={pizzaConfig.firstFlavorId === flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.secondFlavorId === flavor.id ? "bg-black text-white" : pizzaConfig.firstFlavorId === flavor.id ? "bg-neutral-100 text-neutral-300" : "bg-white"}`}>{flavor.name}</button>)}</div></section>
+              </>}
+
+              <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <h3 className="font-black">Borde</h3>
+                  <span className="text-[11px] font-semibold text-neutral-400">Precio para {catalog.sizes.find((size) => size.id === pizzaConfig.sizeId)?.name ?? "tamaño seleccionado"}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                  {catalog.crusts.map((crust) => {
+                    const price = crustPriceForSize(crust, pizzaConfig.sizeId);
+                    const selected = pizzaConfig.crustId === crust.id;
+                    const unavailable = price == null;
+                    return (
+                      <button key={crust.id} disabled={unavailable} onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })} className={`flex min-h-[58px] items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : unavailable ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-300" : "border-neutral-300 bg-white hover:border-neutral-500"}`}>
+                        <div className="min-w-0"><b className="block truncate text-sm">{crust.name}</b><span className={`mt-0.5 block text-xs ${selected ? "text-white/65" : unavailable ? "text-neutral-300" : "text-neutral-500"}`}>{unavailable ? "No disponible" : price === 0 ? "Incluido" : `+ ${formatCOP(price)}`}</span></div>
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${selected ? "border-white/30 bg-white text-black" : "border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <h3 className="font-black">Ingredientes extra</h3>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{pizzaConfig.modifierIds.length ? `${pizzaConfig.modifierIds.length} seleccionado${pizzaConfig.modifierIds.length === 1 ? "" : "s"}` : "Opcional"}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  {catalog.modifiers.map((modifier) => {
+                    const selected = pizzaConfig.modifierIds.includes(modifier.id);
+                    return (
+                      <button key={modifier.id} onClick={() => setPizzaConfig({ ...pizzaConfig, modifierIds: selected ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id) : [...pizzaConfig.modifierIds, modifier.id] })} className={`flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_4px_12px_rgba(229,28,17,0.08)]" : "border-neutral-300 bg-white hover:border-neutral-500"}`}>
+                        <div className="min-w-0"><b className="block truncate text-[13px]">{modifier.name}</b><span className={`mt-0.5 block text-[11px] ${selected ? "font-semibold text-[var(--brand-red)]" : "text-neutral-500"}`}>+ {formatCOP(modifier.basePrice)}</span></div>
+                        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${selected ? "bg-[var(--brand-red)] text-white" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : "+"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}
+            </div>
+            <div className="flex items-center justify-between border-t p-4"><b className="text-2xl text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</b><button onClick={confirmPizza} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">Agregar al pedido</button></div>
+          </div>
+        </div>
+      )}
+
+      {comboConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+          <div className="alento-card flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px]">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div><p className="text-[10px] font-black uppercase text-neutral-400">Configurar combo</p><h2 className="text-2xl font-black">{comboConfig.product.name}</h2></div>
+              <button onClick={() => setComboConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button>
+            </div>
+            <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+              {comboConfig.pizzas.map((choice, index) => {
+                const rule = comboConfig.product.comboPizzaRules?.find((item) => item.id === choice.ruleId);
+                if (!rule) return null;
+                return (
+                  <section key={`${choice.ruleId}-${index}`} className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                    <div className="mb-3 flex items-center justify-between"><h3 className="font-black">Pizza {index + 1}</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">Incluida en el combo</span></div>
+                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Tamaño</p>
+                    <div className="flex flex-wrap gap-2">{rule.sizes.map((size) => <button key={size.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], sizeId: size.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border px-4 py-2 text-sm ${choice.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}>{size.name}</button>)}</div>
+                    <p className="mb-1.5 mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Sabor</p>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{rule.flavors.map((flavor) => <button key={flavor.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], flavorId: flavor.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border p-3 text-left text-sm ${choice.flavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div>
+                  </section>
+                );
+              })}
+
+              {comboConfig.product.comboGroups?.map((group) => {
+                const selectedIds = comboConfig.groupSelections[group.id] ?? [];
+                const choiceText = group.minSelections === group.maxSelections ? `Elige ${group.minSelections}` : `Elige ${group.minSelections} a ${group.maxSelections}`;
+                return (
+                  <section key={group.id} className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">{group.name}</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{selectedIds.length}/{group.maxSelections} · {choiceText}</span></div>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">{group.options.map((option) => { const selected = selectedIds.includes(option.productId); return <button key={option.id} onClick={() => toggleComboOption(group, option.productId)} className={`flex min-h-[52px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div><b className="text-[13px]">{option.productName}</b>{option.quantity > 1 && <span className={`block text-[11px] ${selected ? "text-white/65" : "text-neutral-400"}`}>Incluye {option.quantity}</span>}</div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${selected ? "bg-white text-black" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span></button>; })}</div>
+                  </section>
+                );
+              })}
+
+              {configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}
+            </div>
+            <div className="flex items-center justify-between border-t p-4"><div><b className="block text-2xl text-[var(--brand-red)]">{formatCOP(comboPrice(comboConfig))}</b>{(comboConfig.product.comboDiscount ?? 0) > 0 && <span className="text-xs font-bold text-emerald-600">Ahorra {formatCOP(comboConfig.product.comboDiscount ?? 0)}</span>}</div><button onClick={confirmCombo} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">Agregar combo</button></div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
