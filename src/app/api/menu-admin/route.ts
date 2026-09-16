@@ -128,6 +128,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No existe la categoría Ingredientes." }, { status: 400 });
     }
 
+    const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
+
     try {
       const ingredient = await prisma.product.create({
         data: {
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
           active: true,
           visibleInPos: false,
           featured: false,
-          sortOrder: category.products?.length ?? 0,
+          sortOrder,
         },
       });
 
