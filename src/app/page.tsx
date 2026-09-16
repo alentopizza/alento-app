@@ -85,8 +85,8 @@ export default function Home() {
     event.preventDefault();
     setCustomerError("");
 
-    if (!name.trim() || !phone.trim() || !address.trim()) {
-      setCustomerError("Nombre, teléfono y dirección son obligatorios.");
+    if (!name.trim() || !phone.trim()) {
+      setCustomerError("Nombre y teléfono son obligatorios.");
       return;
     }
 
@@ -244,7 +244,7 @@ export default function Home() {
                 <label className="block space-y-1.5"><span className="text-sm font-medium">Teléfono *</span><input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-[var(--border)] px-4 py-3 outline-none focus:border-black" placeholder="Ej. 3133864377" inputMode="tel" /></label>
               </div>
 
-              <label className="block space-y-1.5"><span className="text-sm font-medium">Dirección *</span><input value={address} onChange={(event) => setAddress(event.target.value)} className="w-full rounded-xl border border-[var(--border)] px-4 py-3 outline-none focus:border-black" placeholder="Dirección de entrega" /></label>
+              <label className="block space-y-1.5"><span className="text-sm font-medium">Dirección (opcional)</span><input value={address} onChange={(event) => setAddress(event.target.value)} className="w-full rounded-xl border border-[var(--border)] px-4 py-3 outline-none focus:border-black" placeholder="Dirección de entrega" /></label>
 
               <label className="block space-y-1.5"><span className="text-sm font-medium">Notas</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="min-h-24 w-full rounded-xl border border-[var(--border)] px-4 py-3 outline-none focus:border-black" placeholder="Torre, apto, referencia, preferencias del cliente..." /></label>
 
