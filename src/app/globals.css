@@ -187,6 +187,69 @@ article.alento-card-soft p {
   line-height: 2rem !important;
 }
 
+/* POS final: jerarquía más limpia y controles principales siempre a mano. */
+main:has(> div > header.alento-dark) > div {
+  gap: 14px !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark {
+  border-radius: 22px !important;
+  padding: 12px 22px !important;
+  min-height: 72px;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark h1 {
+  font-size: 1.55rem !important;
+  line-height: 1.8rem !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:first-child {
+  font-size: 9px !important;
+  letter-spacing: 0.2em !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:last-child {
+  font-size: 0 !important;
+  margin-top: 2px !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:last-child::after {
+  content: "Toma pedidos y confirma ventas desde una sola pantalla.";
+  font-size: 11px;
+  line-height: 15px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+/* Ocultar indicadores técnicos: la estructura sigue existiendo, pero no forma parte de la UI operativa. */
+main:has(> div > header.alento-dark) section.alento-card > div:first-child > span.text-emerald-600,
+main:has(> div > header.alento-dark) aside.alento-card span.bg-emerald-50.text-emerald-700 {
+  display: none !important;
+}
+
+/* Bloque tipo/cliente ligeramente más compacto. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card {
+  border-radius: 22px !important;
+  padding: 14px 16px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:first-child {
+  margin-bottom: 10px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card h2 {
+  font-size: 1.1rem !important;
+  line-height: 1.35rem !important;
+}
+
+/* El carrito tiene su propio scroll y el cierre queda siempre visible. */
+main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
+  position: relative;
+  z-index: 4;
+  margin-top: auto !important;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -12px 28px rgba(20, 18, 16, 0.055);
+}
+
 .thermal-page {
   width: min(80mm, 100%);
 }
@@ -203,6 +266,33 @@ article.alento-card-soft p {
 @media (min-width: 768px) {
   .fixed.inset-0.z-50 > .alento-card section .md\:grid-cols-3 {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  main:has(> div > header.alento-dark) aside.alento-card {
+    position: sticky !important;
+    top: 14px !important;
+    height: calc(100dvh - 13.25rem) !important;
+    max-height: 760px;
+    min-height: 540px;
+    align-self: start;
+    padding: 14px !important;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > .alento-scroll {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding-right: 3px;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
+    flex-shrink: 0;
+    padding-top: 11px;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > div:last-child button:last-of-type {
+    min-height: 44px;
   }
 }
 
