@@ -57,6 +57,7 @@ type PosSettings = {
 
 type CheckoutResult = {
   deliveryFee: number;
+  discount: number;
   distanceMeters: number | null;
   deliveryZoneId: string | null;
   deliveryZoneName: string | null;
@@ -103,6 +104,7 @@ export default function OrderCheckoutModal({
   const [settingsError, setSettingsError] = useState("");
   const [deliveryZoneId, setDeliveryZoneId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -111,6 +113,7 @@ export default function OrderCheckoutModal({
     setError("");
     setDeliveryZoneId("");
     setPaymentMethodId("");
+    setDiscountInput("");
 
     async function loadSettings() {
       setLoadingSettings(true);
@@ -142,7 +145,10 @@ export default function OrderCheckoutModal({
 
   const selectedDeliveryZone = activeDeliveryZones.find((zone) => zone.id === deliveryZoneId) ?? null;
   const deliveryFee = fulfillmentType === "DELIVERY" ? Number(selectedDeliveryZone?.fee ?? 0) : 0;
-  const total = subtotal + deliveryFee;
+  const rawDiscount = Number(discountInput || 0);
+  const discount = Number.isFinite(rawDiscount) && rawDiscount > 0 ? Math.floor(rawDiscount) : 0;
+  const maximumDiscount = subtotal + deliveryFee;
+  const total = Math.max(0, subtotal + deliveryFee - discount);
   const address = customer?.addresses?.[0]?.address ?? "";
 
   function validateCheckout() {
@@ -164,6 +170,11 @@ export default function OrderCheckoutModal({
       }
     }
 
+    if (discount > maximumDiscount) {
+      setError(`El descuento no puede superar ${formatCOP(maximumDiscount)}.`);
+      return;
+    }
+
     if (!paymentMethodId) {
       setError("Selecciona un medio de pago.");
       return;
@@ -177,6 +188,7 @@ export default function OrderCheckoutModal({
 
     onValidated({
       deliveryFee,
+      discount,
       distanceMeters: null,
       deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
       deliveryZoneName: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.name ?? null : null,
@@ -198,8 +210,8 @@ export default function OrderCheckoutModal({
                 {fulfillmentLabel(fulfillmentType)}
               </span>
             </div>
-            <h2 className="mt-1 text-2xl font-black">Domicilio y forma de pago</h2>
-            <p className="mt-1 text-xs text-neutral-500">Selecciona la tarifa operativa y valida el cierre antes de crear el pedido.</p>
+            <h2 className="mt-1 text-2xl font-black">Domicilio, descuento y pago</h2>
+            <p className="mt-1 text-xs text-neutral-500">Selecciona la tarifa, aplica un descuento si corresponde y valida el cierre.</p>
           </div>
           <button onClick={onClose} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
         </div>
@@ -248,13 +260,31 @@ export default function OrderCheckoutModal({
                         })}
                       </div>
                       {!activeDeliveryZones.length && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">No hay tarifas de domicilio activas. Configúralas en Configuración.</p>}
-                      <p className="mt-2 text-[10px] leading-4 text-neutral-400">La selección es manual por ahora. Google Maps queda como automatización futura para elegir la zona sin cambiar esta estructura.</p>
                     </div>
                   </section>
                 )}
 
                 <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-neutral-400">{fulfillmentType === "DELIVERY" ? "2" : "1"}. Forma de pago</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-neutral-400">{fulfillmentType === "DELIVERY" ? "2" : "1"}. Descuento</p>
+                  <h3 className="mt-1 text-lg font-black">Descuento manual</h3>
+                  <div className="relative mt-3">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-neutral-400">$</span>
+                    <input
+                      value={discountInput}
+                      onChange={(event) => {
+                        setDiscountInput(event.target.value.replace(/\D/g, ""));
+                        setError("");
+                      }}
+                      inputMode="numeric"
+                      className="alento-input w-full rounded-2xl py-3 pl-8 pr-4 font-black"
+                      placeholder="0"
+                    />
+                  </div>
+                  <p className="mt-2 text-[10px] text-neutral-400">Ejemplo: escribe 5000 para descontar {formatCOP(5000)}. Déjalo en 0 si no aplica.</p>
+                </section>
+
+                <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-neutral-400">{fulfillmentType === "DELIVERY" ? "3" : "2"}. Forma de pago</p>
                   <h3 className="mt-1 text-lg font-black">¿Cómo paga el cliente?</h3>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {activePaymentMethods.map((method) => {
@@ -307,6 +337,7 @@ export default function OrderCheckoutModal({
                 <div className="mt-4 space-y-2 border-t border-neutral-200 pt-4 text-sm">
                   <div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{formatCOP(subtotal)}</b></div>
                   {fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{selectedDeliveryZone ? formatCOP(deliveryFee) : "Pendiente"}</b></div>}
+                  {discount > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>− {formatCOP(discount)}</b></div>}
                   <div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><b className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(total)}</b></div>
                 </div>
               </section>
@@ -317,7 +348,7 @@ export default function OrderCheckoutModal({
         </div>
 
         <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between md:px-7">
-          <p className="text-[10px] leading-4 text-neutral-400">Este paso valida el cierre. La creación definitiva del pedido se implementa en el siguiente bloque.</p>
+          <p className="text-[10px] leading-4 text-neutral-400">El descuento quedará listo para guardarse en el pedido cuando activemos la creación real.</p>
           <div className="flex gap-2">
             <button onClick={onClose} className="rounded-2xl border bg-white px-5 py-3 text-sm font-black">Volver</button>
             <button
