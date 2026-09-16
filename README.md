@@ -1,36 +1,92 @@
 # Alentó App
 
-Aplicación propia de Alentó Pizza para reemplazar gradualmente la solución actual en Glide.
+Aplicación operativa propia de Alentó Pizza para reemplazar gradualmente Glide y centralizar clientes, catálogo, pedidos, cocina, pagos, configuración e integraciones.
 
-## Primera prioridad
+## Objetivo actual
 
-Construir el punto de venta (POS) para montar pedidos de clientes de forma rápida y confiable.
+La prioridad es terminar el flujo completo del punto de venta (POS):
 
-## Arquitectura inicial
+**Tipo de pedido → Cliente → Productos → Cobertura/Domicilio → Pago → Revisión → Pedido → Cocina**
 
-- Aplicación web: Next.js + TypeScript
-- Base de datos: PostgreSQL
-- Despliegue: EasyPanel sobre VPS
-- Repositorio: GitHub privado
+## Arquitectura
+
+- Next.js 15 + TypeScript.
+- React 19.
+- PostgreSQL.
+- Prisma 6.
+- EasyPanel sobre VPS.
+- Repositorio GitHub privado.
 
 ## Infraestructura
 
-Proyecto EasyPanel: `app_alento`
+- Proyecto EasyPanel: `app_alento`.
+- Servicio web: `alento-app`.
+- PostgreSQL: `alento-db`.
+- POS: `https://pos.alentopizza.com/`.
 
-Base de datos PostgreSQL: `alento-db`
+La base de datos permanece dentro de la red interna de EasyPanel.
 
-La base de datos permanece privada dentro de la red interna de EasyPanel.
+## Tipos de pedido
 
-## Roadmap inicial
+- `DELIVERY`: Domicilio.
+- `PICKUP`: Recoger en tienda.
+- `STORE`: Local.
 
-1. Infraestructura y repositorio
-2. Proyecto base Next.js
-3. Conexión segura a PostgreSQL
-4. Modelo de datos inicial
-5. Catálogo de productos
-6. Clientes
-7. Punto de venta (POS)
-8. Creación y gestión de pedidos
-9. Migración gradual desde Glide
-10. Integración con Chatwoot
-11. App para clientes con experiencia móvil visual inspirada en quick-commerce
+Domicilio y Recoger en tienda requieren cliente. Local permite cliente opcional.
+
+## Estado actual
+
+Ya están implementados:
+
+- catálogo POS;
+- clientes;
+- pizzas de un sabor y dos sabores;
+- tamaños, bordes e ingredientes extra;
+- combos configurables y descuento fijo;
+- carrito;
+- selector de tipo de pedido;
+- edición de cliente desde POS;
+- configuración persistente de cobertura, tarifas de domicilio y medios de pago;
+- API de cotización por distancia conocida.
+
+El siguiente bloque es el cierre del pedido con domicilio/cobertura, pago, revisión y persistencia real del `Order`.
+
+## Documentación técnica
+
+La documentación es parte del proyecto y debe actualizarse cuando cambie una decisión estructural.
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura, responsabilidades, flujos y reglas del sistema.
+- [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual y próximos pasos.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel, Prisma, despliegue y resolución de problemas.
+
+## Prisma en producción
+
+La base de producción existía antes de iniciar un historial formal de migraciones. Por ahora se sincronizan cambios de schema manualmente desde la consola del servicio con:
+
+```bash
+npx prisma db push
+```
+
+o:
+
+```bash
+npm run prisma:push
+```
+
+No activar `prisma migrate deploy` en el arranque hasta realizar un baseline formal. Ver `docs/DEPLOYMENT.md`.
+
+## Arquitectura objetivo con Chatwoot
+
+Chatwoot será un canal de atención, no un segundo sistema de pedidos.
+
+Los pedidos creados desde POS, WhatsApp/Chatwoot y la futura app de clientes deben terminar usando la misma lógica y los mismos datos de Alentó App.
+
+## Roadmap
+
+1. Finalizar cierre del pedido POS.
+2. Persistencia y gestión de pedidos.
+3. Cocina conectada a pedidos reales.
+4. Caja y conciliación de pagos.
+5. Integración con Chatwoot.
+6. Migración gradual desde Glide.
+7. App para clientes con experiencia móvil visual.
