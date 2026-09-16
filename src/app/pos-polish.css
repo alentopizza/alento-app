@@ -1,12 +1,15 @@
 /* Ajustes visuales finales específicos del POS.
-   Se cargan después de globals.css para evitar mezclar reglas operativas con el estilo global. */
+   IMPORTANTE: todos los selectores quedan encapsulados al layout real del POS
+   para no afectar /menu, /pedidos, /clientes ni otras pantallas administrativas. */
+
+/* El POS actual se reconoce porque el header vive dentro de la primera columna del grid. */
 
 /* Tipo de pedido: solo texto, compacto y en mayúsculas. */
-main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > span {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > span {
   display: none !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > b {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button > b {
   margin: 0 !important;
   font-size: 11px !important;
   line-height: 1 !important;
@@ -15,39 +18,33 @@ main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(
   text-transform: uppercase !important;
 }
 
-/* La regla antigua acortaba Recoger mediante pseudo-elemento. Restauramos el texto real y lo capitalizamos por CSS. */
-main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b {
   font-size: 11px !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b::after {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b::after {
   content: none !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > div.grid > button {
   min-height: 42px !important;
   gap: 0 !important;
   padding: 0 8px !important;
 }
 
-/*
- * Cliente sin seleccionar:
- * - Buscar y Nuevo son controles cuadrados del mismo tamaño.
- * - El texto permanece en el DOM para accesibilidad, pero visualmente usamos iconos.
- * - Buscar es negro y Nuevo es rojo Alentó.
- */
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
+/* Cliente sin seleccionar: Buscar y Nuevo son controles gemelos. */
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
   align-items: center !important;
   gap: 7px !important;
   padding-right: 51px !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > input {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > input {
   height: 44px !important;
   min-height: 44px !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button {
   display: inline-flex !important;
   width: 44px !important;
   min-width: 44px !important;
@@ -70,12 +67,12 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button:hover {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button:hover {
   background-color: #191919 !important;
   border-color: #191919 !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
   display: inline-flex !important;
   width: 44px !important;
   min-width: 44px !important;
@@ -101,21 +98,16 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
   box-shadow: 0 6px 14px rgba(229, 28, 17, 0.16) !important;
 }
 
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button:hover {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button:hover {
   background-color: var(--brand-red-dark) !important;
   border-color: var(--brand-red-dark) !important;
 }
 
-/* Globals agregaba un texto visual mediante ::after. Para esta versión solo mostramos el símbolo +. */
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
   content: none !important;
 }
 
-/*
- * Los avisos de búsqueda (por ejemplo "Escribe al menos 2 caracteres") no quedan fijos.
- * Se muestran brevemente como feedback y desaparecen sin alterar la altura del módulo.
- */
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.mt-2.overflow-hidden:has(> p:only-child) {
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.mt-2.overflow-hidden:has(> p:only-child) {
   pointer-events: none;
   animation: pos-search-hint-hide 180ms ease 1.6s forwards;
 }
@@ -128,10 +120,61 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
   }
 }
 
-/*
- * El encabezado intermedio "Pedido actual / Sin productos / modalidad" no aporta
- * información nueva: tipo y cliente ya están arriba y los productos hablan por sí solos.
- */
-main > div > section.grid > aside.alento-card > div:nth-child(2) {
+/* El encabezado intermedio del carrito se oculta solo en el POS. */
+main:has(> div > section.grid > div:first-child > header.alento-dark) > div > section.grid > aside.alento-card > div:nth-child(2) {
   display: none !important;
+}
+
+/*
+ * Compatibilidad administrativa:
+ * globals.css conserva reglas antiguas del POS que detectaban cualquier header directo.
+ * Las pantallas administrativas usan ese patrón, así que aquí restauramos su aspecto normal.
+ */
+main > div > header.alento-dark {
+  min-height: 0 !important;
+  border-radius: 30px !important;
+  padding: 20px 24px !important;
+}
+
+main > div > header.alento-dark h1 {
+  font-size: 1.875rem !important;
+  line-height: 2.25rem !important;
+}
+
+main > div > header.alento-dark p:first-child {
+  font-size: 11px !important;
+  letter-spacing: 0.2em !important;
+}
+
+main > div > header.alento-dark p:last-child {
+  margin-top: 0.25rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+main > div > header.alento-dark p:last-child::after {
+  content: none !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > aside.alento-card {
+  display: block !important;
+  height: fit-content !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 12px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > aside.alento-card > div:last-child {
+  position: static !important;
+  display: block !important;
+  margin-top: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 768px) {
+  main > div > header.alento-dark {
+    padding: 24px 32px !important;
+  }
 }
