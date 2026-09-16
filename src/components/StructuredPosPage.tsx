@@ -179,13 +179,14 @@ export default function StructuredPosPage() {
 
   function addSimpleProduct(product: CatalogProduct) {
     if (product.basePrice == null) return;
+    const unitPrice = product.basePrice;
     const configuration: StandardOrderConfiguration = { schemaVersion: 1, kind: "STANDARD", productId: product.id, productName: product.name };
     const key = `standard-${product.id}`;
     setCart((current) => {
       const existing = current.find((item) => item.key === key);
       return existing
-        ? current.map((item) => item.key === key ? { ...item, quantity: item.quantity + 1 } : item)
-        : [...current, { key, productId: product.id, name: product.name, detail: "Producto", unitPrice: product.basePrice, quantity: 1, configuration }];
+        ? current.map((item) => (item.key === key ? { ...item, quantity: item.quantity + 1 } : item))
+        : [...current, { key, productId: product.id, name: product.name, detail: "Producto", unitPrice, quantity: 1, configuration }];
     });
   }
 
@@ -205,10 +206,14 @@ export default function StructuredPosPage() {
     if (product.type === "COMBO") {
       const pizzas: ComboPizzaChoice[] = [];
       for (const rule of product.comboPizzaRules ?? []) {
-        for (let index = 0; index < rule.quantity; index += 1) pizzas.push({ ruleId: rule.id, sizeId: rule.sizes[0]?.id ?? null, flavorId: rule.flavors[0]?.id ?? null });
+        for (let index = 0; index < rule.quantity; index += 1) {
+          pizzas.push({ ruleId: rule.id, sizeId: rule.sizes[0]?.id ?? null, flavorId: rule.flavors[0]?.id ?? null });
+        }
       }
       const groupSelections: Record<number, number[]> = {};
-      for (const group of product.comboGroups ?? []) groupSelections[group.id] = group.options.slice(0, group.minSelections).map((option) => option.productId);
+      for (const group of product.comboGroups ?? []) {
+        groupSelections[group.id] = group.options.slice(0, group.minSelections).map((option) => option.productId);
+      }
       setComboConfig({ product, pizzas, groupSelections });
       return;
     }
@@ -327,7 +332,14 @@ export default function StructuredPosPage() {
       name: group.name,
       selections: (comboConfig.groupSelections[group.id] ?? []).map((productId) => {
         const option = group.options.find((item) => item.productId === productId)!;
-        return { optionId: option.id, productId: option.productId, name: option.productName, quantity: Math.max(1, option.quantity), unitPrice: option.basePrice, priceDelta: option.priceDelta };
+        return {
+          optionId: option.id,
+          productId: option.productId,
+          name: option.productName,
+          quantity: Math.max(1, option.quantity),
+          unitPrice: option.basePrice,
+          priceDelta: option.priceDelta,
+        };
       }),
     }));
 
@@ -360,7 +372,7 @@ export default function StructuredPosPage() {
   }
 
   function changeQty(key: string, delta: number) {
-    setCart((current) => current.map((item) => item.key === key ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
+    setCart((current) => current.map((item) => (item.key === key ? { ...item, quantity: item.quantity + delta } : item)).filter((item) => item.quantity > 0));
   }
 
   return (
@@ -379,16 +391,42 @@ export default function StructuredPosPage() {
               </div>
             </header>
 
-            {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <><div className="flex gap-2 overflow-x-auto">{catalog?.categories.map((category) => <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>)}</div><div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">{selectedCategory?.products.map((product) => <article key={product.id} className="alento-card-soft overflow-hidden rounded-[24px]"><div className="aspect-square bg-[#f7f6f3]">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-2"/> : <div className="flex h-full items-center justify-center text-5xl">🍕</div>}</div><div className="p-4"><h3 className="font-black">{product.name}</h3><p className="mt-1 line-clamp-2 min-h-9 text-xs text-neutral-500">{product.description || "Producto Alentó Pizza"}</p><div className="mt-4 flex items-end justify-between"><div><span className="text-[10px] font-bold uppercase text-neutral-400">Precio</span><b className="block">{displayPrice(product)}</b></div><button onClick={() => startAdd(product)} disabled={!canAddProducts} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Agregar</button></div></div></article>)}</div></>}
+            {catalogLoading ? (
+              <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div>
+            ) : catalogError ? (
+              <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div>
+            ) : (
+              <>
+                <div className="flex gap-2 overflow-x-auto">
+                  {catalog?.categories.map((category) => (
+                    <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>
+                  ))}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                  {selectedCategory?.products.map((product) => (
+                    <article key={product.id} className="alento-card-soft overflow-hidden rounded-[24px]">
+                      <div className="aspect-square bg-[#f7f6f3]">
+                        {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-2" /> : <div className="flex h-full items-center justify-center text-5xl">🍕</div>}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-black">{product.name}</h3>
+                        <p className="mt-1 line-clamp-2 min-h-9 text-xs text-neutral-500">{product.description || "Producto Alentó Pizza"}</p>
+                        <div className="mt-4 flex items-end justify-between">
+                          <div><span className="text-[10px] font-bold uppercase text-neutral-400">Precio</span><b className="block">{displayPrice(product)}</b></div>
+                          <button onClick={() => startAdd(product)} disabled={!canAddProducts} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Agregar</button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <aside className="alento-card rounded-[28px] p-4 xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
             <div className="mb-3 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-3.5">
               <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p>
-                  <h2 className="mt-1 text-lg font-black">Tipo de pedido y cliente</h2>
-                </div>
+                <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p><h2 className="mt-1 text-lg font-black">Tipo de pedido y cliente</h2></div>
                 <button onClick={openNewCustomer} className="rounded-full border border-[rgba(229,28,17,0.14)] bg-white px-3 py-1.5 text-[11px] font-black text-[var(--brand-red)]">+ Nuevo cliente</button>
               </div>
 
@@ -405,17 +443,25 @@ export default function StructuredPosPage() {
 
                 <div>
                   <p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>
-                  {selectedCustomer ? <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="block truncate text-xs text-neutral-500">{selectedAddress.address}</span>}</div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Cambiar</button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2.5 w-full rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección de domicilio</button>}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}
+                  {selectedCustomer ? (
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="block truncate text-xs text-neutral-500">{selectedAddress.address}</span>}</div>
+                        <div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Cambiar</button></div>
+                      </div>
+                      {fulfillmentType === "DELIVERY" && !hasDeliveryAddress && <button onClick={() => openEditCustomer(selectedCustomer)} className="mt-2.5 w-full rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-700">Agregar dirección de domicilio</button>}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>
+                      {(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="mb-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p>
-              <h2 className="mt-1 text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>
-              {selectedCustomer && <p className="text-sm text-neutral-500">Para {selectedCustomer.name}</p>}
-              {fulfillmentType && <p className="mt-1 text-xs font-bold text-neutral-400">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</p>}
-            </div>
+            <div className="mb-3"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><h2 className="mt-1 text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-sm text-neutral-500">Para {selectedCustomer.name}</p>}{fulfillmentType && <p className="mt-1 text-xs font-bold text-neutral-400">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</p>}</div>
 
             {cart.length ? <div className="alento-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">{cart.map((item) => <div key={item.key} className="rounded-xl border p-2.5"><div className="flex justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{item.name}</b><p className="line-clamp-3 text-[11px] text-neutral-500">{item.detail}</p></div><b className="text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between"><span className="text-[10px] text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1"><button onClick={() => changeQty(item.key, -1)} className="h-7 w-7 rounded-lg bg-neutral-100">−</button><b className="w-6 text-center text-sm">{item.quantity}</b><button onClick={() => changeQty(item.key, 1)} className="h-7 w-7 rounded-lg bg-neutral-100">+</button></div></div></div>)}</div> : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
 
