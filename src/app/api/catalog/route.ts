@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const categoryPriority = new Map([
+  ["destacados", 1],
+  ["pizzas", 2],
+  ["antojos", 3],
+  ["bebidas", 4],
+]);
+
 export async function GET() {
   const categories = await prisma.category.findMany({
     where: { active: true, visibleInPos: true },
@@ -11,6 +18,12 @@ export async function GET() {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       },
     },
+  });
+
+  categories.sort((a, b) => {
+    const aPriority = categoryPriority.get(a.slug) ?? 100 + a.sortOrder;
+    const bPriority = categoryPriority.get(b.slug) ?? 100 + b.sortOrder;
+    return aPriority - bPriority || a.name.localeCompare(b.name, "es");
   });
 
   const sizes = await prisma.pizzaSize.findMany({
