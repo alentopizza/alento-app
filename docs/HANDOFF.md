@@ -9,9 +9,11 @@ Antes de modificar código, leer en este orden:
 1. `README.md`
 2. `docs/CURRENT_STATE.md`
 3. `docs/ARCHITECTURE.md`
-4. `docs/DEPLOYMENT.md`
-5. `prisma/schema.prisma`
-6. Los archivos del módulo que se vaya a modificar.
+4. `docs/ORDER_DATA_INTEGRITY.md`
+5. `docs/ORDERS.md`
+6. `docs/DEPLOYMENT.md`
+7. `prisma/schema.prisma`
+8. Los archivos del módulo que se vaya a modificar.
 
 Después, revisar los commits recientes de `main` para entender los últimos cambios.
 
@@ -23,6 +25,7 @@ Como mínimo:
 
 - actualizar `docs/CURRENT_STATE.md` cuando cambie qué está implementado, el flujo actual o el próximo paso;
 - actualizar `docs/ARCHITECTURE.md` cuando cambie una regla comercial, modelo de datos, integración, API, responsabilidad de módulo o decisión estructural;
+- actualizar `docs/ORDER_DATA_INTEGRITY.md` cuando cambie cómo se representa una pizza, combo, modificador o componente que posteriormente pueda alimentar inventario/costos;
 - actualizar `docs/DEPLOYMENT.md` cuando cambie Prisma, EasyPanel, variables de entorno, despliegue o procedimiento operativo;
 - actualizar `README.md` cuando cambie de forma relevante el objetivo, roadmap o mapa de documentación;
 - documentar cualquier comando manual necesario después del despliegue, especialmente `npx prisma db push`.
@@ -56,7 +59,36 @@ El flujo objetivo compartido por POS, Chatwoot y la futura app de clientes debe 
 - cobertura y domicilio;
 - clientes;
 - pedidos;
-- pagos.
+- pagos;
+- configuración estructurada de productos;
+- futuras recetas, inventario y costos.
+
+## Regla crítica: integridad de productos vendidos
+
+Cada orden debe guardar de forma estructurada qué se vendió. Para pizzas y combos no basta guardar texto legible.
+
+Las órdenes nuevas deben conservar IDs reales y snapshots de:
+
+- tamaño;
+- sabor o sabores;
+- proporción de cada sabor (`1` o `0.5` en pizza mitad y mitad);
+- borde;
+- modificadores / ingredientes extra y cantidades;
+- componentes de combos;
+- productos simples incluidos en combos;
+- cantidades de cada selección.
+
+La razón es que esta configuración será la base futura de:
+
+- Cocina;
+- inventario;
+- recetas;
+- consumo de insumos;
+- costos teóricos;
+- rentabilidad por producto;
+- edición confiable de pedidos.
+
+`POS_SNAPSHOT` se considera compatibilidad histórica y no debe ser la arquitectura objetivo para órdenes nuevas. Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
 ## Reglas actuales especialmente importantes
 
@@ -68,6 +100,8 @@ El flujo objetivo compartido por POS, Chatwoot y la futura app de clientes debe 
 - Combos y productos promocionales/no acumulables no reciben cupones.
 - El domicilio nunca forma parte de la base del descuento.
 - Un pedido no combina cupón y descuento manual.
+- Solo pedidos `CONFIRMED` pueden editarse.
+- La configuración estructurada de productos tiene prioridad antes de construir inventario real.
 - La base de producción todavía usa `npx prisma db push`; no usar `prisma migrate deploy` hasta realizar un baseline formal.
 
 ## Antes de empezar un nuevo desarrollo
@@ -76,9 +110,10 @@ Confirmar primero:
 
 1. que `main` contiene el último trabajo desplegado;
 2. que `docs/CURRENT_STATE.md` coincide con el comportamiento actual;
-3. si el cambio requiere modificar Prisma;
-4. si el cambio afecta reglas comerciales existentes;
-5. qué documento deberá actualizarse al terminar.
+3. que el cambio respeta `docs/ORDER_DATA_INTEGRITY.md`;
+4. si el cambio requiere modificar Prisma;
+5. si el cambio afecta reglas comerciales existentes;
+6. qué documento deberá actualizarse al terminar.
 
 ## Al cerrar cada bloque
 
