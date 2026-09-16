@@ -28,8 +28,7 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Combos con descuento fijo.
 - Carrito con cantidades y subtotal.
 - Modal de cierre del pedido.
-- Validación manual temporal de distancia para Domicilio.
-- Consulta a `/api/delivery/quote` para determinar cobertura y tarifa.
+- Selección manual de zona/tarifa de domicilio desde opciones activas de Configuración.
 - Selección de medio de pago desde los métodos activos de Configuración.
 - Revisión de subtotal, domicilio y total antes de persistir el pedido.
 - El resultado del cierre validado se refleja de nuevo en el resumen lateral del POS.
@@ -51,10 +50,10 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 ### Configuración
 
 - Ubicación del local.
-- Rangos de cobertura y tarifa de domicilio.
-- Activación y edición de rangos.
+- Zonas/tarifas de domicilio editables por nombre, costo y estado.
 - Medios de pago configurables.
 - Persistencia mediante `AppSetting`.
+- Los rangos históricos en metros se conservan internamente para una futura automatización con mapas, pero ya no se muestran como requisito operativo en el POS.
 
 ### APIs
 
@@ -62,7 +61,7 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Clientes.
 - Administración de menú.
 - Configuración.
-- Cotización de domicilio por distancia conocida.
+- `/api/delivery/quote` se conserva para una futura integración automática basada en distancia.
 
 ## Flujo de cierre actual
 
@@ -70,13 +69,10 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 
 1. Cliente ya seleccionado y con dirección registrada.
 2. Abrir cierre del pedido.
-3. Capturar manualmente la distancia en metros desde el local.
-4. Consultar `/api/delivery/quote`.
-5. Validar cobertura.
-6. Aplicar la tarifa de domicilio configurada.
-7. Elegir un medio de pago activo.
-8. Revisar productos, subtotal, domicilio y total.
-9. Validar el cierre.
+3. Seleccionar manualmente una zona/tarifa activa, por ejemplo `Zona cercana - $0`, `Zona intermedia - $5.000` o `Zona extendida - $10.000`.
+4. Elegir un medio de pago activo.
+5. Revisar productos, subtotal, domicilio y total.
+6. Validar el cierre.
 
 ### Recoger en tienda
 
@@ -96,6 +92,16 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 
 Importante: validar el cierre todavía NO crea un `Order` en PostgreSQL. Este paso es intencional para aprobar primero el flujo operativo antes de persistir pedidos reales.
 
+## Decisión sobre Google Maps
+
+Google Maps NO es dependencia operativa en esta etapa.
+
+La decisión actual es priorizar estabilidad y velocidad del POS mediante selección manual de zona/tarifa. Esto evita que la operación dependa de geocodificación, claves externas, facturación, cuotas o errores de direcciones.
+
+La integración futura con mapas deberá automatizar solamente la selección de la zona/tarifa. La estructura comercial actual se mantiene: Configuración sigue siendo la fuente de verdad para nombres, costos y estado de las tarifas.
+
+Los campos internos `minMeters` y `maxMeters` se conservan para facilitar esa automatización futura, pero no deben exigirse al operador.
+
 ## Pendiente inmediato
 
 El siguiente bloque aprobado es la persistencia real del pedido.
@@ -111,22 +117,6 @@ Debe incluir:
 7. Confirmar el pedido y limpiar el POS después de una creación exitosa.
 8. Conectar el pedido nuevo a Cocina.
 9. Crear o habilitar la pantalla de Pedidos.
-
-## Decisión pendiente: cálculo automático de distancia
-
-Todavía no hay integración con un proveedor de mapas.
-
-Mientras esto no exista, `/api/delivery/quote` solo debe recibir una distancia ya conocida. No inferir distancias desde texto de dirección.
-
-La captura manual del cierre está marcada visualmente como temporal. La futura integración debe reemplazar solamente la obtención de `distanceMeters`; las reglas de cobertura y tarifas seguirán viviendo en Configuración.
-
-La integración futura debe resolver:
-
-- geocodificación de dirección;
-- coordenadas del local;
-- distancia o ruta;
-- manejo de errores de dirección;
-- costos y límites del proveedor.
 
 ## Próximos módulos después de persistir pedidos
 
