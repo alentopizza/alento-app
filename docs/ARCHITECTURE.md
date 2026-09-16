@@ -22,7 +22,11 @@ Chatwoot debe funcionar como canal de atención, no como un segundo sistema de p
 
 ### `/`
 
-Punto de venta: tipo de pedido, cliente, catálogo, configuración de productos, carrito, domicilio, descuentos, medio de pago y revisión de cierre.
+Punto de venta. Construye el pedido, cliente, modalidad, productos, descuentos, domicilio y pago. El cierre ahora crea una orden real en PostgreSQL.
+
+### `/pedidos`
+
+Consulta las órdenes persistidas más recientes con cliente, tipo, estado, productos, totales y pago.
 
 ### `/clientes`
 
@@ -34,13 +38,7 @@ Administración del catálogo, categorías, pizzas, modificadores y combos.
 
 ### `/cupones`
 
-Administración de descuentos reutilizables. Soporta:
-
-- `FIXED`: descuento plano en pesos;
-- `PERCENTAGE`: porcentaje sobre productos elegibles;
-- estado activo/inactivo.
-
-Los cupones activos se consumen desde el cierre del POS mediante `/api/coupons?active=1`.
+Administración de descuentos reutilizables `FIXED` y `PERCENTAGE`.
 
 ### `/configuracion`
 
@@ -48,7 +46,7 @@ Fuente de verdad para ubicación del local, zonas/tarifas de domicilio y medios 
 
 ### `/cocina`
 
-Destino operativo de pedidos confirmados. La conexión real depende de terminar primero la persistencia de pedidos.
+Destino operativo de órdenes confirmadas. El siguiente bloque debe conectarlo a `Order.status`.
 
 ## Tipos de pedido
 
@@ -66,177 +64,195 @@ Destino operativo de pedidos confirmados. La conexión real depende de terminar 
 6. Cálculo de base elegible para descuento.
 7. Descuento: ninguno, cupón o manual.
 8. Medio de pago.
-9. Si es Efectivo, captura de `Paga con` y cálculo de vueltas.
+9. Si es Efectivo, `Paga con` y vueltas.
 10. Revisión final.
-11. Creación persistente del pedido.
-12. Envío a Cocina.
+11. `POST /api/orders`.
+12. Transacción PostgreSQL: `Order + OrderItem + Payment`.
+13. Orden nace `CONFIRMED`.
+14. Confirmación con código `ALT-XXXXXX`.
+15. Nuevo pedido reinicia el POS.
+
+## Arquitectura de creación de pedidos
+
+`POST /api/orders` es la entrada persistente del POS.
+
+Responsabilidades del servidor:
+
+- validar `fulfillmentType`;
+- exigir cliente para `DELIVERY`/`PICKUP`;
+- validar dirección para `DELIVERY`;
+- comprobar productos activos;
+- validar zona/tarifa de domicilio contra `AppSetting`;
+- validar método de pago activo;
+- recalcular base elegible;
+- volver a calcular cupón o validar descuento manual;
+- validar efectivo recibido;
+- calcular subtotal, domicilio, descuento y total;
+- crear todo dentro de `prisma.$transaction`.
+
+La transacción crea:
+
+```text
+Order
+├── OrderItem[]
+└── Payment[]
+```
+
+No debe existir una orden parcialmente creada si falla algún elemento.
+
+## Identificador visible de pedido
+
+El identificador actual se deriva del `Order.id`:
+
+```text
+ALT-000001
+ALT-000002
+...
+```
+
+No existe una columna adicional para el código todavía. El frontend/API formatea el ID con seis dígitos.
+
+## Estado inicial
+
+Pedidos creados desde POS:
+
+```text
+Order.status = CONFIRMED
+Order.source = POS
+Payment.status = PENDING
+```
+
+`CONFIRMED` significa que la orden ya es válida y debe entrar al flujo operativo. El siguiente módulo debe definir las transiciones de Cocina.
+
+## Snapshot comercial de Order
+
+Para que el historial no dependa de cambios posteriores en Configuración, `Order` guarda:
+
+```ts
+couponId?
+couponName?
+deliveryZoneId?
+deliveryZoneName?
+discountSource // NONE | COUPON | MANUAL
+subtotal
+deliveryFee
+discount
+total
+```
+
+Esto permite renombrar cupones o zonas sin alterar la interpretación de pedidos anteriores.
+
+## OrderItem
+
+Cada línea guarda:
+
+```ts
+productId?
+productName
+unitPrice
+quantity
+lineTotal
+configuration Json?
+```
+
+### Estado actual de `configuration`
+
+El diseño final debe transportar IDs estructurados desde el constructor del carrito:
+
+- pizza: tamaño, sabores, borde, modificadores;
+- combo: pizzas, sabores, tamaños y selecciones de grupos.
+
+La API admite `configuration`, pero el carrito actual todavía no la llena completamente. Mientras tanto, pizzas y combos se persisten con un snapshot `POS_SNAPSHOT` del detalle legible y el precio calculado por el POS.
+
+Esta es una decisión temporal y está documentada como deuda técnica. Antes de exponer creación de pedidos a un canal no confiable (por ejemplo una app pública), debe completarse la validación/recalculado server-side de pizzas y combos.
 
 ## Configuración operativa
 
 `AppSetting` almacena `pos_settings` en JSON. Incluye ubicación, `deliveryBands` y `paymentMethods`.
 
-En la operación actual, `deliveryBands` funciona como catálogo manual de zonas/tarifas. El operador usa `name`, `fee` y `active`. `minMeters` y `maxMeters` quedan reservados para automatización futura con mapas.
-
-Google Maps no es dependencia operativa por ahora. Una integración futura debe automatizar la selección de zona, no sustituir la configuración comercial.
+En operación actual, `deliveryBands` es un catálogo manual de zonas/tarifas. Google Maps queda como automatización futura.
 
 ## Arquitectura de descuentos
 
-Hay dos clases de descuento operativo en el cierre:
+`Product.couponEligible` controla la elegibilidad de productos normales.
 
-### Cupón
+Reglas:
 
-Entidad persistente `Coupon`:
+- combos nunca son elegibles;
+- `couponEligible = false` excluye el producto;
+- domicilio nunca se descuenta;
+- cupón y descuento manual son mutuamente excluyentes.
 
-```ts
-Coupon {
-  id
-  name
-  type: FIXED | PERCENTAGE
-  value
-  active
-}
-```
-
-Los cupones nunca se calculan directamente sobre `Order.subtotal`. Antes se obtiene una **base elegible**.
-
-### Elegibilidad de productos
-
-`Product` contiene:
-
-```ts
-couponEligible Boolean @default(true)
-```
-
-La regla comercial es:
-
-- un producto normal participa si `couponEligible = true`;
-- cualquier `COMBO` queda excluido siempre, aunque el campo estuviera activo;
-- futuras ofertas o promociones que ya reduzcan el precio original deben guardar `couponEligible = false`;
-- el domicilio (`deliveryFee`) nunca forma parte de la base elegible.
-
-La elegibilidad se calcula del lado servidor mediante:
-
-`POST /api/discount/eligibility`
-
-El endpoint recibe líneas del carrito con `productId`, `unitPrice` y `quantity`, consulta los productos reales y devuelve:
-
-```ts
-{
-  eligibleSubtotal,
-  excludedSubtotal,
-  eligibleProductIds,
-  excludedProductIds
-}
-```
-
-Esto evita confiar en una bandera enviada por el navegador y centraliza la regla comercial.
+El popup consulta `POST /api/discount/eligibility` para mostrar la base al operador, y `POST /api/orders` vuelve a calcular la elegibilidad antes de persistir.
 
 ### Cupón porcentual
 
-Se calcula así:
-
 ```text
-desconto = eligibleSubtotal × porcentaje
+discount = eligibleSubtotal × porcentaje
 ```
-
-Ejemplo:
-
-- pizza normal: $40.000;
-- combo promocional: $30.000;
-- domicilio: $10.000;
-- base elegible: $40.000;
-- cupón 60%: $24.000;
-- total final: $56.000.
-
-Ni el combo ni el domicilio reciben el descuento.
 
 ### Cupón fijo
 
-El descuento queda limitado a la base elegible:
-
 ```text
-desconto = min(valorCupón, eligibleSubtotal)
+discount = min(valorCupón, eligibleSubtotal)
 ```
 
-Un cupón de $10.000 sobre solo $7.000 elegibles descuenta $7.000.
+### Manual
 
-### Descuento manual
-
-Es una excepción operativa, pero respeta exactamente la misma base elegible. No puede rebajar combos, productos promocionales ni domicilio y nunca puede superar `eligibleSubtotal`.
-
-### Regla de exclusividad
-
-Un pedido usa una sola fuente:
-
-- sin descuento;
-- cupón;
-- manual.
-
-No acumular cupón + manual.
+No puede superar `eligibleSubtotal`.
 
 ## Arquitectura de pagos
 
-`Payment` representa el pago registrado para un pedido.
-
-Campos principales:
+`Payment` contiene:
 
 ```ts
-Payment {
-  method
-  amount
-  cashReceived?
-  changeDue?
-  status
-  reference?
-}
+method
+amount
+cashReceived?
+changeDue?
+status
+reference?
 ```
 
-### Efectivo
+Para Efectivo:
 
-Cuando el método configurado corresponde a Efectivo:
+- `cashReceived >= Order.total`;
+- `changeDue = cashReceived - Order.total`;
+- domicilio: vueltas para el domiciliario;
+- local/recoger: cambio para el cajero.
 
-- el POS exige `cashReceived` (`Paga con`);
-- `cashReceived` debe ser igual o mayor al total;
-- `changeDue = cashReceived - total`;
-- en Domicilio, `changeDue` representa las vueltas que debe llevar el domiciliario;
-- en Local o Recoger, representa lo que debe devolver el cajero;
-- pago exacto guarda `changeDue = 0`.
-
-`cashReceived` y `changeDue` son opcionales porque no aplican a Nequi, DaviPlata, Tarjeta, Llave u otros medios no efectivos.
-
-El cierre del POS ya calcula estos valores. Cuando se implemente la creación persistente del pedido, deben guardarse en `Payment` y mostrarse en Cocina/Pedidos cuando sea operacionalmente útil.
-
-## Snapshot del descuento en el pedido
-
-`Order` contiene:
-
-- `couponId`: relación opcional con el cupón;
-- `couponName`: snapshot del nombre usado;
-- `discount`: valor monetario final aplicado.
-
-El snapshot permite que el historial conserve lo ocurrido aunque el cupón sea renombrado o modificado después.
+Medios no efectivos dejan `cashReceived` y `changeDue` en `null`.
 
 ## APIs relevantes
 
-- `/api/catalog`: catálogo POS.
-- `/api/customers` y `/api/customers/[id]`: clientes.
-- `/api/settings`: configuración operativa.
-- `/api/coupons`: listar y crear cupones.
-- `/api/coupons/[id]`: editar/eliminar cupones.
-- `/api/discount/eligibility`: calcula el subtotal que puede recibir descuentos.
-- `/api/delivery/quote`: reservado para automatización futura basada en distancia.
+- `GET /api/catalog`
+- `/api/customers` y `/api/customers/[id]`
+- `GET/PUT /api/settings`
+- `/api/coupons` y `/api/coupons/[id]`
+- `POST /api/discount/eligibility`
+- `GET /api/orders`: consulta las últimas órdenes.
+- `POST /api/orders`: crea una orden transaccional.
+- `POST /api/delivery/quote`: reservado para automatización futura basada en distancia.
 
-## Datos de pedidos
+## Próxima arquitectura: Cocina
 
-Prisma contiene `Order`, `OrderItem`, `Payment`, `Customer`, `CustomerAddress` y `Coupon`.
+Cocina debe leer únicamente órdenes operativas, inicialmente `status = CONFIRMED`, y permitir transiciones controladas:
 
-`Order` dispone de subtotal, domicilio, descuento, total, tipo, fuente, relaciones con cliente/dirección/cupón, items y pagos.
+```text
+CONFIRMED → PREPARING → READY
+```
 
-`Payment` dispone del método, valor del pago, estado y datos opcionales de efectivo (`cashReceived`, `changeDue`).
+Después de `READY`, el flujo depende de modalidad:
+
+- `DELIVERY`: eventualmente `OUT_FOR_DELIVERY → COMPLETED`;
+- `PICKUP`: entrega al cliente → `COMPLETED`;
+- `STORE`: servido/cerrado → `COMPLETED`.
+
+Estas transiciones aún no están implementadas.
 
 ## Base de datos
 
-La base de producción existente no tiene baseline de Prisma Migrate. Por ahora los cambios de schema se aplican manualmente con:
+Producción no tiene baseline formal de Prisma Migrate. Los cambios se aplican manualmente:
 
 ```bash
 npx prisma db push
