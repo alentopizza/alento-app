@@ -4,6 +4,7 @@ import "./pos-polish.css";
 import "./product-config-polish.css";
 import "./product-card-polish.css";
 import "./pos-order-panel-polish.css";
+import "./pos-cart-polish.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
