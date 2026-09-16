@@ -61,9 +61,8 @@ export default function Home() {
   const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
   const [comboConfig, setComboConfig] = useState<ComboConfig | null>(null);
   const [configError, setConfigError] = useState("");
-  const [showFulfillmentModal, setShowFulfillmentModal] = useState(false);
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
-  const [pendingFulfillmentType, setPendingFulfillmentType] = useState<FulfillmentType | null>(null);
+  const [flowMessage, setFlowMessage] = useState("");
 
   useEffect(() => {
     async function loadCatalog() {
@@ -324,21 +323,34 @@ export default function Home() {
     setCart((current) => current.map((item) => item.key === key ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   }
 
-  function openConfirmOrder() {
-    if (!cart.length) return;
-    setPendingFulfillmentType(fulfillmentType);
-    setShowFulfillmentModal(true);
+  function selectFulfillment(type: FulfillmentType) {
+    setFulfillmentType(type);
+    setFlowMessage("");
   }
 
-  function confirmFulfillmentType() {
-    if (!pendingFulfillmentType) return;
-    setFulfillmentType(pendingFulfillmentType);
-    setShowFulfillmentModal(false);
+  function continueOrder() {
+    if (!fulfillmentType || !cart.length) return;
+    if (fulfillmentType === "DELIVERY" && !selectedCustomer) return;
+    const next = fulfillmentType === "DELIVERY"
+      ? "Siguiente: dirección, cobertura, valor del domicilio y pago."
+      : fulfillmentType === "PICKUP"
+        ? "Siguiente: datos de recogida y pago."
+        : "Siguiente: datos del pedido en local y pago.";
+    setFlowMessage(next);
   }
 
   const selectedAddress = selectedCustomer?.addresses?.[0];
   const configuringTwoFlavors = pizzaConfig ? isTwoFlavorPizza(pizzaConfig.product) : false;
   const selectedFulfillmentLabel = fulfillmentLabel(fulfillmentType);
+  const customerRequirement = fulfillmentType === "DELIVERY" ? "Obligatorio" : fulfillmentType === "PICKUP" ? "Recomendado" : "Opcional";
+  const canContinueOrder = Boolean(cart.length && fulfillmentType && (fulfillmentType !== "DELIVERY" || selectedCustomer));
+  const continueOrderLabel = !fulfillmentType
+    ? "Selecciona tipo de pedido"
+    : !cart.length
+      ? "Agrega productos"
+      : fulfillmentType === "DELIVERY" && !selectedCustomer
+        ? "Selecciona cliente para continuar"
+        : "Continuar pedido";
 
   return (
     <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
@@ -351,7 +363,7 @@ export default function Home() {
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p>
               </div>
               <h1 className="text-2xl font-black md:text-3xl">Punto de venta</h1>
-              <p className="mt-1 text-xs text-white/58 md:text-sm">Toma pedidos, consulta clientes y arma cada orden desde una sola pantalla.</p>
+              <p className="mt-1 text-xs text-white/58 md:text-sm">Tipo de pedido, cliente, productos y cierre en un flujo rápido de operación.</p>
             </div>
             <span className="w-fit rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white/70">POS activo</span>
           </div>
@@ -359,70 +371,71 @@ export default function Home() {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-5">
-            <div className="alento-card rounded-[28px] p-5 md:p-6">
-              <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="alento-card rounded-[26px] p-4 md:p-5">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cliente</p>
-                  <h2 className="mt-1 text-2xl font-black">{selectedCustomer ? selectedCustomer.name : "Nuevo pedido"}</h2>
-                  {selectedCustomer ? <div className="mt-2 text-sm text-[var(--muted)]">{selectedCustomer.countryCode} {selectedCustomer.phone || "Sin teléfono"}{selectedAddress?.address ? ` · ${selectedAddress.address}` : ""}</div> : <p className="mt-1 text-sm text-[var(--muted)]">Busca un cliente existente o crea uno nuevo para comenzar.</p>}
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p>
+                  <h2 className="mt-1 text-xl font-black">Define cómo se atenderá antes de agregar productos</h2>
                 </div>
-                <div className="flex gap-2">
-                  {selectedCustomer && <button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-2xl border border-[var(--border)] px-4 py-2.5 text-sm font-bold">Cambiar cliente</button>}
-                  <button onClick={() => setShowCreateCustomer(true)} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white">+ Nuevo cliente</button>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-400">
+                  <span className="text-[var(--brand-red)]">1 Tipo</span><span>→</span><span>2 Cliente</span><span>→</span><span>3 Productos</span><span>→</span><span>4 Cierre</span>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input flex-1 rounded-2xl px-4 py-3.5" placeholder="Nombre, teléfono o correo del cliente" />
-                <button onClick={() => void searchCustomers()} className="rounded-2xl bg-black px-5 py-3.5 text-sm font-black text-white">{searching ? "Buscando..." : "Buscar cliente"}</button>
+
+              <div className="grid gap-4 lg:grid-cols-[1fr_1.15fr]">
+                <section>
+                  <div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-black">1. Tipo de pedido</p>{selectedFulfillmentLabel && <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-600">Seleccionado</span>}</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {fulfillmentOptions.map((option) => {
+                      const selected = fulfillmentType === option.type;
+                      return <button key={option.type} onClick={() => selectFulfillment(option.type)} className={`rounded-2xl border-2 px-3 py-3 text-left transition ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white hover:border-neutral-400"}`}>
+                        <div className="flex items-center gap-2"><span className="text-xl">{option.icon}</span><b className="text-sm leading-4">{option.title}</b></div>
+                        <span className="mt-1 hidden text-[10px] leading-4 text-neutral-500 sm:block">{option.type === "DELIVERY" ? "Se entrega al cliente" : option.type === "PICKUP" ? "El cliente recoge" : "Consumo en el local"}</span>
+                      </button>;
+                    })}
+                  </div>
+                </section>
+
+                <section className="border-t border-neutral-100 pt-4 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                  {!fulfillmentType ? <div className="flex h-full min-h-24 items-center justify-center rounded-2xl border border-dashed bg-[#faf9f7] px-4 text-center"><div><p className="text-sm font-black">2. Cliente</p><p className="mt-1 text-xs text-neutral-400">Primero selecciona el tipo de pedido.</p></div></div> : <>
+                    <div className="mb-2 flex items-center justify-between gap-3"><p className="text-xs font-black">2. Cliente <span className={`ml-1 text-[10px] font-bold uppercase ${fulfillmentType === "DELIVERY" ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{customerRequirement}</span></p><button onClick={() => setShowCreateCustomer(true)} className="text-xs font-black text-[var(--brand-red)]">+ Nuevo cliente</button></div>
+                    {selectedCustomer ? <div className="flex items-center justify-between gap-3 rounded-2xl border bg-[#faf9f7] px-4 py-3">
+                      <div className="min-w-0"><p className="truncate text-sm font-black">{selectedCustomer.name}</p><p className="truncate text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone || "Sin teléfono"}{fulfillmentType === "DELIVERY" && selectedAddress?.address ? ` · ${selectedAddress.address}` : ""}</p></div>
+                      <button onClick={() => { setSelectedCustomer(null); setQuery(""); setFlowMessage(""); }} className="shrink-0 rounded-xl border bg-white px-3 py-2 text-xs font-bold">Cambiar</button>
+                    </div> : <>
+                      <div className="flex gap-2">
+                        <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo" />
+                        <button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 py-2.5 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-neutral-400">{fulfillmentType === "DELIVERY" ? "Necesario para validar dirección, cobertura y domicilio." : fulfillmentType === "PICKUP" ? "Útil para identificar quién recoge el pedido." : "Puedes dejar el pedido sin cliente si es consumo inmediato."}</p>
+                    </>}
+                    {(customers.length > 0 || searchMessage) && !selectedCustomer && <div className="mt-2 overflow-hidden rounded-xl border bg-white">
+                      {customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full items-center justify-between border-b px-3 py-2 text-left text-xs"><span><b>{customer.name}</b><span className="ml-2 text-neutral-400">{customer.countryCode} {customer.phone}</span></span><span className="font-bold">Seleccionar</span></button>)}
+                      {searchMessage && <p className="px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}
+                    </div>}
+                  </>}
+                </section>
               </div>
-              {(customers.length > 0 || searchMessage) && <div className="mt-3 overflow-hidden rounded-2xl border bg-white">
-                {customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b px-4 py-3 text-left"><span><b>{customer.name}</b><span className="block text-sm text-neutral-500">{customer.countryCode} {customer.phone}</span></span><span>Seleccionar</span></button>)}
-                {searchMessage && <p className="px-4 py-3 text-sm text-neutral-500">{searchMessage}</p>}
-              </div>}
             </div>
 
             {catalogLoading ? <div className="alento-card rounded-[28px] p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-[28px] border border-red-200 bg-red-50 p-6 text-red-700">{catalogError}</div> : <>
               <div className="flex gap-2 overflow-x-auto pb-1">{catalog?.categories.map((category) => <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>)}</div>
               <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">{selectedCategory?.products.map((product) => <article key={product.id} className="alento-card-soft overflow-hidden rounded-[26px]">
                 <div className="relative aspect-square bg-[#111112]">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center text-5xl">🍕</div>}<span className="absolute left-3 top-3 rounded-full bg-black/55 px-3 py-1 text-[11px] font-bold text-white">{product.type === "COMBO" ? "Combo" : selectedCategory.name}</span></div>
-                <div className="p-4"><h3 className="text-lg font-black">{product.name}</h3><p className="mt-1 min-h-10 text-sm text-[var(--muted)] line-clamp-2">{product.description || "Producto Alentó Pizza"}</p><div className="mt-4 flex items-end justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-neutral-400">Precio</p><span className="font-black">{displayPrice(product)}</span></div><button onClick={() => startAdd(product)} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white">Agregar</button></div></div>
+                <div className="p-4"><h3 className="text-lg font-black">{product.name}</h3><p className="mt-1 min-h-10 text-sm text-[var(--muted)] line-clamp-2">{product.description || "Producto Alentó Pizza"}</p><div className="mt-4 flex items-end justify-between gap-3"><div><p className="text-[10px] font-bold uppercase text-neutral-400">Precio</p><span className="font-black">{displayPrice(product)}</span></div><button onClick={() => startAdd(product)} disabled={!fulfillmentType} className="rounded-2xl bg-[var(--brand-red)] px-4 py-2.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400">{fulfillmentType ? "Agregar" : "Elige tipo"}</button></div></div>
               </article>)}</div>
             </>}
           </div>
 
           <aside className="alento-card rounded-[30px] p-4 xl:sticky xl:top-7 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
             <div className="mb-3 shrink-0"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><div className="mt-1 flex items-end justify-between gap-3"><h2 className="text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{cart.length > 0 && <span className="text-xs font-bold text-neutral-400">{cart.length} línea{cart.length === 1 ? "" : "s"}</span>}</div>{selectedCustomer && <p className="mt-1 text-sm text-[var(--muted)]">Para {selectedCustomer.name}</p>}{selectedFulfillmentLabel && <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-neutral-100 px-3 py-1.5 text-[11px] font-black"><span className="h-2 w-2 rounded-full bg-[var(--brand-red)]" />{selectedFulfillmentLabel}</div>}</div>
-            {cart.length === 0 ? <div className="rounded-[20px] border border-dashed bg-[#faf9f7] px-4 py-9 text-center xl:flex xl:flex-1 xl:flex-col xl:items-center xl:justify-center"><p className="font-bold">Tu pedido está vacío</p><p className="mt-1 text-xs text-neutral-400">Agrega productos para comenzar.</p></div> : <div className="alento-scroll min-h-0 space-y-2 overflow-y-auto pr-1 xl:flex-1">{cart.map((item) => <div key={item.key} className="rounded-xl border border-neutral-200 bg-white p-2.5"><div className="flex items-start justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p><p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-neutral-500">{item.detail}</p></div><b className="whitespace-nowrap text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1.5"><button onClick={() => changeQty(item.key, -1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">−</button><span className="min-w-5 text-center text-sm font-black">{item.quantity}</span><button onClick={() => changeQty(item.key, 1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">+</button></div></div></div>)}</div>}
-            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>$0</strong></div>}{selectedFulfillmentLabel && <div className="flex justify-between"><span className="text-neutral-500">Tipo de pedido</span><strong>{selectedFulfillmentLabel}</strong></div>}<div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(subtotal)}</strong></div></div><button onClick={openConfirmOrder} disabled={!cart.length} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Confirmar pedido</button></div>
+            {cart.length === 0 ? <div className="rounded-[20px] border border-dashed bg-[#faf9f7] px-4 py-9 text-center xl:flex xl:flex-1 xl:flex-col xl:items-center xl:justify-center"><p className="font-bold">Tu pedido está vacío</p><p className="mt-1 text-xs text-neutral-400">{fulfillmentType ? "Agrega productos para comenzar." : "Selecciona el tipo de pedido para habilitar el catálogo."}</p></div> : <div className="alento-scroll min-h-0 space-y-2 overflow-y-auto pr-1 xl:flex-1">{cart.map((item) => <div key={item.key} className="rounded-xl border border-neutral-200 bg-white p-2.5"><div className="flex items-start justify-between gap-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p><p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-neutral-500">{item.detail}</p></div><b className="whitespace-nowrap text-sm">{formatCOP(item.unitPrice * item.quantity)}</b></div><div className="mt-2 flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-neutral-400">c/u {formatCOP(item.unitPrice)}</span><div className="flex items-center gap-1.5"><button onClick={() => changeQty(item.key, -1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">−</button><span className="min-w-5 text-center text-sm font-black">{item.quantity}</span><button onClick={() => changeQty(item.key, 1)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-bold">+</button></div></div></div>)}</div>}
+            <div className="mt-3 shrink-0 border-t bg-white pt-3"><div className="space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><strong>{formatCOP(subtotal)}</strong></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><strong>$0</strong></div>}{selectedFulfillmentLabel && <div className="flex justify-between"><span className="text-neutral-500">Tipo de pedido</span><strong>{selectedFulfillmentLabel}</strong></div>}<div className="flex items-end justify-between border-t border-dashed pt-3"><span className="font-black">Total</span><strong className="text-2xl font-black text-[var(--brand-red)]">{formatCOP(subtotal)}</strong></div></div>{flowMessage && <div className="mt-3 rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-600">{flowMessage}</div>}<button onClick={continueOrder} disabled={!canContinueOrder} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">{continueOrderLabel}</button>{fulfillmentType === "DELIVERY" && cart.length > 0 && !selectedCustomer && <p className="mt-2 text-center text-[10px] font-semibold text-neutral-400">Para domicilio necesitamos identificar al cliente antes de continuar.</p>}</div>
           </aside>
         </section>
       </div>
 
       {showCreateCustomer && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="alento-card max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-[30px] p-6"><div className="mb-5 flex justify-between"><h2 className="text-2xl font-black">Nuevo cliente</h2><button onClick={() => setShowCreateCustomer(false)}>Cerrar</button></div><form onSubmit={createCustomer} className="space-y-4"><input value={name} onChange={(event) => setName(event.target.value)} className="alento-input w-full" placeholder="Nombre *" /><div className="grid grid-cols-[100px_1fr] gap-3"><select value={countryCode} onChange={(event) => setCountryCode(event.target.value)} className="alento-input"><option>+57</option><option>+1</option></select><input value={phone} onChange={(event) => setPhone(event.target.value)} className="alento-input" placeholder="Teléfono *" /></div><input value={address} onChange={(event) => setAddress(event.target.value)} className="alento-input w-full" placeholder="Dirección (opcional)" /><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="alento-input w-full" placeholder="Notas" /><input value={email} onChange={(event) => setEmail(event.target.value)} className="alento-input w-full" placeholder="Correo (opcional)" />{customerError && <div className="rounded-xl bg-red-50 p-3 text-red-700">{customerError}</div>}<button disabled={savingCustomer} className="w-full rounded-2xl bg-[var(--brand-red)] p-3 font-black text-white">{savingCustomer ? "Guardando..." : "Crear cliente"}</button></form></div></div>}
-
-      {showFulfillmentModal && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/65 p-4">
-        <div className="alento-card w-full max-w-3xl overflow-hidden rounded-[30px]">
-          <div className="border-b border-neutral-100 px-6 py-5 md:px-7">
-            <div className="flex items-start justify-between gap-4">
-              <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Confirmar pedido</p><h2 className="mt-1 text-2xl font-black md:text-3xl">¿Cómo se entregará este pedido?</h2><p className="mt-1 text-sm text-neutral-500">Selecciona una modalidad para continuar con el cierre.</p></div>
-              <button onClick={() => setShowFulfillmentModal(false)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
-            </div>
-          </div>
-          <div className="grid gap-3 p-6 md:grid-cols-3 md:p-7">
-            {fulfillmentOptions.map((option) => {
-              const selected = pendingFulfillmentType === option.type;
-              return <button key={option.type} onClick={() => setPendingFulfillmentType(option.type)} className={`group rounded-[24px] border-2 p-5 text-left transition ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_12px_30px_rgba(229,28,17,.10)]" : "border-neutral-200 bg-white hover:border-neutral-400"}`}>
-                <div className="flex items-start justify-between gap-3"><span className="text-3xl">{option.icon}</span><span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${selected ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white" : "border-neutral-300 text-transparent"}`}>✓</span></div>
-                <h3 className="mt-5 text-lg font-black">{option.title}</h3><p className="mt-1 text-sm leading-5 text-neutral-500">{option.description}</p>
-              </button>;
-            })}
-          </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:items-center sm:justify-end md:px-7">
-            <button onClick={() => setShowFulfillmentModal(false)} className="rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-sm font-black">Cancelar</button>
-            <button onClick={confirmFulfillmentType} disabled={!pendingFulfillmentType} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Continuar</button>
-          </div>
-        </div>
-      </div>}
 
       {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[30px]">
         <div className="shrink-0 border-b border-neutral-100 bg-white px-6 py-5"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase text-neutral-400">Configurar pizza</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2>{configuringTwoFlavors && <p className="mt-1 text-xs text-neutral-500">El precio toma el sabor de mayor valor.</p>}</div><div className="flex items-center gap-3"><div className="hidden rounded-2xl bg-red-50 px-4 py-2 text-right sm:block"><p className="text-[10px] font-bold uppercase tracking-wide text-red-400">Total actual</p><p className="text-lg font-black text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</p></div><button onClick={() => setPizzaConfig(null)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button></div></div></div>
