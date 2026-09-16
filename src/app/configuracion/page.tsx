@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type DeliveryBand = {
   id: string;
+  name: string;
   minMeters: number;
   maxMeters: number;
   fee: number;
@@ -49,11 +50,6 @@ export default function SettingsPage() {
     void load();
   }, []);
 
-  const maxCoverage = useMemo(() => {
-    if (!settings) return 0;
-    return Math.max(0, ...settings.deliveryBands.filter((band) => band.active).map((band) => band.maxMeters));
-  }, [settings]);
-
   function updateBand(id: string, patch: Partial<DeliveryBand>) {
     setSettings((current) => current ? { ...current, deliveryBands: current.deliveryBands.map((band) => band.id === id ? { ...band, ...patch } : band) } : current);
   }
@@ -61,10 +57,18 @@ export default function SettingsPage() {
   function addBand() {
     setSettings((current) => {
       if (!current) return current;
+      const index = current.deliveryBands.length;
       const highest = Math.max(0, ...current.deliveryBands.map((band) => band.maxMeters));
       return {
         ...current,
-        deliveryBands: [...current.deliveryBands, { id: `band-${Date.now()}`, minMeters: highest + 1, maxMeters: highest + 500, fee: 0, active: true }],
+        deliveryBands: [...current.deliveryBands, {
+          id: `band-${Date.now()}`,
+          name: `Zona ${index + 1}`,
+          minMeters: highest + 1,
+          maxMeters: highest + 500,
+          fee: 0,
+          active: true,
+        }],
       };
     });
   }
@@ -117,7 +121,7 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm font-medium text-neutral-500">Operación</p>
             <h1 className="text-3xl font-black tracking-tight">Configuración</h1>
-            <p className="mt-1 text-sm text-neutral-500">Administra cobertura, tarifas de domicilio y medios de pago del POS.</p>
+            <p className="mt-1 text-sm text-neutral-500">Administra tarifas de domicilio y medios de pago del POS.</p>
           </div>
           <button onClick={() => void save()} disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar configuración"}</button>
         </div>
@@ -125,13 +129,10 @@ export default function SettingsPage() {
         {(message || error) && <div className={`rounded-2xl px-4 py-3 text-sm font-semibold ${error ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{error || message}</div>}
 
         <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Punto de origen</p>
-              <h2 className="mt-1 text-xl font-black">Ubicación de Alentó Pizza</h2>
-              <p className="mt-1 text-sm text-neutral-500">Esta es la referencia desde la que se calculará la distancia del domicilio.</p>
-            </div>
-            <span className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-600">Cobertura actual: hasta {maxCoverage} m</span>
+          <div className="mb-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Punto de origen</p>
+            <h2 className="mt-1 text-xl font-black">Ubicación de Alentó Pizza</h2>
+            <p className="mt-1 text-sm text-neutral-500">Se conserva como referencia para una futura integración con mapas.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div><label className="mb-1.5 block text-xs font-black">Dirección del local</label><input value={settings.store.address} onChange={(event) => setSettings({ ...settings, store: { ...settings.store, address: event.target.value } })} className="alento-input w-full rounded-2xl px-4 py-3" /></div>
@@ -142,26 +143,37 @@ export default function SettingsPage() {
         <section className="alento-card rounded-[28px] p-5 md:p-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cobertura y domicilio</p>
-              <h2 className="mt-1 text-xl font-black">Tarifas por distancia</h2>
-              <p className="mt-1 text-sm text-neutral-500">Cada rango define cuánto cobrar cuando la dirección está a esa distancia del local.</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Domicilios</p>
+              <h2 className="mt-1 text-xl font-black">Zonas y tarifas</h2>
+              <p className="mt-1 text-sm text-neutral-500">Estas son las opciones que el operador verá al cerrar un pedido a domicilio.</p>
             </div>
-            <button onClick={addBand} className="rounded-2xl border bg-white px-4 py-2.5 text-sm font-black">+ Agregar rango</button>
+            <button onClick={addBand} className="rounded-2xl border bg-white px-4 py-2.5 text-sm font-black">+ Agregar tarifa</button>
           </div>
 
           <div className="space-y-2">
-            {settings.deliveryBands.map((band, index) => (
-              <div key={band.id} className="grid gap-3 rounded-2xl border bg-[#faf9f7] p-3 md:grid-cols-[70px_1fr_1fr_1fr_auto] md:items-end">
-                <div><label className="mb-1.5 block text-[10px] font-black uppercase text-neutral-400">Activo</label><button onClick={() => updateBand(band.id, { active: !band.active })} className={`w-full rounded-xl px-3 py-3 text-xs font-black ${band.active ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>{band.active ? "Sí" : "No"}</button></div>
-                <div><label className="mb-1.5 block text-xs font-black">Desde (m)</label><input type="number" min={0} value={band.minMeters} onChange={(event) => updateBand(band.id, { minMeters: Number(event.target.value) })} className="alento-input w-full rounded-xl px-3 py-3" /></div>
-                <div><label className="mb-1.5 block text-xs font-black">Hasta (m)</label><input type="number" min={0} value={band.maxMeters} onChange={(event) => updateBand(band.id, { maxMeters: Number(event.target.value) })} className="alento-input w-full rounded-xl px-3 py-3" /></div>
-                <div><label className="mb-1.5 block text-xs font-black">Costo domicilio</label><input type="number" min={0} step={500} value={band.fee} onChange={(event) => updateBand(band.id, { fee: Number(event.target.value) })} className="alento-input w-full rounded-xl px-3 py-3" /><p className="mt-1 text-[10px] text-neutral-400">{formatCOP(band.fee)}</p></div>
+            {settings.deliveryBands.map((band) => (
+              <div key={band.id} className="grid gap-3 rounded-2xl border bg-[#faf9f7] p-3 md:grid-cols-[90px_1fr_180px_auto] md:items-end">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-black uppercase text-neutral-400">Estado</label>
+                  <button onClick={() => updateBand(band.id, { active: !band.active })} className={`w-full rounded-xl px-3 py-3 text-xs font-black ${band.active ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>{band.active ? "Activa" : "Inactiva"}</button>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Nombre de la zona</label>
+                  <input value={band.name} onChange={(event) => updateBand(band.id, { name: event.target.value })} className="alento-input w-full rounded-xl px-3 py-3" placeholder="Ej. Zona cercana" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Costo domicilio</label>
+                  <input type="number" min={0} step={500} value={band.fee} onChange={(event) => updateBand(band.id, { fee: Number(event.target.value) })} className="alento-input w-full rounded-xl px-3 py-3" />
+                  <p className="mt-1 text-[10px] font-bold text-neutral-400">{formatCOP(band.fee)}</p>
+                </div>
                 <button onClick={() => removeBand(band.id)} disabled={settings.deliveryBands.length === 1} className="rounded-xl border border-red-200 bg-white px-3 py-3 text-xs font-black text-red-600 disabled:border-neutral-200 disabled:text-neutral-300">Eliminar</button>
-                <div className="md:col-span-5 text-[10px] font-semibold text-neutral-400">Rango {index + 1}: {band.minMeters}–{band.maxMeters} m · {formatCOP(band.fee)}</div>
               </div>
             ))}
           </div>
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"><b>Importante:</b> una dirección que quede fuera de todos los rangos activos se considerará fuera de cobertura.</div>
+
+          <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
+            <b>Funcionamiento actual:</b> el operador selecciona manualmente la zona/tarifa adecuada. Internamente conservamos los rangos históricos para poder automatizar esta selección con Google Maps en el futuro sin rehacer la estructura.
+          </div>
         </section>
 
         <section className="alento-card rounded-[28px] p-5 md:p-6">
