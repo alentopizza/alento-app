@@ -90,7 +90,8 @@ export async function GET() {
   const minPizzaSizePrice = sizes.length ? Math.min(...sizes.map((size) => Number(size.basePrice))) : 0;
 
   const serializeProduct = (product: (typeof featuredProducts)[number]) => {
-    const finalPrice = product.basePrice == null ? null : Number(product.basePrice);
+    const storedBasePrice = product.basePrice == null ? null : Number(product.basePrice);
+    const comboDiscount = product.comboDiscount == null ? 0 : Number(product.comboDiscount);
 
     let regularMin = 0;
     let regularMax = 0;
@@ -114,6 +115,9 @@ export async function GET() {
       }
     }
 
+    const comboFinalMin = product.type === "COMBO" ? Math.max(0, regularMin - comboDiscount) : null;
+    const comboFinalMax = product.type === "COMBO" ? Math.max(0, regularMax - comboDiscount) : null;
+
     return {
       id: product.id,
       categoryId: product.categoryId,
@@ -122,15 +126,16 @@ export async function GET() {
       imageUrl: product.imageUrl,
       imageUrl2: product.imageUrl2,
       type: product.type,
-      basePrice: finalPrice,
+      basePrice: product.type === "COMBO" && comboFinalMin != null ? comboFinalMin : storedBasePrice,
       active: product.active,
       visibleInPos: product.visibleInPos,
       featured: product.featured,
       sortOrder: product.sortOrder,
+      comboDiscount: product.type === "COMBO" ? comboDiscount : null,
       comboRegularMin: product.type === "COMBO" ? regularMin : null,
       comboRegularMax: product.type === "COMBO" ? regularMax : null,
-      comboDiscountMin: product.type === "COMBO" && finalPrice != null ? Math.max(0, regularMin - finalPrice) : null,
-      comboDiscountMax: product.type === "COMBO" && finalPrice != null ? Math.max(0, regularMax - finalPrice) : null,
+      comboFinalMin,
+      comboFinalMax,
       comboPizzaRules: product.comboPizzaRules.map((rule) => ({
         id: rule.id,
         quantity: rule.quantity,
@@ -233,7 +238,7 @@ export async function POST(request: NextRequest) {
     const description = typeof body.description === "string" ? body.description.trim() : "";
     const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
     const imageUrl2 = typeof body.imageUrl2 === "string" ? body.imageUrl2.trim() : "";
-    const finalPrice = Number(body.finalPrice);
+    const discountAmount = Number(body.discountAmount);
     const pizzaQuantity = Math.max(0, Number(body.pizzaQuantity) || 0);
     const pizzaSizeIds = uniqueIntegerArray(body.pizzaSizeIds);
     const pizzaFlavorIds = uniqueIntegerArray(body.pizzaFlavorIds);
@@ -243,7 +248,7 @@ export async function POST(request: NextRequest) {
     const beverageProductIds = uniqueIntegerArray(body.beverageProductIds);
 
     if (body.action === "createCombo" && !name) return NextResponse.json({ error: "El nombre del combo es obligatorio." }, { status: 400 });
-    if (!Number.isFinite(finalPrice) || finalPrice < 0) return NextResponse.json({ error: "El valor final del combo debe ser válido." }, { status: 400 });
+    if (!Number.isFinite(discountAmount) || discountAmount < 0) return NextResponse.json({ error: "El descuento debe ser un valor válido." }, { status: 400 });
     if (pizzaQuantity > 0 && (!pizzaSizeIds.length || !pizzaFlavorIds.length)) return NextResponse.json({ error: "Selecciona tamaños y sabores permitidos para la pizza." }, { status: 400 });
     if (snackQuantity > 0 && !snackProductIds.length) return NextResponse.json({ error: "Selecciona al menos un antojo permitido." }, { status: 400 });
     if (beverageQuantity > 0 && !beverageProductIds.length) return NextResponse.json({ error: "Selecciona al menos una bebida permitida." }, { status: 400 });
@@ -282,7 +287,10 @@ export async function POST(request: NextRequest) {
       regularMax += Math.max(...beveragePrices) * beverageQuantity;
     }
 
-    if (finalPrice > regularMax) return NextResponse.json({ error: "El valor del combo no puede superar el valor normal máximo de las opciones permitidas." }, { status: 400 });
+    if (discountAmount > regularMin) return NextResponse.json({ error: "El descuento no puede superar el valor normal mínimo del combo." }, { status: 400 });
+
+    const finalMin = Math.max(0, regularMin - discountAmount);
+    const finalMax = Math.max(0, regularMax - discountAmount);
 
     try {
       const combo = await prisma.$transaction(async (tx) => {
@@ -290,14 +298,14 @@ export async function POST(request: NextRequest) {
         if (body.action === "createCombo") {
           const sortOrder = await tx.product.count({ where: { categoryId: combosCategory.id } });
           const created = await tx.product.create({
-            data: { categoryId: combosCategory.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: "COMBO", basePrice: finalPrice, active: true, visibleInPos: true, featured: true, sortOrder },
+            data: { categoryId: combosCategory.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: "COMBO", basePrice: finalMin, comboDiscount: discountAmount, active: true, visibleInPos: true, featured: true, sortOrder },
           });
           productId = created.id;
         } else {
           if (!Number.isInteger(productId)) throw new Error("Combo inválido.");
           await tx.product.update({
             where: { id: productId },
-            data: { categoryId: combosCategory.id, basePrice: finalPrice, ...(name ? { name } : {}), description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null },
+            data: { categoryId: combosCategory.id, basePrice: finalMin, comboDiscount: discountAmount, ...(name ? { name } : {}), description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null },
           });
           await tx.comboPizzaRule.deleteMany({ where: { comboProductId: productId } });
           await tx.comboGroup.deleteMany({ where: { comboProductId: productId } });
@@ -323,7 +331,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        combo: { ...combo, regularMin, regularMax, discountMin: Math.max(0, regularMin - finalPrice), discountMax: Math.max(0, regularMax - finalPrice), finalPrice },
+        combo: { ...combo, regularMin, regularMax, discountAmount, finalMin, finalMax },
       }, { status: body.action === "createCombo" ? 201 : 200 });
     } catch (error) {
       const prismaError = error as { code?: string; message?: string };
