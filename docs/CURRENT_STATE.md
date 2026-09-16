@@ -21,6 +21,25 @@ Este documento resume qué está funcionando hoy y cuál es el siguiente bloque 
 - Efectivo con `Paga con` y `Vueltas`.
 - Creación real y transaccional en PostgreSQL.
 
+### Diseño operativo del POS
+
+La interfaz del POS está entrando en su etapa de diseño casi final.
+
+Reglas visuales actuales:
+
+- no mostrar al operador etiquetas técnicas como `Datos estructurados` o `Estructurado`;
+- la integridad estructurada sigue funcionando internamente y se considera una responsabilidad del sistema, no un mensaje de interfaz;
+- encabezado principal más compacto para recuperar espacio vertical;
+- texto operativo del encabezado: `Toma pedidos y confirma ventas desde una sola pantalla.`;
+- bloque de tipo de pedido y cliente reducido en altura;
+- catálogo mantiene tarjetas compactas con imagen 1:1;
+- el panel derecho funciona como área fija de pedido actual en escritorio;
+- el listado de productos del carrito es la zona que hace scroll;
+- subtotal, total y botón `Continuar pedido` permanecen visibles en la zona inferior del panel derecho sin exigir scroll de la página;
+- los detalles técnicos de inventario/costos no deben contaminar la experiencia diaria del cajero.
+
+La UI puede seguir recibiendo ajustes menores, pero no se deben sacrificar las reglas de integridad de `OrderItem.configuration` por decisiones visuales.
+
 ### Integridad estructurada del carrito
 
 El POS usa ahora `src/components/StructuredPosPage.tsx`.
@@ -186,11 +205,12 @@ Después del despliegue:
 6. crear un producto simple;
 7. revisar `/pedidos` y el ticket 80 mm;
 8. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
-9. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
+9. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
+10. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
 
 ## Próximo paso aprobado
 
-Primero validar en producción la integridad estructurada de las órdenes nuevas.
+Primero validar en producción la integridad estructurada de las órdenes nuevas y el layout casi final del POS.
 
 Después:
 
