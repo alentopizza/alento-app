@@ -20,7 +20,7 @@ Contiene únicamente:
 2. categorías del catálogo;
 3. tarjetas de productos.
 
-El encabezado ya no ocupa el ancho total de la página. Vive dentro de la columna izquierda para liberar la parte superior del panel derecho.
+El encabezado ocupa todo el ancho disponible de la columna izquierda y llega visualmente hasta el panel del pedido, dejando únicamente el gap entre columnas. No debe limitarse a un ancho menor arbitrario.
 
 ### Columna derecha
 
@@ -50,13 +50,19 @@ El selector vive dentro del panel `Pedido actual` y usa tres opciones compactas:
 
 El cliente también se administra dentro del panel derecho.
 
+No mostrar un título grande adicional como `Tipo de pedido y cliente`; el bloque ya queda suficientemente explicado por `Preparar pedido`, `1. Tipo` y `2. Cliente`.
+
 ### Sin cliente seleccionado
 
-Mostrar:
+Mostrar en una sola línea operativa:
 
 - campo de búsqueda por nombre, teléfono o correo;
 - botón `Buscar`;
-- acción `+ Nuevo cliente`.
+- acción compacta `+ Nuevo` para crear cliente.
+
+`+ Nuevo` debe vivir junto a `Buscar` para evitar ocupar una fila independiente y para no partir el texto en dos líneas.
+
+Los resultados de búsqueda pueden desplegarse por encima del contenido siguiente para no aumentar innecesariamente la altura del panel.
 
 ### Con cliente seleccionado
 
@@ -66,6 +72,8 @@ Mostrar una tarjeta compacta con:
 - teléfono;
 - dirección cuando el pedido sea Domicilio;
 - botones `Editar` y `Cambiar`.
+
+Cuando ya existe un cliente seleccionado, la acción de nuevo cliente no necesita permanecer visible de forma prominente.
 
 Domicilio y Recoger requieren cliente. Local lo mantiene opcional.
 
