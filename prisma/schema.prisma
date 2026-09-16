@@ -41,15 +41,16 @@ enum PaymentStatus {
 }
 
 model Customer {
-  id        Int               @id @default(autoincrement())
-  name      String
-  phone     String?           @unique
-  email     String?           @unique
-  notes     String?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  addresses CustomerAddress[]
-  orders    Order[]
+  id          Int               @id @default(autoincrement())
+  name        String
+  countryCode String            @default("+57")
+  phone       String?           @unique
+  email       String?           @unique
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  addresses   CustomerAddress[]
+  orders      Order[]
 }
 
 model CustomerAddress {
