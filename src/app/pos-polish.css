@@ -30,26 +30,72 @@ main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(
   padding: 0 8px !important;
 }
 
-/* Nuevo cliente: misma presencia que Buscar, pero en rojo Alentó. */
-main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
-  width: 74px !important;
+/*
+ * Cliente sin seleccionar:
+ * - Buscar y Nuevo son controles cuadrados del mismo tamaño.
+ * - El texto permanece en el DOM para accesibilidad, pero visualmente usamos iconos.
+ * - Buscar es negro y Nuevo es rojo Alentó.
+ */
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
+  gap: 7px !important;
+  padding-right: 51px !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 42px !important;
   min-height: 42px !important;
+  border-radius: 12px !important;
+  padding: 0 !important;
+  background-color: #000 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7.5'/%3E%3Cpath d='m20 20-3.8-3.8'/%3E%3C/svg%3E") !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 19px 19px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button:hover {
+  background-color: #191919 !important;
+}
+
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  right: 12px !important;
+  bottom: 12px !important;
   border: 1px solid var(--brand-red) !important;
   border-radius: 12px !important;
-  background: var(--brand-red) !important;
-  color: #fff !important;
+  background-color: var(--brand-red) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: 20px 20px !important;
+  padding: 0 !important;
+  color: transparent !important;
+  font-size: 0 !important;
   box-shadow: 0 7px 16px rgba(229, 28, 17, 0.18) !important;
 }
 
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button:hover {
-  background: var(--brand-red-dark) !important;
+  background-color: var(--brand-red-dark) !important;
   border-color: var(--brand-red-dark) !important;
 }
 
+/* Globals agregaba un texto visual mediante ::after. Para esta versión solo mostramos el símbolo +. */
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
-  content: "+ NUEVO" !important;
-  font-size: 10px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.025em !important;
-  color: #fff !important;
+  content: none !important;
+}
+
+/*
+ * El encabezado intermedio "Pedido actual / Sin productos / modalidad" no aporta
+ * información nueva: tipo y cliente ya están arriba y los productos hablan por sí solos.
+ */
+main > div > section.grid > aside.alento-card > div:nth-child(2) {
+  display: none !important;
 }
