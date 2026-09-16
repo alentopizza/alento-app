@@ -226,19 +226,123 @@ main:has(> div > header.alento-dark) aside.alento-card span.bg-emerald-50.text-e
   display: none !important;
 }
 
-/* Bloque tipo/cliente ligeramente más compacto. */
+/* Bloque tipo/cliente: selector moderno y tarjeta de cliente más limpia. */
 main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card {
   border-radius: 22px !important;
-  padding: 14px 16px !important;
+  padding: 13px 15px !important;
 }
 
 main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:first-child {
-  margin-bottom: 10px !important;
+  margin-bottom: 9px !important;
 }
 
 main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card h2 {
-  font-size: 1.1rem !important;
-  line-height: 1.35rem !important;
+  font-size: 1.08rem !important;
+  line-height: 1.3rem !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) {
+  gap: 12px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > p,
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child > p {
+  margin-bottom: 6px !important;
+  font-size: 11px !important;
+}
+
+/* Selector Domicilio / Recoger / Local. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid {
+  gap: 4px !important;
+  padding: 4px;
+  border: 1px solid #e8e5e1;
+  border-radius: 14px;
+  background: #f6f5f2;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-width: 1px !important;
+  border-color: transparent !important;
+  border-radius: 10px !important;
+  padding: 0 10px !important;
+  background: transparent;
+  text-align: center !important;
+  box-shadow: none;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button.bg-red-50 {
+  border-color: rgba(229, 28, 17, 0.72) !important;
+  background: #fff !important;
+  box-shadow: 0 5px 14px rgba(229, 28, 17, 0.1);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button > span {
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button > b {
+  margin-top: 0 !important;
+  font-size: 12px !important;
+  line-height: 1rem !important;
+  white-space: nowrap;
+}
+
+/* En operación usamos el nombre corto “Recoger”. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b {
+  font-size: 0 !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b::after {
+  content: "Recoger";
+  font-size: 12px;
+  line-height: 1rem;
+}
+
+/* Cliente: sin divisor fuerte, con tarjeta compacta. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) {
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-radius: 14px;
+  padding: 9px 10px !important;
+  background: #faf9f7;
+  box-shadow: inset 0 0 0 1px #ebe8e4;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child {
+  margin-bottom: 6px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child > button {
+  border: 1px solid rgba(229, 28, 17, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  padding: 5px 9px;
+  font-size: 10px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:first-child {
+  border-color: #e9e6e1 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  padding: 8px 10px !important;
+  box-shadow: 0 4px 14px rgba(25, 22, 18, 0.035);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) button.rounded-xl.border.bg-white {
+  border-color: #dfdcd7 !important;
+  border-radius: 9px !important;
+  padding: 6px 9px !important;
+  font-size: 10px !important;
 }
 
 /* El carrito tiene su propio scroll y el cierre queda siempre visible. */
@@ -266,6 +370,13 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
 @media (min-width: 768px) {
   .fixed.inset-0.z-50 > .alento-card section .md\:grid-cols-3 {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) {
+    grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr) !important;
+    align-items: center;
   }
 }
 
@@ -310,6 +421,15 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
   .fixed.inset-0.z-50 > .alento-card > div:last-child {
     padding-left: 14px !important;
     padding-right: 14px !important;
+  }
+
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button {
+    min-height: 44px;
+    padding: 0 7px !important;
+  }
+
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) {
+    margin-top: 2px;
   }
 }
 
