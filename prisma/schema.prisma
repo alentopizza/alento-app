@@ -209,6 +209,7 @@ model ComboPizzaFlavorOption {
 model ComboGroup {
   id             Int           @id @default(autoincrement())
   comboProductId Int
+  kind           String        @default("CUSTOM")
   name           String
   minSelections  Int           @default(1)
   maxSelections  Int           @default(1)
