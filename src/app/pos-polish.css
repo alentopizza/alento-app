@@ -37,15 +37,26 @@ main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(
  * - Buscar es negro y Nuevo es rojo Alentó.
  */
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
+  align-items: center !important;
   gap: 7px !important;
   padding-right: 51px !important;
 }
 
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > input {
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button {
+  display: inline-flex !important;
   width: 44px !important;
   min-width: 44px !important;
-  height: 42px !important;
-  min-height: 42px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid #000 !important;
   border-radius: 12px !important;
   padding: 0 !important;
   background-color: #000 !important;
@@ -55,20 +66,26 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
   background-size: 19px 19px !important;
   color: transparent !important;
   font-size: 0 !important;
+  line-height: 0 !important;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
 }
 
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex > button:hover {
   background-color: #191919 !important;
+  border-color: #191919 !important;
 }
 
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+  display: inline-flex !important;
   width: 44px !important;
   min-width: 44px !important;
-  height: 42px !important;
-  min-height: 42px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
   right: 12px !important;
   bottom: 12px !important;
+  align-items: center !important;
+  justify-content: center !important;
   border: 1px solid var(--brand-red) !important;
   border-radius: 12px !important;
   background-color: var(--brand-red) !important;
@@ -79,7 +96,9 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
   padding: 0 !important;
   color: transparent !important;
   font-size: 0 !important;
-  box-shadow: 0 7px 16px rgba(229, 28, 17, 0.18) !important;
+  line-height: 0 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(229, 28, 17, 0.16) !important;
 }
 
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button:hover {
@@ -90,6 +109,23 @@ main > div > section.grid > aside.alento-card > div:first-child:has(input[placeh
 /* Globals agregaba un texto visual mediante ::after. Para esta versión solo mostramos el símbolo +. */
 main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
   content: none !important;
+}
+
+/*
+ * Los avisos de búsqueda (por ejemplo "Escribe al menos 2 caracteres") no quedan fijos.
+ * Se muestran brevemente como feedback y desaparecen sin alterar la altura del módulo.
+ */
+main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.mt-2.overflow-hidden:has(> p:only-child) {
+  pointer-events: none;
+  animation: pos-search-hint-hide 180ms ease 1.6s forwards;
+}
+
+@keyframes pos-search-hint-hide {
+  to {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-3px);
+  }
 }
 
 /*
