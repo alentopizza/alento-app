@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const [categories, sizes] = await Promise.all([
+  const [categories, sizes, featuredProducts] = await Promise.all([
     prisma.category.findMany({
       where: { slug: { not: "insumos" } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -27,7 +27,55 @@ export async function GET() {
       where: { active: true },
       orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
     }),
+    prisma.product.findMany({
+      where: {
+        featured: true,
+        type: { notIn: ["MODIFIER", "INTERNAL"] },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        comboGroups: {
+          orderBy: { sortOrder: "asc" },
+          include: {
+            options: {
+              orderBy: { sortOrder: "asc" },
+              include: { product: true },
+            },
+          },
+        },
+      },
+    }),
   ]);
+
+  const serializeProduct = (product: (typeof featuredProducts)[number]) => ({
+    id: product.id,
+    categoryId: product.categoryId,
+    name: product.name,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    imageUrl2: product.imageUrl2,
+    type: product.type,
+    basePrice: product.basePrice == null ? null : Number(product.basePrice),
+    active: product.active,
+    visibleInPos: product.visibleInPos,
+    featured: product.featured,
+    sortOrder: product.sortOrder,
+    comboGroups: product.comboGroups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      minSelections: group.minSelections,
+      maxSelections: group.maxSelections,
+      sortOrder: group.sortOrder,
+      options: group.options.map((option) => ({
+        id: option.id,
+        productId: option.productId,
+        productName: option.product.name,
+        quantity: option.quantity,
+        priceDelta: Number(option.priceDelta),
+        sortOrder: option.sortOrder,
+      })),
+    })),
+  });
 
   return NextResponse.json({
     categories: categories.map((category) => ({
@@ -37,35 +85,9 @@ export async function GET() {
       active: category.active,
       visibleInPos: category.visibleInPos,
       sortOrder: category.sortOrder,
-      products: category.products.map((product) => ({
-        id: product.id,
-        categoryId: product.categoryId,
-        name: product.name,
-        description: product.description,
-        imageUrl: product.imageUrl,
-        imageUrl2: product.imageUrl2,
-        type: product.type,
-        basePrice: product.basePrice == null ? null : Number(product.basePrice),
-        active: product.active,
-        visibleInPos: product.visibleInPos,
-        featured: product.featured,
-        sortOrder: product.sortOrder,
-        comboGroups: product.comboGroups.map((group) => ({
-          id: group.id,
-          name: group.name,
-          minSelections: group.minSelections,
-          maxSelections: group.maxSelections,
-          sortOrder: group.sortOrder,
-          options: group.options.map((option) => ({
-            id: option.id,
-            productId: option.productId,
-            productName: option.product.name,
-            quantity: option.quantity,
-            priceDelta: Number(option.priceDelta),
-            sortOrder: option.sortOrder,
-          })),
-        })),
-      })),
+      products: category.slug === "destacados"
+        ? featuredProducts.map(serializeProduct)
+        : category.products.map(serializeProduct),
     })),
     sizes: sizes.map((size) => ({
       id: size.id,
