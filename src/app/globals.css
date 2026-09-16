@@ -94,3 +94,41 @@ button:active:not(:disabled) {
   background: #d3d0cc;
   border-radius: 999px;
 }
+
+/* Catálogo POS: más productos visibles sin perder la apariencia premium. */
+div:has(> article.alento-card-soft) {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+article.alento-card-soft {
+  border-radius: 22px !important;
+}
+
+article.alento-card-soft > div:first-child {
+  aspect-ratio: 16 / 10 !important;
+}
+
+article.alento-card-soft > div:last-child {
+  padding: 16px !important;
+}
+
+article.alento-card-soft h3 {
+  font-size: 1.05rem !important;
+  line-height: 1.25rem !important;
+}
+
+article.alento-card-soft p {
+  font-size: 0.8rem;
+  line-height: 1.15rem;
+}
+
+@media (max-width: 640px) {
+  div:has(> article.alento-card-soft) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  article.alento-card-soft > div:last-child {
+    padding: 13px !important;
+  }
+}
