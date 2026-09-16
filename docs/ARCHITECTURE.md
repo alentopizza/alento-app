@@ -51,7 +51,8 @@ Punto de venta. Actualmente contiene:
 - ingredientes extra;
 - combos configurables;
 - carrito y cantidades;
-- subtotal y resumen del pedido.
+- subtotal y resumen del pedido;
+- cierre con tarifa de domicilio y forma de pago.
 
 ### `/clientes`
 
@@ -69,8 +70,8 @@ Módulo destinado a recibir pedidos confirmados y moverlos por estados operativo
 
 Configuración operativa persistente. Contiene:
 
-- ubicación del local;
-- rangos de cobertura y tarifa de domicilio;
+- ubicación del local como referencia;
+- zonas/tarifas de domicilio;
 - medios de pago activos.
 
 Estos datos no deben quedar codificados en el POS. El POS debe consumirlos desde la API de configuración.
@@ -97,7 +98,7 @@ La secuencia operativa aprobada es:
 2. Cliente cuando corresponde.
 3. Productos y configuración.
 4. Cierre del pedido.
-5. Cobertura y domicilio cuando corresponde.
+5. Tarifa de domicilio cuando corresponde.
 6. Medio de pago.
 7. Revisión final.
 8. Creación persistente del pedido.
@@ -120,6 +121,7 @@ La configuración incluye:
   deliveryBands: [
     {
       id: string,
+      name: string,
       minMeters: number,
       maxMeters: number,
       fee: number,
@@ -136,17 +138,25 @@ La configuración incluye:
 }
 ```
 
-Valores iniciales creados como ejemplo:
+En la operación actual, `deliveryBands` funciona como catálogo de zonas/tarifas seleccionables manualmente. El operador ve principalmente `name`, `fee` y `active`.
 
-- 0 a 200 metros: $0.
-- 201 a 500 metros: $5.000.
+Ejemplos:
+
+- Zona cercana: $0.
+- Zona intermedia: $5.000.
+- Zona extendida: $10.000.
+
+Los campos `minMeters` y `maxMeters` se conservan como metadatos internos para una futura automatización con mapas, pero no deben pedirse al operador ni mostrarse como requisito del flujo actual.
+
+Medios de pago iniciales:
+
 - Efectivo.
 - Nequi.
 - DaviPlata.
 - Tarjeta.
 - Llave.
 
-Estos valores son editables desde Configuración y no deben asumirse como permanentes en código nuevo.
+Todos estos valores son editables desde Configuración y no deben asumirse como permanentes en código nuevo.
 
 ## APIs relevantes
 
@@ -169,23 +179,22 @@ Actualiza y elimina clientes según las reglas existentes.
 
 ### `/api/delivery/quote`
 
-Recibe una distancia en metros y responde si está dentro de cobertura y cuál es la tarifa aplicable según los rangos activos.
+Se conserva como pieza futura para automatizar una tarifa a partir de distancia. No es necesaria para el flujo manual actual.
 
-Importante: esta API todavía no calcula la distancia geográfica. Solo cotiza una distancia ya conocida.
+## Zonas, distancia y mapas
 
-## Distancia y mapas
+Decisión arquitectónica actual: Google Maps no es una dependencia operativa.
 
-Para automatizar completamente un domicilio se necesita convertir la dirección del cliente en coordenadas y calcular la distancia desde el local.
+El operador selecciona manualmente una zona/tarifa activa durante el cierre del pedido. Esto evita que el POS dependa de geocodificación, API keys, facturación, cuotas o errores de direcciones.
 
-La arquitectura prevista es:
+La automatización futura podrá:
 
-1. dirección del cliente;
-2. geocodificación;
-3. cálculo de distancia desde Alentó Pizza;
-4. envío de `distanceMeters` a `/api/delivery/quote`;
-5. obtención de cobertura y tarifa.
+1. geocodificar la dirección del cliente;
+2. calcular distancia o ruta desde el local;
+3. usar `minMeters`/`maxMeters` o reglas equivalentes para identificar la zona;
+4. seleccionar automáticamente la tarifa ya configurada.
 
-No simular ni inventar distancias. Hasta integrar un proveedor de mapas, la distancia debe provenir de una fuente explícita.
+La futura integración con mapas debe automatizar la selección, no reemplazar la Configuración como fuente de verdad comercial.
 
 ## Datos de pedidos
 
