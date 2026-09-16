@@ -9,16 +9,44 @@ const categoryPriority = new Map([
 ]);
 
 export async function GET() {
-  const categories = await prisma.category.findMany({
-    where: { active: true, visibleInPos: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: {
-      products: {
-        where: { active: true, visibleInPos: true },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  const [categories, sizes, crusts, modifiers, featuredProducts] = await Promise.all([
+    prisma.category.findMany({
+      where: { active: true, visibleInPos: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: {
+        products: {
+          where: { active: true, visibleInPos: true },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        },
       },
-    },
-  });
+    }),
+    prisma.pizzaSize.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
+    }),
+    prisma.pizzaCrust.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      include: { prices: true },
+    }),
+    prisma.product.findMany({
+      where: {
+        active: true,
+        type: "MODIFIER",
+        category: { slug: "ingredientes" },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.product.findMany({
+      where: {
+        active: true,
+        visibleInPos: true,
+        featured: true,
+        type: { notIn: ["MODIFIER", "INTERNAL"] },
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ]);
 
   categories.sort((a, b) => {
     const aPriority = categoryPriority.get(a.slug) ?? 100 + a.sortOrder;
@@ -26,24 +54,15 @@ export async function GET() {
     return aPriority - bPriority || a.name.localeCompare(b.name, "es");
   });
 
-  const sizes = await prisma.pizzaSize.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
-  });
-
-  const crusts = await prisma.pizzaCrust.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { prices: true },
-  });
-
-  const modifiers = await prisma.product.findMany({
-    where: {
-      active: true,
-      type: "MODIFIER",
-      category: { slug: "ingredientes" },
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  const normalizeProduct = (product: (typeof featuredProducts)[number]) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    imageUrl2: product.imageUrl2,
+    type: product.type,
+    basePrice: product.basePrice == null ? null : Number(product.basePrice),
+    featured: product.featured,
   });
 
   const normalizedCategories = categories.map((category) => ({
@@ -51,16 +70,9 @@ export async function GET() {
     name: category.name,
     slug: category.slug,
     imageUrl: category.imageUrl,
-    products: category.products.map((product) => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      imageUrl: product.imageUrl,
-      imageUrl2: product.imageUrl2,
-      type: product.type,
-      basePrice: product.basePrice == null ? null : Number(product.basePrice),
-      featured: product.featured,
-    })),
+    products: category.slug === "destacados"
+      ? featuredProducts.map(normalizeProduct)
+      : category.products.map(normalizeProduct),
   }));
 
   return NextResponse.json({
@@ -82,15 +94,6 @@ export async function GET() {
         price: Number(price.price),
       })),
     })),
-    modifiers: modifiers.map((product) => ({
-      id: product.id,
-      name: product.name,
-      description: product.description,
-      imageUrl: product.imageUrl,
-      imageUrl2: product.imageUrl2,
-      type: product.type,
-      basePrice: product.basePrice == null ? null : Number(product.basePrice),
-      featured: product.featured,
-    })),
+    modifiers: modifiers.map(normalizeProduct),
   });
 }
