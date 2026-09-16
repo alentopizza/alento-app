@@ -41,10 +41,11 @@ type Product = {
   visibleInPos: boolean;
   featured: boolean;
   sortOrder: number;
+  comboDiscount?: number | null;
   comboRegularMin?: number | null;
   comboRegularMax?: number | null;
-  comboDiscountMin?: number | null;
-  comboDiscountMax?: number | null;
+  comboFinalMin?: number | null;
+  comboFinalMax?: number | null;
   comboPizzaRules: ComboPizzaRule[];
   comboGroups: ComboGroup[];
 };
@@ -94,7 +95,7 @@ type ComboState = {
   id?: number;
   name: string;
   description: string;
-  finalPrice: string;
+  discountAmount: string;
   imageUrl: string;
   imageUrl2: string;
   pizzaQuantity: number;
@@ -207,6 +208,11 @@ export default function MenuPage() {
   function displayProductPrice(product: Product) {
     if (product.type === "PIZZA_SINGLE") return `Desde ${formatCOP(minPizzaSizePrice + (product.basePrice ?? 0))}`;
     if (product.type === "PIZZA_TWO_FLAVORS") return "Precio según sabores";
+    if (product.type === "COMBO" && product.comboFinalMin != null && product.comboFinalMax != null) {
+      return product.comboFinalMin === product.comboFinalMax
+        ? formatCOP(product.comboFinalMin)
+        : `Desde ${formatCOP(product.comboFinalMin)}`;
+    }
     return formatCOP(product.basePrice);
   }
 
@@ -309,7 +315,7 @@ export default function MenuPage() {
       id: product?.id,
       name: product?.name ?? "",
       description: product?.description ?? "",
-      finalPrice: product?.basePrice == null ? "" : String(product.basePrice),
+      discountAmount: product?.comboDiscount == null ? "" : String(product.comboDiscount),
       imageUrl: product?.imageUrl ?? "",
       imageUrl2: product?.imageUrl2 ?? "",
       pizzaQuantity: pizzaRule?.quantity ?? 0,
@@ -323,7 +329,7 @@ export default function MenuPage() {
   }
 
   const comboPreview = useMemo(() => {
-    if (!comboState) return { min: 0, max: 0, discountMin: 0, discountMax: 0, final: 0 };
+    if (!comboState) return { min: 0, max: 0, discount: 0, finalMin: 0, finalMax: 0 };
     let min = 0;
     let max = 0;
 
@@ -354,13 +360,13 @@ export default function MenuPage() {
       }
     }
 
-    const final = Number(comboState.finalPrice) || 0;
+    const discount = Math.max(0, Number(comboState.discountAmount) || 0);
     return {
       min,
       max,
-      discountMin: Math.max(0, min - final),
-      discountMax: Math.max(0, max - final),
-      final,
+      discount,
+      finalMin: Math.max(0, min - discount),
+      finalMax: Math.max(0, max - discount),
     };
   }, [comboState, data, pizzas, snacks, beverages]);
 
@@ -380,7 +386,7 @@ export default function MenuPage() {
           description: comboState.description,
           imageUrl: comboState.imageUrl,
           imageUrl2: comboState.imageUrl2,
-          finalPrice: comboState.finalPrice,
+          discountAmount: comboState.discountAmount,
           pizzaQuantity: comboState.pizzaQuantity,
           pizzaSizeIds: comboState.pizzaSizeIds,
           pizzaFlavorIds: comboState.pizzaFlavorIds,
@@ -458,7 +464,8 @@ export default function MenuPage() {
                     {product.type === "COMBO" && product.comboRegularMin != null && product.comboRegularMax != null && (
                       <div className="mt-2 rounded-xl bg-[#faf9f7] p-2.5 text-[11px]">
                         <div className="flex justify-between text-neutral-500"><span>Valor normal</span><strong>{product.comboRegularMin === product.comboRegularMax ? formatCOP(product.comboRegularMin) : `${formatCOP(product.comboRegularMin)} – ${formatCOP(product.comboRegularMax)}`}</strong></div>
-                        <div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento</span><strong>{product.comboDiscountMin === product.comboDiscountMax ? `- ${formatCOP(product.comboDiscountMin)}` : `${formatCOP(product.comboDiscountMin)} – ${formatCOP(product.comboDiscountMax)}`}</strong></div>
+                        <div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento fijo</span><strong>- {formatCOP(product.comboDiscount ?? 0)}</strong></div>
+                        <div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-black"><span>Precio combo</span><strong>{product.comboFinalMin === product.comboFinalMax ? formatCOP(product.comboFinalMin) : `${formatCOP(product.comboFinalMin)} – ${formatCOP(product.comboFinalMax)}`}</strong></div>
                       </div>
                     )}
                     <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
@@ -492,7 +499,7 @@ export default function MenuPage() {
                 <section className="rounded-[24px] border border-neutral-200 bg-[#faf9f7] p-4"><div className="flex items-center justify-between gap-4"><div><h3 className="font-black">Bebida</h3><p className="text-xs text-neutral-500">Selecciona las presentaciones que aplican.</p></div><label className="flex items-center gap-2"><span className="text-xs font-bold">Cantidad</span><input type="number" min="0" max="10" value={comboState.beverageQuantity} onChange={(event) => setComboState({ ...comboState, beverageQuantity: Math.max(0, Number(event.target.value) || 0) })} className="alento-input w-20 rounded-xl px-3 py-2" /></label></div>{comboState.beverageQuantity > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{beverages.map((product) => { const selected = comboState.beverageProductIds.includes(product.id); return <button key={product.id} type="button" onClick={() => setComboState({ ...comboState, beverageProductIds: toggleId(comboState.beverageProductIds, product.id) })} className={`rounded-xl border p-3 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-200 bg-white"}`}><span className="block text-sm font-black">{product.name}</span><span className={`mt-1 block text-xs ${selected ? "text-white/55" : "text-neutral-400"}`}>{formatCOP(product.basePrice)}</span></button>; })}</div>}</section>
               </div>
 
-              <aside className="h-fit rounded-[24px] bg-[#111112] p-5 text-white xl:sticky xl:top-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Resumen</p><h3 className="mt-1 text-xl font-black">{comboState.name || "Nuevo combo"}</h3><div className="mt-4 space-y-2 text-sm text-white/65">{comboState.pizzaQuantity > 0 && <p>{comboState.pizzaQuantity} × pizza · {comboState.pizzaSizeIds.length} tamaños · {comboState.pizzaFlavorIds.length} sabores</p>}{comboState.snackQuantity > 0 && <p>{comboState.snackQuantity} × antojo · {comboState.snackProductIds.length} opciones</p>}{comboState.beverageQuantity > 0 && <p>{comboState.beverageQuantity} × bebida · {comboState.beverageProductIds.length} opciones</p>}</div><div className="mt-5 space-y-3 border-t border-white/10 pt-4"><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal mínimo</span><strong>{formatCOP(comboPreview.min)}</strong></div><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal máximo</span><strong>{formatCOP(comboPreview.max)}</strong></div><label className="block"><span className="text-xs font-bold text-white/55">Valor final del combo</span><input value={comboState.finalPrice} onChange={(event) => setComboState({ ...comboState, finalPrice: event.target.value })} inputMode="numeric" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xl font-black text-white outline-none" placeholder="19900" /></label><div className="rounded-2xl bg-[var(--brand-red)]/15 px-3 py-2.5 text-sm"><div className="flex justify-between"><span className="text-white/70">Descuento mínimo</span><strong className="text-red-300">{formatCOP(comboPreview.discountMin)}</strong></div><div className="mt-1 flex justify-between"><span className="text-white/70">Descuento máximo</span><strong className="text-red-300">{formatCOP(comboPreview.discountMax)}</strong></div></div><div className="flex justify-between border-t border-white/10 pt-3"><span className="font-black">Precio combo</span><strong className="text-2xl">{formatCOP(comboPreview.final)}</strong></div></div></aside>
+              <aside className="h-fit rounded-[24px] bg-[#111112] p-5 text-white xl:sticky xl:top-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Resumen</p><h3 className="mt-1 text-xl font-black">{comboState.name || "Nuevo combo"}</h3><div className="mt-4 space-y-2 text-sm text-white/65">{comboState.pizzaQuantity > 0 && <p>{comboState.pizzaQuantity} × pizza · {comboState.pizzaSizeIds.length} tamaños · {comboState.pizzaFlavorIds.length} sabores</p>}{comboState.snackQuantity > 0 && <p>{comboState.snackQuantity} × antojo · {comboState.snackProductIds.length} opciones</p>}{comboState.beverageQuantity > 0 && <p>{comboState.beverageQuantity} × bebida · {comboState.beverageProductIds.length} opciones</p>}</div><div className="mt-5 space-y-3 border-t border-white/10 pt-4"><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal mínimo</span><strong>{formatCOP(comboPreview.min)}</strong></div><div className="flex justify-between gap-3 text-sm"><span className="text-white/55">Valor normal máximo</span><strong>{formatCOP(comboPreview.max)}</strong></div><label className="block"><span className="text-xs font-bold text-white/55">Descuento del combo</span><input value={comboState.discountAmount} onChange={(event) => setComboState({ ...comboState, discountAmount: event.target.value })} inputMode="numeric" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xl font-black text-white outline-none" placeholder="7800" /></label><div className="rounded-2xl bg-[var(--brand-red)]/15 px-3 py-2.5 text-sm"><div className="flex justify-between"><span className="text-white/70">Descuento fijo</span><strong className="text-red-300">- {formatCOP(comboPreview.discount)}</strong></div></div><div className="border-t border-white/10 pt-3"><div className="flex justify-between"><span className="font-black">Precio combo mínimo</span><strong className="text-xl">{formatCOP(comboPreview.finalMin)}</strong></div><div className="mt-1 flex justify-between"><span className="font-black">Precio combo máximo</span><strong className="text-xl">{formatCOP(comboPreview.finalMax)}</strong></div></div></div></aside>
             </div>
 
             {comboError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{comboError}</p>}
