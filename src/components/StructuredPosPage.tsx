@@ -87,7 +87,7 @@ export default function StructuredPosPage() {
   const selectedAddress = selectedCustomer?.addresses?.[0];
   const requiresCustomer = fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP";
   const hasDeliveryAddress = Boolean(selectedAddress?.address?.trim());
-  const canAddProducts = Boolean(fulfillmentType && (!requiresCustomer || selectedCustomer));
+  const canAddProducts = true;
   const canContinue = Boolean(cart.length && fulfillmentType && (!requiresCustomer || selectedCustomer) && (fulfillmentType !== "DELIVERY" || hasDeliveryAddress));
 
   function displayPrice(product: CatalogProduct) {
