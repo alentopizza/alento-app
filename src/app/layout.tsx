@@ -10,6 +10,7 @@ import "./pos-order-drawer.css";
 import "./pos-order-drawer-final.css";
 import "./customer-modal-polish.css";
 import "./pos-cart-line.css";
+import "./checkout-modal-polish.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 
