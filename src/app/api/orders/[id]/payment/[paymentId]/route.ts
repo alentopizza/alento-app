@@ -14,12 +14,40 @@ export async function DELETE(
       return NextResponse.json({ error: "Pago inválido." }, { status: 400 });
     }
 
-    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
-    if (!payment || payment.orderId !== orderId) {
-      return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
-    }
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { payments: { orderBy: { id: "asc" } } },
+    });
+    if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
 
-    await prisma.payment.delete({ where: { id: payment.id } });
+    const payment = order.payments.find((item) => item.id === paymentId);
+    if (!payment) return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.payment.delete({ where: { id: payment.id } });
+
+      if (payment.status === "PAID") {
+        const remainingPaid = order.payments
+          .filter((item) => item.id !== payment.id && item.status === "PAID")
+          .reduce((sum, item) => sum + Number(item.amount), 0);
+        const pendingBalance = Math.max(0, Number(order.total) - remainingPaid);
+        const pending = order.payments.find(
+          (item) => item.id !== payment.id && (item.status === "PENDING" || item.status === "PARTIAL"),
+        );
+
+        if (pending) {
+          await tx.payment.update({
+            where: { id: pending.id },
+            data: {
+              amount: pendingBalance,
+              status: pendingBalance > 0 ? "PENDING" : "CANCELED",
+              cashReceived: null,
+              changeDue: null,
+            },
+          });
+        }
+      }
+    });
 
     return NextResponse.json({ ok: true, deletedPaymentId: payment.id });
   } catch (error) {
