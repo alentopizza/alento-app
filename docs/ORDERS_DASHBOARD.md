@@ -261,12 +261,12 @@ Criterios:
 - en pedidos Domicilio, la zona/tarifa se muestra junto al badge de modalidad (`SIN COSTO`, `ZONA 2`, etc.) y ya no ocupa una fila dentro de Cliente;
 - bloque de cliente más compacto, con teléfono y dirección en una misma zona de metadatos;
 - productos con menor padding y separación vertical, conservando configuración estructurada;
-- tamaño, sabores, borde y opciones de combo se muestran como chips compactos;
+- tamaño, sabores, borde y opciones de combo se muestran como chips compactos; en pizzas de un solo sabor se omite `Sabor 1` cuando coincide exactamente con el nombre del producto para evitar información redundante;
 - ingredientes `Extra` usan chips ámbar/naranja para distinguirlos rápidamente;
 - totales condensados con mayor jerarquía para el total final;
 - pagos con tarjetas de estado suaves, mayor contraste y resumen recibido/saldo más claro;
 - footer fijo con menor altura;
-- pesos tipográficos moderados, mejor contraste y números tabulares para evitar apariencia borrosa;
+- pesos tipográficos moderados, mejor contraste y números tabulares para evitar apariencia borrosa; nombre, precio y chips de producto usan una escala ligeramente mayor para mejorar legibilidad sin perder compactación;
 - ajustes adicionales en viewports bajos para priorizar visibilidad operativa.
 
 Este cambio es únicamente visual. No modifica pedidos, pagos, estados, Caja, Cocina ni Prisma.
