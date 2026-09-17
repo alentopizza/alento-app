@@ -1,117 +1,66 @@
 # POS — Carrito y resumen visual
 
-Última actualización: 2026-09-17.
+Última actualización: 2026-09-16.
 
-Este documento registra el lenguaje visual actual del carrito lateral del Punto de Venta.
+Este documento registra el pulido visual del área inferior del carrito del Punto de Venta.
 
 ## Objetivo
 
-El carrito del POS reutiliza ahora el lenguaje visual del drawer de detalle de `/pedidos` para que ambos módulos se sientan parte del mismo producto.
-
-La modificación es **exclusivamente visual**. No cambia:
-
-- precios;
-- cantidades;
-- estructura de `CartItem`;
-- `OrderItem.configuration`;
-- configuradores de pizza/combo;
-- validaciones de cliente/modalidad;
-- checkout;
-- persistencia de pedidos.
-
-## Jerarquía visual
-
-El panel lateral se organiza visualmente así:
-
-1. encabezado oscuro del pedido actual;
-2. bloque blanco de modalidad y cliente;
-3. bloque blanco de productos con scroll propio;
-4. footer blanco de totales y acción principal.
-
-El fondo general del drawer es crema cálido, mientras las superficies operativas permanecen blancas.
-
-## Encabezado
-
-El resumen `Pedido actual` se presenta como un encabezado oscuro con el lenguaje visual de Alentó y un acento rojo inferior, siguiendo el mismo patrón del detalle de Pedidos.
-
-Mantiene visibles el número de productos, cliente seleccionado y modalidad actual cuando existen.
-
-## Cliente y modalidad
-
-El selector `Domicilio / Recoger / Local` mantiene exactamente la lógica existente.
-
-El bloque de cliente continúa permitiendo:
-
-- buscar;
-- crear;
-- editar;
-- cambiar cliente;
-- completar dirección de domicilio.
-
-Su presentación se integra como una tarjeta operativa blanca debajo del encabezado oscuro.
-
-## Productos
-
-La zona de productos es la única parte principal del drawer que debe hacer scroll cuando existen muchas líneas.
-
-Cada línea usa `PosCartLine` y presenta ahora con mayor jerarquía:
-
-- `cantidad × producto`;
-- total de la línea;
-- tamaño y borde;
-- sabores cuando corresponda;
-- extras;
-- componentes de combo;
-- precio unitario;
-- control de cantidad;
-- acceso a editar pizzas/combos configurables.
-
-La densidad se mantiene mayor que en el drawer de Pedidos porque un carrito puede contener muchas líneas antes de confirmar una orden.
-
-## Totales y acción principal
-
-El footer permanece visible y separado del scroll de productos.
-
-Contiene:
-
-- subtotal;
-- total de productos;
-- botón `Continuar pedido`.
-
-El total usa rojo Alentó como punto focal.
-
-La lógica completa de domicilio, descuentos, pago y confirmación sigue viviendo en el checkout; este rediseño no mueve esas responsabilidades al carrito.
+Eliminar la apariencia antigua basada en múltiples líneas divisorias, un estado vacío demasiado alto y un resumen de totales visualmente pesado.
 
 ## Estado vacío
 
-Cuando no existen productos, el espacio del carrito permanece compacto y no desplaza innecesariamente los controles principales.
+Cuando el carrito no tiene productos:
 
-El mensaje de estado vacío continúa siendo informativo y no compite visualmente con modalidad, cliente o el footer.
+- se usa una tarjeta compacta con borde sólido suave;
+- se elimina el rectángulo punteado dominante;
+- se reduce la altura del estado vacío;
+- se muestra un icono discreto de carrito;
+- el mensaje visual es `Aún no hay productos`;
+- el texto secundario indica `Agrega productos del menú para comenzar.`;
+- el estado vacío no debe competir visualmente con el selector de pedido/cliente ni con el resumen inferior.
+
+## Resumen inferior
+
+El resumen funciona como una sola superficie visual:
+
+- fondo gris cálido muy suave;
+- borde único sutil;
+- radio aproximado de 18 px;
+- sombra mínima;
+- subtotal como dato secundario;
+- una sola separación tenue antes del total;
+- el rótulo visible pasa de `Total productos` a `Total`;
+- el valor total mantiene rojo Alentó como elemento principal.
+
+## Botón Continuar pedido
+
+- mantiene rojo Alentó cuando está habilitado;
+- usa un estado deshabilitado gris cálido en lugar de gris plano;
+- conserva la lógica existente de validación;
+- no cambia reglas de tipo de pedido, cliente, dirección ni contenido del carrito.
+
+## Carrito con productos
+
+Las tarjetas de líneas del carrito:
+
+- usan borde gris suave;
+- radio más consistente con el resto del POS;
+- sombra ligera;
+- evitan bordes negros fuertes.
 
 ## Implementación
 
-Archivos relevantes:
+Archivo de estilos:
 
-- `src/components/StructuredPosPageV2.tsx`: estructura y lógica del POS.
-- `src/components/PosCartLine.tsx`: presentación semántica de cada línea.
-- `src/app/pos-cart-line.css`: estilos de las líneas del carrito.
-- `src/app/pos-cart-detail-style.css`: lenguaje visual del drawer inspirado en el detalle de Pedidos.
-- `src/app/layout.tsx`: activa las hojas de estilo.
+`src/app/pos-cart-polish.css`
 
-La hoja `pos-cart-detail-style.css` está separada deliberadamente del CSS histórico del POS para que futuros ajustes o una reversión visual no obliguen a modificar la lógica ni otros módulos.
+Se importa al final de los estilos específicos del POS desde:
 
-## Regla para cambios futuros
+`src/app/layout.tsx`
 
-No usar ajustes visuales del carrito como motivo para modificar la estructura persistida de productos o simplificar `OrderItem.configuration`.
-
-Si se cambia el diseño, conservar siempre:
-
-- edición de configuraciones;
-- cantidades;
-- información suficiente para entender cada producto;
-- scroll independiente de productos;
-- totales y acción principal accesibles.
+De esta manera tiene prioridad visual sin modificar la lógica de `StructuredPosPage.tsx`.
 
 ## Base de datos
 
-Este cambio es únicamente de interfaz. No modifica Prisma ni requiere `npx prisma db push`.
+Este cambio es únicamente de interfaz. No modifica Prisma ni requiere `prisma db push`.
