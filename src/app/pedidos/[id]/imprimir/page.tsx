@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
+import { orderCode } from "@/lib/orderCode";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 type Order = {
   id: number;
+  source: string;
   status: string;
   fulfillmentType: string;
   subtotal: number;
@@ -67,12 +69,13 @@ export default function ThermalReceiptPage() {
     if (!order) return;
     const receipt = document.querySelector(".thermal-receipt")?.outerHTML;
     if (!receipt) return;
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>ALT-${String(order.id).padStart(6, "0")}</title><style>body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1px dashed #111}.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}</style></head><body>${receipt}</body></html>`;
+    const displayCode = orderCode(order.id, order.source);
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1px dashed #111}.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}</style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `ALT-${String(order.id).padStart(6, "0")}-comprobante.html`;
+    anchor.download = `${displayCode}-comprobante.html`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -86,7 +89,7 @@ export default function ThermalReceiptPage() {
   const paidTotal = paidPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
   const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
-  const code = `ALT-${String(order.id).padStart(6, "0")}`;
+  const displayCode = orderCode(order.id, order.source);
 
   return (
     <main className="thermal-page mx-auto min-h-screen bg-white px-[5mm] py-[5mm] text-black">
@@ -109,7 +112,7 @@ export default function ThermalReceiptPage() {
         <div className="text-center">
           <p className="text-[11px]">{new Date(order.createdAt).toLocaleString("es-CO")}</p>
           <p className="mt-1 text-[30px] font-black leading-none">{String(order.id).padStart(4, "0")}</p>
-          <p className="mt-1 text-[13px] font-black">PDV · {code}</p>
+          <p className="mt-1 text-[13px] font-black">{displayCode}</p>
           <div className="mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[16px] font-black">{fulfillmentLabel(order.fulfillmentType)}</div>
         </div>
 
