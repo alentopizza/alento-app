@@ -62,9 +62,42 @@ Cada tarjeta muestra:
 - cliente y contacto resumido;
 - total;
 - resumen financiero `Pago pendiente / Pagado`;
-- acción principal del workflow.
+- botón principal `ESTADOS` para pedidos no cancelados.
 
 El contador de `líneas` no se muestra en la tarjeta porque no aporta información operativa suficiente para justificar espacio visual.
+
+### Selector `ESTADOS`
+
+La acción operativa principal ya no avanza automáticamente una etapa ni redirige a Cocina.
+
+En las tarjetas y en el drawer de detalle aparece **ESTADOS**. Al pulsarlo se abre un modal con las etapas válidas para la modalidad actual.
+
+Domicilio:
+
+`En preparación → Preparado → Listo → En camino → Ha llegado → Entregado → Finalizado`
+
+Recoger / Local:
+
+`En preparación → Preparado → Listo → Finalizado`
+
+El operador puede seleccionar directamente cualquier etapa válida. No es obligatorio recorrerlas secuencialmente.
+
+Ejemplos:
+
+- `Preparado → Finalizado` en Local o Recoger;
+- `Listo → Entregado` en Domicilio;
+- `Finalizado → En preparación` si operativamente el pedido debe reabrirse.
+
+Pedidos `CANCELED` no usan este selector porque la cancelación continúa como un flujo separado.
+
+El modal vive en `src/components/OrderStatusSelector.tsx` y la integración con la pantalla existente se mantiene aislada en `src/components/OrdersStatusController.tsx` para no modificar la lógica consolidada de pagos, edición y tarjetas.
+
+Al guardar un estado:
+
+- la API actualiza la orden;
+- la pantalla se refresca usando el control `Actualizar` ya existente;
+- seleccionar `Finalizado` no registra pagos;
+- Caja sigue dependiendo únicamente de movimientos `Payment.status = PAID`.
 
 ### Resumen financiero premium
 
@@ -182,7 +215,7 @@ La tarjeta conserva botones compactos para:
 
 El botón `Comprobante` fue retirado de Pedidos para reducir ruido visual. La impresión directa permanece como acción disponible.
 
-El componente activo es `src/components/OrdersCardsDashboardV3.tsx`.
+El componente principal sigue siendo `src/components/OrdersCardsDashboardV3.tsx`.
 
 ## Impresión
 
@@ -212,7 +245,7 @@ Al abrir una tarjeta se muestra un drawer con:
 - movimientos de pago;
 - dinero recibido;
 - saldo pendiente;
-- acciones Editar, Imprimir y la acción principal del workflow.
+- acciones Editar, Imprimir y Estados.
 
 El encabezado del bloque de productos no muestra un contador de `líneas`.
 
@@ -343,9 +376,12 @@ Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse
 
 - `src/app/pedidos/page.tsx`
 - `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/OrdersStatusController.tsx`
+- `src/components/OrderStatusSelector.tsx`
 - `src/components/OrderEditStructuredAdder.tsx`
 - `src/app/pedidos/[id]/imprimir/page.tsx`
 - `src/app/api/orders/[id]/route.ts`
+- `src/app/api/orders/[id]/status/route.ts`
 - `src/app/api/orders/[id]/payment/route.ts`
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/orders-fulfillment-badges.css`
