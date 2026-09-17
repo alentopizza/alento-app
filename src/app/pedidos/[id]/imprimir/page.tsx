@@ -20,7 +20,7 @@ type Order = {
   customer: { name: string; countryCode: string; phone: string | null } | null;
   address: { address: string } | null;
   items: { id: number; productName: string; quantity: number; unitPrice: number; lineTotal: number; configuration: unknown }[];
-  payments: { method: string; amount: number; cashReceived: number | null; changeDue: number | null; status: string }[];
+  payments: { id?: number; method: string; amount: number; cashReceived: number | null; changeDue: number | null; status: string; reference?: string | null; paidAt?: string | null }[];
 };
 
 function money(value: number) {
@@ -63,16 +63,36 @@ export default function ThermalReceiptPage() {
     return () => window.clearTimeout(timer);
   }, [order, autoPrint]);
 
+  function downloadReceipt() {
+    if (!order) return;
+    const receipt = document.querySelector(".thermal-receipt")?.outerHTML;
+    if (!receipt) return;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>ALT-${String(order.id).padStart(6, "0")}</title><style>body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1px dashed #111}.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}</style></head><body>${receipt}</body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `ALT-${String(order.id).padStart(6, "0")}-comprobante.html`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
   if (error) return <main className="p-8 text-red-700">{error}</main>;
   if (!order) return <main className="p-8 text-neutral-500">Cargando comprobante...</main>;
 
-  const payment = order.payments[0];
+  const paidPayments = order.payments.filter((payment) => payment.status === "PAID");
+  const paidTotal = paidPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
+  const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
   const code = `ALT-${String(order.id).padStart(6, "0")}`;
 
   return (
     <main className="thermal-page mx-auto min-h-screen bg-white px-[5mm] py-[5mm] text-black">
       {!embedded && <div className="no-print mb-4 flex justify-center gap-2">
         <button onClick={() => window.print()} className="rounded-xl bg-black px-5 py-2.5 text-sm font-black text-white">Imprimir</button>
+        <button onClick={downloadReceipt} className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-sm font-black text-white">Descargar comprobante</button>
         <button onClick={() => window.close()} className="rounded-xl border px-5 py-2.5 text-sm font-black">Cerrar</button>
       </div>}
 
@@ -126,13 +146,11 @@ export default function ThermalReceiptPage() {
           <div className="mt-2 flex items-end justify-between text-[20px]"><span>TOTAL</span><span>$ {money(order.total)}</span></div>
         </div>
 
-        {payment && <>
-          <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
-            <p className="text-[15px] font-black">{payment.status === "PAID" ? "PAGADO" : "PAGO PENDIENTE"} - $ {money(payment.amount)}</p>
-            <p className="mt-1 text-[11px] font-bold">{payment.method.toUpperCase()}</p>
-            {payment.cashReceived != null && <p className="mt-1 text-[11px]">PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}</p>}
-          </div>
-        </>}
+        <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
+          <p className="text-[15px] font-black">{paidInFull ? "PAGADO" : "SALDO PENDIENTE"} - $ {money(paidInFull ? paidTotal : pendingBalance)}</p>
+          {paidPayments.length > 0 ? <div className="mt-1 space-y-1">{paidPayments.map((payment, index) => <p key={payment.id ?? index} className="text-[10px] font-bold">RECIBIDO {payment.method.toUpperCase()} · $ {money(payment.amount)}{payment.reference ? ` · REF ${payment.reference}` : ""}</p>)}</div> : <p className="mt-1 text-[11px] font-bold">AÚN NO SE HA REGISTRADO EL INGRESO</p>}
+          {paidPayments.some((payment) => payment.cashReceived != null) && paidPayments.map((payment, index) => payment.cashReceived != null ? <p key={`cash-${payment.id ?? index}`} className="mt-1 text-[10px]">PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}</p> : null)}
+        </div>
 
         {order.couponName && <p className="mt-2 text-center text-[10px] font-bold">CUPÓN: {order.couponName.toUpperCase()}</p>}
 
