@@ -68,13 +68,17 @@ El contador de `líneas` no se muestra en la tarjeta porque no aporta informaci�
 
 ### Modalidad por color
 
-La modalidad debe reconocerse rápidamente sin leer toda la tarjeta:
+La modalidad debe reconocerse rápidamente sin leer toda la tarjeta.
 
-- `DOMICILIO / DELIVERY`: rojo/coral;
-- `RECOGER / PICKUP`: azul;
-- `LOCAL / STORE`: verde.
+Se usan badges sólidos y de alto contraste:
+
+- `DOMICILIO / DELIVERY`: rojo sólido con texto blanco;
+- `RECOGER / PICKUP`: azul sólido con texto blanco;
+- `LOCAL / STORE`: verde sólido con texto blanco.
 
 El mismo criterio visual se aplica en la tarjeta y en el encabezado del detalle lateral.
+
+Los overrides visuales están aislados en `src/app/orders-fulfillment-badges.css` para poder ajustar el contraste sin tocar la lógica del componente.
 
 ### Acciones secundarias
 
@@ -182,6 +186,7 @@ Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse
 - `src/app/api/orders/[id]/route.ts`
 - `src/app/api/orders/[id]/payment/route.ts`
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
+- `src/app/orders-fulfillment-badges.css`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
