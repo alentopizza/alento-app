@@ -55,7 +55,6 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
       <div className="pos-cart-line-head">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="pos-cart-line-quantity">{item.quantity} ×</span>
             <b className="pos-cart-line-title">{item.name}</b>
             {editable && <span className="pos-cart-edit-hint">Editar</span>}
           </div>
@@ -123,7 +122,6 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
       )}
 
       <div className="pos-cart-line-footer pos-cart-line-footer-compact">
-        <span className="pos-cart-unit-price">c/u {formatCOP(item.unitPrice)}</span>
         <div className="pos-cart-qty" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
