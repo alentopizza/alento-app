@@ -5,6 +5,7 @@ import "./product-config-polish.css";
 import "./product-config-shell.css";
 import "./product-card-polish.css";
 import "./pos-order-panel-polish.css";
+import "./pos-customer-card.css";
 import "./pos-cart-polish.css";
 import "./pos-order-drawer.css";
 import "./pos-order-drawer-final.css";
