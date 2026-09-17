@@ -6,7 +6,8 @@ const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DeliveryBand = { id: string; name?: string; fee: number; active?: boolean };
-type PosSettings = { deliveryBands?: DeliveryBand[] };
+type PaymentMethod = { id: string; name: string; active?: boolean };
+type PosSettings = { deliveryBands?: DeliveryBand[]; paymentMethods?: PaymentMethod[] };
 
 type ExistingLinePatch = { id: number; quantity: number };
 type Addition = { productId: number; quantity: number };
@@ -74,9 +75,13 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!current) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
 
     const body = await request.json();
+
     if (body?.action === "cancel") {
-      if (!["DRAFT", "CONFIRMED"].includes(current.status)) {
-        return NextResponse.json({ error: "Solo se pueden cancelar pedidos que aún no han iniciado preparación." }, { status: 409 });
+      if (["COMPLETED", "CANCELED"].includes(current.status)) {
+        return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
+      }
+      if (current.payments.some((payment) => payment.status === "PAID")) {
+        return NextResponse.json({ error: "El pedido tiene un pago recibido. Debe registrarse una devolución antes de cancelarlo." }, { status: 409 });
       }
       const updated = await prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({
@@ -88,8 +93,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       return NextResponse.json({ order: { ...serializeOrder(current), status: updated.status } });
     }
 
-    if (current.status !== "CONFIRMED") {
-      return NextResponse.json({ error: "Solo los pedidos confirmados y aún no iniciados en Cocina pueden editarse." }, { status: 409 });
+    if (["COMPLETED", "CANCELED", "DELIVERED"].includes(current.status)) {
+      return NextResponse.json({ error: "Este pedido ya está cerrado y no puede editarse." }, { status: 409 });
     }
 
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
@@ -100,6 +105,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if ((fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP") && !current.customerId) {
       return NextResponse.json({ error: "Este pedido necesita un cliente antes de cambiar a esa modalidad." }, { status: 400 });
     }
+
+    const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
+    const settings = parseSettings(settingsRow?.value ?? null);
 
     let addressId: number | null = null;
     let deliveryFee = 0;
@@ -114,8 +122,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       if (!address) return NextResponse.json({ error: "El cliente no tiene una dirección para domicilio." }, { status: 400 });
       addressId = address.id;
 
-      const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
-      const settings = parseSettings(settingsRow?.value ?? null);
       const requestedZoneId = String(body.deliveryZoneId ?? current.deliveryZoneId ?? "");
       const zone = settings.deliveryBands?.find((item) => item.id === requestedZoneId && item.active !== false);
       if (!zone) return NextResponse.json({ error: "Selecciona una tarifa de domicilio activa." }, { status: 400 });
@@ -142,8 +148,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     for (const addition of additions) {
       const product = addedProducts.find((item) => item.id === Number(addition.productId));
       if (!product) return NextResponse.json({ error: "Uno de los productos adicionales ya no está disponible." }, { status: 400 });
-      if (["PIZZA_SINGLE", "PIZZA_TWO_FLAVORS", "COMBO"].includes(product.type)) {
-        return NextResponse.json({ error: `Para agregar ${product.name} debes crear su configuración estructurada desde el POS.` }, { status: 400 });
+      if (["PIZZA_SINGLE", "PIZZA_TWO_FLAVORS", "COMBO", "MODIFIER", "INTERNAL"].includes(product.type)) {
+        return NextResponse.json({ error: `Para agregar ${product.name} debes configurarlo desde el POS.` }, { status: 400 });
       }
       if (product.basePrice == null) return NextResponse.json({ error: `${product.name} no tiene precio.` }, { status: 400 });
     }
@@ -180,19 +186,39 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const total = Math.max(0, subtotal + deliveryFee - discount);
 
     const payment = current.payments[0];
-    const cashReceivedInput = body.cashReceived == null ? payment?.cashReceived == null ? null : Number(payment.cashReceived) : Number(body.cashReceived);
-    const isCash = payment?.method?.trim().toLowerCase() === "efectivo";
-    if (isCash && (cashReceivedInput == null || cashReceivedInput < total)) {
-      return NextResponse.json({ error: `El nuevo total es mayor al efectivo registrado. Actualiza "Paga con" a un valor mínimo de $${total.toLocaleString("es-CO")}.` }, { status: 400 });
+    const paymentMethodId = typeof body.paymentMethodId === "string" ? body.paymentMethodId : null;
+    const requestedMethod = paymentMethodId
+      ? settings.paymentMethods?.find((method) => method.id === paymentMethodId && method.active !== false)
+      : null;
+    const paymentMethod = requestedMethod?.name ?? payment?.method ?? "Pendiente";
+    const isCash = paymentMethod.trim().toLowerCase() === "efectivo";
+    const cashReceivedInput = body.cashReceived == null
+      ? payment?.cashReceived == null ? null : Number(payment.cashReceived)
+      : Number(body.cashReceived);
+
+    if (isCash && cashReceivedInput != null && cashReceivedInput < total) {
+      return NextResponse.json({ error: `"Paga con" debe ser mínimo $${total.toLocaleString("es-CO")}.` }, { status: 400 });
     }
     const changeDue = isCash && cashReceivedInput != null ? cashReceivedInput - total : null;
+
+    const productChanges = current.items.some((item) => {
+      const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
+      return nextQuantity !== item.quantity;
+    }) || additions.some((addition) => Number(addition.quantity) > 0);
 
     await prisma.$transaction(async (tx) => {
       for (const entry of current.items) {
         const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
         if (quantity <= 0) await tx.orderItem.delete({ where: { id: entry.id } });
         else if (quantity !== entry.quantity) {
-          await tx.orderItem.update({ where: { id: entry.id }, data: { quantity, lineTotal: Number(entry.unitPrice) * quantity } });
+          await tx.orderItem.update({
+            where: { id: entry.id },
+            data: {
+              quantity,
+              lineTotal: Number(entry.unitPrice) * quantity,
+              preparedQuantity: Math.min(entry.preparedQuantity, quantity),
+            },
+          });
         }
       }
 
@@ -208,6 +234,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             productName: product.name,
             unitPrice,
             quantity,
+            preparedQuantity: 0,
             lineTotal: unitPrice * quantity,
             configuration: {
               schemaVersion: 1,
@@ -221,13 +248,28 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       await tx.order.update({
         where: { id: current.id },
-        data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total },
+        data: {
+          fulfillmentType,
+          addressId,
+          deliveryZoneId,
+          deliveryZoneName,
+          deliveryFee,
+          subtotal,
+          discount,
+          total,
+          status: productChanges && current.status !== "PREPARING" ? "PREPARING" : current.status,
+        },
       });
 
       if (payment) {
         await tx.payment.update({
           where: { id: payment.id },
-          data: { amount: total, cashReceived: isCash ? cashReceivedInput : payment.cashReceived, changeDue: isCash ? changeDue : payment.changeDue },
+          data: {
+            method: paymentMethod,
+            amount: total,
+            cashReceived: isCash ? cashReceivedInput : null,
+            changeDue: isCash ? changeDue : null,
+          },
         });
       }
     });
@@ -240,16 +282,25 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
 }
 
-export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: { id: true, status: true, payments: { select: { status: true, paidAt: true } } },
+    });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
-    if (order.status !== "CANCELED") {
-      return NextResponse.json({ error: "Por seguridad, un pedido debe estar Cancelado antes de eliminarlo definitivamente." }, { status: 409 });
+
+    const testDelete = request.nextUrl.searchParams.get("test") === "1";
+    const hasReceivedPayment = order.payments.some((payment) => payment.status === "PAID" || payment.paidAt != null);
+    if (hasReceivedPayment) {
+      return NextResponse.json({ error: "Un pedido con dinero recibido no puede eliminarse. Debe conservar trazabilidad contable." }, { status: 409 });
+    }
+    if (order.status !== "CANCELED" && !testDelete) {
+      return NextResponse.json({ error: "Cancela el pedido antes de eliminarlo, o usa eliminación de prueba." }, { status: 409 });
     }
 
     await prisma.order.delete({ where: { id } });
