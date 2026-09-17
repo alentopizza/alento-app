@@ -46,6 +46,7 @@ function isCanceledContext(trigger: HTMLElement) {
 function decorateStatusTriggers() {
   document.querySelectorAll<HTMLElement>(TRIGGER_SELECTOR).forEach((trigger) => {
     if (isCanceledContext(trigger)) return;
+    if (trigger.dataset.orderStatusTrigger === "true" && trigger.textContent?.trim() === "ESTADOS") return;
 
     trigger.dataset.orderStatusTrigger = "true";
     trigger.textContent = "ESTADOS";
