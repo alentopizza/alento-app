@@ -8,23 +8,27 @@ This change improves only the presentation of the POS order-closing flow. Busine
 
 The main POS drawer action presents `CONTINUAR PEDIDO` in uppercase with stronger weight, larger type and improved contrast. Disabled state remains visually distinct.
 
-## Checkout V2
+## Checkout final
 
-The checkout was rebuilt with dedicated, stable CSS classes rather than depending on generic Tailwind selectors. This prevents the modal from being compressed by unrelated styles and makes the layout easier to maintain.
+The checkout uses dedicated, stable CSS classes rather than depending on generic modal/Tailwind selectors. This prevents unrelated POS styles from compressing the closing flow.
 
-Desktop behavior:
+The final layout is intentionally responsive based on real available width:
 
-- modal width up to 1180 px;
-- two-column layout with operational controls on the left and order review on the right;
-- dark Alentó header with red accent line;
-- delivery, discount and payment modules use larger controls and clearer spacing;
-- summary remains sticky while the checkout body scrolls;
-- responsive fallback to one column below 980 px;
-- mobile-specific adjustments below 640 px.
+- desktop modal can grow up to 1320 px;
+- two-column mode is used only when there is enough room for both operational modules and the order summary;
+- below 1180 px the checkout automatically switches to a single column rather than shrinking buttons and text;
+- delivery tariff choices use three columns when space permits;
+- payment methods use two columns for better readability;
+- discount choices keep clear spacing and touch targets;
+- dark Alentó header with red accent line remains consistent with the rest of the POS;
+- footer actions stay visible and readable;
+- mobile mode stacks choices and product details vertically.
+
+The purpose of the higher responsive breakpoint is to prevent the failure mode where delivery, discount and payment controls were squeezed into narrow cards.
 
 ## Structured product review
 
-The checkout summary now reads the structured product configuration already stored in the cart instead of relying only on the legacy `detail` string.
+The checkout summary reads the structured product configuration already stored in the cart instead of relying only on the legacy `detail` string.
 
 Pizza lines show:
 
