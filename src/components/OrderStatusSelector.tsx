@@ -1,0 +1,106 @@
+"use client";
+
+import { useMemo } from "react";
+import {
+  fulfillmentLabel,
+  statusLabel,
+  workflowFor,
+  type FulfillmentType,
+  type OrderStatus,
+} from "@/lib/orderWorkflow";
+
+type OrderStatusSelectorProps = {
+  orderCode: string;
+  currentStatus: OrderStatus;
+  fulfillmentType: FulfillmentType;
+  busy?: boolean;
+  onClose: () => void;
+  onSelect: (status: OrderStatus) => void;
+};
+
+function statusTone(status: OrderStatus) {
+  if (status === "PREPARING") return "border-amber-200 bg-amber-50 text-amber-800";
+  if (status === "PREPARED") return "border-violet-200 bg-violet-50 text-violet-800";
+  if (status === "READY") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "OUT_FOR_DELIVERY") return "border-sky-200 bg-sky-50 text-sky-800";
+  if (status === "ARRIVED") return "border-cyan-200 bg-cyan-50 text-cyan-800";
+  if (status === "DELIVERED") return "border-teal-200 bg-teal-50 text-teal-800";
+  if (status === "COMPLETED") return "border-neutral-300 bg-neutral-100 text-neutral-900";
+  return "border-neutral-200 bg-white text-neutral-800";
+}
+
+export default function OrderStatusSelector({
+  orderCode,
+  currentStatus,
+  fulfillmentType,
+  busy = false,
+  onClose,
+  onSelect,
+}: OrderStatusSelectorProps) {
+  const statuses = useMemo(() => workflowFor(fulfillmentType), [fulfillmentType]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[3px]"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.30)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.22),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-5 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Estado del pedido</p>
+              <h3 className="mt-1 text-2xl font-black tracking-[-0.035em]">{orderCode}</h3>
+              <p className="mt-1 text-xs text-white/60">{fulfillmentLabel(fulfillmentType)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-xl text-white"
+              aria-label="Cerrar selector de estados"
+            >
+              ×
+            </button>
+          </div>
+        </header>
+
+        <div className="p-5">
+          <p className="text-sm font-semibold text-neutral-700">Selecciona el estado actual</p>
+          <p className="mt-1 text-xs leading-5 text-neutral-500">
+            Puedes seleccionar cualquier etapa válida para este tipo de pedido. Finalizar el pedido no registra pagos automáticamente.
+          </p>
+
+          <div className="mt-4 space-y-2">
+            {statuses.map((status, index) => {
+              const current = status === currentStatus;
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  disabled={busy || current}
+                  onClick={() => onSelect(status)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    current
+                      ? "border-black bg-black text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                      : `${statusTone(status)} hover:-translate-y-0.5 hover:shadow-sm`
+                  } disabled:cursor-default`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${current ? "bg-white/15 text-white" : "bg-white/80 text-neutral-500"}`}>
+                    {index + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <b className="block text-sm font-bold">{statusLabel(status)}</b>
+                    {current && <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55">Estado actual</span>}
+                  </span>
+                  {!current && <span className="text-lg opacity-45">›</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
