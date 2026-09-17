@@ -123,9 +123,16 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const fallbackMethod = pendingPayment?.method ?? current.payments[0]?.method ?? "Pendiente";
     const paymentMethod = requestedMethod?.name ?? fallbackMethod;
     const isCash = paymentMethod.trim().toLowerCase() === "efectivo";
-    const cashReceivedInput = body.cashReceived == null ? pendingPayment?.cashReceived == null ? null : Number(pendingPayment.cashReceived) : Number(body.cashReceived);
-    if (alreadyPaid === 0 && isCash && cashReceivedInput != null && cashReceivedInput < total) return NextResponse.json({ error: `"Paga con" debe ser mínimo $${total.toLocaleString("es-CO")}.` }, { status: 400 });
-    const changeDue = alreadyPaid === 0 && isCash && cashReceivedInput != null ? cashReceivedInput - total : null;
+    const cashReceivedCandidate = body.cashReceived == null
+      ? pendingPayment?.cashReceived == null ? null : Number(pendingPayment.cashReceived)
+      : Number(body.cashReceived);
+    const canPreserveCashTender = alreadyPaid === 0
+      && isCash
+      && cashReceivedCandidate != null
+      && Number.isFinite(cashReceivedCandidate)
+      && cashReceivedCandidate >= total;
+    const nextCashReceived = canPreserveCashTender ? cashReceivedCandidate : null;
+    const nextChangeDue = canPreserveCashTender ? cashReceivedCandidate - total : null;
 
     const productChanges = current.items.some((item) => { const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity; return nextQuantity !== item.quantity; }) || normalizedAdditions.length > 0;
 
@@ -151,7 +158,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       if (outstanding > 0) {
         if (pendingPayment) {
-          await tx.payment.update({ where: { id: pendingPayment.id }, data: { method: paymentMethod, amount: outstanding, cashReceived: alreadyPaid === 0 && isCash ? cashReceivedInput : null, changeDue: alreadyPaid === 0 && isCash ? changeDue : null } });
+          await tx.payment.update({ where: { id: pendingPayment.id }, data: { method: paymentMethod, amount: outstanding, cashReceived: nextCashReceived, changeDue: nextChangeDue } });
         } else {
           await tx.payment.create({ data: { orderId: current.id, method: paymentMethod, amount: outstanding, status: "PENDING" } });
         }
