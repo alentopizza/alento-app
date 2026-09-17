@@ -70,6 +70,7 @@ Ya están implementados, entre otros:
 - dashboard de Pedidos;
 - edición operativa de órdenes;
 - registro y eliminación de pagos;
+- pagos parciales y cuenta dividida entre varios medios;
 - Caja basada en dinero realmente recibido;
 - impresión térmica de 80 mm;
 - eliminación física controlada de pedidos y pagos;
@@ -183,9 +184,22 @@ Ver [`docs/ORDER_DATA_INTEGRITY.md`](docs/ORDER_DATA_INTEGRITY.md).
 
 Seleccionar un medio de pago al tomar la orden no significa que el dinero haya sido recibido.
 
-Caja contabiliza únicamente pagos registrados realmente como recibidos (`PAID`). Los pagos creados por error pueden eliminarse físicamente y dejan de formar parte de Caja.
+El POS registra una **intención o medio previsto** mediante un `Payment PENDING`. En Pedidos, cada ingreso real genera un movimiento `Payment PAID` independiente.
 
-Ver [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md).
+Una orden puede tener varios pagos reales y varios medios de pago. Ejemplo:
+
+```text
+Pedido                 $50.000
+Nequi recibido          $25.000
+Efectivo recibido       $25.000
+Saldo                        $0
+```
+
+Caja contabiliza únicamente movimientos realmente recibidos (`PAID`). Por ello una cuenta dividida se refleja como varios movimientos sin duplicar el total del pedido.
+
+Los pagos creados por error pueden eliminarse físicamente y dejan de formar parte de Caja.
+
+Ver [`docs/PAYMENTS.md`](docs/PAYMENTS.md) para la semántica completa de intención, abonos, cuenta dividida, efectivo y saldo. La documentación histórica de Caja se mantiene en [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md).
 
 ## Documentación técnica
 
@@ -202,6 +216,7 @@ Documentos principales:
 - [`docs/ORDER_DATA_INTEGRITY.md`](docs/ORDER_DATA_INTEGRITY.md): integridad estructurada para inventario/costos.
 - [`docs/ORDER_NUMBERING.md`](docs/ORDER_NUMBERING.md): consecutivo comercial global.
 - [`docs/ORDERS.md`](docs/ORDERS.md): comportamiento operativo de pedidos.
+- [`docs/PAYMENTS.md`](docs/PAYMENTS.md): intención de pago, abonos parciales y cuenta dividida.
 - [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md): pagos reales y Caja.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel y Prisma.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): continuidad del proyecto.
