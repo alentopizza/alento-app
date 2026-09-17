@@ -5,12 +5,19 @@ import OrderStatusSelector from "@/components/OrderStatusSelector";
 import { orderCode } from "@/lib/orderCode";
 import type { FulfillmentType, OrderStatus } from "@/lib/orderWorkflow";
 
+type OrderPayment = {
+  amount: number | string;
+  status: string;
+};
+
 type OrderSummary = {
   id: number;
   sequenceNumber: number | null;
   source: string;
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
+  total: number | string;
+  payments: OrderPayment[];
 };
 
 const TRIGGER_SELECTOR = [
@@ -24,6 +31,13 @@ const TRIGGER_SELECTOR = [
 
 function displayedCode(order: OrderSummary) {
   return orderCode(order.sequenceNumber ?? order.id, order.source);
+}
+
+function pendingBalance(order: OrderSummary) {
+  const paid = order.payments
+    .filter((payment) => payment.status === "PAID")
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  return Math.max(0, Number(order.total) - paid);
 }
 
 function codeFromTrigger(trigger: HTMLElement) {
@@ -141,6 +155,7 @@ export default function OrdersStatusController() {
       orderCode={displayedCode(selectedOrder)}
       currentStatus={selectedOrder.status}
       fulfillmentType={selectedOrder.fulfillmentType}
+      pendingBalance={pendingBalance(selectedOrder)}
       busy={busy}
       onClose={() => !busy && setSelectedOrder(null)}
       onSelect={(status) => void selectStatus(status)}
