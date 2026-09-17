@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import ActionConfirmModal from "@/components/ActionConfirmModal";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
@@ -33,6 +34,11 @@ type Settings = { deliveryBands: { id: string; name: string; fee: number; active
 type CatalogProduct = { id: number; name: string; type: string; basePrice: number | null };
 type CatalogResponse = { categories: { products: CatalogProduct[] }[] };
 type Filter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELED";
+type ConfirmAction =
+  | { kind: "cancel-order"; order: Order }
+  | { kind: "delete-order"; order: Order }
+  | { kind: "delete-payment"; order: Order; payment: Payment }
+  | null;
 
 const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
 const dateTime = (value: string) => new Date(value).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
@@ -128,6 +134,7 @@ export default function OrdersCardsDashboardV3() {
   const [structuredAdditions, setStructuredAdditions] = useState<StructuredEditAddition[]>([]);
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   async function load(silent = false) {
     if (!silent) setLoading(true);
@@ -205,7 +212,6 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function cancelOrder(order: Order) {
-    if (!window.confirm(`¿Cancelar ${displayOrderCode(order)}? El pedido, sus productos y pagos se conservarán para mantener trazabilidad, pero quedarán fuera de la operación activa.`)) return;
     setBusy(order.id);
     try {
       const response = await fetch(`/api/orders/${order.id}`, {
@@ -224,7 +230,6 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function removeTest(order: Order) {
-    if (!window.confirm(`¿Eliminar definitivamente ${displayOrderCode(order)}? Se borrarán también sus productos y pagos relacionados. Esta acción no se puede deshacer.`)) return;
     setBusy(order.id);
     try {
       const response = await fetch(`/api/orders/${order.id}?test=1`, { method: "DELETE" });
@@ -240,11 +245,6 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function voidPayment(order: Order, payment: Payment) {
-    const isReceived = payment.status === "PAID";
-    const message = isReceived
-      ? `¿Eliminar definitivamente el pago ${money(payment.amount)} por ${payment.method}? El ingreso desaparecerá de Caja y el saldo pendiente aumentará.`
-      : `¿Eliminar la referencia de pago prevista por ${payment.method}?`;
-    if (!window.confirm(message)) return;
     setBusy(order.id);
     try {
       const response = await fetch(`/api/orders/${order.id}/payment/${payment.id}`, { method: "DELETE" });
@@ -255,6 +255,18 @@ export default function OrdersCardsDashboardV3() {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible eliminar el pago.");
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function executeConfirmedAction() {
+    if (!confirmAction) return;
+    const action = confirmAction;
+    try {
+      if (action.kind === "cancel-order") await cancelOrder(action.order);
+      if (action.kind === "delete-order") await removeTest(action.order);
+      if (action.kind === "delete-payment") await voidPayment(action.order, action.payment);
+    } finally {
+      setConfirmAction(null);
     }
   }
 
@@ -415,9 +427,9 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
                 {order.status === "CANCELED" ? (
-                  <button onClick={() => void removeTest(order)} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:opacity-30" title="Eliminar pedido definitivamente" aria-label="Eliminar pedido definitivamente"><Icon name="trash" /></button>
+                  <button onClick={() => setConfirmAction({ kind: "delete-order", order })} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:opacity-30" title="Eliminar pedido definitivamente" aria-label="Eliminar pedido definitivamente"><Icon name="trash" /></button>
                 ) : order.status !== "COMPLETED" ? (
-                  <button onClick={() => void cancelOrder(order)} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:opacity-30" title="Cancelar pedido" aria-label="Cancelar pedido"><Icon name="cancel" /></button>
+                  <button onClick={() => setConfirmAction({ kind: "cancel-order", order })} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:opacity-30" title="Cancelar pedido" aria-label="Cancelar pedido"><Icon name="cancel" /></button>
                 ) : null}
                 <div className="ml-auto min-w-0 flex-1">{kitchenManaged ? <Link href="/cocina" className="flex h-9 items-center justify-center rounded-lg bg-black px-2 text-[10px] font-black text-white">COCINA</Link> : actionLabel ? <button disabled={busyOrder} onClick={() => void advance(order)} className="h-9 w-full rounded-lg bg-[var(--brand-red)] px-2 text-[10px] font-black text-white disabled:opacity-50">{busyOrder ? "..." : actionLabel}</button> : <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">CERRADO</span>}</div>
               </div>
@@ -433,12 +445,55 @@ export default function OrdersCardsDashboardV3() {
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
-          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => void voidPayment(selected, payment)} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
+          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
           <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
         </section>
       </div>
       <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CONFIRMED", "PREPARING", "PREPARED"].includes(selected.status) ? <Link href="/cocina" className="flex h-11 items-center justify-center rounded-xl bg-black text-sm font-black text-white">Cocina</Link> : nextLabel(selected) ? <button onClick={() => void advance(selected)} className="h-11 rounded-xl bg-[var(--brand-red)] text-sm font-black text-white">{nextLabel(selected)}</button> : <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span>}</div></footer>
     </aside></div>}
+
+    {confirmAction && <ActionConfirmModal
+      variant={confirmAction.kind === "cancel-order" ? "warning" : "danger"}
+      eyebrow={confirmAction.kind === "cancel-order" ? "Confirmar cancelación" : "Acción irreversible"}
+      title={
+        confirmAction.kind === "cancel-order"
+          ? "Cancelar pedido"
+          : confirmAction.kind === "delete-order"
+            ? "Eliminar pedido"
+            : "Eliminar pago"
+      }
+      description={
+        confirmAction.kind === "cancel-order"
+          ? `¿Deseas cancelar ${displayOrderCode(confirmAction.order)}?`
+          : confirmAction.kind === "delete-order"
+            ? `¿Deseas eliminar definitivamente ${displayOrderCode(confirmAction.order)}?`
+            : confirmAction.payment.status === "PAID"
+              ? `¿Deseas eliminar el pago de ${money(confirmAction.payment.amount)} recibido por ${confirmAction.payment.method}?`
+              : `¿Deseas eliminar la referencia de pago prevista por ${confirmAction.payment.method}?`
+      }
+      detail={
+        confirmAction.kind === "cancel-order"
+          ? "El pedido, sus productos y pagos se conservarán para mantener trazabilidad, pero quedarán fuera de la operación activa."
+          : confirmAction.kind === "delete-order"
+            ? "Se borrarán definitivamente el pedido, sus productos y pagos relacionados. Esta acción no se puede deshacer."
+            : confirmAction.payment.status === "PAID"
+              ? "El ingreso desaparecerá de Caja y el saldo pendiente del pedido aumentará."
+              : "Solo se eliminará esta referencia de pago prevista."
+      }
+      confirmLabel={
+        confirmAction.kind === "cancel-order"
+          ? "Cancelar pedido"
+          : confirmAction.kind === "delete-order"
+            ? "Eliminar definitivamente"
+            : "Eliminar pago"
+      }
+      cancelLabel={confirmAction.kind === "delete-order" ? "Conservar pedido" : "Volver"}
+      busy={busy === confirmAction.order.id}
+      onClose={() => {
+        if (busy !== confirmAction.order.id) setConfirmAction(null);
+      }}
+      onConfirm={() => void executeConfirmedAction()}
+    />}
 
     {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
 
