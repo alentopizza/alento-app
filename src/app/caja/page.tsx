@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { orderCode } from "@/lib/orderCode";
 
 type MethodSummary = { method: string; amount: number; count: number };
 type PaymentRow = {
@@ -10,7 +11,7 @@ type PaymentRow = {
   amount: number;
   reference: string | null;
   paidAt: string | null;
-  order: { id: number; fulfillmentType: string; total: number; customerName: string };
+  order: { id: number; source: string; fulfillmentType: string; total: number; customerName: string };
 };
 type Summary = { date: string; total: number; paymentCount: number; methods: MethodSummary[]; payments: PaymentRow[] };
 
@@ -112,7 +113,7 @@ export default function CashPage() {
                   {summary.payments.length === 0 ? <p className="text-sm text-neutral-400">No hay movimientos para este día.</p> : summary.payments.map((payment) => (
                     <div key={payment.id} className="grid gap-2 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><b className="text-sm">ALT-{String(payment.orderId).padStart(6, "0")}</b><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500">{payment.method}</span></div>
+                        <div className="flex flex-wrap items-center gap-2"><b className="text-sm">{orderCode(payment.orderId, payment.order.source)}</b><span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-neutral-500">{payment.method}</span></div>
                         <p className="mt-1 text-xs text-neutral-500">{payment.order.customerName}</p>
                         {payment.paidAt && <p className="mt-0.5 text-[11px] text-neutral-400">{new Date(payment.paidAt).toLocaleString("es-CO")}</p>}
                         {payment.reference && <p className="mt-0.5 text-[11px] text-neutral-400">Ref. {payment.reference}</p>}
