@@ -11,17 +11,26 @@ function parseSettings(value: unknown): PosSettings {
   return value as PosSettings;
 }
 
+function money(value: number) {
+  return Math.round(value);
+}
+
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, include: { payments: { orderBy: { id: "asc" } } } });
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { payments: { orderBy: { id: "asc" } } },
+    });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     if (order.status === "CANCELED") return NextResponse.json({ error: "No se puede registrar pago en un pedido cancelado." }, { status: 409 });
 
-    const paidAmount = order.payments.filter((payment) => payment.status === "PAID").reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const paidAmount = order.payments
+      .filter((payment) => payment.status === "PAID")
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
     const outstanding = Math.max(0, Number(order.total) - paidAmount);
     if (outstanding <= 0) return NextResponse.json({ error: "Este pedido ya está pagado completamente." }, { status: 409 });
 
@@ -32,34 +41,82 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const method = settings.paymentMethods?.find((item) => item.id === methodId && item.active !== false);
     if (!method) return NextResponse.json({ error: "Selecciona un medio de pago activo." }, { status: 400 });
 
-    const isCash = method.name.trim().toLowerCase() === "efectivo";
-    let cashReceived: number | null = null;
-
-    if (isCash) {
-      const received = Number(body.cashReceived ?? 0);
-      if (!Number.isFinite(received) || received < outstanding) {
-        return NextResponse.json({ error: `El efectivo recibido debe ser mínimo $${outstanding.toLocaleString("es-CO")}.` }, { status: 400 });
-      }
-      cashReceived = received;
+    const amount = money(Number(body.amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "Ingresa un monto de pago válido." }, { status: 400 });
+    }
+    if (amount > outstanding) {
+      return NextResponse.json({ error: `El pago no puede superar el saldo pendiente de $${outstanding.toLocaleString("es-CO")}.` }, { status: 400 });
     }
 
-    const changeDue = cashReceived == null ? null : cashReceived - outstanding;
-    const reference = typeof body.reference === "string" && body.reference.trim() ? body.reference.trim() : null;
-    const pending = order.payments.find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL");
+    const isCash = method.name.trim().toLowerCase() === "efectivo";
+    let cashReceived: number | null = null;
+    let changeDue: number | null = null;
 
-    const updated = pending
-      ? await prisma.payment.update({ where: { id: pending.id }, data: { method: method.name, amount: outstanding, cashReceived, changeDue, reference, status: "PAID", paidAt: new Date() } })
-      : await prisma.payment.create({ data: { orderId: order.id, method: method.name, amount: outstanding, cashReceived, changeDue, reference, status: "PAID", paidAt: new Date() } });
+    if (isCash) {
+      const received = money(Number(body.cashReceived));
+      if (!Number.isFinite(received) || received < amount) {
+        return NextResponse.json({ error: `El efectivo recibido debe ser mínimo $${amount.toLocaleString("es-CO")}.` }, { status: 400 });
+      }
+      cashReceived = received;
+      changeDue = received - amount;
+    }
+
+    const reference = typeof body.reference === "string" && body.reference.trim() ? body.reference.trim() : null;
+    const remaining = Math.max(0, outstanding - amount);
+    const pending = order.payments.find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL") ?? null;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          orderId: order.id,
+          method: method.name,
+          amount,
+          cashReceived,
+          changeDue,
+          reference,
+          status: "PAID",
+          paidAt: new Date(),
+        },
+      });
+
+      if (pending) {
+        if (remaining > 0) {
+          await tx.payment.update({
+            where: { id: pending.id },
+            data: {
+              amount: remaining,
+              status: "PENDING",
+              cashReceived: null,
+              changeDue: null,
+            },
+          });
+        } else {
+          await tx.payment.update({
+            where: { id: pending.id },
+            data: {
+              amount: 0,
+              status: "CANCELED",
+              cashReceived: null,
+              changeDue: null,
+            },
+          });
+        }
+      }
+
+      return payment;
+    });
 
     return NextResponse.json({
       payment: {
-        ...updated,
-        amount: Number(updated.amount),
-        cashReceived: updated.cashReceived == null ? null : Number(updated.cashReceived),
-        changeDue: updated.changeDue == null ? null : Number(updated.changeDue),
+        ...result,
+        amount: Number(result.amount),
+        cashReceived: result.cashReceived == null ? null : Number(result.cashReceived),
+        changeDue: result.changeDue == null ? null : Number(result.changeDue),
       },
-      paidTotal: paidAmount + outstanding,
-      balance: 0,
+      paidTotal: paidAmount + amount,
+      balance: remaining,
+      partial: remaining > 0,
     });
   } catch (error) {
     console.error("Order payment registration error", error);
