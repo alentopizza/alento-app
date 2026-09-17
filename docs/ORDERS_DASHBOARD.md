@@ -80,13 +80,13 @@ Recoger / Local:
 
 `En preparación → Preparado → Listo → Finalizado`
 
-El operador puede seleccionar directamente cualquier etapa válida. No es obligatorio recorrerlas secuencialmente.
+El operador puede seleccionar directamente cualquier etapa posterior. No es obligatorio recorrerlas secuencialmente, pero no se permite retroceder.
 
 Ejemplos:
 
 - `Preparado → Finalizado` en Local o Recoger;
 - `Listo → Entregado` en Domicilio;
-- `Finalizado → En preparación` si operativamente el pedido debe reabrirse.
+Los estados anteriores permanecen visibles como referencia, pero aparecen deshabilitados y marcados como `Etapa superada`.
 
 Pedidos `CANCELED` no usan este selector porque la cancelación continúa como un flujo separado.
 
