@@ -20,6 +20,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         id: true,
         status: true,
         fulfillmentType: true,
+        total: true,
+        payments: {
+          where: { status: "PAID" },
+          select: { amount: true },
+        },
         items: { select: { id: true, quantity: true, preparedQuantity: true } },
       },
     });
@@ -63,6 +68,18 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         { error: "No se puede devolver el pedido a una etapa anterior. Selecciona el estado actual o una etapa posterior." },
         { status: 409 },
       );
+    }
+
+    if (requested === "COMPLETED") {
+      const paidAmount = order.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const pending = Math.max(0, Number(order.total) - paidAmount);
+
+      if (pending > 0) {
+        return NextResponse.json(
+          { error: `El pedido tiene un saldo pendiente de $${pending.toLocaleString("es-CO")}. Registra el pago completo antes de finalizar.` },
+          { status: 409 },
+        );
+      }
     }
 
     const preparedIndex = flow.indexOf("PREPARED");
