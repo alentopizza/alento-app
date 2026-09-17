@@ -76,9 +76,17 @@ Se usan badges sólidos y de alto contraste:
 - `RECOGER / PICKUP`: azul sólido con texto blanco;
 - `LOCAL / STORE`: verde sólido con texto blanco.
 
-El mismo criterio visual se aplica en la tarjeta y en el encabezado del detalle lateral.
+Además, el encabezado donde aparece el estado (`EN PREPARACIÓN`, `LISTO`, etc.) repite la modalidad mediante un borde superior de 4 px con el mismo color:
 
-Los overrides visuales están aislados en `src/app/orders-fulfillment-badges.css` para poder ajustar el contraste sin tocar la lógica del componente.
+- Domicilio → rojo;
+- Recoger → azul;
+- Local → verde.
+
+Así la modalidad puede reconocerse incluso antes de leer el badge.
+
+El mismo criterio visual se aplica en la tarjeta y el badge del encabezado del detalle lateral.
+
+Los overrides visuales están aislados en `src/app/orders-fulfillment-badges.css` para poder ajustar contraste y acentos sin tocar la lógica del componente.
 
 ### Acciones secundarias
 
