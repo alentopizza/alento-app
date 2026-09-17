@@ -117,12 +117,11 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
         </div>
       )}
 
-      {configuration.kind === "STANDARD" && (
-        <p className="pos-cart-standard-detail">{item.detail === "Producto" ? "Producto estándar" : item.detail}</p>
+      {configuration.kind === "STANDARD" && item.detail !== "Producto" && (
+        <p className="pos-cart-standard-detail">{item.detail}</p>
       )}
 
-      <div className="pos-cart-line-footer">
-        <span>c/u {formatCOP(item.unitPrice)}</span>
+      <div className="pos-cart-line-footer pos-cart-line-footer-compact">
         <div className="pos-cart-qty" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
