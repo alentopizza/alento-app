@@ -163,7 +163,7 @@
 
 .order-detail-drawer .order-detail-product {
   position: relative;
-  padding: 9px 10px !important;
+  padding: 10px 11px !important;
   border-color: #e7e1da !important;
   border-radius: 12px !important;
   background:
@@ -184,15 +184,15 @@
 }
 
 .order-detail-drawer .order-detail-product-name {
-  font-size: 12.8px !important;
-  line-height: 16px !important;
+  font-size: 14px !important;
+  line-height: 18px !important;
   font-weight: 690 !important;
   color: #1b1918 !important;
 }
 
 .order-detail-drawer .order-detail-product-price {
-  font-size: 12.5px !important;
-  line-height: 16px !important;
+  font-size: 13.5px !important;
+  line-height: 18px !important;
   font-weight: 700 !important;
   color: #181716 !important;
   font-variant-numeric: tabular-nums lining-nums;
@@ -206,14 +206,14 @@
 .order-detail-drawer .order-detail-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 3px 7px;
+  min-height: 25px;
+  padding: 4px 8px;
   border: 1px solid #e5e7eb;
   border-radius: 999px;
   background: #f8fafc;
   color: #52525b;
-  font-size: 10px;
-  line-height: 13px;
+  font-size: 11px;
+  line-height: 14px;
   font-weight: 520;
   white-space: nowrap;
 }
@@ -407,9 +407,9 @@
   }
 
   .order-detail-drawer .order-detail-chip {
-    min-height: 20px;
-    padding-block: 2px;
-    font-size: 9.5px;
+    min-height: 23px;
+    padding-block: 3px;
+    font-size: 10.5px;
   }
 }
 
