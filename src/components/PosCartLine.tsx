@@ -67,13 +67,11 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
           <div className="pos-cart-spec-grid">
             <Spec label="Tamaño" value={configuration.size.name} />
             <Spec label="Borde" value={configuration.crust.name} />
-            {configuration.flavors.length > 1 ? (
+            {configuration.flavors.length > 1 && (
               <>
                 <Spec label="Sabor 1" value={configuration.flavors[0]?.name ?? "—"} />
                 <Spec label="Sabor 2" value={configuration.flavors[1]?.name ?? "—"} />
               </>
-            ) : (
-              <Spec label="Sabor" value={configuration.flavors[0]?.name ?? item.name} />
             )}
           </div>
 
