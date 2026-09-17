@@ -1,0 +1,300 @@
+/*
+ * Cierre de pedido del POS.
+ * Hace el modal más amplio, legible y operativo sin cambiar su lógica.
+ */
+
+/* CTA principal del drawer. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > button:last-child {
+  min-height: 50px !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.055em !important;
+  text-transform: uppercase !important;
+  color: #fff !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,.08);
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > button:last-child:disabled {
+  color: #aaa39c !important;
+  text-shadow: none !important;
+}
+
+/* ================================================================
+   Modal de cierre: solo max-w-4xl para no afectar Nuevo cliente ni éxito.
+   ================================================================ */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl {
+  width: min(1080px, calc(100vw - 36px)) !important;
+  max-width: 1080px !important;
+  max-height: min(94vh, 860px) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 26px !important;
+  background: #f6f4f1 !important;
+  box-shadow: 0 34px 90px rgba(0,0,0,.30) !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Header más alto y con jerarquía clara. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:first-child {
+  min-height: 92px !important;
+  padding: 18px 24px !important;
+  border-bottom: 3px solid var(--brand-red) !important;
+  background:
+    radial-gradient(circle at 88% 35%, rgba(229,28,17,.22), transparent 28%),
+    linear-gradient(135deg, #0b0b0c 0%, #181719 100%) !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:first-child p {
+  color: rgba(255,255,255,.60) !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:first-child p:first-child {
+  font-size: 9px !important;
+  font-weight: 750 !important;
+  letter-spacing: .15em !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:first-child h2 {
+  margin-top: 4px !important;
+  color: #fff !important;
+  font-size: 1.65rem !important;
+  line-height: 1.8rem !important;
+  font-weight: 720 !important;
+  letter-spacing: -.028em !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:first-child > button {
+  min-height: 38px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #fff !important;
+  padding: 0 13px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+/* Cuerpo general. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll {
+  padding: 20px 22px !important;
+  background: #f6f4f1 !important;
+}
+
+/* Dos columnas más cómodas. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr) !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+/* Módulos de domicilio, descuento, pago y resumen. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section,
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child {
+  border: 1px solid #dcd6cf !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  box-shadow: 0 7px 20px rgba(31,27,24,.045) !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section {
+  padding: 17px !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section h3,
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child h3 {
+  color: #1d1a18 !important;
+  font-size: 1.05rem !important;
+  line-height: 1.25rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -.015em !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section p.text-\[9px\],
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl .text-\[9px\] {
+  font-size: 9px !important;
+  line-height: 12px !important;
+  font-weight: 750 !important;
+  letter-spacing: .11em !important;
+  color: #9a928a !important;
+}
+
+/* Opciones de domicilio/descuento/pago: más fáciles de leer y tocar. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section button {
+  min-height: 50px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+  font-weight: 620 !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section button b {
+  font-size: 12px !important;
+  line-height: 15px !important;
+  font-weight: 700 !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl section button span {
+  font-size: 10px !important;
+  line-height: 13px !important;
+}
+
+/* Separación vertical entre los tres módulos de la izquierda. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:first-child {
+  gap: 14px !important;
+}
+
+/* Resumen más amplio y visual. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child {
+  padding: 18px !important;
+  position: sticky;
+  top: 0;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child > div {
+  font-size: 11px;
+}
+
+/* Líneas del pedido dentro del resumen. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child .rounded-xl {
+  border-color: #e4dfd9 !important;
+  border-radius: 12px !important;
+  background: #faf9f7 !important;
+  padding: 11px !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child .rounded-xl b {
+  font-size: 12px !important;
+  line-height: 15px !important;
+}
+
+/* Total protagonista. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child .text-2xl,
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > .alento-scroll
+  > div.grid
+  > div:last-child .text-xl {
+  font-size: 1.75rem !important;
+  line-height: 1.9rem !important;
+  font-weight: 750 !important;
+  letter-spacing: -.035em !important;
+}
+
+/* Footer de cierre. */
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:last-child {
+  min-height: 74px !important;
+  padding: 12px 22px !important;
+  border-top: 1px solid #dfdad4 !important;
+  background: #fff !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:last-child button {
+  min-height: 46px !important;
+  border-radius: 11px !important;
+  padding: 0 20px !important;
+  font-size: 12px !important;
+  font-weight: 680 !important;
+}
+
+.fixed.inset-0.z-\[70\]
+  > .alento-card.max-w-4xl
+  > div:last-child button:last-child {
+  min-width: 150px !important;
+  letter-spacing: .025em;
+}
+
+/* Responsive: una sola columna en tablets estrechas. */
+@media (max-width: 900px) {
+  .fixed.inset-0.z-\[70\]
+    > .alento-card.max-w-4xl {
+    width: min(720px, calc(100vw - 24px)) !important;
+    max-height: 95vh !important;
+  }
+
+  .fixed.inset-0.z-\[70\]
+    > .alento-card.max-w-4xl
+    > .alento-scroll
+    > div.grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fixed.inset-0.z-\[70\]
+    > .alento-card.max-w-4xl
+    > .alento-scroll
+    > div.grid
+    > div:last-child {
+    position: static !important;
+  }
+}
