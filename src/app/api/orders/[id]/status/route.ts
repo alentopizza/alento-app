@@ -17,7 +17,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const order = await prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, fulfillmentType: true },
+      select: {
+        id: true,
+        status: true,
+        fulfillmentType: true,
+        items: { select: { id: true, quantity: true, preparedQuantity: true } },
+      },
     });
 
     if (!order) {
@@ -37,6 +42,16 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const fulfillmentType = order.fulfillmentType as FulfillmentType;
     const current = order.status as OrderStatus;
     const expected = nextStatus(current, fulfillmentType);
+
+    if (current === "PREPARING" && requested === "PREPARED") {
+      const allPrepared = order.items.length > 0 && order.items.every((item) => item.preparedQuantity >= item.quantity);
+      if (!allPrepared) {
+        return NextResponse.json(
+          { error: "Todos los productos deben estar preparados antes de pasar el pedido a PREPARADO." },
+          { status: 409 },
+        );
+      }
+    }
 
     if (!requested || !canTransition(current, requested, fulfillmentType)) {
       return NextResponse.json(
