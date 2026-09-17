@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  canTransition,
-  nextStatus,
+  workflowFor,
   type FulfillmentType,
   type OrderStatus,
 } from "@/lib/orderWorkflow";
@@ -30,49 +29,62 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     if (order.status === "CANCELED") {
-      return NextResponse.json({ error: "Un pedido cancelado no puede avanzar de estado." }, { status: 409 });
-    }
-
-    if (order.status === "COMPLETED") {
-      return NextResponse.json({ error: "El pedido ya está finalizado." }, { status: 409 });
+      return NextResponse.json({ error: "Un pedido cancelado no puede cambiar de estado operativo." }, { status: 409 });
     }
 
     const body = await request.json().catch(() => ({}));
     const requested = String(body?.status ?? "").toUpperCase() as OrderStatus;
     const fulfillmentType = order.fulfillmentType as FulfillmentType;
     const current = order.status as OrderStatus;
-    const expected = nextStatus(current, fulfillmentType);
+    const flow = workflowFor(fulfillmentType);
 
-    if (current === "PREPARING" && requested === "PREPARED") {
-      const allPrepared = order.items.length > 0 && order.items.every((item) => item.preparedQuantity >= item.quantity);
-      if (!allPrepared) {
-        return NextResponse.json(
-          { error: "Todos los productos deben estar preparados antes de pasar el pedido a PREPARADO." },
-          { status: 409 },
-        );
-      }
-    }
-
-    if (!requested || !canTransition(current, requested, fulfillmentType)) {
+    if (!requested || !flow.includes(requested)) {
       return NextResponse.json(
-        {
-          error: expected
-            ? `La siguiente etapa válida es ${expected}.`
-            : "Este pedido no tiene una transición disponible.",
-        },
+        { error: "El estado seleccionado no pertenece al flujo de este tipo de pedido." },
         { status: 409 },
       );
     }
 
-    const updated = await prisma.order.update({
-      where: { id },
-      data: { status: requested },
-      select: {
-        id: true,
-        status: true,
-        fulfillmentType: true,
-        updatedAt: true,
-      },
+    if (requested === current) {
+      return NextResponse.json({
+        order: {
+          id: order.id,
+          status: current,
+          fulfillmentType: order.fulfillmentType,
+        },
+      });
+    }
+
+    const preparedIndex = flow.indexOf("PREPARED");
+    const requestedIndex = flow.indexOf(requested);
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (requested === "PREPARING") {
+        await tx.orderItem.updateMany({
+          where: { orderId: order.id },
+          data: { preparedQuantity: 0 },
+        });
+      } else if (preparedIndex >= 0 && requestedIndex >= preparedIndex) {
+        for (const item of order.items) {
+          if (item.preparedQuantity !== item.quantity) {
+            await tx.orderItem.update({
+              where: { id: item.id },
+              data: { preparedQuantity: item.quantity },
+            });
+          }
+        }
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: { status: requested },
+        select: {
+          id: true,
+          status: true,
+          fulfillmentType: true,
+          updatedAt: true,
+        },
+      });
     });
 
     return NextResponse.json({ order: updated });
