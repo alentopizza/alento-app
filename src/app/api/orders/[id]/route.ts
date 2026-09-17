@@ -168,13 +168,21 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const order = await prisma.order.findUnique({ where: { id }, select: { id: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
 
-    // OrderItem y Payment tienen onDelete: Cascade. El borrado es definitivo y
-    // no deja líneas ni pagos huérfanos. Cancelar es una operación distinta.
-    await prisma.order.delete({ where: { id } });
+    const deleted = await prisma.$transaction(async (tx) => {
+      const payments = await tx.payment.deleteMany({ where: { orderId: id } });
+      const items = await tx.orderItem.deleteMany({ where: { orderId: id } });
+      await tx.order.delete({ where: { id } });
+      return { payments: payments.count, items: items.count };
+    });
 
-    return NextResponse.json({ ok: true, deletedOrderId: id });
+    return NextResponse.json({
+      ok: true,
+      deletedOrderId: id,
+      deletedPayments: deleted.payments,
+      deletedItems: deleted.items,
+    });
   } catch (error) {
     console.error("Order delete error", error);
-    return NextResponse.json({ error: "No fue posible eliminar el pedido." }, { status: 500 });
+    return NextResponse.json({ error: "No fue posible eliminar el pedido definitivamente." }, { status: 500 });
   }
 }
