@@ -29,9 +29,9 @@ Filtros rápidos:
 
 La información se refresca automáticamente cada 15 segundos.
 
-## Tarjeta compacta
+## Tarjeta moderna
 
-Cada tarjeta muestra únicamente:
+Cada tarjeta usa una franja superior con el color del estado actual y una estructura visual más densa:
 
 - estado actual;
 - modalidad: Domicilio, Recoger o Local;
@@ -40,7 +40,7 @@ Cada tarjeta muestra únicamente:
 - cantidad de líneas y unidades;
 - cliente y contacto resumido;
 - total;
-- estado real del pago;
+- saldo o pago recibido;
 - acción principal del workflow.
 
 Las acciones secundarias son botones compactos:
@@ -48,8 +48,10 @@ Las acciones secundarias son botones compactos:
 - ver detalle;
 - editar;
 - imprimir 80 mm;
-- abrir el comprobante para descargarlo;
+- abrir comprobante;
 - eliminar pedido de prueba cuando todavía no existe dinero recibido.
+
+El componente activo es `src/components/OrdersCardsDashboardV3.tsx`.
 
 ## Impresión
 
@@ -59,18 +61,14 @@ El botón de impresora no abre primero el comprobante. La interfaz crea un ifram
 
 y la pantalla térmica ejecuta `window.print()` al cargar.
 
-La intención es disparar directamente el diálogo de impresión de la impresora térmica.
+## Comprobante
 
-## Comprobante descargable
+El botón de comprobante abre la vista térmica normal. Esa vista incluye un botón para descargar una copia HTML autocontenida.
 
-El botón de comprobante abre la vista térmica normal. Esa vista incluye un botón `Descargar comprobante` que genera una copia HTML autocontenida del documento.
-
-Esto mantiene separadas dos acciones:
+Se mantienen separadas dos acciones:
 
 - `Imprimir`: dispara la impresión directamente;
-- `Comprobante`: permite revisar y descargar una copia del documento.
-
-Si más adelante se necesita PDF fiscal o PDF generado por servidor, debe implementarse como un flujo separado; el comprobante actual sigue siendo operativo y no equivale a factura electrónica DIAN.
+- `Comprobante`: permite revisar y descargar una copia.
 
 ## Detalle lateral
 
@@ -87,8 +85,36 @@ Al abrir una tarjeta se muestra un drawer con:
 - domicilio;
 - descuentos;
 - total;
-- dinero recibido y saldo pendiente;
-- acciones Editar, Imprimir, Comprobante y Registrar pago/Ver en Caja.
+- movimientos de pago;
+- dinero recibido;
+- saldo pendiente;
+- acciones Editar, Imprimir, Comprobante y Registrar pago.
+
+## Movimientos de pago
+
+El detalle del pedido muestra cada `Payment` de la orden.
+
+Estados visibles:
+
+- `PENDING`: pago anunciado pero todavía no recibido;
+- `PAID`: dinero realmente recibido y contabilizado en Caja;
+- `CANCELED`: pago anulado por error de registro;
+- `REFUNDED`: pago devuelto, cuando se implemente el flujo de devoluciones.
+
+Un pago `PAID` puede anularse desde el detalle con:
+
+`DELETE /api/orders/[id]/payment/[paymentId]`
+
+La aplicación no borra físicamente el registro contable. Lo cambia a `CANCELED`, limpia `paidAt`, efectivo/vueltas y deja una nota de anulación en `reference`.
+
+Efectos de anular un pago:
+
+- deja de contar inmediatamente en `/caja` porque Caja solo consulta `status = PAID`;
+- vuelve a aparecer saldo pendiente en el pedido;
+- puede registrarse nuevamente el pago correcto;
+- se conserva historial para auditoría y soporte.
+
+Los pagos `REFUNDED` no pueden anularse por esta vía.
 
 ## Edición operativa
 
@@ -100,7 +126,7 @@ Desde Pedidos se puede:
 - quitar una línea llevando su cantidad a cero;
 - agregar productos simples como bebidas o antojos.
 
-Pizzas y combos nuevos no se agregan desde este editor simple porque requieren configuración estructurada de tamaño, sabor, borde, extras y reglas de combo. Para esos casos se debe reutilizar el configurador del POS en una iteración posterior.
+Pizzas y combos nuevos no se agregan desde este editor simple porque requieren configuración estructurada de tamaño, sabor, borde, extras y reglas de combo.
 
 Cuando una edición agrega o modifica productos y el pedido ya había avanzado, el servidor lo devuelve a `PREPARING` para que Cocina no omita el cambio.
 
@@ -116,15 +142,14 @@ Si ya existe dinero recibido:
 
 Si existe cualquier `Payment` con `status = PAID` o `paidAt`, el servidor bloquea la eliminación para conservar trazabilidad contable.
 
-La eliminación de prueba borra Order, OrderItem y Payment por las relaciones cascade existentes.
-
 ## Archivos principales
 
 - `src/app/pedidos/page.tsx`
-- `src/components/OrdersCardsDashboardV2.tsx`
+- `src/components/OrdersCardsDashboardV3.tsx`
 - `src/app/pedidos/[id]/imprimir/page.tsx`
 - `src/app/api/orders/[id]/route.ts`
 - `src/app/api/orders/[id]/payment/route.ts`
+- `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/caja/page.tsx`
 - `src/app/api/caja/summary/route.ts`
 - `src/lib/orderWorkflow.ts`
@@ -132,12 +157,6 @@ La eliminación de prueba borra Order, OrderItem y Payment por las relaciones ca
 
 ## Base de datos
 
-La iteración de pagos agrega `Payment.paidAt DateTime?` para registrar cuándo entra realmente el dinero.
+La funcionalidad de anulación de pagos reutiliza el enum `PaymentStatus.CANCELED` y no agrega columnas nuevas.
 
-Por tanto esta versión sí requiere ejecutar:
-
-```bash
-npx prisma db push
-```
-
-Después del push, `prisma generate` debe quedar actualizado para que la aplicación reconozca `paidAt`.
+Si `Payment.paidAt` ya fue sincronizado anteriormente, esta iteración no requiere un nuevo `prisma db push`.
