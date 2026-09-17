@@ -3,6 +3,7 @@
  * - Recupera el botón + Nuevo cliente junto a Buscar.
  * - En escritorio fija el pedido al borde derecho como un menú lateral real.
  * - Amplía el drawer de forma responsive para mejorar lectura de cliente y carrito.
+ * - Mejora la legibilidad del cliente seleccionado.
  * - Mantiene comportamiento normal por debajo de XL.
  */
 
@@ -121,6 +122,86 @@ main:has(> div > section.grid > div:first-child > header.alento-dark)
   > div:nth-child(2)
   > div.flex {
   padding-right: 46px !important;
+}
+
+/* Cliente seleccionado: aprovechar el ancho nuevo del drawer y priorizar lectura. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.rounded-2xl {
+  padding: 13px 14px !important;
+  border-radius: 12px !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.rounded-2xl
+  > div
+  > div:first-child {
+  min-width: 0;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.rounded-2xl
+  > div
+  > div:first-child
+  > b {
+  color: #171513 !important;
+  font-size: 15px !important;
+  line-height: 19px !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.015em !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.rounded-2xl
+  > div
+  > div:first-child
+  > span {
+  display: block !important;
+  margin-top: 3px !important;
+  color: #6f6861 !important;
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 480 !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.rounded-2xl
+  button {
+  min-height: 36px !important;
+  border-radius: 9px !important;
+  padding: 0 12px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 620 !important;
 }
 
 /*
