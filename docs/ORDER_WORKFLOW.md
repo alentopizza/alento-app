@@ -72,7 +72,7 @@ Al pasar a `READY`, la orden deja de aparecer en Cocina.
 La pantalla también:
 
 - ordena las comandas desde la más antigua;
-- muestra número ALT, modalidad, cliente y minutos transcurridos;
+- muestra número comercial, modalidad, cliente y minutos transcurridos;
 - muestra la configuración estructurada de cada producto;
 - muestra progreso total de preparación en unidades y porcentaje;
 - resalta pedidos que llevan más tiempo;
@@ -80,28 +80,49 @@ La pantalla también:
 
 ## Pedidos
 
-La pestaña **Pedidos** usa una sola tarjeta por orden. Ya no existe un bloque superior duplicado ni una barra visual con todos los estados.
+La pestaña **Pedidos** usa una sola tarjeta por orden y muestra siempre el estado actual.
 
-Cada tarjeta muestra únicamente:
+La acción operativa principal de cada tarjeta se llama **ESTADOS**. Al pulsarla se abre un selector con las etapas válidas según la modalidad del pedido.
 
-- número de pedido;
-- modalidad;
-- cliente y dirección cuando corresponde;
-- productos estructurados;
-- pago y totales;
-- **Estado actual**;
-- una sola acción operativa válida.
+### Selector directo de estados
 
-Comportamiento:
+El selector no obliga a recorrer las etapas una por una. Permite declarar directamente el estado operativo real de la orden.
 
-- `PREPARING`, `PREPARED` y pedidos antiguos `CONFIRMED` muestran **Gestionar en Cocina**;
-- a partir de `READY`, Pedidos muestra únicamente el botón para avanzar a la siguiente etapa válida;
-- Domicilio continúa `LISTO → EN CAMINO → HA LLEGADO → ENTREGADO → FINALIZADO`;
-- Recoger / Local continúan `LISTO → FINALIZADO`;
-- pedidos `COMPLETED` o `CANCELED` no muestran acción de avance;
-- la pantalla se refresca automáticamente cada 15 segundos.
+Ejemplos válidos:
 
-Esta simplificación evita mostrar el mismo pedido dos veces y mantiene Cocina como única responsable de la producción.
+- Local / Recoger: `PREPARADO → FINALIZADO`;
+- Domicilio: `LISTO → ENTREGADO`;
+- cualquier modalidad: volver a `EN PREPARACIÓN` si el pedido debe regresar a Cocina.
+
+El estado actual aparece resaltado y no genera una escritura si se vuelve a seleccionar.
+
+`CANCELED` no aparece en este selector. La cancelación sigue siendo un flujo separado porque conserva un significado comercial distinto a las etapas operativas.
+
+### Coherencia con Cocina
+
+Cuando el estado se cambia manualmente desde Pedidos:
+
+- si se selecciona `PREPARING`, todos los `preparedQuantity` se reinician a `0`, de modo que Cocina vuelve a mostrar trabajo pendiente real;
+- si se selecciona `PREPARED`, `READY` o cualquier etapa posterior, cada `OrderItem.preparedQuantity` se sincroniza con su `quantity`, porque el operador está declarando que la preparación ya fue superada;
+- si se selecciona el mismo estado actual, no se altera el progreso de preparación.
+
+Esto evita que el pedido quede en una etapa posterior con productos internamente pendientes.
+
+### Estados por modalidad
+
+Domicilio muestra:
+
+`En preparación → Preparado → Listo → En camino → Ha llegado → Entregado → Finalizado`
+
+Recoger y Local muestran:
+
+`En preparación → Preparado → Listo → Finalizado`
+
+### Estado y pagos son independientes
+
+Cambiar un pedido a `COMPLETED` (**FINALIZADO**) no registra dinero ni modifica Caja.
+
+Los pagos reales continúan dependiendo exclusivamente de los movimientos `Payment.status = PAID`. Por tanto, es posible finalizar operativamente una orden que todavía tenga saldo pendiente; el resumen financiero seguirá mostrando ese saldo hasta que se registre el ingreso correspondiente.
 
 ## API de preparación por producto
 
@@ -125,11 +146,26 @@ Endpoint:
 
 `PATCH /api/orders/:id/status`
 
-La transición `PREPARING → PREPARED` está protegida: no se permite si existen productos pendientes. Normalmente esta transición ocurre automáticamente mediante el progreso de Cocina.
+Body:
 
-La transición `PREPARED → READY` sí la ejecuta Cocina mediante **MARCAR COMO LISTO**.
+```json
+{
+  "status": "READY"
+}
+```
 
-Después de `READY`, la API valida siempre la siguiente etapa permitida según la modalidad del pedido.
+La API acepta cualquier estado que pertenezca al flujo de la modalidad del pedido, sin exigir que sea la siguiente etapa secuencial.
+
+Validaciones principales:
+
+- un pedido `CANCELED` no puede cambiarse mediante este endpoint operativo;
+- Domicilio solo acepta estados de `DELIVERY_FLOW`;
+- Recoger / Local solo aceptan estados de `STORE_FLOW`;
+- volver a `PREPARING` reinicia el progreso de preparación;
+- seleccionar `PREPARED` o una etapa posterior sincroniza la preparación de todas las líneas como completa;
+- el endpoint no registra ni modifica pagos.
+
+Cocina sigue utilizando este mismo endpoint para `PREPARED → READY`, pero su interfaz mantiene el flujo guiado de producción.
 
 ## Base de datos
 
@@ -163,8 +199,11 @@ En la instalación actual se sincronizó el esquema con `npx prisma db push`; po
 - `src/app/api/orders/[id]/items/[itemId]/prepared/route.ts`
 - `src/app/cocina/page.tsx`
 - `src/app/pedidos/page.tsx`
+- `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/OrdersStatusController.tsx`
+- `src/components/OrderStatusSelector.tsx`
 - `src/components/AppShell.tsx`
 
 ## Despliegue
 
-Si la base ya fue sincronizada con `npx prisma db push`, los cambios posteriores de interfaz no requieren ejecutar Prisma nuevamente.
+Este cambio no modifica Prisma. Si la base ya fue sincronizada, no requiere ejecutar `npx prisma db push` nuevamente.
