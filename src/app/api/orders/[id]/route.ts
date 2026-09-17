@@ -159,19 +159,20 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true, payments: { select: { status: true, paidAt: true } } } });
+
+    const order = await prisma.order.findUnique({ where: { id }, select: { id: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
-    const testDelete = request.nextUrl.searchParams.get("test") === "1";
-    const hasReceivedPayment = order.payments.some((payment) => payment.status === "PAID" || payment.paidAt != null);
-    if (hasReceivedPayment) return NextResponse.json({ error: "Un pedido con dinero recibido no puede eliminarse. Debe conservar trazabilidad contable." }, { status: 409 });
-    if (order.status !== "CANCELED" && !testDelete) return NextResponse.json({ error: "Cancela el pedido antes de eliminarlo, o usa eliminación de prueba." }, { status: 409 });
+
+    // OrderItem y Payment tienen onDelete: Cascade. El borrado es definitivo y
+    // no deja líneas ni pagos huérfanos. Cancelar es una operación distinta.
     await prisma.order.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+
+    return NextResponse.json({ ok: true, deletedOrderId: id });
   } catch (error) {
     console.error("Order delete error", error);
     return NextResponse.json({ error: "No fue posible eliminar el pedido." }, { status: 500 });
