@@ -1,54 +1,128 @@
 # Arquitectura de Alentó App
 
-Este documento describe cómo está organizada Alentó App, cuál es la responsabilidad de cada módulo y qué decisiones deben respetarse al continuar el desarrollo.
+Este documento describe la arquitectura actual y las decisiones que deben respetarse al continuar el desarrollo.
 
-## Objetivo del proyecto
+## Objetivo
 
-Alentó App es la aplicación operativa propia de Alentó Pizza. Su objetivo es centralizar clientes, catálogo, precios, descuentos, pedidos, cocina, caja, pagos, configuración operativa, inventario/costos futuros e integraciones.
+Alentó App es la plataforma operativa y comercial de Alentó Pizza. Debe centralizar:
 
-Chatwoot debe funcionar como canal de atención, no como un segundo sistema de pedidos. Alentó App conserva las reglas y los datos comerciales.
+- POS;
+- catálogo;
+- clientes;
+- pedidos;
+- Cocina;
+- pagos;
+- Caja;
+- cupones;
+- configuración;
+- futura app pública;
+- futuras recetas, inventario, costos e integraciones.
 
-## Stack e infraestructura
+La plataforma debe poder adaptarse a otros restaurantes sin reescribir su núcleo.
 
-- Next.js 15 + React 19 + TypeScript + Tailwind CSS 4.
-- Prisma 6 + PostgreSQL.
+## Stack
+
+- Next.js 15.
+- React 19.
+- TypeScript.
+- Tailwind CSS 4.
+- Prisma 6.
+- PostgreSQL.
 - EasyPanel/VPS.
-- Proyecto: `app_alento`.
-- Servicio: `alento-app`.
+
+## Infraestructura actual
+
+- Proyecto EasyPanel: `app_alento`.
+- Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- POS: `https://pos.alentopizza.com/`.
+- Acceso temporal actual: `pos.alentopizza.com`.
+- `alentopizza.com` continúa ocupado por Glide durante la transición.
 
-## Principio crítico: el pedido es fuente futura de inventario
+## Arquitectura objetivo de dominio
 
-Cada orden debe conservar exactamente qué se vendió.
+La decisión de producto es utilizar un solo dominio principal.
 
-El texto visible del ticket no es una fuente de inventario. Para órdenes nuevas de pizzas y combos la fuente válida es `OrderItem.configuration` estructurada con IDs, cantidades, porciones y snapshots.
+Objetivo:
 
-Ver `docs/ORDER_DATA_INTEGRITY.md`.
+```text
+alentopizza.com/
+├── experiencia pública
+├── menú
+├── carrito
+├── checkout
+└── seguimiento
 
-## Módulos principales
+alentopizza.com/interno
+├── login
+├── POS
+├── Pedidos
+├── Cocina
+├── Clientes
+├── Caja
+├── Menú administrativo
+├── Cupones
+└── Configuración
+```
+
+No diseñar módulos internos suponiendo que cada uno necesita un dominio propio.
+
+## Separación público / interno
+
+El contenido público y el sistema interno pueden vivir en la misma aplicación Next.js, pero deben tener responsabilidades y permisos claramente separados.
+
+La experiencia pública podrá consumir catálogo, precios, cobertura y creación de pedidos autorizada.
+
+El sistema interno deberá requerir sesión y rol para páginas y APIs.
+
+Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+
+## Clientes vs usuarios internos
+
+`Customer` representa a quien compra.
+
+Los empleados deben usar un modelo independiente (`User`) y nunca reutilizar `Customer` como cuenta administrativa.
+
+La autenticación todavía no está implementada.
+
+## Roles objetivo iniciales
+
+- `ADMIN`
+- `POS`
+- `KITCHEN`
+- `CASHIER`
+- `DISPATCH`
+
+La autorización debe validarse en servidor, no solo ocultando elementos de UI.
+
+## Módulos actuales
 
 ### `/`
 
-Punto de venta. La ruta usa `src/components/StructuredPosPage.tsx`.
+Actualmente funciona como POS durante la fase de construcción.
 
-El carrito crea configuración estructurada desde el momento de la selección del producto.
+A futuro, cuando se sustituya Glide, `/` será candidato natural para la experiencia pública y el POS podrá moverse bajo `/interno`.
+
+No realizar este movimiento masivamente hasta que autenticación y rutas internas estén preparadas.
 
 ### `/pedidos`
 
-Consulta órdenes persistidas con detalle estructurado, edición controlada, cancelación/eliminación administrativa e impresión térmica.
+Dashboard operativo de pedidos, pagos, edición, impresión y acciones de estado.
 
-### `/pedidos/[id]/imprimir`
+### `/cocina`
 
-Comprobante operativo de 80 mm basado en la configuración persistida.
+Preparación por cantidades y transición `PREPARING → PREPARED → READY`.
+
+### `/caja`
+
+Debe representar dinero efectivamente recibido, no simplemente pedidos creados.
 
 ### `/clientes`
 
-Directorio, búsqueda y edición de clientes.
+Gestión de clientes comerciales.
 
 ### `/menu`
 
-Administración del catálogo, categorías, pizzas, modificadores y combos.
+Administración del catálogo.
 
 ### `/cupones`
 
@@ -56,193 +130,184 @@ Administración de descuentos reutilizables.
 
 ### `/configuracion`
 
-Fuente de verdad para ubicación del local, zonas/tarifas de domicilio y medios de pago.
+Tarifas, medios de pago y configuración operativa.
 
-### `/cocina`
+### `/pedidos/[id]/imprimir`
 
-Destino operativo de órdenes confirmadas. Debe consumir la misma configuración estructurada del pedido.
+Comprobante operativo térmico 80 mm.
 
-## Tipos de pedido
+## Principio crítico: configuración estructurada
 
-- `DELIVERY`: Domicilio. Cliente y dirección obligatorios.
-- `PICKUP`: Recoger en tienda. Cliente obligatorio.
-- `STORE`: Local. Cliente opcional.
+Cada orden debe conservar exactamente qué se vendió.
 
-## Flujo del POS
+`OrderItem.configuration` es la fuente estructurada para pizzas, combos y futuras recetas/costos.
 
-1. Tipo de pedido.
-2. Cliente cuando corresponde.
-3. Construcción estructurada del producto.
-4. Carrito con `configuration`.
-5. Cierre: domicilio, descuento y pago.
-6. `POST /api/orders`.
-7. Validación/recalculo server-side.
-8. Transacción `Order + OrderItem + Payment`.
-9. Orden nace `CONFIRMED`.
+Nunca reconstruir inventario o costos desde texto visible del ticket.
 
-## Configuración estructurada de OrderItem
+Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
-### `PIZZA`
+## Creación de pedidos
 
-Debe conservar:
+`POST /api/orders` es la entrada principal del POS.
 
-- producto padre;
-- tamaño con `PizzaSize.id`;
-- sabor(es) con `Product.id`;
-- `portion` de cada sabor;
-- borde con `PizzaCrust.id`;
-- modificadores con `Product.id` y cantidad;
-- snapshots de nombre/precio/diámetro necesarios para histórico.
+Debe:
 
-Dos sabores usan `portion = 0.5` para cada mitad.
+- validar modalidad;
+- validar cliente/dirección cuando aplique;
+- validar zona;
+- validar medio de pago seleccionado;
+- validar configuración estructurada;
+- recalcular precios;
+- aplicar descuentos;
+- crear pedido y líneas de forma transaccional;
+- asignar consecutivo comercial global;
+- crear pago inicial como pendiente cuando corresponda.
 
-### `COMBO`
+Los pedidos nuevos nacen directamente en `PREPARING`.
 
-Debe conservar:
+## Consecutivo comercial
 
-- `comboProductId`;
-- `ruleId` de pizzas;
-- tamaño y sabor de cada pizza;
-- `groupId` de grupos;
-- `optionId` y `productId` de selecciones;
-- cantidades incluidas;
-- snapshots de precios y `priceDelta`;
-- descuento propio del combo.
+`Order.id` es técnico.
 
-### `STANDARD`
+`Order.sequenceNumber` es el número comercial compartido por todos los canales.
 
-Producto simple identificado por `productId` y snapshot de nombre.
+`OrderSequence.current` mantiene el contador global.
 
-### `POS_SNAPSHOT`
-
-Formato histórico anterior al refactor. Se conserva para visualizar órdenes antiguas, pero no debe volver a generarse para pizzas/combos nuevos y no sirve como fuente fiable de inventario.
-
-## Arquitectura de creación de pedidos
-
-`POST /api/orders` es la entrada persistente.
-
-El servidor debe:
-
-- validar modalidad, cliente y dirección;
-- validar zona y medio de pago;
-- comprobar producto padre;
-- exigir configuración estructurada para pizzas y combos;
-- validar IDs activos;
-- comprobar que tamaños, sabores y opciones pertenecen a reglas permitidas;
-- recalcular precios desde PostgreSQL;
-- recalcular base elegible/descuento;
-- validar efectivo;
-- persistir todo dentro de una transacción.
-
-El navegador puede calcular precios para vista previa, pero no es fuente autoritativa del precio final de pizzas y combos.
-
-## IDs + snapshots
-
-Cada selección importante conserva:
-
-1. ID estable para inventario, recetas y costos.
-2. Snapshot legible/comercial para histórico.
-
-Nunca usar el nombre como clave de negocio ni reconstruir una orden nueva a partir de texto.
-
-## Futuro inventario y costos
-
-La relación objetivo es:
+Ejemplo:
 
 ```text
-Order
-→ OrderItem.configuration
-→ tamaño / sabores / borde / extras / componentes de combo
-→ recetas
-→ consumo de insumos
-→ costo teórico del pedido
+POS-0001
+WEB-0002
+POS-0003
 ```
 
-Ejemplo de dos sabores:
+El prefijo proviene de `Order.source` y el número nunca se separa por canal.
+
+Ver `docs/ORDER_NUMBERING.md`.
+
+## Flujo de estados
+
+### Domicilio
 
 ```text
-Grande
-+ receta base Grande
-+ Hawaiana Grande × 0.5
-+ Chicharrona Grande × 0.5
-+ Borde Cheddar Grande × 1
-+ Extra Pepperoni Grande × 1
+PREPARING
+→ PREPARED
+→ READY
+→ OUT_FOR_DELIVERY
+→ ARRIVED
+→ DELIVERED
+→ COMPLETED
 ```
 
-Por eso `portion` y `quantity` son datos obligatorios.
+### Recoger / Local
 
-## Edición controlada
+```text
+PREPARING
+→ PREPARED
+→ READY
+→ COMPLETED
+```
 
-Solo pedidos `CONFIRMED` pueden editarse.
+Cocina es responsable de `PREPARING`, `PREPARED` y el paso a `READY`.
 
-Actualmente permite modalidad, tarifa, cantidades y productos simples. La futura edición completa de pizzas/combos debe reutilizar el mismo constructor estructurado del POS.
-
-No se debe editar manualmente una descripción textual para representar cambios de tamaño/sabor/borde/extras.
-
-## Cancelación y eliminación
-
-Cancelar:
-
-- permitido para `DRAFT` o `CONFIRMED`;
-- cambia `Order.status` a `CANCELED`;
-- cancela pagos asociados;
-- conserva trazabilidad.
-
-Eliminar definitivamente:
-
-- solo permitido para `CANCELED`;
-- pensado principalmente para pruebas/limpieza administrativa;
-- borra por cascade líneas y pagos.
-
-Pedidos reales anulados deberían conservarse como `CANCELED`.
-
-## Snapshot comercial de Order
-
-`Order` conserva zona, cupón, origen del descuento, subtotal, domicilio, descuento y total para que el histórico no cambie por configuraciones futuras.
-
-## Impresión térmica
-
-`/pedidos/[id]/imprimir` presenta el pedido usando `OrderItem.configuration`. El comprobante es operativo y no factura electrónica fiscal.
-
-## Descuentos
-
-- combos no son elegibles;
-- `couponEligible = false` excluye el producto;
-- domicilio nunca se descuenta;
-- cupón y descuento manual no se acumulan.
+Pedidos gestiona las etapas posteriores a `READY`.
 
 ## Pagos
 
-Para efectivo:
+Un medio de pago seleccionado no equivale a ingreso recibido.
 
-- `cashReceived >= total`;
-- `changeDue = cashReceived - total`.
+`Payment.status = PAID` y `paidAt` representan un ingreso real.
 
-## APIs relevantes
+Caja debe sumar únicamente pagos realmente recibidos.
 
-- `GET /api/catalog`
-- `/api/customers` y `/api/customers/[id]`
-- `GET/PUT /api/settings`
-- `/api/coupons` y `/api/coupons/[id]`
-- `POST /api/discount/eligibility`
-- `GET/POST /api/orders`
-- `GET/PATCH/DELETE /api/orders/[id]`
+Eliminar un pago ingresado por error es un borrado físico y debe sacarlo de Caja.
 
-## Próxima arquitectura: Cocina
+Ver `docs/PAYMENTS_AND_CASH.md`.
 
-Cocina debe consumir exclusivamente los datos persistidos en la orden:
+## Edición de pedidos
+
+La edición debe preservar la integridad estructurada.
+
+Actualmente se permite modificar modalidad, tarifa, cantidades y agregar productos simples. Si la modificación afecta trabajo ya iniciado, la orden puede regresar a `PREPARING`.
+
+La futura edición completa de pizzas/combos debe reutilizar los mismos configuradores estructurados del POS.
+
+## Eliminación y cancelación
+
+Cancelar conserva trazabilidad con estado `CANCELED`.
+
+Eliminar borra físicamente el pedido y sus dependencias. El backend elimina pagos y líneas antes de la orden dentro de una transacción.
+
+Estas dos acciones no deben confundirse.
+
+## App pública futura
+
+La futura experiencia tipo app de delivery debe reutilizar el mismo motor de negocio.
+
+No crear un segundo sistema de catálogo/pedidos para la web.
+
+Los pedidos públicos usarán:
 
 ```text
-CONFIRMED → PREPARING → READY
+source = WEB
 ```
 
-Al pasar a `PREPARING`, la orden deja de ser editable.
+y consumirán el mismo consecutivo global que POS.
 
-Antes de desarrollar Cocina se debe probar en producción que todas las órdenes nuevas de pizza/combo quedan estructuradas correctamente.
+## Integraciones
 
-## Base de datos
+Chatwoot debe actuar como canal de atención, no como un segundo motor de pedidos.
 
-Producción no tiene baseline formal de Prisma Migrate. Para cambios futuros de schema usar:
+Cualquier integración futura debe terminar utilizando las mismas reglas comerciales y el mismo modelo de Order.
+
+## Portabilidad
+
+Para que el proyecto pueda replicarse o comercializarse, separar siempre:
+
+### Núcleo reutilizable
+
+- motor de pedidos;
+- estados;
+- configuración estructurada;
+- pagos;
+- permisos;
+- inventario/costos futuros;
+- interfaces operativas.
+
+### Configuración por negocio
+
+- marca;
+- logos;
+- colores;
+- catálogo;
+- precios;
+- tarifas;
+- medios de pago;
+- usuarios;
+- dominio;
+- secretos e infraestructura.
+
+La arquitectura actual es una instalación por negocio. No introducir multi-tenancy sin una decisión explícita y un diseño separado.
+
+## Seguridad pendiente
+
+Antes de mover `alentopizza.com` a Alentó App deben existir:
+
+- usuarios internos;
+- hash de contraseñas;
+- login/logout;
+- sesiones seguras;
+- páginas internas protegidas;
+- APIs internas protegidas;
+- permisos por rol;
+- administración de usuarios;
+- configuración correcta de cookies/secrets en producción.
+
+## Base de datos y despliegue
+
+Producción no tiene baseline formal de Prisma Migrate.
+
+Para cambios de schema se usa:
 
 ```bash
 npx prisma db push
@@ -250,15 +315,15 @@ npx prisma db push
 
 No usar `prisma migrate deploy` hasta realizar baseline.
 
-El refactor actual utiliza el JSON `OrderItem.configuration` ya existente y no requiere nuevas columnas.
+`db push` no ejecuta SQL personalizado existente únicamente dentro de migraciones. Evitar que lógica crítica dependa de triggers no instalados.
 
-## Documentación especializada
+## Documentación relacionada
 
-- `docs/ORDERS.md`
-- `docs/ORDER_DATA_INTEGRITY.md`
 - `docs/CURRENT_STATE.md`
+- `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+- `docs/ORDER_DATA_INTEGRITY.md`
+- `docs/ORDER_NUMBERING.md`
+- `docs/PAYMENTS_AND_CASH.md`
+- `docs/ORDERS.md`
+- `docs/DEPLOYMENT.md`
 - `docs/HANDOFF.md`
-
-## Principio de diseño
-
-POS, Chatwoot, Cocina, inventario y futura app de clientes deben compartir el mismo motor de catálogo, configuración de producto, precios, descuentos, cobertura, pedidos y pagos.
