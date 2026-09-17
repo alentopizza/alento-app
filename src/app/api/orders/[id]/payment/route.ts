@@ -53,10 +53,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     let cashReceived: number | null = null;
     let changeDue: number | null = null;
 
-    if (isCash) {
+    if (isCash && body.cashReceived != null && String(body.cashReceived).trim() !== "") {
       const received = money(Number(body.cashReceived));
       if (!Number.isFinite(received) || received < amount) {
-        return NextResponse.json({ error: `El efectivo recibido debe ser mínimo $${amount.toLocaleString("es-CO")}.` }, { status: 400 });
+        return NextResponse.json({ error: `Si registras el efectivo entregado, debe ser mínimo ${amount.toLocaleString("es-CO")}.` }, { status: 400 });
       }
       cashReceived = received;
       changeDue = received - amount;
