@@ -48,7 +48,7 @@ Las acciones secundarias son botones compactos:
 - ver detalle;
 - editar;
 - imprimir 80 mm;
-- descargar comprobante;
+- abrir el comprobante para descargarlo;
 - eliminar pedido de prueba cuando todavía no existe dinero recibido.
 
 ## Impresión
@@ -59,11 +59,16 @@ El botón de impresora no abre primero el comprobante. La interfaz crea un ifram
 
 y la pantalla térmica ejecuta `window.print()` al cargar.
 
-La ruta de impresión sigue disponible para revisión manual.
+La intención es disparar directamente el diálogo de impresión de la impresora térmica.
 
 ## Comprobante descargable
 
-La tarjeta puede descargar una copia HTML autocontenida del comprobante. Esta descarga es distinta de la acción de impresión.
+El botón de comprobante abre la vista térmica normal. Esa vista incluye un botón `Descargar comprobante` que genera una copia HTML autocontenida del documento.
+
+Esto mantiene separadas dos acciones:
+
+- `Imprimir`: dispara la impresión directamente;
+- `Comprobante`: permite revisar y descargar una copia del documento.
 
 Si más adelante se necesita PDF fiscal o PDF generado por servidor, debe implementarse como un flujo separado; el comprobante actual sigue siendo operativo y no equivale a factura electrónica DIAN.
 
@@ -82,8 +87,8 @@ Al abrir una tarjeta se muestra un drawer con:
 - domicilio;
 - descuentos;
 - total;
-- estado y medio de pago;
-- acciones Editar, Imprimir, Descargar y Registrar pago/Ver en Caja.
+- dinero recibido y saldo pendiente;
+- acciones Editar, Imprimir, Comprobante y Registrar pago/Ver en Caja.
 
 ## Edición operativa
 
@@ -93,12 +98,17 @@ Desde Pedidos se puede:
 - seleccionar otra zona/tarifa de domicilio;
 - subir o bajar cantidades de líneas existentes;
 - quitar una línea llevando su cantidad a cero;
-- agregar productos simples como bebidas o antojos;
-- cambiar el medio de pago previsto mientras todavía no se haya recibido dinero.
+- agregar productos simples como bebidas o antojos.
 
 Pizzas y combos nuevos no se agregan desde este editor simple porque requieren configuración estructurada de tamaño, sabor, borde, extras y reglas de combo. Para esos casos se debe reutilizar el configurador del POS en una iteración posterior.
 
 Cuando una edición agrega o modifica productos y el pedido ya había avanzado, el servidor lo devuelve a `PREPARING` para que Cocina no omita el cambio.
+
+Si ya existe dinero recibido:
+
+- el pago `PAID` se conserva sin reescribir;
+- si el pedido aumenta, se crea o ajusta un saldo `PENDING` por la diferencia;
+- si el nuevo total queda por debajo de lo ya cobrado, la edición se bloquea hasta implementar devolución.
 
 ## Eliminación para pruebas
 
@@ -111,10 +121,12 @@ La eliminación de prueba borra Order, OrderItem y Payment por las relaciones ca
 ## Archivos principales
 
 - `src/app/pedidos/page.tsx`
-- `src/components/OrdersCardsDashboard.tsx`
+- `src/components/OrdersCardsDashboardV2.tsx`
 - `src/app/pedidos/[id]/imprimir/page.tsx`
 - `src/app/api/orders/[id]/route.ts`
 - `src/app/api/orders/[id]/payment/route.ts`
+- `src/app/caja/page.tsx`
+- `src/app/api/caja/summary/route.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
 
