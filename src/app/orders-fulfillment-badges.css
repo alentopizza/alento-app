@@ -20,3 +20,18 @@
   background: #059669 !important;
   color: #ffffff !important;
 }
+
+/* Repeat the fulfillment color as a thin accent on the status header.
+ * This lets operators distinguish Domicilio / Recoger / Local even before reading the badge.
+ */
+article:has(.border-red-200.bg-red-50.text-red-700) > div:first-child {
+  border-top: 4px solid #dc2626 !important;
+}
+
+article:has(.border-sky-200.bg-sky-50.text-sky-700) > div:first-child {
+  border-top: 4px solid #2563eb !important;
+}
+
+article:has(.border-emerald-200.bg-emerald-50.text-emerald-700) > div:first-child {
+  border-top: 4px solid #059669 !important;
+}
