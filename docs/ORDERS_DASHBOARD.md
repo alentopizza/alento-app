@@ -86,15 +86,20 @@ $ 92.500                $ 50.000
 
 El bloque `Pago pendiente` es clicable mientras exista saldo y abre el modal `Registrar ingreso`.
 
-El resumen financiero usa una capa visual aislada en `src/app/orders-card-payment-summary.css`:
+El resumen financiero usa una capa visual aislada en `src/app/orders-card-payment-summary.css`.
 
-- cada bloque ocupa aproximadamente 50% del ancho disponible;
-- mayor contraste de fondo y borde;
-- etiquetas de 10 px con peso alto;
-- montos alrededor de 19 px;
-- números tabulares para lectura más limpia;
-- antialiasing y renderizado optimizado para evitar apariencia borrosa;
-- ajuste responsive para pantallas pequeñas.
+Criterios tipográficos actuales:
+
+- familia preferida: `Segoe UI Variable`, con fallback a `Segoe UI`, `Inter`, `Roboto` y `system-ui`;
+- `font-synthesis: none` para evitar pesos artificiales;
+- etiquetas de 11 px con peso aproximado 650 en lugar de `font-black`;
+- montos de 20 px con peso 700;
+- tracking más moderado para evitar apariencia apelmazada;
+- números tabulares (`tnum`) y lining figures (`lnum`) para lectura y alineación más limpias;
+- responsive a 18 px en pantallas pequeñas;
+- contraste alto entre texto y fondo sin aumentar innecesariamente el grosor.
+
+La intención es priorizar nitidez en Windows/Chrome y conservar una apariencia elegante y profesional.
 
 Los importes reales recibidos se calculan exclusivamente con pagos `PAID`.
 
