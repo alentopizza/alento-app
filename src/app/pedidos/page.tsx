@@ -1,5 +1,5 @@
-import OrdersCardsDashboard from "@/components/OrdersCardsDashboard";
+import OrdersCardsDashboardV2 from "@/components/OrdersCardsDashboardV2";
 
 export default function OrdersPage() {
-  return <OrdersCardsDashboard />;
+  return <OrdersCardsDashboardV2 />;
 }
