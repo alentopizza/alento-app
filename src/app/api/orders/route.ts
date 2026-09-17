@@ -366,50 +366,60 @@ export async function POST(request: NextRequest) {
     const cashReceived = cashPayment ? cashReceivedValue : null;
     const changeDue = cashPayment ? cashReceivedValue - total : null;
 
-    const order = await prisma.$transaction((tx) => tx.order.create({
-      data: {
-        customerId: customer?.id ?? null,
-        addressId: fulfillmentType === "DELIVERY" ? address?.id ?? null : null,
-        couponId,
-        couponName,
-        deliveryZoneId,
-        deliveryZoneName,
-        discountSource: discountMode,
-        status: "PREPARING",
-        fulfillmentType,
-        source: "POS",
-        subtotal,
-        deliveryFee,
-        discount,
-        total,
-        notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
-        items: {
-          create: normalizedLines.map((line) => ({
-            productId: line.product.id,
-            productName: line.product.name,
-            unitPrice: line.unitPrice,
-            quantity: line.quantity,
-            lineTotal: line.lineTotal,
-            configuration: line.configuration,
-          })),
-        },
-        payments: {
-          create: {
-            method: paymentMethod.name,
-            amount: total,
-            cashReceived,
-            changeDue,
-            status: "PENDING",
+    const order = await prisma.$transaction(async (tx) => {
+      const sequence = await tx.orderSequence.upsert({
+        where: { id: 1 },
+        create: { id: 1, current: 1 },
+        update: { current: { increment: 1 } },
+      });
+
+      return tx.order.create({
+        data: {
+          sequenceNumber: sequence.current,
+          customerId: customer?.id ?? null,
+          addressId: fulfillmentType === "DELIVERY" ? address?.id ?? null : null,
+          couponId,
+          couponName,
+          deliveryZoneId,
+          deliveryZoneName,
+          discountSource: discountMode,
+          status: "PREPARING",
+          fulfillmentType,
+          source: "POS",
+          subtotal,
+          deliveryFee,
+          discount,
+          total,
+          notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
+          items: {
+            create: normalizedLines.map((line) => ({
+              productId: line.product.id,
+              productName: line.product.name,
+              unitPrice: line.unitPrice,
+              quantity: line.quantity,
+              lineTotal: line.lineTotal,
+              configuration: line.configuration,
+            })),
+          },
+          payments: {
+            create: {
+              method: paymentMethod.name,
+              amount: total,
+              cashReceived,
+              changeDue,
+              status: "PENDING",
+            },
           },
         },
-      },
-      include: { customer: true, address: true, items: true, payments: true },
-    }));
+        include: { customer: true, address: true, items: true, payments: true },
+      });
+    });
 
     return NextResponse.json({
       order: {
         id: order.id,
-        code: `ALT-${String(order.id).padStart(6, "0")}`,
+        sequenceNumber: order.sequenceNumber,
+        code: `POS-${String(order.sequenceNumber).padStart(4, "0")}`,
         status: order.status,
         fulfillmentType: order.fulfillmentType,
         subtotal: Number(order.subtotal),
