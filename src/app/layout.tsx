@@ -15,6 +15,7 @@ import "./checkout-modal-polish.css";
 import "./checkout-actions-polish.css";
 import "./orders-fulfillment-badges.css";
 import "./orders-card-typography.css";
+import "./orders-card-payment-summary.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 
