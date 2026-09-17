@@ -46,6 +46,22 @@ La pantalla:
 
 La pantalla se actualiza automáticamente cada 15 segundos y también se refresca después de cambiar una orden.
 
+## Pedidos
+
+La pestaña **Pedidos** incluye un bloque superior de **Pedidos activos** que usa el mismo motor de estados.
+
+Comportamiento:
+
+- muestra solo órdenes activas;
+- cada orden tiene su barra visual de progreso;
+- `PREPARING` se gestiona desde Cocina y muestra acceso directo a esa pestaña;
+- una vez `READY`, los avances posteriores se realizan desde Pedidos;
+- Domicilio continúa por En camino → Ha llegado → Entregado → Finalizado;
+- Recoger / Local continúan directamente de Listo → Finalizado;
+- el bloque se actualiza automáticamente cada 15 segundos.
+
+El listado histórico y las herramientas existentes de detalle, edición, cancelación e impresión permanecen debajo del bloque operativo.
+
 ## API de estados
 
 Endpoint:
@@ -80,12 +96,14 @@ La migración también instala un trigger de base de datos que transforma nuevas
 - `prisma/schema.prisma`
 - `prisma/migrations/20260916215000_order_workflow/migration.sql`
 - `src/lib/orderWorkflow.ts`
+- `src/components/OrderStatusFlow.tsx`
+- `src/components/OrdersWorkflowManager.tsx`
+- `src/components/AppShell.tsx`
 - `src/app/api/orders/[id]/status/route.ts`
 - `src/app/cocina/page.tsx`
 
-## Siguiente bloque
+## Despliegue
 
-La pestaña **Pedidos** debe usar este mismo flujo para mostrar una barra de progreso distinta según modalidad y permitir los avances posteriores a `READY`:
+Este bloque **sí requiere migración de Prisma/PostgreSQL** porque agrega valores al enum `OrderStatus`.
 
-- Domicilio: En camino → Ha llegado → Entregado → Finalizado.
-- Recoger / Local: Finalizado.
+El despliegue debe ejecutar la migración antes de arrancar la versión nueva de la aplicación. No es un cambio únicamente visual.
