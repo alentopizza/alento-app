@@ -186,6 +186,21 @@ Estados habituales:
 - `PAID`: dinero recibido y contabilizado en Caja;
 - `REFUNDED`: reservado para el futuro flujo de devoluciones.
 
+### Efectivo pendiente y `Paga con`
+
+En un pago `PENDING` por efectivo, `cashReceived`/`Paga con` es una referencia operativa para calcular cambio; **no representa dinero recibido en Caja**.
+
+Por eso, editar un pedido pendiente nunca debe bloquearse porque el nuevo total supere el monto antiguo de `Paga con`.
+
+Regla:
+
+- si el monto guardado todavía es mayor o igual al nuevo total, se conserva y `changeDue` se recalcula;
+- si el nuevo total supera ese monto, `cashReceived` y `changeDue` se limpian;
+- el `Payment.amount` pendiente se actualiza al nuevo saldo;
+- la validación estricta del efectivo recibido ocurre cuando se registra realmente el ingreso (`PAID`).
+
+Esta regla solo aplica a pagos pendientes. Los pagos `PAID` sí representan dinero real recibido y siguen protegidos: no se permite reducir el pedido por debajo de lo ya cobrado sin un flujo de devolución.
+
 ### Eliminar un pago
 
 Endpoint:
