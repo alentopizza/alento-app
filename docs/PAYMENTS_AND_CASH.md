@@ -35,25 +35,22 @@ Al registrar:
 - `method` representa el medio realmente recibido;
 - `reference` puede guardar referencia de Nequi/DaviPlata u otro comprobante.
 
-## Anular un pago ingresado por error
-
-Dentro del detalle del pedido se muestra el historial de movimientos de pago. Cada pago recibido puede anularse desde allí.
+## Eliminar un pago ingresado por error
 
 Endpoint:
 
 `DELETE /api/orders/[id]/payment/[paymentId]`
 
-La aplicación no borra físicamente el movimiento. Lo marca como:
+La eliminación es física. La fila `Payment` desaparece de PostgreSQL.
 
-`Payment.status = CANCELED`
+Consecuencias:
 
-Esto tiene tres efectos:
+- deja de contar inmediatamente en Caja;
+- deja de formar parte del total pagado de la orden;
+- el pedido vuelve a mostrar ese valor como saldo pendiente;
+- después de eliminar los pagos de una orden, esa orden puede eliminarse definitivamente si así lo decide el operador.
 
-- deja de contar en Caja inmediatamente;
-- el pedido vuelve a mostrar el saldo pendiente correspondiente;
-- el movimiento sigue visible como `ANULADO`, conservando medio, valor, hora y demás datos de auditoría.
-
-Un pago con estado `REFUNDED` no puede anularse porque pertenece al futuro flujo formal de devoluciones.
+Esta acción es distinta a una devolución real al cliente. Una devolución futura deberá registrarse con su propio flujo contable y no reutilizar este borrado operativo.
 
 ## Pagos posteriores a una edición
 
@@ -72,11 +69,14 @@ Esto permite que Caja refleje dinero real y evita reescribir movimientos histór
 
 Si una edición intenta bajar el total por debajo del dinero ya recibido, el servidor la bloquea. Esa operación necesita un flujo de devolución/refund, que debe implementarse aparte.
 
-## Cancelación y borrado
+## Eliminar pedido vs cancelar pedido
 
-Un pedido con dinero recibido no puede eliminarse como prueba mientras tenga pagos `PAID`.
+Son decisiones distintas:
 
-Si un pago fue ingresado por error, primero puede anularse desde el historial. Una vez que no queden pagos recibidos, el pedido de prueba puede eliminarse según las reglas del dashboard.
+- **Eliminar pedido**: borra físicamente la orden. Sus `OrderItem` y `Payment` relacionados se eliminan por `onDelete: Cascade`.
+- **Cancelar pedido**: conserva la orden y la marca `CANCELED` para mantener historial.
+
+Para borrar una orden que tiene pagos registrados, primero se eliminan físicamente esos pagos y luego se elimina la orden.
 
 ## Caja
 
@@ -97,7 +97,17 @@ Muestra:
 - acumulado por medio de pago;
 - lista de movimientos con pedido, cliente, hora, medio, referencia y valor.
 
-No suma órdenes pendientes ni movimientos `CANCELED`.
+No suma órdenes pendientes solo porque tengan un medio de pago seleccionado.
+
+Cuando un Payment se elimina físicamente, desaparece del resumen de Caja.
+
+## Numeración de pedidos
+
+La numeración operativa está documentada en:
+
+`docs/ORDER_NUMBERING.md`
+
+POS y WEB comparten la misma secuencia global de `Order.id`; solo cambia el prefijo visible.
 
 ## Próximas extensiones contables
 
@@ -113,18 +123,24 @@ El modelo está preparado conceptualmente para continuar con:
 - arqueo de efectivo;
 - reportes diarios, semanales y mensuales.
 
-## Cambio de esquema
+## Cambio de esquema existente
 
-Se agregó previamente:
+`Payment` contiene:
 
 ```prisma
 paidAt DateTime?
 ```
 
-a `Payment` y el índice:
+y el índice:
 
 ```prisma
 @@index([status, paidAt])
 ```
 
-El flujo de anulación de pago NO agrega columnas nuevas. Si `paidAt` ya fue sincronizado anteriormente, esta iteración no requiere un nuevo `prisma db push`.
+Si el entorno todavía no tiene ese campo sincronizado, ejecutar:
+
+```bash
+npx prisma db push
+```
+
+Los cambios de eliminación física y de numeración no agregan columnas nuevas.
