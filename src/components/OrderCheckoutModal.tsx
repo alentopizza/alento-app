@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type {
+  ComboOrderConfiguration,
+  OrderLineConfiguration,
+  PizzaOrderConfiguration,
+} from "@/lib/orderConfiguration";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
@@ -72,6 +77,92 @@ function isCashMethod(method: PaymentMethodSetting | undefined) {
 function cashSuggestions(total: number) {
   const denominations = [10000, 20000, 50000, 100000, 200000];
   return denominations.filter((value) => value >= total).slice(0, 3);
+}
+
+function orderConfiguration(value: unknown): OrderLineConfiguration | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const kind = (value as { kind?: unknown }).kind;
+  if (kind === "PIZZA" || kind === "COMBO" || kind === "STANDARD") return value as OrderLineConfiguration;
+  return null;
+}
+
+function CheckoutSpec({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="checkout-product-spec">
+      <span>{label}</span>
+      <b>{value}</b>
+    </div>
+  );
+}
+
+function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boolean }) {
+  const configuration = orderConfiguration(item.configuration);
+  const pizza = configuration?.kind === "PIZZA" ? configuration as PizzaOrderConfiguration : null;
+  const combo = configuration?.kind === "COMBO" ? configuration as ComboOrderConfiguration : null;
+
+  return (
+    <article className="checkout-product-line">
+      <div className="checkout-product-head">
+        <div className="min-w-0">
+          <b className="checkout-product-title">{item.quantity} × {item.name}</b>
+        </div>
+        <b className="checkout-product-price">{formatCOP(item.unitPrice * item.quantity)}</b>
+      </div>
+
+      {pizza && (
+        <div className="checkout-product-details">
+          <div className="checkout-product-specs">
+            <CheckoutSpec label="Tamaño" value={pizza.size.name} />
+            <CheckoutSpec label="Borde" value={pizza.crust.name} />
+            {pizza.flavors.length > 1 && (
+              <>
+                <CheckoutSpec label="Sabor 1" value={pizza.flavors[0]?.name ?? "—"} />
+                <CheckoutSpec label="Sabor 2" value={pizza.flavors[1]?.name ?? "—"} />
+              </>
+            )}
+          </div>
+          {pizza.modifiers.length > 0 && (
+            <div className="checkout-product-extras">
+              <span>Ingredientes adicionales</span>
+              <div>
+                {pizza.modifiers.map((modifier) => (
+                  <em key={modifier.productId}>+ {modifier.name}</em>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {combo && (
+        <div className="checkout-product-details checkout-combo-details">
+          {combo.pizzas.map((comboPizza, index) => (
+            <div key={`${comboPizza.ruleId}-${index}`} className="checkout-combo-pizza">
+              <span>Pizza {index + 1}</span>
+              <b>{comboPizza.size.name} · {comboPizza.flavor.name}</b>
+            </div>
+          ))}
+          {combo.groups.length > 0 && (
+            <div className="checkout-product-extras">
+              <div>
+                {combo.groups.flatMap((group) => group.selections.map((selection) => (
+                  <em key={`${group.groupId}-${selection.productId}`} className="neutral">
+                    {group.name}: {selection.quantity > 1 ? `${selection.quantity}× ` : ""}{selection.name}
+                  </em>
+                )))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!pizza && !combo && item.detail && item.detail !== "Producto" && (
+        <p className="checkout-product-standard">{item.detail}</p>
+      )}
+
+      {excluded && <span className="checkout-product-excluded">No acumula cupón</span>}
+    </article>
+  );
 }
 
 export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, onClose }: Props) {
@@ -249,63 +340,136 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const sectionNumber = (base: number) => fulfillmentType === "DELIVERY" ? base : base - 1;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-2 sm:p-3">
-      <div className="alento-card flex max-h-[96vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px] shadow-2xl">
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-neutral-100 bg-white px-5 py-3.5 md:px-6">
+    <div className="checkout-overlay">
+      <div className="checkout-modal-v2">
+        <header className="checkout-header">
           <div>
-            <div className="flex flex-wrap items-center gap-2"><p className="text-[9px] font-black uppercase tracking-[0.18em] text-neutral-400">Cierre del pedido</p><span className="rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-black text-[var(--brand-red)]">{fulfillmentLabel(fulfillmentType)}</span></div>
-            <h2 className="mt-1 text-xl font-black md:text-2xl">Domicilio, descuento y pago</h2>
-            <p className="mt-0.5 text-[11px] text-neutral-500">Descuentos solo sobre productos elegibles. El domicilio nunca se descuenta.</p>
+            <div className="checkout-eyebrow"><span>Cierre del pedido</span><em>{fulfillmentLabel(fulfillmentType)}</em></div>
+            <h2>{fulfillmentType === "DELIVERY" ? "Domicilio, descuento y pago" : "Descuento y forma de pago"}</h2>
+            <p>Revisa los datos comerciales antes de crear definitivamente la orden.</p>
           </div>
-          <button onClick={onClose} disabled={creatingOrder} className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold disabled:opacity-50">Cerrar</button>
-        </div>
+          <button onClick={onClose} disabled={creatingOrder}>Cerrar</button>
+        </header>
 
-        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-5">
-          {loadingSettings ? <div className="rounded-2xl border border-dashed p-7 text-center text-sm text-neutral-500">Cargando cierre...</div> : settingsError ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{settingsError}</div> : (
-            <div className="grid gap-4 lg:grid-cols-[1.05fr_.95fr]">
-              <div className="space-y-3">
-                {fulfillmentType === "DELIVERY" && <section className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
-                  <div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">1. Domicilio</p><h3 className="mt-0.5 text-base font-black">Dirección y tarifa</h3></div><p className="max-w-[55%] truncate text-right text-[10px] text-neutral-500">{address || "Sin dirección"}</p></div>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-3">{activeDeliveryZones.map((zone) => { const selected = deliveryZoneId === zone.id; return <button key={zone.id} onClick={() => { setDeliveryZoneId(zone.id); setError(""); }} className={`flex items-center justify-between rounded-xl border-2 px-3 py-2 text-left ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white"}`}><div><p className="text-xs font-black">{zone.name}</p><p className="text-[10px] text-neutral-500">{formatCOP(zone.fee)}</p></div><span className={`flex h-4 w-4 items-center justify-center rounded-full border text-[9px] font-black ${selected ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white" : "border-neutral-300 text-transparent"}`}>✓</span></button>; })}</div>
-                </section>}
+        <div className="checkout-body alento-scroll">
+          {loadingSettings ? (
+            <div className="checkout-loading">Cargando cierre del pedido...</div>
+          ) : settingsError ? (
+            <div className="checkout-error">{settingsError}</div>
+          ) : (
+            <div className="checkout-layout">
+              <div className="checkout-left">
+                {fulfillmentType === "DELIVERY" && (
+                  <section className="checkout-panel">
+                    <div className="checkout-panel-head">
+                      <div><span>1. Domicilio</span><h3>Dirección y tarifa</h3></div>
+                      <p>{address || "Sin dirección"}</p>
+                    </div>
+                    <div className="checkout-choice-grid checkout-delivery-grid">
+                      {activeDeliveryZones.map((zone) => {
+                        const selected = deliveryZoneId === zone.id;
+                        return (
+                          <button key={zone.id} onClick={() => { setDeliveryZoneId(zone.id); setError(""); }} className={selected ? "selected" : ""}>
+                            <div><b>{zone.name}</b><span>{formatCOP(zone.fee)}</span></div>
+                            <i>{selected ? "✓" : ""}</i>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
 
-                <section className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
-                  <div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">{sectionNumber(2)}. Descuento</p><h3 className="mt-0.5 text-base font-black">¿Aplica descuento?</h3></div><div className="text-right"><p className="text-[9px] font-bold uppercase text-neutral-400">Base elegible</p><b className="text-xs">{formatCOP(eligibleSubtotal)}</b></div></div>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
-                    {[{ mode: "NONE" as const, label: "Sin descuento" }, { mode: "COUPON" as const, label: "Cupón" }, { mode: "MANUAL" as const, label: "Manual" }].map((option) => <button key={option.mode} onClick={() => chooseDiscountMode(option.mode)} className={`rounded-lg border-2 px-2 py-1.5 text-[11px] font-black ${discountMode === option.mode ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{option.label}</button>)}
+                <section className="checkout-panel">
+                  <div className="checkout-panel-head">
+                    <div><span>{sectionNumber(2)}. Descuento</span><h3>¿Aplica descuento?</h3></div>
+                    <p><small>Base elegible</small><b>{formatCOP(eligibleSubtotal)}</b></p>
                   </div>
-                  {eligibility.excludedSubtotal > 0 && <p className="mt-1.5 text-[9px] text-neutral-400">Promos excluidas: {formatCOP(eligibility.excludedSubtotal)} · no acumulan descuento.</p>}
-                  {discountMode === "COUPON" && <div className="mt-2">{coupons.length ? <div className="grid gap-1.5 sm:grid-cols-2">{coupons.map((coupon) => { const selected = couponId === coupon.id; return <button key={coupon.id} onClick={() => { setCouponId(coupon.id); setError(""); }} disabled={eligibleSubtotal <= 0} className={`rounded-xl border-2 px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-40 ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200"}`}><div className="flex items-center justify-between gap-2"><b className="text-xs">{coupon.name}</b><span className="text-[10px] font-black text-[var(--brand-red)]">{coupon.type === "PERCENTAGE" ? `${coupon.value}%` : formatCOP(coupon.value)}</span></div></button>; })}</div> : <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">No hay cupones activos.</p>}</div>}
-                  {discountMode === "MANUAL" && <div className="mt-2"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-400">$</span><input value={discountInput} onChange={(event) => { setDiscountInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" disabled={eligibleSubtotal <= 0} className="alento-input w-full rounded-xl py-2 pl-7 pr-3 text-sm font-black" placeholder="0" /></div></div>}
+                  <div className="checkout-discount-tabs">
+                    {[
+                      { mode: "NONE" as const, label: "Sin descuento" },
+                      { mode: "COUPON" as const, label: "Cupón" },
+                      { mode: "MANUAL" as const, label: "Manual" },
+                    ].map((option) => (
+                      <button key={option.mode} onClick={() => chooseDiscountMode(option.mode)} className={discountMode === option.mode ? "selected" : ""}>{option.label}</button>
+                    ))}
+                  </div>
+                  {eligibility.excludedSubtotal > 0 && <p className="checkout-note">Promociones excluidas: {formatCOP(eligibility.excludedSubtotal)}. No acumulan descuento.</p>}
+                  {discountMode === "COUPON" && (
+                    <div className="checkout-coupon-grid">
+                      {coupons.length ? coupons.map((coupon) => {
+                        const selected = couponId === coupon.id;
+                        return (
+                          <button key={coupon.id} onClick={() => { setCouponId(coupon.id); setError(""); }} disabled={eligibleSubtotal <= 0} className={selected ? "selected" : ""}>
+                            <b>{coupon.name}</b><span>{coupon.type === "PERCENTAGE" ? `${coupon.value}%` : formatCOP(coupon.value)}</span>
+                          </button>
+                        );
+                      }) : <p className="checkout-empty-note">No hay cupones activos.</p>}
+                    </div>
+                  )}
+                  {discountMode === "MANUAL" && (
+                    <div className="checkout-money-input"><span>$</span><input value={discountInput} onChange={(event) => { setDiscountInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" disabled={eligibleSubtotal <= 0} placeholder="0" /></div>
+                  )}
                 </section>
 
-                <section className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
-                  <p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">{sectionNumber(3)}. Forma de pago</p><h3 className="mt-0.5 text-base font-black">¿Cómo paga el cliente?</h3>
-                  <div className="mt-2 grid gap-1.5 sm:grid-cols-3">{activePaymentMethods.map((method) => { const selected = paymentMethodId === method.id; return <button key={method.id} onClick={() => choosePaymentMethod(method.id)} className={`flex items-center justify-between rounded-xl border-2 px-3 py-2 text-left ${selected ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200"}`}><span className="text-xs font-black">{method.name}</span><span className={`flex h-4 w-4 items-center justify-center rounded-full border text-[9px] font-black ${selected ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white" : "border-neutral-300 text-transparent"}`}>✓</span></button>; })}</div>
-                  {cashPayment && <div className="mt-3 rounded-xl bg-[#faf9f7] p-3">
-                    <div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Efectivo</p><h4 className="text-sm font-black">¿Con cuánto paga?</h4></div><div className="text-right"><p className="text-[9px] text-neutral-400">Total</p><b className="text-sm">{formatCOP(total)}</b></div></div>
-                    <div className="mt-2 grid grid-cols-[1fr_auto] gap-2"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-400">$</span><input value={cashReceivedInput} onChange={(event) => { setCashReceivedInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" className="alento-input w-full rounded-xl py-2 pl-7 pr-3 text-sm font-black" placeholder="Ej. 100000" /></div><button onClick={() => setCashReceivedInput(String(total))} className="rounded-xl border bg-white px-3 py-2 text-[10px] font-black">Exacto</button></div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">{suggestions.map((value) => <button key={value} onClick={() => { setCashReceivedInput(String(value)); setError(""); }} className="rounded-lg border bg-white px-2.5 py-1.5 text-[10px] font-black">{formatCOP(value)}</button>)}</div>
-                    {cashReceivedInput && <div className={`mt-2 flex items-center justify-between rounded-lg px-3 py-2 ${validCashReceived ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}><span className="text-xs font-black">{validCashReceived ? "Vueltas" : "Falta para completar"}</span><b className="text-sm">{validCashReceived ? formatCOP(changeDue) : formatCOP(Math.max(0, total - cashReceived))}</b></div>}
-                  </div>}
+                <section className="checkout-panel">
+                  <div className="checkout-panel-head"><div><span>{sectionNumber(3)}. Forma de pago</span><h3>¿Cómo paga el cliente?</h3></div></div>
+                  <div className="checkout-choice-grid checkout-payment-grid">
+                    {activePaymentMethods.map((method) => {
+                      const selected = paymentMethodId === method.id;
+                      return (
+                        <button key={method.id} onClick={() => choosePaymentMethod(method.id)} className={selected ? "selected" : ""}>
+                          <b>{method.name}</b><i>{selected ? "✓" : ""}</i>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {cashPayment && (
+                    <div className="checkout-cash-panel">
+                      <div className="checkout-cash-head"><div><span>Efectivo</span><h4>¿Con cuánto paga?</h4></div><p>Total <b>{formatCOP(total)}</b></p></div>
+                      <div className="checkout-cash-entry"><div className="checkout-money-input"><span>$</span><input value={cashReceivedInput} onChange={(event) => { setCashReceivedInput(event.target.value.replace(/\D/g, "")); setError(""); }} inputMode="numeric" placeholder="Ej. 100000" /></div><button onClick={() => setCashReceivedInput(String(total))}>Exacto</button></div>
+                      <div className="checkout-cash-suggestions">{suggestions.map((value) => <button key={value} onClick={() => { setCashReceivedInput(String(value)); setError(""); }}>{formatCOP(value)}</button>)}</div>
+                      {cashReceivedInput && <div className={`checkout-change ${validCashReceived ? "valid" : "invalid"}`}><span>{validCashReceived ? "Vueltas" : "Falta para completar"}</span><b>{validCashReceived ? formatCOP(changeDue) : formatCOP(Math.max(0, total - cashReceived))}</b></div>}
+                    </div>
+                  )}
                 </section>
               </div>
 
-              <section className="h-fit rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5 lg:sticky lg:top-0">
-                <div className="flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.15em] text-neutral-400">Resumen</p><h3 className="mt-0.5 text-base font-black">Revisión del pedido</h3></div><span className="rounded-full bg-white px-2 py-1 text-[9px] font-bold text-neutral-500">{cart.length} línea{cart.length === 1 ? "" : "s"}</span></div>
-                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 border-b border-neutral-200 pb-3 text-[10px]"><span className="text-neutral-500">Tipo</span><b className="text-right">{fulfillmentLabel(fulfillmentType)}</b>{customer && <><span className="text-neutral-500">Cliente</span><b className="truncate text-right">{customer.name}</b></>}{fulfillmentType === "DELIVERY" && selectedDeliveryZone && <><span className="text-neutral-500">Zona</span><b className="text-right">{selectedDeliveryZone.name}</b></>}{selectedCoupon && discountMode === "COUPON" && <><span className="text-neutral-500">Cupón</span><b className="text-right">{selectedCoupon.name}</b></>}{selectedPaymentMethod && <><span className="text-neutral-500">Pago</span><b className="text-right">{selectedPaymentMethod.name}</b></>}{cashPayment && validCashReceived && <><span className="text-neutral-500">Paga con</span><b className="text-right">{formatCOP(cashReceived)}</b><span className="text-neutral-500">Vueltas</span><b className="text-right text-emerald-700">{formatCOP(changeDue)}</b></>}</div>
-                <div className="alento-scroll mt-3 max-h-32 space-y-1.5 overflow-y-auto pr-1">{cart.map((item) => { const excluded = eligibility.excludedProductIds.includes(item.productId); return <div key={item.key} className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2"><div className="flex justify-between gap-3"><div className="min-w-0"><p className="truncate text-[11px] font-black">{item.quantity} × {item.name}</p><p className="line-clamp-1 text-[9px] text-neutral-500">{item.detail}</p>{excluded && <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-black text-amber-700">No acumula cupón</span>}</div><b className="whitespace-nowrap text-[11px]">{formatCOP(item.unitPrice * item.quantity)}</b></div></div>; })}</div>
-                <div className="mt-3 space-y-1.5 border-t border-neutral-200 pt-3 text-xs"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{formatCOP(subtotal)}</b></div>{fulfillmentType === "DELIVERY" && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{selectedDeliveryZone ? formatCOP(deliveryFee) : "Pendiente"}</b></div>}{discount > 0 && <div className="flex justify-between text-emerald-700"><span>{discountMode === "COUPON" ? `Cupón · ${selectedCoupon?.name}` : "Descuento manual"}</span><b>− {formatCOP(discount)}</b></div>}<div className="flex items-end justify-between border-t border-dashed pt-2.5"><span className="font-black">Total</span><b className="text-xl font-black text-[var(--brand-red)]">{formatCOP(total)}</b></div></div>
-              </section>
+              <aside className="checkout-summary">
+                <div className="checkout-summary-head"><div><span>Resumen</span><h3>Revisión del pedido</h3></div><em>{cart.length} línea{cart.length === 1 ? "" : "s"}</em></div>
+
+                <div className="checkout-order-meta">
+                  <span>Tipo</span><b>{fulfillmentLabel(fulfillmentType)}</b>
+                  {customer && <><span>Cliente</span><b>{customer.name}</b></>}
+                  {fulfillmentType === "DELIVERY" && address && <><span>Dirección</span><b>{address}</b></>}
+                  {fulfillmentType === "DELIVERY" && selectedDeliveryZone && <><span>Zona</span><b>{selectedDeliveryZone.name}</b></>}
+                  {selectedCoupon && discountMode === "COUPON" && <><span>Cupón</span><b>{selectedCoupon.name}</b></>}
+                  {selectedPaymentMethod && <><span>Pago</span><b>{selectedPaymentMethod.name}</b></>}
+                  {cashPayment && validCashReceived && <><span>Paga con</span><b>{formatCOP(cashReceived)}</b><span>Vueltas</span><b className="green">{formatCOP(changeDue)}</b></>}
+                </div>
+
+                <div className="checkout-products alento-scroll">
+                  {cart.map((item) => (
+                    <CheckoutProductLine key={item.key} item={item} excluded={eligibility.excludedProductIds.includes(item.productId)} />
+                  ))}
+                </div>
+
+                <div className="checkout-totals">
+                  <div><span>Subtotal</span><b>{formatCOP(subtotal)}</b></div>
+                  {fulfillmentType === "DELIVERY" && <div><span>Domicilio</span><b>{selectedDeliveryZone ? formatCOP(deliveryFee) : "Pendiente"}</b></div>}
+                  {discount > 0 && <div className="discount"><span>{discountMode === "COUPON" ? `Cupón · ${selectedCoupon?.name}` : "Descuento manual"}</span><b>− {formatCOP(discount)}</b></div>}
+                  <div className="checkout-grand-total"><span>Total</span><b>{formatCOP(total)}</b></div>
+                </div>
+              </aside>
             </div>
           )}
-          {error && <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-xs font-semibold text-red-700">{error}</div>}
+          {error && <div className="checkout-error checkout-inline-error">{error}</div>}
         </div>
 
-        <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between md:px-5">
-          <p className="text-[9px] leading-4 text-neutral-400">Al crear el pedido se guardan orden, líneas, descuento y pago en PostgreSQL.</p>
-          <div className="flex gap-2"><button onClick={onClose} disabled={creatingOrder} className="rounded-xl border bg-white px-4 py-2.5 text-xs font-black disabled:opacity-50">Volver</button><button onClick={() => void createOrder()} disabled={loadingSettings || Boolean(settingsError) || creatingOrder} className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-xs font-black text-white disabled:bg-neutral-300">{creatingOrder ? "Creando pedido..." : "Crear pedido"}</button></div>
-        </div>
+        <footer className="checkout-footer">
+          <p>Al crear el pedido se guardan orden, productos, descuento y pago.</p>
+          <div><button onClick={onClose} disabled={creatingOrder}>Volver</button><button className="primary" onClick={() => void createOrder()} disabled={loadingSettings || Boolean(settingsError) || creatingOrder}>{creatingOrder ? "Creando pedido..." : "Crear pedido"}</button></div>
+        </footer>
       </div>
     </div>
   );
