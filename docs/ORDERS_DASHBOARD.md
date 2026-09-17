@@ -407,17 +407,24 @@ La secuencia operativa es obligatoriamente:
 
 Cancelar conserva el pedido, sus productos y sus pagos para mantener trazabilidad.
 
+La cancelación está limitada al **mismo día operativo en que se creó la orden**, calculado con la zona horaria `America/Bogota`. Un pedido de un día anterior ya no puede cancelarse después del cierre diario.
+
+La restricción existe tanto en la interfaz como en `PATCH /api/orders/[id]`, por lo que no puede omitirse llamando directamente al endpoint.
+
 Al cancelar:
 
 - `Order.status` pasa a `CANCELED`;
 - los movimientos `Payment` existentes no se borran;
 - los pagos que no estén `REFUNDED` pasan a estado `CANCELED`, por lo que dejan de contar como ingresos activos en Caja;
 - la orden deja de participar del flujo operativo normal;
-- recién entonces la interfaz habilita la acción de eliminación definitiva.
+- la tarjeta adopta una apariencia gris/desactivada para diferenciarla claramente de órdenes activas;
+- recién entonces la interfaz habilita la acción de eliminación definitiva, siempre que la orden siga perteneciendo al día operativo actual.
 
 ### Eliminar
 
-`DELETE /api/orders/[id]` solo acepta pedidos cuyo estado ya sea `CANCELED`.
+`DELETE /api/orders/[id]` solo acepta pedidos cuyo estado ya sea `CANCELED` **y cuya fecha de creación corresponda al día operativo actual en Bogotá**.
+
+Después del cambio de día, un pedido cancelado queda preservado como histórico del cierre diario y ya no puede eliminarse.
 
 Al eliminar definitivamente, la transacción borra físicamente:
 
@@ -444,10 +451,12 @@ Esto evita datos huérfanos y también impide borrar accidentalmente una orden a
 - `src/app/orders-card-typography.css`
 - `src/app/orders-card-payment-summary.css`
 - `src/app/orders-detail-drawer-compact.css`
+- `src/app/orders-canceled-card.css`
 - `src/lib/orderLineNormalizer.ts`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
+- `src/lib/operationalDate.ts`
 
 ## Base de datos
 
