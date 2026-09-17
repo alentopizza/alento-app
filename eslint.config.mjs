@@ -12,7 +12,10 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    files: ["src/components/StructuredPosPage.tsx"],
+    files: [
+      "src/components/StructuredPosPage.tsx",
+      "src/components/StructuredPosPageV2.tsx",
+    ],
     rules: {
       "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
     },
