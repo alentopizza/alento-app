@@ -64,6 +64,14 @@ La interfaz muestra `POS-0001`; el `id = 12` sigue utilizándose únicamente par
 
 Como compatibilidad con registros creados antes de esta implementación, si un pedido histórico tiene `sequenceNumber = null`, la pantalla puede usar temporalmente `Order.id` como fallback visual.
 
+## Visualización en Cocina
+
+La pantalla `/cocina` también usa `Order.sequenceNumber` cuando existe, con el mismo prefijo derivado de `Order.source`.
+
+Por ejemplo, un pedido con `id = 12`, `sequenceNumber = 1` y `source = POS` se muestra en Cocina como `POS-0001`. El `id` técnico continúa utilizándose internamente para actualizar productos y estados.
+
+Los pedidos históricos sin `sequenceNumber` conservan un fallback visual al `Order.id` para compatibilidad.
+
 ## Prefijos
 
 Actualmente:
