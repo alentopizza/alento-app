@@ -33,11 +33,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (!method) return NextResponse.json({ error: "Selecciona un medio de pago activo." }, { status: 400 });
 
     const isCash = method.name.trim().toLowerCase() === "efectivo";
-    const cashReceived = isCash ? Number(body.cashReceived ?? 0) : null;
-    if (isCash && (!Number.isFinite(cashReceived) || cashReceived < outstanding)) {
-      return NextResponse.json({ error: `El efectivo recibido debe ser mínimo $${outstanding.toLocaleString("es-CO")}.` }, { status: 400 });
+    let cashReceived: number | null = null;
+
+    if (isCash) {
+      const received = Number(body.cashReceived ?? 0);
+      if (!Number.isFinite(received) || received < outstanding) {
+        return NextResponse.json({ error: `El efectivo recibido debe ser mínimo $${outstanding.toLocaleString("es-CO")}.` }, { status: 400 });
+      }
+      cashReceived = received;
     }
-    const changeDue = isCash && cashReceived != null ? cashReceived - outstanding : null;
+
+    const changeDue = cashReceived == null ? null : cashReceived - outstanding;
     const reference = typeof body.reference === "string" && body.reference.trim() ? body.reference.trim() : null;
     const pending = order.payments.find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL");
 
