@@ -17,6 +17,7 @@ import "./orders-fulfillment-badges.css";
 import "./orders-card-typography.css";
 import "./orders-card-payment-summary.css";
 import "./orders-detail-drawer-compact.css";
+import "./orders-canceled-card.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 
