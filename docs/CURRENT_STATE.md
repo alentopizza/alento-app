@@ -2,7 +2,24 @@
 
 Última actualización: 2026-09-17.
 
-Este documento resume el comportamiento real de Alentó App al momento de esta actualización. Para arquitectura general ver `docs/ARCHITECTURE.md`; para autenticación futura ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+Este documento resume el comportamiento real de Alentó App al momento de esta actualización. Para el orden de implementación aprobado ver `docs/ROADMAP.md`; para arquitectura general ver `docs/ARCHITECTURE.md`; para autenticación futura ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+
+## Fase activa
+
+La prioridad actual es cerrar **Pedidos** y **Cocina** antes de iniciar autenticación.
+
+Orden aprobado:
+
+```text
+Pedidos
+→ Cocina
+→ Validación integrada Pedidos ↔ Cocina
+→ Autenticación y Roles
+```
+
+No iniciar el bloque de usuarios/login/roles mientras existan pendientes operativos relevantes en Pedidos o Cocina.
+
+Los criterios de cierre de cada fase están definidos en `docs/ROADMAP.md`.
 
 ## Estado general
 
@@ -62,11 +79,15 @@ PREPARING → PREPARED → READY → COMPLETED
 
 Cocina ya muestra el consecutivo comercial (`POS-0001`, etc.) cuando existe.
 
+La fase de Cocina todavía debe validarse con los escenarios definidos en `docs/ROADMAP.md` antes de considerarse cerrada.
+
 ## Pedidos
 
 `/pedidos` usa tarjetas compactas y permite buscar/filtrar, abrir detalle, ver productos, registrar/eliminar pagos, editar modalidad y cantidades, cambiar domicilio, agregar productos simples, imprimir y eliminar pedidos de prueba/corrección autorizada.
 
 Si una edición agrega o cambia productos después de que el pedido avanzó, el sistema puede devolverlo a `PREPARING` para que Cocina procese correctamente los cambios.
+
+La fase de Pedidos todavía debe validarse con los escenarios definidos en `docs/ROADMAP.md` antes de considerarse cerrada.
 
 ## Eliminación y cancelación
 
@@ -109,9 +130,11 @@ Ver `docs/ORDER_NUMBERING.md`.
 
 Existe comprobante térmico de 80 mm en `/pedidos/[id]/imprimir`. Es un comprobante operativo, no facturación electrónica fiscal.
 
-## Autenticación y roles — próximo bloque prioritario
+## Autenticación y roles — siguiente fase después de Pedidos + Cocina
 
 Actualmente no existe `User` interno, login, contraseña/hash, sesión, middleware, autorización por rol ni protección de APIs internas.
+
+Este bloque está aprobado, pero **no debe iniciarse hasta cerrar Pedidos y Cocina y aprobar el checkpoint integrado**.
 
 Roles iniciales propuestos:
 
@@ -156,15 +179,17 @@ No usar `prisma migrate deploy` hasta realizar un baseline formal. `db push` no 
 
 ## Próximos pasos aprobados
 
-1. Completar migración visual del consecutivo comercial en vistas restantes.
-2. Agregar `User` y `UserRole` en Prisma.
-3. Elegir solución de autenticación.
-4. Implementar login/logout y sesión segura.
-5. Proteger una ruta piloto (Cocina).
-6. Proteger todas las páginas internas.
-7. Proteger todas las APIs internas.
-8. Aplicar permisos por rol.
-9. Crear administración de usuarios.
-10. Continuar Caja/cierres e inventario/costos.
-11. Construir experiencia pública.
-12. Sustituir Glide y migrar `alentopizza.com`.
+1. Cerrar Pedidos según los criterios de `docs/ROADMAP.md`.
+2. Cerrar Cocina según los criterios de `docs/ROADMAP.md`.
+3. Ejecutar y aprobar el checkpoint integrado POS → Pedidos → Cocina → Pago → Caja.
+4. Agregar `User` y `UserRole` en Prisma.
+5. Elegir solución de autenticación.
+6. Implementar login/logout y sesión segura.
+7. Proteger una ruta piloto.
+8. Proteger todas las páginas internas.
+9. Proteger todas las APIs internas.
+10. Aplicar permisos por rol.
+11. Crear administración de usuarios.
+12. Continuar Caja/cierres e inventario/costos.
+13. Construir experiencia pública.
+14. Sustituir Glide y migrar `alentopizza.com`.
