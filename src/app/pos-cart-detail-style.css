@@ -1,0 +1,311 @@
+/*
+ * POS cart visual language aligned with the order detail drawer.
+ * This file is visual only: it does not change cart, pricing, checkout or persistence logic.
+ */
+
+/* Panel shell: warm operational background like the order detail drawer. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card {
+  overflow: hidden !important;
+  border-color: #ded8d1 !important;
+  background: #f5f2ee !important;
+  padding: 0 !important;
+}
+
+/* Reorder visual sections without touching React logic. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:nth-child(2) {
+  order: -3;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child {
+  order: -2;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > .alento-scroll,
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div.flex.flex-1 {
+  order: -1;
+}
+
+/* Dark cart header, matching Pedidos detail. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:nth-child(2) {
+  position: relative;
+  margin: 0 !important;
+  padding: 18px 20px 17px !important;
+  border-bottom: 2px solid var(--brand-red);
+  background:
+    radial-gradient(circle at 88% 18%, rgba(229, 28, 17, 0.23), transparent 30%),
+    linear-gradient(135deg, #0b0b0c 0%, #181718 100%);
+  color: #fff;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:nth-child(2)
+  > p:first-child {
+  margin: 0 !important;
+  color: rgba(255, 255, 255, 0.46) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:nth-child(2)
+  > h2 {
+  margin-top: 4px !important;
+  color: #fff !important;
+  font-size: 23px !important;
+  line-height: 28px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.035em !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:nth-child(2)
+  > p:not(:first-child) {
+  margin-top: 3px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 11px !important;
+  line-height: 15px !important;
+}
+
+/* Type/customer becomes a white operational card below the dark header. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child {
+  position: relative !important;
+  margin: 14px 14px 0 !important;
+  border: 1px solid #e3ddd7 !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  padding: 13px !important;
+  box-shadow: 0 6px 18px rgba(29, 25, 22, 0.035) !important;
+}
+
+/* Hide the old preparation heading but keep its new-customer action available. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:first-child
+  > div {
+  display: none !important;
+}
+
+/* Operational labels. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:first-child
+  > p,
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > p {
+  color: #9a938c !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+}
+
+/* Mode segmented control, denser and calmer. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  div.grid.grid-cols-3 {
+  gap: 3px !important;
+  border-color: #e9e4df !important;
+  border-radius: 13px !important;
+  background: #f7f5f2 !important;
+  padding: 3px !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  div.grid.grid-cols-3
+  > button {
+  min-height: 42px !important;
+  border-radius: 10px !important;
+}
+
+/* Selected customer mirrors the clean customer block from Pedidos. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child
+  div.rounded-2xl.border.border-neutral-200.bg-white {
+  border-radius: 14px !important;
+  background: #faf9f7 !important;
+  padding: 11px 12px !important;
+  box-shadow: none !important;
+}
+
+/* Product region gets its own white card and remains the only scrollable area. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > .alento-scroll {
+  min-height: 0 !important;
+  margin: 12px 14px 0 !important;
+  border: 1px solid #e3ddd7;
+  border-radius: 18px;
+  background: #fff;
+  padding: 12px !important;
+  box-shadow: 0 6px 18px rgba(29, 25, 22, 0.03);
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > .alento-scroll::before {
+  content: "PRODUCTOS";
+  display: block;
+  margin: 0 0 9px 2px;
+  color: #9a938c;
+  font-size: 9px;
+  line-height: 12px;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+}
+
+/* Empty cart uses the same product container visual. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div.flex.flex-1.items-center.justify-center {
+  margin: 12px 14px 0 !important;
+  border: 1px dashed #d9d2cb !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  padding: 34px 18px !important;
+}
+
+/* Totals + CTA: fixed white footer with strong red total. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child {
+  position: relative !important;
+  z-index: 5;
+  flex-shrink: 0;
+  margin-top: 12px !important;
+  border-top: 1px solid #ddd7d1 !important;
+  background: #fff !important;
+  padding: 14px 18px 16px !important;
+  box-shadow: 0 -12px 28px rgba(20, 18, 16, 0.055) !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > div:first-child {
+  color: #6e6862;
+  font-size: 12px;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > div:nth-child(2) {
+  margin-top: 9px !important;
+  padding-top: 10px !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > div:nth-child(2)
+  > b:last-child {
+  color: var(--brand-red) !important;
+  font-size: 25px !important;
+  line-height: 29px !important;
+  font-weight: 850 !important;
+  letter-spacing: -0.035em;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:last-child
+  > button:last-child {
+  min-height: 48px !important;
+  border-radius: 13px !important;
+  box-shadow: 0 8px 20px rgba(229, 28, 17, 0.16);
+}
+
+@media (min-width: 1280px) {
+  main:has(> div > section.grid > div:first-child > header.alento-dark)
+    > div
+    > section.grid
+    > aside.alento-card
+    > .alento-scroll {
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 1279px) {
+  main:has(> div > section.grid > div:first-child > header.alento-dark)
+    > div
+    > section.grid
+    > aside.alento-card {
+    border-radius: 24px !important;
+  }
+}
