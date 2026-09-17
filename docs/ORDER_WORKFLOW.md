@@ -119,11 +119,13 @@ Recoger y Local muestran:
 
 `En preparación → Preparado → Listo → Finalizado`
 
-### Estado y pagos son independientes
+### Finalizado requiere pago completo
 
-Cambiar un pedido a `COMPLETED` (**FINALIZADO**) no registra dinero ni modifica Caja.
+`COMPLETED` (**FINALIZADO**) no registra dinero ni modifica Caja automáticamente, pero solo puede seleccionarse cuando el pedido está pagado en su totalidad.
 
-Los pagos reales continúan dependiendo exclusivamente de los movimientos `Payment.status = PAID`. Por tanto, es posible finalizar operativamente una orden que todavía tenga saldo pendiente; el resumen financiero seguirá mostrando ese saldo hasta que se registre el ingreso correspondiente.
+El saldo se calcula con `Order.total - suma(Payment.amount donde status = PAID)`. Si el saldo es mayor que `0`, el selector muestra `FINALIZADO` deshabilitado y la API rechaza cualquier intento de finalizar.
+
+Los pagos parciales siguen permitidos. Una orden puede avanzar por sus etapas operativas con saldo pendiente, pero no puede cerrarse definitivamente hasta completar el pago.
 
 ## API de preparación por producto
 
@@ -164,6 +166,7 @@ Validaciones principales:
 - Recoger / Local solo aceptan estados de `STORE_FLOW`;
 - no se permite volver a una etapa anterior;
 - seleccionar `PREPARED` o una etapa posterior sincroniza la preparación de todas las líneas como completa;
+- `COMPLETED` requiere saldo pendiente igual a `0`, calculado exclusivamente con pagos `PAID`;
 - el endpoint no registra ni modifica pagos.
 
 Cocina sigue utilizando este mismo endpoint para `PREPARED → READY`, pero su interfaz mantiene el flujo guiado de producción.
