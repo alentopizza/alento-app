@@ -110,25 +110,26 @@ El bloque del cliente está optimizado para lectura rápida durante la operació
 
 Criterios visuales:
 
-- contenedor un poco más alto y con mayor respiración interna;
-- avatar/inicial de 46 px con borde y sombra suaves;
-- nombre del cliente a aproximadamente 16.5 px y con peso medio/alto;
-- teléfono a aproximadamente 12.5 px;
-- dirección visible debajo del contacto cuando el pedido es a domicilio;
-- el texto secundario puede ocupar más de una línea y no se trunca;
+- contenedor más alto y con mayor respiración interna;
+- avatar/inicial de 50 px con borde y sombra suaves;
+- nombre del cliente a aproximadamente 17 px y con peso medio/alto;
+- teléfono y dirección a aproximadamente 13 px;
+- teléfono y dirección se renderizan en líneas independientes;
+- cada dato secundario usa un pequeño punto visual discreto, sin emojis;
+- la dirección solo aparece en la tarjeta cuando el pedido es `DOMICILIO` y existe una dirección asociada;
 - fondo crema muy suave, borde discreto y sombra ligera.
 
 El objetivo visual es que la información se lea como:
 
 ```text
 Ivan Garzon
-+57 3243755611
-Calle 8a #92-72
+• +57 3243755611
+• Calle 8a #92-72
 ```
 
 En `RECOGER` o `LOCAL`, si no existe dirección asociada al pedido, se muestra únicamente el teléfono.
 
-El detalle lateral usa la misma jerarquía de nombre, teléfono y dirección para mantener consistencia.
+El detalle lateral usa la misma jerarquía visual y también separa nombre, teléfono y dirección en líneas distintas.
 
 ### Acciones secundarias
 
