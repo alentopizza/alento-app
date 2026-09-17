@@ -13,19 +13,42 @@ Ejemplo:
 
 ## Fuente del consecutivo
 
-El número se basa en `Order.id`, generado por PostgreSQL.
+El número comercial ya no depende de `Order.id`.
 
-Esto significa que POS, WEB y los canales futuros consumen la misma secuencia global de `Order`.
+El modelo `Order` conserva su `id` técnico interno, pero ahora tiene un campo independiente:
 
-El helper central está en:
-
-`src/lib/orderCode.ts`
-
-Uso:
-
-```ts
-orderCode(order.id, order.source)
+```prisma
+sequenceNumber Int? @unique
 ```
+
+El contador global se guarda en:
+
+```prisma
+model OrderSequence {
+  id        Int      @id @default(1)
+  current   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+```
+
+Al crear un pedido, la aplicación incrementa `OrderSequence.current` y guarda el resultado en `Order.sequenceNumber` dentro de la misma transacción.
+
+Esto evita duplicados si dos pedidos entran casi al mismo tiempo y permite que todos los canales compartan un solo consecutivo.
+
+## Inicio oficial del sistema
+
+La nueva secuencia comercial comienza desde cero.
+
+Después de sincronizar Prisma, el primer pedido nuevo creado por el POS debe recibir:
+
+`POS-0001`
+
+El siguiente pedido, sin importar el canal, recibe `0002`:
+
+- si entra por POS: `POS-0002`
+- si entra por WEB: `WEB-0002`
+
+Los pedidos anteriores a esta implementación pueden conservar `sequenceNumber = null`; no consumen la nueva secuencia comercial.
 
 ## Prefijos
 
@@ -34,31 +57,29 @@ Actualmente:
 - `POS` -> pedidos creados desde el punto de venta interno.
 - `WEB` -> pedidos que más adelante se crearán desde la web del cliente.
 
-El helper también contempla abreviaciones para otros `OrderSource`, pero POS y WEB son los prefijos comerciales principales definidos en esta etapa.
+El prefijo es independiente del número. Todos los canales consumen el mismo contador global.
 
 ## Regla sobre eliminaciones
 
-Eliminar un pedido borra físicamente la fila `Order` y, por relaciones `onDelete: Cascade`, elimina también sus `OrderItem` y `Payment` relacionados.
-
-PostgreSQL no reutiliza automáticamente un `id` eliminado. Por seguridad operativa, un número que ya existió no se reasigna a otro pedido.
+Eliminar un pedido no reduce ni reutiliza el consecutivo global.
 
 Ejemplo:
 
-1. existe `POS-0007`;
+1. se crea `POS-0007`;
 2. se elimina definitivamente;
-3. el siguiente pedido puede ser `POS-0008` o `WEB-0008` según el canal;
-4. `0007` no se reutiliza.
+3. el siguiente pedido será `POS-0008`, `WEB-0008` u otro prefijo según el canal;
+4. `0007` no vuelve a asignarse.
 
-Esto evita que dos pedidos distintos hayan tenido el mismo identificador histórico.
+Esto evita que dos pedidos diferentes tengan el mismo identificador comercial histórico.
 
 ## Cancelar vs eliminar
 
 Son acciones diferentes:
 
 - **Cancelar**: conserva la orden en PostgreSQL con estado `CANCELED`.
-- **Eliminar**: borra definitivamente la orden y sus relaciones en cascada.
+- **Eliminar**: borra definitivamente la orden, sus `OrderItem` y sus `Payment` relacionados.
 
-La cancelación se usa cuando se quiere conservar el historial operativo. La eliminación se usa cuando el registro debe desaparecer definitivamente, por ejemplo durante pruebas o correcciones autorizadas.
+La cancelación se usa cuando se quiere conservar historial operativo. La eliminación se usa cuando el registro debe desaparecer definitivamente, por ejemplo durante pruebas o correcciones autorizadas.
 
 ## Factura fiscal
 
