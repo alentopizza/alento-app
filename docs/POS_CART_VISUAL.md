@@ -1,12 +1,44 @@
 # POS — Carrito y resumen visual
 
-Última actualización: 2026-09-16.
+Última actualización: 2026-09-17.
 
-Este documento registra el pulido visual del área inferior del carrito del Punto de Venta.
+Este documento registra el pulido visual del panel derecho del Punto de Venta.
 
 ## Objetivo
 
-Eliminar la apariencia antigua basada en múltiples líneas divisorias, un estado vacío demasiado alto y un resumen de totales visualmente pesado.
+Mantener el POS compacto y operativo, con una jerarquía clara entre modalidad, cliente, carrito y cierre del pedido, sin modificar las reglas de negocio existentes.
+
+## Cliente seleccionado
+
+Cuando existe un cliente seleccionado, el bloque de información usa el mismo lenguaje visual moderno definido para Pedidos:
+
+- superficie crema muy suave;
+- borde y sombra discretos;
+- avatar neutro a la izquierda;
+- nombre del cliente como dato principal;
+- teléfono en una línea secundaria independiente;
+- dirección en una tercera línea cuando el pedido es a domicilio;
+- tipografía de sistema moderna y legible;
+- mayor respiración interna sin convertir el bloque en una tarjeta dominante.
+
+Referencia visual:
+
+```text
+Ivan Garzon
+• +57 3243755611
+• Calle 8a #92-72
+```
+
+Las acciones del cliente se mantienen, pero se presentan únicamente como iconos compactos:
+
+- lápiz → editar cliente;
+- intercambio → cambiar/quitar cliente seleccionado.
+
+El texto original de las acciones permanece en el DOM y la lógica de los botones no cambia. El ajuste es exclusivamente visual.
+
+Archivo específico:
+
+`src/app/pos-customer-card.css`
 
 ## Estado vacío
 
@@ -51,16 +83,23 @@ Las tarjetas de líneas del carrito:
 
 ## Implementación
 
-Archivo de estilos:
+Estilos principales relacionados:
 
-`src/app/pos-cart-polish.css`
+- `src/app/pos-order-panel-polish.css`
+- `src/app/pos-customer-card.css`
+- `src/app/pos-cart-polish.css`
+- `src/app/pos-cart-line.css`
 
-Se importa al final de los estilos específicos del POS desde:
+Se importan desde:
 
 `src/app/layout.tsx`
 
-De esta manera tiene prioridad visual sin modificar la lógica de `StructuredPosPage.tsx`.
+La página activa del POS es:
+
+`src/components/StructuredPosPageV2.tsx`
+
+Los ajustes visuales no modifican la lógica de selección/edición de clientes, carrito o checkout.
 
 ## Base de datos
 
-Este cambio es únicamente de interfaz. No modifica Prisma ni requiere `prisma db push`.
+Estos cambios son únicamente de interfaz. No modifican Prisma ni requieren `npx prisma db push`.
