@@ -1,0 +1,177 @@
+/*
+ * Ajuste final del drawer lateral del POS.
+ * - Recupera el botón + Nuevo cliente junto a Buscar.
+ * - En escritorio fija el pedido al borde derecho como un menú lateral real.
+ * - Mantiene comportamiento normal por debajo de XL.
+ */
+
+/* El bloque de preparación sirve de referencia para ubicar el botón +. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child {
+  position: relative !important;
+}
+
+/*
+ * Recuperar el contenedor antiguo únicamente cuando todavía no hay cliente
+ * seleccionado. Ocultamos su texto y usamos solo su botón como acción +.
+ */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child {
+  display: block !important;
+  position: absolute !important;
+  right: 15px !important;
+  bottom: 14px !important;
+  z-index: 20 !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child
+  > div {
+  display: none !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child
+  > button {
+  position: static !important;
+  display: inline-flex !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  padding: 0 !important;
+  background-color: var(--brand-red) !important;
+  background-image: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  transform: none !important;
+  box-shadow: 0 5px 13px rgba(229, 28, 17, 0.18) !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child
+  > button::before {
+  content: "+";
+  display: block;
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 400;
+  transform: translateY(-1px);
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child
+  > button::after {
+  content: none !important;
+}
+
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:first-child
+  > button:hover {
+  background-color: var(--brand-red-dark) !important;
+}
+
+/* Reservar hueco real para lupa + botón nuevo en la fila de búsqueda. */
+main:has(> div > section.grid > div:first-child > header.alento-dark)
+  > div
+  > section.grid
+  > aside.alento-card
+  > div:first-child:has(input[placeholder="Nombre, teléfono o correo"])
+  > div:nth-child(2)
+  > div:nth-child(2)
+  > div.flex {
+  padding-right: 46px !important;
+}
+
+/*
+ * Escritorio: el pedido deja de sentirse como una segunda columna y pasa a ser
+ * un drawer lateral anclado al viewport.
+ */
+@media (min-width: 1280px) {
+  main:has(> div > section.grid > div:first-child > header.alento-dark)
+    > div
+    > section.grid
+    > aside.alento-card {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: auto !important;
+    width: 390px !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-top: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-radius: 24px 0 0 24px !important;
+    box-shadow: -18px 0 48px rgba(27, 23, 20, 0.12) !important;
+  }
+
+  /*
+   * La grilla mantiene una columna reservada para que el catálogo nunca quede
+   * tapado por el drawer fijo.
+   */
+  main:has(> div > section.grid > div:first-child > header.alento-dark)
+    > div
+    > section.grid {
+    grid-template-columns: minmax(0, 1fr) 390px !important;
+    column-gap: 20px !important;
+  }
+}
+
+/* Tablet/móvil: volver al flujo normal y conservar bordes completos. */
+@media (max-width: 1279px) {
+  main:has(> div > section.grid > div:first-child > header.alento-dark)
+    > div
+    > section.grid
+    > aside.alento-card {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    border: 1px solid #ded9d3 !important;
+    border-radius: 24px !important;
+    box-shadow: 0 18px 44px rgba(27, 23, 20, 0.08) !important;
+  }
+}
