@@ -34,6 +34,21 @@ Actualmente `alentopizza.com` continúa ocupado por la solución construida en G
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
+## Fase activa de desarrollo
+
+La prioridad aprobada es:
+
+```text
+Cerrar Pedidos
+→ Cerrar Cocina
+→ Validación integrada Pedidos ↔ Cocina
+→ Autenticación y Roles
+```
+
+No iniciar Autenticación y Roles antes de aprobar el checkpoint de Pedidos + Cocina.
+
+La hoja de ruta operativa y sus criterios de cierre están en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 ## Estado actual
 
 Ya están implementados, entre otros:
@@ -81,6 +96,8 @@ Ver `docs/ORDER_NUMBERING.md`.
 ## Próximo bloque estratégico: autenticación y roles
 
 El sistema interno todavía **no tiene login ni protección por roles**.
+
+Este bloque comenzará solamente después de cerrar Pedidos y Cocina según `docs/ROADMAP.md`.
 
 Antes de exponer Alentó App como reemplazo definitivo de Glide se debe implementar:
 
@@ -178,6 +195,7 @@ Si estás retomando el proyecto en otro chat/equipo, empieza por [`docs/HANDOFF.
 
 Documentos principales:
 
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): orden de implementación por fases y criterios de cierre.
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura y responsabilidades.
 - [`docs/AUTH_ROLES_AND_PUBLIC_APP.md`](docs/AUTH_ROLES_AND_PUBLIC_APP.md): autenticación, permisos, dominio único y app pública.
@@ -221,14 +239,16 @@ Actualmente la arquitectura corresponde a una instalación por negocio. No asumi
 
 ## Roadmap recomendado
 
-1. Terminar validación del flujo actual POS → Cocina → Pedidos → Pago → Caja.
-2. Implementar usuarios internos, login y sesiones.
-3. Proteger páginas y APIs internas.
-4. Aplicar permisos por rol.
-5. Administración de usuarios y auditoría básica.
-6. Terminar Caja/conciliación y cierres operativos.
-7. Inventario, recetas y costos usando los IDs estructurados guardados en pedidos.
-8. Integraciones de atención como Chatwoot.
-9. Construir experiencia pública de pedidos reutilizando el mismo motor comercial.
-10. Sustituir Glide y migrar `alentopizza.com` a Alentó App.
-11. Evaluar empaquetado/parametrización para replicar la solución en otros negocios.
+1. Cerrar Pedidos según `docs/ROADMAP.md`.
+2. Cerrar Cocina según `docs/ROADMAP.md`.
+3. Aprobar checkpoint integrado POS → Pedidos → Cocina → Pago → Caja.
+4. Implementar usuarios internos, login y sesiones.
+5. Proteger páginas y APIs internas.
+6. Aplicar permisos por rol.
+7. Administración de usuarios y auditoría básica.
+8. Terminar Caja/conciliación y cierres operativos.
+9. Inventario, recetas y costos usando los IDs estructurados guardados en pedidos.
+10. Integraciones de atención como Chatwoot.
+11. Construir experiencia pública de pedidos reutilizando el mismo motor comercial.
+12. Sustituir Glide y migrar `alentopizza.com` a Alentó App.
+13. Evaluar empaquetado/parametrización para replicar la solución en otros negocios.
