@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./pos-polish.css";
 import "./product-config-polish.css";
+import "./product-config-shell.css";
 import "./product-card-polish.css";
 import "./pos-order-panel-polish.css";
 import "./pos-cart-polish.css";
