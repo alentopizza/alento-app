@@ -6,6 +6,7 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
+import { isCurrentOperationalDay } from "@/lib/operationalDate";
 import { fulfillmentLabel, nextStatus, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type CustomerAddress = { id: number; address: string };
@@ -57,7 +58,7 @@ function statusTone(status: OrderStatus) {
   if (status === "OUT_FOR_DELIVERY") return "bg-sky-600";
   if (status === "ARRIVED") return "bg-cyan-600";
   if (status === "DELIVERED") return "bg-teal-600";
-  if (status === "CANCELED") return "bg-red-600";
+  if (status === "CANCELED") return "bg-neutral-500";
   if (status === "COMPLETED") return "bg-neutral-700";
   return "bg-neutral-700";
 }
@@ -412,7 +413,8 @@ export default function OrdersCardsDashboardV3() {
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
           const plannedMethod = paymentHint(order).toUpperCase();
-          return <article key={order.id} onClick={() => setSelected(order)} className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)]">
+          const sameOperationalDay = isCurrentOperationalDay(order.createdAt);
+          return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
             <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
             <div className="p-4">
               <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold text-neutral-400">{dateTime(order.createdAt)}</p><h2 className="mt-0.5 text-[21px] font-black tracking-[-0.04em] text-neutral-950">{displayOrderCode(order)}</h2><p className="mt-0.5 text-[10px] text-neutral-400">{units} producto{units === 1 ? "" : "s"}</p></div><div className="min-w-[112px] rounded-2xl border border-neutral-100 bg-[#faf9f7] px-3 py-2 text-right shadow-[0_4px_14px_rgba(28,23,20,.025)]"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Total</p><b className="mt-0.5 block text-[19px] font-extrabold tracking-[-0.025em] text-[var(--brand-red)]">{money(order.total)}</b></div></div>
@@ -427,9 +429,21 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
                 {order.status === "CANCELED" ? (
-                  <button onClick={() => setConfirmAction({ kind: "delete-order", order })} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:opacity-30" title="Eliminar pedido definitivamente" aria-label="Eliminar pedido definitivamente"><Icon name="trash" /></button>
+                  <button
+                    onClick={() => setConfirmAction({ kind: "delete-order", order })}
+                    disabled={busyOrder || !sameOperationalDay}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:opacity-60"
+                    title={sameOperationalDay ? "Eliminar pedido definitivamente" : "Solo se pueden eliminar pedidos cancelados del día actual"}
+                    aria-label={sameOperationalDay ? "Eliminar pedido definitivamente" : "Eliminación bloqueada por cierre diario"}
+                  ><Icon name="trash" /></button>
                 ) : order.status !== "COMPLETED" ? (
-                  <button onClick={() => setConfirmAction({ kind: "cancel-order", order })} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:opacity-30" title="Cancelar pedido" aria-label="Cancelar pedido"><Icon name="cancel" /></button>
+                  <button
+                    onClick={() => setConfirmAction({ kind: "cancel-order", order })}
+                    disabled={busyOrder || !sameOperationalDay}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-400 disabled:opacity-60"
+                    title={sameOperationalDay ? "Cancelar pedido" : "No se puede cancelar un pedido de un día anterior"}
+                    aria-label={sameOperationalDay ? "Cancelar pedido" : "Cancelación bloqueada por cierre diario"}
+                  ><Icon name="cancel" /></button>
                 ) : null}
                 <div className="ml-auto min-w-0 flex-1">{kitchenManaged ? <Link href="/cocina" className="flex h-9 items-center justify-center rounded-lg bg-black px-2 text-[10px] font-black text-white">COCINA</Link> : actionLabel ? <button disabled={busyOrder} onClick={() => void advance(order)} className="h-9 w-full rounded-lg bg-[var(--brand-red)] px-2 text-[10px] font-black text-white disabled:opacity-50">{busyOrder ? "..." : actionLabel}</button> : <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">CERRADO</span>}</div>
               </div>
