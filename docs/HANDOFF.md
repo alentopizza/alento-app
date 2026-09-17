@@ -2,20 +2,23 @@
 
 Este documento existe para que una nueva persona, desarrollador o IA pueda retomar Alentó App sin depender del historial de una conversación anterior.
 
-## Lectura obligatoria al retomar el proyecto
+## Lectura obligatoria al retomar
 
-Antes de modificar código, leer en este orden:
+Leer en este orden:
 
 1. `README.md`
 2. `docs/CURRENT_STATE.md`
 3. `docs/ARCHITECTURE.md`
-4. `docs/ORDER_DATA_INTEGRITY.md`
-5. `docs/ORDERS.md`
-6. `docs/DEPLOYMENT.md`
-7. `prisma/schema.prisma`
-8. Los archivos del módulo que se vaya a modificar.
+4. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+5. `docs/ORDER_NUMBERING.md`
+6. `docs/PAYMENTS_AND_CASH.md`
+7. `docs/ORDER_DATA_INTEGRITY.md`
+8. `docs/ORDERS.md`
+9. `docs/DEPLOYMENT.md`
+10. `prisma/schema.prisma`
+11. Los archivos del módulo que se vaya a modificar.
 
-Después, revisar los commits recientes de `main` para entender los últimos cambios.
+Después revisar commits recientes de `main`.
 
 ## Regla obligatoria de documentación
 
@@ -23,106 +26,206 @@ Todo cambio funcional o estructural importante debe quedar documentado en el mis
 
 Como mínimo:
 
-- actualizar `docs/CURRENT_STATE.md` cuando cambie qué está implementado, el flujo actual o el próximo paso;
-- actualizar `docs/ARCHITECTURE.md` cuando cambie una regla comercial, modelo de datos, integración, API, responsabilidad de módulo o decisión estructural;
-- actualizar `docs/ORDER_DATA_INTEGRITY.md` cuando cambie cómo se representa una pizza, combo, modificador o componente que posteriormente pueda alimentar inventario/costos;
-- actualizar `docs/DEPLOYMENT.md` cuando cambie Prisma, EasyPanel, variables de entorno, despliegue o procedimiento operativo;
-- actualizar `README.md` cuando cambie de forma relevante el objetivo, roadmap o mapa de documentación;
-- documentar cualquier comando manual necesario después del despliegue, especialmente `npx prisma db push`.
+- actualizar `docs/CURRENT_STATE.md` cuando cambie el comportamiento real;
+- actualizar `docs/ARCHITECTURE.md` cuando cambie una regla estructural;
+- actualizar `docs/AUTH_ROLES_AND_PUBLIC_APP.md` cuando cambien autenticación, permisos, dominio o app pública;
+- actualizar `docs/ORDER_NUMBERING.md` cuando cambie el consecutivo o identificación comercial;
+- actualizar `docs/PAYMENTS_AND_CASH.md` cuando cambien pagos, Caja o conciliación;
+- actualizar `docs/ORDER_DATA_INTEGRITY.md` cuando cambie cómo se representa un producto vendido;
+- actualizar `docs/DEPLOYMENT.md` cuando cambie Prisma, EasyPanel, variables de entorno o procedimiento de despliegue;
+- actualizar `README.md` cuando cambie el objetivo o roadmap general.
 
-No considerar una funcionalidad importante como terminada hasta haber actualizado la documentación relacionada.
+No considerar una funcionalidad importante terminada hasta actualizar su documentación.
 
-## Qué debe quedar claro después de cada cambio
+## Estado conceptual actual
 
-La documentación debe permitir responder sin revisar conversaciones antiguas:
+Alentó App es la fuente operativa principal en construcción.
 
-- qué hace actualmente el sistema;
-- qué módulos existen;
-- cuál es el flujo operativo del POS;
-- qué reglas comerciales están activas;
-- qué datos se guardan en PostgreSQL;
-- qué APIs existen y para qué sirven;
-- qué partes están terminadas y cuáles son temporales;
-- qué requiere pasos manuales de despliegue;
-- cuál es el siguiente bloque de desarrollo aprobado.
+Debe terminar centralizando:
 
-## Estado conceptual que debe respetarse
+- POS;
+- clientes;
+- catálogo;
+- pedidos;
+- Cocina;
+- pagos;
+- Caja;
+- configuración;
+- futura experiencia pública;
+- inventario/costos;
+- integraciones.
 
-Alentó App es la fuente operativa principal. Chatwoot debe ser un canal de atención y no un segundo motor de pedidos.
+Chatwoot u otros canales deben funcionar como interfaces de atención, no como motores paralelos de pedidos.
 
-El flujo objetivo compartido por POS, Chatwoot y la futura app de clientes debe reutilizar las mismas reglas de:
+## Decisión de dominio
 
+La arquitectura objetivo es un solo dominio principal.
+
+Actualmente `alentopizza.com` sigue ocupado por Glide. Durante el desarrollo Alentó App usa infraestructura temporal.
+
+Objetivo cuando se sustituya Glide:
+
+```text
+alentopizza.com/        → experiencia pública
+alentopizza.com/interno → sistema interno protegido
+```
+
+No asumir que POS, Cocina o Caja necesitan dominios separados permanentes.
+
+## Autenticación — próxima prioridad estratégica
+
+Hoy no existe autenticación ni autorización implementada.
+
+Antes de considerar el sistema interno listo para el dominio público principal se debe implementar:
+
+1. `User` y `UserRole` en Prisma;
+2. solución de autenticación;
+3. hash seguro de contraseñas;
+4. login/logout;
+5. sesión segura;
+6. protección piloto de `/cocina`;
+7. protección de todas las páginas internas;
+8. protección de todas las APIs internas;
+9. permisos por rol;
+10. administración de usuarios.
+
+Roles iniciales propuestos:
+
+- `ADMIN`
+- `POS`
+- `KITCHEN`
+- `CASHIER`
+- `DISPATCH`
+
+No basta con ocultar botones. La autorización debe existir en servidor.
+
+## Clientes y empleados son entidades distintas
+
+`Customer` representa compradores.
+
+No reutilizar `Customer` como cuenta de empleado. El personal interno debe tener su propio modelo `User`.
+
+## Regla crítica: integridad estructurada
+
+Cada orden debe guardar de forma estructurada qué se vendió.
+
+Pizzas y combos deben conservar IDs reales y snapshots de tamaño, sabores, porciones, bordes, modificadores, grupos, opciones y cantidades.
+
+Esta información es la base futura de Cocina, inventario, recetas y costos.
+
+`POS_SNAPSHOT` es compatibilidad histórica, no arquitectura objetivo.
+
+## Flujo operativo actual
+
+Pedidos nuevos nacen directamente en:
+
+```text
+PREPARING
+```
+
+Domicilio:
+
+```text
+PREPARING → PREPARED → READY → OUT_FOR_DELIVERY → ARRIVED → DELIVERED → COMPLETED
+```
+
+Recoger/Local:
+
+```text
+PREPARING → PREPARED → READY → COMPLETED
+```
+
+Cocina controla preparación hasta `READY`. Pedidos continúa el despacho/cierre.
+
+## Consecutivo comercial
+
+`Order.id` es técnico.
+
+`Order.sequenceNumber` es el consecutivo comercial global compartido por canales.
+
+Ejemplo:
+
+```text
+POS-0001
+WEB-0002
+POS-0003
+```
+
+El prefijo depende de `Order.source`; el número no se separa por canal.
+
+No reutilizar números eliminados.
+
+## Pagos y Caja
+
+Medio seleccionado no significa dinero recibido.
+
+Caja solo cuenta `Payment.status = PAID` y `paidAt`.
+
+Eliminar un pago ingresado por error significa borrado físico; deja de contar en Caja.
+
+## Eliminación de pedidos
+
+Eliminar pedido significa borrado físico definitivo.
+
+El backend borra dentro de una transacción:
+
+```text
+Payment → OrderItem → Order
+```
+
+Cancelar es diferente: conserva trazabilidad con `CANCELED`.
+
+## Prisma en producción
+
+La base de producción no tiene baseline formal de Prisma Migrate.
+
+Cuando cambie el schema usar:
+
+```bash
+npx prisma db push
+```
+
+No usar `prisma migrate deploy` hasta realizar baseline.
+
+`db push` no ejecuta triggers/functions SQL definidos solamente dentro de migraciones.
+
+## Portabilidad / posibilidad de comercialización
+
+El repositorio debe permanecer comprensible y adaptable para poder replicarse en otros restaurantes.
+
+Separar el núcleo de negocio de:
+
+- marca;
+- logos/colores;
 - catálogo;
 - precios;
-- promociones y elegibilidad de descuentos;
-- cupones;
-- cobertura y domicilio;
-- clientes;
-- pedidos;
-- pagos;
-- configuración estructurada de productos;
-- futuras recetas, inventario y costos.
+- tarifas;
+- usuarios;
+- dominio;
+- secretos;
+- infraestructura.
 
-## Regla crítica: integridad de productos vendidos
+La arquitectura actual es una instalación por negocio. No asumir multi-tenancy todavía.
 
-Cada orden debe guardar de forma estructurada qué se vendió. Para pizzas y combos no basta guardar texto legible.
+## Antes de empezar un desarrollo
 
-Las órdenes nuevas deben conservar IDs reales y snapshots de:
+Confirmar:
 
-- tamaño;
-- sabor o sabores;
-- proporción de cada sabor (`1` o `0.5` en pizza mitad y mitad);
-- borde;
-- modificadores / ingredientes extra y cantidades;
-- componentes de combos;
-- productos simples incluidos en combos;
-- cantidades de cada selección.
-
-La razón es que esta configuración será la base futura de:
-
-- Cocina;
-- inventario;
-- recetas;
-- consumo de insumos;
-- costos teóricos;
-- rentabilidad por producto;
-- edición confiable de pedidos.
-
-`POS_SNAPSHOT` se considera compatibilidad histórica y no debe ser la arquitectura objetivo para órdenes nuevas. Ver `docs/ORDER_DATA_INTEGRITY.md`.
-
-## Reglas actuales especialmente importantes
-
-- Domicilio y Recoger en tienda requieren cliente.
-- Local permite cliente opcional.
-- El domicilio usa por ahora una tarifa/zona manual configurada desde `/configuracion`.
-- Google Maps queda como automatización futura y no como dependencia operativa actual.
-- Los cupones y descuentos solo se aplican sobre productos elegibles.
-- Combos y productos promocionales/no acumulables no reciben cupones.
-- El domicilio nunca forma parte de la base del descuento.
-- Un pedido no combina cupón y descuento manual.
-- Solo pedidos `CONFIRMED` pueden editarse.
-- La configuración estructurada de productos tiene prioridad antes de construir inventario real.
-- La base de producción todavía usa `npx prisma db push`; no usar `prisma migrate deploy` hasta realizar un baseline formal.
-
-## Antes de empezar un nuevo desarrollo
-
-Confirmar primero:
-
-1. que `main` contiene el último trabajo desplegado;
-2. que `docs/CURRENT_STATE.md` coincide con el comportamiento actual;
-3. que el cambio respeta `docs/ORDER_DATA_INTEGRITY.md`;
-4. si el cambio requiere modificar Prisma;
-5. si el cambio afecta reglas comerciales existentes;
-6. qué documento deberá actualizarse al terminar.
+1. que `main` contiene el último trabajo;
+2. que `CURRENT_STATE.md` describe el comportamiento real;
+3. si el cambio requiere Prisma;
+4. si afecta integridad estructurada;
+5. si afecta pagos/consecutivo/seguridad;
+6. qué documento debe actualizarse al cerrar.
 
 ## Al cerrar cada bloque
 
-Registrar en la respuesta y en el repositorio:
+Registrar claramente:
 
-- commit final de `main`;
+- commit(s) realizados;
 - qué cambió;
 - si requiere `npx prisma db push`;
 - qué debe probarse después del redeploy;
-- cuál es el siguiente paso recomendado.
+- cuál es el siguiente paso pequeño recomendado.
 
 La documentación del repositorio tiene prioridad como fuente de continuidad frente al historial de chats.
