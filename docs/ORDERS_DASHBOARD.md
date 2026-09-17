@@ -62,7 +62,6 @@ Cada tarjeta muestra:
 - cliente y contacto resumido;
 - total;
 - resumen financiero `Pago pendiente / Pagado`;
-- medio de pago previsto como etiqueta;
 - acción principal del workflow.
 
 El contador de `líneas` no se muestra en la tarjeta porque no aporta información operativa suficiente para justificar espacio visual.
@@ -71,22 +70,33 @@ El contador de `líneas` no se muestra en la tarjeta porque no aporta informaci�
 
 La tarjeta muestra siempre el estado financiero de la orden de forma explícita, incluso cuando existen pagos parciales.
 
-Se presentan tres piezas:
+Se presentan dos tarjetas de igual ancho:
 
 - `Pago pendiente`: saldo actual de la orden, en tono ámbar/alerta;
-- `Pagado`: suma real de todos los movimientos `Payment.status = PAID`, en tono verde/éxito;
-- medio previsto: etiqueta independiente en mayúscula, por ejemplo `EFECTIVO`, `NEQUI`, `DAVIPLATA`.
+- `Pagado`: suma real de todos los movimientos `Payment.status = PAID`, en tono verde/éxito.
+
+El medio de pago previsto ya **no se muestra en la tarjeta compacta** para evitar ruido visual y aprovechar mejor el espacio. Sigue disponible en el detalle del pedido y en el flujo `Registrar pago`.
 
 Ejemplo:
 
 ```text
-Pago pendiente      Pagado        EFECTIVO
-$ 92.500             $ 50.000
+Pago pendiente          Pagado
+$ 92.500                $ 50.000
 ```
 
-El bloque de `Pago pendiente` es clicable mientras exista saldo y abre el modal `Registrar ingreso`.
+El bloque `Pago pendiente` es clicable mientras exista saldo y abre el modal `Registrar ingreso`.
 
-El medio previsto **no representa dinero recibido**. Solo refleja la intención registrada desde POS o el método pendiente actual. Los importes reales recibidos se calculan exclusivamente con pagos `PAID`.
+El resumen financiero usa una capa visual aislada en `src/app/orders-card-payment-summary.css`:
+
+- cada bloque ocupa aproximadamente 50% del ancho disponible;
+- mayor contraste de fondo y borde;
+- etiquetas de 10 px con peso alto;
+- montos alrededor de 19 px;
+- números tabulares para lectura más limpia;
+- antialiasing y renderizado optimizado para evitar apariencia borrosa;
+- ajuste responsive para pantallas pequeñas.
+
+Los importes reales recibidos se calculan exclusivamente con pagos `PAID`.
 
 El total de la orden usa un pequeño contenedor visual independiente con fondo neutro, etiqueta `TOTAL` y monto en rojo para mejorar jerarquía sin aumentar demasiado la tarjeta.
 
@@ -121,7 +131,7 @@ Principios:
 - familia de sistema moderna: `Segoe UI`, `Roboto`, `Helvetica Neue`, `Arial`;
 - código comercial y total como elementos protagonistas;
 - nombre del cliente visible pero con menos peso que antes;
-- fecha, teléfono y medio de pago ligeramente más grandes;
+- fecha y teléfono ligeramente más grandes;
 - menor uso de `font-black` visual mediante overrides de peso;
 - números con `font-variant-numeric: tabular-nums` para mejorar alineación;
 - resumen financiero compacto y legible sin saturar la tarjeta;
@@ -335,6 +345,7 @@ Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/orders-fulfillment-badges.css`
 - `src/app/orders-card-typography.css`
+- `src/app/orders-card-payment-summary.css`
 - `src/lib/orderLineNormalizer.ts`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
