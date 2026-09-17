@@ -211,11 +211,66 @@ Desde Pedidos se puede:
 - seleccionar tarifa de domicilio;
 - modificar cantidades de líneas existentes;
 - quitar una línea llevando su cantidad a cero;
-- agregar productos simples como bebidas o antojos.
+- agregar bebidas y otros productos simples;
+- agregar pizzas configuradas;
+- agregar pizzas de dos sabores configuradas;
+- agregar combos configurados.
 
-Pizzas y combos nuevos no se agregan desde este editor simple porque requieren configuración estructurada.
+### Organización del editor
 
-Cuando una edición modifica productos y el pedido ya había avanzado, el servidor puede devolverlo a `PREPARING` para que Cocina no omita el cambio.
+El modal de edición separa claramente:
+
+1. `Productos actuales`: líneas ya existentes y cantidades.
+2. `Agregar pizzas y combos`: productos que requieren configuración antes de agregarse.
+3. `Agregar bebidas y otros`: productos simples que solo requieren cantidad.
+
+El componente `src/components/OrderEditStructuredAdder.tsx` contiene el flujo de selección/configuración de pizzas y combos para no seguir aumentando el componente principal de Pedidos.
+
+### Pizzas y combos agregados desde Pedidos
+
+Las nuevas pizzas y combos conservan `OrderItem.configuration` estructurado.
+
+Una pizza puede registrar:
+
+- tamaño;
+- uno o dos sabores;
+- borde;
+- ingredientes adicionales.
+
+Un combo puede registrar:
+
+- pizzas incluidas;
+- tamaño y sabor de cada pizza;
+- grupos/opciones del combo.
+
+El cliente envía la configuración seleccionada, pero el servidor **no confía en precios enviados por la interfaz**. `PATCH /api/orders/[id]` vuelve a validar el catálogo y recalcula precio, disponibilidad y configuración antes de crear el `OrderItem`.
+
+La lógica compartida está en:
+
+`src/lib/orderLineNormalizer.ts`
+
+Esto permite que edición y creación de pedidos utilicen la misma representación estructurada del producto y evita guardar pizzas/combos como líneas simples.
+
+### Efecto sobre Cocina
+
+Si una edición cambia cantidades o agrega cualquier producto, el pedido vuelve a `PREPARING` cuando ya estaba en una etapa posterior editable.
+
+Los productos nuevos se crean con:
+
+`preparedQuantity = 0`
+
+De esta forma Cocina debe preparar las nuevas unidades y no se omiten productos agregados después de crear la orden.
+
+### Totales y pagos después de editar
+
+El servidor recalcula:
+
+- subtotal;
+- base elegible de descuento;
+- descuento vigente dentro de la nueva base elegible;
+- domicilio;
+- total;
+- saldo pendiente.
 
 Si ya existe dinero recibido:
 
@@ -233,16 +288,18 @@ Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse
 
 - `src/app/pedidos/page.tsx`
 - `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/OrderEditStructuredAdder.tsx`
 - `src/app/pedidos/[id]/imprimir/page.tsx`
 - `src/app/api/orders/[id]/route.ts`
 - `src/app/api/orders/[id]/payment/route.ts`
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/orders-fulfillment-badges.css`
 - `src/app/orders-card-typography.css`
+- `src/lib/orderLineNormalizer.ts`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
 
 ## Base de datos
 
-Estos ajustes visuales no cambian Prisma ni requieren `npx prisma db push`.
+Este cambio no modifica Prisma ni requiere `npx prisma db push`.
