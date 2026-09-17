@@ -67,8 +67,10 @@ export default function OrdersWorkflowManager() {
   );
 
   async function advance(order: WorkflowOrder) {
+    const normalizedStatus = order.status === "CONFIRMED" ? "PREPARING" : order.status;
     const next = nextStatus(order.status, order.fulfillmentType);
-    if (!next || order.status === "PREPARING" || order.status === "CONFIRMED") return;
+    if (!next || ["PREPARING", "PREPARED"].includes(normalizedStatus)) return;
+
     setBusyId(order.id);
     setError("");
     try {
@@ -94,7 +96,7 @@ export default function OrdersWorkflowManager() {
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/45">Flujo operativo</p>
             <h2 className="mt-1 text-xl font-black tracking-tight">Pedidos activos</h2>
-            <p className="mt-1 text-xs text-white/50">Cocina controla Preparado → Listo. Desde aquí continúa despacho y cierre.</p>
+            <p className="mt-1 text-xs text-white/50">Cocina controla En preparación → Preparado → Listo. Después continúa despacho y cierre.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-black">{activeOrders.length} activos</span>
@@ -116,7 +118,7 @@ export default function OrdersWorkflowManager() {
             {activeOrders.map((order) => {
               const normalizedStatus = order.status === "CONFIRMED" ? "PREPARING" : order.status;
               const next = nextStatus(order.status, order.fulfillmentType);
-              const kitchenManaged = normalizedStatus === "PREPARING";
+              const kitchenManaged = ["PREPARING", "PREPARED"].includes(normalizedStatus);
               const busy = busyId === order.id;
 
               return (
