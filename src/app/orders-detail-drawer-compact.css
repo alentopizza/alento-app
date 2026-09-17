@@ -1,0 +1,253 @@
+/* Compact premium presentation for the order detail drawer.
+ * Visual only: no order, payment, state or checkout behavior lives here.
+ */
+
+.order-detail-drawer {
+  font-family: "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Header: preserve hierarchy while recovering vertical space. */
+.order-detail-drawer > header {
+  padding: 13px 18px !important;
+}
+
+.order-detail-drawer > header h2 {
+  margin-top: 2px !important;
+  font-size: 22px !important;
+  line-height: 25px !important;
+  letter-spacing: -0.025em !important;
+}
+
+.order-detail-drawer > header > div:first-child > div {
+  margin-top: 5px !important;
+  gap: 6px !important;
+}
+
+.order-detail-drawer > header button {
+  width: 36px !important;
+  height: 36px !important;
+}
+
+/* Main scroll area: tighter rhythm between sections. */
+.order-detail-drawer > div.alento-scroll {
+  padding: 12px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section {
+  border-radius: 16px !important;
+  box-shadow: 0 5px 16px rgba(28, 23, 20, 0.025);
+}
+
+.order-detail-drawer > div.alento-scroll > section + section {
+  margin-top: 9px !important;
+}
+
+/* 1. Customer: phone/address share a compact metadata row. */
+.order-detail-drawer .order-customer-detail {
+  padding: 13px 15px !important;
+}
+
+.order-detail-drawer .order-customer-detail-name {
+  margin-top: 2px !important;
+  font-size: 17px !important;
+  line-height: 20px !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.012em !important;
+}
+
+.order-detail-drawer .order-customer-detail-meta {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 2px 14px !important;
+  margin-top: 4px !important;
+}
+
+.order-detail-drawer .order-customer-detail-meta p {
+  margin: 0 !important;
+  font-size: 11.5px !important;
+  line-height: 16px !important;
+  color: #716b65 !important;
+}
+
+.order-detail-drawer .order-customer-detail > div:first-child > span {
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+  font-size: 9px !important;
+  line-height: 12px !important;
+}
+
+.order-detail-drawer .order-customer-detail > p {
+  margin-top: 7px !important;
+  padding-top: 7px !important;
+  font-size: 10.5px !important;
+  line-height: 14px !important;
+}
+
+/* Generic section labels/titles. */
+.order-detail-drawer > div.alento-scroll > section:not(.order-customer-detail) {
+  padding: 11px 13px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:not(.order-customer-detail) h3 {
+  margin-top: 2px !important;
+  font-size: 16px !important;
+  line-height: 19px !important;
+  letter-spacing: -0.01em;
+}
+
+/* 2. Products: preserve structured configuration, reduce empty space. */
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child {
+  margin-top: 8px !important;
+  gap: 6px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child > div {
+  padding: 8px 10px !important;
+  border-radius: 11px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child > div b {
+  font-size: 12.5px !important;
+  line-height: 16px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child > div .mt-1 {
+  margin-top: 2px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child > div p {
+  font-size: 10px !important;
+  line-height: 14px !important;
+}
+
+/* 3. Totals: condensed accounting strip with stronger final total. */
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(3) {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf8 100%) !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(3) > div {
+  margin-top: 7px !important;
+  gap: 4px !important;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(3) > div > div {
+  min-height: 24px;
+  align-items: center;
+  font-size: 12px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(3) > div > div:last-child {
+  margin-top: 3px;
+  padding-top: 8px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(3) > div > div:last-child b:last-child {
+  font-size: 20px !important;
+  line-height: 23px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* 4. Payments: denser cards and financial summary. */
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:first-child h3 {
+  font-size: 16px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:first-child button {
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+  font-size: 9px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:nth-child(2) {
+  margin-top: 8px !important;
+  gap: 6px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:nth-child(2) > div {
+  padding: 8px 10px !important;
+  border-radius: 11px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:nth-child(2) b {
+  font-size: 12px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:nth-child(2) p {
+  margin-top: 2px !important;
+  font-size: 10px !important;
+  line-height: 14px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:last-child {
+  margin-top: 7px !important;
+  gap: 6px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:last-child > div {
+  padding: 7px 10px !important;
+  border-radius: 10px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:last-child span {
+  font-size: 9px !important;
+  line-height: 12px !important;
+}
+
+.order-detail-drawer > div.alento-scroll > section:nth-of-type(4) > div:last-child b {
+  font-size: 12px !important;
+  line-height: 15px !important;
+}
+
+/* Footer: keep actions permanently visible with less vertical footprint. */
+.order-detail-drawer > footer {
+  padding: 9px 12px !important;
+}
+
+.order-detail-drawer > footer > div {
+  gap: 7px !important;
+}
+
+.order-detail-drawer > footer button,
+.order-detail-drawer > footer a,
+.order-detail-drawer > footer span {
+  height: 40px !important;
+  border-radius: 11px !important;
+  font-size: 12px !important;
+}
+
+/* Short viewports benefit from a slightly denser product list. */
+@media (max-height: 760px) {
+  .order-detail-drawer > header {
+    padding-block: 10px !important;
+  }
+
+  .order-detail-drawer > div.alento-scroll {
+    padding: 9px !important;
+  }
+
+  .order-detail-drawer > div.alento-scroll > section + section {
+    margin-top: 7px !important;
+  }
+
+  .order-detail-drawer > div.alento-scroll > section:nth-of-type(2) > div:last-child > div {
+    padding-block: 7px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .order-detail-drawer > div.alento-scroll {
+    padding: 10px !important;
+  }
+
+  .order-detail-drawer .order-customer-detail-meta {
+    gap: 1px 10px !important;
+  }
+
+  .order-detail-drawer > div.alento-scroll > section:nth-of-type(3) > div > div:last-child b:last-child {
+    font-size: 19px !important;
+  }
+}
