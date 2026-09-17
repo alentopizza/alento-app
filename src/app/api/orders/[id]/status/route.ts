@@ -55,8 +55,17 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
     }
 
-    const preparedIndex = flow.indexOf("PREPARED");
+    const currentIndex = flow.indexOf(current);
     const requestedIndex = flow.indexOf(requested);
+
+    if (currentIndex >= 0 && requestedIndex < currentIndex) {
+      return NextResponse.json(
+        { error: "No se puede devolver el pedido a una etapa anterior. Selecciona el estado actual o una etapa posterior." },
+        { status: 409 },
+      );
+    }
+
+    const preparedIndex = flow.indexOf("PREPARED");
 
     const updated = await prisma.$transaction(async (tx) => {
       if (requested === "PREPARING") {
