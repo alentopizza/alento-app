@@ -251,6 +251,22 @@ Al abrir una tarjeta se muestra un drawer con:
 
 El encabezado del bloque de productos no muestra un contador de `líneas`.
 
+### Drawer compacto
+
+El detalle lateral usa una capa visual específica en `src/app/orders-detail-drawer-compact.css` para mostrar más información antes de necesitar scroll.
+
+Criterios:
+
+- header más bajo, manteniendo código, fecha y modalidad visibles;
+- bloque de cliente más compacto, con teléfono y dirección en una misma zona de metadatos;
+- productos con menor padding y separación vertical, conservando configuración estructurada;
+- totales condensados, con mayor jerarquía para el total final;
+- pagos más densos y resumen recibido/saldo más compacto;
+- footer fijo con menor altura;
+- ajustes adicionales en viewports bajos para priorizar visibilidad operativa.
+
+Este cambio es únicamente visual. No modifica pedidos, pagos, estados, Caja, Cocina ni Prisma.
+
 ## Pagos registrados
 
 El detalle muestra los registros `Payment` existentes en la orden.
@@ -413,6 +429,7 @@ Esto evita datos huérfanos y también impide borrar accidentalmente una orden a
 - `src/app/orders-fulfillment-badges.css`
 - `src/app/orders-card-typography.css`
 - `src/app/orders-card-payment-summary.css`
+- `src/app/orders-detail-drawer-compact.css`
 - `src/lib/orderLineNormalizer.ts`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
