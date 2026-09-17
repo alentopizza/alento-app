@@ -89,7 +89,15 @@ function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close
 
 function ProductRow({ item }: { item: OrderItem }) {
   const details = presentOrderItemConfiguration(item.configuration);
-  return <div className="order-detail-product rounded-xl border border-neutral-200 bg-[#faf9f7] p-3"><div className="flex justify-between gap-3"><div className="min-w-0"><b className="order-detail-product-name text-sm">{item.quantity} × {item.productName}</b>{details.length > 0 && <div className="order-detail-product-chips mt-1 flex flex-wrap gap-1.5">{details.map((detail, index) => {
+  const normalizedName = item.productName.trim().toLocaleLowerCase("es");
+  const hasSecondFlavor = details.some((detail) => detail.label.toLowerCase() === "sabor 2");
+  const visibleDetails = details.filter((detail) => {
+    if (hasSecondFlavor || detail.label.toLowerCase() !== "sabor 1") return true;
+    const normalizedFlavor = detail.value.replace(/^½\s*/, "").trim().toLocaleLowerCase("es");
+    return normalizedFlavor !== normalizedName;
+  });
+
+  return <div className="order-detail-product rounded-xl border border-neutral-200 bg-[#faf9f7] p-3"><div className="flex justify-between gap-3"><div className="min-w-0"><b className="order-detail-product-name text-sm">{item.quantity} × {item.productName}</b>{visibleDetails.length > 0 && <div className="order-detail-product-chips mt-1 flex flex-wrap gap-1.5">{visibleDetails.map((detail, index) => {
     const extra = detail.label.toLowerCase() === "extra";
     const standard = detail.label.toLowerCase() === "producto";
     return <span key={`${detail.label}-${index}`} className={`order-detail-chip ${extra ? "order-detail-chip-extra" : standard ? "order-detail-chip-standard" : ""}`}><strong>{extra ? "+" : detail.label}</strong>{!extra && " · "}{detail.value}</span>;
