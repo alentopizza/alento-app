@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -35,8 +35,12 @@ function fulfillmentLabel(value: string) {
 
 export default function ThermalReceiptPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
+  const autoPrinted = useRef(false);
+  const embedded = searchParams.get("embedded") === "1";
+  const autoPrint = searchParams.get("autoprint") === "1";
 
   useEffect(() => {
     async function load() {
@@ -52,6 +56,13 @@ export default function ThermalReceiptPage() {
     if (params.id) void load();
   }, [params.id]);
 
+  useEffect(() => {
+    if (!order || !autoPrint || autoPrinted.current) return;
+    autoPrinted.current = true;
+    const timer = window.setTimeout(() => window.print(), 250);
+    return () => window.clearTimeout(timer);
+  }, [order, autoPrint]);
+
   if (error) return <main className="p-8 text-red-700">{error}</main>;
   if (!order) return <main className="p-8 text-neutral-500">Cargando comprobante...</main>;
 
@@ -60,10 +71,10 @@ export default function ThermalReceiptPage() {
 
   return (
     <main className="thermal-page mx-auto min-h-screen bg-white px-[5mm] py-[5mm] text-black">
-      <div className="no-print mb-4 flex justify-center gap-2">
+      {!embedded && <div className="no-print mb-4 flex justify-center gap-2">
         <button onClick={() => window.print()} className="rounded-xl bg-black px-5 py-2.5 text-sm font-black text-white">Imprimir</button>
         <button onClick={() => window.close()} className="rounded-xl border px-5 py-2.5 text-sm font-black">Cerrar</button>
-      </div>
+      </div>}
 
       <div className="thermal-receipt">
         <div className="text-center">
@@ -117,7 +128,7 @@ export default function ThermalReceiptPage() {
 
         {payment && <>
           <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
-            <p className="text-[15px] font-black">{payment.status === "PAID" ? "PAGADO" : "PAGO"} - $ {money(payment.amount)}</p>
+            <p className="text-[15px] font-black">{payment.status === "PAID" ? "PAGADO" : "PAGO PENDIENTE"} - $ {money(payment.amount)}</p>
             <p className="mt-1 text-[11px] font-bold">{payment.method.toUpperCase()}</p>
             {payment.cashReceived != null && <p className="mt-1 text-[11px]">PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}</p>}
           </div>
