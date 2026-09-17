@@ -80,14 +80,28 @@ La pantalla también:
 
 ## Pedidos
 
-La pestaña **Pedidos** incluye un bloque de **Pedidos activos** que usa el mismo motor de estados.
+La pestaña **Pedidos** usa una sola tarjeta por orden. Ya no existe un bloque superior duplicado ni una barra visual con todos los estados.
 
-Mientras una orden se encuentre en `PREPARING` o `PREPARED`, el control operativo permanece en Cocina y Pedidos muestra acceso directo a esa pestaña.
+Cada tarjeta muestra únicamente:
 
-Una vez `READY`:
+- número de pedido;
+- modalidad;
+- cliente y dirección cuando corresponde;
+- productos estructurados;
+- pago y totales;
+- **Estado actual**;
+- una sola acción operativa válida.
 
-- Domicilio continúa por En camino → Ha llegado → Entregado → Finalizado.
-- Recoger / Local continúan de Listo → Finalizado.
+Comportamiento:
+
+- `PREPARING`, `PREPARED` y pedidos antiguos `CONFIRMED` muestran **Gestionar en Cocina**;
+- a partir de `READY`, Pedidos muestra únicamente el botón para avanzar a la siguiente etapa válida;
+- Domicilio continúa `LISTO → EN CAMINO → HA LLEGADO → ENTREGADO → FINALIZADO`;
+- Recoger / Local continúan `LISTO → FINALIZADO`;
+- pedidos `COMPLETED` o `CANCELED` no muestran acción de avance;
+- la pantalla se refresca automáticamente cada 15 segundos.
+
+Esta simplificación evita mostrar el mismo pedido dos veces y mantiene Cocina como única responsable de la producción.
 
 ## API de preparación por producto
 
@@ -134,7 +148,7 @@ Migraciones relacionadas:
 - `20260916215000_order_workflow`
 - `20260916223000_kitchen_item_progress`
 
-La primera migración también instala un trigger que transforma nuevas órdenes insertadas como `CONFIRMED` a `PREPARING`, garantizando que entren directamente a Cocina.
+En la instalación actual se sincronizó el esquema con `npx prisma db push`; por eso la creación de pedidos ya guarda directamente `PREPARING` y no depende del trigger de las migraciones.
 
 ## Compatibilidad
 
@@ -143,17 +157,14 @@ La primera migración también instala un trigger que transforma nuevas órdenes
 ## Archivos principales
 
 - `prisma/schema.prisma`
-- `prisma/migrations/20260916215000_order_workflow/migration.sql`
-- `prisma/migrations/20260916223000_kitchen_item_progress/migration.sql`
 - `src/lib/orderWorkflow.ts`
-- `src/components/OrderStatusFlow.tsx`
-- `src/components/OrdersWorkflowManager.tsx`
+- `src/app/api/orders/route.ts`
 - `src/app/api/orders/[id]/status/route.ts`
 - `src/app/api/orders/[id]/items/[itemId]/prepared/route.ts`
 - `src/app/cocina/page.tsx`
+- `src/app/pedidos/page.tsx`
+- `src/components/AppShell.tsx`
 
 ## Despliegue
 
-Este bloque requiere `prisma migrate deploy` porque agrega `PREPARED` al enum `OrderStatus` y `preparedQuantity` a `OrderItem`.
-
-No es un cambio únicamente visual.
+Si la base ya fue sincronizada con `npx prisma db push`, los cambios posteriores de interfaz no requieren ejecutar Prisma nuevamente.
