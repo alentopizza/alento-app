@@ -8,6 +8,7 @@ import "./pos-order-panel-polish.css";
 import "./pos-cart-polish.css";
 import "./pos-order-drawer.css";
 import "./pos-order-drawer-final.css";
+import "./pos-cart-detail-style.css";
 import "./customer-modal-polish.css";
 import "./pos-cart-line.css";
 import "./checkout-modal-polish.css";
