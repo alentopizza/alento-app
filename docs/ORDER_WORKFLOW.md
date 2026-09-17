@@ -4,63 +4,106 @@ Este documento define el ciclo de vida oficial de una orden en Alentó App.
 
 ## Regla de entrada
 
-Todo pedido nuevo creado desde el POS entra directamente al estado interno `PREPARING` y aparece en la pestaña **Cocina**.
+Todo pedido nuevo creado desde el POS entra directamente al estado interno `PREPARING`, mostrado en interfaz como **EN PREPARACIÓN**, y aparece en la pestaña **Cocina**.
 
-El sistema conserva compatibilidad temporal con pedidos antiguos que estén en `CONFIRMED`; Cocina también los muestra y los normaliza antes de avanzar.
+El sistema conserva compatibilidad temporal con pedidos antiguos que estén en `CONFIRMED`; Cocina también los considera dentro del inicio de producción.
 
 ## Domicilio
 
 Flujo oficial:
 
-1. `PREPARING` — **PREPARADO**
-2. `READY` — **LISTO**
-3. `OUT_FOR_DELIVERY` — **EN CAMINO**
-4. `ARRIVED` — **HA LLEGADO**
-5. `DELIVERED` — **ENTREGADO**
-6. `COMPLETED` — **FINALIZADO**
-
-El pedido solo puede avanzar al siguiente estado válido. No se permiten saltos de etapas desde la API de estado.
+1. `PREPARING` — **EN PREPARACIÓN**
+2. `PREPARED` — **PREPARADO**
+3. `READY` — **LISTO**
+4. `OUT_FOR_DELIVERY` — **EN CAMINO**
+5. `ARRIVED` — **HA LLEGADO**
+6. `DELIVERED` — **ENTREGADO**
+7. `COMPLETED` — **FINALIZADO**
 
 ## Recoger y Local
 
 Flujo oficial:
 
-1. `PREPARING` — **PREPARADO**
-2. `READY` — **LISTO**
-3. `COMPLETED` — **FINALIZADO**
+1. `PREPARING` — **EN PREPARACIÓN**
+2. `PREPARED` — **PREPARADO**
+3. `READY` — **LISTO**
+4. `COMPLETED` — **FINALIZADO**
 
 `PICKUP` y `STORE` comparten el mismo ciclo corto.
 
 ## Cocina
 
-Cocina muestra únicamente órdenes en preparación (`PREPARING`) y, temporalmente, órdenes antiguas `CONFIRMED`.
+Cocina controla las tres primeras etapas operativas:
 
-La pantalla:
+`EN PREPARACIÓN → PREPARADO → LISTO`
+
+### Preparación por producto
+
+Cada `OrderItem` almacena `preparedQuantity`.
+
+Ejemplos:
+
+- una línea `1 × Pizza` inicia `0/1` y pasa a `1/1` al prepararla;
+- una línea `2 × Pizza` puede avanzar `0/2 → 1/2 → 2/2`;
+- una bebida, antojo, combo u otra línea se controla de la misma forma.
+
+La pantalla Cocina muestra botones `−` y `+` por línea para registrar cuántas unidades están preparadas.
+
+### Paso automático a PREPARADO
+
+Mientras alguna unidad siga pendiente, la orden permanece `PREPARING` (**EN PREPARACIÓN**).
+
+Cuando todas las líneas cumplen:
+
+`preparedQuantity >= quantity`
+
+la API cambia automáticamente la orden a `PREPARED` (**PREPARADO**).
+
+Si antes de marcar el pedido como Listo se revierte una unidad preparada, la orden vuelve a `PREPARING`.
+
+### Paso a LISTO
+
+Solo cuando la orden ya está `PREPARED`, Cocina habilita el botón **MARCAR COMO LISTO**.
+
+`LISTO` significa que el pedido ya completó el proceso de cocina/horno y puede continuar al flujo de entrega, recogida o consumo local.
+
+Al pasar a `READY`, la orden deja de aparecer en Cocina.
+
+La pantalla también:
 
 - ordena las comandas desde la más antigua;
 - muestra número ALT, modalidad, cliente y minutos transcurridos;
 - muestra la configuración estructurada de cada producto;
-- resalta visualmente pedidos que llevan más tiempo;
-- permite **Marcar como listo**;
-- al pasar a `READY`, la orden deja de aparecer en Cocina.
-
-La pantalla se actualiza automáticamente cada 15 segundos y también se refresca después de cambiar una orden.
+- muestra progreso total de preparación en unidades y porcentaje;
+- resalta pedidos que llevan más tiempo;
+- se actualiza automáticamente cada 15 segundos.
 
 ## Pedidos
 
-La pestaña **Pedidos** incluye un bloque superior de **Pedidos activos** que usa el mismo motor de estados.
+La pestaña **Pedidos** incluye un bloque de **Pedidos activos** que usa el mismo motor de estados.
 
-Comportamiento:
+Mientras una orden se encuentre en `PREPARING` o `PREPARED`, el control operativo permanece en Cocina y Pedidos muestra acceso directo a esa pestaña.
 
-- muestra solo órdenes activas;
-- cada orden tiene su barra visual de progreso;
-- `PREPARING` se gestiona desde Cocina y muestra acceso directo a esa pestaña;
-- una vez `READY`, los avances posteriores se realizan desde Pedidos;
-- Domicilio continúa por En camino → Ha llegado → Entregado → Finalizado;
-- Recoger / Local continúan directamente de Listo → Finalizado;
-- el bloque se actualiza automáticamente cada 15 segundos.
+Una vez `READY`:
 
-El listado histórico y las herramientas existentes de detalle, edición, cancelación e impresión permanecen debajo del bloque operativo.
+- Domicilio continúa por En camino → Ha llegado → Entregado → Finalizado.
+- Recoger / Local continúan de Listo → Finalizado.
+
+## API de preparación por producto
+
+Endpoint:
+
+`PATCH /api/orders/:id/items/:itemId/prepared`
+
+Body:
+
+```json
+{
+  "preparedQuantity": 1
+}
+```
+
+La API limita el valor al `quantity` real de la línea y recalcula automáticamente si el pedido debe estar en `PREPARING` o `PREPARED`.
 
 ## API de estados
 
@@ -68,42 +111,49 @@ Endpoint:
 
 `PATCH /api/orders/:id/status`
 
-Body:
+La transición `PREPARING → PREPARED` está protegida: no se permite si existen productos pendientes. Normalmente esta transición ocurre automáticamente mediante el progreso de Cocina.
 
-```json
-{
-  "status": "READY"
-}
-```
+La transición `PREPARED → READY` sí la ejecuta Cocina mediante **MARCAR COMO LISTO**.
 
-La API valida el estado actual, la modalidad del pedido y la siguiente transición permitida. Un pedido cancelado o finalizado no puede continuar avanzando.
+Después de `READY`, la API valida siempre la siguiente etapa permitida según la modalidad del pedido.
 
 ## Base de datos
 
-Se agregaron los estados:
+El flujo usa estos estados adicionales:
 
+- `PREPARED`
 - `ARRIVED`
 - `DELIVERED`
 
-La migración también instala un trigger de base de datos que transforma nuevas órdenes insertadas como `CONFIRMED` a `PREPARING`. Esto mantiene compatible la creación actual del POS y garantiza que una orden nueva ingrese directamente a Cocina.
+`OrderItem` incluye:
+
+- `preparedQuantity Int @default(0)`
+
+Migraciones relacionadas:
+
+- `20260916215000_order_workflow`
+- `20260916223000_kitchen_item_progress`
+
+La primera migración también instala un trigger que transforma nuevas órdenes insertadas como `CONFIRMED` a `PREPARING`, garantizando que entren directamente a Cocina.
 
 ## Compatibilidad
 
-`CONFIRMED` se conserva temporalmente en el enum porque pueden existir registros anteriores y porque otras integraciones futuras podrían utilizarlo antes de entrar al flujo de producción. No forma parte del flujo visual final.
+`CONFIRMED` se conserva temporalmente porque pueden existir pedidos anteriores y futuras integraciones pueden usarlo como estado previo a producción. No forma parte del flujo visual final.
 
 ## Archivos principales
 
 - `prisma/schema.prisma`
 - `prisma/migrations/20260916215000_order_workflow/migration.sql`
+- `prisma/migrations/20260916223000_kitchen_item_progress/migration.sql`
 - `src/lib/orderWorkflow.ts`
 - `src/components/OrderStatusFlow.tsx`
 - `src/components/OrdersWorkflowManager.tsx`
-- `src/components/AppShell.tsx`
 - `src/app/api/orders/[id]/status/route.ts`
+- `src/app/api/orders/[id]/items/[itemId]/prepared/route.ts`
 - `src/app/cocina/page.tsx`
 
 ## Despliegue
 
-Este bloque **sí requiere migración de Prisma/PostgreSQL** porque agrega valores al enum `OrderStatus`.
+Este bloque requiere `prisma migrate deploy` porque agrega `PREPARED` al enum `OrderStatus` y `preparedQuantity` a `OrderItem`.
 
-El despliegue debe ejecutar la migración antes de arrancar la versión nueva de la aplicación. No es un cambio únicamente visual.
+No es un cambio únicamente visual.
