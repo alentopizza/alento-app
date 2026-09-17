@@ -86,7 +86,7 @@ Ejemplos:
 
 - `Preparado → Finalizado` en Local o Recoger;
 - `Listo → Entregado` en Domicilio;
-Los estados anteriores permanecen visibles como referencia, pero aparecen deshabilitados y marcados como `Etapa superada`.
+Los estados anteriores permanecen visibles como referencia, pero aparecen deshabilitados y marcados como `Etapa superada`. Además, `Finalizado` aparece deshabilitado con la indicación `Requiere pago total` mientras exista saldo pendiente.
 
 Pedidos `CANCELED` no usan este selector porque la cancelación continúa como un flujo separado.
 
@@ -96,7 +96,8 @@ Al guardar un estado:
 
 - la API actualiza la orden;
 - la pantalla se refresca usando el control `Actualizar` ya existente;
-- seleccionar `Finalizado` no registra pagos;
+- `Finalizado` solo se habilita cuando el saldo pendiente es `0`;
+- seleccionar `Finalizado` no registra pagos automáticamente;
 - Caja sigue dependiendo únicamente de movimientos `Payment.status = PAID`.
 
 ### Resumen financiero premium
