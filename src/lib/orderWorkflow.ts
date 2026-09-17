@@ -4,6 +4,7 @@ export type OrderStatus =
   | "DRAFT"
   | "CONFIRMED"
   | "PREPARING"
+  | "PREPARED"
   | "READY"
   | "OUT_FOR_DELIVERY"
   | "ARRIVED"
@@ -13,6 +14,7 @@ export type OrderStatus =
 
 export const DELIVERY_FLOW: OrderStatus[] = [
   "PREPARING",
+  "PREPARED",
   "READY",
   "OUT_FOR_DELIVERY",
   "ARRIVED",
@@ -20,7 +22,7 @@ export const DELIVERY_FLOW: OrderStatus[] = [
   "COMPLETED",
 ];
 
-export const STORE_FLOW: OrderStatus[] = ["PREPARING", "READY", "COMPLETED"];
+export const STORE_FLOW: OrderStatus[] = ["PREPARING", "PREPARED", "READY", "COMPLETED"];
 
 export function workflowFor(fulfillmentType: FulfillmentType): OrderStatus[] {
   return fulfillmentType === "DELIVERY" ? DELIVERY_FLOW : STORE_FLOW;
@@ -30,7 +32,8 @@ export function statusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
     DRAFT: "Borrador",
     CONFIRMED: "Confirmado",
-    PREPARING: "Preparado",
+    PREPARING: "En preparación",
+    PREPARED: "Preparado",
     READY: "Listo",
     OUT_FOR_DELIVERY: "En camino",
     ARRIVED: "Ha llegado",
@@ -48,7 +51,6 @@ export function fulfillmentLabel(type: FulfillmentType) {
 }
 
 export function nextStatus(current: OrderStatus, fulfillmentType: FulfillmentType): OrderStatus | null {
-  // Compatibilidad temporal con pedidos creados antes del nuevo flujo.
   if (current === "CONFIRMED") return "PREPARING";
   const flow = workflowFor(fulfillmentType);
   const index = flow.indexOf(current);
