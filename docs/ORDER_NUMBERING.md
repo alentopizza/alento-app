@@ -50,6 +50,20 @@ El siguiente pedido, sin importar el canal, recibe `0002`:
 
 Los pedidos anteriores a esta implementación pueden conservar `sequenceNumber = null`; no consumen la nueva secuencia comercial.
 
+## Visualización en Pedidos
+
+La pantalla `/pedidos` usa `Order.sequenceNumber` como número comercial cuando existe.
+
+Ejemplo real:
+
+- `Order.id = 12`
+- `Order.sequenceNumber = 1`
+- `Order.source = POS`
+
+La interfaz muestra `POS-0001`; el `id = 12` sigue utilizándose únicamente para rutas internas y operaciones de API.
+
+Como compatibilidad con registros creados antes de esta implementación, si un pedido histórico tiene `sequenceNumber = null`, la pantalla puede usar temporalmente `Order.id` como fallback visual.
+
 ## Prefijos
 
 Actualmente:
