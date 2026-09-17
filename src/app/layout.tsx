@@ -8,6 +8,7 @@ import "./pos-cart-polish.css";
 import "./pos-order-drawer.css";
 import "./pos-order-drawer-final.css";
 import "./customer-modal-polish.css";
+import "./pos-cart-line.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
