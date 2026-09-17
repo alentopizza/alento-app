@@ -43,17 +43,16 @@ main:has(> div > section.grid > div:first-child > header.alento-dark)
   > div:nth-child(2)
   > div.rounded-2xl
   > div:first-child::before {
-  content: "";
-  display: block;
+  content: "👤";
+  display: grid;
+  place-items: center;
   width: 48px;
   height: 48px;
   border: 1px solid #e9e4de;
   border-radius: 15px;
-  background-color: #181818;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23181818' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 21a8 8 0 0 0-16 0'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 21px 21px;
+  background: #ffffff;
+  font-size: 24px;
+  line-height: 1;
   box-shadow: 0 4px 12px rgba(32, 28, 24, 0.055);
 }
 
@@ -289,5 +288,6 @@ main:has(> div > section.grid > div:first-child > header.alento-dark)
     > div:first-child::before {
     width: 44px;
     height: 44px;
+    font-size: 22px;
   }
 }
