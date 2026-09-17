@@ -38,6 +38,7 @@ export default function OrderStatusSelector({
   onSelect,
 }: OrderStatusSelectorProps) {
   const statuses = useMemo(() => workflowFor(fulfillmentType), [fulfillmentType]);
+  const currentIndex = statuses.indexOf(currentStatus);
 
   return (
     <div
@@ -67,34 +68,54 @@ export default function OrderStatusSelector({
         </header>
 
         <div className="p-5">
-          <p className="text-sm font-semibold text-neutral-700">Selecciona el estado actual</p>
+          <p className="text-sm font-semibold text-neutral-700">Selecciona el siguiente estado operativo</p>
           <p className="mt-1 text-xs leading-5 text-neutral-500">
-            Puedes seleccionar cualquier etapa válida para este tipo de pedido. Finalizar el pedido no registra pagos automáticamente.
+            Los estados ya superados quedan bloqueados para evitar retrocesos por error. Puedes saltar directamente a cualquier etapa posterior. Finalizar no registra pagos automáticamente.
           </p>
 
           <div className="mt-4 space-y-2">
             {statuses.map((status, index) => {
               const current = status === currentStatus;
+              const previous = currentIndex >= 0 && index < currentIndex;
+              const disabled = busy || current || previous;
+
               return (
                 <button
                   key={status}
                   type="button"
-                  disabled={busy || current}
+                  disabled={disabled}
                   onClick={() => onSelect(status)}
                   className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     current
                       ? "border-black bg-black text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
-                      : `${statusTone(status)} hover:-translate-y-0.5 hover:shadow-sm`
-                  } disabled:cursor-default`}
+                      : previous
+                        ? "border-neutral-200 bg-neutral-100 text-neutral-400 opacity-65"
+                        : `${statusTone(status)} hover:-translate-y-0.5 hover:shadow-sm`
+                  } disabled:cursor-not-allowed`}
                 >
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${current ? "bg-white/15 text-white" : "bg-white/80 text-neutral-500"}`}>
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${
+                    current
+                      ? "bg-white/15 text-white"
+                      : previous
+                        ? "bg-neutral-200 text-neutral-400"
+                        : "bg-white/80 text-neutral-500"
+                  }`}>
                     {index + 1}
                   </span>
                   <span className="min-w-0 flex-1">
                     <b className="block text-sm font-bold">{statusLabel(status)}</b>
-                    {current && <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55">Estado actual</span>}
+                    {current && (
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55">
+                        Estado actual
+                      </span>
+                    )}
+                    {previous && (
+                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                        Etapa superada
+                      </span>
+                    )}
                   </span>
-                  {!current && <span className="text-lg opacity-45">›</span>}
+                  {!current && !previous && <span className="text-lg opacity-45">›</span>}
                 </button>
               );
             })}
