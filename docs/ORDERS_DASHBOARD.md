@@ -215,6 +215,15 @@ La tarjeta conserva botones compactos para:
 - cancelar pedido mientras siga activo;
 - eliminar definitivamente únicamente cuando ya está cancelado.
 
+Las acciones destructivas de Pedidos ya no usan los diálogos nativos del navegador (`window.confirm`). Se muestran mediante el componente reutilizable `src/components/ActionConfirmModal.tsx`.
+
+Variantes:
+
+- `warning`: cancelar pedido; conserva trazabilidad y usa acento ámbar;
+- `danger`: eliminar pedido o eliminar pago; usa acento rojo y comunica claramente que la acción es irreversible o afecta Caja.
+
+El modal bloquea sus acciones mientras la operación está en curso para evitar doble ejecución. La lógica backend y los endpoints permanecen sin cambios.
+
 El botón `Comprobante` fue retirado de Pedidos para reducir ruido visual. La impresión directa permanece como acción disponible.
 
 El componente principal sigue siendo `src/components/OrdersCardsDashboardV3.tsx`.
@@ -422,6 +431,7 @@ Esto evita datos huérfanos y también impide borrar accidentalmente una orden a
 
 - `src/app/pedidos/page.tsx`
 - `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/ActionConfirmModal.tsx`
 - `src/components/OrdersStatusController.tsx`
 - `src/components/OrderStatusSelector.tsx`
 - `src/components/OrderEditStructuredAdder.tsx`
