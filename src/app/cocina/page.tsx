@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
+import { orderCode } from "@/lib/orderCode";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type KitchenOrderItem = {
@@ -14,16 +15,13 @@ type KitchenOrderItem = {
 
 type KitchenOrder = {
   id: number;
+  source: string;
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
   createdAt: string;
   customer: { name: string } | null;
   items: KitchenOrderItem[];
 };
-
-function orderCode(id: number) {
-  return `ALT-${String(id).padStart(6, "0")}`;
-}
 
 function ageMinutes(createdAt: string) {
   return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
@@ -207,7 +205,7 @@ export default function KitchenPage() {
                   <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-xl font-black">{orderCode(order.id)}</h2>
+                        <h2 className="text-xl font-black">{orderCode(order.id, order.source)}</h2>
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
                         <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${prepared ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}</span>
                       </div>
