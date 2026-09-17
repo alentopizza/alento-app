@@ -35,6 +35,26 @@ Al registrar:
 - `method` representa el medio realmente recibido;
 - `reference` puede guardar referencia de Nequi/DaviPlata u otro comprobante.
 
+## Anular un pago ingresado por error
+
+Dentro del detalle del pedido se muestra el historial de movimientos de pago. Cada pago recibido puede anularse desde allí.
+
+Endpoint:
+
+`DELETE /api/orders/[id]/payment/[paymentId]`
+
+La aplicación no borra físicamente el movimiento. Lo marca como:
+
+`Payment.status = CANCELED`
+
+Esto tiene tres efectos:
+
+- deja de contar en Caja inmediatamente;
+- el pedido vuelve a mostrar el saldo pendiente correspondiente;
+- el movimiento sigue visible como `ANULADO`, conservando medio, valor, hora y demás datos de auditoría.
+
+Un pago con estado `REFUNDED` no puede anularse porque pertenece al futuro flujo formal de devoluciones.
+
 ## Pagos posteriores a una edición
 
 Un pago ya `PAID` no se modifica para ajustar una orden posterior.
@@ -54,9 +74,9 @@ Si una edición intenta bajar el total por debajo del dinero ya recibido, el ser
 
 ## Cancelación y borrado
 
-Un pedido con dinero recibido no puede eliminarse como prueba.
+Un pedido con dinero recibido no puede eliminarse como prueba mientras tenga pagos `PAID`.
 
-Un pedido pagado tampoco puede cancelarse directamente mientras no exista un flujo de devolución, porque marcar el pago como cancelado destruiría la trazabilidad del ingreso real.
+Si un pago fue ingresado por error, primero puede anularse desde el historial. Una vez que no queden pagos recibidos, el pedido de prueba puede eliminarse según las reglas del dashboard.
 
 ## Caja
 
@@ -77,7 +97,7 @@ Muestra:
 - acumulado por medio de pago;
 - lista de movimientos con pedido, cliente, hora, medio, referencia y valor.
 
-No suma órdenes pendientes solo porque tengan un medio de pago seleccionado.
+No suma órdenes pendientes ni movimientos `CANCELED`.
 
 ## Próximas extensiones contables
 
@@ -95,7 +115,7 @@ El modelo está preparado conceptualmente para continuar con:
 
 ## Cambio de esquema
 
-Se agregó:
+Se agregó previamente:
 
 ```prisma
 paidAt DateTime?
@@ -107,8 +127,4 @@ a `Payment` y el índice:
 @@index([status, paidAt])
 ```
 
-Después de desplegar esta versión ejecutar:
-
-```bash
-npx prisma db push
-```
+El flujo de anulación de pago NO agrega columnas nuevas. Si `paidAt` ya fue sincronizado anteriormente, esta iteración no requiere un nuevo `prisma db push`.
