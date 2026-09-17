@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         order: {
           select: {
             id: true,
+            source: true,
             fulfillmentType: true,
             total: true,
             customer: { select: { name: true } },
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
         paidAt: payment.paidAt,
         order: {
           id: payment.order.id,
+          source: payment.order.source,
           fulfillmentType: payment.order.fulfillmentType,
           total: Number(payment.order.total),
           customerName: payment.order.customer?.name ?? "Cliente ocasional",
