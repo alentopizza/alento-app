@@ -1,348 +1,170 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-16.
-
-Este documento resume qué está funcionando hoy y cuál es el siguiente bloque aprobado de desarrollo. Para reglas específicas de pedidos ver `docs/ORDERS.md` y para integridad estructurada ver `docs/ORDER_DATA_INTEGRITY.md`.
-
-## Ya implementado
-
-### POS
-
-- Domicilio, Recoger en tienda y Local.
-- Cliente obligatorio para Domicilio y Recoger; opcional para Local.
-- Búsqueda, creación y edición de clientes.
-- Dirección obligatoria para Domicilio.
-- Catálogo por categorías.
-- Productos simples, pizzas, dos sabores, tamaños, bordes, extras y combos configurables.
-- Tarifas de domicilio configurables.
-- Medios de pago configurables.
-- Cupones y descuento manual.
-- Base elegible de descuentos validada en servidor.
-- Efectivo con `Paga con` y `Vueltas`.
-- Creación real y transaccional en PostgreSQL.
-- El carrito puede armarse antes de seleccionar tipo de pedido o cliente.
-- Las validaciones de tipo de pedido, cliente y dirección se aplican al cierre, no al botón `Agregar`.
-- El configurador de pizzas muestra el precio real del borde según el tamaño seleccionado.
-- Los ingredientes extra y grupos de combo usan tarjetas compactas, selección visual y conteo de elecciones.
-
-### Flujo operativo del carrito
-
-El POS no obliga a seguir un orden rígido para tomar el pedido.
-
-Se permite:
-
-1. agregar primero productos al carrito;
-2. después seleccionar Domicilio / Recoger / Local;
-3. después buscar o crear el cliente;
-4. finalmente continuar al cierre.
-
-Esto cubre llamadas o pedidos presenciales donde el cliente primero dicta los productos y entrega sus datos al final.
-
-Reglas:
-
-- `Agregar` debe estar disponible aunque todavía no exista cliente o tipo seleccionado;
-- pizzas y combos siguen abriendo sus configuradores normalmente;
-- el carrito conserva toda la configuración estructurada de productos;
-- `Continuar pedido` sí permanece bloqueado hasta que exista al menos un producto y se cumplan las reglas comerciales;
-- Domicilio requiere tipo `DELIVERY`, cliente y dirección;
-- Recoger requiere tipo `PICKUP` y cliente;
-- Local permite cliente opcional.
+Última actualización: 2026-09-17.
 
-### Configuradores de producto
+Este documento resume el comportamiento real de Alentó App al momento de esta actualización. Para arquitectura general ver `docs/ARCHITECTURE.md`; para autenticación futura ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-Los configuradores de pizza y combo se están cerrando visualmente para operación rápida.
+## Estado general
 
-#### Pizza
+Alentó App ya funciona como sistema operativo interno en construcción para POS, clientes, menú, pedidos, Cocina, pagos, Caja, cupones, configuración e impresión térmica.
 
-- Tamaños se presentan como opciones compactas.
-- Al cambiar de tamaño, el sistema verifica que el borde seleccionado tenga precio configurado para ese tamaño.
-- Si el borde actual no aplica al nuevo tamaño, se selecciona automáticamente el primer borde disponible para evitar una configuración inválida.
-- Cada borde muestra el precio correspondiente al tamaño actualmente seleccionado.
-- Precio `0` se presenta como `Incluido`.
-- Un borde sin precio para el tamaño seleccionado se presenta como `No disponible` y queda deshabilitado.
-- Ingredientes extra se muestran en cuadrícula compacta con nombre, precio y control visual de selección.
-- El encabezado de extras muestra cuántos modificadores están seleccionados.
-- El total inferior se recalcula inmediatamente al cambiar tamaño, borde o extras.
+Todavía no existe autenticación ni autorización por roles. El sistema interno no debe considerarse protegido para exposición pública hasta completar ese bloque.
 
-Ejemplo operativo: si la pizza está en tamaño Mediana y Bocadillo cuesta $3.900 para ese tamaño, el botón muestra `Bocadillo` y `+ $3.900`. Al cambiar a otro tamaño se muestra el precio correspondiente a ese nuevo tamaño.
+## Infraestructura actual
 
-#### Pizza 2 sabores
+- Next.js 15 + React 19 + TypeScript.
+- Tailwind CSS 4.
+- Prisma 6 + PostgreSQL.
+- EasyPanel/VPS.
+- Proyecto EasyPanel: `app_alento`.
+- Servicio: `alento-app`.
+- Base PostgreSQL: `alento-db`.
+- Acceso temporal actual: `pos.alentopizza.com`.
+- `alentopizza.com` continúa servido por Glide mientras Alentó App termina su etapa de construcción.
 
-- Los sabores 1 y 2 se agrupan visualmente en módulos separados.
-- Un mismo sabor no puede seleccionarse en ambas mitades.
-- Tamaño, borde y extras comparten las mismas reglas de precio y disponibilidad de una pizza normal.
+La arquitectura objetivo es un solo dominio principal, no un dominio separado para cada módulo.
 
-#### Combos
+## POS
 
-- Cada pizza incluida se presenta en una tarjeta propia con Tamaño y Sabor claramente separados.
-- Antojos, bebidas y otros grupos se presentan en tarjetas compactas.
-- Cada grupo muestra selección actual / máximo permitido.
-- Las opciones seleccionadas tienen estado visual fuerte y check.
-- Se conserva íntegramente `ComboOrderConfiguration`; los cambios son de UX y no alteran los IDs ni snapshots estructurados.
+El POS permite Domicilio (`DELIVERY`), Recoger (`PICKUP`) y Local (`STORE`); búsqueda/creación/edición de clientes; catálogo; productos simples; pizzas de uno y dos sabores; tamaños; bordes por tamaño; extras; combos configurables; tarifas manuales de domicilio; descuentos/cupones; medios de pago configurables; efectivo con `Paga con` y `Vueltas`; y creación real de pedidos en PostgreSQL.
 
-### Diseño operativo del POS
+Los productos pueden agregarse antes de seleccionar cliente o modalidad. Las validaciones obligatorias se aplican al cierre del pedido.
 
-La interfaz del POS está entrando en su etapa de diseño casi final.
+## Integridad estructurada de productos
 
-Reglas visuales actuales:
+`OrderItem.configuration` es la fuente estructurada de lo vendido.
 
-- no mostrar al operador etiquetas técnicas como `Datos estructurados` o `Estructurado`;
-- la integridad estructurada sigue funcionando internamente y se considera una responsabilidad del sistema, no un mensaje de interfaz;
-- encabezado principal más compacto para recuperar espacio vertical;
-- texto operativo del encabezado: `Toma pedidos y confirma ventas desde una sola pantalla.`;
-- bloque de tipo de pedido y cliente reducido en altura;
-- se retiró el rótulo `Preparar pedido` del panel derecho;
-- el rótulo de modalidad ahora es `SELECCIONE TIPO DE PEDIDO`, centrado y en rojo;
-- el rótulo de cliente ahora es `INFORMACIÓN CLIENTE`, centrado y en rojo;
-- ya no se muestran los pasos `1. Tipo`, `2. Cliente`, `OBLIGATORIO` u `OPCIONAL` como parte de esas cabeceras;
-- la obligatoriedad de cliente para Domicilio y Recoger se mantiene en la lógica aunque ya no se repita visualmente en la cabecera;
-- el selector de modalidad usa ahora un control compacto tipo segmented control;
-- las etiquetas operativas visibles son `DOMICILIO`, `RECOGER` y `LOCAL`;
-- `Recoger` representa internamente `PICKUP` / `Recoger en tienda`; solo se abrevia en la UI;
-- la modalidad seleccionada se distingue con borde rojo suave, fondo blanco y sombra mínima;
-- el bloque de cliente dejó de verse como una segunda columna separada por un divisor fuerte y pasa a una tarjeta secundaria compacta;
-- buscar cliente usa botón negro solo con icono de lupa;
-- crear cliente usa botón rojo solo con icono `+`;
-- ambos controles tienen la misma altura y tamaño;
-- `Editar` y `Cambiar` usan botones secundarios compactos;
-- catálogo mantiene tarjetas compactas con imagen 1:1;
-- el panel derecho funciona como área fija de pedido actual en escritorio;
-- el listado de productos del carrito es la zona que hace scroll;
-- subtotal, total y botón `Continuar pedido` permanecen visibles en la zona inferior del panel derecho sin exigir scroll de la página;
-- los detalles técnicos de inventario/costos no deben contaminar la experiencia diaria del cajero.
+Pizzas conservan IDs y snapshots de tamaño, sabor/sabores, porciones, borde y modificadores. Combos conservan producto combo, reglas, tamaños/sabores, grupos, opciones, cantidades, precios snapshot, `priceDelta` y descuento propio.
 
-La UI puede seguir recibiendo ajustes menores, pero no se deben sacrificar las reglas de integridad de `OrderItem.configuration` por decisiones visuales.
+Esto es requisito crítico para Cocina, inventario, recetas y costos futuros. Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
-### Administración de Menú
+## Creación de pedidos
 
-`/menu` vuelve a funcionar como módulo administrativo independiente del POS.
+`POST /api/orders` valida y recalcula server-side. Los pedidos nuevos nacen directamente en `PREPARING`, evitando depender de triggers SQL no aplicados por `prisma db push`.
 
-Reglas actuales:
+## Flujo operativo de estados
 
-- los estilos exclusivos del POS quedan encapsulados y no deben afectar `/menu`, `/pedidos`, `/clientes` o `/configuracion`;
-- la columna lateral de categorías debe mostrar todas las categorías administrativas y su cantidad de productos;
-- el encabezado de Menú conserva su propio texto: `Productos, precios, imágenes, destacados y combos configurables.`;
-- se mantiene búsqueda por producto;
-- se mantiene creación y edición de productos;
-- se mantiene activar/desactivar y mostrar/ocultar del POS;
-- se mantiene constructor/configuración de combos;
-- cada tarjeta de producto incluye ahora acción `Eliminar`.
+### Domicilio
 
-#### Eliminación segura de productos
+```text
+PREPARING → PREPARED → READY → OUT_FOR_DELIVERY → ARRIVED → DELIVERED → COMPLETED
+```
 
-`DELETE /api/menu-admin` recibe `{ productId }`.
+### Recoger / Local
 
-El borrado físico solo se permite si el producto:
+```text
+PREPARING → PREPARED → READY → COMPLETED
+```
 
-- no tiene `OrderItem` históricos;
-- no es opción de ningún combo;
-- no es sabor permitido de ningún combo;
-- no tiene otras relaciones que provoquen una restricción de integridad.
+## Cocina
 
-Si existe historial de pedidos o dependencias de combos, la API responde `409` y el producto **no se elimina**. En esos casos la operación correcta es:
+`/cocina` consume pedidos reales, muestra productos estructurados y permite marcar cantidades preparadas por línea (`preparedQuantity`). Cuando todas las unidades están completas, la orden pasa automáticamente a `PREPARED`; luego Cocina puede marcarla `READY`.
 
-1. desactivar el producto;
-2. ocultarlo del POS;
-3. retirarlo de combos si corresponde.
+Cocina ya muestra el consecutivo comercial (`POS-0001`, etc.) cuando existe.
 
-Esta regla protege el futuro inventario/costos y evita romper pedidos históricos.
+## Pedidos
 
-### Integridad estructurada del carrito
+`/pedidos` usa tarjetas compactas y permite buscar/filtrar, abrir detalle, ver productos, registrar/eliminar pagos, editar modalidad y cantidades, cambiar domicilio, agregar productos simples, imprimir y eliminar pedidos de prueba/corrección autorizada.
 
-El POS usa ahora `src/components/StructuredPosPage.tsx`.
+Si una edición agrega o cambia productos después de que el pedido avanzó, el sistema puede devolverlo a `PREPARING` para que Cocina procese correctamente los cambios.
 
-Cada `CartItem` transporta `configuration` estructurada desde el momento en que se selecciona el producto.
+## Eliminación y cancelación
 
-Nuevas pizzas guardan:
+Eliminar pedido significa borrado físico. El servidor elimina atómicamente `Payment → OrderItem → Order`; si algo falla, se revierte todo.
 
-- `PizzaSize.id`, nombre, diámetro y precio snapshot;
-- sabor/sabores por `Product.id`;
-- `portion = 1` para un sabor o `0.5` para cada mitad;
-- `PizzaCrust.id`, nombre y precio snapshot;
-- modificadores por `Product.id`, nombre, cantidad y precio snapshot.
+Cancelar conserva el pedido con estado `CANCELED` para trazabilidad.
 
-Nuevos combos guardan:
+Eliminar pago también es borrado físico: desaparece y deja de contar en Caja.
 
-- `comboProductId`;
-- `ruleId` de cada pizza incluida;
-- tamaño y sabor con IDs;
-- `groupId` de cada grupo;
-- `optionId` y `productId` de cada selección;
-- cantidades incluidas;
-- precios snapshot y `priceDelta`;
-- descuento propio del combo.
+## Pagos y Caja
 
-Productos simples usan `kind = STANDARD` con ID estable.
+Elegir un medio de pago al crear el pedido no significa que el dinero ya se recibió. Un pago puede permanecer `PENDING` hasta que se registre realmente.
 
-### Recalculo server-side
+Caja contabiliza únicamente pagos `PAID` con `paidAt`. Si un pedido ya recibió dinero y luego sube de valor, el pago recibido no se reescribe; queda saldo pendiente por la diferencia.
 
-`POST /api/orders` ya no confía en el precio enviado por el navegador para pizzas y combos.
+Ver `docs/PAYMENTS_AND_CASH.md`.
 
-El servidor:
+## Consecutivo comercial global
 
-1. valida el producto padre;
-2. exige configuración estructurada para `PIZZA_SINGLE`, `PIZZA_TWO_FLAVORS` y `COMBO`;
-3. valida IDs de tamaño, sabores, borde, modificadores, reglas y opciones;
-4. valida que las combinaciones pertenezcan a las reglas permitidas;
-5. recalcula el precio desde PostgreSQL;
-6. genera el snapshot estructurado definitivo de `OrderItem.configuration`;
-7. calcula subtotal, descuentos, domicilio y total;
-8. crea `Order + OrderItem + Payment` en una transacción.
+`Order.id` es técnico. Los pedidos nuevos usan `Order.sequenceNumber` y `OrderSequence`.
 
-Por tanto, una pizza o combo nuevo sin estructura válida debe ser rechazado.
+Ejemplo:
 
-### Pedidos
+```text
+POS-0001
+POS-0002
+WEB-0003
+POS-0004
+```
 
-`/pedidos` permite:
+Todos los canales comparten la misma secuencia; el prefijo identifica el origen.
 
-- ver detalle estructurado de productos;
-- tamaño, sabores, borde, extras y cantidades;
-- componentes internos de combos;
-- cliente, dirección y zona;
-- subtotal, domicilio, descuento y total;
-- pago, efectivo recibido y vueltas;
-- editar pedidos `CONFIRMED`;
-- imprimir comprobante térmico 80 mm;
-- cancelar pedidos antes de iniciar Cocina;
-- eliminar definitivamente pedidos ya cancelados.
+La secuencia ya fue probada con `Order.id = 12`, `sequenceNumber = 1`, `source = POS`, cuyo identificador comercial correcto es `POS-0001`.
 
-### Cancelación / eliminación
+Pedidos y Cocina ya usan `sequenceNumber`; las demás vistas se migrarán progresivamente sin cambiar los IDs internos usados por APIs.
 
-`PATCH /api/orders/[id]` con `{ action: "cancel" }`:
+Ver `docs/ORDER_NUMBERING.md`.
 
-- solo permite `DRAFT` o `CONFIRMED`;
-- cambia `Order.status` a `CANCELED`;
-- cambia pagos asociados a `CANCELED` salvo `REFUNDED`;
-- conserva historial.
+## Impresión
 
-`DELETE /api/orders/[id]`:
+Existe comprobante térmico de 80 mm en `/pedidos/[id]/imprimir`. Es un comprobante operativo, no facturación electrónica fiscal.
 
-- solo permite eliminar si la orden ya está `CANCELED`;
-- elimina `Order` y por cascade sus `OrderItem` y `Payment`.
+## Autenticación y roles — próximo bloque prioritario
 
-Eliminar definitivamente debe reservarse para pruebas/limpieza administrativa. Pedidos reales normalmente deben conservarse cancelados.
+Actualmente no existe `User` interno, login, contraseña/hash, sesión, middleware, autorización por rol ni protección de APIs internas.
 
-### Pedidos históricos
+Roles iniciales propuestos:
 
-Los pedidos creados antes de este refactor pueden contener `POS_SNAPSHOT`.
+- `ADMIN`
+- `POS`
+- `KITCHEN`
+- `CASHIER`
+- `DISPATCH`
 
-Se conservan únicamente para presentación histórica e impresión. No deben utilizarse para inventario ni costos futuros.
+La protección debe existir tanto en páginas como en APIs. Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-Las órdenes nuevas de pizza/combo no deben volver a generar `POS_SNAPSHOT`.
+## Dominio y app pública futura
 
-### Edición controlada
+`alentopizza.com` está actualmente ocupado por Glide.
 
-Solo órdenes `CONFIRMED` pueden editarse. Una vez Cocina cambie la orden a `PREPARING`, la edición queda bloqueada.
+La arquitectura objetivo es una sola URL:
 
-La edición actual permite:
+```text
+alentopizza.com/        → experiencia pública del cliente
+alentopizza.com/interno → login y sistema interno
+```
 
-- cambiar modalidad;
-- cambiar zona/tarifa;
-- modificar cantidades;
-- eliminar líneas;
-- agregar productos simples;
-- actualizar efectivo recibido.
+No se desea mantener dominios separados permanentemente para POS, Cocina, Caja, etc.
 
-Todavía no permite reconfigurar/agregar pizzas y combos dentro del editor. Esa evolución debe reutilizar el mismo constructor estructurado del POS.
+La futura app/web pública reutilizará el mismo catálogo, configuradores, precios, cobertura, pedidos, pagos y configuración estructurada. Sus pedidos usarán `Order.source = WEB` y el mismo consecutivo global.
 
-### Impresión térmica 80 mm
+## Portabilidad / producto replicable
 
-Ruta:
+El repositorio debe permanecer claro y desacoplado para poder replicar una instalación para otro restaurante o evolucionar a un producto comercial.
 
-`/pedidos/[id]/imprimir`
+La lógica central no debe depender innecesariamente de datos exclusivos de Alentó Pizza. La arquitectura actual es una instalación por negocio; todavía no es multi-tenant.
 
-El comprobante usa `OrderItem.configuration` para presentar tamaño, sabores, borde, extras y componentes del combo.
+## Prisma y producción
 
-No es factura electrónica fiscal; es comprobante operativo/de entrega.
-
-## Reglas de descuentos
-
-La base elegible excluye:
-
-- domicilio;
-- combos;
-- productos con `couponEligible = false`.
-
-No se acumula cupón + descuento manual.
-
-## Efectivo
-
-- `cashReceived` = efectivo entregado;
-- `changeDue = cashReceived - total`;
-- no se crea el pedido si el efectivo es menor al total.
-
-## APIs principales
-
-- `GET /api/catalog`
-- `GET/POST /api/customers`
-- `PATCH/DELETE /api/customers/[id]`
-- `GET/PUT /api/settings`
-- `GET/POST /api/coupons`
-- `PATCH/DELETE /api/coupons/[id]`
-- `GET/PATCH/POST/DELETE /api/menu-admin`
-- `POST /api/discount/eligibility`
-- `GET /api/orders`
-- `POST /api/orders`
-- `GET /api/orders/[id]`
-- `PATCH /api/orders/[id]`
-- `DELETE /api/orders/[id]`
-
-## Base de datos / despliegue
-
-Este refactor de integridad estructurada utiliza el campo JSON `OrderItem.configuration` ya existente y no agrega columnas nuevas.
-
-La recuperación de `/menu`, la eliminación segura de productos y los últimos ajustes visuales/operativos del POS tampoco agregan columnas nuevas.
-
-Si el schema anterior ya fue sincronizado, este bloque **no requiere `npx prisma db push`**.
-
-Producción sigue sin baseline formal. Cuando un cambio futuro sí modifique Prisma usar:
+Producción usa manualmente:
 
 ```bash
 npx prisma db push
 ```
 
-No usar `prisma migrate deploy`.
+No usar `prisma migrate deploy` hasta realizar un baseline formal. `db push` no ejecuta triggers/functions SQL definidos únicamente en archivos de migración.
 
-## Prueba obligatoria antes de Cocina
+## Próximos pasos aprobados
 
-Después del despliegue:
-
-1. abrir `/menu` y comprobar que todas las categorías vuelvan a mostrarse;
-2. comprobar que el encabezado de Menú ya no herede texto del POS;
-3. editar/activar/ocultar un producto y comprobar recarga correcta;
-4. crear un producto de prueba y eliminarlo si todavía no tiene dependencias;
-5. intentar eliminar un producto usado en un pedido o combo y confirmar que el sistema lo bloquee con mensaje claro;
-6. cancelar y eliminar los pedidos de prueba antiguos;
-7. sin seleccionar tipo ni cliente, agregar un producto simple y confirmar que entra al carrito;
-8. sin seleccionar cliente, abrir y configurar una pizza y confirmar que entra al carrito;
-9. sin seleccionar cliente, abrir y configurar un combo y confirmar que entra al carrito;
-10. comprobar que `Continuar pedido` siga bloqueado hasta completar tipo/cliente/dirección según corresponda;
-11. abrir una pizza y cambiar Personal → Mediana → Grande → Extra, confirmando que cada borde muestra su precio por tamaño;
-12. confirmar que un borde sin precio configurado se muestre deshabilitado como `No disponible`;
-13. seleccionar varios extras y comprobar el contador y el total actualizado;
-14. crear una pizza de un sabor;
-15. crear una pizza dos sabores;
-16. crear una pizza con borde y extra;
-17. abrir un combo y comprobar que cada grupo muestre selección actual / máximo;
-18. crear un combo con pizza + antojo + bebida;
-19. crear un producto simple;
-20. revisar `/pedidos` y el ticket 80 mm;
-21. comprobar que tamaños, sabores, porciones, borde, extras y componentes se muestran correctamente;
-22. comprobar visualmente que `Continuar pedido` permanece disponible sin hacer scroll largo del POS;
-23. no avanzar a inventario/Cocina si alguna línea nueva aparece solo como `POS_SNAPSHOT`.
-
-## Próximo paso aprobado
-
-Primero validar en producción la integridad estructurada de las órdenes nuevas, el layout casi final del POS y la recuperación del módulo Menú.
-
-Después:
-
-1. Cocina leyendo órdenes `CONFIRMED`;
-2. estados `CONFIRMED → PREPARING → READY`;
-3. bloqueo de edición en `PREPARING`;
-4. flujo de entrega/cierre;
-5. inventario/recetas/costos usando los IDs estructurados.
-
-## Regla de continuidad
-
-Todo cambio funcional o estructural debe actualizar este documento y/o documentación especializada en el mismo bloque. Ver `docs/HANDOFF.md`.
+1. Completar migración visual del consecutivo comercial en vistas restantes.
+2. Agregar `User` y `UserRole` en Prisma.
+3. Elegir solución de autenticación.
+4. Implementar login/logout y sesión segura.
+5. Proteger una ruta piloto (Cocina).
+6. Proteger todas las páginas internas.
+7. Proteger todas las APIs internas.
+8. Aplicar permisos por rol.
+9. Crear administración de usuarios.
+10. Continuar Caja/cierres e inventario/costos.
+11. Construir experiencia pública.
+12. Sustituir Glide y migrar `alentopizza.com`.
