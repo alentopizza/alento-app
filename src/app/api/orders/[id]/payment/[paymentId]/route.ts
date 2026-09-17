@@ -31,9 +31,6 @@ export async function DELETE(
       where: { id: payment.id },
       data: {
         status: "CANCELED",
-        paidAt: null,
-        cashReceived: null,
-        changeDue: null,
         reference: payment.reference
           ? `ANULADO · ${payment.reference}`
           : "ANULADO POR ERROR DE REGISTRO",
@@ -47,6 +44,7 @@ export async function DELETE(
         status: updated.status,
         method: updated.method,
         amount: Number(updated.amount),
+        paidAt: updated.paidAt,
       },
     });
   } catch (error) {
