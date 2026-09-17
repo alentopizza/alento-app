@@ -53,7 +53,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (body?.action === "cancel") {
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
-      if (current.payments.some((payment) => payment.status === "PAID")) return NextResponse.json({ error: "El pedido tiene dinero recibido. Registra una devolución antes de cancelarlo." }, { status: 409 });
       const updated = await prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({ where: { orderId: current.id, status: { not: "REFUNDED" } }, data: { status: "CANCELED" } });
         return tx.order.update({ where: { id: current.id }, data: { status: "CANCELED" } });
@@ -181,8 +180,11 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true } });
+    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (order.status !== "CANCELED") {
+      return NextResponse.json({ error: "Primero debes cancelar el pedido antes de eliminarlo definitivamente." }, { status: 409 });
+    }
 
     const deleted = await prisma.$transaction(async (tx) => {
       const payments = await tx.payment.deleteMany({ where: { orderId: id } });
