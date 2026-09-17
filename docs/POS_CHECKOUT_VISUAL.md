@@ -6,27 +6,45 @@ This change improves only the presentation of the POS order-closing flow. Busine
 
 ## Drawer CTA
 
-The main POS drawer action now presents `CONTINUAR PEDIDO` in uppercase with stronger weight, larger type and improved contrast. Disabled state remains visually distinct.
+The main POS drawer action presents `CONTINUAR PEDIDO` in uppercase with stronger weight, larger type and improved contrast. Disabled state remains visually distinct.
 
-## Checkout modal
+## Checkout V2
 
-The order-closing modal is widened on desktop to better support the amount of operational information shown during checkout.
+The checkout was rebuilt with dedicated, stable CSS classes rather than depending on generic Tailwind selectors. This prevents the modal from being compressed by unrelated styles and makes the layout easier to maintain.
 
-Visual changes:
+Desktop behavior:
 
-- wider desktop modal, capped at 1080 px;
-- dark header with Alentó red accent line;
-- stronger title hierarchy and more legible labels;
-- two-column desktop layout with more space between operational modules and the order summary;
-- delivery, discount and payment sections use larger touch targets and clearer borders;
-- order summary has more room and remains sticky on desktop while scrolling the checkout body;
-- order lines inside the summary are easier to read;
-- total amount has stronger emphasis;
-- footer actions are larger and easier to identify;
-- layout collapses to a single column on narrower screens.
+- modal width up to 1180 px;
+- two-column layout with operational controls on the left and order review on the right;
+- dark Alentó header with red accent line;
+- delivery, discount and payment modules use larger controls and clearer spacing;
+- summary remains sticky while the checkout body scrolls;
+- responsive fallback to one column below 980 px;
+- mobile-specific adjustments below 640 px.
+
+## Structured product review
+
+The checkout summary now reads the structured product configuration already stored in the cart instead of relying only on the legacy `detail` string.
+
+Pizza lines show:
+
+- size;
+- crust;
+- flavor 1 and flavor 2 only when the pizza is a two-flavor product;
+- additional ingredients as tags.
+
+A normal single-flavor pizza does not repeat a `Flavor` row because the product name already represents its flavor.
+
+Combo lines show:
+
+- each included pizza with size and flavor;
+- combo-group selections such as side dish and beverage as tags.
+
+Products excluded from coupons continue to show a `No acumula cupón` badge.
 
 ## Files
 
+- `src/components/OrderCheckoutModal.tsx`
 - `src/app/checkout-modal-polish.css`
 - `src/app/layout.tsx`
 
