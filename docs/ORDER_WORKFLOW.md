@@ -86,15 +86,16 @@ La acción operativa principal de cada tarjeta se llama **ESTADOS**. Al pulsarla
 
 ### Selector directo de estados
 
-El selector no obliga a recorrer las etapas una por una. Permite declarar directamente el estado operativo real de la orden.
+El selector no obliga a recorrer las etapas una por una, pero solo permite avanzar. El estado actual y las etapas ya superadas quedan bloqueados para evitar retrocesos por error.
 
 Ejemplos válidos:
 
 - Local / Recoger: `PREPARADO → FINALIZADO`;
 - Domicilio: `LISTO → ENTREGADO`;
-- cualquier modalidad: volver a `EN PREPARACIÓN` si el pedido debe regresar a Cocina.
+- Local / Recoger: `PREPARADO → FINALIZADO`;
+- Domicilio: `LISTO → ENTREGADO`.
 
-El estado actual aparece resaltado y no genera una escritura si se vuelve a seleccionar.
+El estado actual aparece resaltado y las etapas anteriores se muestran como **Etapa superada**, pero no se pueden volver a seleccionar.
 
 `CANCELED` no aparece en este selector. La cancelación sigue siendo un flujo separado porque conserva un significado comercial distinto a las etapas operativas.
 
@@ -102,7 +103,7 @@ El estado actual aparece resaltado y no genera una escritura si se vuelve a sele
 
 Cuando el estado se cambia manualmente desde Pedidos:
 
-- si se selecciona `PREPARING`, todos los `preparedQuantity` se reinician a `0`, de modo que Cocina vuelve a mostrar trabajo pendiente real;
+- las etapas anteriores al estado actual no pueden seleccionarse desde Pedidos ni enviarse directamente a la API;
 - si se selecciona `PREPARED`, `READY` o cualquier etapa posterior, cada `OrderItem.preparedQuantity` se sincroniza con su `quantity`, porque el operador está declarando que la preparación ya fue superada;
 - si se selecciona el mismo estado actual, no se altera el progreso de preparación.
 
@@ -154,14 +155,14 @@ Body:
 }
 ```
 
-La API acepta cualquier estado que pertenezca al flujo de la modalidad del pedido, sin exigir que sea la siguiente etapa secuencial.
+La API acepta cualquier estado posterior que pertenezca al flujo de la modalidad del pedido, sin exigir que sea la siguiente etapa secuencial. Los retrocesos quedan bloqueados.
 
 Validaciones principales:
 
 - un pedido `CANCELED` no puede cambiarse mediante este endpoint operativo;
 - Domicilio solo acepta estados de `DELIVERY_FLOW`;
 - Recoger / Local solo aceptan estados de `STORE_FLOW`;
-- volver a `PREPARING` reinicia el progreso de preparación;
+- no se permite volver a una etapa anterior;
 - seleccionar `PREPARED` o una etapa posterior sincroniza la preparación de todas las líneas como completa;
 - el endpoint no registra ni modifica pagos.
 
