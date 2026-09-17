@@ -258,11 +258,15 @@ El detalle lateral usa una capa visual específica en `src/app/orders-detail-dra
 Criterios:
 
 - header más bajo, manteniendo código, fecha y modalidad visibles;
+- en pedidos Domicilio, la zona/tarifa se muestra junto al badge de modalidad (`SIN COSTO`, `ZONA 2`, etc.) y ya no ocupa una fila dentro de Cliente;
 - bloque de cliente más compacto, con teléfono y dirección en una misma zona de metadatos;
 - productos con menor padding y separación vertical, conservando configuración estructurada;
-- totales condensados, con mayor jerarquía para el total final;
-- pagos más densos y resumen recibido/saldo más compacto;
+- tamaño, sabores, borde y opciones de combo se muestran como chips compactos;
+- ingredientes `Extra` usan chips ámbar/naranja para distinguirlos rápidamente;
+- totales condensados con mayor jerarquía para el total final;
+- pagos con tarjetas de estado suaves, mayor contraste y resumen recibido/saldo más claro;
 - footer fijo con menor altura;
+- pesos tipográficos moderados, mejor contraste y números tabulares para evitar apariencia borrosa;
 - ajustes adicionales en viewports bajos para priorizar visibilidad operativa.
 
 Este cambio es únicamente visual. No modifica pedidos, pagos, estados, Caja, Cocina ni Prisma.
