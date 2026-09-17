@@ -72,7 +72,7 @@ function nextLabel(order: Order) {
   return statusLabel(next).toUpperCase();
 }
 
-function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "minus" | "plus" | "wallet" }) {
+function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" }) {
   const c = "h-[17px] w-[17px]";
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>;
   if (name === "refresh") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.3 6.3L4 11M20 13l-2.3 4.7A7 7 0 0 1 5.5 15"/></svg>;
@@ -81,6 +81,7 @@ function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close
   if (name === "close") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="m6 6 12 12M18 6 6 18"/></svg>;
   if (name === "edit") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>;
   if (name === "trash") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></svg>;
+  if (name === "cancel") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7M15.5 8.5l-7 7"/></svg>;
   if (name === "minus") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M5 12h14"/></svg>;
   if (name === "wallet") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M3 7h16a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2Z"/><path d="M3 7V5a2 2 0 0 1 2-2h13v4M16 12h5"/></svg>;
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M12 5v14M5 12h14"/></svg>;
@@ -189,6 +190,25 @@ export default function OrdersCardsDashboardV3() {
     frame.src = `/pedidos/${order.id}/imprimir?autoprint=1&embedded=1`;
     document.body.appendChild(frame);
     window.setTimeout(() => frame.remove(), 30000);
+  }
+
+  async function cancelOrder(order: Order) {
+    if (!window.confirm(`¿Cancelar ${displayOrderCode(order)}? El pedido, sus productos y pagos se conservarán para mantener trazabilidad, pero quedarán fuera de la operación activa.`)) return;
+    setBusy(order.id);
+    try {
+      const response = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible cancelar el pedido.");
+      await load(true);
+    } catch (actionError) {
+      window.alert(actionError instanceof Error ? actionError.message : "No fue posible cancelar el pedido.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function removeTest(order: Order) {
@@ -382,7 +402,11 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
-                {!paidPayments(order).length && <button onClick={() => void removeTest(order)} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 disabled:opacity-30" title="Eliminar pedido"><Icon name="trash" /></button>}
+                {order.status === "CANCELED" ? (
+                  <button onClick={() => void removeTest(order)} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:opacity-30" title="Eliminar pedido definitivamente" aria-label="Eliminar pedido definitivamente"><Icon name="trash" /></button>
+                ) : order.status !== "COMPLETED" ? (
+                  <button onClick={() => void cancelOrder(order)} disabled={busyOrder} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:opacity-30" title="Cancelar pedido" aria-label="Cancelar pedido"><Icon name="cancel" /></button>
+                ) : null}
                 <div className="ml-auto min-w-0 flex-1">{kitchenManaged ? <Link href="/cocina" className="flex h-9 items-center justify-center rounded-lg bg-black px-2 text-[10px] font-black text-white">COCINA</Link> : actionLabel ? <button disabled={busyOrder} onClick={() => void advance(order)} className="h-9 w-full rounded-lg bg-[var(--brand-red)] px-2 text-[10px] font-black text-white disabled:opacity-50">{busyOrder ? "..." : actionLabel}</button> : <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">CERRADO</span>}</div>
               </div>
             </div>
