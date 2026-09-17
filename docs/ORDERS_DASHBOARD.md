@@ -212,7 +212,8 @@ La tarjeta conserva botones compactos para:
 - ver detalle;
 - editar;
 - imprimir 80 mm;
-- eliminar pedido cuando corresponde.
+- cancelar pedido mientras siga activo;
+- eliminar definitivamente únicamente cuando ya está cancelado.
 
 El botón `Comprobante` fue retirado de Pedidos para reducir ruido visual. La impresión directa permanece como acción disponible.
 
@@ -369,9 +370,33 @@ Si ya existe dinero recibido:
 
 ## Eliminar vs cancelar pedido
 
-`DELETE /api/orders/[id]` elimina físicamente el pedido junto con sus `Payment` y `OrderItem` en una transacción, evitando datos huérfanos.
+La secuencia operativa es obligatoriamente:
 
-Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse cuando la orden fue real y se desea conservar trazabilidad.
+`Pedido activo → Cancelar → Eliminar`
+
+### Cancelar
+
+Cancelar conserva el pedido, sus productos y sus pagos para mantener trazabilidad.
+
+Al cancelar:
+
+- `Order.status` pasa a `CANCELED`;
+- los movimientos `Payment` existentes no se borran;
+- los pagos que no estén `REFUNDED` pasan a estado `CANCELED`, por lo que dejan de contar como ingresos activos en Caja;
+- la orden deja de participar del flujo operativo normal;
+- recién entonces la interfaz habilita la acción de eliminación definitiva.
+
+### Eliminar
+
+`DELETE /api/orders/[id]` solo acepta pedidos cuyo estado ya sea `CANCELED`.
+
+Al eliminar definitivamente, la transacción borra físicamente:
+
+- todos los `Payment` relacionados;
+- todos los `OrderItem`;
+- el `Order`.
+
+Esto evita datos huérfanos y también impide borrar accidentalmente una orden activa sin pasar primero por cancelación.
 
 ## Archivos principales
 
