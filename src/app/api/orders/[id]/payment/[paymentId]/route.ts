@@ -19,36 +19,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
     }
 
-    if (payment.status === "CANCELED") {
-      return NextResponse.json({ error: "Este pago ya fue eliminado." }, { status: 409 });
-    }
+    await prisma.payment.delete({ where: { id: payment.id } });
 
-    if (payment.status === "REFUNDED") {
-      return NextResponse.json({ error: "Un pago devuelto conserva su registro y no puede eliminarse." }, { status: 409 });
-    }
-
-    const updated = await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: "CANCELED",
-        reference: payment.reference
-          ? `ANULADO · ${payment.reference}`
-          : "ANULADO POR ERROR DE REGISTRO",
-      },
-    });
-
-    return NextResponse.json({
-      ok: true,
-      payment: {
-        id: updated.id,
-        status: updated.status,
-        method: updated.method,
-        amount: Number(updated.amount),
-        paidAt: updated.paidAt,
-      },
-    });
+    return NextResponse.json({ ok: true, deletedPaymentId: payment.id });
   } catch (error) {
-    console.error("Payment void error", error);
+    console.error("Payment delete error", error);
     return NextResponse.json({ error: "No fue posible eliminar el pago." }, { status: 500 });
   }
 }
