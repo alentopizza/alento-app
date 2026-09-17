@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import OrdersWorkflowManager from "@/components/OrdersWorkflowManager";
 
 const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
@@ -84,7 +85,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="min-w-0">{children}</div>
+      <div className="min-w-0">
+        {pathname === "/pedidos" && <OrdersWorkflowManager />}
+        {children}
+      </div>
     </div>
   );
 }
