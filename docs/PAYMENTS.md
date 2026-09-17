@@ -80,9 +80,11 @@ El modal muestra:
 - saldo actual;
 - monto de este pago;
 - medio de pago realmente recibido;
-- `Paga con` únicamente cuando el medio es Efectivo;
+- `Paga con` únicamente cuando el medio es Efectivo y de forma **opcional**;
 - referencia opcional;
 - saldo estimado después del abono.
+
+La interfaz se mantiene compacta para uso operativo: menor padding, controles de menor altura y jerarquía visual concentrada sin perder legibilidad.
 
 El monto puede ser menor al saldo, pero nunca mayor.
 
@@ -95,7 +97,11 @@ El medio se inicializa con el medio previsto del POS cuando existe, pero el oper
 Para un movimiento en efectivo existen dos valores distintos:
 
 - `amount`: cuánto del pedido se está pagando;
-- `cashReceived`: cuánto efectivo entregó físicamente el cliente.
+- `cashReceived`: cuánto efectivo entregó físicamente el cliente, **opcional**.
+
+Si `cashReceived` se deja vacío, el pago se registra normalmente por `amount` y `cashReceived/changeDue` quedan en `null`.
+
+Si se diligencia `cashReceived`, debe ser mayor o igual a `amount` y el sistema calcula el cambio.
 
 Ejemplo:
 
