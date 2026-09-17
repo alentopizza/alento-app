@@ -16,9 +16,32 @@ La página usa un hero oscuro consistente con el POS:
 - contador de pedidos activos;
 - actualización manual.
 
+## Identificador público y consecutivo global
+
+El identificador visible de una orden se genera con `src/lib/orderCode.ts`.
+
+Formato principal:
+
+- POS: `POS-0001`
+- Web: `WEB-0002`
+
+El prefijo identifica el origen, pero el número se comparte entre todos los canales porque corresponde a `Order.id` de PostgreSQL.
+
+Ejemplo:
+
+1. primer pedido creado desde POS: `POS-0001`;
+2. segundo pedido creado desde Web: `WEB-0002`;
+3. tercer pedido creado desde POS: `POS-0003`.
+
+No existen consecutivos independientes por canal.
+
+Eliminar un pedido no renumera ni reutiliza su consecutivo. Si se elimina `POS-0007`, el siguiente registro seguirá usando el siguiente valor de la secuencia global.
+
+Actualmente `OrderSource` ya contempla `POS`, `WEB`, `WHATSAPP`, `INSTAGRAM`, `FACEBOOK` y `OTHER`. POS y WEB son los prefijos principales definidos para la operación actual/futura.
+
 ## Búsqueda y filtros
 
-Permite buscar por código ALT, cliente, teléfono, estado y medio de pago.
+Permite buscar por código público (`POS-xxxx`, `WEB-xxxx`), cliente, teléfono, estado y medio de pago.
 
 Filtros rápidos:
 
@@ -31,12 +54,12 @@ La información se refresca automáticamente cada 15 segundos.
 
 ## Tarjeta moderna
 
-Cada tarjeta usa una franja superior con el color del estado actual y una estructura visual más densa:
+Cada tarjeta usa una franja superior con el estado actual y una estructura visual compacta:
 
 - estado actual;
 - modalidad: Domicilio, Recoger o Local;
 - fecha/hora;
-- código `ALT-xxxxxx`;
+- código público con prefijo de origen;
 - cantidad de líneas y unidades;
 - cliente y contacto resumido;
 - total;
@@ -49,7 +72,7 @@ Las acciones secundarias son botones compactos:
 - editar;
 - imprimir 80 mm;
 - abrir comprobante;
-- eliminar pedido de prueba cuando todavía no existe dinero recibido.
+- eliminar pedido.
 
 El componente activo es `src/components/OrdersCardsDashboardV3.tsx`.
 
@@ -60,6 +83,8 @@ El botón de impresora no abre primero el comprobante. La interfaz crea un ifram
 `/pedidos/[id]/imprimir?autoprint=1&embedded=1`
 
 y la pantalla térmica ejecuta `window.print()` al cargar.
+
+El comprobante usa el mismo `orderCode()` para que el código impreso coincida con Pedidos y Cocina.
 
 ## Comprobante
 
@@ -90,31 +115,36 @@ Al abrir una tarjeta se muestra un drawer con:
 - saldo pendiente;
 - acciones Editar, Imprimir, Comprobante y Registrar pago.
 
-## Movimientos de pago
+## Pagos registrados
 
-El detalle del pedido muestra cada `Payment` de la orden.
+El detalle del pedido muestra cada `Payment` que todavía existe en la orden.
 
-Estados visibles:
+Estados operativos habituales:
 
-- `PENDING`: pago anunciado pero todavía no recibido;
-- `PAID`: dinero realmente recibido y contabilizado en Caja;
-- `CANCELED`: pago anulado por error de registro;
-- `REFUNDED`: pago devuelto, cuando se implemente el flujo de devoluciones.
+- `PENDING`: medio anunciado pero dinero todavía no recibido;
+- `PAID`: dinero recibido y contabilizado en Caja;
+- `REFUNDED`: reservado para el futuro flujo de devoluciones.
 
-Un pago `PAID` puede anularse desde el detalle con:
+### Eliminar un pago
+
+Endpoint:
 
 `DELETE /api/orders/[id]/payment/[paymentId]`
 
-La aplicación no borra físicamente el registro contable. Lo cambia a `CANCELED`, limpia `paidAt`, efectivo/vueltas y deja una nota de anulación en `reference`.
+Esta acción es un **borrado físico** del registro `Payment`.
 
-Efectos de anular un pago:
+Se utiliza cuando el operador ingresó un pago por error y necesita corregirlo completamente.
 
-- deja de contar inmediatamente en `/caja` porque Caja solo consulta `status = PAID`;
-- vuelve a aparecer saldo pendiente en el pedido;
-- puede registrarse nuevamente el pago correcto;
-- se conserva historial para auditoría y soporte.
+Efectos:
 
-Los pagos `REFUNDED` no pueden anularse por esta vía.
+- el `Payment` desaparece de PostgreSQL;
+- deja de contar inmediatamente en Caja;
+- el pedido recalcula visualmente su saldo con los pagos que continúen existiendo;
+- puede registrarse posteriormente el pago correcto.
+
+No se usa `CANCELED` para este caso porque el usuario pidió que un registro erróneo pueda eliminarse definitivamente.
+
+Las devoluciones reales de dinero serán un flujo diferente y sí deberán conservar trazabilidad (`REFUNDED`).
 
 ## Edición operativa
 
@@ -136,11 +166,40 @@ Si ya existe dinero recibido:
 - si el pedido aumenta, se crea o ajusta un saldo `PENDING` por la diferencia;
 - si el nuevo total queda por debajo de lo ya cobrado, la edición se bloquea hasta implementar devolución.
 
-## Eliminación para pruebas
+## Eliminar vs cancelar pedido
 
-`DELETE /api/orders/[id]?test=1` permite eliminar órdenes de prueba aunque no estén canceladas, siempre que no exista un pago realmente recibido.
+Son operaciones diferentes.
 
-Si existe cualquier `Payment` con `status = PAID` o `paidAt`, el servidor bloquea la eliminación para conservar trazabilidad contable.
+### Eliminar pedido
+
+`DELETE /api/orders/[id]`
+
+Elimina definitivamente la orden de PostgreSQL.
+
+El esquema Prisma define `onDelete: Cascade` desde `Order` hacia:
+
+- `OrderItem`;
+- `Payment`.
+
+Por lo tanto, al eliminar un pedido también desaparecen definitivamente sus líneas y pagos. No quedan datos huérfanos.
+
+Esta acción se utiliza para pruebas o registros creados por error.
+
+### Cancelar pedido
+
+Cancelar NO elimina la orden.
+
+El endpoint de edición soporta:
+
+```json
+{ "action": "cancel" }
+```
+
+y cambia `Order.status` a `CANCELED` cuando las reglas financieras lo permiten.
+
+Se utiliza cuando el pedido fue real pero el cliente lo canceló y queremos conservarlo en el historial.
+
+Una futura versión puede guardar además motivo de cancelación, usuario y hora exacta del cambio.
 
 ## Archivos principales
 
@@ -152,11 +211,14 @@ Si existe cualquier `Payment` con `status = PAID` o `paidAt`, el servidor bloque
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/caja/page.tsx`
 - `src/app/api/caja/summary/route.ts`
+- `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
 
 ## Base de datos
 
-La funcionalidad de anulación de pagos reutiliza el enum `PaymentStatus.CANCELED` y no agrega columnas nuevas.
+Esta iteración no agrega nuevas tablas ni columnas.
 
-Si `Payment.paidAt` ya fue sincronizado anteriormente, esta iteración no requiere un nuevo `prisma db push`.
+El borrado definitivo se apoya en las relaciones existentes con `onDelete: Cascade` y el consecutivo público usa el `Order.id` ya existente.
+
+No requiere un nuevo `prisma db push` si la base ya está sincronizada con el esquema actual.
