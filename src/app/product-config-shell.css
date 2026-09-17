@@ -1,0 +1,118 @@
+/*
+ * Shell visual de configuradores de pizza y combo.
+ * Adopta el mismo lenguaje del modal Nuevo cliente:
+ * cabecera oscura, acento rojo, fondo cálido y footer limpio.
+ * No altera estados ni lógica de configuración.
+ */
+
+.fixed.inset-0.z-50 {
+  backdrop-filter: blur(5px);
+  background: rgba(12, 12, 13, 0.66) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card {
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 24px !important;
+  background: #f7f5f2 !important;
+  box-shadow: 0 28px 80px rgba(0,0,0,.28) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child {
+  min-height: 78px;
+  padding: 15px 18px !important;
+  border: 0 !important;
+  border-bottom: 3px solid var(--brand-red) !important;
+  background:
+    radial-gradient(circle at 82% 38%, rgba(229,28,17,.24), transparent 27%),
+    linear-gradient(135deg, #0b0b0c 0%, #181719 100%) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child p {
+  margin: 0 0 3px !important;
+  color: rgba(255,255,255,.46) !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  letter-spacing: .12em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child h2 {
+  margin: 0 !important;
+  color: #fff !important;
+  font-size: 1.45rem !important;
+  line-height: 1.6rem !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child > button {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.08) !important;
+  color: rgba(255,255,255,.82) !important;
+  padding: 8px 11px !important;
+  font-size: 11px !important;
+  font-weight: 550 !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child > button:hover {
+  background: rgba(255,255,255,.14) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll {
+  background: #f7f5f2 !important;
+  padding: 16px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll > section.rounded-2xl {
+  border: 1px solid #ddd8d2 !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(30,27,24,.035) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section h3 {
+  font-size: .96rem !important;
+  line-height: 1.15rem !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.014em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button {
+  border-radius: 10px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child {
+  min-height: 64px;
+  padding: 12px 16px !important;
+  border-top: 1px solid #e4dfd9 !important;
+  background: #fff !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child > button {
+  min-height: 42px !important;
+  border-radius: 11px !important;
+  padding: 0 18px !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  box-shadow: 0 6px 14px rgba(229,28,17,.15) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child > b,
+.fixed.inset-0.z-50 > .alento-card > div:last-child > div > b {
+  font-size: 1.45rem !important;
+  line-height: 1.55rem !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.03em !important;
+}
+
+@media (max-width: 640px) {
+  .fixed.inset-0.z-50 > .alento-card {
+    border-radius: 18px !important;
+  }
+
+  .fixed.inset-0.z-50 > .alento-card > .alento-scroll {
+    padding: 12px !important;
+  }
+}
