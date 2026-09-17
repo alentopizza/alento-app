@@ -88,6 +88,22 @@ El mismo criterio visual se aplica en la tarjeta y el badge del encabezado del d
 
 Los overrides visuales están aislados en `src/app/orders-fulfillment-badges.css` para poder ajustar contraste y acentos sin tocar la lógica del componente.
 
+### Tipografía y jerarquía
+
+Las tarjetas usan una jerarquía tipográfica más refinada y legible mediante `src/app/orders-card-typography.css`.
+
+Principios:
+
+- familia de sistema moderna: `Segoe UI`, `Roboto`, `Helvetica Neue`, `Arial`;
+- código comercial y total como elementos protagonistas;
+- nombre del cliente visible pero con menos peso que antes;
+- fecha, teléfono y medio de pago ligeramente más grandes;
+- menor uso de `font-black` visual mediante overrides de peso;
+- números con `font-variant-numeric: tabular-nums` para mejorar alineación;
+- saldo y acción principal con tamaño legible sin saturar la tarjeta.
+
+Estos estilos están limitados a `/pedidos` para no modificar POS, Cocina ni Caja.
+
 ### Acciones secundarias
 
 La tarjeta conserva botones compactos para:
@@ -195,10 +211,11 @@ Cancelar mantiene el pedido en el histórico con estado `CANCELED` y debe usarse
 - `src/app/api/orders/[id]/payment/route.ts`
 - `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
 - `src/app/orders-fulfillment-badges.css`
+- `src/app/orders-card-typography.css`
 - `src/lib/orderCode.ts`
 - `src/lib/orderWorkflow.ts`
 - `src/lib/orderPresentation.ts`
 
 ## Base de datos
 
-Este ajuste visual no cambia Prisma ni requiere `npx prisma db push`.
+Estos ajustes visuales no cambian Prisma ni requieren `npx prisma db push`.
