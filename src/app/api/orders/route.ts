@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
         deliveryZoneId,
         deliveryZoneName,
         discountSource: discountMode,
-        status: "CONFIRMED",
+        status: "PREPARING",
         fulfillmentType,
         source: "POS",
         subtotal,
