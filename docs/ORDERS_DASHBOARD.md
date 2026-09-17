@@ -61,10 +61,34 @@ Cada tarjeta muestra:
 - cantidad total de productos;
 - cliente y contacto resumido;
 - total;
-- saldo o pago recibido;
+- resumen financiero `Pago pendiente / Pagado`;
+- medio de pago previsto como etiqueta;
 - acción principal del workflow.
 
 El contador de `líneas` no se muestra en la tarjeta porque no aporta información operativa suficiente para justificar espacio visual.
+
+### Resumen financiero premium
+
+La tarjeta muestra siempre el estado financiero de la orden de forma explícita, incluso cuando existen pagos parciales.
+
+Se presentan tres piezas:
+
+- `Pago pendiente`: saldo actual de la orden, en tono ámbar/alerta;
+- `Pagado`: suma real de todos los movimientos `Payment.status = PAID`, en tono verde/éxito;
+- medio previsto: etiqueta independiente en mayúscula, por ejemplo `EFECTIVO`, `NEQUI`, `DAVIPLATA`.
+
+Ejemplo:
+
+```text
+Pago pendiente      Pagado        EFECTIVO
+$ 92.500             $ 50.000
+```
+
+El bloque de `Pago pendiente` es clicable mientras exista saldo y abre el modal `Registrar ingreso`.
+
+El medio previsto **no representa dinero recibido**. Solo refleja la intención registrada desde POS o el método pendiente actual. Los importes reales recibidos se calculan exclusivamente con pagos `PAID`.
+
+El total de la orden usa un pequeño contenedor visual independiente con fondo neutro, etiqueta `TOTAL` y monto en rojo para mejorar jerarquía sin aumentar demasiado la tarjeta.
 
 ### Modalidad por color
 
@@ -100,7 +124,8 @@ Principios:
 - fecha, teléfono y medio de pago ligeramente más grandes;
 - menor uso de `font-black` visual mediante overrides de peso;
 - números con `font-variant-numeric: tabular-nums` para mejorar alineación;
-- saldo y acción principal con tamaño legible sin saturar la tarjeta.
+- resumen financiero compacto y legible sin saturar la tarjeta;
+- acción principal con tamaño legible.
 
 Estos estilos están limitados a `/pedidos` para no modificar POS, Cocina ni Caja.
 
