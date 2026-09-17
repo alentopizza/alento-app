@@ -12,6 +12,7 @@ import "./customer-modal-polish.css";
 import "./pos-cart-line.css";
 import "./checkout-modal-polish.css";
 import "./checkout-actions-polish.css";
+import "./orders-fulfillment-badges.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 
