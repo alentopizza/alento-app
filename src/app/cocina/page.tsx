@@ -91,27 +91,29 @@ function KitchenItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <b className="min-w-0 pt-1 text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                aria-label="Restar unidad preparada"
-                disabled={busy || item.preparedQuantity <= 0}
-                onClick={() => onChangePrepared(Math.max(0, item.preparedQuantity - 1))}
-                className="h-7 w-7 rounded-lg border border-neutral-200 bg-white text-sm font-semibold text-neutral-600 disabled:opacity-30"
-              >
-                −
-              </button>
-              <b className="min-w-8 text-center text-[11px] font-semibold tabular-nums text-neutral-900">{item.preparedQuantity}/{item.quantity}</b>
-              <button
-                type="button"
-                aria-label="Agregar unidad preparada"
-                disabled={busy || item.preparedQuantity >= item.quantity}
-                onClick={() => onChangePrepared(Math.min(item.quantity, item.preparedQuantity + 1))}
-                className="h-7 w-7 rounded-lg bg-[var(--brand-red)] text-sm font-semibold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
-              >
-                +
-              </button>
-            </div>
+            {!complete && (
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  aria-label="Restar unidad preparada"
+                  disabled={busy || item.preparedQuantity <= 0}
+                  onClick={() => onChangePrepared(Math.max(0, item.preparedQuantity - 1))}
+                  className="h-7 w-7 rounded-lg border border-neutral-200 bg-white text-sm font-semibold text-neutral-600 disabled:opacity-30"
+                >
+                  −
+                </button>
+                <b className="min-w-8 text-center text-[11px] font-semibold tabular-nums text-neutral-900">{item.preparedQuantity}/{item.quantity}</b>
+                <button
+                  type="button"
+                  aria-label="Agregar unidad preparada"
+                  disabled={busy || item.preparedQuantity >= item.quantity}
+                  onClick={() => onChangePrepared(Math.min(item.quantity, item.preparedQuantity + 1))}
+                  className="h-7 w-7 rounded-lg bg-[var(--brand-red)] text-sm font-semibold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
+                >
+                  +
+                </button>
+              </div>
+            )}
           </div>
 
           {otherDetails.length > 0 && (
@@ -292,9 +294,9 @@ export default function KitchenPage() {
                           disabled={orderBusy}
                           aria-label="Marcar pedido como listo"
                           title="Marcar pedido como listo"
-                          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-black text-white shadow-[0_4px_12px_rgba(5,150,105,.28)] transition hover:-translate-y-[1px] hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-sm font-black text-white shadow-[0_4px_12px_rgba(5,150,105,.28)] transition hover:-translate-y-[1px] hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
                         >
-                          {!orderBusy && <span className="absolute inset-0 rounded-full bg-emerald-400/40 animate-ping" aria-hidden="true" />}
+                          {!orderBusy && <span className="absolute inset-0 rounded-lg bg-emerald-400/40 animate-ping" aria-hidden="true" />}
                           <span className="relative z-10" aria-hidden="true">{orderBusy ? "…" : "✓"}</span>
                         </button>
                       )}
