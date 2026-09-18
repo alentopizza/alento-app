@@ -8,7 +8,7 @@ Pedidos               ✅ CERRADO
 Cocina                ✅ CERRADO
 Clientes              ✅ CERRADO POR AHORA
 Menú                  ▶ SIGUIENTE FASE
-Integraciones         ⏳ DESPUÉS DE MENÚ
+Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
 Los módulos cerrados siguen sujetos a corrección de bugs, pero no deben reabrirse como fase de diseño salvo decisión explícita.
@@ -112,7 +112,7 @@ Incluye:
 
 Estado: **SIGUIENTE FASE DE TRABAJO**
 
-Objetivo: revisar y cerrar el módulo administrativo de catálogo/menú antes de abordar integraciones externas.
+Objetivo: revisar y cerrar el módulo administrativo de catálogo/menú. Las integraciones externas quedan pospuestas hasta la última fase del desarrollo.
 
 ---
 
@@ -196,4 +196,4 @@ Antes de un cambio:
 6. actualizar documentación;
 7. indicar si requiere `npx prisma db push`.
 
-El siguiente bloque de trabajo acordado es **Menú**. Después se revisarán **Integraciones**. Autenticación y Roles continúa como bloque estratégico pendiente.
+El siguiente bloque de trabajo acordado es **Menú**. **Integraciones queda explícitamente reservada para la última fase del desarrollo.** Autenticación y Roles continúa como bloque estratégico pendiente.
