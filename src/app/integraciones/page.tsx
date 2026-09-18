@@ -13,6 +13,9 @@ type ProviderSettings = {
   connectedAt: string | null;
   lastCheckedAt: string | null;
   lastError: string | null;
+  accountLinked: boolean;
+  storeName: string;
+  storeAddress: string;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -21,7 +24,15 @@ type TechnicalAccess = {
     clientIdConfigured: boolean;
     clientSecretConfigured: boolean;
     apiBaseUrlConfigured: boolean;
+    oauthClientConfigured: boolean;
+    oauthStoresUrlConfigured: boolean;
   };
+};
+
+type RappiStoreOption = {
+  id: string;
+  name: string;
+  address: string;
 };
 
 type ProviderMeta = {
@@ -94,6 +105,9 @@ export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<ProviderId | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [rappiOAuthSession, setRappiOAuthSession] = useState("");
+  const [rappiStores, setRappiStores] = useState<RappiStoreOption[]>([]);
+  const [selectedRappiStoreId, setSelectedRappiStoreId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -112,6 +126,40 @@ export default function IntegrationsPage() {
       }
     }
     void load();
+  }, []);
+
+  useEffect(() => {
+    function handleRappiMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin || !event.data || typeof event.data !== "object") return;
+
+      const payload = event.data as {
+        type?: string;
+        sessionId?: string;
+        stores?: RappiStoreOption[];
+        message?: string;
+      };
+
+      if (payload.type === "rappi-oauth-error") {
+        setConnecting(false);
+        setError(payload.message || "Rappi no pudo autorizar la conexión.");
+        return;
+      }
+
+      if (
+        payload.type === "rappi-oauth-stores" &&
+        typeof payload.sessionId === "string" &&
+        Array.isArray(payload.stores)
+      ) {
+        setConnecting(false);
+        setRappiOAuthSession(payload.sessionId);
+        setRappiStores(payload.stores);
+        setSelectedRappiStoreId(payload.stores.length === 1 ? payload.stores[0].id : "");
+        setError("");
+      }
+    }
+
+    window.addEventListener("message", handleRappiMessage);
+    return () => window.removeEventListener("message", handleRappiMessage);
   }, []);
 
   function updateProvider(id: ProviderId, patch: Partial<ProviderSettings>) {
@@ -146,28 +194,56 @@ export default function IntegrationsPage() {
     }
   }
 
-  async function connectRappi() {
-    if (!settings) return;
+  function connectRappi() {
+    setMessage("");
+    setError("");
+    setConnecting(true);
+
+    const width = 620;
+    const height = 760;
+    const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
+    const top = Math.max(0, window.screenY + (window.outerHeight - height) / 2);
+
+    const popup = window.open(
+      "/api/integrations/rappi/oauth/start",
+      "alento-rappi-oauth",
+      `popup=yes,width=${width},height=${height},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`,
+    );
+
+    if (!popup) {
+      setConnecting(false);
+      setError("El navegador bloqueó la ventana de Rappi. Habilita las ventanas emergentes para Alentó e intenta nuevamente.");
+      return;
+    }
+
+    popup.focus();
+
+    const watcher = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(watcher);
+        setConnecting(false);
+      }
+    }, 700);
+  }
+
+  async function completeRappiStore() {
+    if (!rappiOAuthSession || !selectedRappiStoreId) return;
 
     setConnecting(true);
     setMessage("");
     setError("");
 
     try {
-      const saveResponse = await fetch("/api/integrations", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings }),
-      });
-      const saveData = await saveResponse.json();
-      if (!saveResponse.ok) throw new Error(saveData.error || "No fue posible guardar la configuración de Rappi.");
-      setSettings(saveData.settings);
-
-      const response = await fetch("/api/integrations/rappi/connect", {
+      const response = await fetch("/api/integrations/rappi/oauth/complete", {
         method: "POST",
-        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: rappiOAuthSession,
+          storeId: selectedRappiStoreId,
+        }),
       });
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible integrar la tienda de Rappi.");
 
       const refresh = await fetch("/api/integrations", { cache: "no-store" });
       const refreshData = await refresh.json();
@@ -176,10 +252,12 @@ export default function IntegrationsPage() {
         setTechnicalAccess(refreshData.technicalAccess ?? null);
       }
 
-      if (!response.ok) throw new Error(data.error || "No fue posible conectar con Rappi.");
-      setMessage("Rappi conectado correctamente.");
+      setRappiOAuthSession("");
+      setRappiStores([]);
+      setSelectedRappiStoreId("");
+      setMessage(`Rappi conectado · ${data.store?.name ?? "Tienda integrada"}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible conectar con Rappi.");
+      setError(err instanceof Error ? err.message : "No fue posible integrar la tienda de Rappi.");
     } finally {
       setConnecting(false);
     }
@@ -348,15 +426,27 @@ export default function IntegrationsPage() {
                             </div>
                           )}
 
-                          <div>
-                            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.05em] text-neutral-500">ID de tienda / referencia</label>
-                            <input
-                              value={providerSettings.storeId}
-                              onChange={(event) => updateProvider(provider.id, { storeId: event.target.value })}
-                              className="alento-input w-full rounded-xl px-3.5 py-3 text-sm"
-                              placeholder={provider.id === "RAPPI" ? "ID de la tienda en Rappi" : "Identificador de tienda"}
-                            />
-                          </div>
+                          {provider.id === "RAPPI" ? (
+                            <div className="rounded-xl border border-neutral-200 bg-[#faf9f7] px-3.5 py-3">
+                              <span className="block text-[9px] font-bold uppercase tracking-[0.06em] text-neutral-400">Tienda Rappi</span>
+                              <b className="mt-1 block text-[12px] text-neutral-900">
+                                {providerSettings.accountLinked ? providerSettings.storeName || `ID ${providerSettings.storeId}` : "Se seleccionará después de iniciar sesión"}
+                              </b>
+                              {providerSettings.accountLinked && providerSettings.storeAddress && (
+                                <p className="mt-1 text-[10px] text-neutral-500">{providerSettings.storeAddress}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.05em] text-neutral-500">ID de tienda / referencia</label>
+                              <input
+                                value={providerSettings.storeId}
+                                onChange={(event) => updateProvider(provider.id, { storeId: event.target.value })}
+                                className="alento-input w-full rounded-xl px-3.5 py-3 text-sm"
+                                placeholder="Identificador de tienda"
+                              />
+                            </div>
+                          )}
 
 
 
@@ -388,56 +478,69 @@ export default function IntegrationsPage() {
                             <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
                               <div className="flex items-center justify-between gap-3">
                                 <div>
-                                  <b className="block text-[11px] text-neutral-900">Preparación técnica</b>
-                                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">El botón Conectar Rappi solo funcionará cuando estén listos estos tres pasos.</p>
+                                  <b className="block text-[11px] text-neutral-900">Conexión de la tienda</b>
+                                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">Inicia sesión directamente en Rappi y selecciona la tienda que deseas vincular.</p>
                                 </div>
-                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[9px] font-bold text-neutral-600">
-                                  {[
-                                    Boolean(providerSettings.storeId.trim()),
-                                    Boolean(technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured),
-                                    Boolean(technicalAccess?.RAPPI.apiBaseUrlConfigured),
-                                  ].filter(Boolean).length}/3
+                                <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${providerSettings.status === "ACTIVE" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-50 text-neutral-500"}`}>
+                                  {providerSettings.status === "ACTIVE" ? "Vinculada" : "Pendiente"}
                                 </span>
                               </div>
-                              <div className="mt-3 grid gap-2">
-                                {[
-                                  { label: "ID de tienda", ok: Boolean(providerSettings.storeId.trim()), detail: providerSettings.storeId.trim() ? providerSettings.storeId.trim() : "Falta guardar el ID de tienda" },
-                                  { label: "Credenciales API", ok: Boolean(technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured), detail: technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured ? "Client ID y Client Secret configurados" : "Faltan RAPPI_CLIENT_ID / RAPPI_CLIENT_SECRET" },
-                                  { label: "URL de API", ok: Boolean(technicalAccess?.RAPPI.apiBaseUrlConfigured), detail: technicalAccess?.RAPPI.apiBaseUrlConfigured ? "Entorno API configurado" : "Falta RAPPI_API_BASE_URL" },
-                                ].map((item) => (
-                                  <div key={item.label} className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-[#faf9f7] px-3 py-2.5">
-                                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${item.ok ? "bg-emerald-100 text-emerald-700" : "bg-neutral-200 text-neutral-500"}`}>
-                                      {item.ok ? "✓" : "–"}
+
+                              {providerSettings.accountLinked ? (
+                                <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                                  <span className="text-[9px] font-bold uppercase tracking-[0.06em] text-emerald-600">Tienda conectada</span>
+                                  <b className="mt-1 block text-[12px] text-emerald-950">{providerSettings.storeName || "Rappi"}</b>
+                                  <p className="mt-0.5 text-[10px] text-emerald-800">
+                                    {providerSettings.storeAddress ? `${providerSettings.storeAddress} · ` : ""}ID {providerSettings.storeId}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="mt-3 grid gap-2">
+                                  <div className="flex items-center gap-3 rounded-xl bg-[#faf9f7] px-3 py-2.5">
+                                    <span className={`flex h-6 w-6 items-center justify-center rounded-lg text-[11px] font-black ${technicalAccess?.RAPPI.oauthClientConfigured ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                      {technicalAccess?.RAPPI.oauthClientConfigured ? "✓" : "1"}
                                     </span>
-                                    <div className="min-w-0">
-                                      <b className="block text-[10.5px] text-neutral-800">{item.label}</b>
-                                      <p className="truncate text-[9.5px] text-neutral-500">{item.detail}</p>
+                                    <div>
+                                      <b className="block text-[10.5px] text-neutral-800">Autorización Rappi</b>
+                                      <p className="text-[9.5px] text-neutral-500">{technicalAccess?.RAPPI.oauthClientConfigured ? "Cliente de autorización configurado" : "Rappi debe habilitar el cliente de Alentó"}</p>
                                     </div>
                                   </div>
-                                ))}
-                              </div>
+                                  <div className="flex items-center gap-3 rounded-xl bg-[#faf9f7] px-3 py-2.5">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-neutral-200 text-[11px] font-black text-neutral-500">2</span>
+                                    <div>
+                                      <b className="block text-[10.5px] text-neutral-800">Login oficial</b>
+                                      <p className="text-[9.5px] text-neutral-500">Rappi abrirá su propia pantalla de inicio de sesión.</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3 rounded-xl bg-[#faf9f7] px-3 py-2.5">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-neutral-200 text-[11px] font-black text-neutral-500">3</span>
+                                    <div>
+                                      <b className="block text-[10.5px] text-neutral-800">Seleccionar tienda</b>
+                                      <p className="text-[9.5px] text-neutral-500">Alentó mostrará únicamente las tiendas autorizadas por Rappi.</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
 
                           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                            <b className="block text-[10.5px] text-amber-900">Credenciales protegidas</b>
-                            <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "Para conectar directamente, Alentó valida desde servidor el client_id y client_secret de Open Orders. Tu usuario y contraseña de Rappi Partners permanecen únicamente en Rappi." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
+                            <b className="block text-[10.5px] text-amber-900">{provider.id === "RAPPI" ? "Tu contraseña permanece en Rappi" : "Credenciales protegidas"}</b>
+                            <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "Alentó abre el login oficial en una ventana separada. El usuario y la contraseña nunca se escriben ni se almacenan en Alentó." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
                           </div>
 
                           {provider.id === "RAPPI" ? (
                             <button
                               type="button"
-                              onClick={() => void connectRappi()}
-                              disabled={connecting || !providerSettings.storeId.trim() || !technicalAccess?.RAPPI.clientIdConfigured || !technicalAccess?.RAPPI.clientSecretConfigured || !technicalAccess?.RAPPI.apiBaseUrlConfigured}
+                              onClick={() => connectRappi()}
+                              disabled={connecting}
                               className={`w-full rounded-xl px-4 py-3 text-[11px] font-bold text-white disabled:bg-neutral-300 ${providerSettings.status === "ACTIVE" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-neutral-950 hover:bg-neutral-800"}`}
                             >
                               {connecting
-                                ? "Verificando conexión..."
+                                ? "Esperando a Rappi..."
                                 : providerSettings.status === "ACTIVE"
-                                  ? "Verificar conexión Rappi"
-                                  : !technicalAccess?.RAPPI.clientIdConfigured || !technicalAccess?.RAPPI.clientSecretConfigured || !technicalAccess?.RAPPI.apiBaseUrlConfigured
-                                    ? "Faltan credenciales API"
-                                    : "Conectar Rappi"}
+                                  ? "Cambiar / reconectar tienda"
+                                  : "Conectar Rappi"}
                             </button>
                           ) : (
                             <button
@@ -458,6 +561,77 @@ export default function IntegrationsPage() {
             );
           })}
         </section>
+
+        {rappiOAuthSession && rappiStores.length > 0 && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[2px]">
+            <div className="w-full max-w-[560px] overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-4">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-rose-500">Rappi autorizado</p>
+                  <h2 className="mt-1 text-[21px] font-bold tracking-[-0.025em] text-neutral-950">Seleccionar tienda de Rappi</h2>
+                  <p className="mt-1 text-[12px] text-neutral-500">Selecciona la tienda que deseas integrar con Alentó.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRappiOAuthSession("");
+                    setRappiStores([]);
+                    setSelectedRappiStoreId("");
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-lg text-neutral-500"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="max-h-[420px] space-y-2 overflow-y-auto p-5">
+                {rappiStores.map((store) => {
+                  const active = selectedRappiStoreId === store.id;
+                  return (
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => setSelectedRappiStoreId(store.id)}
+                      className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition ${active ? "border-rose-300 bg-rose-50 ring-1 ring-rose-200" : "border-neutral-200 bg-white hover:bg-neutral-50"}`}
+                    >
+                      <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${active ? "border-rose-500" : "border-neutral-300"}`}>
+                        {active && <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />}
+                      </span>
+                      <span className="min-w-0">
+                        <b className="block text-[13px] text-neutral-950">{store.name}</b>
+                        <span className="mt-1 block text-[10.5px] text-neutral-500">
+                          {store.address ? `${store.address} · ` : ""}ID {store.id}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRappiOAuthSession("");
+                    setRappiStores([]);
+                    setSelectedRappiStoreId("");
+                  }}
+                  className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-[11px] font-bold text-neutral-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedRappiStoreId || connecting}
+                  onClick={() => void completeRappiStore()}
+                  className="rounded-xl bg-rose-600 px-5 py-2.5 text-[11px] font-bold text-white disabled:bg-neutral-300"
+                >
+                  {connecting ? "Integrando..." : "Integrar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
           <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Arquitectura prevista</p>
