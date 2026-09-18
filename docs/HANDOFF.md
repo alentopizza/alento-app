@@ -77,15 +77,24 @@ No asumir que POS, Cocina o Caja necesitan dominios separados permanentes.
 
 ## Estado de módulos operativos
 
-**POS, Pedidos y Cocina están cerrados para la etapa operativa actual.**
+**POS, Pedidos, Cocina y Clientes están cerrados para la etapa operativa actual.**
 
 Sus referencias canónicas son:
 
 - `docs/POS.md`
 - `docs/ORDERS.md`
 - `docs/KITCHEN.md`
+- `docs/CUSTOMERS.md`
 
 Corregir bugs cuando aparezcan, pero no reabrir decisiones de diseño cerradas sin una solicitud explícita.
+
+## Siguiente bloque acordado
+
+El siguiente módulo a trabajar es **Menú**.
+
+Después de cerrar Menú se revisarán **Integraciones**.
+
+Autenticación y Roles continúa como prioridad estratégica de seguridad, pero no es el siguiente bloque operativo acordado.
 
 ## Autenticación — prioridad estratégica actual
 
