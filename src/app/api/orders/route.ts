@@ -29,7 +29,22 @@ export async function GET() {
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
-      include: { customer: true, address: true, items: true, payments: true },
+      include: {
+        customer: true,
+        address: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                type: true,
+                category: { select: { name: true, slug: true } },
+              },
+            },
+          },
+        },
+        payments: true,
+      },
     });
     return NextResponse.json({ orders });
   } catch (error) {
@@ -85,6 +100,14 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedLines = await Promise.all(lines.map(normalizeOrderLine));
+    const beveragesCategory = await prisma.category.findUnique({
+      where: { slug: "bebidas" },
+      select: { id: true },
+    });
+    const beverageCategoryId = beveragesCategory?.id ?? null;
+    const requiresKitchen = (categoryId: number) => beverageCategoryId == null || categoryId !== beverageCategoryId;
+    const hasKitchenPreparation = normalizedLines.some((line) => requiresKitchen(line.product.categoryId));
+
     const subtotal = normalizedLines.reduce((sum, line) => sum + line.lineTotal, 0);
     const eligibleSubtotal = normalizedLines.filter((line) => line.eligible).reduce((sum, line) => sum + line.lineTotal, 0);
 
@@ -137,7 +160,7 @@ export async function POST(request: NextRequest) {
           deliveryZoneId,
           deliveryZoneName,
           discountSource: discountMode,
-          status: "PREPARING",
+          status: hasKitchenPreparation ? "PREPARING" : "READY",
           fulfillmentType,
           source: "POS",
           subtotal,
@@ -151,6 +174,7 @@ export async function POST(request: NextRequest) {
               productName: line.product.name,
               unitPrice: line.unitPrice,
               quantity: line.quantity,
+              preparedQuantity: requiresKitchen(line.product.categoryId) ? 0 : line.quantity,
               lineTotal: line.lineTotal,
               configuration: line.configuration,
             })),
@@ -165,7 +189,22 @@ export async function POST(request: NextRequest) {
             },
           },
         },
-        include: { customer: true, address: true, items: true, payments: true },
+        include: {
+          customer: true,
+          address: true,
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  type: true,
+                  category: { select: { name: true, slug: true } },
+                },
+              },
+            },
+          },
+          payments: true,
+        },
       });
     });
 
