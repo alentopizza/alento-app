@@ -284,7 +284,6 @@ export default function KitchenPage() {
                           <path d="M12 7.5v5l3 2" />
                         </svg>
                         <b className="text-[12px] font-semibold">{minutes}</b>
-                        <span className="text-[9px] font-medium uppercase tracking-[0.04em]">min</span>
                       </div>
 
                       {prepared && (
