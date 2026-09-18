@@ -586,7 +586,13 @@ export default function OrdersCardsDashboardV3() {
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
             <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
             <div className="p-4">
-              <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold text-neutral-400">{dateTime(order.createdAt)}</p><h2 className="mt-0.5 text-[21px] font-black tracking-[-0.04em] text-neutral-950">{displayOrderCode(order)}</h2></div><b className="shrink-0 text-[19px] font-extrabold tracking-[-0.025em] text-[var(--brand-red)]">{money(order.total)}</b></div>
+              <div className="[font-synthesis:none]">
+                <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
+                <div className="mt-0.5 flex items-end justify-between gap-3">
+                  <h2 className="min-w-0 text-[21px] font-bold leading-6 tracking-[-0.035em] text-neutral-950">{displayOrderCode(order)}</h2>
+                  <b className="shrink-0 pb-[1px] text-[16px] font-semibold leading-5 tabular-nums tracking-[-0.015em] text-[var(--brand-red)]">{money(order.total)}</b>
+                </div>
+              </div>
               <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4"><div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">{(order.customer?.name || "C").trim().charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="order-customer-name truncate">{order.customer?.name || "Cliente ocasional"}</p><div className="order-customer-meta"><p className="order-customer-line">{order.customer?.phone ? `${order.customer.countryCode} ${order.customer.phone}` : "Sin teléfono"}</p>{order.fulfillmentType === "DELIVERY" && order.address?.address && <p className="order-customer-line order-customer-address">{order.address.address}</p>}</div></div></div>
               <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
                 {fullyPaid ? (
