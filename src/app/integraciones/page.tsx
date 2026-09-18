@@ -16,6 +16,13 @@ type ProviderSettings = {
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
+type TechnicalAccess = {
+  RAPPI: {
+    clientIdConfigured: boolean;
+    clientSecretConfigured: boolean;
+    apiBaseUrlConfigured: boolean;
+  };
+};
 
 type ProviderMeta = {
   id: ProviderId;
@@ -82,6 +89,7 @@ function statusTone(status: IntegrationStatus) {
 
 export default function IntegrationsPage() {
   const [settings, setSettings] = useState<IntegrationSettings | null>(null);
+  const [technicalAccess, setTechnicalAccess] = useState<TechnicalAccess | null>(null);
   const [openProvider, setOpenProvider] = useState<ProviderId | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<ProviderId | null>(null);
@@ -96,6 +104,7 @@ export default function IntegrationsPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "No fue posible cargar las integraciones.");
         setSettings(data.settings);
+        setTechnicalAccess(data.technicalAccess ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "No fue posible cargar las integraciones.");
       } finally {
@@ -162,7 +171,10 @@ export default function IntegrationsPage() {
 
       const refresh = await fetch("/api/integrations", { cache: "no-store" });
       const refreshData = await refresh.json();
-      if (refresh.ok) setSettings(refreshData.settings);
+      if (refresh.ok) {
+        setSettings(refreshData.settings);
+        setTechnicalAccess(refreshData.technicalAccess ?? null);
+      }
 
       if (!response.ok) throw new Error(data.error || "No fue posible conectar con Rappi.");
       setMessage("Rappi conectado correctamente.");
@@ -270,8 +282,8 @@ export default function IntegrationsPage() {
                             <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50/60 p-3.5">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <b className="block text-[11px] text-rose-950">Integrations Manager de Rappi</b>
-                                  <p className="mt-1 text-[10px] leading-4 text-rose-800">Portal técnico para gestionar la integración, revisar el estado de API y acceder al Dev Portal/POS Tester.</p>
+                                  <b className="block text-[11px] text-rose-950">Portal técnico de Rappi</b>
+                                  <p className="mt-1 text-[10px] leading-4 text-rose-800">Este portal no conecta automáticamente tu tienda con Alentó. Sirve para soporte técnico, estado de API, POS Tester y documentación de la integración.</p>
                                 </div>
                                 <a
                                   href="https://integrations-manager.rappi.com/"
@@ -279,7 +291,7 @@ export default function IntegrationsPage() {
                                   rel="noreferrer"
                                   className="shrink-0 rounded-xl bg-rose-600 px-4 py-2.5 text-center text-[10px] font-bold text-white shadow-sm hover:bg-rose-700"
                                 >
-                                  Abrir Integrations Manager
+                                  Abrir portal técnico
                                 </a>
                               </div>
                             </div>
@@ -372,6 +384,41 @@ export default function IntegrationsPage() {
                             </label>
                           </div>
 
+                          {provider.id === "RAPPI" && (
+                            <div className="rounded-xl border border-neutral-200 bg-white p-3.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <b className="block text-[11px] text-neutral-900">Preparación técnica</b>
+                                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">El botón Conectar Rappi solo funcionará cuando estén listos estos tres pasos.</p>
+                                </div>
+                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[9px] font-bold text-neutral-600">
+                                  {[
+                                    Boolean(providerSettings.storeId.trim()),
+                                    Boolean(technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured),
+                                    Boolean(technicalAccess?.RAPPI.apiBaseUrlConfigured),
+                                  ].filter(Boolean).length}/3
+                                </span>
+                              </div>
+                              <div className="mt-3 grid gap-2">
+                                {[
+                                  { label: "ID de tienda", ok: Boolean(providerSettings.storeId.trim()), detail: providerSettings.storeId.trim() ? providerSettings.storeId.trim() : "Falta guardar el ID de tienda" },
+                                  { label: "Credenciales API", ok: Boolean(technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured), detail: technicalAccess?.RAPPI.clientIdConfigured && technicalAccess?.RAPPI.clientSecretConfigured ? "Client ID y Client Secret configurados" : "Faltan RAPPI_CLIENT_ID / RAPPI_CLIENT_SECRET" },
+                                  { label: "URL de API", ok: Boolean(technicalAccess?.RAPPI.apiBaseUrlConfigured), detail: technicalAccess?.RAPPI.apiBaseUrlConfigured ? "Entorno API configurado" : "Falta RAPPI_API_BASE_URL" },
+                                ].map((item) => (
+                                  <div key={item.label} className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-[#faf9f7] px-3 py-2.5">
+                                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-black ${item.ok ? "bg-emerald-100 text-emerald-700" : "bg-neutral-200 text-neutral-500"}`}>
+                                      {item.ok ? "✓" : "–"}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <b className="block text-[10.5px] text-neutral-800">{item.label}</b>
+                                      <p className="truncate text-[9.5px] text-neutral-500">{item.detail}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                             <b className="block text-[10.5px] text-amber-900">Credenciales protegidas</b>
                             <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "Para conectar directamente, Alentó valida desde servidor el client_id y client_secret de Open Orders. Tu usuario y contraseña de Rappi Partners permanecen únicamente en Rappi." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
@@ -381,10 +428,16 @@ export default function IntegrationsPage() {
                             <button
                               type="button"
                               onClick={() => void connectRappi()}
-                              disabled={connecting || !providerSettings.storeId.trim()}
+                              disabled={connecting || !providerSettings.storeId.trim() || !technicalAccess?.RAPPI.clientIdConfigured || !technicalAccess?.RAPPI.clientSecretConfigured || !technicalAccess?.RAPPI.apiBaseUrlConfigured}
                               className={`w-full rounded-xl px-4 py-3 text-[11px] font-bold text-white disabled:bg-neutral-300 ${providerSettings.status === "ACTIVE" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-neutral-950 hover:bg-neutral-800"}`}
                             >
-                              {connecting ? "Verificando conexión..." : providerSettings.status === "ACTIVE" ? "Verificar conexión Rappi" : "Conectar Rappi"}
+                              {connecting
+                                ? "Verificando conexión..."
+                                : providerSettings.status === "ACTIVE"
+                                  ? "Verificar conexión Rappi"
+                                  : !technicalAccess?.RAPPI.clientIdConfigured || !technicalAccess?.RAPPI.clientSecretConfigured || !technicalAccess?.RAPPI.apiBaseUrlConfigured
+                                    ? "Faltan credenciales API"
+                                    : "Conectar Rappi"}
                             </button>
                           ) : (
                             <button
