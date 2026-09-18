@@ -187,6 +187,22 @@ La orden debe guardar ambas cosas:
 
 Ejemplo: si el producto `Chicharrona` se renombra dentro de seis meses, una orden histórica debe seguir mostrando el nombre vendido en su momento, pero el ID debe conservar la relación lógica con la entidad original mientras exista.
 
+## Nota operativa por producto
+
+`OrderItem.notes` se utiliza para instrucciones breves de preparación que no cambian la identidad estructurada ni el precio del producto.
+
+Ejemplos:
+
+- `Ligera en salsa`;
+- `Bien tostada`;
+- `Sin cortar`.
+
+Para pizzas, el POS y la edición de Pedidos permiten guardar una nota de máximo 120 caracteres. La nota viaja junto a la línea, se muestra en el carrito, detalle del pedido, Cocina y comprobante térmico.
+
+Una nota no sustituye tamaño, sabores, borde ni modificadores estructurados. Tampoco debe usarse para representar ingredientes cobrables o cambios de receta que requieran IDs del catálogo.
+
+Si una nota de una pizza ya preparada cambia desde Pedidos, la línea vuelve a requerir preparación para que Cocina vea y aplique la nueva instrucción.
+
 ## Precio y receta son conceptos diferentes
 
 `unitPrice` y `lineTotal` son snapshots comerciales.
