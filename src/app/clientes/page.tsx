@@ -309,6 +309,44 @@ export default function CustomersPage() {
     }
   }
 
+  async function downloadCustomerTemplate() {
+    try {
+      const response = await fetch("/api/customers/import/template", { cache: "no-store" });
+      if (!response.ok) throw new Error("No fue posible descargar la plantilla.");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "template-clientes-alento.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "No fue posible descargar la plantilla.");
+    }
+  }
+
+  async function deleteCustomer(customer: Customer | CustomerDetail) {
+    const orderCount = customer._count.orders;
+    const warning = orderCount > 0
+      ? `¿Eliminar a ${customer.name}? Sus ${orderCount} pedido(s) se conservarán, pero quedarán sin cliente asociado. Esta acción no se puede deshacer.`
+      : `¿Eliminar a ${customer.name}? Esta acción no se puede deshacer.`;
+
+    if (!window.confirm(warning)) return;
+
+    try {
+      const response = await fetch(`/api/customers/${customer.id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible eliminar el cliente.");
+      setSelected(null);
+      await loadCustomers();
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "No fue posible eliminar el cliente.");
+    }
+  }
+
   function closeImport() {
     if (importBusy) return;
     setImportOpen(false);
@@ -517,6 +555,30 @@ export default function CustomersPage() {
                   <span className="mt-1 block text-[11px] text-neutral-500">Nombre, indicativo y teléfono son suficientes. Máximo 5 MB.</span>
                 </label>
 
+                <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <b className="block text-[12px] text-sky-950">¿No tienes el archivo preparado?</b>
+                      <p className="mt-1 text-[10px] leading-4 text-sky-800">
+                        Descarga la plantilla oficial con las columnas exactas y una fila de ejemplo.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void downloadCustomerTemplate()}
+                      className="shrink-0 rounded-xl border border-sky-200 bg-white px-3.5 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-sky-700"
+                    >
+                      Descargar template
+                    </button>
+                  </div>
+
+                  <div className="mt-3 overflow-x-auto rounded-xl border border-sky-100 bg-white">
+                    <div className="min-w-[760px] px-3 py-2.5 font-mono text-[9px] leading-4 text-neutral-600">
+                      Cliente/Nombre · Cliente/Indicativo · Cliente/Telefono · Cliente/Correo · Cliente/Dirección · Cliente/Complemento · Cliente/GPS Link · Cliente/Notas
+                    </div>
+                  </div>
+                </div>
+
                 {importBusy && (
                   <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-600">Analizando archivo...</div>
                 )}
@@ -675,9 +737,17 @@ export default function CustomersPage() {
                       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Datos del cliente</p>
                       <h3 className="mt-1 text-base font-bold">Contacto y entrega</h3>
                     </div>
-                    <button onClick={() => openEdit(selected)} className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[10px] font-bold text-neutral-700 shadow-sm">
-                      Editar
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => openEdit(selected)} className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[10px] font-bold text-neutral-700 shadow-sm">
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => void deleteCustomer(selected)}
+                        className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-bold text-red-700 shadow-sm"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
