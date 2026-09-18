@@ -96,6 +96,8 @@ Objetivo: que Cocina pueda ejecutar la preparación real sin depender de informa
 - `/cocina` conectado a pedidos reales;
 - pedidos `PREPARING` y `PREPARED`;
 - productos estructurados visibles;
+- prioridad visual de preparación: pizzas primero y antojos después;
+- bebidas excluidas de Cocina, del progreso de preparación y del bloqueo para pasar a `PREPARED`;
 - control `preparedQuantity` por línea;
 - cantidades múltiples `0/N → N/N`;
 - cambio automático `PREPARING → PREPARED` cuando todas las unidades terminan;
