@@ -43,9 +43,15 @@ function isKitchenItem(item: KitchenOrderItem) {
 
 function kitchenPriority(item: KitchenOrderItem) {
   if (item.product?.type === "PIZZA_SINGLE" || item.product?.type === "PIZZA_TWO_FLAVORS") return 0;
+
+  if (item.product?.type === "COMBO" && item.configuration && typeof item.configuration === "object" && !Array.isArray(item.configuration)) {
+    const pizzas = (item.configuration as { pizzas?: unknown }).pizzas;
+    if (Array.isArray(pizzas) && pizzas.length > 0) return 0;
+    return 1;
+  }
+
   if (item.product?.category?.slug === "antojos") return 1;
-  if (item.product?.type === "COMBO") return 2;
-  return 3;
+  return 2;
 }
 
 function kitchenItemsFor(order: KitchenOrder) {
@@ -63,7 +69,10 @@ function KitchenItem({
   busy: boolean;
   onChangePrepared: (value: number) => void;
 }) {
-  const details = presentOrderItemConfiguration(item.configuration);
+  const details = presentOrderItemConfiguration(item.configuration).filter((detail) => {
+    const label = detail.label.trim().toLowerCase();
+    return !label.includes("bebida") && !label.includes("gaseosa");
+  });
   const complete = item.preparedQuantity >= item.quantity;
 
   return (
