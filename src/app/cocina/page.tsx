@@ -113,20 +113,20 @@ function KitchenItem({
             </div>
           )}
 
-          {item.notes && (
-            <div className="mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 shadow-[0_3px_10px_rgba(180,120,0,.08)]">
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
-                <div>
-                  <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-amber-700">Nota de preparación</span>
-                  <b className="mt-0.5 block text-[13px] leading-5 text-amber-950">{item.notes}</b>
+          <div className={`mt-2 flex items-center gap-2 border-t border-black/5 pt-2 ${item.notes ? "justify-between" : "justify-end"}`}>
+            {item.notes && (
+              <div className="min-w-0 flex-1 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
+                  <div className="min-w-0">
+                    <span className="block text-[8.5px] font-bold uppercase tracking-[0.07em] text-amber-700">Nota de preparación</span>
+                    <b className="mt-0.5 block text-[12px] leading-4 text-amber-950">{item.notes}</b>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="mt-2 flex items-center justify-end border-t border-black/5 pt-2">
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
                 disabled={busy || item.preparedQuantity <= 0}
