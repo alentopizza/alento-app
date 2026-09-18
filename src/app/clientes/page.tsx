@@ -200,6 +200,7 @@ export default function CustomersPage() {
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteEnabled, setBulkDeleteEnabled] = useState(true);
 
   async function loadCustomers() {
     setLoading(true);
@@ -215,6 +216,19 @@ export default function CustomersPage() {
 
   useEffect(() => {
     void loadCustomers();
+
+    async function loadCustomerSettings() {
+      try {
+        const response = await fetch("/api/settings", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) return;
+        setBulkDeleteEnabled(data.settings?.customerManagement?.bulkDeleteEnabled !== false);
+      } catch {
+        setBulkDeleteEnabled(true);
+      }
+    }
+
+    void loadCustomerSettings();
   }, []);
 
   const statusCounts = useMemo(() => {
@@ -564,7 +578,7 @@ export default function CustomersPage() {
                   className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.035em] transition ${active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"}`}
                 >
                   <span>{label}</span>
-                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] tabular-nums ${active ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-500"}`}>
+                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none tabular-nums shadow-sm ${active ? "bg-white text-neutral-950" : "border border-neutral-200 bg-neutral-100 text-neutral-700"}`}>
                     {count}
                   </span>
                 </button>
@@ -573,42 +587,44 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleBulkMode}
-              className={`rounded-xl border px-3.5 py-2.5 text-[11px] font-bold transition ${bulkMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"}`}
-            >
-              {bulkMode ? "Salir de selección" : "Selección múltiple"}
-            </button>
-            {bulkMode && (
-              <>
-                <button
-                  type="button"
-                  onClick={selectAllEligibleVisible}
-                  className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[11px] font-bold text-neutral-700 hover:bg-neutral-50"
-                >
-                  Seleccionar elegibles
-                </button>
-                <span className="rounded-xl bg-neutral-100 px-3 py-2 text-[11px] font-semibold text-neutral-600">
-                  {selectedCustomerIds.length} seleccionados
-                </span>
-              </>
-            )}
-          </div>
+        {bulkDeleteEnabled && (
+          <section className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleBulkMode}
+                className={`rounded-xl border px-3.5 py-2.5 text-[11px] font-bold transition ${bulkMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"}`}
+              >
+                {bulkMode ? "Salir de selección" : "Selección múltiple"}
+              </button>
+              {bulkMode && (
+                <>
+                  <button
+                    type="button"
+                    onClick={selectAllEligibleVisible}
+                    className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[11px] font-bold text-neutral-700 hover:bg-neutral-50"
+                  >
+                    Seleccionar elegibles
+                  </button>
+                  <span className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold tabular-nums text-neutral-700 shadow-sm">
+                    {selectedCustomerIds.length} seleccionados
+                  </span>
+                </>
+              )}
+            </div>
 
-          {bulkMode && (
-            <button
-              type="button"
-              disabled={selectedCustomerIds.length === 0}
-              onClick={() => setBulkConfirmOpen(true)}
-              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[11px] font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Eliminar seleccionados
-            </button>
-          )}
-        </section>
+            {bulkMode && (
+              <button
+                type="button"
+                disabled={selectedCustomerIds.length === 0}
+                onClick={() => setBulkConfirmOpen(true)}
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[11px] font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Eliminar seleccionados
+              </button>
+            )}
+          </section>
+        )}
 
         {loading ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">Cargando clientes...</div>
@@ -676,7 +692,7 @@ export default function CustomersPage() {
           </section>
         )}
 
-        {bulkConfirmOpen && (
+        {bulkDeleteEnabled && bulkConfirmOpen && (
           <ActionConfirmModal
             variant="danger"
             eyebrow="Eliminación masiva"
