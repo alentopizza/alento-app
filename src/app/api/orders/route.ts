@@ -44,7 +44,6 @@ export async function GET() {
           },
         },
         payments: true,
-        marketplaceOrder: true,
       },
     });
     return NextResponse.json({ orders });
