@@ -111,18 +111,61 @@ function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close
 function ProductRow({ item }: { item: OrderItem }) {
   const details = presentOrderItemConfiguration(item.configuration);
   const normalizedName = item.productName.trim().toLocaleLowerCase("es");
-  const hasSecondFlavor = details.some((detail) => detail.label.toLowerCase() === "sabor 2");
-  const visibleDetails = details.filter((detail) => {
-    if (hasSecondFlavor || detail.label.toLowerCase() !== "sabor 1") return true;
-    const normalizedFlavor = detail.value.replace(/^½\s*/, "").trim().toLocaleLowerCase("es");
-    return normalizedFlavor !== normalizedName;
+  const flavorDetails = details.filter((detail) => detail.label.toLowerCase().startsWith("sabor"));
+  const otherDetails = details.filter((detail) => {
+    const label = detail.label.toLowerCase();
+    if (label.startsWith("sabor")) return false;
+    return true;
+  });
+  const cleanFlavor = (value: string) => value.replace(/^½\s*/, "").trim();
+  const visibleFlavorDetails = flavorDetails.filter((detail) => {
+    if (flavorDetails.length > 1) return true;
+    return cleanFlavor(detail.value).toLocaleLowerCase("es") !== normalizedName;
   });
 
-  return <div className="order-detail-product rounded-xl border border-neutral-200 bg-[#faf9f7] p-3"><div className="flex justify-between gap-3"><div className="min-w-0"><b className="order-detail-product-name text-sm">{item.quantity} × {item.productName}</b>{visibleDetails.length > 0 && <div className="order-detail-product-chips mt-1 flex flex-wrap gap-1.5">{visibleDetails.map((detail, index) => {
-    const extra = detail.label.toLowerCase() === "extra";
-    const standard = detail.label.toLowerCase() === "producto";
-    return <span key={`${detail.label}-${index}`} className={`order-detail-chip ${extra ? "order-detail-chip-extra" : standard ? "order-detail-chip-standard" : ""}`}><strong>{extra ? "+" : detail.label}</strong>{!extra && " · "}{detail.value}</span>;
-  })}</div>}{item.notes && <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] font-semibold text-amber-900"><span className="mr-1 text-[9px] font-black uppercase tracking-[.08em] text-amber-600">Nota cocina</span>{item.notes}</div>}</div><b className="order-detail-product-price shrink-0 text-sm">{money(item.lineTotal)}</b></div></div>;
+  return (
+    <div className="order-detail-product rounded-xl border border-neutral-200 bg-[#faf9f7] p-3">
+      <div className="flex justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <b className="order-detail-product-name text-sm">{item.quantity} × {item.productName}</b>
+
+          {otherDetails.length > 0 && (
+            <div className="order-detail-product-chips mt-1 flex flex-wrap gap-1.5">
+              {otherDetails.map((detail, index) => {
+                const extra = detail.label.toLowerCase() === "extra";
+                const standard = detail.label.toLowerCase() === "producto";
+                return (
+                  <span key={`${detail.label}-${index}`} className={`order-detail-chip ${extra ? "order-detail-chip-extra" : standard ? "order-detail-chip-standard" : ""}`}>
+                    <strong>{extra ? "+" : detail.label}</strong>{!extra && " · "}{detail.value}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {visibleFlavorDetails.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {visibleFlavorDetails.map((detail, index) => (
+                <span key={`${detail.label}-${index}`} className="contents">
+                  <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
+                    {cleanFlavor(detail.value)}
+                  </span>
+                  {index < visibleFlavorDetails.length - 1 && <span className="text-[10px] font-bold text-neutral-300">−</span>}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {item.notes && (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] font-semibold text-amber-900">
+              <span className="mr-1 text-[9px] font-black uppercase tracking-[.08em] text-amber-600">Nota cocina</span>{item.notes}
+            </div>
+          )}
+        </div>
+        <b className="order-detail-product-price shrink-0 text-sm">{money(item.lineTotal)}</b>
+      </div>
+    </div>
+  );
 }
 
 export default function OrdersCardsDashboardV3() {
