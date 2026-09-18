@@ -248,6 +248,8 @@ Al abrir una tarjeta se muestra un drawer con:
 - cliente;
 - teléfono;
 - dirección cuando aplica;
+- acción `Editar / cambiar` para actualizar nombre/teléfono del mismo cliente sin perder historial o reasignar un pedido activo a otro cliente existente;
+- en Domicilio, cualquier reasignación exige una dirección perteneciente al nuevo cliente;
 - productos y configuración estructurada;
 - subtotal;
 - domicilio;
