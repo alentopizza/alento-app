@@ -1,6 +1,6 @@
 # Clientes
 
-Estado: **EN DESARROLLO / NUEVO PANEL COMERCIAL**
+Estado: **CERRADO POR AHORA**
 
 Ruta: `/clientes`
 
@@ -80,15 +80,6 @@ Esta regla es heurística y puede ajustarse posteriormente con mayor volumen de 
 
 No representa una predicción probabilística de compra.
 
-## Resumen general
-
-El módulo muestra:
-
-- compras registradas;
-- venta acumulada;
-- ticket promedio global;
-- clientes por recuperar.
-
 ## Filtros por estado
 
 El listado permite filtrar por señal comercial y muestra el número de clientes en cada estado:
@@ -113,12 +104,7 @@ Cada cliente muestra:
 - señal comercial;
 - número de compras;
 - ticket promedio;
-- total comprado;
-- última compra;
-- días desde última compra;
-- dirección principal o correo;
-- acceso al perfil;
-- edición.
+- total comprado.
 
 La tarjeta completa es seleccionable.
 
@@ -148,7 +134,15 @@ Cada pedido muestra:
 - estado;
 - fecha/hora;
 - total;
-- productos principales.
+- productos;
+- cantidades;
+- tamaño;
+- borde;
+- sabores;
+- extras;
+- notas de preparación;
+- total por producto;
+- acción para imprimir una copia del comprobante térmico.
 
 El código usa la misma lógica global de POS, Pedidos y Cocina mediante `orderCode`.
 
@@ -329,3 +323,26 @@ Devuelve:
 Este bloque utiliza relaciones que ya existen entre `Customer` y `Order`.
 
 No requiere `npx prisma db push`.
+
+
+## Cierre del módulo
+
+Clientes se considera **cerrado por ahora** para la etapa actual.
+
+Quedan operativos:
+
+- directorio con búsqueda;
+- clasificación comercial por estado;
+- filtros con contador;
+- métricas por cliente;
+- perfil detallado;
+- historial estructurado de compras;
+- impresión de copias de pedidos;
+- edición individual;
+- eliminación individual;
+- importación CSV con validación y plantilla;
+- exportación CSV;
+- eliminación masiva protegida por configuración;
+- permiso de eliminación masiva controlado desde Configuración.
+
+El módulo puede recibir correcciones de bugs, pero no debe reabrirse como fase de diseño sin una solicitud explícita.
