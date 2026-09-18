@@ -294,10 +294,12 @@ export default function KitchenPage() {
                           type="button"
                           onClick={() => void markReady(order)}
                           disabled={orderBusy}
-                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-red)] px-3 text-[10px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
+                          aria-label="Marcar pedido como listo"
+                          title="Marcar pedido como listo"
+                          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-black text-white shadow-[0_4px_12px_rgba(5,150,105,.28)] transition hover:-translate-y-[1px] hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
                         >
-                          <span aria-hidden="true">✓</span>
-                          {orderBusy ? "Actualizando..." : "Listo"}
+                          {!orderBusy && <span className="absolute inset-0 rounded-full bg-emerald-400/40 animate-ping" aria-hidden="true" />}
+                          <span className="relative z-10" aria-hidden="true">{orderBusy ? "…" : "✓"}</span>
                         </button>
                       )}
                     </div>
