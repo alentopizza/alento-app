@@ -6,6 +6,8 @@ export function orderPrefix(source: OrderSourceCode | null | undefined) {
   if (value === "WHATSAPP") return "WSP";
   if (value === "INSTAGRAM") return "IG";
   if (value === "FACEBOOK") return "FB";
+  if (value === "RAPPI") return "RAP";
+  if (value === "DIDI") return "DID";
   return value || "POS";
 }
 
