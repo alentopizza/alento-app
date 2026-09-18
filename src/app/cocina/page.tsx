@@ -228,7 +228,7 @@ export default function KitchenPage() {
             <p className="mt-1 text-sm text-neutral-500">No hay pedidos pendientes de preparación.</p>
           </div>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {kitchenOrders.map((order) => {
               const minutes = ageMinutes(order.createdAt);
               const prepared = order.status === "PREPARED";
@@ -239,7 +239,7 @@ export default function KitchenPage() {
               const orderBusy = busyOrderId === order.id;
 
               return (
-                <article key={order.id} className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
+                <article key={order.id} className="self-start overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
                   <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
