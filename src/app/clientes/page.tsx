@@ -58,6 +58,32 @@ type CustomerDetail = Customer & {
 
 type CustomerStatusFilter = "ALL" | "Nuevo" | "Activo" | "Frecuente" | "Por recuperar" | "Sin compras";
 
+type ImportPreviewRow = {
+  rowNumber: number;
+  name: string;
+  countryCode: string;
+  phone: string;
+  email: string;
+  address: string;
+};
+
+type ImportIssue = {
+  rowNumber: number;
+  name: string;
+  phone: string;
+  reason: string;
+};
+
+type ImportPreview = {
+  summary: {
+    totalRows: number;
+    toCreate: number;
+    skipped: number;
+  };
+  preview: ImportPreviewRow[];
+  issues: ImportIssue[];
+};
+
 const money = (value: number | string | null | undefined) =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -146,6 +172,11 @@ export default function CustomersPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
 
   async function loadCustomers() {
     setLoading(true);
@@ -272,6 +303,55 @@ export default function CustomersPage() {
     await loadCustomers();
   }
 
+  function closeImport() {
+    if (importBusy) return;
+    setImportOpen(false);
+    setImportFile(null);
+    setImportPreview(null);
+    setImportMessage("");
+  }
+
+  async function previewImport(file: File) {
+    setImportBusy(true);
+    setImportMessage("");
+    setImportPreview(null);
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("action", "preview");
+      const response = await fetch("/api/customers/import", { method: "POST", body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible analizar el archivo.");
+      setImportPreview(data);
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "No fue posible analizar el archivo.");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  async function confirmImport() {
+    if (!importFile || !importPreview || importPreview.summary.toCreate === 0) return;
+    setImportBusy(true);
+    setImportMessage("");
+    try {
+      const formData = new FormData();
+      formData.set("file", importFile);
+      formData.set("action", "import");
+      const response = await fetch("/api/customers/import", { method: "POST", body: formData });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible importar los clientes.");
+      await loadCustomers();
+      setImportMessage(`Importación terminada: ${data.imported} clientes creados y ${data.skipped} omitidos.`);
+      setImportPreview(null);
+      setImportFile(null);
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "No fue posible importar los clientes.");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f4f4f2] p-4 lg:p-6">
       <div className="mx-auto max-w-[1540px] space-y-4">
@@ -282,9 +362,24 @@ export default function CustomersPage() {
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Clientes</h1>
               <p className="mt-1 text-sm text-white/65">Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
-              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-3.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white transition hover:bg-white/[0.13]"
+              >
+                Importar
+              </button>
+              <a
+                href="/api/customers/export"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-3.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white transition hover:bg-white/[0.13]"
+              >
+                Exportar
+              </a>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
+                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
+              </div>
             </div>
           </div>
         </section>
@@ -383,6 +478,114 @@ export default function CustomersPage() {
               );
             })}
           </section>
+        )}
+
+        {importOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[3px]">
+            <div className="max-h-[94vh] w-full max-w-3xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-4 md:px-6">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-400">Base de clientes</p>
+                  <h2 className="mt-0.5 text-2xl font-black tracking-[-0.025em]">Importar CSV</h2>
+                  <p className="mt-1 text-xs text-neutral-500">Revisa los registros antes de agregarlos a Alentó. Los duplicados se omiten automáticamente.</p>
+                </div>
+                <button type="button" onClick={closeImport} className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-lg font-bold text-neutral-700">×</button>
+              </div>
+
+              <div className="alento-scroll max-h-[68vh] overflow-y-auto px-5 py-4 md:px-6">
+                <label className="block rounded-2xl border border-dashed border-neutral-300 bg-[#faf9f7] p-5 text-center transition hover:border-neutral-400">
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setImportFile(file);
+                      setImportPreview(null);
+                      setImportMessage("");
+                      if (file) void previewImport(file);
+                    }}
+                  />
+                  <span className="block text-sm font-bold text-neutral-800">{importFile ? importFile.name : "Seleccionar archivo CSV"}</span>
+                  <span className="mt-1 block text-[11px] text-neutral-500">Nombre, indicativo y teléfono son suficientes. Máximo 5 MB.</span>
+                </label>
+
+                {importBusy && (
+                  <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-600">Analizando archivo...</div>
+                )}
+
+                {importMessage && (
+                  <div className="mt-3 rounded-xl border border-neutral-200 bg-[#faf9f7] px-4 py-3 text-sm font-semibold text-neutral-700">{importMessage}</div>
+                )}
+
+                {importPreview && (
+                  <>
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <Metric label="Filas" value={String(importPreview.summary.totalRows)} />
+                      <Metric label="Nuevos" value={String(importPreview.summary.toCreate)} />
+                      <Metric label="Omitidos" value={String(importPreview.summary.skipped)} />
+                    </div>
+
+                    {importPreview.preview.length > 0 && (
+                      <section className="mt-4 overflow-hidden rounded-2xl border border-neutral-200">
+                        <div className="border-b border-neutral-100 bg-[#faf9f7] px-4 py-3">
+                          <b className="text-xs text-neutral-800">Vista previa de clientes nuevos</b>
+                        </div>
+                        <div className="divide-y divide-neutral-100">
+                          {importPreview.preview.map((row) => (
+                            <div key={row.rowNumber} className="grid gap-1 px-4 py-3 sm:grid-cols-[1.2fr_.8fr_1.4fr] sm:items-center">
+                              <div>
+                                <b className="block text-[12px] text-neutral-900">{row.name}</b>
+                                <span className="text-[10px] text-neutral-400">Fila {row.rowNumber}</span>
+                              </div>
+                              <span className="text-[11px] text-neutral-600">{row.countryCode} {row.phone}</span>
+                              <span className="truncate text-[11px] text-neutral-500">{row.address || "Sin dirección"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {importPreview.issues.length > 0 && (
+                      <section className="mt-4 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/60">
+                        <div className="border-b border-amber-100 px-4 py-3">
+                          <b className="text-xs text-amber-900">Registros que no se importarán</b>
+                        </div>
+                        <div className="max-h-52 divide-y divide-amber-100 overflow-y-auto">
+                          {importPreview.issues.map((issue, index) => (
+                            <div key={`${issue.rowNumber}-${index}`} className="px-4 py-2.5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <b className="block truncate text-[11px] text-amber-950">{issue.name || "Sin nombre"}</b>
+                                  <p className="mt-0.5 text-[10px] leading-4 text-amber-800">{issue.reason}</p>
+                                </div>
+                                <span className="shrink-0 text-[9px] font-semibold text-amber-600">Fila {issue.rowNumber}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 md:px-6">
+                <p className="text-[10px] leading-4 text-neutral-500">Los clientes existentes se conservan sin cambios para proteger su historial.</p>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={closeImport} className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-neutral-700">Cancelar</button>
+                  <button
+                    type="button"
+                    onClick={() => void confirmImport()}
+                    disabled={importBusy || !importPreview || importPreview.summary.toCreate === 0}
+                    className="rounded-xl bg-[var(--brand-red)] px-4 py-2.5 text-xs font-bold text-white disabled:bg-neutral-300"
+                  >
+                    {importBusy ? "Importando..." : importPreview ? `Importar ${importPreview.summary.toCreate}` : "Importar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {detailLoading && (
