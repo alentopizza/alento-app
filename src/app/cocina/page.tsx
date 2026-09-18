@@ -72,6 +72,9 @@ function KitchenItem({
     const label = detail.label.trim().toLowerCase();
     return !label.includes("bebida") && !label.includes("gaseosa");
   });
+  const flavorDetails = details.filter((detail) => detail.label.trim().toLowerCase().startsWith("sabor"));
+  const otherDetails = details.filter((detail) => !detail.label.trim().toLowerCase().startsWith("sabor"));
+  const cleanFlavor = (value: string) => value.replace(/^½\s*/, "").trim();
   const complete = item.preparedQuantity >= item.quantity;
 
   return (
@@ -80,19 +83,32 @@ function KitchenItem({
         <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[11px] font-bold tabular-nums ${complete ? "bg-emerald-600 text-white" : "bg-black text-white"}`}>{item.quantity}×</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <b className="block text-[13px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
+            <b className="block text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
             <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] tabular-nums ${complete ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-600"}`}>
               {item.preparedQuantity}/{item.quantity} preparados
             </span>
           </div>
 
-          {details.length > 0 && (
-            <div className="mt-1.5 grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
-              {details.map((detail, index) => (
-                <p key={`${detail.label}-${index}`} className="text-[10.5px] leading-4 text-neutral-700">
-                  <span className="font-semibold text-neutral-500">{detail.label}:</span> {detail.value}
+          {otherDetails.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+              {otherDetails.map((detail, index) => (
+                <p key={`${detail.label}-${index}`} className="text-[11.5px] leading-4 text-neutral-800">
+                  <span className="font-bold text-neutral-500">{detail.label}:</span> {detail.value}
                 </p>
               ))}
+            </div>
+          )}
+
+          {flavorDetails.length > 0 && (
+            <div className="mt-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-[0_2px_8px_rgba(28,23,20,.03)]">
+              <div className="space-y-1">
+                {flavorDetails.map((detail, index) => (
+                  <div key={`${detail.label}-${index}`} className="flex items-baseline gap-2 leading-5">
+                    <span className="min-w-[58px] text-[11px] font-bold text-neutral-500">{detail.label}:</span>
+                    <b className="text-[13px] font-bold text-neutral-950">{cleanFlavor(detail.value)}</b>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
