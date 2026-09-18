@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
   const savedState = await prisma.appSetting.findUnique({ where: { key: stateKey } });
   const stateValue =
     savedState?.value && typeof savedState.value === "object" && !Array.isArray(savedState.value)
-      ? savedState.value as OAuthStateValue
+      ? savedState.value as unknown as OAuthStateValue
       : null;
 
   await prisma.appSetting.deleteMany({ where: { key: stateKey } });
