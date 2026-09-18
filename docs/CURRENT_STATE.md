@@ -1,33 +1,45 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-17.
+Última actualización: 2026-09-18.
 
-Este documento resume el comportamiento real de Alentó App al momento de esta actualización. Para el orden de implementación aprobado ver `docs/ROADMAP.md`; para arquitectura general ver `docs/ARCHITECTURE.md`; para autenticación futura ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+Este documento resume el comportamiento vigente de Alentó App.
 
 ## Fase activa
 
-La prioridad actual es cerrar **Pedidos** y **Cocina** antes de iniciar autenticación.
+**Punto de venta, Pedidos y Cocina están cerrados para la etapa operativa actual.**
 
-Orden aprobado:
+La siguiente fase habilitada es:
 
 ```text
-Pedidos
-→ Cocina
-→ Validación integrada Pedidos ↔ Cocina
-→ Autenticación y Roles
+Autenticación y Roles
+→ protección de páginas y APIs
+→ administración de usuarios
 ```
 
-No iniciar el bloque de usuarios/login/roles mientras existan pendientes operativos relevantes en Pedidos o Cocina.
+Referencias funcionales canónicas:
 
-Los criterios de cierre de cada fase están definidos en `docs/ROADMAP.md`.
+- `docs/POS.md`
+- `docs/ORDERS.md`
+- `docs/KITCHEN.md`
 
 ## Estado general
 
-Alentó App ya funciona como sistema operativo interno en construcción para POS, clientes, menú, pedidos, Cocina, pagos, Caja, cupones, configuración e impresión térmica.
+Alentó App ya funciona como sistema operativo interno para:
 
-Todavía no existe autenticación ni autorización por roles. El sistema interno no debe considerarse protegido para exposición pública hasta completar ese bloque.
+- POS;
+- clientes;
+- catálogo;
+- pedidos;
+- Cocina;
+- pagos;
+- Caja;
+- cupones;
+- configuración;
+- impresión térmica.
 
-## Infraestructura actual
+Todavía no existe autenticación ni autorización por roles.
+
+## Infraestructura
 
 - Next.js 15 + React 19 + TypeScript.
 - Tailwind CSS 4.
@@ -35,108 +47,153 @@ Todavía no existe autenticación ni autorización por roles. El sistema interno
 - EasyPanel/VPS.
 - Proyecto EasyPanel: `app_alento`.
 - Servicio: `alento-app`.
-- Base PostgreSQL: `alento-db`.
-- Acceso temporal actual: `pos.alentopizza.com`.
-- `alentopizza.com` continúa servido por Glide mientras Alentó App termina su etapa de construcción.
+- Base: `alento-db`.
+- URL temporal actual: `https://pos.alentopizza.com/`.
 
-La arquitectura objetivo es un solo dominio principal, no un dominio separado para cada módulo.
+`alentopizza.com` continúa servido por Glide mientras se completa la migración futura.
 
-## POS
+## POS — cerrado
 
-El POS permite Domicilio (`DELIVERY`), Recoger (`PICKUP`) y Local (`STORE`); búsqueda/creación/edición de clientes; catálogo; productos simples; pizzas de uno y dos sabores; tamaños; bordes por tamaño; extras; combos configurables; tarifas manuales de domicilio; descuentos/cupones; medios de pago configurables; efectivo con `Paga con` y `Vueltas`; y creación real de pedidos en PostgreSQL.
+El POS soporta:
 
-Los productos pueden agregarse antes de seleccionar cliente o modalidad. Las validaciones obligatorias se aplican al cierre del pedido.
+- Domicilio, Recoger y Local;
+- búsqueda/creación/edición de clientes;
+- pizzas de uno y dos sabores;
+- tamaños;
+- bordes;
+- extras;
+- combos;
+- productos simples;
+- descuentos/cupones;
+- medios de pago;
+- notas cortas por pizza;
+- creación real de pedidos;
+- consecutivo comercial global;
+- recálculo server-side.
 
-## Integridad estructurada de productos
+Las pizzas destacadas no duplican sabores en el configurador.
+
+Ver `docs/POS.md`.
+
+## Integridad estructurada
 
 `OrderItem.configuration` es la fuente estructurada de lo vendido.
 
-Pizzas conservan IDs y snapshots de tamaño, sabor/sabores, porciones, borde y modificadores. Además, `OrderItem.notes` puede guardar una observación operativa corta por pizza (máximo 120 caracteres), por ejemplo `Ligera en salsa`; esta nota se conserva al editar el producto y se resalta en Cocina. Combos conservan producto combo, reglas, tamaños/sabores, grupos, opciones, cantidades, precios snapshot, `priceDelta` y descuento propio.
+Pizzas conservan IDs y snapshots de tamaño, sabores, porciones, borde y extras.
 
-Esto es requisito crítico para Cocina, inventario, recetas y costos futuros. Ver `docs/ORDER_DATA_INTEGRITY.md`.
+Combos conservan producto padre, reglas, pizzas, grupos, opciones y cantidades.
 
-## Creación de pedidos
+`OrderItem.notes` guarda instrucciones breves de preparación por pizza, máximo 120 caracteres.
 
-`POST /api/orders` valida y recalcula server-side. Los pedidos nuevos nacen directamente en `PREPARING`, evitando depender de triggers SQL no aplicados por `prisma db push`.
+Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
-## Flujo operativo de estados
+## Pedidos — cerrado
 
-### Domicilio
+`/pedidos` permite:
+
+- buscar y filtrar;
+- consultar detalle;
+- editar modalidad;
+- editar cantidades;
+- agregar productos;
+- agregar pizzas/combos configurados;
+- editar notas;
+- actualizar el mismo cliente;
+- reasignar cliente;
+- registrar pagos;
+- pagos parciales;
+- eliminar pagos por error;
+- imprimir;
+- cancelar;
+- eliminar definitivamente bajo reglas de día operativo;
+- continuar estados después de Cocina.
+
+La tarjeta compacta muestra un único estado financiero actual: `PAGO PENDIENTE` o `PAGADO`.
+
+Ver `docs/ORDERS.md`.
+
+## Cocina — cerrada
+
+`/cocina`:
+
+- muestra hasta 3 pedidos por fila en escritorio;
+- prioriza pizzas, luego antojos;
+- excluye bebidas;
+- usa `preparedQuantity`;
+- pasa automáticamente a `PREPARED`;
+- permite `PREPARED → READY`;
+- muestra tiempo transcurrido;
+- muestra cliente de forma sutil;
+- jerarquiza tamaño, borde, sabores, extras y nota;
+- muestra notas en mayúsculas visuales;
+- oculta controles cuando una línea ya está preparada.
+
+Ver `docs/KITCHEN.md`.
+
+## Flujo de estados
+
+Domicilio:
 
 ```text
 PREPARING → PREPARED → READY → OUT_FOR_DELIVERY → ARRIVED → DELIVERED → COMPLETED
 ```
 
-### Recoger / Local
+Recoger / Local:
 
 ```text
 PREPARING → PREPARED → READY → COMPLETED
 ```
 
-## Cocina
-
-`/cocina` consume pedidos reales, muestra productos estructurados y permite marcar cantidades preparadas por línea (`preparedQuantity`). Cocina prioriza visualmente pizzas antes que antojos, excluye bebidas de la preparación y usa tarjetas compactas de altura natural. La vista operativa omite el nombre del cliente y la barra de progreso para reducir ruido, dejando visibles pedido, modalidad, estado, tiempo transcurrido, productos/configuración y la acción de listo. Las bebidas no bloquean el paso automático a `PREPARED`; cuando todas las unidades que sí requieren preparación están completas, la orden pasa automáticamente a `PREPARED` y luego Cocina puede marcarla `READY`.
-
-Cocina ya muestra el consecutivo comercial (`POS-0001`, etc.) cuando existe.
-
-La fase de Cocina todavía debe validarse con los escenarios definidos en `docs/ROADMAP.md` antes de considerarse cerrada.
-
-## Pedidos
-
-`/pedidos` usa tarjetas compactas y permite buscar/filtrar, abrir detalle, ver productos, registrar/eliminar pagos, editar modalidad y cantidades, cambiar domicilio, actualizar los datos del cliente asociado, reasignar un pedido activo a otro cliente existente, agregar productos simples, imprimir y eliminar pedidos de prueba/corrección autorizada. Al reasignar un pedido de Domicilio se exige una dirección perteneciente al nuevo cliente.
-
-Si una edición agrega o cambia productos después de que el pedido avanzó, el sistema puede devolverlo a `PREPARING` para que Cocina procese correctamente los cambios.
-
-La fase de Pedidos todavía debe validarse con los escenarios definidos en `docs/ROADMAP.md` antes de considerarse cerrada.
-
-## Eliminación y cancelación
-
-Eliminar pedido significa borrado físico. El servidor elimina atómicamente `Payment → OrderItem → Order`; si algo falla, se revierte todo.
-
-Cancelar conserva el pedido con estado `CANCELED` para trazabilidad.
-
-Eliminar pago también es borrado físico: desaparece y deja de contar en Caja.
-
 ## Pagos y Caja
 
-Elegir un medio de pago al crear el pedido no significa que el dinero ya se recibió. Un pago puede permanecer `PENDING` hasta que se registre realmente.
+Seleccionar un medio en POS no significa dinero recibido.
 
-Caja contabiliza únicamente pagos `PAID` con `paidAt`. Si un pedido ya recibió dinero y luego sube de valor, el pago recibido no se reescribe; queda saldo pendiente por la diferencia.
+- `PENDING`: intención/medio previsto.
+- `PAID`: dinero realmente recibido.
 
-Ver `docs/PAYMENTS_AND_CASH.md`.
+Caja contabiliza únicamente pagos `PAID`.
 
-## Consecutivo comercial global
+Si una orden aumenta después de un pago recibido, se conserva el ingreso y aparece saldo por la diferencia.
 
-`Order.id` es técnico. Los pedidos nuevos usan `Order.sequenceNumber` y `OrderSequence`.
+## Consecutivo comercial
 
-Ejemplo:
+`Order.id` es técnico.
+
+La identidad comercial usa `Order.sequenceNumber` + `Order.source`.
+
+Ejemplos:
 
 ```text
 POS-0001
 POS-0002
 WEB-0003
-POS-0004
 ```
 
-Todos los canales comparten la misma secuencia; el prefijo identifica el origen.
-
-La secuencia ya fue probada con `Order.id = 12`, `sequenceNumber = 1`, `source = POS`, cuyo identificador comercial correcto es `POS-0001`.
-
-Pedidos y Cocina ya usan `sequenceNumber`; las demás vistas se migrarán progresivamente sin cambiar los IDs internos usados por APIs.
-
-Ver `docs/ORDER_NUMBERING.md`.
+POS, Pedidos, Cocina e impresión utilizan el mismo código comercial.
 
 ## Impresión
 
-Existe comprobante térmico de 80 mm en `/pedidos/[id]/imprimir`. Es un comprobante operativo, no facturación electrónica fiscal.
+Existe comprobante térmico de 80 mm en:
 
-## Autenticación y roles — siguiente fase después de Pedidos + Cocina
+`/pedidos/[id]/imprimir`
 
-Actualmente no existe `User` interno, login, contraseña/hash, sesión, middleware, autorización por rol ni protección de APIs internas.
+Incluye configuración estructurada y notas de Cocina.
 
-Este bloque está aprobado, pero **no debe iniciarse hasta cerrar Pedidos y Cocina y aprobar el checkpoint integrado**.
+No es facturación electrónica fiscal.
 
-Roles iniciales propuestos:
+## Autenticación y roles — siguiente fase
+
+Actualmente no existe:
+
+- modelo `User`;
+- login;
+- contraseña/hash;
+- sesión;
+- middleware de protección;
+- autorización por rol;
+- protección de APIs internas.
+
+Roles previstos:
 
 - `ADMIN`
 - `POS`
@@ -144,30 +201,9 @@ Roles iniciales propuestos:
 - `CASHIER`
 - `DISPATCH`
 
-La protección debe existir tanto en páginas como en APIs. Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-## Dominio y app pública futura
-
-`alentopizza.com` está actualmente ocupado por Glide.
-
-La arquitectura objetivo es una sola URL:
-
-```text
-alentopizza.com/        → experiencia pública del cliente
-alentopizza.com/interno → login y sistema interno
-```
-
-No se desea mantener dominios separados permanentemente para POS, Cocina, Caja, etc.
-
-La futura app/web pública reutilizará el mismo catálogo, configuradores, precios, cobertura, pedidos, pagos y configuración estructurada. Sus pedidos usarán `Order.source = WEB` y el mismo consecutivo global.
-
-## Portabilidad / producto replicable
-
-El repositorio debe permanecer claro y desacoplado para poder replicar una instalación para otro restaurante o evolucionar a un producto comercial.
-
-La lógica central no debe depender innecesariamente de datos exclusivos de Alentó Pizza. La arquitectura actual es una instalación por negocio; todavía no es multi-tenant.
-
-## Prisma y producción
+## Prisma
 
 Producción usa manualmente:
 
@@ -175,21 +211,19 @@ Producción usa manualmente:
 npx prisma db push
 ```
 
-No usar `prisma migrate deploy` hasta realizar un baseline formal. `db push` no ejecuta triggers/functions SQL definidos únicamente en archivos de migración.
+No usar `prisma migrate deploy` hasta realizar un baseline formal.
 
-## Próximos pasos aprobados
+Los cierres de POS, Pedidos y Cocina documentados aquí no requieren un cambio adicional de schema.
 
-1. Cerrar Pedidos según los criterios de `docs/ROADMAP.md`.
-2. Cerrar Cocina según los criterios de `docs/ROADMAP.md`.
-3. Ejecutar y aprobar el checkpoint integrado POS → Pedidos → Cocina → Pago → Caja.
-4. Agregar `User` y `UserRole` en Prisma.
-5. Elegir solución de autenticación.
-6. Implementar login/logout y sesión segura.
-7. Proteger una ruta piloto.
-8. Proteger todas las páginas internas.
-9. Proteger todas las APIs internas.
-10. Aplicar permisos por rol.
-11. Crear administración de usuarios.
-12. Continuar Caja/cierres e inventario/costos.
-13. Construir experiencia pública.
-14. Sustituir Glide y migrar `alentopizza.com`.
+## Próximos pasos
+
+1. Implementar `User` y roles.
+2. Elegir solución de autenticación.
+3. Implementar login/logout y sesión.
+4. Proteger páginas internas.
+5. Proteger APIs internas.
+6. Aplicar permisos por rol.
+7. Crear administración de usuarios.
+8. Continuar Caja/cierres.
+9. Inventario, recetas y costos.
+10. Integraciones y experiencia pública.
