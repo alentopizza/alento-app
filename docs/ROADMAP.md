@@ -1,210 +1,118 @@
 # Roadmap de implementación
 
-Este documento define el orden de trabajo aprobado para Alentó App. Su objetivo es evitar cambios grandes, mezclar módulos incompletos o iniciar una fase nueva antes de cerrar la anterior.
-
-## Regla de trabajo
-
-El desarrollo debe avanzar en bloques pequeños y verificables.
-
-Orden aprobado actualmente:
+## Estado de fases
 
 ```text
-1. Cerrar Pedidos
-2. Cerrar Cocina
-3. Validación conjunta Pedidos ↔ Cocina
-4. Autenticación y Roles
-5. Continuar módulos posteriores
+Punto de venta        ✅ CERRADO
+Pedidos               ✅ CERRADO
+Cocina                ✅ CERRADO
+Autenticación y Roles ▶ SIGUIENTE FASE
 ```
 
-No iniciar Autenticación y Roles hasta completar el checkpoint de Pedidos + Cocina.
+Los módulos cerrados siguen sujetos a corrección de bugs, pero no deben reabrirse como fase de diseño salvo decisión explícita.
 
 ---
 
-# Fase 1 — Cerrar Pedidos
+# Fase completada — Punto de venta
 
-Estado: **EN CURSO**
+Estado: **CERRADO**
 
-Objetivo: que `/pedidos` sea una herramienta operativa confiable para consultar, editar y gestionar una orden durante el día a día del restaurante.
+Referencia canónica: `docs/POS.md`.
 
-## Ya implementado
+Incluye:
 
-- tarjetas compactas por pedido;
-- buscador y filtros;
-- detalle lateral de la orden;
-- visualización de configuración estructurada de productos;
-- estado actual y siguiente acción operativa;
-- registro de pagos reales;
-- eliminación física de pagos registrados por error;
-- saldo pendiente;
-- edición de modalidad `DELIVERY / PICKUP / STORE`;
-- cambio de tarifa de domicilio;
-- modificación de cantidades;
-- eliminación de líneas;
-- agregado de productos simples;
-- impresión térmica;
-- comprobante;
-- eliminación física definitiva de pedidos;
-- cancelación como concepto separado de eliminación;
-- consecutivo comercial global visible mediante `sequenceNumber`;
-- códigos `POS-0001` y futuro `WEB-0002` compartiendo un único consecutivo.
-
-## Pendientes de cierre
-
-Antes de marcar Pedidos como terminado se debe validar y, si hace falta, corregir:
-
-- que tarjeta, detalle, edición y búsquedas usen siempre el identificador comercial correcto;
-- que no queden referencias visibles antiguas como `ALT-...`;
-- que edición de modalidad recalculé correctamente domicilio, subtotal, descuento, total y saldo;
-- que agregar productos a una orden ya pagada conserve el dinero recibido y genere únicamente saldo por la diferencia;
-- que reducir una orden por debajo del dinero ya recibido sea bloqueado hasta existir una futura devolución;
-- que eliminar pago actualice inmediatamente saldo y Caja;
-- que eliminar pedido borre `Payment`, `OrderItem` y `Order` atómicamente;
-- que cancelar pedido conserve el histórico cuando esa sea la intención;
-- que las acciones de estado desde Pedidos solo se permitan cuando corresponda;
-- que la interfaz sea usable en escritorio y pantallas pequeñas;
-- que imprimir y comprobante utilicen el mismo pedido correcto y no creen efectos secundarios.
-
-## Criterio de cierre de Pedidos
-
-Pedidos se considera cerrado para esta etapa cuando se puedan probar de principio a fin, sin errores, al menos estos escenarios:
-
-1. pedido Domicilio;
-2. pedido Recoger;
-3. pedido Local;
-4. pedido pendiente de pago;
-5. pedido pagado;
-6. pago eliminado por error;
-7. pedido editado antes de completarse;
-8. cambio Domicilio → Recoger;
-9. cambio Recoger → Domicilio;
-10. agregado de una bebida/producto simple;
-11. pedido cancelado conservando histórico;
-12. pedido eliminado definitivamente;
-13. impresión y comprobante;
-14. avance de estados después de Cocina.
+- modalidades;
+- clientes;
+- catálogo;
+- pizzas;
+- dos sabores;
+- bordes;
+- extras;
+- combos;
+- carrito;
+- notas por pizza;
+- checkout;
+- pagos previstos;
+- creación real del pedido;
+- consecutivo global;
+- recalculo server-side.
 
 ---
 
-# Fase 2 — Cerrar Cocina
+# Fase completada — Pedidos
 
-Estado: **EN CURSO, DESPUÉS DE PEDIDOS**
+Estado: **CERRADO**
 
-Objetivo: que Cocina pueda ejecutar la preparación real sin depender de información externa ni alterar estados incorrectamente.
+Referencia canónica: `docs/ORDERS.md`.
 
-## Ya implementado
+Incluye:
 
-- `/cocina` conectado a pedidos reales;
-- pedidos `PREPARING` y `PREPARED`;
-- productos estructurados visibles;
-- prioridad visual de preparación: pizzas primero y antojos después;
-- bebidas excluidas de Cocina, del progreso de preparación y del bloqueo para pasar a `PREPARED`;
-- control `preparedQuantity` por línea;
-- cantidades múltiples `0/N → N/N`;
-- cambio automático `PREPARING → PREPARED` cuando todas las unidades terminan;
-- acción manual `PREPARED → READY`;
-- ordenamiento por antigüedad;
-- minutos transcurridos;
-- progreso total de preparación;
-- refresco periódico;
-- consecutivo comercial visible (`POS-0001`, etc.).
-
-## Pendientes de cierre
-
-Antes de marcar Cocina como terminada se debe validar:
-
-- que pizzas, pizzas de dos sabores, combos y productos simples se interpreten correctamente;
-- que cantidades múltiples se puedan preparar unidad por unidad;
-- que completar todas las líneas pase automáticamente a `PREPARED` una sola vez;
-- que revertir una cantidad preparada devuelva `PREPARED → PREPARING` cuando corresponda;
-- que `Marcar como listo` solo funcione desde `PREPARED`;
-- que una orden `READY` desaparezca de Cocina;
-- que las ediciones realizadas desde Pedidos no permitan saltarse preparación;
-- que si se agregan productos a una orden avanzada, el pedido vuelva a `PREPARING` cuando corresponda;
-- que Cocina nunca necesite editar precios, pagos o datos financieros;
-- que la interfaz sea legible y rápida en una pantalla de cocina.
-
-## Criterio de cierre de Cocina
-
-Cocina se considera cerrada para esta etapa cuando funcionen sin errores estos escenarios:
-
-1. producto simple cantidad 1;
-2. producto cantidad 2 o más;
-3. pizza configurada;
-4. pizza de dos sabores;
-5. combo con varios componentes;
-6. pedido con varias líneas;
-7. completar parcialmente una orden;
-8. completar toda la orden y obtener `PREPARED`;
-9. revertir una unidad preparada;
-10. completar nuevamente;
-11. marcar `READY`;
-12. confirmar que desaparece de Cocina y continúa en Pedidos.
+- tarjetas operativas;
+- búsqueda/filtros;
+- drawer;
+- edición;
+- cambio de cliente;
+- configuración estructurada;
+- notas;
+- pagos;
+- saldo;
+- impresión;
+- cancelación;
+- eliminación;
+- estados posteriores a Cocina.
 
 ---
 
-# Checkpoint — Pedidos + Cocina
+# Fase completada — Cocina
 
-Estado: **PENDIENTE**
+Estado: **CERRADO**
 
-Este checkpoint se ejecuta antes de iniciar autenticación.
+Referencia canónica: `docs/KITCHEN.md`.
 
-Prueba integrada recomendada:
+Incluye:
 
-```text
-Crear pedido en POS
-→ PREPARING
-→ aparece en Pedidos
-→ aparece en Cocina
-→ preparar unidades
-→ PREPARED
-→ marcar READY
-→ continuar estados desde Pedidos
-→ registrar pago
-→ verificar Caja
-→ imprimir comprobante
-→ finalizar
-```
-
-También probar una edición realista:
-
-```text
-Crear pedido
-→ agregar una bebida desde Pedidos
-→ pedido vuelve/permanece en PREPARING según corresponda
-→ Cocina ve el nuevo producto
-→ completa preparación
-→ READY
-```
-
-Solo después de aprobar este checkpoint se inicia la siguiente fase.
+- cola real;
+- 3 pedidos por fila;
+- prioridad pizzas → antojos;
+- bebidas excluidas;
+- preparación por cantidades;
+- auto `PREPARED`;
+- acción `READY`;
+- cronómetro;
+- cliente;
+- chips de tamaño/borde/sabores/extras;
+- notas visibles;
+- UI optimizada para lectura a distancia.
 
 ---
 
-# Fase 3 — Autenticación y Roles
+# Fase activa — Autenticación y Roles
 
-Estado: **PRÓXIMAMENTE — NO INICIAR AÚN**
+Estado: **SIGUIENTE FASE APROBADA**
 
-Documento de diseño: `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
+Documento de diseño:
 
-Orden aprobado de implementación:
+`docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+
+Orden recomendado:
 
 1. agregar `User` y `UserRole` a Prisma;
-2. definir la solución de autenticación;
-3. implementar hash seguro de contraseñas;
-4. implementar login;
-5. implementar logout;
-6. implementar sesión segura;
-7. proteger una ruta piloto, preferiblemente Cocina;
+2. definir solución de autenticación;
+3. hash seguro de contraseñas;
+4. login;
+5. logout;
+6. sesión segura;
+7. proteger una ruta piloto;
 8. proteger todas las páginas internas;
-9. proteger las APIs internas;
-10. aplicar autorización por rol en servidor;
-11. adaptar navegación según permisos;
-12. crear administración de usuarios para `ADMIN`;
-13. validar desactivación de usuarios;
-14. documentar variables de entorno y despliegue;
-15. probar accesos permitidos y denegados por cada rol.
+9. proteger APIs internas;
+10. autorización por rol en servidor;
+11. adaptar navegación;
+12. administración de usuarios;
+13. desactivación de usuarios;
+14. documentar despliegue y variables;
+15. probar accesos permitidos/denegados.
 
-Roles iniciales previstos:
+Roles iniciales:
 
 - `ADMIN`
 - `POS`
@@ -212,54 +120,50 @@ Roles iniciales previstos:
 - `CASHIER`
 - `DISPATCH`
 
-Clientes y empleados deben seguir siendo entidades separadas.
+`Customer` y `User` deben seguir siendo entidades distintas.
 
 ---
 
-# Fase 4 — Después de autenticación
+# Fases posteriores
 
-Orden tentativo, sujeto a decisión antes de iniciar cada bloque:
+Después de autenticación:
 
-- cerrar Caja, conciliación y cierres;
+- cierre de Caja y conciliación;
 - devoluciones/reembolsos;
-- auditoría de acciones sensibles;
+- auditoría;
 - inventario;
 - recetas;
-- costos y rentabilidad;
-- integraciones de atención como Chatwoot;
-- experiencia pública de pedidos;
+- costos;
+- rentabilidad;
+- integraciones como Chatwoot;
+- experiencia pública;
 - sustitución de Glide;
-- migración de `alentopizza.com` a Alentó App;
-- parametrización adicional para replicar/comercializar la solución.
+- migración de `alentopizza.com`;
+- parametrización para replicar/comercializar.
 
 ---
 
 # Dominio objetivo
 
-Durante construcción `alentopizza.com` continúa servido por Glide y Alentó App puede operar mediante infraestructura temporal.
-
-Cuando el producto esté listo:
-
 ```text
 alentopizza.com/        → experiencia pública
-alentopizza.com/interno → sistema de empleados protegido
+alentopizza.com/interno → sistema interno protegido
 ```
 
-No se planea un dominio distinto por módulo.
+Durante construcción puede seguir utilizándose infraestructura temporal.
 
 ---
 
-# Regla para futuros desarrolladores o IA
+# Regla de trabajo
 
-Antes de comenzar un nuevo cambio:
+Antes de un cambio:
 
-1. leer `docs/ROADMAP.md`;
-2. identificar la fase activa;
-3. no implementar tareas de una fase posterior salvo decisión explícita;
-4. hacer cambios pequeños;
-5. probar el cambio antes de continuar;
-6. actualizar documentación en el mismo bloque;
-7. indicar si el cambio requiere `npx prisma db push`;
-8. no considerar una fase terminada hasta cumplir su criterio de cierre.
+1. leer `CURRENT_STATE.md`;
+2. leer el documento canónico del módulo;
+3. identificar fase activa;
+4. mantener cambios pequeños;
+5. validar no regresiones;
+6. actualizar documentación;
+7. indicar si requiere `npx prisma db push`.
 
-La prioridad actual es **terminar Pedidos y Cocina**, no iniciar todavía Autenticación y Roles.
+La fase activa actual es **Autenticación y Roles**.
