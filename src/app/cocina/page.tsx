@@ -101,27 +101,26 @@ function KitchenItem({
           )}
 
           {flavorDetails.length > 0 && (
-            <div className="mt-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-[0_2px_8px_rgba(28,23,20,.03)]">
-              <div className="space-y-1">
-                {flavorDetails.map((detail, index) => (
-                  <div key={`${detail.label}-${index}`} className="flex items-baseline gap-2 leading-5">
-                    <span className="min-w-[58px] text-[11px] font-bold text-neutral-500">{detail.label}:</span>
-                    <b className="text-[13px] font-bold text-neutral-950">{cleanFlavor(detail.value)}</b>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {flavorDetails.map((detail, index) => (
+                <span key={`${detail.label}-${index}`} className="contents">
+                  <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
+                    {cleanFlavor(detail.value)}
+                  </span>
+                  {index < flavorDetails.length - 1 && (
+                    <span className="text-[11px] font-bold text-neutral-300">−</span>
+                  )}
+                </span>
+              ))}
             </div>
           )}
 
           <div className={`mt-2 flex items-center gap-2 border-t border-black/5 pt-2 ${item.notes ? "justify-between" : "justify-end"}`}>
             {item.notes && (
-              <div className="min-w-0 flex-1 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
-                  <div className="min-w-0">
-                    <span className="block text-[8.5px] font-bold uppercase tracking-[0.07em] text-amber-700">Nota de preparación</span>
-                    <b className="mt-0.5 block text-[12px] leading-4 text-amber-950">{item.notes}</b>
-                  </div>
+              <div className="min-w-0 flex-1 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
+                  <b className="min-w-0 text-[12px] leading-4 text-amber-950">{item.notes}</b>
                 </div>
               </div>
             )}
