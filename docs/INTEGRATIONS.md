@@ -184,3 +184,53 @@ npx prisma db push
 ```
 
 Revisar el cambio antes de ejecutarlo en producción, siguiendo `docs/DEPLOYMENT.md`.
+
+
+## Flujo OAuth tipo popup
+
+Alentó implementa el mismo patrón visual observado en POS ya integrados con Rappi:
+
+```text
+Conectar Rappi
+→ popup con login oficial de Rappi
+→ Rappi devuelve autorización a Alentó
+→ Alentó consulta las tiendas autorizadas
+→ modal "Seleccionar tienda de Rappi"
+→ Integrar
+→ estado CONECTADA
+```
+
+Rutas implementadas:
+
+- `GET /api/integrations/rappi/oauth/start`
+- `GET /api/integrations/rappi/oauth/callback`
+- `POST /api/integrations/rappi/oauth/complete`
+
+La contraseña del comercio nunca pasa por Alentó. El login se realiza en dominio Rappi.
+
+### Variables requeridas
+
+```text
+RAPPI_OAUTH_CLIENT_ID
+RAPPI_OAUTH_CLIENT_SECRET
+RAPPI_OAUTH_AUTHORIZE_URL
+RAPPI_OAUTH_TOKEN_URL
+RAPPI_OAUTH_STORES_URL
+RAPPI_OAUTH_CALLBACK_URL
+RAPPI_OAUTH_SCOPE
+RAPPI_OAUTH_AUDIENCE
+```
+
+El callback configurado para producción debe ser:
+
+```text
+https://pos.alentopizza.com/api/integrations/rappi/oauth/callback
+```
+
+### Limitación externa
+
+El flujo ya está implementado en Alentó, pero Rappi debe registrar/habilitar a Alentó como integración y emitir los valores OAuth correspondientes.
+
+No se debe reutilizar el `client_id`, callback o secretos de otro POS/integrador.
+
+El portal Integrations Manager de Rappi usa su propio cliente y callback, por lo que abrir ese portal no vincula automáticamente una tienda con Alentó.
