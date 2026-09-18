@@ -1,75 +1,44 @@
-/* Financial summary for /pedidos cards.
- * Keeps payment behavior intact and only changes presentation.
+/* Compact financial status for /pedidos cards.
+ * Explicit state classes prevent stale positional selectors from recoloring paid orders.
  */
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-  gap: 10px !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
+  .order-payment-status {
+  width: 100% !important;
+  min-height: 76px !important;
+  padding: 13px 15px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 5px 14px rgba(28, 23, 20, 0.035) !important;
   font-family: "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
-/* Remove the payment-method badge from the compact order card.
- * Payment method remains available in the order detail and payment workflow.
- */
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > div:last-child {
-  display: none !important;
-}
-
-/* Pending payment */
-main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-  article.group
-  .order-customer-card + div
-  > button:first-child {
-  min-height: 76px !important;
-  padding: 13px 15px !important;
-  border: 1px solid #fed7aa !important;
-  border-radius: 16px !important;
-  background: #fff7ed !important;
-  box-shadow: 0 5px 14px rgba(154, 84, 0, 0.04) !important;
+  .order-payment-status--pending {
+  border: 1px solid #fecdd3 !important;
+  background: #fff1f2 !important;
 }
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > button:first-child:hover:not(:disabled) {
-  border-color: #fdba74 !important;
-  background: #fff3e6 !important;
+  .order-payment-status--pending:hover:not(:disabled) {
+  border-color: #fda4af !important;
+  background: #ffe4e6 !important;
 }
 
-/* Paid */
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > div:nth-child(2) {
-  min-height: 76px !important;
-  padding: 13px 15px !important;
+  .order-payment-status--paid {
   border: 1px solid #a7f3d0 !important;
-  border-radius: 16px !important;
   background: #ecfdf5 !important;
-  box-shadow: 0 5px 14px rgba(5, 150, 105, 0.035) !important;
 }
 
-/* Labels: slightly larger, lighter and cleaner than the previous 800-weight text. */
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > button:first-child
-  > span,
-main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-  article.group
-  .order-customer-card + div
-  > div:nth-child(2)
-  > span {
+  .order-payment-status > span {
   display: block;
   font-family: "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, sans-serif !important;
   font-size: 11px !important;
@@ -81,31 +50,19 @@ main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > button:first-child
-  > span {
-  color: #b45309 !important;
+  .order-payment-status--pending > span {
+  color: #be123c !important;
 }
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > div:nth-child(2)
-  > span {
+  .order-payment-status--paid > span {
   color: #047857 !important;
 }
 
-/* Amounts: clean display weight and tabular figures for easy scanning. */
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > button:first-child
-  > b,
-main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-  article.group
-  .order-customer-card + div
-  > div:nth-child(2)
-  > b {
+  .order-payment-status > b {
   display: block;
   margin-top: 6px !important;
   font-family: "Segoe UI Variable", "Segoe UI", Inter, Roboto, system-ui, sans-serif !important;
@@ -116,68 +73,37 @@ main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: "tnum" 1, "lnum" 1;
   white-space: nowrap;
-  overflow: visible !important;
-  text-overflow: clip !important;
 }
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > button:first-child
-  > b {
-  color: #92400e !important;
+  .order-payment-status--pending > b {
+  color: #881337 !important;
 }
 
 main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
   article.group
-  .order-customer-card + div
-  > div:nth-child(2)
-  > b {
+  .order-payment-status--paid > b {
   color: #065f46 !important;
 }
 
 @media (max-width: 420px) {
   main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
     article.group
-    .order-customer-card + div {
-    gap: 8px !important;
-  }
-
-  main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-    article.group
-    .order-customer-card + div
-    > button:first-child,
-  main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-    article.group
-    .order-customer-card + div
-    > div:nth-child(2) {
+    .order-payment-status {
     min-height: 70px !important;
     padding: 11px 12px !important;
   }
 
   main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
     article.group
-    .order-customer-card + div
-    > button:first-child
-    > span,
-  main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-    article.group
-    .order-customer-card + div
-    > div:nth-child(2)
-    > span {
+    .order-payment-status > span {
     font-size: 10px !important;
   }
 
   main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
     article.group
-    .order-customer-card + div
-    > button:first-child
-    > b,
-  main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
-    article.group
-    .order-customer-card + div
-    > div:nth-child(2)
-    > b {
+    .order-payment-status > b {
     font-size: 18px !important;
     line-height: 22px !important;
   }
