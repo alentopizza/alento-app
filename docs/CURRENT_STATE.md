@@ -152,6 +152,14 @@ Ver `docs/CUSTOMERS.md`.
 
 Ver `docs/KITCHEN.md`.
 
+## Integraciones — pospuestas
+
+Las integraciones externas con Rappi, DiDi u otros proveedores quedan fuera del código activo por ahora.
+
+Se eliminó la implementación experimental para evitar dependencias, cambios de Prisma o fallos de despliegue mientras se desarrollan los módulos internos.
+
+**Integraciones será la última fase del desarrollo.**
+
 ## Flujo de estados
 
 Domicilio:
@@ -239,13 +247,15 @@ Los cierres de POS, Pedidos y Cocina documentados aquí no requieren un cambio a
 
 ## Próximos pasos
 
-1. Implementar `User` y roles.
-2. Elegir solución de autenticación.
-3. Implementar login/logout y sesión.
-4. Proteger páginas internas.
-5. Proteger APIs internas.
-6. Aplicar permisos por rol.
-7. Crear administración de usuarios.
-8. Continuar Caja/cierres.
-9. Inventario, recetas y costos.
-10. Integraciones y experiencia pública.
+1. Continuar y cerrar Menú.
+2. Implementar `User` y roles.
+3. Elegir solución de autenticación.
+4. Implementar login/logout y sesión.
+5. Proteger páginas internas.
+6. Proteger APIs internas.
+7. Aplicar permisos por rol.
+8. Crear administración de usuarios.
+9. Continuar Caja/cierres.
+10. Inventario, recetas y costos.
+11. Integraciones externas — **última fase del desarrollo**.
+12. Experiencia pública.
