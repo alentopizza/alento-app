@@ -167,7 +167,24 @@ Permite actualizar:
 
 Actualizar el cliente no elimina ni separa su historial.
 
-## Eliminación
+## Eliminación masiva
+
+El listado permite activar `Selección múltiple`.
+
+Reglas:
+
+- solo son seleccionables para eliminación masiva los clientes con `0 pedidos`;
+- los clientes con pedidos aparecen bloqueados;
+- se puede seleccionar todos los clientes elegibles visibles según búsqueda/filtro;
+- antes de borrar aparece una confirmación irreversible;
+- el endpoint vuelve a validar que cada cliente tenga `0 pedidos` antes de eliminarlo;
+- máximo 500 clientes por operación.
+
+Endpoint:
+
+`POST /api/customers/bulk-delete`
+
+## Eliminación individual
 
 Un cliente puede eliminarse incluso si tiene pedidos asociados.
 
