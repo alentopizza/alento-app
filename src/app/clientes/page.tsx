@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { orderCode } from "@/lib/orderCode";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
@@ -179,6 +180,10 @@ export default function CustomersPage() {
   const [importStage, setImportStage] = useState<"preview" | "import" | null>(null);
   const [importMessage, setImportMessage] = useState("");
   const [importSuccess, setImportSuccess] = useState("");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   async function loadCustomers() {
     setLoading(true);
@@ -379,6 +384,58 @@ export default function CustomersPage() {
     }
   }
 
+  function toggleCustomerSelection(customer: Customer) {
+    if (customer._count.orders > 0) return;
+    setSelectedCustomerIds((current) =>
+      current.includes(customer.id)
+        ? current.filter((id) => id !== customer.id)
+        : [...current, customer.id],
+    );
+  }
+
+  function toggleBulkMode() {
+    setBulkMode((current) => {
+      const next = !current;
+      if (!next) setSelectedCustomerIds([]);
+      return next;
+    });
+  }
+
+  function selectAllEligibleVisible() {
+    const eligibleIds = filtered.filter((customer) => customer._count.orders === 0).map((customer) => customer.id);
+    setSelectedCustomerIds(eligibleIds);
+  }
+
+  async function deleteSelectedCustomers() {
+    if (selectedCustomerIds.length === 0) return;
+    setBulkDeleting(true);
+    setDetailError("");
+    try {
+      const response = await fetch("/api/customers/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedCustomerIds }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible eliminar los clientes seleccionados.");
+
+      await loadCustomers();
+      setSelectedCustomerIds([]);
+      setBulkMode(false);
+      setBulkConfirmOpen(false);
+
+      const message = data.skipped > 0
+        ? `${data.deleted} clientes eliminados · ${data.skipped} omitidos`
+        : `${data.deleted} clientes eliminados`;
+      setImportSuccess(message);
+      window.setTimeout(() => setImportSuccess(""), 5000);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "No fue posible eliminar los clientes seleccionados.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
   async function confirmImport() {
     if (!importFile || !importPreview || importPreview.summary.toCreate === 0) return;
     setImportBusy(true);
@@ -486,6 +543,43 @@ export default function CustomersPage() {
           </div>
         </section>
 
+        <section className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleBulkMode}
+              className={`rounded-xl border px-3.5 py-2.5 text-[11px] font-bold transition ${bulkMode ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"}`}
+            >
+              {bulkMode ? "Salir de selección" : "Selección múltiple"}
+            </button>
+            {bulkMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={selectAllEligibleVisible}
+                  className="rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-[11px] font-bold text-neutral-700 hover:bg-neutral-50"
+                >
+                  Seleccionar elegibles
+                </button>
+                <span className="rounded-xl bg-neutral-100 px-3 py-2 text-[11px] font-semibold text-neutral-600">
+                  {selectedCustomerIds.length} seleccionados
+                </span>
+              </>
+            )}
+          </div>
+
+          {bulkMode && (
+            <button
+              type="button"
+              disabled={selectedCustomerIds.length === 0}
+              onClick={() => setBulkConfirmOpen(true)}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[11px] font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Eliminar seleccionados
+            </button>
+          )}
+        </section>
+
         {loading ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">Cargando clientes...</div>
         ) : filtered.length === 0 ? (
@@ -500,12 +594,22 @@ export default function CustomersPage() {
                   key={customer.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => void openCustomer(customer)}
+                  onClick={() => bulkMode ? toggleCustomerSelection(customer) : void openCustomer(customer)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") void openCustomer(customer);
+                    if (event.key === "Enter" || event.key === " ") {
+                      if (bulkMode) toggleCustomerSelection(customer);
+                      else void openCustomer(customer);
+                    }
                   }}
-                  className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)]"
+                  className={`group relative cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)] ${selectedCustomerIds.includes(customer.id) ? "border-red-300 ring-2 ring-red-100" : "border-neutral-200 hover:border-neutral-300"} ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
                 >
+                  {bulkMode && (
+                    <div className="absolute right-3 top-3 z-10">
+                      <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-bold shadow-sm ${customer._count.orders > 0 ? "border-neutral-200 bg-neutral-100 text-neutral-400" : selectedCustomerIds.includes(customer.id) ? "border-red-600 bg-red-600 text-white" : "border-neutral-300 bg-white text-neutral-600"}`}>
+                        {customer._count.orders > 0 ? "Bloq." : selectedCustomerIds.includes(customer.id) ? "✓" : ""}
+                      </span>
+                    </div>
+                  )}
                   <div className="p-5 [font-synthesis:none]">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-3.5 shadow-[0_6px_18px_rgba(28,23,20,.035)]">
@@ -541,20 +645,37 @@ export default function CustomersPage() {
           </section>
         )}
 
+        {bulkConfirmOpen && (
+          <ActionConfirmModal
+            variant="danger"
+            eyebrow="Eliminación masiva"
+            title="Eliminar clientes"
+            description={`¿Deseas eliminar ${selectedCustomerIds.length} cliente(s) seleccionados?`}
+            detail="Solo se eliminarán clientes sin pedidos asociados. Esta acción no se puede deshacer."
+            confirmLabel="Eliminar seleccionados"
+            cancelLabel="Volver"
+            busy={bulkDeleting}
+            onClose={() => !bulkDeleting && setBulkConfirmOpen(false)}
+            onConfirm={() => void deleteSelectedCustomers()}
+          />
+        )}
+
         {importOpen && (
           <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[3px]">
-            <div className="max-h-[94vh] w-full max-w-3xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
-              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-5 py-4 md:px-6">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-400">Base de clientes</p>
-                  <h2 className="mt-0.5 text-2xl font-black tracking-[-0.025em]">Importar CSV</h2>
-                  <p className="mt-1 text-xs text-neutral-500">Revisa los registros antes de agregarlos a Alentó. Los duplicados se omiten automáticamente.</p>
+            <div className="max-h-[94vh] w-full max-w-3xl overflow-hidden rounded-[26px] border border-white/10 bg-[#f7f4ef] shadow-[0_28px_90px_rgba(0,0,0,.32)]">
+              <header className="bg-[radial-gradient(circle_at_86%_12%,rgba(229,28,17,.18),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-6 py-5 text-white">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">Base de clientes</p>
+                    <h2 className="mt-1 text-[25px] font-bold tracking-[-0.025em]">Importar clientes</h2>
+                    <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-white/65">Carga tu archivo CSV, revisa qué registros entrarán y corrige los que tengan problemas antes de confirmar.</p>
+                  </div>
+                  <button type="button" onClick={closeImport} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-lg text-white">×</button>
                 </div>
-                <button type="button" onClick={closeImport} className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-lg font-bold text-neutral-700">×</button>
-              </div>
+              </header>
 
-              <div className="alento-scroll max-h-[68vh] overflow-y-auto px-5 py-4 md:px-6">
-                <label className="block rounded-2xl border border-dashed border-neutral-300 bg-[#faf9f7] p-5 text-center transition hover:border-neutral-400">
+              <div className="alento-scroll max-h-[68vh] overflow-y-auto px-5 py-5 md:px-6">
+                <label className="block rounded-2xl border border-dashed border-neutral-300 bg-white p-6 text-center shadow-sm transition hover:border-neutral-400">
                   <input
                     type="file"
                     accept=".csv,text/csv"
@@ -567,16 +688,16 @@ export default function CustomersPage() {
                       if (file) void previewImport(file);
                     }}
                   />
-                  <span className="block text-sm font-bold text-neutral-800">{importFile ? importFile.name : "Seleccionar archivo CSV"}</span>
-                  <span className="mt-1 block text-[11px] text-neutral-500">Nombre, indicativo y teléfono son suficientes. Máximo 5 MB.</span>
+                  <span className="block text-[15px] font-bold text-neutral-900">{importFile ? importFile.name : "Seleccionar archivo CSV"}</span>
+                  <span className="mt-1.5 block text-[12px] text-neutral-500">Nombre, indicativo y teléfono son suficientes. Máximo 5 MB.</span>
                 </label>
 
                 <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-sky-600">Plantilla recomendada</p>
-                      <b className="mt-0.5 block text-[13px] text-sky-950">Evita errores usando el formato oficial</b>
-                      <p className="mt-1 text-[10px] leading-4 text-sky-800">Incluye encabezados correctos y una fila de ejemplo.</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-sky-600">Plantilla recomendada</p>
+                      <b className="mt-0.5 block text-[14px] text-sky-950">Evita errores usando el formato oficial</b>
+                      <p className="mt-1 text-[12px] leading-5 text-sky-800">Incluye encabezados correctos y una fila de ejemplo.</p>
                     </div>
                     <button
                       type="button"
@@ -589,10 +710,10 @@ export default function CustomersPage() {
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="rounded-xl border border-sky-100 bg-white p-3">
-                      <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">Obligatorios</span>
+                      <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Obligatorios</span>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {["Nombre", "Indicativo", "Teléfono"].map((label) => (
-                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[9px] font-semibold text-neutral-700">{label}</span>
+                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-700">{label}</span>
                         ))}
                       </div>
                     </div>
@@ -600,7 +721,7 @@ export default function CustomersPage() {
                       <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">Opcionales</span>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {["Correo", "Dirección", "Complemento", "GPS", "Notas"].map((label) => (
-                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[9px] font-semibold text-neutral-600">{label}</span>
+                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-600">{label}</span>
                         ))}
                       </div>
                     </div>
@@ -678,8 +799,8 @@ export default function CustomersPage() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 md:px-6">
-                <p className="text-[10px] leading-4 text-neutral-500">Los clientes existentes se conservan sin cambios para proteger su historial.</p>
+              <div className="flex items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-4 md:px-6">
+                <p className="text-[11px] leading-4 text-neutral-500">Los clientes existentes se conservan sin cambios para proteger su historial.</p>
                 <div className="flex shrink-0 gap-2">
                   <button type="button" onClick={closeImport} className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-xs font-bold text-neutral-700">Cancelar</button>
                   <button
