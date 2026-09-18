@@ -289,18 +289,24 @@ export default function CustomersPage() {
     }
   }
 
-  async function deleteCustomer(customer: Customer | CustomerDetail) {
-    if (customer._count.orders > 0) return;
-    if (!window.confirm(`¿Eliminar a ${customer.name}? Esta acción no se puede deshacer.`)) return;
+  async function exportCustomers() {
+    setDetailError("");
+    try {
+      const response = await fetch("/api/customers/export", { cache: "no-store" });
+      if (!response.ok) throw new Error("No fue posible exportar los clientes.");
 
-    const response = await fetch(`/api/customers/${customer.id}`, { method: "DELETE" });
-    const data = await response.json();
-    if (!response.ok) {
-      window.alert(data.error || "No fue posible eliminar el cliente.");
-      return;
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "clientes-alento.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "No fue posible exportar los clientes.");
     }
-    if (selected?.id === customer.id) setSelected(null);
-    await loadCustomers();
   }
 
   function closeImport() {
@@ -370,12 +376,13 @@ export default function CustomersPage() {
               >
                 Importar
               </button>
-              <a
-                href="/api/customers/export"
+              <button
+                type="button"
+                onClick={() => void exportCustomers()}
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-3.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white transition hover:bg-white/[0.13]"
               >
                 Exportar
-              </a>
+              </button>
               <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
                 <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
                 <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
