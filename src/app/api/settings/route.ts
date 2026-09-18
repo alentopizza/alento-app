@@ -25,6 +25,9 @@ type PosSettings = {
   };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
+  customerManagement: {
+    bulkDeleteEnabled: boolean;
+  };
 };
 
 function defaultBandName(fee: number, index: number) {
@@ -49,6 +52,9 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
     { id: "card", name: "Tarjeta", active: true },
     { id: "key", name: "Llave", active: true },
   ],
+  customerManagement: {
+    bulkDeleteEnabled: true,
+  },
 };
 
 function normalizeSettings(value: unknown): PosSettings {
@@ -88,10 +94,17 @@ function normalizeSettings(value: unknown): PosSettings {
         .filter((method) => method.name.length > 0)
     : DEFAULT_POS_SETTINGS.paymentMethods;
 
+  const customerManagement = raw.customerManagement && typeof raw.customerManagement === "object"
+    ? {
+        bulkDeleteEnabled: raw.customerManagement.bulkDeleteEnabled !== false,
+      }
+    : DEFAULT_POS_SETTINGS.customerManagement;
+
   return {
     store,
     deliveryBands: deliveryBands.length ? deliveryBands.sort((a, b) => a.minMeters - b.minMeters) : DEFAULT_POS_SETTINGS.deliveryBands,
     paymentMethods: paymentMethods.length ? paymentMethods : DEFAULT_POS_SETTINGS.paymentMethods,
+    customerManagement,
   };
 }
 
