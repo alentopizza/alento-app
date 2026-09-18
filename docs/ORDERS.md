@@ -1,200 +1,438 @@
-# Pedidos, edición e impresión
+# Pedidos
 
-Este documento describe el comportamiento operativo de las órdenes persistidas en Alentó App.
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-## Creación
+Ruta: `/pedidos`
 
-Las órdenes se crean desde el POS mediante `POST /api/orders`.
+Este documento es la referencia funcional vigente para consulta y gestión de pedidos después de su creación en POS.
 
-Una orden nueva nace con:
+## Objetivo
 
-- `source = POS`;
-- `status = CONFIRMED`;
-- un `Payment` con `status = PENDING`;
-- código visual derivado de `Order.id`: `ALT-000001`, `ALT-000002`, etc.
+Pedidos centraliza el flujo operativo de una orden:
 
-La creación es transaccional: `Order`, `OrderItem` y `Payment` se guardan dentro de una única transacción Prisma.
-
-## Integridad estructurada obligatoria
-
-A partir del refactor inventory-ready, toda pizza y combo nuevo debe llegar a `POST /api/orders` con `OrderItem.configuration` estructurada.
-
-El servidor ya no acepta una pizza o combo nuevo basado solamente en texto o precio enviado por el navegador.
-
-El servidor valida IDs y recalcula el precio desde PostgreSQL.
-
-Ver `docs/ORDER_DATA_INTEGRITY.md` para la especificación completa.
-
-### Pizza
-
-Guarda de forma estructurada:
-
-- `productId` de la pizza;
-- tamaño con `PizzaSize.id`, nombre, diámetro y precio snapshot;
-- sabor o sabores con `Product.id`, nombre, precio snapshot y `portion` (`1` o `0.5`);
-- borde con `PizzaCrust.id`, nombre y precio snapshot;
-- modificadores con `Product.id`, nombre, cantidad y precio unitario snapshot.
-
-Una pizza de dos sabores conserva ambos sabores por separado con `portion = 0.5`.
-
-### Combo
-
-Guarda:
-
-- `comboProductId`;
-- pizzas incluidas con `ruleId`, tamaño y sabor;
-- cada grupo del combo por `groupId`;
-- cada opción seleccionada por `optionId` y `productId`;
-- cantidad incluida de cada opción;
-- precio snapshot y `priceDelta`;
-- descuento propio del combo.
-
-Esto evita que un combo sea una caja negra para inventario.
-
-### Producto estándar
-
-Bebidas, antojos y productos simples usan `kind = STANDARD` y conservan `productId` y nombre snapshot.
-
-## Recalculo server-side
-
-`POST /api/orders` recalcula:
-
-- precio de tamaño;
-- precio del sabor de mayor valor en dos sabores;
-- precio del borde por tamaño;
-- modificadores y cantidades;
-- componentes permitidos de combos;
-- cantidades incluidas en grupos de combo;
-- descuento propio del combo;
-- subtotal;
-- descuentos/cupones;
-- domicilio;
-- total.
-
-Una configuración inválida o que use IDs no permitidos es rechazada.
-
-El `unitPrice` enviado por el navegador es solamente una vista previa y no es la fuente final para pizzas/combos.
-
-## Pedidos históricos
-
-Los pedidos creados antes del refactor pueden contener `POS_SNAPSHOT`.
-
-Ese formato se conserva únicamente para compatibilidad visual e impresión histórica. No debe utilizarse como fuente fiable para inventario o costos y no debe generarse en órdenes nuevas.
-
-`src/lib/orderPresentation.ts` puede interpretar esos snapshots antiguos para visualización.
-
-## Pantalla `/pedidos`
-
-La pantalla muestra:
-
-- código;
-- fecha/hora;
-- estado;
-- modalidad;
+- consulta;
+- búsqueda;
+- edición;
 - cliente;
-- teléfono;
-- dirección y zona cuando aplica;
-- detalle estructurado de cada producto;
-- tamaño, sabores, borde, extras y cantidades;
-- componentes internos del combo;
-- subtotal, domicilio, descuento y total;
-- medio de pago;
-- `Paga con` y `Vueltas` para efectivo;
-- cupón usado.
+- productos;
+- pagos;
+- impresión;
+- estados;
+- cancelación;
+- eliminación controlada.
 
-## Edición controlada
+Cocina controla la preparación. Pedidos controla el resto de la operación.
 
-Endpoints:
+## Identificador comercial
 
-- `GET /api/orders/[id]`: detalle completo;
-- `PATCH /api/orders/[id]`: modificación controlada.
+`Order.id` es técnico.
 
-Solo una orden con `status = CONFIRMED` puede editarse normalmente. Cuando Cocina la mueva a `PREPARING`, la edición queda bloqueada.
+El código visible usa:
 
-Actualmente permite:
+- `Order.sequenceNumber`;
+- `Order.source`.
 
-- cambiar modalidad;
-- cambiar zona/tarifa al pasar a Domicilio;
-- modificar cantidades de líneas existentes;
-- quitar líneas llevando cantidad a cero;
-- agregar productos simples activos;
-- actualizar `Paga con` si el total aumenta.
+Ejemplos:
 
-La edición completa de pizzas/combos debe reutilizar más adelante el mismo constructor estructurado del POS. Nunca debe modificar texto descriptivo para representar un cambio de configuración.
-
-## Cancelar y eliminar pedidos
-
-### Cancelar
-
-`PATCH /api/orders/[id]` con:
-
-```json
-{ "action": "cancel" }
+```text
+POS-0006
+POS-0007
+WEB-0008
 ```
 
-Solo permite cancelar pedidos que todavía no iniciaron Cocina (`DRAFT` o `CONFIRMED`).
+El mismo código se muestra en POS, Pedidos, Cocina y comprobante.
+
+## Tarjetas
+
+Cada pedido se presenta en una tarjeta compacta.
+
+El header contiene:
+
+- estado;
+- modalidad.
+
+El cuerpo muestra:
+
+- fecha/hora;
+- código comercial;
+- total;
+- cliente;
+- teléfono;
+- dirección cuando aplica;
+- estado de pago actual;
+- acciones.
+
+### Total
+
+El encabezado no muestra la palabra `TOTAL`.
+
+La fecha aparece arriba y código + monto comparten la misma línea base.
+
+El monto usa tamaño/peso moderado para no competir con el código del pedido.
+
+### Cliente
+
+La tarjeta usa:
+
+- inicial;
+- nombre;
+- teléfono;
+- dirección únicamente para Domicilio cuando existe.
+
+## Estado de pago en tarjeta
+
+La tarjeta muestra **un solo estado financiero actual**.
+
+Si existe saldo:
+
+```text
+PAGO PENDIENTE
+$ 50.800
+```
+
+Si está completamente cubierto:
+
+```text
+PAGADO
+$ 50.800
+```
+
+El bloque ocupa todo el ancho de la tarjeta.
+
+No se muestra el medio previsto/recibido en la tarjeta compacta.
+
+La información detallada de movimientos vive en el drawer.
+
+## Buscar y filtrar
+
+Se puede buscar por datos relevantes de la orden.
+
+Filtros principales:
+
+- Todos;
+- Activos;
+- Finalizados;
+- Cancelados.
+
+El header superior muestra únicamente contador `ACTIVOS` + número.
+
+No existe botón de actualización manual en el header; la interfaz evita ruido visual innecesario.
+
+## Detalle lateral
+
+Al seleccionar una tarjeta se abre un drawer.
+
+Muestra:
+
+- código;
+- fecha;
+- modalidad;
+- zona/tarifa cuando aplica;
+- estado;
+- cliente;
+- teléfono;
+- dirección;
+- productos;
+- configuración;
+- notas;
+- totales;
+- pagos;
+- saldo;
+- acciones.
+
+## Cliente del pedido
+
+Desde el drawer existe `Editar cliente`.
+
+Permite dos operaciones distintas.
+
+### Actualizar el mismo cliente
+
+Se usa cuando la misma persona cambia:
+
+- nombre;
+- teléfono;
+- indicativo.
+
+Se modifica el mismo `Customer`, preservando su historial.
+
+### Cambiar cliente
+
+Permite reasignar un pedido activo a otro cliente existente.
+
+En Domicilio es obligatorio seleccionar una dirección perteneciente al nuevo cliente.
+
+No se inventa ni copia una dirección de otro registro.
+
+## Productos y configuración
+
+El detalle lee `OrderItem.configuration`.
+
+Pizzas muestran:
+
+- tamaño;
+- borde;
+- sabores como chips;
+- extras;
+- nota de Cocina.
+
+Una pizza de dos sabores se visualiza mediante chips, sin depender de texto plano.
+
+## Notas de Cocina
+
+`OrderItem.notes` se muestra en Pedidos y puede editarse para pizzas.
+
+Máximo vigente:
+
+**120 caracteres**
+
+Si una nota cambia después de que una línea fue preparada, el backend reinicia la preparación de esa línea y devuelve el pedido a Cocina cuando corresponda.
+
+## Editar pedido
+
+Desde Pedidos se puede:
+
+- cambiar Domicilio / Recoger / Local;
+- seleccionar tarifa de domicilio;
+- cambiar cantidades;
+- eliminar una línea llevando cantidad a cero;
+- agregar productos simples;
+- agregar bebidas;
+- agregar pizzas configuradas;
+- agregar pizzas de dos sabores;
+- agregar combos;
+- agregar/modificar notas de pizza.
+
+### Editor estructurado
+
+Pizzas y combos nuevos utilizan el mismo modelo estructurado del POS.
+
+El cliente envía IDs/configuración, pero el servidor recalcula y valida.
+
+Lógica compartida:
+
+`src/lib/orderLineNormalizer.ts`
+
+## Efecto de editar sobre Cocina
+
+Una edición que cambia algo que requiere preparación puede devolver la orden a:
+
+`PREPARING`
+
+Ejemplos:
+
+- agregar pizza;
+- aumentar cantidad de una línea preparable;
+- cambiar nota de pizza preparada.
+
+Agregar únicamente una bebida no debe reactivar Cocina.
+
+## Totales después de editar
+
+El servidor recalcula:
+
+- subtotal;
+- domicilio;
+- descuento permitido;
+- total;
+- saldo.
+
+Los precios enviados desde la UI no se consideran autoridad para productos configurables.
+
+## Pagos
+
+Seleccionar un medio en POS puede crear una intención `PENDING`.
+
+El dinero real se registra desde Pedidos como `PAID`.
+
+Se soportan:
+
+- pago total;
+- pago parcial;
+- varios pagos;
+- varios medios;
+- efectivo;
+- referencia;
+- eliminación de un pago registrado por error.
+
+### Regla de Caja
+
+Caja contabiliza únicamente pagos realmente recibidos.
+
+`PENDING` no es ingreso.
+
+### Saldo
+
+`saldo = total - pagos PAID vigentes`
+
+Si el pedido aumenta después de un pago:
+
+- el ingreso ya recibido se conserva;
+- aparece saldo por la diferencia.
+
+No se debe reducir una orden por debajo de lo ya cobrado sin un futuro flujo de devolución.
+
+## Registrar pago
+
+El modal de pago permite:
+
+- monto;
+- medio;
+- pago parcial;
+- efectivo entregado opcional;
+- cálculo de cambio;
+- referencia opcional.
+
+## Eliminar pago
+
+Un pago registrado por error puede eliminarse.
+
+Endpoint:
+
+`DELETE /api/orders/[id]/payment/[paymentId]`
+
+Efectos:
+
+- se elimina físicamente;
+- deja de contar en Caja;
+- se recalcula saldo.
+
+Esto no equivale a una devolución real.
+
+## Estados
+
+Flujo Domicilio:
+
+```text
+PREPARING
+→ PREPARED
+→ READY
+→ OUT_FOR_DELIVERY
+→ ARRIVED
+→ DELIVERED
+→ COMPLETED
+```
+
+Recoger / Local:
+
+```text
+PREPARING
+→ PREPARED
+→ READY
+→ COMPLETED
+```
+
+Cocina controla hasta `READY`.
+
+Pedidos continúa los estados posteriores.
+
+## Cancelar
+
+Cancelar conserva histórico.
+
+Regla actual:
+
+- solo dentro del mismo día operativo de Bogotá;
+- la UI y el backend aplican la restricción.
 
 Al cancelar:
 
-- `Order.status` pasa a `CANCELED`;
-- los pagos asociados pasan a `CANCELED` salvo un eventual pago ya `REFUNDED`;
-- el historial se conserva.
+- `Order.status = CANCELED`;
+- deja el flujo activo;
+- pagos no reembolsados se cancelan según regla vigente;
+- la tarjeta adopta estado visual de cancelado.
 
-Esta es la operación recomendada para pedidos reales que fueron anulados.
+## Eliminar definitivamente
 
-### Eliminar definitivamente
+La secuencia es:
 
-`DELETE /api/orders/[id]` solo funciona si el pedido ya tiene `status = CANCELED`.
+```text
+Pedido activo
+→ Cancelar
+→ Eliminar
+```
 
-La eliminación borra el `Order` y, por las relaciones `onDelete: Cascade`, sus `OrderItem` y `Payment`.
+`DELETE /api/orders/[id]` exige:
 
-Debe reservarse principalmente para pruebas o limpieza administrativa. Una venta real normalmente debe permanecer como `CANCELED` para conservar trazabilidad.
+- pedido `CANCELED`;
+- mismo día operativo.
 
-En `/pedidos`:
+La eliminación transaccional borra:
 
-1. `Cancelar pedido` aparece para órdenes todavía no preparadas.
-2. `Eliminar definitivamente` aparece únicamente después de cancelar.
+```text
+Payment
+→ OrderItem
+→ Order
+```
 
-## Recalculo al editar
+Después del cambio de día, el cancelado queda histórico y ya no se elimina desde este flujo.
 
-Al guardar una edición se recalculan subtotal, domicilio, total, `Payment.amount` y `changeDue` si es efectivo.
+## Impresión
 
-El descuento monetario ya confirmado se conserva como snapshot histórico y se limita a la nueva base elegible si fuese necesario. En esta etapa no se reevalúa automáticamente el porcentaje de un cupón sobre productos agregados después de la confirmación original.
-
-## Comprobante térmico 80 mm
-
-Ruta:
+La acción Imprimir usa la ruta:
 
 `/pedidos/[id]/imprimir`
 
+Formato:
+
+**80 mm**
+
 Incluye:
 
-- identidad del local;
-- fecha/hora;
-- número/código;
+- pedido;
 - modalidad;
-- cliente y dirección;
-- checklist de despacho;
-- configuración estructurada del producto;
-- subtotal, domicilio, descuento y total;
-- medio de pago;
-- efectivo recibido y vueltas;
-- cupón.
+- cliente;
+- productos/configuración;
+- notas de Cocina;
+- totales;
+- información de pago operativa.
 
-`window.print()` dispara la impresión y `@media print` oculta la interfaz general.
+No es facturación electrónica fiscal.
 
-Este comprobante es operativo/de entrega y no sustituye facturación electrónica fiscal.
+La impresión puede ejecutarse con iframe/autoprint desde la tarjeta.
 
-## Próximo paso
+## Header del módulo
 
-Antes de Cocina se debe desplegar y probar una nueva muestra de órdenes estructuradas:
+Texto vigente:
 
-1. pizza de un sabor;
-2. pizza de dos sabores;
-3. pizza con borde y extra;
-4. combo con pizza, antojo y bebida;
-5. producto estándar.
+`Todo el flujo de tus órdenes, en un solo lugar.`
 
-Se debe revisar en PostgreSQL/Pedidos que todos los IDs, cantidades y porciones estén presentes.
+El contador muestra:
 
-Después de validar esta integridad, Cocina puede consumir la misma estructura sin inferir texto.
+`ACTIVOS`
+
+y el número correspondiente.
+
+## Archivos principales
+
+- `src/app/pedidos/page.tsx`
+- `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/ActionConfirmModal.tsx`
+- `src/components/OrderEditStructuredAdder.tsx`
+- `src/app/pedidos/[id]/imprimir/page.tsx`
+- `src/app/api/orders/[id]/route.ts`
+- `src/app/api/orders/[id]/status/route.ts`
+- `src/app/api/orders/[id]/payment/route.ts`
+- `src/app/api/orders/[id]/payment/[paymentId]/route.ts`
+- `src/lib/orderLineNormalizer.ts`
+- `src/lib/orderPresentation.ts`
+- `src/lib/orderWorkflow.ts`
+- `src/lib/orderCode.ts`
+- `src/lib/operationalDate.ts`
+
+## Reglas de no regresión
+
+- no volver a códigos `ALT-...`;
+- no usar `Order.id` como código comercial;
+- no volver a mostrar simultáneamente Pagado + Pendiente en tarjeta;
+- no mostrar medio de pago en tarjeta compacta;
+- no perder notas al editar;
+- no permitir una edición de bebida que reactive Cocina;
+- no confiar en precios del navegador para configurables;
+- no borrar directamente una orden activa;
+- no contar `PENDING` en Caja;
+- no permitir cancelar/eliminar pedidos históricos fuera de la regla diaria.
+
+## Prisma
+
+El cierre actual de Pedidos no requiere un cambio adicional del schema.
