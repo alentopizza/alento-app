@@ -66,15 +66,29 @@ Cuando existan credenciales oficiales:
 
 ## Rappi
 
-Requisitos previstos:
+Rappi dispone de un sistema oficial de integración llamado Open Orders y un Integrations Manager para integradores.
 
-- tienda activa;
-- autorización oficial para integración POS/API;
-- identificador de tienda;
-- credenciales;
+La cuenta de Rappi Partners y su contraseña **no son credenciales de API** y no deben almacenarse en Alentó.
+
+Requisitos:
+
+- tienda activa en Rappi Partners;
+- ID de tienda;
+- habilitación oficial de integración POS/Open Orders;
+- credenciales técnicas entregadas por Rappi;
 - mapeo de productos/modificadores;
 - endpoint/webhook;
 - pruebas antes de producción.
+
+Variables previstas:
+
+```text
+RAPPI_CLIENT_ID
+RAPPI_CLIENT_SECRET
+RAPPI_WEBHOOK_SECRET
+```
+
+Los productos se intentarán vincular primero por nombre normalizado, porque el catálogo de Alentó y Rappi usa nombres equivalentes. Antes de producción se deben revisar manualmente tamaños, bordes, toppings y cualquier excepción.
 
 ## DiDi Food
 
@@ -89,17 +103,49 @@ Requisitos previstos:
 
 ## Pedidos externos
 
-La integración futura debe crear pedidos normales de Alentó, no entidades paralelas.
+La integración crea pedidos normales de Alentó, no un flujo operativo paralelo.
 
-Se deberá conservar:
+El schema ya contempla `MarketplaceOrder`, relacionado 1:1 con `Order`, para conservar:
 
 - ID externo del pedido;
 - proveedor;
-- tienda externa;
-- estado externo;
-- timestamps de recepción;
-- payload mínimo necesario para trazabilidad;
-- idempotencia para evitar duplicados.
+- ID de tienda;
+- venta bruta;
+- comisión;
+- impuestos sobre comisión;
+- ajustes;
+- neto a recibir;
+- estado financiero estimado/confirmado;
+- timestamps de recepción/conciliación;
+- payload mínimo para trazabilidad;
+- idempotencia mediante `provider + externalOrderId`.
+
+Los pedidos usan nuevos orígenes:
+
+- `RAPPI` → prefijo visible `RAP-`
+- `DIDI` → prefijo visible `DID-`
+
+### Venta bruta vs neto a recibir
+
+Nunca sustituir `Order.total` por el neto liquidado por el marketplace.
+
+Ejemplo:
+
+```text
+Venta del pedido              $ 50.000
+Comisión Rappi               -$ 20.000
+Impuestos/ajustes            -$  5.000
+Neto a recibir                $ 25.000
+```
+
+Alentó conserva:
+
+- `Order.total = 50.000` como venta real;
+- `MarketplaceOrder.netReceivable = 25.000` como liquidación del canal.
+
+El neto del marketplace no se registra automáticamente en Caja como `Payment PAID`. Caja debe reflejar dinero efectivamente conciliado/recibido, no una cuenta por cobrar estimada.
+
+Mientras Rappi no entregue el desglose financiero real, la pantalla permite configurar porcentajes solo para **estimación**. Cuando la API/reporte financiero entregue valores reales, deben reemplazarse y marcarse como `CONFIRMED`.
 
 ## Próximos pasos
 
@@ -121,8 +167,17 @@ Se deberá conservar:
 
 ## Prisma
 
-La base inicial usa `AppSetting`, que ya existe.
+La preparación de marketplace agrega:
 
-No requiere `npx prisma db push`.
+- valores `RAPPI` y `DIDI` a `OrderSource`;
+- enums `MarketplaceProvider` y `MarketplaceFinancialStatus`;
+- modelo `MarketplaceOrder`;
+- relación 1:1 `Order.marketplaceOrder`.
 
-La conexión real probablemente requerirá modelos específicos para referencias externas, eventos e idempotencia. Ese cambio se diseñará cuando se elija el primer proveedor a implementar.
+Este bloque **sí requiere**:
+
+```bash
+npx prisma db push
+```
+
+Revisar el cambio antes de ejecutarlo en producción, siguiendo `docs/DEPLOYMENT.md`.
