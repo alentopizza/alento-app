@@ -181,7 +181,7 @@ export default function IntegrationsPage() {
     return <main className="min-h-screen bg-[#f4f4f2] p-5 lg:p-6"><div className="mx-auto max-w-[1500px] rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">{error || "No fue posible cargar las integraciones."}</div></main>;
   }
 
-  const configured = PROVIDERS.filter((provider) => settings[provider.id].enabled).length;
+  const configured = PROVIDERS.filter((provider) => settings[provider.id].status === "ACTIVE").length;
 
   return (
     <main className="min-h-screen bg-[#f4f4f2] p-4 lg:p-6">
@@ -194,7 +194,7 @@ export default function IntegrationsPage() {
               <p className="mt-1 max-w-2xl text-sm text-white/65">Centraliza pedidos de plataformas externas dentro del mismo flujo operativo de Alentó.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Configuradas</span>
+              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Conectadas</span>
               <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{configured}</b>
             </div>
           </div>
@@ -270,16 +270,17 @@ export default function IntegrationsPage() {
                             <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50/60 p-3.5">
                               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
-                                  <b className="block text-[11px] text-rose-950">Portal Rappi Partners</b>
-                                  <p className="mt-1 text-[10px] leading-4 text-rose-800">Usa tu usuario y contraseña directamente en Rappi. No los guardes ni los copies dentro de Alentó.</p>
+                                  <b className="block text-[11px] text-rose-950">Integrations Manager de Rappi</b>
+                                  <p className="mt-1 text-[10px] leading-4 text-rose-800">Portal técnico para gestionar la integración, revisar el estado de API y acceder al Dev Portal/POS Tester.</p>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => window.open("https://login.partners.rappi.com/", "_blank", "noopener,noreferrer")}
-                                  className="shrink-0 rounded-xl bg-rose-600 px-4 py-2.5 text-[10px] font-bold text-white shadow-sm hover:bg-rose-700"
+                                <a
+                                  href="https://integrations-manager.rappi.com/"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="shrink-0 rounded-xl bg-rose-600 px-4 py-2.5 text-center text-[10px] font-bold text-white shadow-sm hover:bg-rose-700"
                                 >
-                                  Abrir Partners
-                                </button>
+                                  Abrir Integrations Manager
+                                </a>
                               </div>
                             </div>
 
