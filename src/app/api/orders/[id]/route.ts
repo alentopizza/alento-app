@@ -222,7 +222,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
       for (let index = 0; index < normalizedAdditions.length; index += 1) {
         const addition = normalizedAdditions[index];
-        const rawNote = typeof activeAdditions[index]?.notes === "string" ? activeAdditions[index].notes.trim() : "";
+        const noteValue = activeAdditions[index]?.notes;
+        const rawNote = typeof noteValue === "string" ? noteValue.trim() : "";
         await tx.orderItem.create({ data: {
           orderId: current.id,
           productId: addition.product.id,
