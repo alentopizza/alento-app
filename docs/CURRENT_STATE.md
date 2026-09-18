@@ -8,15 +8,18 @@ Este documento resume el comportamiento vigente de Alentó App.
 
 **Punto de venta, Pedidos, Cocina y Clientes están cerrados para la etapa operativa actual.**
 
-El siguiente bloque de trabajo acordado es:
+El bloque de trabajo actual es **Integraciones**, comenzando por Rappi.
 
 ```text
-Menú
-→ cerrar catálogo administrativo
-→ después revisar Integraciones
+Rappi
+→ onboarding Open Orders / Integrations Manager
+→ recepción de pedido de prueba
+→ Pedidos y Cocina
+→ conciliación financiera
+→ después DiDi
 ```
 
-Autenticación y Roles continúa pendiente como bloque estratégico de seguridad.
+Menú y Autenticación/Roles continúan pendientes como bloques posteriores.
 
 Referencias funcionales canónicas:
 
@@ -151,6 +154,24 @@ Ver `docs/CUSTOMERS.md`.
 - oculta controles cuando una línea ya está preparada.
 
 Ver `docs/KITCHEN.md`.
+
+## Integraciones — en desarrollo
+
+`/integraciones` ya contiene la base de Rappi y DiDi.
+
+Para Rappi:
+
+- no se almacenan credenciales de Rappi Partners;
+- se prepara conexión mediante credenciales técnicas Open Orders/Integrations Manager;
+- se conserva ID de tienda;
+- existe estimador de comisión/impuestos;
+- pedidos marketplace conservarán venta bruta y neto a recibir por separado;
+- Pedidos ya está preparado para mostrar la conciliación marketplace;
+- `MarketplaceOrder` aporta idempotencia por proveedor + ID externo.
+
+Este bloque requiere `npx prisma db push` por el nuevo modelo y enums.
+
+Ver `docs/INTEGRATIONS.md`.
 
 ## Flujo de estados
 
