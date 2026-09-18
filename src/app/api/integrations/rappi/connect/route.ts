@@ -123,8 +123,8 @@ export async function POST() {
 
       await prisma.appSetting.upsert({
         where: { key: SETTINGS_KEY },
-        update: { value: next },
-        create: { key: SETTINGS_KEY, value: next },
+        update: { value: next as Prisma.InputJsonValue },
+        create: { key: SETTINGS_KEY, value: next as Prisma.InputJsonValue },
       });
 
       return NextResponse.json({ connected: false, status: "ERROR", error: message }, { status: 502 });
