@@ -6,6 +6,7 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
+import { isCurrentOperationalDay } from "@/lib/operationalDate";
 import { fulfillmentLabel, nextStatus, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type CustomerAddress = { id: number; address: string };
@@ -581,6 +582,7 @@ export default function OrdersCardsDashboardV3() {
           const actionLabel = nextLabel(order);
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
+          const sameOperationalDay = isCurrentOperationalDay(order.createdAt);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
             <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
             <div className="p-4">
