@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const SETTINGS_KEY = "integrations_settings";
@@ -47,8 +48,8 @@ export async function POST() {
     };
     await prisma.appSetting.upsert({
       where: { key: SETTINGS_KEY },
-      update: { value: next },
-      create: { key: SETTINGS_KEY, value: next },
+      update: { value: next as Prisma.InputJsonValue },
+      create: { key: SETTINGS_KEY, value: next as Prisma.InputJsonValue },
     });
     return NextResponse.json({ connected: false, error: message, status: "ERROR" }, { status: 400 });
   }
@@ -67,8 +68,8 @@ export async function POST() {
     };
     await prisma.appSetting.upsert({
       where: { key: SETTINGS_KEY },
-      update: { value: next },
-      create: { key: SETTINGS_KEY, value: next },
+      update: { value: next as Prisma.InputJsonValue },
+      create: { key: SETTINGS_KEY, value: next as Prisma.InputJsonValue },
     });
     return NextResponse.json({
       connected: false,
@@ -143,8 +144,8 @@ export async function POST() {
 
     await prisma.appSetting.upsert({
       where: { key: SETTINGS_KEY },
-      update: { value: next },
-      create: { key: SETTINGS_KEY, value: next },
+      update: { value: next as Prisma.InputJsonValue },
+      create: { key: SETTINGS_KEY, value: next as Prisma.InputJsonValue },
     });
 
     return NextResponse.json({
@@ -169,8 +170,8 @@ export async function POST() {
 
     await prisma.appSetting.upsert({
       where: { key: SETTINGS_KEY },
-      update: { value: next },
-      create: { key: SETTINGS_KEY, value: next },
+      update: { value: next as Prisma.InputJsonValue },
+      create: { key: SETTINGS_KEY, value: next as Prisma.InputJsonValue },
     });
 
     return NextResponse.json({ connected: false, status: "ERROR", error: message }, { status: 502 });
