@@ -5,6 +5,90 @@ function normalizePhone(value: string) {
   return value.replace(/\D/g, "");
 }
 
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const customerId = Number(id);
+
+  if (!Number.isInteger(customerId)) {
+    return NextResponse.json({ error: "Cliente inválido." }, { status: 400 });
+  }
+
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+    select: {
+      id: true,
+      name: true,
+      countryCode: true,
+      phone: true,
+      email: true,
+      notes: true,
+      createdAt: true,
+      addresses: {
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          address: true,
+          neighborhood: true,
+          city: true,
+          notes: true,
+          isDefault: true,
+        },
+      },
+      orders: {
+        where: { status: { not: "CANCELED" } },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          sequenceNumber: true,
+          source: true,
+          status: true,
+          fulfillmentType: true,
+          total: true,
+          createdAt: true,
+          items: {
+            select: {
+              id: true,
+              productName: true,
+              quantity: true,
+              lineTotal: true,
+            },
+          },
+        },
+      },
+      _count: { select: { orders: true } },
+    },
+  });
+
+  if (!customer) {
+    return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
+  }
+
+  const purchaseCount = customer.orders.length;
+  const totalSpent = customer.orders.reduce((sum, order) => sum + Number(order.total), 0);
+  const averageTicket = purchaseCount > 0 ? totalSpent / purchaseCount : 0;
+  const chronological = [...customer.orders].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const firstOrderAt = chronological[0]?.createdAt ?? null;
+  const lastOrderAt = chronological.at(-1)?.createdAt ?? null;
+  const frequencyDays = purchaseCount > 1 && firstOrderAt && lastOrderAt
+    ? Math.max(1, Math.round((lastOrderAt.getTime() - firstOrderAt.getTime()) / 86400000 / (purchaseCount - 1)))
+    : null;
+
+  return NextResponse.json({
+    customer: {
+      ...customer,
+      metrics: {
+        purchaseCount,
+        totalSpent,
+        averageTicket,
+        firstOrderAt,
+        lastOrderAt,
+        frequencyDays,
+      },
+    },
+  });
+}
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const customerId = Number(id);
