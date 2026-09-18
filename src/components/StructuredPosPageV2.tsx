@@ -387,9 +387,9 @@ export default function StructuredPosPageV2() {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
-      <div className="mx-auto max-w-[1500px] space-y-4">
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]">
+    <main className="min-h-screen p-3 sm:p-4 lg:p-5 xl:p-5">
+      <div className="w-full space-y-4">
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-4">
             <header className="alento-dark max-w-[820px] rounded-[22px] px-6 py-4 md:px-7 md:py-5">
               <div className="flex items-center justify-between gap-4">
@@ -413,7 +413,7 @@ export default function StructuredPosPageV2() {
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <>
               <div className="flex gap-2 overflow-x-auto">{catalog?.categories.map((category) => <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>)}</div>
-              <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                 {selectedCategory?.products.map((product) => (
                   <article
                     key={product.id}
