@@ -12,8 +12,8 @@ type ProviderSettings = {
   autoAccept: boolean;
   status: IntegrationStatus;
   connectedAt: string | null;
-  commissionEstimatePercent: number;
-  commissionTaxEstimatePercent: number;
+  lastCheckedAt: string | null;
+  lastError: string | null;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -25,8 +25,8 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     autoAccept: false,
     status: "NOT_CONFIGURED",
     connectedAt: null,
-    commissionEstimatePercent: 0,
-    commissionTaxEstimatePercent: 0,
+    lastCheckedAt: null,
+    lastError: null,
   },
   DIDI: {
     enabled: false,
@@ -34,8 +34,8 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     autoAccept: false,
     status: "NOT_CONFIGURED",
     connectedAt: null,
-    commissionEstimatePercent: 0,
-    commissionTaxEstimatePercent: 0,
+    lastCheckedAt: null,
+    lastError: null,
   },
 };
 
@@ -52,17 +52,14 @@ function normalizeProvider(value: unknown, fallback: ProviderSettings): Provider
       : enabled
         ? "PENDING"
         : "NOT_CONFIGURED";
-  const commissionEstimatePercent = Math.min(100, Math.max(0, Number(raw.commissionEstimatePercent ?? 0) || 0));
-  const commissionTaxEstimatePercent = Math.min(100, Math.max(0, Number(raw.commissionTaxEstimatePercent ?? 0) || 0));
-
   return {
     enabled,
     storeId,
     autoAccept,
     status,
     connectedAt: status === "ACTIVE" && typeof raw.connectedAt === "string" ? raw.connectedAt : null,
-    commissionEstimatePercent,
-    commissionTaxEstimatePercent,
+    lastCheckedAt: typeof raw.lastCheckedAt === "string" ? raw.lastCheckedAt : null,
+    lastError: typeof raw.lastError === "string" && raw.lastError.trim() ? raw.lastError.trim().slice(0, 500) : null,
   };
 }
 
