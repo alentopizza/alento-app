@@ -244,12 +244,9 @@ export default function KitchenPage() {
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Cocina</h1>
               <p className="mt-0.5 text-sm text-white/65">Lo que entra, lo que se prepara y lo que ya puede salir.</p>
             </div>
-            <div className="min-w-[104px] rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-right shadow-inner">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
               <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">En cocina</span>
-              <div className="mt-0.5 flex items-baseline justify-end gap-1.5">
-                <b className="text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-white/45">pedidos</span>
-              </div>
+              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
             </div>
           </div>
         </section>
