@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import ActionConfirmModal from "@/components/ActionConfirmModal";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type ComboOption = { id?: number; productId: number; productName?: string; quantity: number; priceDelta: number };
@@ -95,6 +96,8 @@ export default function MenuPage() {
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
   const [draggingProductId, setDraggingProductId] = useState<number | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   async function loadMenu(preserveCategory = true) {
     setLoading(true);
@@ -126,6 +129,11 @@ export default function MenuPage() {
   const activeCategory = useMemo(
     () => data?.categories.find((category) => category.id === activeCategoryId) ?? data?.categories[0],
     [data, activeCategoryId],
+  );
+
+  const totalProducts = useMemo(
+    () => data?.categories.filter((category) => category.slug !== "destacados").reduce((sum, category) => sum + category.products.length, 0) ?? 0,
+    [data],
   );
 
   const minPizzaSizePrice = useMemo(() => {
@@ -221,6 +229,7 @@ export default function MenuPage() {
     });
     const result = await response.json();
     if (!response.ok) return setError(result.error || "No fue posible actualizar el producto.");
+    setSelectedProduct(null);
     await loadMenu();
   }
 
@@ -305,8 +314,6 @@ export default function MenuPage() {
   }
 
   async function deleteProduct(product: Product) {
-    const confirmed = window.confirm(`¿Eliminar definitivamente “${product.name}”?\n\nSolo se eliminará si no tiene pedidos ni dependencias en combos.`);
-    if (!confirmed) return;
     setDeletingProductId(product.id);
     setError("");
     setNotice("");
@@ -319,6 +326,8 @@ export default function MenuPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible eliminar el producto.");
       setNotice(`${product.name} fue eliminado.`);
+      setSelectedProduct(null);
+      setDeleteTarget(null);
       await loadMenu();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "No fue posible eliminar el producto.");
@@ -463,23 +472,36 @@ export default function MenuPage() {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-5 lg:p-7 xl:p-8">
-      <div className="mx-auto max-w-[1500px] space-y-5">
-        <header className="alento-dark rounded-[30px] px-6 py-5 md:px-8 md:py-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen p-3 sm:p-4 lg:p-5 xl:p-5">
+      <div className="w-full space-y-4">
+        <header className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/45">Administración</p>
-              <h1 className="mt-1 text-3xl font-black tracking-[-0.04em]">Menú</h1>
-              <p className="mt-1 text-sm text-white/55">Productos, precios, imágenes, destacados y combos configurables.</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Administración del catálogo</p>
+              <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Menú</h1>
+              <p className="mt-1 text-sm text-white/65">Organiza productos, precios, visibilidad y combos desde un solo lugar.</p>
             </div>
-            <button onClick={() => startCombo()} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">+ Crear combo</button>
+
+            <div className="flex items-center gap-2">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
+                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{totalProducts}</b>
+              </div>
+              <button
+                type="button"
+                onClick={() => startCombo()}
+                className="alento-red-glow h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-sm font-black text-white"
+              >
+                + Crear combo
+              </button>
+            </div>
           </div>
         </header>
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
         {notice && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</div>}
 
-        <section className="grid gap-4 xl:grid-cols-[230px_minmax(0,1fr)]">
+        <section className="grid gap-4 xl:grid-cols-[205px_minmax(0,1fr)]">
           <aside className="alento-card h-fit rounded-[24px] p-3 xl:sticky xl:top-5">
             <div className="mb-3 px-1"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Catálogo</p><h2 className="mt-1 text-lg font-black">Categorías</h2></div>
             <div className="space-y-1.5">
@@ -518,15 +540,16 @@ export default function MenuPage() {
               {visibleProducts.map((product) => (
                 <article
                   key={product.id}
-                  draggable={!query.trim() && activeCategory?.slug !== "destacados" && !savingOrder}
-                  onDragStart={(event) => {
-                    if (query.trim() || activeCategory?.slug === "destacados" || savingOrder) {
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (!savingOrder && draggingProductId == null) setSelectedProduct(product);
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.key === "Enter" || event.key === " ") && !savingOrder) {
                       event.preventDefault();
-                      return;
+                      setSelectedProduct(product);
                     }
-                    setDraggingProductId(product.id);
-                    event.dataTransfer.effectAllowed = "move";
-                    event.dataTransfer.setData("text/plain", String(product.id));
                   }}
                   onDragOver={(event) => {
                     if (draggingProductId == null || query.trim() || activeCategory?.slug === "destacados") return;
@@ -535,39 +558,65 @@ export default function MenuPage() {
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
+                    event.stopPropagation();
                     moveProductBefore(product.id);
                     setDraggingProductId(null);
                   }}
-                  onDragEnd={() => setDraggingProductId(null)}
-                  className={`alento-card relative overflow-hidden rounded-[20px] transition ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
+                  className={`alento-card group relative cursor-pointer overflow-hidden rounded-[20px] border border-neutral-200 transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_14px_30px_rgba(28,23,20,.08)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
                 >
                   {!query.trim() && activeCategory?.slug !== "destacados" && (
-                    <div className="absolute right-2.5 top-2.5 z-20 flex h-8 w-8 cursor-grab items-center justify-center rounded-xl border border-white/80 bg-white/95 text-[15px] font-black text-neutral-500 shadow-sm backdrop-blur active:cursor-grabbing" title="Arrastrar para reordenar">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      draggable={!savingOrder}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        event.stopPropagation();
+                        if (savingOrder) {
+                          event.preventDefault();
+                          return;
+                        }
+                        setDraggingProductId(product.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", String(product.id));
+                      }}
+                      onDragEnd={(event) => {
+                        event.stopPropagation();
+                        setDraggingProductId(null);
+                      }}
+                      className="absolute right-2.5 top-2.5 z-20 flex h-8 w-8 cursor-grab items-center justify-center rounded-xl border border-white/80 bg-white/95 text-[15px] font-black text-neutral-500 shadow-sm backdrop-blur active:cursor-grabbing"
+                      title="Arrastrar para reordenar"
+                    >
                       ⋮⋮
                     </div>
                   )}
-                  <div className="relative aspect-square overflow-hidden bg-[#f7f6f3] p-1.5">
-                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center text-4xl">🍕</div>}
-                    <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5"><span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>{product.active ? "Activo" : "Inactivo"}</span>{product.featured && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>}</div>
+
+                  <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-[#f7f6f3] p-1.5">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-4xl">🍕</div>
+                    )}
+                    <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
+                      <span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>
+                        {product.active ? "Activo" : "Inactivo"}
+                      </span>
+                      {product.featured && (
+                        <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>
+                      )}
+                    </div>
                   </div>
+
                   <div className="p-3.5">
                     <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-400">{product.type}</p>
-                    <h3 className="mt-1 text-base font-black leading-tight">{product.name}</h3>
-                    <p className="mt-1 text-sm font-black text-[var(--brand-red)]">{displayProductPrice(product)}</p>
-                    {product.type === "COMBO" && product.comboRegularMin != null && product.comboRegularMax != null && (
-                      <div className="mt-2 rounded-xl bg-[#faf9f7] p-2.5 text-[11px]">
-                        <div className="flex justify-between text-neutral-500"><span>Valor normal</span><strong>{product.comboRegularMin === product.comboRegularMax ? formatCOP(product.comboRegularMin) : `${formatCOP(product.comboRegularMin)} – ${formatCOP(product.comboRegularMax)}`}</strong></div>
-                        <div className="mt-1 flex justify-between text-[var(--brand-red)]"><span>Descuento fijo</span><strong>- {formatCOP(product.comboDiscount ?? 0)}</strong></div>
-                        <div className="mt-1 flex justify-between border-t border-neutral-200 pt-1 font-black"><span>Precio combo</span><strong>{product.comboFinalMin === product.comboFinalMax ? formatCOP(product.comboFinalMin) : `${formatCOP(product.comboFinalMin)} – ${formatCOP(product.comboFinalMax)}`}</strong></div>
-                      </div>
-                    )}
+                    <h3 className="mt-1 truncate text-[15px] font-black leading-tight text-neutral-950">{product.name}</h3>
+                    <p className="mt-1 text-[13px] font-black text-[var(--brand-red)]">{displayProductPrice(product)}</p>
                     <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      <button onClick={() => openEditor(product)} className="rounded-xl bg-black px-3 py-2 text-[11px] font-black text-white">Editar</button>
-                      <button onClick={() => void quickToggle(product, "active")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.active ? "Desactivar" : "Activar"}</button>
-                      {product.type !== "MODIFIER" && <button onClick={() => void quickToggle(product, "visibleInPos")} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">{product.visibleInPos ? "Ocultar POS" : "Mostrar POS"}</button>}
-                      {product.type === "COMBO" && <button onClick={() => startCombo(product)} className="rounded-xl bg-[var(--brand-red)] px-3 py-2 text-[11px] font-black text-white">Configurar</button>}
-                      <button onClick={() => void deleteProduct(product)} disabled={deletingProductId === product.id} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-black text-red-700 disabled:opacity-50">{deletingProductId === product.id ? "Eliminando..." : "Eliminar"}</button>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
+                      <span className="text-[10px] font-semibold text-neutral-400">Abrir producto</span>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-black text-neutral-500 transition group-hover:bg-black group-hover:text-white">→</span>
                     </div>
                   </div>
                 </article>
@@ -577,6 +626,139 @@ export default function MenuPage() {
           </div>
         </section>
       </div>
+
+      {selectedProduct && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedProduct(null);
+          }}
+        >
+          <div className="w-full max-w-[980px] overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Administrar producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{selectedProduct.name}</h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-600">{selectedProduct.type}</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${selectedProduct.active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>
+                    {selectedProduct.active ? "Activo" : "Inactivo"}
+                  </span>
+                  {selectedProduct.visibleInPos && selectedProduct.type !== "MODIFIER" && (
+                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-700">Visible en POS</span>
+                  )}
+                  {selectedProduct.featured && (
+                    <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[9px] font-bold uppercase text-red-700">Destacado</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProduct(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid gap-5 p-5 md:grid-cols-[300px_minmax(0,1fr)] md:p-6">
+              <div>
+                <div className="aspect-square overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f7f6f3] p-2">
+                  {selectedProduct.imageUrl ? (
+                    <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="h-full w-full object-contain" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-5xl">🍕</div>
+                  )}
+                </div>
+
+                <div className="mt-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Precio</span>
+                  <b className="mt-1.5 block text-[20px] font-black tracking-[-0.02em] text-[var(--brand-red)]">{displayProductPrice(selectedProduct)}</b>
+                  <p className="mt-2 text-[11px] leading-4 text-neutral-500">{selectedProduct.description || "Sin descripción registrada."}</p>
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Acciones del producto</p>
+                  <h3 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-neutral-950">¿Qué deseas hacer?</h3>
+                </div>
+
+                <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const product = selectedProduct;
+                      setSelectedProduct(null);
+                      openEditor(product);
+                    }}
+                    className="group rounded-2xl border border-neutral-200 bg-white p-4 text-left transition hover:border-neutral-400 hover:shadow-sm"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-950 text-sm font-black text-white">✎</span>
+                    <b className="mt-3 block text-[13px] text-neutral-950">Editar información</b>
+                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Nombre, precio, descripción, imágenes y estados.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void quickToggle(selectedProduct, "active")}
+                    className={`rounded-2xl border p-4 text-left transition ${selectedProduct.active ? "border-amber-200 bg-amber-50/60 hover:bg-amber-50" : "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50"}`}
+                  >
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black ${selectedProduct.active ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>●</span>
+                    <b className="mt-3 block text-[13px] text-neutral-950">{selectedProduct.active ? "Desactivar producto" : "Activar producto"}</b>
+                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">{selectedProduct.active ? "Deja de ofrecerlo temporalmente." : "Vuelve a habilitarlo en el catálogo."}</span>
+                  </button>
+
+                  {selectedProduct.type !== "MODIFIER" && (
+                    <button
+                      type="button"
+                      onClick={() => void quickToggle(selectedProduct, "visibleInPos")}
+                      className="rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-left transition hover:bg-sky-50"
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sm font-black text-sky-700">POS</span>
+                      <b className="mt-3 block text-[13px] text-neutral-950">{selectedProduct.visibleInPos ? "Ocultar del POS" : "Mostrar en POS"}</b>
+                      <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Controla si aparece en el catálogo del punto de venta.</span>
+                    </button>
+                  )}
+
+                  {selectedProduct.type === "COMBO" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const product = selectedProduct;
+                        setSelectedProduct(null);
+                        startCombo(product);
+                      }}
+                      className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-left transition hover:bg-red-50"
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-sm font-black text-red-700">+</span>
+                      <b className="mt-3 block text-[13px] text-neutral-950">Configurar combo</b>
+                      <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Productos, cantidades, sabores, tamaños y descuento.</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <b className="text-[12px] text-red-900">Eliminar producto</b>
+                      <p className="mt-1 text-[10px] leading-4 text-red-700">Solo podrá eliminarse si no tiene pedidos ni dependencias activas.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(selectedProduct)}
+                      className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-[11px] font-black text-red-700 shadow-sm hover:bg-red-50"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -616,6 +798,23 @@ export default function MenuPage() {
             <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCreateState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creating} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creating ? "Creando..." : "Crear producto"}</button></div>
           </form>
         </div>
+      )}
+
+      {deleteTarget && (
+        <ActionConfirmModal
+          variant="danger"
+          eyebrow="Eliminar producto"
+          title={`Eliminar ${deleteTarget.name}`}
+          description="Esta acción no se puede deshacer."
+          detail="Solo se eliminará si el producto no tiene pedidos registrados ni dependencias activas en combos."
+          confirmLabel={deletingProductId === deleteTarget.id ? "Eliminando..." : "Eliminar producto"}
+          cancelLabel="Cancelar"
+          busy={deletingProductId === deleteTarget.id}
+          onClose={() => {
+            if (deletingProductId == null) setDeleteTarget(null);
+          }}
+          onConfirm={() => void deleteProduct(deleteTarget)}
+        />
       )}
 
       {comboState && (
