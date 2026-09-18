@@ -176,7 +176,9 @@ export default function CustomersPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const [importStage, setImportStage] = useState<"preview" | "import" | null>(null);
   const [importMessage, setImportMessage] = useState("");
+  const [importSuccess, setImportSuccess] = useState("");
 
   async function loadCustomers() {
     setLoading(true);
@@ -352,11 +354,13 @@ export default function CustomersPage() {
     setImportOpen(false);
     setImportFile(null);
     setImportPreview(null);
+    setImportStage(null);
     setImportMessage("");
   }
 
   async function previewImport(file: File) {
     setImportBusy(true);
+    setImportStage("preview");
     setImportMessage("");
     setImportPreview(null);
     try {
@@ -371,12 +375,14 @@ export default function CustomersPage() {
       setImportMessage(error instanceof Error ? error.message : "No fue posible analizar el archivo.");
     } finally {
       setImportBusy(false);
+      setImportStage(null);
     }
   }
 
   async function confirmImport() {
     if (!importFile || !importPreview || importPreview.summary.toCreate === 0) return;
     setImportBusy(true);
+    setImportStage("import");
     setImportMessage("");
     try {
       const formData = new FormData();
@@ -385,14 +391,24 @@ export default function CustomersPage() {
       const response = await fetch("/api/customers/import", { method: "POST", body: formData });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible importar los clientes.");
+
       await loadCustomers();
-      setImportMessage(`Importación terminada: ${data.imported} clientes creados y ${data.skipped} omitidos.`);
-      setImportPreview(null);
+
+      const successText = data.skipped > 0
+        ? `Importación finalizada · ${data.imported} clientes agregados · ${data.skipped} omitidos`
+        : `Importación finalizada · ${data.imported} clientes agregados`;
+
+      setImportOpen(false);
       setImportFile(null);
+      setImportPreview(null);
+      setImportMessage("");
+      setImportSuccess(successText);
+      window.setTimeout(() => setImportSuccess(""), 5000);
     } catch (error) {
       setImportMessage(error instanceof Error ? error.message : "No fue posible importar los clientes.");
     } finally {
       setImportBusy(false);
+      setImportStage(null);
     }
   }
 
@@ -558,29 +574,47 @@ export default function CustomersPage() {
                 <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <b className="block text-[12px] text-sky-950">¿No tienes el archivo preparado?</b>
-                      <p className="mt-1 text-[10px] leading-4 text-sky-800">
-                        Descarga la plantilla oficial con las columnas exactas y una fila de ejemplo.
-                      </p>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-sky-600">Plantilla recomendada</p>
+                      <b className="mt-0.5 block text-[13px] text-sky-950">Evita errores usando el formato oficial</b>
+                      <p className="mt-1 text-[10px] leading-4 text-sky-800">Incluye encabezados correctos y una fila de ejemplo.</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => void downloadCustomerTemplate()}
-                      className="shrink-0 rounded-xl border border-sky-200 bg-white px-3.5 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-sky-700"
+                      className="shrink-0 rounded-xl bg-sky-600 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-white shadow-sm transition hover:bg-sky-700"
                     >
-                      Descargar template
+                      Descargar plantilla
                     </button>
                   </div>
 
-                  <div className="mt-3 overflow-x-auto rounded-xl border border-sky-100 bg-white">
-                    <div className="min-w-[760px] px-3 py-2.5 font-mono text-[9px] leading-4 text-neutral-600">
-                      Cliente/Nombre · Cliente/Indicativo · Cliente/Telefono · Cliente/Correo · Cliente/Dirección · Cliente/Complemento · Cliente/GPS Link · Cliente/Notas
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border border-sky-100 bg-white p-3">
+                      <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">Obligatorios</span>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {["Nombre", "Indicativo", "Teléfono"].map((label) => (
+                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[9px] font-semibold text-neutral-700">{label}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-sky-100 bg-white p-3">
+                      <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">Opcionales</span>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {["Correo", "Dirección", "Complemento", "GPS", "Notas"].map((label) => (
+                          <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[9px] font-semibold text-neutral-600">{label}</span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {importBusy && (
-                  <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-600">Analizando archivo...</div>
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--brand-red)]" />
+                    <div>
+                      <b className="block text-[11px] text-neutral-800">{importStage === "import" ? "Importando clientes..." : "Analizando archivo..."}</b>
+                      <span className="text-[9px] text-neutral-500">{importStage === "import" ? "Guardando los clientes validados en Alentó." : "Validando formato, teléfonos y duplicados."}</span>
+                    </div>
+                  </div>
                 )}
 
                 {importMessage && (
@@ -616,20 +650,25 @@ export default function CustomersPage() {
                     )}
 
                     {importPreview.issues.length > 0 && (
-                      <section className="mt-4 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/60">
-                        <div className="border-b border-amber-100 px-4 py-3">
-                          <b className="text-xs text-amber-900">Registros que no se importarán</b>
+                      <section className="mt-4 overflow-hidden rounded-2xl border border-rose-200 bg-rose-50/50">
+                        <div className="flex items-center justify-between gap-3 border-b border-rose-100 px-4 py-3">
+                          <div>
+                            <b className="block text-xs text-rose-950">Contactos que no se importarán</b>
+                            <span className="mt-0.5 block text-[9px] text-rose-700">Revisa el motivo indicado en cada registro.</span>
+                          </div>
+                          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[9px] font-bold tabular-nums text-rose-700">{importPreview.issues.length}</span>
                         </div>
-                        <div className="max-h-52 divide-y divide-amber-100 overflow-y-auto">
+                        <div className="max-h-60 divide-y divide-rose-100 overflow-y-auto">
                           {importPreview.issues.map((issue, index) => (
-                            <div key={`${issue.rowNumber}-${index}`} className="px-4 py-2.5">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <b className="block truncate text-[11px] text-amber-950">{issue.name || "Sin nombre"}</b>
-                                  <p className="mt-0.5 text-[10px] leading-4 text-amber-800">{issue.reason}</p>
+                            <div key={`${issue.rowNumber}-${index}`} className="grid gap-2 px-4 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <b className="truncate text-[11px] text-neutral-900">{issue.name || "Sin nombre"}</b>
+                                  {issue.phone && <span className="rounded-md bg-white px-2 py-0.5 text-[9px] font-medium text-neutral-500">{issue.phone}</span>}
                                 </div>
-                                <span className="shrink-0 text-[9px] font-semibold text-amber-600">Fila {issue.rowNumber}</span>
+                                <p className="mt-1 text-[10px] font-medium leading-4 text-rose-700">{issue.reason}</p>
                               </div>
+                              <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[9px] font-semibold text-neutral-400">Fila {issue.rowNumber}</span>
                             </div>
                           ))}
                         </div>
@@ -653,6 +692,19 @@ export default function CustomersPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {importSuccess && (
+          <div className="fixed right-5 top-5 z-[150] w-[min(92vw,390px)] rounded-2xl border border-emerald-200 bg-white p-4 shadow-[0_18px_50px_rgba(0,0,0,.16)] [font-synthesis:none]">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-lg font-black text-emerald-700">✓</span>
+              <div className="min-w-0">
+                <b className="block text-[13px] text-neutral-950">Importación finalizada</b>
+                <p className="mt-1 text-[10px] leading-4 text-neutral-500">{importSuccess.replace("Importación finalizada · ", "")}</p>
+              </div>
+              <button type="button" onClick={() => setImportSuccess("")} className="ml-auto text-sm text-neutral-400">×</button>
             </div>
           </div>
         )}
