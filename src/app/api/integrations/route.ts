@@ -80,6 +80,13 @@ export async function GET() {
   const saved = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
   return NextResponse.json({
     settings: saved ? normalizeSettings(saved.value) : DEFAULT_SETTINGS,
+    technicalAccess: {
+      RAPPI: {
+        clientIdConfigured: Boolean(process.env.RAPPI_CLIENT_ID?.trim()),
+        clientSecretConfigured: Boolean(process.env.RAPPI_CLIENT_SECRET?.trim()),
+        apiBaseUrlConfigured: Boolean(process.env.RAPPI_API_BASE_URL?.trim()),
+      },
+    },
   });
 }
 
