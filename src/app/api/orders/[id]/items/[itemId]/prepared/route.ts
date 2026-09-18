@@ -25,7 +25,14 @@ export async function PATCH(
         select: {
           id: true,
           status: true,
-          items: { select: { id: true, quantity: true, preparedQuantity: true } },
+          items: {
+            select: {
+              id: true,
+              quantity: true,
+              preparedQuantity: true,
+              product: { select: { category: { select: { slug: true } } } },
+            },
+          },
         },
       });
       if (!order) throw new Error("ORDER_NOT_FOUND");
@@ -43,8 +50,9 @@ export async function PATCH(
       const refreshedItems = order.items.map((candidate) =>
         candidate.id === item.id ? { ...candidate, preparedQuantity } : candidate,
       );
-      const allPrepared = refreshedItems.length > 0 && refreshedItems.every((candidate) => candidate.preparedQuantity >= candidate.quantity);
-      const anyIncomplete = refreshedItems.some((candidate) => candidate.preparedQuantity < candidate.quantity);
+      const kitchenItems = refreshedItems.filter((candidate) => candidate.product?.category?.slug !== "bebidas");
+      const allPrepared = kitchenItems.length > 0 && kitchenItems.every((candidate) => candidate.preparedQuantity >= candidate.quantity);
+      const anyIncomplete = kitchenItems.some((candidate) => candidate.preparedQuantity < candidate.quantity);
 
       let status = order.status;
       if (allPrepared && order.status === "PREPARING") {
