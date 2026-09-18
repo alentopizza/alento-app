@@ -56,6 +56,8 @@ type CustomerDetail = Customer & {
   orders: CustomerOrder[];
 };
 
+type CustomerStatusFilter = "ALL" | "Nuevo" | "Activo" | "Frecuente" | "Por recuperar" | "Sin compras";
+
 const money = (value: number | string | null | undefined) =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -131,6 +133,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("ALL");
   const [editing, setEditing] = useState<Customer | null>(null);
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -160,11 +163,32 @@ export default function CustomersPage() {
     void loadCustomers();
   }, []);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<Exclude<CustomerStatusFilter, "ALL">, number> = {
+      Nuevo: 0,
+      Activo: 0,
+      Frecuente: 0,
+      "Por recuperar": 0,
+      "Sin compras": 0,
+    };
+
+    customers.forEach((customer) => {
+      const label = customerSignal(customer.metrics).label as Exclude<CustomerStatusFilter, "ALL">;
+      counts[label] += 1;
+    });
+
+    return counts;
+  }, [customers]);
+
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
-    if (!value) return customers;
-    return customers.filter((customer) =>
-      [
+
+    return customers.filter((customer) => {
+      const signal = customerSignal(customer.metrics).label;
+      if (statusFilter !== "ALL" && signal !== statusFilter) return false;
+      if (!value) return true;
+
+      return [
         customer.name,
         customer.phone,
         customer.email,
@@ -172,9 +196,9 @@ export default function CustomersPage() {
         customer.notes,
       ]
         .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(value)),
-    );
-  }, [customers, query]);
+        .some((field) => String(field).toLowerCase().includes(value));
+    });
+  }, [customers, query, statusFilter]);
 
   async function openCustomer(customer: Customer) {
     setDetailLoading(true);
@@ -278,6 +302,32 @@ export default function CustomersPage() {
               placeholder="Buscar por nombre, teléfono, correo, dirección o nota"
             />
           </div>
+
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+            {([
+              ["ALL", "Todos", customers.length],
+              ["Nuevo", "Nuevo", statusCounts.Nuevo],
+              ["Activo", "Activo", statusCounts.Activo],
+              ["Frecuente", "Frecuente", statusCounts.Frecuente],
+              ["Por recuperar", "Por recuperar", statusCounts["Por recuperar"]],
+              ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
+            ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
+              const active = statusFilter === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setStatusFilter(value)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.035em] transition ${active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"}`}
+                >
+                  <span>{label}</span>
+                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] tabular-nums ${active ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-500"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </section>
 
         {loading ? (
@@ -301,14 +351,23 @@ export default function CustomersPage() {
                   className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)]"
                 >
                   <div className="p-5 [font-synthesis:none]">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-3.5">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-[#faf9f7] text-[17px] font-bold text-neutral-900 shadow-sm">
-                          {customer.name.trim().charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <h2 className="truncate text-[18px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
-                          <p className="mt-0.5 truncate text-[13px] font-medium text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-3.5 shadow-[0_6px_18px_rgba(28,23,20,.035)]">
+                        <div className="flex min-w-0 items-center gap-3.5">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-[17px] font-bold text-neutral-900 shadow-sm">
+                            {customer.name.trim().charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h2 className="truncate text-[18px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
+                            <div className="mt-1.5 grid gap-1">
+                              <p className="relative truncate pl-3 text-[12px] font-medium leading-4 text-neutral-500 before:absolute before:left-0 before:top-[6px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
+                                {customer.countryCode} {customer.phone || "Sin teléfono"}
+                              </p>
+                              <p className="relative truncate pl-3 text-[12px] font-medium leading-4 text-neutral-500 before:absolute before:left-0 before:top-[6px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
+                                {customer.addresses?.[0]?.address || "Sin dirección registrada"}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>{signal.label}</span>
