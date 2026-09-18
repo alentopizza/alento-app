@@ -93,6 +93,8 @@ export default function MenuPage() {
   const [savingCombo, setSavingCombo] = useState(false);
   const [comboError, setComboError] = useState("");
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const [draggingProductId, setDraggingProductId] = useState<number | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   async function loadMenu(preserveCategory = true) {
     setLoading(true);
@@ -220,6 +222,86 @@ export default function MenuPage() {
     const result = await response.json();
     if (!response.ok) return setError(result.error || "No fue posible actualizar el producto.");
     await loadMenu();
+  }
+
+  async function persistProductOrder(category: Category, productIds: number[]) {
+    setSavingOrder(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/menu-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reorderProducts",
+          categoryId: category.id,
+          productIds,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible guardar el orden.");
+
+      setData((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          categories: current.categories.map((item) => {
+            if (item.id !== category.id) return item;
+            const byId = new Map(item.products.map((product) => [product.id, product] as const));
+            return {
+              ...item,
+              products: productIds.map((id, index) => ({
+                ...byId.get(id)!,
+                sortOrder: index,
+              })),
+            };
+          }),
+        };
+      });
+
+      setNotice("Orden de productos actualizado.");
+    } catch (reorderError) {
+      setError(reorderError instanceof Error ? reorderError.message : "No fue posible guardar el orden.");
+      await loadMenu();
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
+  function moveProductBefore(targetProductId: number) {
+    if (!activeCategory || draggingProductId == null || draggingProductId === targetProductId) return;
+    if (query.trim()) return;
+    if (activeCategory.slug === "destacados") return;
+
+    const current = [...activeCategory.products];
+    const fromIndex = current.findIndex((product) => product.id === draggingProductId);
+    const toIndex = current.findIndex((product) => product.id === targetProductId);
+
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const [moved] = current.splice(fromIndex, 1);
+    current.splice(toIndex, 0, moved);
+
+    const productIds = current.map((product) => product.id);
+
+    setData((state) => {
+      if (!state) return state;
+      return {
+        ...state,
+        categories: state.categories.map((category) =>
+          category.id === activeCategory.id
+            ? {
+                ...category,
+                products: current.map((product, index) => ({ ...product, sortOrder: index })),
+              }
+            : category,
+        ),
+      };
+    });
+
+    void persistProductOrder(activeCategory, productIds);
   }
 
   async function deleteProduct(product: Product) {
@@ -415,7 +497,15 @@ export default function MenuPage() {
           <div className="space-y-3">
             <div className="alento-card rounded-[24px] p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Categoría</p><h2 className="mt-1 text-2xl font-black">{activeCategory?.name ?? "Productos"}</h2></div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Categoría</p>
+                  <h2 className="mt-1 text-2xl font-black">{activeCategory?.name ?? "Productos"}</h2>
+                  {activeCategory && activeCategory.slug !== "destacados" && (
+                    <p className="mt-1 text-[11px] text-neutral-400">
+                      {query.trim() ? "Quita la búsqueda para reorganizar productos." : savingOrder ? "Guardando nuevo orden..." : "Arrastra las tarjetas para cambiar el orden en el POS."}
+                    </p>
+                  )}
+                </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && <button onClick={() => startCreateProduct(activeCategory)} className="rounded-2xl bg-black px-4 py-3 text-sm font-black text-white">+ {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}</button>}
                   {activeCategory?.slug === "combos" && <button onClick={() => startCombo()} className="rounded-2xl bg-[var(--brand-red)] px-4 py-3 text-sm font-black text-white">+ Combo</button>}
@@ -426,7 +516,36 @@ export default function MenuPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {visibleProducts.map((product) => (
-                <article key={product.id} className="alento-card overflow-hidden rounded-[20px]">
+                <article
+                  key={product.id}
+                  draggable={!query.trim() && activeCategory?.slug !== "destacados" && !savingOrder}
+                  onDragStart={(event) => {
+                    if (query.trim() || activeCategory?.slug === "destacados" || savingOrder) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setDraggingProductId(product.id);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(product.id));
+                  }}
+                  onDragOver={(event) => {
+                    if (draggingProductId == null || query.trim() || activeCategory?.slug === "destacados") return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    moveProductBefore(product.id);
+                    setDraggingProductId(null);
+                  }}
+                  onDragEnd={() => setDraggingProductId(null)}
+                  className={`alento-card relative overflow-hidden rounded-[20px] transition ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
+                >
+                  {!query.trim() && activeCategory?.slug !== "destacados" && (
+                    <div className="absolute right-2.5 top-2.5 z-20 flex h-8 w-8 cursor-grab items-center justify-center rounded-xl border border-white/80 bg-white/95 text-[15px] font-black text-neutral-500 shadow-sm backdrop-blur active:cursor-grabbing" title="Arrastrar para reordenar">
+                      ⋮⋮
+                    </div>
+                  )}
                   <div className="relative aspect-square overflow-hidden bg-[#f7f6f3] p-1.5">
                     {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain" /> : <div className="flex h-full items-center justify-center text-4xl">🍕</div>}
                     <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5"><span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>{product.active ? "Activo" : "Inactivo"}</span>{product.featured && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>}</div>
