@@ -555,8 +555,21 @@ export default function OrdersCardsDashboardV3() {
     <div className="mx-auto max-w-[1600px] space-y-4">
       <section className="rounded-[28px] bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.24),transparent_28%),linear-gradient(135deg,#09090a,#181516)] px-6 py-5 text-white shadow-[0_20px_55px_rgba(20,16,14,.12)] md:px-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Operación</p><h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Pedidos</h1><p className="mt-0.5 text-sm text-white/65">Una orden, un estado actual y una acción clara.</p></div>
-          <div className="flex items-center gap-2"><span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-bold">{activeCount} activos</span><button onClick={() => void load()} className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]" aria-label="Actualizar"><Icon name="refresh" /></button></div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Operación</p>
+            <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Pedidos</h1>
+            <p className="mt-0.5 text-sm text-white/65">Todo el flujo de tus órdenes, en un solo lugar.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="min-w-[92px] rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-right shadow-inner">
+              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos ahora</span>
+              <div className="mt-0.5 flex items-baseline justify-end gap-1.5">
+                <b className="text-[24px] font-black leading-none tabular-nums text-white">{activeCount}</b>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-white/45">pedidos</span>
+              </div>
+            </div>
+            <button onClick={() => void load()} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] transition hover:bg-white/[0.13]" aria-label="Actualizar"><Icon name="refresh" /></button>
+          </div>
         </div>
       </section>
 
