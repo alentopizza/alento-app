@@ -263,13 +263,10 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true, createdAt: true } });
+    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     if (order.status !== "CANCELED") {
       return NextResponse.json({ error: "Primero debes cancelar el pedido antes de eliminarlo definitivamente." }, { status: 409 });
-    }
-    if (!isCurrentOperationalDay(order.createdAt)) {
-      return NextResponse.json({ error: "Este pedido pertenece a un día operativo anterior y ya no puede eliminarse después del cierre diario." }, { status: 409 });
     }
 
     const deleted = await prisma.$transaction(async (tx) => {
