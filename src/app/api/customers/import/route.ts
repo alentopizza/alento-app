@@ -10,22 +10,36 @@ type ExistingCustomer = {
 
 function dedupeRows(rows: ReturnType<typeof mapCustomerImport>["valid"]) {
   const seenPhones = new Map<string, number>();
-  const accepted = [];
-  const duplicates = [];
+  const seenEmails = new Map<string, number>();
+  const accepted: typeof rows = [];
+  const duplicates: Array<{ rowNumber: number; name: string; phone: string; reason: string }> = [];
 
   for (const row of rows) {
-    const key = row.phone;
-    const first = seenPhones.get(key);
-    if (first) {
+    const phoneFirst = seenPhones.get(row.phone);
+    if (phoneFirst) {
       duplicates.push({
         rowNumber: row.rowNumber,
         name: row.name,
         phone: row.phone,
-        reason: `Teléfono repetido en el archivo (primera aparición en fila ${first}).`,
+        reason: `Teléfono repetido en el archivo (primera aparición en fila ${phoneFirst}).`,
       });
       continue;
     }
-    seenPhones.set(key, row.rowNumber);
+
+    const emailKey = row.email.toLowerCase();
+    const emailFirst = emailKey ? seenEmails.get(emailKey) : undefined;
+    if (emailFirst) {
+      duplicates.push({
+        rowNumber: row.rowNumber,
+        name: row.name,
+        phone: row.phone,
+        reason: `Correo repetido en el archivo (primera aparición en fila ${emailFirst}).`,
+      });
+      continue;
+    }
+
+    seenPhones.set(row.phone, row.rowNumber);
+    if (emailKey) seenEmails.set(emailKey, row.rowNumber);
     accepted.push(row);
   }
 
