@@ -75,7 +75,7 @@ PREPARING → PREPARED → READY → COMPLETED
 
 ## Cocina
 
-`/cocina` consume pedidos reales, muestra productos estructurados y permite marcar cantidades preparadas por línea (`preparedQuantity`). Cuando todas las unidades están completas, la orden pasa automáticamente a `PREPARED`; luego Cocina puede marcarla `READY`.
+`/cocina` consume pedidos reales, muestra productos estructurados y permite marcar cantidades preparadas por línea (`preparedQuantity`). Cocina prioriza visualmente pizzas antes que antojos, usa tarjetas más compactas y excluye bebidas de la preparación porque no requieren trabajo de cocina. Las bebidas tampoco cuentan para el progreso ni bloquean el paso automático a `PREPARED`. Cuando todas las unidades que sí requieren preparación están completas, la orden pasa automáticamente a `PREPARED`; luego Cocina puede marcarla `READY`.
 
 Cocina ya muestra el consecutivo comercial (`POS-0001`, etc.) cuando existe.
 
