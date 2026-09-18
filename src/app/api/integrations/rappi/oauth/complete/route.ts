@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const savedSettings = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
     const current =
       savedSettings?.value && typeof savedSettings.value === "object" && !Array.isArray(savedSettings.value)
-        ? savedSettings.value as IntegrationSettings
+        ? savedSettings.value as unknown as IntegrationSettings
         : {};
 
     const checkedAt = new Date().toISOString();
