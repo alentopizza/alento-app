@@ -10,6 +10,7 @@ type PosCartLineItem = {
   unitPrice: number;
   quantity: number;
   configuration: OrderLineConfiguration;
+  notes?: string;
 };
 
 type Props = {
@@ -85,6 +86,13 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {item.notes && (
+            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left">
+              <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-amber-600">Nota cocina</span>
+              <b className="mt-0.5 block text-[11px] leading-4 text-amber-900">{item.notes}</b>
             </div>
           )}
         </div>
