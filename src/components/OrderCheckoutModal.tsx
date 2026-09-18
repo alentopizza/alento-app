@@ -114,12 +114,16 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
           <div className="checkout-product-specs">
             <CheckoutSpec label="Tamaño" value={pizza.size.name} />
             <CheckoutSpec label="Borde" value={pizza.crust.name} />
-            {pizza.flavors.length > 1 && (
-              <>
-                <CheckoutSpec label="Sabor 1" value={pizza.flavors[0]?.name ?? "—"} />
-                <CheckoutSpec label="Sabor 2" value={pizza.flavors[1]?.name ?? "—"} />
-              </>
-            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {pizza.flavors.map((flavor, index) => (
+              <span key={`${flavor.productId}-${index}`} className="contents">
+                <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
+                  {flavor.name}
+                </span>
+                {index < pizza.flavors.length - 1 && <span className="text-[10px] font-bold text-neutral-300">−</span>}
+              </span>
+            ))}
           </div>
           {pizza.modifiers.length > 0 && (
             <div className="checkout-product-extras">
