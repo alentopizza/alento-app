@@ -68,12 +68,17 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
           <div className="pos-cart-spec-grid">
             <Spec label="Tamaño" value={configuration.size.name} />
             <Spec label="Borde" value={configuration.crust.name} />
-            {configuration.flavors.length > 1 && (
-              <>
-                <Spec label="Sabor 1" value={configuration.flavors[0]?.name ?? "—"} />
-                <Spec label="Sabor 2" value={configuration.flavors[1]?.name ?? "—"} />
-              </>
-            )}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {configuration.flavors.map((flavor, index) => (
+              <span key={`${flavor.productId}-${index}`} className="contents">
+                <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
+                  {flavor.name}
+                </span>
+                {index < configuration.flavors.length - 1 && <span className="text-[10px] font-bold text-neutral-300">−</span>}
+              </span>
+            ))}
           </div>
 
           {configuration.modifiers.length > 0 && (
