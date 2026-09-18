@@ -560,15 +560,9 @@ export default function OrdersCardsDashboardV3() {
             <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Pedidos</h1>
             <p className="mt-0.5 text-sm text-white/65">Todo el flujo de tus órdenes, en un solo lugar.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="min-w-[92px] rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-right shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos ahora</span>
-              <div className="mt-0.5 flex items-baseline justify-end gap-1.5">
-                <b className="text-[24px] font-black leading-none tabular-nums text-white">{activeCount}</b>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-white/45">pedidos</span>
-              </div>
-            </div>
-            <button onClick={() => void load()} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] transition hover:bg-white/[0.13]" aria-label="Actualizar"><Icon name="refresh" /></button>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+            <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos ahora</span>
+            <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{activeCount}</b>
           </div>
         </div>
       </section>
