@@ -74,7 +74,13 @@ function KitchenItem({
     return !label.includes("bebida") && !label.includes("gaseosa");
   });
   const flavorDetails = details.filter((detail) => detail.label.trim().toLowerCase().startsWith("sabor"));
-  const otherDetails = details.filter((detail) => !detail.label.trim().toLowerCase().startsWith("sabor"));
+  const normalizedProductName = item.productName.trim().toLocaleLowerCase("es");
+  const otherDetails = details.filter((detail) => {
+    const label = detail.label.trim().toLowerCase();
+    if (label.startsWith("sabor")) return false;
+    if (label === "producto" && detail.value.trim().toLocaleLowerCase("es") === normalizedProductName) return false;
+    return true;
+  });
   const cleanFlavor = (value: string) => value.replace(/^½\s*/, "").trim();
   const complete = item.preparedQuantity >= item.quantity;
 
@@ -85,9 +91,11 @@ function KitchenItem({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <b className="block text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
-            <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] tabular-nums ${complete ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-600"}`}>
-              {item.preparedQuantity}/{item.quantity} preparados
-            </span>
+            {complete && (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-emerald-700 tabular-nums">
+                {item.preparedQuantity}/{item.quantity} {item.quantity === 1 ? "preparado" : "preparados"}
+              </span>
+            )}
           </div>
 
           {otherDetails.length > 0 && (
@@ -290,20 +298,21 @@ export default function KitchenPage() {
                         onChangePrepared={(value) => void changePrepared(order, item, value)}
                       />
                     ))}
-                  </div>
 
-                  {prepared && (
-                    <div className="flex justify-end border-t border-neutral-100 bg-[#faf9f7] px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => void markReady(order)}
-                        disabled={orderBusy}
-                        className="inline-flex h-9 items-center justify-center rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
-                      >
-                        {orderBusy ? "Actualizando..." : "Marcar como listo"}
-                      </button>
-                    </div>
-                  )}
+                    {prepared && (
+                      <div className="flex justify-end pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => void markReady(order)}
+                          disabled={orderBusy}
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-red)] px-3 text-[10px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
+                        >
+                          <span aria-hidden="true">✓</span>
+                          {orderBusy ? "Actualizando..." : "Listo"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </article>
               );
             })}
