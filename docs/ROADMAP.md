@@ -6,7 +6,9 @@
 Punto de venta        ✅ CERRADO
 Pedidos               ✅ CERRADO
 Cocina                ✅ CERRADO
-Autenticación y Roles ▶ SIGUIENTE FASE
+Clientes              ✅ CERRADO POR AHORA
+Menú                  ▶ SIGUIENTE FASE
+Integraciones         ⏳ DESPUÉS DE MENÚ
 ```
 
 Los módulos cerrados siguen sujetos a corrección de bugs, pero no deben reabrirse como fase de diseño salvo decisión explícita.
@@ -83,6 +85,34 @@ Incluye:
 - chips de tamaño/borde/sabores/extras;
 - notas visibles;
 - UI optimizada para lectura a distancia.
+
+---
+ 
+# Fase completada — Clientes
+
+Estado: **CERRADO POR AHORA**
+
+Referencia canónica: `docs/CUSTOMERS.md`.
+
+Incluye:
+
+- búsqueda y filtros;
+- estados comerciales;
+- métricas de compra;
+- perfil detallado;
+- historial estructurado;
+- impresión de copias;
+- importación/exportación CSV;
+- edición/eliminación;
+- eliminación masiva configurable.
+
+---
+
+# Fase siguiente — Menú
+
+Estado: **SIGUIENTE FASE DE TRABAJO**
+
+Objetivo: revisar y cerrar el módulo administrativo de catálogo/menú antes de abordar integraciones externas.
 
 ---
 
@@ -166,4 +196,4 @@ Antes de un cambio:
 6. actualizar documentación;
 7. indicar si requiere `npx prisma db push`.
 
-La fase activa actual es **Autenticación y Roles**.
+El siguiente bloque de trabajo acordado es **Menú**. Después se revisarán **Integraciones**. Autenticación y Roles continúa como bloque estratégico pendiente.
