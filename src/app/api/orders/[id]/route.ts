@@ -66,6 +66,42 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (["COMPLETED", "CANCELED", "DELIVERED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya está cerrado y no puede editarse." }, { status: 409 });
 
+    if (body?.action === "change-customer") {
+      const customerId = Number(body.customerId);
+      if (!Number.isInteger(customerId) || customerId <= 0) {
+        return NextResponse.json({ error: "Selecciona un cliente válido." }, { status: 400 });
+      }
+
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        include: { addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] } },
+      });
+      if (!customer) {
+        return NextResponse.json({ error: "El cliente seleccionado ya no existe." }, { status: 404 });
+      }
+
+      let addressId: number | null = null;
+      if (current.fulfillmentType === "DELIVERY") {
+        const requestedAddressId = Number(body.addressId);
+        const address = customer.addresses.find((item) => item.id === requestedAddressId) ?? customer.addresses[0] ?? null;
+        if (!address) {
+          return NextResponse.json({ error: "El cliente seleccionado necesita una dirección para este domicilio." }, { status: 400 });
+        }
+        addressId = address.id;
+      }
+
+      await prisma.order.update({
+        where: { id: current.id },
+        data: {
+          customerId: customer.id,
+          addressId,
+        },
+      });
+
+      const updated = await loadOrder(current.id);
+      return NextResponse.json({ order: serializeOrder(updated) });
+    }
+
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
     if ((fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP") && !current.customerId) return NextResponse.json({ error: "Este pedido necesita un cliente antes de cambiar a esa modalidad." }, { status: 400 });
