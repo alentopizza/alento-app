@@ -269,6 +269,20 @@ export default function CustomersPage() {
     }
   }
 
+  function printCustomerOrder(orderId: number) {
+    const frame = document.createElement("iframe");
+    Object.assign(frame.style, {
+      position: "fixed",
+      width: "1px",
+      height: "1px",
+      opacity: "0",
+      pointerEvents: "none",
+    });
+    frame.src = `/pedidos/${orderId}/imprimir?autoprint=1&embedded=1`;
+    document.body.appendChild(frame);
+    window.setTimeout(() => frame.remove(), 30000);
+  }
+
   function openEdit(customer: Customer | CustomerDetail) {
     setEditing(customer);
     setName(customer.name);
@@ -1003,7 +1017,22 @@ export default function CustomersPage() {
                               </div>
                               <p className="mt-1.5 text-[11px] text-neutral-400">{dateTime(order.createdAt)}</p>
                             </div>
-                            <b className="shrink-0 text-[16px] font-bold tabular-nums tracking-[-0.015em] text-neutral-950">{money(order.total)}</b>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <b className="text-[16px] font-bold tabular-nums tracking-[-0.015em] text-neutral-950">{money(order.total)}</b>
+                              <button
+                                type="button"
+                                onClick={() => printCustomerOrder(order.id)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-950"
+                                title="Imprimir copia del pedido"
+                                aria-label="Imprimir copia del pedido"
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+                                  <path d="M6 9V3h12v6" />
+                                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                  <path d="M6 14h12v7H6z" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
 
                           <div className="space-y-2.5 p-3">
