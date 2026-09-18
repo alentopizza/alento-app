@@ -575,7 +575,7 @@ export default function OrdersCardsDashboardV3() {
       </section>
 
       {loading ? <div className="rounded-2xl border bg-white p-8 text-center text-sm text-neutral-500">Cargando pedidos...</div> : error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div> : visible.length === 0 ? <div className="rounded-2xl border border-dashed bg-white p-10 text-center text-sm text-neutral-400">No hay pedidos para mostrar.</div> :
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{visible.map((order) => {
+        <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{visible.map((order) => {
           const fullyPaid = paidInFull(order);
           const busyOrder = busy === order.id;
           const kitchenManaged = ["CONFIRMED", "PREPARING", "PREPARED"].includes(order.status);
@@ -595,20 +595,19 @@ export default function OrdersCardsDashboardV3() {
               </div>
               <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4"><div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">{(order.customer?.name || "C").trim().charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="order-customer-name truncate">{order.customer?.name || "Cliente ocasional"}</p><div className="order-customer-meta"><p className="order-customer-line">{order.customer?.phone ? `${order.customer.countryCode} ${order.customer.phone}` : "Sin teléfono"}</p>{order.fulfillmentType === "DELIVERY" && order.address?.address && <p className="order-customer-line order-customer-address">{order.address.address}</p>}</div></div></div>
               <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
-                {fullyPaid ? (
-                  <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
-                    <span className="block text-[8.5px] font-semibold uppercase tracking-[0.07em] text-emerald-700">Pagado</span>
-                    <b className="mt-0.5 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] text-emerald-900">{money(receivedTotal)}</b>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => void openPayment(order)}
-                    className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-left transition hover:border-amber-300 hover:bg-amber-100/60"
-                  >
-                    <span className="block text-[8.5px] font-semibold uppercase tracking-[0.07em] text-amber-700">Pago pendiente</span>
-                    <b className="mt-0.5 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] text-amber-900">{money(pendingTotal)}</b>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => { if (!fullyPaid) void openPayment(order); }}
+                  disabled={fullyPaid}
+                  className={`block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100 ${fullyPaid ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50 hover:border-amber-300 hover:bg-amber-100/60"}`}
+                >
+                  <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : "text-amber-700"}`}>
+                    {fullyPaid ? "Pagado" : "Pago pendiente"}
+                  </span>
+                  <b className={`mt-1 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] ${fullyPaid ? "text-emerald-900" : "text-amber-900"}`}>
+                    {money(fullyPaid ? receivedTotal : pendingTotal)}
+                  </b>
+                </button>
               </div>
               <div className="mt-3 flex items-center gap-1.5 border-t border-neutral-100 pt-2.5" onClick={(event) => event.stopPropagation()}>
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
