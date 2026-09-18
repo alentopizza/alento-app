@@ -321,17 +321,51 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
 
   if (createdOrder) {
     return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3">
-        <div className="alento-card w-full max-w-md rounded-[28px] p-6 text-center shadow-2xl">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl">✓</div>
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Pedido creado</p>
-          <h2 className="mt-1 text-3xl font-black">{createdOrder.code}</h2>
-          <p className="mt-2 text-sm text-neutral-500">La orden quedó guardada en PostgreSQL y lista para continuar al flujo operativo.</p>
-          <div className="mt-5 rounded-2xl bg-[#faf9f7] p-4 text-left text-sm">
-            <div className="flex justify-between"><span className="text-neutral-500">Tipo</span><b>{fulfillmentLabel(createdOrder.fulfillmentType)}</b></div>
-            <div className="mt-2 flex justify-between"><span className="text-neutral-500">Total</span><b className="text-lg text-[var(--brand-red)]">{formatCOP(createdOrder.total)}</b></div>
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[3px]">
+        <div className="w-full max-w-[470px] overflow-hidden rounded-[30px] border border-white/10 bg-[#f7f4ef] shadow-[0_28px_90px_rgba(0,0,0,.32)]">
+          <header className="relative overflow-hidden bg-[radial-gradient(circle_at_84%_18%,rgba(229,28,17,.28),transparent_30%),linear-gradient(135deg,#09090a,#181516)] px-6 pb-7 pt-6 text-white">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-[var(--brand-red)]" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Pedido creado</p>
+                <h2 className="mt-1.5 text-[34px] font-black tracking-[-0.04em]">{createdOrder.code}</h2>
+                <p className="mt-1 max-w-[300px] text-[12px] leading-5 text-white/60">Guardado correctamente y listo para continuar en la operación.</p>
+              </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-2xl font-black text-emerald-300 shadow-inner">
+                ✓
+              </div>
+            </div>
+          </header>
+
+          <div className="p-5 sm:p-6">
+            <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(28,23,20,.05)]">
+              <div className="grid grid-cols-2 divide-x divide-neutral-100">
+                <div className="pr-4">
+                  <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Tipo</span>
+                  <b className="mt-1 block text-sm text-neutral-900">{fulfillmentLabel(createdOrder.fulfillmentType)}</b>
+                </div>
+                <div className="pl-4 text-right">
+                  <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Total</span>
+                  <b className="mt-1 block text-[22px] font-black tracking-[-0.03em] text-[var(--brand-red)]">{formatCOP(createdOrder.total)}</b>
+                </div>
+              </div>
+            </section>
+
+            <div className="mt-3 flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-left">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white">✓</div>
+              <div>
+                <b className="block text-[11px] text-emerald-900">Listo para operación</b>
+                <span className="text-[10px] leading-4 text-emerald-700">El pedido ya está disponible en Pedidos y, cuando corresponde, en Cocina.</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--brand-red)] px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(229,28,17,.20)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_30px_rgba(229,28,17,.28)]"
+            >
+              Nuevo pedido
+            </button>
           </div>
-          <button onClick={() => window.location.reload()} className="mt-5 w-full rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white">Nuevo pedido</button>
         </div>
       </div>
     );
