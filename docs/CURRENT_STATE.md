@@ -164,9 +164,10 @@ Para Rappi:
 - no se almacenan credenciales de Rappi Partners;
 - se prepara conexión mediante credenciales técnicas Open Orders/Integrations Manager;
 - se conserva ID de tienda;
-- existe estimador de comisión/impuestos;
-- pedidos marketplace conservarán venta bruta y neto a recibir por separado;
-- Pedidos ya está preparado para mostrar la conciliación marketplace;
+- existe estado real de conexión: no conectada, pendiente, conectada o error;
+- la verificación se realiza desde servidor contra la autenticación Open Orders;
+- los pedidos marketplace conservarán el valor exacto recibido en la orden/factura;
+- Pedidos ya está preparado para mostrar el origen marketplace y el valor de factura;
 - `MarketplaceOrder` aporta idempotencia por proveedor + ID externo.
 
 Este bloque requiere `npx prisma db push` por el nuevo modelo y enums.
