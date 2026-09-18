@@ -11,6 +11,8 @@ type ProviderSettings = {
   autoAccept: boolean;
   status: IntegrationStatus;
   connectedAt: string | null;
+  commissionEstimatePercent: number;
+  commissionTaxEstimatePercent: number;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -38,11 +40,12 @@ const PROVIDERS: ProviderMeta[] = [
     text: "text-rose-700",
     badge: "bg-rose-100 text-rose-700",
     icon: "R",
-    description: "Recibe pedidos de Rappi y llévalos al mismo flujo de Pedidos y Cocina de Alentó.",
+    description: "Recibe pedidos de Rappi y llévalos al mismo flujo de Pedidos y Cocina de Alentó, conservando venta bruta y liquidación neta por separado.",
     requirements: [
-      "Tienda activa en Rappi.",
-      "Credenciales o autorización oficial para integración POS/API.",
-      "Mapeo de productos y modificadores antes de activar producción.",
+      "Tienda activa en Rappi Partners.",
+      "ID de tienda.",
+      "Habilitación oficial de integración POS/Open Orders en Rappi.",
+      "Credenciales técnicas de integración entregadas por Rappi; no la contraseña de Partners.",
     ],
   },
   {
@@ -75,6 +78,24 @@ function statusTone(status: IntegrationStatus) {
   return "border-neutral-200 bg-neutral-100 text-neutral-600";
 }
 
+function money(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(Math.round(value || 0));
+}
+
+function rappiEstimate(gross: number, commissionPercent: number, commissionTaxPercent: number) {
+  const commission = Math.max(0, gross) * Math.max(0, commissionPercent) / 100;
+  const commissionTax = commission * Math.max(0, commissionTaxPercent) / 100;
+  return {
+    commission,
+    commissionTax,
+    net: Math.max(0, gross - commission - commissionTax),
+  };
+}
+
 export default function IntegrationsPage() {
   const [settings, setSettings] = useState<IntegrationSettings | null>(null);
   const [openProvider, setOpenProvider] = useState<ProviderId | null>(null);
@@ -82,6 +103,7 @@ export default function IntegrationsPage() {
   const [saving, setSaving] = useState<ProviderId | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [rappiGrossPreview, setRappiGrossPreview] = useState("50000");
 
   useEffect(() => {
     async function load() {
@@ -222,6 +244,31 @@ export default function IntegrationsPage() {
                             ))}
                           </ul>
                         </div>
+
+                        {provider.id === "RAPPI" && (
+                          <>
+                            <div className="mt-3 rounded-xl border border-rose-100 bg-rose-50/60 p-3.5">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <b className="block text-[11px] text-rose-950">Portal Rappi Partners</b>
+                                  <p className="mt-1 text-[10px] leading-4 text-rose-800">Usa tu usuario y contraseña directamente en Rappi. No los guardes ni los copies dentro de Alentó.</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => window.open("https://login.partners.rappi.com/", "_blank", "noopener,noreferrer")}
+                                  className="shrink-0 rounded-xl bg-rose-600 px-4 py-2.5 text-[10px] font-bold text-white shadow-sm hover:bg-rose-700"
+                                >
+                                  Abrir Partners
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/60 p-3.5">
+                              <b className="block text-[11px] text-violet-950">Vinculación de productos</b>
+                              <p className="mt-1 text-[10px] leading-4 text-violet-800">Como los productos de Rappi usan los mismos nombres de Alentó, el primer criterio de mapeo será nombre normalizado. Antes de activar producción validaremos excepciones, tamaños, bordes y toppings.</p>
+                            </div>
+                          </>
+                        )}
                       </section>
 
                       <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
@@ -250,9 +297,77 @@ export default function IntegrationsPage() {
                               value={providerSettings.storeId}
                               onChange={(event) => updateProvider(provider.id, { storeId: event.target.value })}
                               className="alento-input w-full rounded-xl px-3.5 py-3 text-sm"
-                              placeholder="Se completa cuando el proveedor entregue el identificador"
+                              placeholder={provider.id === "RAPPI" ? "ID de la tienda en Rappi" : "Identificador de tienda"}
                             />
                           </div>
+
+                          {provider.id === "RAPPI" && (() => {
+                            const gross = Number(rappiGrossPreview.replace(/\D/g, "")) || 0;
+                            const estimate = rappiEstimate(gross, providerSettings.commissionEstimatePercent, providerSettings.commissionTaxEstimatePercent);
+                            return (
+                              <div className="rounded-xl border border-neutral-200 bg-[#faf9f7] p-3.5">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <b className="block text-[11px] text-neutral-900">Conciliación Rappi</b>
+                                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">Estos porcentajes sirven solo como estimación mientras Rappi no entregue el detalle financiero real por pedido.</p>
+                                  </div>
+                                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[8px] font-bold uppercase text-amber-700">Estimación</span>
+                                </div>
+
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                  <label className="block">
+                                    <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Comisión estimada %</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      step="0.01"
+                                      value={providerSettings.commissionEstimatePercent}
+                                      onChange={(event) => updateProvider(provider.id, { commissionEstimatePercent: Number(event.target.value) })}
+                                      className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
+                                    />
+                                  </label>
+                                  <label className="block">
+                                    <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Impuesto sobre comisión %</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      step="0.01"
+                                      value={providerSettings.commissionTaxEstimatePercent}
+                                      onChange={(event) => updateProvider(provider.id, { commissionTaxEstimatePercent: Number(event.target.value) })}
+                                      className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
+                                    />
+                                  </label>
+                                </div>
+
+                                <label className="mt-3 block">
+                                  <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Probar con venta bruta</span>
+                                  <input
+                                    inputMode="numeric"
+                                    value={rappiGrossPreview}
+                                    onChange={(event) => setRappiGrossPreview(event.target.value)}
+                                    className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
+                                  />
+                                </label>
+
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                                    <span className="block text-[8px] font-bold uppercase text-neutral-400">Venta bruta</span>
+                                    <b className="mt-1 block text-[15px] text-neutral-950">{money(gross)}</b>
+                                  </div>
+                                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                                    <span className="block text-[8px] font-bold uppercase text-emerald-600">Neto estimado</span>
+                                    <b className="mt-1 block text-[15px] text-emerald-900">{money(estimate.net)}</b>
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex justify-between text-[9px] text-neutral-500">
+                                  <span>Comisión: {money(estimate.commission)}</span>
+                                  <span>Impuesto: {money(estimate.commissionTax)}</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           <div className="rounded-xl border border-neutral-200 p-3">
                             <b className="block text-[11px] text-neutral-900">Estado de ingreso</b>
@@ -280,7 +395,7 @@ export default function IntegrationsPage() {
 
                           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                             <b className="block text-[10.5px] text-amber-900">Credenciales protegidas</b>
-                            <p className="mt-1 text-[10px] leading-4 text-amber-800">Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial.</p>
+                            <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "El usuario y contraseña de Partners no sirven como credenciales de API y no se almacenan aquí. Cuando Rappi habilite Open Orders/Integrations Manager, las credenciales técnicas se configurarán únicamente en servidor." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
                           </div>
 
                           <button
