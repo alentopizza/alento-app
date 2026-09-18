@@ -6,15 +6,17 @@ Este documento resume el comportamiento vigente de Alentó App.
 
 ## Fase activa
 
-**Punto de venta, Pedidos y Cocina están cerrados para la etapa operativa actual.**
+**Punto de venta, Pedidos, Cocina y Clientes están cerrados para la etapa operativa actual.**
 
-La siguiente fase habilitada es:
+El siguiente bloque de trabajo acordado es:
 
 ```text
-Autenticación y Roles
-→ protección de páginas y APIs
-→ administración de usuarios
+Menú
+→ cerrar catálogo administrativo
+→ después revisar Integraciones
 ```
+
+Autenticación y Roles continúa pendiente como bloque estratégico de seguridad.
 
 Referencias funcionales canónicas:
 
@@ -111,6 +113,26 @@ Ver `docs/ORDER_DATA_INTEGRITY.md`.
 La tarjeta compacta muestra un único estado financiero actual: `PAGO PENDIENTE` o `PAGADO`.
 
 Ver `docs/ORDERS.md`.
+
+## Clientes — cerrado por ahora
+
+`/clientes` incluye:
+
+- búsqueda y filtros por estado;
+- estados comerciales con color;
+- compras, ticket promedio y total comprado;
+- perfil detallado;
+- frecuencia, primera/última compra y días sin comprar;
+- historial estructurado de pedidos;
+- impresión de copias térmicas desde el historial;
+- edición;
+- eliminación individual;
+- importación/exportación CSV;
+- plantilla oficial de importación;
+- eliminación masiva de clientes sin pedidos;
+- permiso para eliminación masiva controlado desde Configuración.
+
+Ver `docs/CUSTOMERS.md`.
 
 ## Cocina — cerrada
 
