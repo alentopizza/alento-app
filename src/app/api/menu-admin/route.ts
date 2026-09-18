@@ -240,6 +240,60 @@ export async function DELETE(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
+  if (body.action === "reorderProducts") {
+    const categoryId = Number(body.categoryId);
+    const productIds = uniqueIntegerArray(body.productIds);
+
+    if (!Number.isInteger(categoryId) || !productIds.length) {
+      return NextResponse.json({ error: "Orden de productos inválido." }, { status: 400 });
+    }
+
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: {
+        id: true,
+        slug: true,
+        products: {
+          select: { id: true },
+          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        },
+      },
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: "La categoría ya no existe." }, { status: 404 });
+    }
+
+    if (category.slug === "destacados") {
+      return NextResponse.json({ error: "Destacados usa el orden de los productos originales." }, { status: 400 });
+    }
+
+    const existingIds = category.products.map((product) => product.id);
+    if (
+      productIds.length !== existingIds.length ||
+      existingIds.some((id) => !productIds.includes(id))
+    ) {
+      return NextResponse.json({
+        error: "La lista de productos cambió. Actualiza el menú e intenta nuevamente.",
+      }, { status: 409 });
+    }
+
+    await prisma.$transaction(
+      productIds.map((productId, index) =>
+        prisma.product.update({
+          where: { id: productId },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    return NextResponse.json({
+      reordered: true,
+      categoryId,
+      productIds,
+    });
+  }
+
   if (body.action === "createProduct") {
     const categorySlug = typeof body.categorySlug === "string" ? body.categorySlug.trim() : "";
     const productType = PRODUCT_CATEGORY_TYPES[categorySlug as keyof typeof PRODUCT_CATEGORY_TYPES];
