@@ -352,10 +352,11 @@ Pedido activo
 → Eliminar
 ```
 
-`DELETE /api/orders/[id]` exige:
+`DELETE /api/orders/[id]` exige únicamente que el pedido esté en estado:
 
-- pedido `CANCELED`;
-- mismo día operativo.
+- `CANCELED`.
+
+La fecha de creación ya no limita la eliminación definitiva.
 
 La eliminación transaccional borra:
 
@@ -365,7 +366,7 @@ Payment
 → Order
 ```
 
-Después del cambio de día, el cancelado queda histórico y ya no se elimina desde este flujo.
+Los pedidos cancelados pueden eliminarse desde este flujo aunque pertenezcan a un día operativo anterior.
 
 ## Impresión
 
@@ -431,7 +432,7 @@ y el número correspondiente.
 - no confiar en precios del navegador para configurables;
 - no borrar directamente una orden activa;
 - no contar `PENDING` en Caja;
-- no permitir cancelar/eliminar pedidos históricos fuera de la regla diaria.
+- mantener la exigencia de cancelar antes de eliminar definitivamente.
 
 ## Prisma
 
