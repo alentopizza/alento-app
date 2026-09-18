@@ -237,6 +237,8 @@ export default function CustomersPage() {
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkDeleteEnabled, setBulkDeleteEnabled] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | CustomerDetail | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   async function loadCustomers() {
     setLoading(true);
@@ -415,22 +417,28 @@ export default function CustomersPage() {
     }
   }
 
-  async function deleteCustomer(customer: Customer | CustomerDetail) {
-    const orderCount = customer._count.orders;
-    const warning = orderCount > 0
-      ? `¿Eliminar a ${customer.name}? Sus ${orderCount} pedido(s) se conservarán, pero quedarán sin cliente asociado. Esta acción no se puede deshacer.`
-      : `¿Eliminar a ${customer.name}? Esta acción no se puede deshacer.`;
+  function deleteCustomer(customer: Customer | CustomerDetail) {
+    setDeleteTarget(customer);
+  }
 
-    if (!window.confirm(warning)) return;
+  async function confirmDeleteCustomer() {
+    if (!deleteTarget) return;
+
+    setDeleteBusy(true);
+    setDetailError("");
 
     try {
-      const response = await fetch(`/api/customers/${customer.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/customers/${deleteTarget.id}`, { method: "DELETE" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible eliminar el cliente.");
-      setSelected(null);
+
+      if (selected?.id === deleteTarget.id) setSelected(null);
+      setDeleteTarget(null);
       await loadCustomers();
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "No fue posible eliminar el cliente.");
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -727,6 +735,25 @@ export default function CustomersPage() {
               );
             })}
           </section>
+        )}
+
+        {deleteTarget && (
+          <ActionConfirmModal
+            variant="danger"
+            eyebrow="Eliminar cliente"
+            title={`Eliminar a ${deleteTarget.name}`}
+            description="Esta acción no se puede deshacer."
+            detail={
+              deleteTarget._count.orders > 0
+                ? `Sus ${deleteTarget._count.orders} pedido(s) se conservarán en el sistema, pero quedarán sin cliente asociado.`
+                : "El cliente será eliminado definitivamente de la base de clientes."
+            }
+            confirmLabel="Eliminar cliente"
+            cancelLabel="Cancelar"
+            busy={deleteBusy}
+            onClose={() => !deleteBusy && setDeleteTarget(null)}
+            onConfirm={() => void confirmDeleteCustomer()}
+          />
         )}
 
         {bulkDeleteEnabled && bulkConfirmOpen && (
