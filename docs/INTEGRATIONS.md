@@ -47,7 +47,13 @@ Por proveedor se guarda:
 - modo de ingreso:
   - revisión manual;
   - autoaceptación cuando el proveedor lo permita;
-- estado de integración.
+- estado real de conexión:
+  - `No conectada`;
+  - `Pendiente`;
+  - `Conectada`;
+  - `Error`;
+- última verificación;
+- último error de conexión, si existe.
 
 La configuración se guarda en `AppSetting` con clave:
 
@@ -85,8 +91,19 @@ Variables previstas:
 ```text
 RAPPI_CLIENT_ID
 RAPPI_CLIENT_SECRET
+RAPPI_API_BASE_URL
 RAPPI_WEBHOOK_SECRET
 ```
+
+`RAPPI_API_BASE_URL` debe usar el dominio asignado por Rappi para el entorno correspondiente.
+
+El botón **Conectar Rappi** guarda primero el ID de tienda y luego intenta autenticarse contra:
+
+```text
+POST {RAPPI_API_BASE_URL}/restaurants/auth/v1/token/login/integrations
+```
+
+Si Rappi devuelve un token válido, la integración queda marcada como `Conectada` y se registra la hora de verificación.
 
 Los productos se intentarán vincular primero por nombre normalizado, porque el catálogo de Alentó y Rappi usa nombres equivalentes. Antes de producción se deben revisar manualmente tamaños, bordes, toppings y cualquier excepción.
 
@@ -110,13 +127,8 @@ El schema ya contempla `MarketplaceOrder`, relacionado 1:1 con `Order`, para con
 - ID externo del pedido;
 - proveedor;
 - ID de tienda;
-- venta bruta;
-- comisión;
-- impuestos sobre comisión;
-- ajustes;
-- neto a recibir;
-- estado financiero estimado/confirmado;
-- timestamps de recepción/conciliación;
+- valor exacto de factura;
+- timestamp de recepción;
 - payload mínimo para trazabilidad;
 - idempotencia mediante `provider + externalOrderId`.
 
@@ -125,27 +137,18 @@ Los pedidos usan nuevos orígenes:
 - `RAPPI` → prefijo visible `RAP-`
 - `DIDI` → prefijo visible `DID-`
 
-### Venta bruta vs neto a recibir
+### Valor exacto del pedido
 
-Nunca sustituir `Order.total` por el neto liquidado por el marketplace.
+Alentó no calcula comisiones ni netos dentro del flujo de pedidos Rappi.
 
-Ejemplo:
+El pedido debe conservar exactamente el valor que Rappi entrega en la orden:
 
-```text
-Venta del pedido              $ 50.000
-Comisión Rappi               -$ 20.000
-Impuestos/ajustes            -$  5.000
-Neto a recibir                $ 25.000
-```
+- `Order.total` = total real recibido en el pedido;
+- `MarketplaceOrder.invoiceAmount` = valor de factura recibido del marketplace.
 
-Alentó conserva:
+Ese valor es el que se muestra en Pedidos y en el comprobante térmico.
 
-- `Order.total = 50.000` como venta real;
-- `MarketplaceOrder.netReceivable = 25.000` como liquidación del canal.
-
-El neto del marketplace no se registra automáticamente en Caja como `Payment PAID`. Caja debe reflejar dinero efectivamente conciliado/recibido, no una cuenta por cobrar estimada.
-
-Mientras Rappi no entregue el desglose financiero real, la pantalla permite configurar porcentajes solo para **estimación**. Cuando la API/reporte financiero entregue valores reales, deben reemplazarse y marcarse como `CONFIRMED`.
+No se usan porcentajes manuales ni estimaciones de comisión en esta pantalla.
 
 ## Próximos pasos
 
@@ -170,7 +173,7 @@ Mientras Rappi no entregue el desglose financiero real, la pantalla permite conf
 La preparación de marketplace agrega:
 
 - valores `RAPPI` y `DIDI` a `OrderSource`;
-- enums `MarketplaceProvider` y `MarketplaceFinancialStatus`;
+- enum `MarketplaceProvider`;
 - modelo `MarketplaceOrder`;
 - relación 1:1 `Order.marketplaceOrder`.
 
