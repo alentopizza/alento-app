@@ -20,9 +20,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[268px_1fr]">
+    <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[224px_1fr]">
       <aside className="border-b border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:border-white/10">
-        <div className="flex items-center justify-between px-4 py-4 lg:block lg:px-5 lg:py-5">
+        <div className="flex items-center justify-between px-4 py-4 lg:block lg:px-4 lg:py-5">
           <Link href="/" className="block">
             <div className="flex items-center gap-3 lg:block">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] lg:h-16 lg:w-16">
@@ -39,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="mx-4 hidden h-px bg-gradient-to-r from-transparent via-white/15 to-transparent lg:block" />
 
-        <nav className="flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-4 lg:block lg:space-y-1.5 lg:overflow-visible lg:px-3 lg:pb-0">
+        <nav className="flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-4 lg:block lg:space-y-1.5 lg:overflow-visible lg:px-2.5 lg:pb-0">
           {items.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
@@ -71,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="hidden px-4 lg:absolute lg:bottom-5 lg:block lg:w-[268px]">
+        <div className="hidden px-4 lg:absolute lg:bottom-5 lg:block lg:w-[224px]">
           <div className="rounded-[22px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-4 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
               <div>
