@@ -393,8 +393,21 @@ export default function StructuredPosPageV2() {
           <div className="space-y-4">
             <header className="alento-dark max-w-[820px] rounded-[22px] px-6 py-4 md:px-7 md:py-5">
               <div className="flex items-center justify-between gap-4">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p><h1 className="text-2xl font-black md:text-[2rem] md:leading-9">Punto de venta</h1><p className="mt-1 text-xs text-white/60">Toma pedidos y confirma ventas desde una sola pantalla.</p></div>
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] font-semibold text-white/70">POS activo</span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p>
+                  <h1 className="text-2xl font-black md:text-[2rem] md:leading-9">Punto de venta</h1>
+                  <p className="mt-1 text-xs text-white/60">Configura, cobra y envía cada pedido a operación.</p>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 shadow-inner">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  </span>
+                  <div className="leading-tight">
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-white/40">Sistema</span>
+                    <b className="text-[11px] font-semibold text-white/85">POS activo</b>
+                  </div>
+                </div>
               </div>
             </header>
 
