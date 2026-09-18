@@ -61,6 +61,32 @@ function kitchenItemsFor(order: KitchenOrder) {
     .sort((a, b) => kitchenPriority(a) - kitchenPriority(b) || a.id - b.id);
 }
 
+function kitchenSpecChipClass(base: string) {
+  return `inline-flex min-h-7 items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] shadow-[0_2px_8px_rgba(28,23,20,.04)] ${base}`;
+}
+
+function sizeChipClass(value: string) {
+  const normalized = value.toLocaleLowerCase("es");
+
+  if (normalized.includes("personal")) return kitchenSpecChipClass("border-sky-200 bg-sky-50 text-sky-800");
+  if (normalized.includes("mediana")) return kitchenSpecChipClass("border-emerald-200 bg-emerald-50 text-emerald-800");
+  if (normalized.includes("grande")) return kitchenSpecChipClass("border-amber-200 bg-amber-50 text-amber-800");
+  if (normalized.includes("extra")) return kitchenSpecChipClass("border-violet-200 bg-violet-50 text-violet-800");
+
+  return kitchenSpecChipClass("border-neutral-200 bg-white text-neutral-800");
+}
+
+function crustChipClass(value: string) {
+  const normalized = value.toLocaleLowerCase("es");
+
+  if (normalized.includes("tradicional")) return kitchenSpecChipClass("border-neutral-300 bg-neutral-100 text-neutral-800");
+  if (normalized.includes("mozzarella")) return kitchenSpecChipClass("border-yellow-200 bg-yellow-50 text-yellow-800");
+  if (normalized.includes("bocadillo")) return kitchenSpecChipClass("border-rose-200 bg-rose-50 text-rose-800");
+  if (normalized.includes("salchi")) return kitchenSpecChipClass("border-orange-200 bg-orange-50 text-orange-800");
+
+  return kitchenSpecChipClass("border-neutral-200 bg-white text-neutral-800");
+}
+
 function KitchenItem({
   item,
   busy,
@@ -76,10 +102,12 @@ function KitchenItem({
   });
   const flavorDetails = details.filter((detail) => detail.label.trim().toLowerCase().startsWith("sabor"));
   const extraDetails = details.filter((detail) => detail.label.trim().toLowerCase() === "extra");
+  const sizeDetail = details.find((detail) => detail.label.trim().toLowerCase() === "tamaño");
+  const crustDetail = details.find((detail) => detail.label.trim().toLowerCase() === "borde");
   const normalizedProductName = item.productName.trim().toLocaleLowerCase("es");
   const otherDetails = details.filter((detail) => {
     const label = detail.label.trim().toLowerCase();
-    if (label.startsWith("sabor") || label === "extra") return false;
+    if (label.startsWith("sabor") || label === "extra" || label === "tamaño" || label === "borde") return false;
     if (label === "producto" && detail.value.trim().toLocaleLowerCase("es") === normalizedProductName) return false;
     return true;
   });
@@ -118,26 +146,10 @@ function KitchenItem({
             )}
           </div>
 
-          {otherDetails.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-              {otherDetails.map((detail, index) => (
-                <p key={`${detail.label}-${index}`} className="text-[11.5px] leading-4 text-neutral-800">
-                  <span className="font-semibold text-neutral-500">{detail.label}:</span> {detail.value}
-                </p>
-              ))}
-            </div>
-          )}
-
-          {extraDetails.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {extraDetails.map((detail, index) => (
-                <span
-                  key={`${detail.value}-${index}`}
-                  className="inline-flex min-h-6 items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]"
-                >
-                  + {detail.value}
-                </span>
-              ))}
+          {(sizeDetail || crustDetail) && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {sizeDetail && <span className={sizeChipClass(sizeDetail.value)}>{sizeDetail.value}</span>}
+              {crustDetail && <span className={crustChipClass(crustDetail.value)}>{crustDetail.value}</span>}
             </div>
           )}
 
@@ -156,8 +168,31 @@ function KitchenItem({
             </div>
           )}
 
+          {extraDetails.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {extraDetails.map((detail, index) => (
+                <span
+                  key={`${detail.value}-${index}`}
+                  className="inline-flex min-h-6 items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]"
+                >
+                  + {detail.value}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {otherDetails.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+              {otherDetails.map((detail, index) => (
+                <p key={`${detail.label}-${index}`} className="text-[11.5px] leading-4 text-neutral-800">
+                  <span className="font-semibold text-neutral-500">{detail.label}:</span> {detail.value}
+                </p>
+              ))}
+            </div>
+          )}
+
           {item.notes && (
-            <div className="mt-2 border-t border-black/5 pt-2">
+            <div className="mt-2">
               <div className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
