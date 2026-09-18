@@ -89,6 +89,19 @@ El módulo muestra:
 - ticket promedio global;
 - clientes por recuperar.
 
+## Filtros por estado
+
+El listado permite filtrar por señal comercial y muestra el número de clientes en cada estado:
+
+- Todos;
+- Nuevo;
+- Activo;
+- Frecuente;
+- Por recuperar;
+- Sin compras.
+
+Los contadores se calculan sobre todos los clientes cargados. El buscador se combina con el filtro seleccionado.
+
 ## Tarjetas
 
 Cada cliente muestra:
@@ -96,6 +109,7 @@ Cada cliente muestra:
 - inicial;
 - nombre;
 - teléfono;
+- dirección principal;
 - señal comercial;
 - número de compras;
 - ticket promedio;
