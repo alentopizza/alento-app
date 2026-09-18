@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       },
     },
     orderBy: { name: "asc" },
-    take: listAll ? 100 : 10,
+    take: listAll ? 1000 : 10,
   });
 
   const enrichedCustomers = customers.map(({ orders, ...customer }) => {
