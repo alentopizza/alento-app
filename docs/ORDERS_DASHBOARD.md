@@ -335,6 +335,7 @@ Desde Pedidos se puede:
 - agregar bebidas y otros productos simples;
 - agregar pizzas configuradas;
 - agregar pizzas de dos sabores configuradas;
+- agregar una nota corta de preparación a pizzas nuevas o existentes, visible en Cocina;
 - agregar combos configurados.
 
 ### Organización del editor
