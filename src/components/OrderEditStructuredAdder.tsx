@@ -501,7 +501,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
               </div>
               <input value={pizza.note} maxLength={120} onChange={(event) => setPizza({ ...pizza, note: event.target.value })} className="alento-input mt-2 w-full rounded-xl bg-white px-3.5 py-3 text-sm" placeholder="Ej. Ligera en salsa" />
             </section>
-            {configError && <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{configError}</p>
+            {configError && <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{configError}</p>}
           </div>
           <div className="flex items-center justify-between border-t p-4"><b className="text-xl text-[var(--brand-red)]">{money(pizzaPrice(pizza))}</b><button type="button" onClick={confirmPizza} className="rounded-xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">Agregar pizza</button></div>
         </div>
