@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
     }
 
-    const lines = Array.isArray(body.items) ? body.items as OrderLineInput[] : [];
+    const lines = Array.isArray(body.items) ? body.items as (OrderLineInput & { notes?: unknown })[] : [];
     if (!lines.length) return NextResponse.json({ error: "El pedido no tiene productos." }, { status: 400 });
     if (lines.some((line) => !Number.isInteger(Number(line.productId)) || Number(line.quantity) < 1)) {
       return NextResponse.json({ error: "Hay líneas de pedido inválidas." }, { status: 400 });
@@ -169,15 +169,19 @@ export async function POST(request: NextRequest) {
           total,
           notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
           items: {
-            create: normalizedLines.map((line) => ({
-              productId: line.product.id,
-              productName: line.product.name,
-              unitPrice: line.unitPrice,
-              quantity: line.quantity,
-              preparedQuantity: requiresKitchen(line.product.categoryId) ? 0 : line.quantity,
-              lineTotal: line.lineTotal,
-              configuration: line.configuration,
-            })),
+            create: normalizedLines.map((line, index) => {
+              const rawNote = typeof lines[index]?.notes === "string" ? lines[index].notes.trim() : "";
+              return {
+                productId: line.product.id,
+                productName: line.product.name,
+                unitPrice: line.unitPrice,
+                quantity: line.quantity,
+                preparedQuantity: requiresKitchen(line.product.categoryId) ? 0 : line.quantity,
+                lineTotal: line.lineTotal,
+                configuration: line.configuration,
+                notes: rawNote ? rawNote.slice(0, 120) : null,
+              };
+            }),
           },
           payments: {
             create: {
