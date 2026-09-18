@@ -417,14 +417,19 @@ export default function StructuredPosPageV2() {
                 {selectedCategory?.products.map((product) => (
                   <article
                     key={product.id}
-                    className="group overflow-hidden rounded-[20px] border border-neutral-200 bg-white shadow-[0_8px_22px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(28,23,20,.075)]"
+                    className="group overflow-hidden rounded-[22px] border border-neutral-200/90 bg-white shadow-[0_10px_26px_rgba(28,23,20,.055)] ring-1 ring-black/[0.015] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.09)]"
                   >
-                    <div className="relative h-[150px] overflow-hidden bg-[#f7f6f3] sm:h-[160px]">
+                    <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-[linear-gradient(145deg,#faf9f7,#f4f2ee)]">
+                      {product.featured && (
+                        <span className="absolute left-3 top-3 z-10 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-neutral-700 shadow-sm backdrop-blur">
+                          Destacado
+                        </span>
+                      )}
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="h-full w-full object-contain p-2.5 transition duration-300 group-hover:scale-[1.025]"
+                          className="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.02]"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-4xl">🍕</div>
@@ -432,21 +437,29 @@ export default function StructuredPosPageV2() {
                     </div>
 
                     <div className="p-3.5">
-                      <h3 className="truncate text-[15px] font-black leading-5 tracking-[-0.015em] text-neutral-950">
-                        {product.name}
-                      </h3>
-                      <p className="mt-0.5 line-clamp-2 text-[11px] leading-[15px] text-neutral-500">
-                        {product.description || "Producto Alentó Pizza"}
-                      </p>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[15px] font-black leading-5 tracking-[-0.018em] text-neutral-950">
+                          {product.name}
+                        </h3>
+                        <p className="mt-0.5 line-clamp-2 text-[11px] leading-[15px] text-neutral-500">
+                          {product.description || "Producto Alentó Pizza"}
+                        </p>
+                      </div>
 
-                      <div className="mt-3 flex items-end justify-between gap-3 border-t border-neutral-100 pt-3">
-                        <b className="min-w-0 truncate text-[15px] font-black leading-none tracking-[-0.015em] text-neutral-950">
-                          {displayPrice(product)}
-                        </b>
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3">
+                        <div className="min-w-0">
+                          <span className="block text-[8px] font-bold uppercase tracking-[0.09em] text-neutral-400">
+                            {product.type === "COMBO" && (product.comboDiscount ?? 0) > 0 ? "Beneficio" : "Precio"}
+                          </span>
+                          <b className={`mt-0.5 block truncate text-[15px] font-black leading-none tracking-[-0.018em] ${product.type === "COMBO" && (product.comboDiscount ?? 0) > 0 ? "text-emerald-700" : "text-neutral-950"}`}>
+                            {displayPrice(product)}
+                          </b>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => startAdd(product)}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-[22px] font-medium leading-none text-white shadow-[0_7px_16px_rgba(229,28,17,.2)] transition hover:scale-[1.04] hover:brightness-95"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--brand-red)] text-[23px] font-medium leading-none text-white shadow-[0_8px_18px_rgba(229,28,17,.22)] ring-1 ring-red-600/10 transition hover:scale-[1.05] hover:brightness-95 active:scale-95"
                           aria-label={`Agregar ${product.name}`}
                           title={`Agregar ${product.name}`}
                         >
@@ -478,8 +491,8 @@ export default function StructuredPosPageV2() {
                       <b className="block text-[11px] font-black leading-4 text-amber-950">Sin dirección registrada</b>
                       <span className="block text-[10px] leading-4 text-amber-800/75">Necesaria para pedidos a domicilio.</span>
                     </span>
-                    <span className="shrink-0 rounded-lg border border-amber-200 bg-white px-2.5 py-1.5 text-[10px] font-black text-amber-900 shadow-sm">
-                      Agregar
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-white text-[18px] font-black leading-none text-amber-900 shadow-sm">
+                      +
                     </span>
                   </button>
                 )}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}</div>
