@@ -98,6 +98,7 @@ export default function MenuPage() {
   const [savingOrder, setSavingOrder] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [savingToggle, setSavingToggle] = useState<"active" | "visibleInPos" | "featured" | null>(null);
 
   async function loadMenu(preserveCategory = true) {
     setLoading(true);
@@ -220,17 +221,65 @@ export default function MenuPage() {
     }
   }
 
-  async function quickToggle(product: Product, field: "active" | "visibleInPos") {
+  async function quickToggle(product: Product, field: "active" | "visibleInPos" | "featured") {
+    const nextValue = !product[field];
     setError("");
-    const response = await fetch("/api/menu-admin", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId: product.id, [field]: !product[field] }),
-    });
-    const result = await response.json();
-    if (!response.ok) return setError(result.error || "No fue posible actualizar el producto.");
-    setSelectedProduct(null);
-    await loadMenu();
+    setSavingToggle(field);
+
+    try {
+      const response = await fetch("/api/menu-admin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, [field]: nextValue }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible actualizar el producto.");
+
+      const updatedProduct: Product = { ...product, [field]: nextValue };
+
+      setSelectedProduct((current) =>
+        current?.id === product.id ? { ...current, [field]: nextValue } : current,
+      );
+
+      setData((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          categories: current.categories.map((category) => {
+            if (category.slug === "destacados" && field === "featured") {
+              if (nextValue) {
+                const exists = category.products.some((item) => item.id === product.id);
+                return {
+                  ...category,
+                  products: exists
+                    ? category.products.map((item) => item.id === product.id ? updatedProduct : item)
+                    : [...category.products, updatedProduct].sort(
+                        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es"),
+                      ),
+                };
+              }
+
+              return {
+                ...category,
+                products: category.products.filter((item) => item.id !== product.id),
+              };
+            }
+
+            return {
+              ...category,
+              products: category.products.map((item) =>
+                item.id === product.id ? { ...item, [field]: nextValue } : item,
+              ),
+            };
+          }),
+        };
+      });
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "No fue posible actualizar el producto.");
+    } finally {
+      setSavingToggle(null);
+    }
   }
 
   async function persistProductOrder(category: Category, productIds: number[]) {
@@ -713,7 +762,66 @@ export default function MenuPage() {
                   <h3 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-neutral-950">¿Qué deseas hacer?</h3>
                 </div>
 
-                <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                <div className="mt-4 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Estado y visibilidad</p>
+                  <div className="mt-3 grid gap-2">
+                    {[
+                      {
+                        field: "active" as const,
+                        label: "Producto activo",
+                        description: "Permite ofrecer y usar este producto dentro del catálogo.",
+                        enabled: selectedProduct.active,
+                        disabled: false,
+                      },
+                      {
+                        field: "visibleInPos" as const,
+                        label: "Visible en POS",
+                        description: "Controla si aparece en el catálogo del punto de venta.",
+                        enabled: selectedProduct.visibleInPos,
+                        disabled: selectedProduct.type === "MODIFIER",
+                      },
+                      {
+                        field: "featured" as const,
+                        label: "Producto destacado",
+                        description: "Lo incluye o retira de la categoría Destacados.",
+                        enabled: selectedProduct.featured,
+                        disabled: selectedProduct.type === "MODIFIER",
+                      },
+                    ].map((option) => {
+                      const busy = savingToggle === option.field;
+                      return (
+                        <div
+                          key={option.field}
+                          className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${option.disabled ? "border-neutral-200 bg-neutral-100/70 opacity-60" : option.enabled ? "border-emerald-200 bg-emerald-50/65" : "border-neutral-200 bg-white"}`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <b className="text-[12px] text-neutral-950">{option.label}</b>
+                              <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold uppercase ${option.enabled ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-500"}`}>
+                                {option.enabled ? "Activo" : "Inactivo"}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[10px] leading-4 text-neutral-500">{option.description}</p>
+                          </div>
+
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={option.enabled}
+                            disabled={option.disabled || savingToggle !== null}
+                            onClick={() => void quickToggle(selectedProduct, option.field)}
+                            className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:cursor-not-allowed ${option.enabled ? "bg-emerald-500" : "bg-neutral-300"} ${busy ? "opacity-60" : ""}`}
+                            title={option.disabled ? "No disponible para este tipo de producto" : undefined}
+                          >
+                            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition ${option.enabled ? "left-7" : "left-1"}`} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className={`mt-4 grid gap-2.5 ${selectedProduct.type === "COMBO" ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
                   <button
                     type="button"
                     onClick={() => {
@@ -725,30 +833,8 @@ export default function MenuPage() {
                   >
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-950 text-sm font-black text-white">✎</span>
                     <b className="mt-3 block text-[13px] text-neutral-950">Editar información</b>
-                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Nombre, precio, descripción, imágenes y estados.</span>
+                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Nombre, precio, descripción e imágenes.</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => void quickToggle(selectedProduct, "active")}
-                    className={`rounded-2xl border p-4 text-left transition ${selectedProduct.active ? "border-amber-200 bg-amber-50/60 hover:bg-amber-50" : "border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50"}`}
-                  >
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black ${selectedProduct.active ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>●</span>
-                    <b className="mt-3 block text-[13px] text-neutral-950">{selectedProduct.active ? "Desactivar producto" : "Activar producto"}</b>
-                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">{selectedProduct.active ? "Deja de ofrecerlo temporalmente." : "Vuelve a habilitarlo en el catálogo."}</span>
-                  </button>
-
-                  {selectedProduct.type !== "MODIFIER" && (
-                    <button
-                      type="button"
-                      onClick={() => void quickToggle(selectedProduct, "visibleInPos")}
-                      className="rounded-2xl border border-sky-200 bg-sky-50/60 p-4 text-left transition hover:bg-sky-50"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sm font-black text-sky-700">POS</span>
-                      <b className="mt-3 block text-[13px] text-neutral-950">{selectedProduct.visibleInPos ? "Ocultar del POS" : "Mostrar en POS"}</b>
-                      <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Controla si aparece en el catálogo del punto de venta.</span>
-                    </button>
-                  )}
 
                   {selectedProduct.type === "COMBO" && (
                     <button
