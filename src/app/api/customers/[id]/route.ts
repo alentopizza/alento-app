@@ -14,22 +14,49 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Cliente inválido." }, { status: 400 });
   }
 
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  const countryCode = typeof body.countryCode === "string" && body.countryCode.trim() ? body.countryCode.trim() : "+57";
-  const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : "";
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const address = typeof body.address === "string" ? body.address.trim() : "";
-  const notes = typeof body.notes === "string" ? body.notes.trim() : "";
-
-  if (!name || !phone) {
-    return NextResponse.json({ error: "Nombre y teléfono son obligatorios." }, { status: 400 });
-  }
-
   try {
-    const existingAddress = await prisma.customerAddress.findFirst({
-      where: { customerId, isDefault: true },
-      select: { id: true },
+    const existing = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        id: true,
+        name: true,
+        countryCode: true,
+        phone: true,
+        email: true,
+        notes: true,
+      },
     });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
+    }
+
+    const name = typeof body.name === "string" ? body.name.trim() : existing.name;
+    const countryCode = typeof body.countryCode === "string" && body.countryCode.trim()
+      ? body.countryCode.trim()
+      : existing.countryCode || "+57";
+    const phone = typeof body.phone === "string"
+      ? normalizePhone(body.phone)
+      : existing.phone ?? "";
+    const email = typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : existing.email ?? "";
+    const notes = typeof body.notes === "string"
+      ? body.notes.trim()
+      : existing.notes ?? "";
+    const hasAddressChange = typeof body.address === "string";
+    const address = hasAddressChange ? body.address.trim() : "";
+
+    if (!name || !phone) {
+      return NextResponse.json({ error: "Nombre y teléfono son obligatorios." }, { status: 400 });
+    }
+
+    const existingAddress = hasAddressChange
+      ? await prisma.customerAddress.findFirst({
+          where: { customerId, isDefault: true },
+          select: { id: true },
+        })
+      : null;
 
     const customer = await prisma.$transaction(async (tx) => {
       await tx.customer.update({
@@ -43,19 +70,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         },
       });
 
-      if (address) {
-        if (existingAddress) {
-          await tx.customerAddress.update({
-            where: { id: existingAddress.id },
-            data: { address },
-          });
-        } else {
-          await tx.customerAddress.create({
-            data: { customerId, address, isDefault: true },
-          });
+      if (hasAddressChange) {
+        if (address) {
+          if (existingAddress) {
+            await tx.customerAddress.update({
+              where: { id: existingAddress.id },
+              data: { address },
+            });
+          } else {
+            await tx.customerAddress.create({
+              data: { customerId, address, isDefault: true },
+            });
+          }
+        } else if (existingAddress) {
+          await tx.customerAddress.delete({ where: { id: existingAddress.id } });
         }
-      } else if (existingAddress) {
-        await tx.customerAddress.delete({ where: { id: existingAddress.id } });
       }
 
       return tx.customer.findUnique({
