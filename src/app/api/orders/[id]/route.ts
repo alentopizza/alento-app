@@ -108,6 +108,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
     const settings = parseSettings(settingsRow?.value ?? null);
+    const beveragesCategory = await prisma.category.findUnique({
+      where: { slug: "bebidas" },
+      select: { id: true },
+    });
+    const beverageCategoryId = beveragesCategory?.id ?? null;
+    const requiresKitchen = (categoryId: number | null | undefined) => beverageCategoryId == null || categoryId !== beverageCategoryId;
 
     let addressId: number | null = null;
     let deliveryFee = 0;
@@ -173,7 +179,14 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const nextCashReceived = canPreserveCashTender ? cashReceivedCandidate : null;
     const nextChangeDue = canPreserveCashTender ? cashReceivedCandidate - total : null;
 
-    const productChanges = current.items.some((item) => { const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity; return nextQuantity !== item.quantity; }) || normalizedAdditions.length > 0;
+    const productChanges = current.items.some((item) => {
+      const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
+      return nextQuantity !== item.quantity;
+    }) || normalizedAdditions.length > 0;
+    const kitchenProductChanges = current.items.some((item) => {
+      const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
+      return nextQuantity !== item.quantity && requiresKitchen(item.product?.categoryId);
+    }) || normalizedAdditions.some((addition) => requiresKitchen(addition.product.categoryId));
 
     await prisma.$transaction(async (tx) => {
       for (const entry of current.items) {
@@ -188,12 +201,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           productName: addition.product.name,
           unitPrice: addition.unitPrice,
           quantity: addition.quantity,
-          preparedQuantity: 0,
+          preparedQuantity: requiresKitchen(addition.product.categoryId) ? 0 : addition.quantity,
           lineTotal: addition.lineTotal,
           configuration: addition.configuration,
         } });
       }
-      await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total, status: productChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
+      await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total, status: kitchenProductChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
 
       if (outstanding > 0) {
         if (pendingPayment) {
