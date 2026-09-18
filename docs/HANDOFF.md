@@ -8,15 +8,18 @@ Leer en este orden:
 
 1. `README.md`
 2. `docs/CURRENT_STATE.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-5. `docs/ORDER_NUMBERING.md`
-6. `docs/PAYMENTS_AND_CASH.md`
-7. `docs/ORDER_DATA_INTEGRITY.md`
-8. `docs/ORDERS.md`
-9. `docs/DEPLOYMENT.md`
-10. `prisma/schema.prisma`
-11. Los archivos del módulo que se vaya a modificar.
+3. `docs/ROADMAP.md`
+4. `docs/POS.md`
+5. `docs/ORDERS.md`
+6. `docs/KITCHEN.md`
+7. `docs/ARCHITECTURE.md`
+8. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+9. `docs/ORDER_NUMBERING.md`
+10. `docs/PAYMENTS_AND_CASH.md`
+11. `docs/ORDER_DATA_INTEGRITY.md`
+12. `docs/DEPLOYMENT.md`
+13. `prisma/schema.prisma`
+14. Los archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -72,7 +75,19 @@ alentopizza.com/interno → sistema interno protegido
 
 No asumir que POS, Cocina o Caja necesitan dominios separados permanentes.
 
-## Autenticación — próxima prioridad estratégica
+## Estado de módulos operativos
+
+**POS, Pedidos y Cocina están cerrados para la etapa operativa actual.**
+
+Sus referencias canónicas son:
+
+- `docs/POS.md`
+- `docs/ORDERS.md`
+- `docs/KITCHEN.md`
+
+Corregir bugs cuando aparezcan, pero no reabrir decisiones de diseño cerradas sin una solicitud explícita.
+
+## Autenticación — prioridad estratégica actual
 
 Hoy no existe autenticación ni autorización implementada.
 
