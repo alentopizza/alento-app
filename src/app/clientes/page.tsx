@@ -133,7 +133,7 @@ function daysSince(value: string | null) {
 
 function customerSignal(metrics: CustomerMetrics) {
   if (metrics.purchaseCount === 0) {
-    return { label: "Sin compras", tone: "bg-neutral-100 text-neutral-600 border-neutral-200" };
+    return { label: "Sin compras", tone: "bg-violet-50 text-violet-700 border-violet-200" };
   }
 
   const inactiveDays = daysSince(metrics.lastOrderAt);
@@ -152,6 +152,42 @@ function customerSignal(metrics: CustomerMetrics) {
   }
 
   return { label: "Activo", tone: "bg-amber-50 text-amber-700 border-amber-200" };
+}
+
+function customerFilterTone(status: CustomerStatusFilter, active: boolean) {
+  if (status === "Nuevo") {
+    return active
+      ? { button: "border-sky-600 bg-sky-600 text-white", count: "bg-white text-sky-700" }
+      : { button: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100", count: "border border-sky-200 bg-white text-sky-700" };
+  }
+
+  if (status === "Activo") {
+    return active
+      ? { button: "border-amber-500 bg-amber-500 text-white", count: "bg-white text-amber-700" }
+      : { button: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100", count: "border border-amber-200 bg-white text-amber-700" };
+  }
+
+  if (status === "Frecuente") {
+    return active
+      ? { button: "border-emerald-600 bg-emerald-600 text-white", count: "bg-white text-emerald-700" }
+      : { button: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100", count: "border border-emerald-200 bg-white text-emerald-700" };
+  }
+
+  if (status === "Por recuperar") {
+    return active
+      ? { button: "border-rose-600 bg-rose-600 text-white", count: "bg-white text-rose-700" }
+      : { button: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100", count: "border border-rose-200 bg-white text-rose-700" };
+  }
+
+  if (status === "Sin compras") {
+    return active
+      ? { button: "border-violet-600 bg-violet-600 text-white", count: "bg-white text-violet-700" }
+      : { button: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100", count: "border border-violet-200 bg-white text-violet-700" };
+  }
+
+  return active
+    ? { button: "border-neutral-950 bg-neutral-950 text-white", count: "bg-white text-neutral-950" }
+    : { button: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50", count: "border border-neutral-200 bg-neutral-100 text-neutral-700" };
 }
 
 function Metric({
@@ -570,15 +606,16 @@ export default function CustomersPage() {
               ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
             ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
               const active = statusFilter === value;
+              const tone = customerFilterTone(value, active);
               return (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setStatusFilter(value)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.035em] transition ${active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"}`}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.035em] shadow-sm transition ${tone.button}`}
                 >
                   <span>{label}</span>
-                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none tabular-nums shadow-sm ${active ? "bg-white text-neutral-950" : "border border-neutral-200 bg-neutral-100 text-neutral-700"}`}>
+                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none tabular-nums shadow-sm ${tone.count}`}>
                     {count}
                   </span>
                 </button>
