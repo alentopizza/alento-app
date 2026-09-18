@@ -42,6 +42,15 @@ export async function GET(request: NextRequest) {
           isDefault: true,
         },
       },
+      createdAt: true,
+      orders: {
+        where: { status: { not: "CANCELED" } },
+        select: {
+          total: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
       _count: {
         select: { orders: true },
       },
@@ -50,7 +59,37 @@ export async function GET(request: NextRequest) {
     take: listAll ? 100 : 10,
   });
 
-  return NextResponse.json({ customers });
+  const enrichedCustomers = customers.map(({ orders, ...customer }) => {
+    const purchaseCount = orders.length;
+    const totalSpent = orders.reduce((sum, order) => sum + Number(order.total), 0);
+    const averageTicket = purchaseCount > 0 ? totalSpent / purchaseCount : 0;
+    const firstOrderAt = purchaseCount > 0 ? orders[0].createdAt : null;
+    const lastOrderAt = purchaseCount > 0 ? orders[purchaseCount - 1].createdAt : null;
+    const frequencyDays = purchaseCount > 1 && firstOrderAt && lastOrderAt
+      ? Math.max(
+          1,
+          Math.round(
+            (lastOrderAt.getTime() - firstOrderAt.getTime())
+            / 86400000
+            / (purchaseCount - 1),
+          ),
+        )
+      : null;
+
+    return {
+      ...customer,
+      metrics: {
+        purchaseCount,
+        totalSpent,
+        averageTicket,
+        firstOrderAt,
+        lastOrderAt,
+        frequencyDays,
+      },
+    };
+  });
+
+  return NextResponse.json({ customers: enrichedCustomers });
 }
 
 export async function POST(request: NextRequest) {
