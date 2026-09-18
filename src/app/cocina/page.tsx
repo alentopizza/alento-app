@@ -279,13 +279,27 @@ export default function KitchenPage() {
                         <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}</span>
                       </div>
                     </div>
-                    <div className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 tabular-nums ${minutes >= 20 ? "border-red-100 bg-red-50 text-red-700" : minutes >= 10 ? "border-amber-100 bg-amber-50 text-amber-700" : "border-neutral-200 bg-neutral-50 text-neutral-700"}`}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden="true">
-                        <circle cx="12" cy="12" r="8.5" />
-                        <path d="M12 7.5v5l3 2" />
-                      </svg>
-                      <b className="text-[12px] font-semibold">{minutes}</b>
-                      <span className="text-[9px] font-medium uppercase tracking-[0.04em]">min</span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 tabular-nums ${minutes >= 20 ? "border-red-100 bg-red-50 text-red-700" : minutes >= 10 ? "border-amber-100 bg-amber-50 text-amber-700" : "border-neutral-200 bg-neutral-50 text-neutral-700"}`}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden="true">
+                          <circle cx="12" cy="12" r="8.5" />
+                          <path d="M12 7.5v5l3 2" />
+                        </svg>
+                        <b className="text-[12px] font-semibold">{minutes}</b>
+                        <span className="text-[9px] font-medium uppercase tracking-[0.04em]">min</span>
+                      </div>
+
+                      {prepared && (
+                        <button
+                          type="button"
+                          onClick={() => void markReady(order)}
+                          disabled={orderBusy}
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-red)] px-3 text-[10px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
+                        >
+                          <span aria-hidden="true">✓</span>
+                          {orderBusy ? "Actualizando..." : "Listo"}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -299,19 +313,6 @@ export default function KitchenPage() {
                       />
                     ))}
 
-                    {prepared && (
-                      <div className="flex justify-end pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => void markReady(order)}
-                          disabled={orderBusy}
-                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-red)] px-3 text-[10px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
-                        >
-                          <span aria-hidden="true">✓</span>
-                          {orderBusy ? "Actualizando..." : "Listo"}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </article>
               );
