@@ -582,33 +582,29 @@ export default function OrdersCardsDashboardV3() {
           const actionLabel = nextLabel(order);
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
-          const plannedMethod = paymentHint(order).toUpperCase();
           const sameOperationalDay = isCurrentOperationalDay(order.createdAt);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
             <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
             <div className="p-4">
               <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-[10px] font-semibold text-neutral-400">{dateTime(order.createdAt)}</p><h2 className="mt-0.5 text-[21px] font-black tracking-[-0.04em] text-neutral-950">{displayOrderCode(order)}</h2></div><b className="shrink-0 text-[19px] font-extrabold tracking-[-0.025em] text-[var(--brand-red)]">{money(order.total)}</b></div>
               <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4"><div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">{(order.customer?.name || "C").trim().charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="order-customer-name truncate">{order.customer?.name || "Cliente ocasional"}</p><div className="order-customer-meta"><p className="order-customer-line">{order.customer?.phone ? `${order.customer.countryCode} ${order.customer.phone}` : "Sin teléfono"}</p>{order.fulfillmentType === "DELIVERY" && order.address?.address && <p className="order-customer-line order-customer-address">{order.address.address}</p>}</div></div></div>
-              <div className="mt-3" onClick={(event) => event.stopPropagation()}>
+              <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
                 {fullyPaid ? (
-                  <div className="flex min-h-10 items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
-                    <div className="min-w-0 flex items-baseline gap-2">
-                      <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-600">Pagado</span>
-                      <b className="truncate text-[13px] font-extrabold text-emerald-800">{money(receivedTotal)}</b>
-                    </div>
-                    <span className="max-w-[105px] truncate rounded-full border border-emerald-100 bg-white/80 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.055em] text-neutral-600" title={`Medio recibido: ${plannedMethod}`}>{plannedMethod}</span>
+                  <div className="inline-flex h-9 max-w-full items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3">
+                    <span className="shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.06em] text-emerald-700">Pagado</span>
+                    <b className="truncate text-[13px] font-bold tabular-nums text-emerald-900">{money(receivedTotal)}</b>
                   </div>
                 ) : (
-                  <button onClick={() => void openPayment(order)} className="flex min-h-10 w-full items-center justify-between gap-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-left transition hover:border-amber-200 hover:bg-amber-50/80">
-                    <div className="min-w-0 flex items-baseline gap-2">
-                      <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-amber-600">Pago pendiente</span>
-                      <b className="truncate text-[13px] font-extrabold text-amber-800">{money(pendingTotal)}</b>
-                    </div>
-                    <span className="max-w-[105px] truncate rounded-full border border-amber-100 bg-white/80 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.055em] text-neutral-600" title={`Medio previsto: ${plannedMethod}`}>{plannedMethod}</span>
+                  <button
+                    onClick={() => void openPayment(order)}
+                    className="inline-flex h-9 max-w-full items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-left transition hover:border-amber-300 hover:bg-amber-100/60"
+                  >
+                    <span className="shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.06em] text-amber-700">Pago pendiente</span>
+                    <b className="truncate text-[13px] font-bold tabular-nums text-amber-900">{money(pendingTotal)}</b>
                   </button>
                 )}
               </div>
-              <div className="mt-4 flex items-center gap-1.5 border-t border-neutral-100 pt-3" onClick={(event) => event.stopPropagation()}>
+              <div className="mt-3 flex items-center gap-1.5 border-t border-neutral-100 pt-2.5" onClick={(event) => event.stopPropagation()}>
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
