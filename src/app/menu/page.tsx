@@ -477,23 +477,14 @@ export default function MenuPage() {
         <header className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Administración del catálogo</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Menú</h1>
-              <p className="mt-1 text-sm text-white/65">Organiza productos, precios, visibilidad y combos desde un solo lugar.</p>
+              <p className="mt-1 text-sm text-white/65">Administra el catálogo que alimenta el punto de venta.</p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
-                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{totalProducts}</b>
-              </div>
-              <button
-                type="button"
-                onClick={() => startCombo()}
-                className="alento-red-glow h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-sm font-black text-white"
-              >
-                + Crear combo
-              </button>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
+              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{totalProducts}</b>
             </div>
           </div>
         </header>
@@ -501,37 +492,79 @@ export default function MenuPage() {
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
         {notice && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</div>}
 
-        <section className="grid gap-4 xl:grid-cols-[205px_minmax(0,1fr)]">
-          <aside className="alento-card h-fit rounded-[24px] p-3 xl:sticky xl:top-5">
-            <div className="mb-3 px-1"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Catálogo</p><h2 className="mt-1 text-lg font-black">Categorías</h2></div>
-            <div className="space-y-1.5">
+        <section className="space-y-3">
+          <div className="alento-card rounded-[22px] p-2.5">
+            <div className="flex gap-2 overflow-x-auto pb-0.5">
               {data?.categories.map((category) => {
                 const active = activeCategory?.id === category.id;
                 return (
-                  <button key={category.id} onClick={() => { setActiveCategoryId(category.id); setQuery(""); setNotice(""); }} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left ${active ? "bg-black text-white" : "bg-[#faf9f7] text-neutral-700 hover:bg-neutral-100"}`}>
-                    <span><span className="block text-sm font-black">{category.name}</span><span className={`block text-[10px] ${active ? "text-white/50" : "text-neutral-400"}`}>{category.products.length} productos</span></span>
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveCategoryId(category.id);
+                      setQuery("");
+                      setNotice("");
+                    }}
+                    className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-left transition ${active ? "border-black bg-black text-white shadow-[0_6px_14px_rgba(0,0,0,.12)]" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"}`}
+                  >
+                    <span className="text-[12px] font-black">{category.name}</span>
+                    <span className={`inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-1 text-[9px] font-bold tabular-nums ${active ? "bg-white/12 text-white/80" : "bg-neutral-100 text-neutral-500"}`}>
+                      {category.products.length}
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </aside>
+          </div>
 
           <div className="space-y-3">
-            <div className="alento-card rounded-[24px] p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400">Categoría</p>
-                  <h2 className="mt-1 text-2xl font-black">{activeCategory?.name ?? "Productos"}</h2>
+            <div className="alento-card rounded-[22px] p-3.5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-[20px] font-black tracking-[-0.02em] text-neutral-950">{activeCategory?.name ?? "Productos"}</h2>
+                    <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[9px] font-bold text-neutral-500">
+                      {activeCategory?.products.length ?? 0}
+                    </span>
+                  </div>
                   {activeCategory && activeCategory.slug !== "destacados" && (
-                    <p className="mt-1 text-[11px] text-neutral-400">
-                      {query.trim() ? "Quita la búsqueda para reorganizar productos." : savingOrder ? "Guardando nuevo orden..." : "Arrastra las tarjetas para cambiar el orden en el POS."}
+                    <p className="mt-1 text-[10.5px] text-neutral-400">
+                      {query.trim() ? "Quita la búsqueda para reorganizar productos." : savingOrder ? "Guardando nuevo orden..." : "Arrastra desde ⋮⋮ para reorganizar el POS."}
                     </p>
                   )}
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && <button onClick={() => startCreateProduct(activeCategory)} className="rounded-2xl bg-black px-4 py-3 text-sm font-black text-white">+ {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}</button>}
-                  {activeCategory?.slug === "combos" && <button onClick={() => startCombo()} className="rounded-2xl bg-[var(--brand-red)] px-4 py-3 text-sm font-black text-white">+ Combo</button>}
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3 sm:w-72" placeholder="Buscar producto..." />
+
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <label className="relative min-w-0 flex-1 sm:w-[300px] sm:flex-none">
+                    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-neutral-400">⌕</span>
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      className="alento-input h-11 w-full rounded-xl pl-10 pr-4 text-sm sm:w-[300px]"
+                      placeholder="Buscar producto..."
+                    />
+                  </label>
+
+                  {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && (
+                    <button
+                      type="button"
+                      onClick={() => startCreateProduct(activeCategory)}
+                      className="h-11 shrink-0 rounded-xl bg-black px-4 text-[11px] font-black text-white"
+                    >
+                      + {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}
+                    </button>
+                  )}
+
+                  {activeCategory?.slug === "combos" && (
+                    <button
+                      type="button"
+                      onClick={() => startCombo()}
+                      className="h-11 shrink-0 rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-black text-white"
+                    >
+                      + Combo
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
