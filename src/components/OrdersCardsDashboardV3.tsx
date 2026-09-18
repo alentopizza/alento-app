@@ -24,13 +24,8 @@ type MarketplaceOrder = {
   provider: "RAPPI" | "DIDI";
   externalOrderId: string;
   externalStoreId: string | null;
-  grossAmount: number | string;
-  commissionAmount: number | string;
-  commissionTaxAmount: number | string;
-  adjustmentsAmount: number | string;
-  netReceivable: number | string;
-  financialStatus: "ESTIMATED" | "CONFIRMED";
-  reconciledAt: string | null;
+  invoiceAmount: number | string;
+  receivedAt: string;
 };
 type Order = {
   id: number;
@@ -71,11 +66,6 @@ const paidAmount = (order: Order) => paidPayments(order).reduce((sum, payment) =
 const balance = (order: Order) => Math.max(0, Number(order.total) - paidAmount(order));
 const paidInFull = (order: Order) => balance(order) <= 0 && Number(order.total) > 0;
 const marketplaceFinancial = (order: Order) => order.marketplaceOrder ?? null;
-const marketplaceLabel = (order: Order) => {
-  const marketplace = marketplaceFinancial(order);
-  if (!marketplace) return null;
-  return marketplace.financialStatus === "CONFIRMED" ? "Neto a recibir" : "Neto estimado";
-};
 const paymentHint = (order: Order) => activePayments(order).find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL")?.method ?? paidPayments(order).at(-1)?.method ?? "Pago";
 const isPizzaItem = (item: OrderItem) => Boolean(
   item.configuration
@@ -618,14 +608,14 @@ export default function OrdersCardsDashboardV3() {
                   <div className="w-full rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2.5 text-left">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[8.5px] font-semibold uppercase tracking-[0.07em] text-violet-700">
-                        {marketplace.provider === "RAPPI" ? "Rappi" : "DiDi"} · {marketplaceLabel(order)}
+                        {marketplace.provider === "RAPPI" ? "Rappi" : "DiDi"} · Valor factura
                       </span>
                       <span className="rounded-full bg-white px-2 py-0.5 text-[8px] font-bold uppercase text-violet-600">
-                        {marketplace.financialStatus === "CONFIRMED" ? "Confirmado" : "Estimado"}
+                        Marketplace
                       </span>
                     </div>
                     <b className="mt-1 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] text-violet-950">
-                      {money(marketplace.netReceivable)}
+                      {money(marketplace.invoiceAmount)}
                     </b>
                   </div>
                 ) : (
@@ -684,7 +674,7 @@ export default function OrdersCardsDashboardV3() {
   <span>Editar cliente</span>
 </button></div></div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>{selected.marketplaceOrder && <section className="mt-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-violet-500">Conciliación marketplace</p><h3 className="mt-1 text-lg font-black text-violet-950">{selected.marketplaceOrder.provider === "RAPPI" ? "Rappi" : "DiDi"}</h3></div><span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black uppercase text-violet-700">{selected.marketplaceOrder.financialStatus === "CONFIRMED" ? "Confirmado" : "Estimado"}</span></div><div className="mt-3 grid gap-2 text-sm"><div className="flex justify-between"><span className="text-violet-700">Venta bruta</span><b>{money(selected.marketplaceOrder.grossAmount)}</b></div><div className="flex justify-between"><span className="text-violet-700">Comisión</span><b>- {money(selected.marketplaceOrder.commissionAmount)}</b></div>{Number(selected.marketplaceOrder.commissionTaxAmount) > 0 && <div className="flex justify-between"><span className="text-violet-700">Impuestos comisión</span><b>- {money(selected.marketplaceOrder.commissionTaxAmount)}</b></div>}{Number(selected.marketplaceOrder.adjustmentsAmount) !== 0 && <div className="flex justify-between"><span className="text-violet-700">Ajustes</span><b>{money(selected.marketplaceOrder.adjustmentsAmount)}</b></div>}<div className="flex justify-between border-t border-violet-200 pt-2"><b className="text-violet-950">Neto a recibir</b><b className="text-lg text-emerald-700">{money(selected.marketplaceOrder.netReceivable)}</b></div></div><p className="mt-2 text-[10px] leading-4 text-violet-700">El total vendido se conserva como venta. El neto es la liquidación esperada del marketplace y no entra a Caja hasta su conciliación real.</p></section>}
+        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>{selected.marketplaceOrder && <section className="mt-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-violet-500">Pedido marketplace</p><h3 className="mt-1 text-lg font-black text-violet-950">{selected.marketplaceOrder.provider === "RAPPI" ? "Rappi" : "DiDi"}</h3></div><span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black uppercase text-violet-700">ID {selected.marketplaceOrder.externalOrderId}</span></div><div className="mt-3 flex items-center justify-between rounded-xl border border-violet-200 bg-white px-3 py-3"><span className="text-sm font-semibold text-violet-700">Valor factura</span><b className="text-xl font-black text-violet-950">{money(selected.marketplaceOrder.invoiceAmount)}</b></div><p className="mt-2 text-[10px] leading-4 text-violet-700">Este valor llega directamente desde el pedido del marketplace y es el mismo total mostrado en la orden.</p></section>}
         {!selected.marketplaceOrder && <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
           <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
           <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
