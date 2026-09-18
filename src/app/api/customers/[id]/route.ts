@@ -202,15 +202,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     return NextResponse.json({ error: "Cliente inválido." }, { status: 400 });
   }
 
-  const orderCount = await prisma.order.count({ where: { customerId } });
-
-  if (orderCount > 0) {
-    return NextResponse.json(
-      { error: "Este cliente tiene pedidos asociados y no puede eliminarse." },
-      { status: 409 },
-    );
-  }
-
   try {
     await prisma.customer.delete({ where: { id: customerId } });
     return NextResponse.json({ ok: true });
