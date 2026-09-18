@@ -11,6 +11,7 @@ type KitchenOrderItem = {
   quantity: number;
   preparedQuantity: number;
   configuration: unknown;
+  notes?: string | null;
   product?: {
     id: number;
     type: string;
@@ -108,6 +109,18 @@ function KitchenItem({
                     <b className="text-[13px] font-bold text-neutral-950">{cleanFlavor(detail.value)}</b>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {item.notes && (
+            <div className="mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 shadow-[0_3px_10px_rgba(180,120,0,.08)]">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
+                <div>
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-amber-700">Nota de preparación</span>
+                  <b className="mt-0.5 block text-[13px] leading-5 text-amber-950">{item.notes}</b>
+                </div>
               </div>
             </div>
           )}
