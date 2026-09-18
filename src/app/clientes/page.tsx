@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { orderCode } from "@/lib/orderCode";
+import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type CustomerAddress = {
@@ -49,7 +50,10 @@ type CustomerOrder = {
     id: number;
     productName: string;
     quantity: number;
+    unitPrice: number | string;
     lineTotal: number | string;
+    configuration: unknown;
+    notes: string | null;
   }[];
 };
 
@@ -109,6 +113,18 @@ const dateTime = (value: string) =>
     hour: "numeric",
     minute: "2-digit",
   });
+
+function cleanDetailValue(value: string) {
+  return value.replace(/^½\s*/u, "").trim();
+}
+
+function orderItemDetails(item: CustomerOrder["items"][number]) {
+  return presentOrderItemConfiguration(item.configuration);
+}
+
+function purchaseLabel(count: number) {
+  return `${count} ${count === 1 ? "compra" : "compras"}`;
+}
 
 function daysSince(value: string | null) {
   if (!value) return null;
@@ -864,48 +880,52 @@ export default function CustomersPage() {
               </header>
 
               <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
-                <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-                  <Metric label="Compras" value={String(selected.metrics.purchaseCount)} />
-                  <Metric label="Ticket promedio" value={money(selected.metrics.averageTicket)} />
-                  <Metric label="Total comprado" value={money(selected.metrics.totalSpent)} />
-                  <Metric
-                    label="Frecuencia"
-                    value={selected.metrics.frequencyDays ? `Cada ${selected.metrics.frequencyDays} d` : "Sin patrón"}
-                  />
+                <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {[
+                    ["Compras", String(selected.metrics.purchaseCount)],
+                    ["Ticket promedio", money(selected.metrics.averageTicket)],
+                    ["Total comprado", money(selected.metrics.totalSpent)],
+                    ["Frecuencia", selected.metrics.frequencyDays ? `Cada ${selected.metrics.frequencyDays} d` : "Sin patrón"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_10px_24px_rgba(28,23,20,.055)] [font-synthesis:none]">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">{label}</span>
+                      <b className="mt-2 block truncate text-[18px] font-bold leading-none tracking-[-0.018em] text-neutral-950">{value}</b>
+                    </div>
+                  ))}
                 </section>
 
-                <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm [font-synthesis:none]">
-                  <div className="flex items-start justify-between gap-4">
+                <section className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_12px_28px_rgba(28,23,20,.06)] [font-synthesis:none]">
+                  <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-4 py-4">
                     <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Seguimiento comercial</p>
-                      <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-neutral-950">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-400">Seguimiento comercial</p>
+                      <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
                         {customerSignal(selected.metrics).label}
                       </h3>
                     </div>
-                    <span className={`rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.06em] ${customerSignal(selected.metrics).tone}`}>
-                      {selected.metrics.purchaseCount} compras
+                    <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.045em] ${customerSignal(selected.metrics).tone}`}>
+                      {purchaseLabel(selected.metrics.purchaseCount)}
                     </span>
                   </div>
 
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    <div className="rounded-xl bg-[#faf9f7] p-3">
-                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Primera compra</span>
-                      <b className="mt-1 block text-[12px] text-neutral-800">{shortDate(selected.metrics.firstOrderAt)}</b>
+                  <div className="grid gap-2 p-4 sm:grid-cols-3">
+                    <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Primera compra</span>
+                      <b className="mt-1.5 block text-[13px] text-neutral-800">{shortDate(selected.metrics.firstOrderAt)}</b>
                     </div>
-                    <div className="rounded-xl bg-[#faf9f7] p-3">
-                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
-                      <b className="mt-1 block text-[12px] text-neutral-800">{shortDate(selected.metrics.lastOrderAt)}</b>
+                    <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
+                      <b className="mt-1.5 block text-[13px] text-neutral-800">{shortDate(selected.metrics.lastOrderAt)}</b>
                     </div>
-                    <div className="rounded-xl bg-[#faf9f7] p-3">
-                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Sin comprar</span>
-                      <b className="mt-1 block text-[12px] text-neutral-800">
+                    <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Sin comprar</span>
+                      <b className="mt-1.5 block text-[13px] text-neutral-800">
                         {daysSince(selected.metrics.lastOrderAt) === null ? "—" : `${daysSince(selected.metrics.lastOrderAt)} días`}
                       </b>
                     </div>
                   </div>
                 </section>
 
-                <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_12px_28px_rgba(28,23,20,.06)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Datos del cliente</p>
@@ -957,36 +977,101 @@ export default function CustomersPage() {
                   )}
                 </section>
 
-                <section className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-                  <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <section className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_14px_32px_rgba(28,23,20,.065)]">
+                  <div className="flex items-center justify-between border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-4 py-4">
                     <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Historial</p>
-                      <h3 className="mt-0.5 text-base font-bold">Pedidos del cliente</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-400">Historial de compra</p>
+                      <h3 className="mt-0.5 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">Pedidos del cliente</h3>
                     </div>
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-bold text-neutral-600">{selected.orders.length}</span>
+                    <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[10px] font-bold text-neutral-700 shadow-sm">
+                      {purchaseLabel(selected.orders.length)}
+                    </span>
                   </div>
 
                   {selected.orders.length === 0 ? (
                     <p className="p-5 text-sm text-neutral-400">Este cliente todavía no tiene compras registradas.</p>
                   ) : (
-                    <div className="divide-y divide-neutral-100">
+                    <div className="space-y-3 bg-[#f7f5f2] p-3">
                       {selected.orders.map((order) => (
-                        <div key={order.id} className="p-4 [font-synthesis:none]">
-                          <div className="flex items-start justify-between gap-3">
+                        <article key={order.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_20px_rgba(28,23,20,.045)] [font-synthesis:none]">
+                          <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-4 py-3.5">
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <b className="text-[13px] text-neutral-950">{orderCode(order.sequenceNumber ?? order.id, order.source)}</b>
-                                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[8px] font-semibold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
-                                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[8px] font-semibold uppercase text-neutral-600">{statusLabel(order.status)}</span>
+                                <b className="text-[14px] font-bold text-neutral-950">{orderCode(order.sequenceNumber ?? order.id, order.source)}</b>
+                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-bold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
+                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-bold uppercase text-neutral-600">{statusLabel(order.status)}</span>
                               </div>
-                              <p className="mt-1 text-[10px] text-neutral-400">{dateTime(order.createdAt)}</p>
+                              <p className="mt-1.5 text-[11px] text-neutral-400">{dateTime(order.createdAt)}</p>
                             </div>
-                            <b className="shrink-0 text-[14px] font-bold tabular-nums text-neutral-900">{money(order.total)}</b>
+                            <b className="shrink-0 text-[16px] font-bold tabular-nums tracking-[-0.015em] text-neutral-950">{money(order.total)}</b>
                           </div>
-                          <p className="mt-2 line-clamp-2 text-[10.5px] leading-4 text-neutral-500">
-                            {order.items.map((item) => `${item.quantity}× ${item.productName}`).join(" · ")}
-                          </p>
-                        </div>
+
+                          <div className="space-y-2.5 p-3">
+                            {order.items.map((item) => {
+                              const details = orderItemDetails(item);
+                              const size = details.find((detail) => detail.label.toLowerCase() === "tamaño");
+                              const crust = details.find((detail) => detail.label.toLowerCase() === "borde");
+                              const flavors = details.filter((detail) => detail.label.toLowerCase().startsWith("sabor"));
+                              const extras = details.filter((detail) => detail.label.toLowerCase() === "extra");
+                              const others = details.filter((detail) => {
+                                const label = detail.label.toLowerCase();
+                                return label !== "tamaño" && label !== "borde" && label !== "extra" && !label.startsWith("sabor") && label !== "producto";
+                              });
+
+                              return (
+                                <div key={item.id} className="rounded-xl border border-neutral-100 bg-[#fcfbf9] p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <b className="block text-[13px] font-bold text-neutral-900">{item.quantity}× {item.productName}</b>
+                                      {(size || crust) && (
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                          {size && <span className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-800">{size.value}</span>}
+                                          {crust && <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-700">{crust.value}</span>}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <b className="shrink-0 text-[12px] font-bold tabular-nums text-neutral-700">{money(item.lineTotal)}</b>
+                                  </div>
+
+                                  {flavors.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                      {flavors.map((detail, index) => (
+                                        <span key={`${detail.label}-${index}`} className="contents">
+                                          <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-900">{cleanDetailValue(detail.value)}</span>
+                                          {index < flavors.length - 1 && <span className="text-[9px] font-bold text-neutral-300">−</span>}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {extras.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {extras.map((detail, index) => (
+                                        <span key={`${detail.value}-${index}`} className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase text-red-700">+ {detail.value}</span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {others.length > 0 && (
+                                    <div className="mt-2 grid gap-1">
+                                      {others.map((detail, index) => (
+                                        <p key={`${detail.label}-${index}`} className="text-[10px] text-neutral-500">
+                                          <span className="font-semibold text-neutral-400">{detail.label}:</span> {detail.value}
+                                        </p>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {item.notes && (
+                                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
+                                      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-amber-800">{item.notes}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </article>
                       ))}
                     </div>
                   )}
