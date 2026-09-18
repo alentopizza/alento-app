@@ -39,6 +39,7 @@ type PizzaDraft = {
   secondFlavorId: number | null;
   crustId: number | null;
   modifierIds: number[];
+  note: string;
 };
 type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
 type ComboDraft = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
@@ -51,6 +52,7 @@ export type StructuredEditAddition = {
   summary: string;
   estimatedUnitPrice: number;
   configuration: PizzaOrderConfiguration | ComboOrderConfiguration;
+  notes?: string;
 };
 
 type Props = {
@@ -130,6 +132,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
       secondFlavorId: null,
       crustId: defaultCrust?.id ?? null,
       modifierIds: [],
+      note: "",
     });
   }
 
@@ -230,6 +233,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
         summary,
         estimatedUnitPrice: pizzaPrice(pizza),
         configuration,
+        notes: pizza.note.trim().slice(0, 120) || undefined,
       },
     ]);
     setPizza(null);
@@ -430,6 +434,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
                 <div className="min-w-0">
                   <b className="text-sm">{item.name}</b>
                   <p className="mt-1 text-[11px] leading-4 text-neutral-500">{item.summary}</p>
+                  {item.notes && <p className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-amber-900">Nota: {item.notes}</p>}
                   <b className="mt-1 block text-xs text-[var(--brand-red)]">{money(item.estimatedUnitPrice * item.quantity)}</b>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -489,7 +494,14 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
                 })}
               </div>
             </section>
-            {configError && <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{configError}</p>}
+            <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div><p className="text-[10px] font-black uppercase tracking-[.08em] text-neutral-400">Nota para cocina</p><p className="mt-1 text-[11px] text-neutral-500">Opcional · instrucción corta para esta pizza.</p></div>
+                <span className="text-[10px] font-semibold text-neutral-400">{pizza.note.length}/120</span>
+              </div>
+              <input value={pizza.note} maxLength={120} onChange={(event) => setPizza({ ...pizza, note: event.target.value })} className="alento-input mt-2 w-full rounded-xl bg-white px-3.5 py-3 text-sm" placeholder="Ej. Ligera en salsa" />
+            </section>
+            {configError && <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{configError}</p>
           </div>
           <div className="flex items-center justify-between border-t p-4"><b className="text-xl text-[var(--brand-red)]">{money(pizzaPrice(pizza))}</b><button type="button" onClick={confirmPizza} className="rounded-xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">Agregar pizza</button></div>
         </div>
