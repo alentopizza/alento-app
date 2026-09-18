@@ -138,11 +138,18 @@ export async function GET() {
       return aPriority - bPriority || a.name.localeCompare(b.name, "es");
     });
 
+    const pizzaFlavors = [
+      ...new Map(
+        normalizedCategories
+          .flatMap((category) => category.products)
+          .filter((product) => product.type === "PIZZA_SINGLE")
+          .map((product) => [product.id, product] as const),
+      ).values(),
+    ];
+
     return NextResponse.json({
       categories: normalizedCategories,
-      pizzaFlavors: normalizedCategories
-        .flatMap((category) => category.products)
-        .filter((product) => product.type === "PIZZA_SINGLE"),
+      pizzaFlavors,
       sizes: sizes.map((size) => ({
         id: size.id,
         name: size.name,
