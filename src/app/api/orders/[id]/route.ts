@@ -179,10 +179,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const nextCashReceived = canPreserveCashTender ? cashReceivedCandidate : null;
     const nextChangeDue = canPreserveCashTender ? cashReceivedCandidate - total : null;
 
-    const productChanges = current.items.some((item) => {
-      const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
-      return nextQuantity !== item.quantity;
-    }) || normalizedAdditions.length > 0;
     const kitchenProductChanges = current.items.some((item) => {
       const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
       return nextQuantity !== item.quantity && requiresKitchen(item.product?.categoryId);
