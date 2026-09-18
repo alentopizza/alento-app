@@ -875,41 +875,169 @@ export default function MenuPage() {
       )}
 
       {editor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <form onSubmit={saveProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-6">
-            <div className="mb-5 flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Editar producto</p><h2 className="mt-1 text-2xl font-black">{editor.name}</h2></div><button type="button" onClick={() => setEditor(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre</span><input value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5"><span className="text-sm font-bold">{editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}</span><input value={editor.basePrice} onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <div className="rounded-2xl bg-neutral-100 px-4 py-3 text-sm"><p className="font-bold">Tipo</p><p className="mt-1 text-neutral-500">{editor.type}</p></div>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={editor.imageUrl} onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={editor.imageUrl2} onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !saving) setEditor(null);
+          }}
+        >
+          <form
+            onSubmit={saveProduct}
+            className="flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Editar producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{editor.name}</h2>
+                <span className="mt-2 inline-flex rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-600">
+                  {editor.type}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => !saving && setEditor(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.active} onChange={(event) => setEditor({ ...editor, active: event.target.checked })} /><span className="text-sm font-bold">Activo</span></label>
-              <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.visibleInPos} onChange={(event) => setEditor({ ...editor, visibleInPos: event.target.checked })} disabled={editor.type === "MODIFIER"} /><span className="text-sm font-bold">Visible en POS</span></label>
-              <label className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"><input type="checkbox" checked={editor.featured} onChange={(event) => setEditor({ ...editor, featured: event.target.checked })} disabled={editor.type === "MODIFIER"} /><span className="text-sm font-bold">Destacado</span></label>
+
+            <div className="overflow-y-auto p-5 md:p-6">
+              <section className="rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1.5 md:col-span-2">
+                    <span className="text-[12px] font-bold text-neutral-800">Nombre</span>
+                    <input value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <label className="space-y-1.5 md:col-span-2">
+                    <span className="text-[12px] font-bold text-neutral-800">Descripción</span>
+                    <textarea value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} className="alento-input min-h-24 w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">{editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}</span>
+                    <input value={editor.basePrice} onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                    <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Tipo</span>
+                    <b className="mt-1 block text-[12px] text-neutral-800">{editor.type}</b>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
+                <div className="mt-3 grid gap-3">
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">Imagen principal · URL</span>
+                    <input value={editor.imageUrl} onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">Imagen secundaria · URL</span>
+                    <input value={editor.imageUrl2} onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                </div>
+              </section>
+
+              <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-[10.5px] leading-4 text-sky-800">
+                Los estados Activo, Visible en POS y Destacado se administran desde el panel principal del producto.
+              </div>
             </div>
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={saving} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{saving ? "Guardando..." : "Guardar cambios"}</button></div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+              <button type="button" onClick={() => setEditor(null)} disabled={saving} className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-bold text-neutral-700 disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="submit" disabled={saving} className="alento-red-glow h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white disabled:opacity-50">
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
           </form>
         </div>
       )}
 
       {createState && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <form onSubmit={createProduct} className="alento-card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-6">
-            <div className="mb-5 flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo producto</p><h2 className="mt-1 text-2xl font-black">Crear en {activeCategory?.name}</h2></div><button type="button" onClick={() => setCreateState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre *</span><input value={createState.name} onChange={(event) => setCreateState({ ...createState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" autoFocus /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5"><span className="text-sm font-bold">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span><input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-2xl px-4 py-3" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} /></label>
-              <div className="rounded-2xl bg-neutral-100 p-3 text-sm text-neutral-500">{createState.categorySlug === "pizzas" ? `Al POS se mostrará sumando el tamaño Personal (${formatCOP(minPizzaSizePrice)}).` : createState.categorySlug === "ingredientes" ? "Se creará como ingrediente adicional y no como producto independiente del POS." : "Producto estándar con precio fijo."}</div>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen principal · URL</span><input value={createState.imageUrl} onChange={(event) => setCreateState({ ...createState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-              <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={createState.imageUrl2} onChange={(event) => setCreateState({ ...createState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !creating) setCreateState(null);
+          }}
+        >
+          <form
+            onSubmit={createProduct}
+            className="flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">Crear en {activeCategory?.name}</h2>
+                <p className="mt-1 text-[11px] text-neutral-500">Completa la información básica para agregarlo al catálogo.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !creating && setCreateState(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
             </div>
-            {createError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{createError}</p>}
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setCreateState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={creating} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{creating ? "Creando..." : "Crear producto"}</button></div>
+
+            <div className="overflow-y-auto p-5 md:p-6">
+              <section className="rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1.5 md:col-span-2">
+                    <span className="text-[12px] font-bold text-neutral-800">Nombre *</span>
+                    <input value={createState.name} onChange={(event) => setCreateState({ ...createState, name: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" autoFocus />
+                  </label>
+                  <label className="space-y-1.5 md:col-span-2">
+                    <span className="text-[12px] font-bold text-neutral-800">Descripción</span>
+                    <textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span>
+                    <input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} />
+                  </label>
+                  <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                    <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Comportamiento</span>
+                    <p className="mt-1 text-[10.5px] leading-4 text-neutral-600">
+                      {createState.categorySlug === "pizzas"
+                        ? "En el POS se sumará el tamaño Personal (" + formatCOP(minPizzaSizePrice) + ")."
+                        : createState.categorySlug === "ingredientes"
+                          ? "Se creará como ingrediente adicional, no como producto independiente."
+                          : "Producto estándar con precio fijo."}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4">
+                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
+                <div className="mt-3 grid gap-3">
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">Imagen principal · URL</span>
+                    <input value={createState.imageUrl} onChange={(event) => setCreateState({ ...createState, imageUrl: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="text-[12px] font-bold text-neutral-800">Imagen secundaria · URL</span>
+                    <input value={createState.imageUrl2} onChange={(event) => setCreateState({ ...createState, imageUrl2: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
+                  </label>
+                </div>
+              </section>
+
+              {createError && <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-medium text-red-700">{createError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+              <button type="button" onClick={() => setCreateState(null)} disabled={creating} className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-bold text-neutral-700 disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="submit" disabled={creating} className="alento-red-glow h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white disabled:opacity-50">
+                {creating ? "Creando..." : "Crear producto"}
+              </button>
+            </div>
           </form>
         </div>
       )}
