@@ -561,7 +561,7 @@ export default function OrdersCardsDashboardV3() {
             <p className="mt-0.5 text-sm text-white/65">Todo el flujo de tus órdenes, en un solo lugar.</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-            <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos ahora</span>
+            <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos</span>
             <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{activeCount}</b>
           </div>
         </div>
