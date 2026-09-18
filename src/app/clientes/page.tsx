@@ -1,14 +1,26 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { orderCode } from "@/lib/orderCode";
+import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type CustomerAddress = {
   id: number;
+  label?: string | null;
   address: string;
   neighborhood: string | null;
   city: string | null;
   notes: string | null;
   isDefault: boolean;
+};
+
+type CustomerMetrics = {
+  purchaseCount: number;
+  totalSpent: number;
+  averageTicket: number;
+  firstOrderAt: string | null;
+  lastOrderAt: string | null;
+  frequencyDays: number | null;
 };
 
 type Customer = {
@@ -18,15 +30,111 @@ type Customer = {
   phone: string | null;
   email: string | null;
   notes: string | null;
+  createdAt?: string;
   addresses: CustomerAddress[];
   _count: { orders: number };
+  metrics: CustomerMetrics;
 };
+
+type CustomerOrder = {
+  id: number;
+  sequenceNumber: number | null;
+  source: string;
+  status: OrderStatus;
+  fulfillmentType: FulfillmentType;
+  total: number | string;
+  createdAt: string;
+  items: {
+    id: number;
+    productName: string;
+    quantity: number;
+    lineTotal: number | string;
+  }[];
+};
+
+type CustomerDetail = Customer & {
+  orders: CustomerOrder[];
+};
+
+const money = (value: number | string | null | undefined) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(Number(value ?? 0));
+
+const shortDate = (value: string | null | undefined) =>
+  value
+    ? new Date(value).toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "Sin compras";
+
+const dateTime = (value: string) =>
+  new Date(value).toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+function daysSince(value: string | null) {
+  if (!value) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+}
+
+function customerSignal(metrics: CustomerMetrics) {
+  if (metrics.purchaseCount === 0) {
+    return { label: "Sin compras", tone: "bg-neutral-100 text-neutral-600 border-neutral-200" };
+  }
+
+  const inactiveDays = daysSince(metrics.lastOrderAt);
+  if (metrics.purchaseCount === 1) {
+    return { label: "Nuevo", tone: "bg-sky-50 text-sky-700 border-sky-200" };
+  }
+
+  const expected = metrics.frequencyDays ?? 30;
+  const rescueThreshold = Math.max(21, Math.round(expected * 1.6));
+  if (inactiveDays !== null && inactiveDays > rescueThreshold) {
+    return { label: "Por recuperar", tone: "bg-rose-50 text-rose-700 border-rose-200" };
+  }
+
+  if (metrics.purchaseCount >= 4) {
+    return { label: "Frecuente", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+  }
+
+  return { label: "Activo", tone: "bg-amber-50 text-amber-700 border-amber-200" };
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 [font-synthesis:none]">
+      <span className="block text-[8px] font-semibold uppercase tracking-[0.09em] text-neutral-400">{label}</span>
+      <b className="mt-1 block truncate text-[15px] font-bold leading-none tracking-[-0.015em] text-neutral-950">{value}</b>
+      {hint && <span className="mt-1 block truncate text-[9px] text-neutral-400">{hint}</span>}
+    </div>
+  );
+}
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [selected, setSelected] = useState<CustomerDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("+57");
   const [phone, setPhone] = useState("");
@@ -41,6 +149,7 @@ export default function CustomersPage() {
     try {
       const response = await fetch("/api/customers?all=1", { cache: "no-store" });
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible cargar los clientes.");
       setCustomers(data.customers ?? []);
     } finally {
       setLoading(false);
@@ -48,20 +157,53 @@ export default function CustomersPage() {
   }
 
   useEffect(() => {
-    loadCustomers();
+    void loadCustomers();
   }, []);
 
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
     if (!value) return customers;
     return customers.filter((customer) =>
-      [customer.name, customer.phone, customer.email, customer.addresses?.[0]?.address]
+      [
+        customer.name,
+        customer.phone,
+        customer.email,
+        customer.addresses?.[0]?.address,
+        customer.notes,
+      ]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(value)),
     );
   }, [customers, query]);
 
-  function openEdit(customer: Customer) {
+  const portfolio = useMemo(() => {
+    const totalSpent = customers.reduce((sum, customer) => sum + Number(customer.metrics?.totalSpent ?? 0), 0);
+    const totalPurchases = customers.reduce((sum, customer) => sum + Number(customer.metrics?.purchaseCount ?? 0), 0);
+    const recoverable = customers.filter((customer) => customerSignal(customer.metrics).label === "Por recuperar").length;
+    return {
+      totalSpent,
+      totalPurchases,
+      averageTicket: totalPurchases > 0 ? totalSpent / totalPurchases : 0,
+      recoverable,
+    };
+  }, [customers]);
+
+  async function openCustomer(customer: Customer) {
+    setDetailLoading(true);
+    setDetailError("");
+    try {
+      const response = await fetch(`/api/customers/${customer.id}`, { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible cargar el cliente.");
+      setSelected(data.customer);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : "No fue posible cargar el cliente.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  function openEdit(customer: Customer | CustomerDetail) {
     setEditing(customer);
     setName(customer.name);
     setCountryCode(customer.countryCode || "+57");
@@ -94,6 +236,9 @@ export default function CustomersPage() {
       if (!response.ok) throw new Error(data.error || "No fue posible actualizar el cliente.");
       setEditing(null);
       await loadCustomers();
+      if (selected?.id === editing.id) {
+        await openCustomer({ ...editing, ...data.customer, metrics: editing.metrics });
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No fue posible actualizar el cliente.");
     } finally {
@@ -101,7 +246,7 @@ export default function CustomersPage() {
     }
   }
 
-  async function deleteCustomer(customer: Customer) {
+  async function deleteCustomer(customer: Customer | CustomerDetail) {
     if (customer._count.orders > 0) return;
     if (!window.confirm(`¿Eliminar a ${customer.name}? Esta acción no se puede deshacer.`)) return;
 
@@ -111,144 +256,356 @@ export default function CustomersPage() {
       window.alert(data.error || "No fue posible eliminar el cliente.");
       return;
     }
+    if (selected?.id === customer.id) setSelected(null);
     await loadCustomers();
   }
 
   return (
-    <main className="p-5 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-neutral-500">Directorio</p>
-            <h1 className="text-3xl font-black tracking-tight">Clientes</h1>
-            <p className="mt-1 text-sm text-neutral-500">Consulta, edita y administra los datos de tus clientes.</p>
-          </div>
-          <div className="rounded-2xl bg-white px-4 py-3 text-sm shadow-sm ring-1 ring-neutral-200">
-            <span className="text-neutral-500">Total</span> <strong className="ml-2 text-lg">{customers.length}</strong>
-          </div>
-        </div>
-
-        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-neutral-200">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 outline-none focus:border-black focus:bg-white"
-            placeholder="Buscar por nombre, teléfono, correo o dirección"
-          />
-        </section>
-
-        <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-neutral-200">
-          {loading ? (
-            <p className="p-6 text-sm text-neutral-500">Cargando clientes...</p>
-          ) : filtered.length === 0 ? (
-            <p className="p-6 text-sm text-neutral-500">No hay clientes para mostrar.</p>
-          ) : (
-            <div className="divide-y divide-neutral-100">
-              {filtered.map((customer) => {
-                const primaryAddress = customer.addresses?.[0]?.address;
-                const canDelete = customer._count.orders === 0;
-                return (
-                  <article key={customer.id} className="grid gap-4 p-5 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-bold">{customer.name}</h2>
-                        <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
-                          {customer._count.orders} {customer._count.orders === 1 ? "pedido" : "pedidos"}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-neutral-600">{customer.countryCode} {customer.phone || "Sin teléfono"}</p>
-                      {customer.email && <p className="text-sm text-neutral-500">{customer.email}</p>}
-                    </div>
-
-                    <div className="text-sm text-neutral-600">
-                      <p className="font-medium text-neutral-800">{primaryAddress || "Sin dirección registrada"}</p>
-                      {customer.notes && <p className="mt-1 line-clamp-2 text-neutral-500">{customer.notes}</p>}
-                    </div>
-
-                    <div className="flex gap-2 lg:justify-end">
-                      <button onClick={() => openEdit(customer)} className="rounded-xl border border-neutral-200 px-3 py-2 text-sm font-semibold hover:bg-neutral-50">Editar</button>
-                      <button
-                        onClick={() => deleteCustomer(customer)}
-                        disabled={!canDelete}
-                        title={canDelete ? "Eliminar cliente" : "No se puede eliminar porque tiene pedidos asociados"}
-                        className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300 disabled:hover:bg-white"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+    <main className="min-h-screen bg-[#f4f4f2] p-4 lg:p-6">
+      <div className="mx-auto max-w-[1540px] space-y-4">
+        <section className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Relación con clientes</p>
+              <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Clientes</h1>
+              <p className="mt-1 text-sm text-white/65">Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.</p>
             </div>
-          )}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
+              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
+            </div>
+          </div>
         </section>
-      </div>
 
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[30px] bg-white shadow-2xl ring-1 ring-black/5">
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-5 md:px-7">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-xl">👤</div>
+        <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Compras registradas" value={String(portfolio.totalPurchases)} />
+          <Metric label="Venta acumulada" value={money(portfolio.totalSpent)} />
+          <Metric label="Ticket promedio" value={money(portfolio.averageTicket)} />
+          <Metric label="Por recuperar" value={String(portfolio.recoverable)} hint="Según frecuencia histórica" />
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+          <div className="relative">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 text-sm outline-none transition focus:border-neutral-400 focus:bg-white"
+              placeholder="Buscar por nombre, teléfono, correo, dirección o nota"
+            />
+          </div>
+        </section>
+
+        {loading ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">Cargando clientes...</div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center text-sm text-neutral-400">No hay clientes para mostrar.</div>
+        ) : (
+          <section className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((customer) => {
+              const signal = customerSignal(customer.metrics);
+              const primaryAddress = customer.addresses?.[0]?.address;
+              const inactiveDays = daysSince(customer.metrics.lastOrderAt);
+              const canDelete = customer._count.orders === 0;
+
+              return (
+                <article
+                  key={customer.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => void openCustomer(customer)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") void openCustomer(customer);
+                  }}
+                  className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)]"
+                >
+                  <div className="p-4 [font-synthesis:none]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-[#faf9f7] text-[15px] font-bold text-neutral-900 shadow-sm">
+                          {customer.name.trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="truncate text-[16px] font-bold leading-5 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
+                          <p className="mt-0.5 truncate text-[11px] text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>{signal.label}</span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <Metric label="Compras" value={String(customer.metrics.purchaseCount)} />
+                      <Metric label="Ticket prom." value={money(customer.metrics.averageTicket)} />
+                      <Metric label="Total" value={money(customer.metrics.totalSpent)} />
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
+                          <b className="mt-0.5 block truncate text-[11px] font-semibold text-neutral-800">{shortDate(customer.metrics.lastOrderAt)}</b>
+                        </div>
+                        {inactiveDays !== null && (
+                          <span className="shrink-0 text-[10px] font-medium text-neutral-400">{inactiveDays === 0 ? "Hoy" : `Hace ${inactiveDays} d`}</span>
+                        )}
+                      </div>
+                      <p className="mt-2 truncate text-[10.5px] text-neutral-500">{primaryAddress || customer.email || "Sin dirección registrada"}</p>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
+                      <span className="text-[10px] font-semibold text-neutral-400">Ver perfil e historial →</span>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEdit(customer);
+                          }}
+                          className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-50"
+                        >
+                          Editar
+                        </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void deleteCustomer(customer);
+                            }}
+                            className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-[10px] font-semibold text-red-600"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
+
+        {detailLoading && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 backdrop-blur-[2px]">
+            <div className="rounded-2xl bg-white px-5 py-4 text-sm font-semibold shadow-2xl">Cargando perfil...</div>
+          </div>
+        )}
+
+        {detailError && (
+          <div className="fixed bottom-5 right-5 z-[100] rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-lg">
+            {detailError}
+          </div>
+        )}
+
+        {selected && (
+          <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-[3px]" onClick={() => setSelected(null)}>
+            <aside
+              onClick={(event) => event.stopPropagation()}
+              className="absolute inset-y-0 right-0 flex w-full max-w-[720px] flex-col overflow-hidden bg-[#f5f2ee] shadow-[-24px_0_70px_rgba(0,0,0,.24)]"
+            >
+              <header className="alento-dark rounded-none px-5 py-5 md:px-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">Perfil del cliente</p>
+                    <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.03em]">{selected.name}</h2>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+                      <span>{selected.countryCode} {selected.phone || "Sin teléfono"}</span>
+                      {selected.email && <span>• {selected.email}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-lg text-white">×</button>
+                </div>
+              </header>
+
+              <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
+                <section className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+                  <Metric label="Compras" value={String(selected.metrics.purchaseCount)} />
+                  <Metric label="Ticket promedio" value={money(selected.metrics.averageTicket)} />
+                  <Metric label="Total comprado" value={money(selected.metrics.totalSpent)} />
+                  <Metric
+                    label="Frecuencia"
+                    value={selected.metrics.frequencyDays ? `Cada ${selected.metrics.frequencyDays} d` : "Sin patrón"}
+                  />
+                </section>
+
+                <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm [font-synthesis:none]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Seguimiento comercial</p>
+                      <h3 className="mt-1 text-lg font-bold tracking-[-0.02em] text-neutral-950">
+                        {customerSignal(selected.metrics).label}
+                      </h3>
+                    </div>
+                    <span className={`rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.06em] ${customerSignal(selected.metrics).tone}`}>
+                      {selected.metrics.purchaseCount} compras
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-xl bg-[#faf9f7] p-3">
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Primera compra</span>
+                      <b className="mt-1 block text-[12px] text-neutral-800">{shortDate(selected.metrics.firstOrderAt)}</b>
+                    </div>
+                    <div className="rounded-xl bg-[#faf9f7] p-3">
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
+                      <b className="mt-1 block text-[12px] text-neutral-800">{shortDate(selected.metrics.lastOrderAt)}</b>
+                    </div>
+                    <div className="rounded-xl bg-[#faf9f7] p-3">
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Sin comprar</span>
+                      <b className="mt-1 block text-[12px] text-neutral-800">
+                        {daysSince(selected.metrics.lastOrderAt) === null ? "—" : `${daysSince(selected.metrics.lastOrderAt)} días`}
+                      </b>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Datos del cliente</p>
+                      <h3 className="mt-1 text-base font-bold">Contacto y entrega</h3>
+                    </div>
+                    <button onClick={() => openEdit(selected)} className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[10px] font-bold text-neutral-700 shadow-sm">
+                      Editar
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl bg-[#faf9f7] p-3 text-[11px] text-neutral-600">
+                      <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Teléfono</span>
+                      <b className="mt-1 block text-[12px] text-neutral-850">{selected.countryCode} {selected.phone || "Sin teléfono"}</b>
+                    </div>
+                    <div className="rounded-xl bg-[#faf9f7] p-3 text-[11px] text-neutral-600">
+                      <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Correo</span>
+                      <b className="mt-1 block truncate text-[12px] text-neutral-850">{selected.email || "Sin correo"}</b>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 space-y-2">
+                    {selected.addresses.length > 0 ? selected.addresses.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <b className="text-[11px] text-neutral-850">{item.address}</b>
+                          {item.isDefault && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[7px] font-bold uppercase text-neutral-500">Principal</span>}
+                        </div>
+                        {(item.neighborhood || item.city) && <p className="mt-1 text-[10px] text-neutral-500">{[item.neighborhood, item.city].filter(Boolean).join(" · ")}</p>}
+                      </div>
+                    )) : (
+                      <div className="rounded-xl border border-dashed border-neutral-200 px-3 py-3 text-[11px] text-neutral-400">Sin dirección registrada.</div>
+                    )}
+                  </div>
+
+                  {selected.notes && (
+                    <div className="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5">
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-amber-600">Nota</span>
+                      <p className="mt-1 text-[11px] leading-4 text-amber-900">{selected.notes}</p>
+                    </div>
+                  )}
+                </section>
+
+                <section className="mt-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Historial</p>
+                      <h3 className="mt-0.5 text-base font-bold">Pedidos del cliente</h3>
+                    </div>
+                    <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-bold text-neutral-600">{selected.orders.length}</span>
+                  </div>
+
+                  {selected.orders.length === 0 ? (
+                    <p className="p-5 text-sm text-neutral-400">Este cliente todavía no tiene compras registradas.</p>
+                  ) : (
+                    <div className="divide-y divide-neutral-100">
+                      {selected.orders.map((order) => (
+                        <div key={order.id} className="p-4 [font-synthesis:none]">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <b className="text-[13px] text-neutral-950">{orderCode(order.sequenceNumber ?? order.id, order.source)}</b>
+                                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[8px] font-semibold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
+                                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[8px] font-semibold uppercase text-neutral-600">{statusLabel(order.status)}</span>
+                              </div>
+                              <p className="mt-1 text-[10px] text-neutral-400">{dateTime(order.createdAt)}</p>
+                            </div>
+                            <b className="shrink-0 text-[14px] font-bold tabular-nums text-neutral-900">{money(order.total)}</b>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-[10.5px] leading-4 text-neutral-500">
+                            {order.items.map((item) => `${item.quantity}× ${item.productName}`).join(" · ")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {editing && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/65 p-4">
+            <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[30px] bg-white shadow-2xl ring-1 ring-black/5">
+              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-5 md:px-7">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cliente #{editing.id}</p>
                   <h2 className="mt-0.5 text-2xl font-black">Editar cliente</h2>
-                  <p className="mt-0.5 text-xs text-neutral-500">Actualiza sus datos sin perder el historial de pedidos.</p>
+                  <p className="mt-0.5 text-xs text-neutral-500">Actualiza sus datos sin perder el historial.</p>
                 </div>
+                <button onClick={closeEdit} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
               </div>
-              <button onClick={closeEdit} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
+
+              <form onSubmit={saveCustomer}>
+                <div className="space-y-4 px-6 py-5 md:px-7">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-black">Nombre <span className="text-[var(--brand-red)]">*</span></label>
+                    <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre del cliente" />
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[110px_1fr]">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-black">Indicativo</label>
+                      <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input w-full rounded-2xl px-3 py-3">
+                        <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-black">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
+                      <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Número de teléfono" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-[#faf9f7] p-3">
+                    <label className="mb-1.5 block text-xs font-black">Dirección <span className="font-medium text-neutral-400">(opcional)</span></label>
+                    <input value={address} onChange={(e) => setAddress(e.target.value)} className="alento-input w-full rounded-xl bg-white px-4 py-3" placeholder="Ej. Av. Calle 43 Sur #79A-33" />
+                    <p className="mt-1.5 text-[10px] text-neutral-500">Se guardará como dirección principal.</p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-black">Correo <span className="font-medium text-neutral-400">(opcional)</span></label>
+                    <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="correo@ejemplo.com" />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-black">Notas <span className="font-medium text-neutral-400">(opcional)</span></label>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="alento-input w-full resize-none rounded-2xl px-4 py-3" placeholder="Información útil del cliente" />
+                  </div>
+
+                  {message && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>}
+                </div>
+
+                <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:justify-end md:px-7">
+                  <button type="button" onClick={closeEdit} className="rounded-2xl border bg-white px-5 py-3 text-sm font-black">Cancelar</button>
+                  <button type="submit" disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar cambios"}</button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={saveCustomer}>
-              <div className="space-y-4 px-6 py-5 md:px-7">
-                <div>
-                  <label className="mb-1.5 block text-xs font-black">Nombre <span className="text-[var(--brand-red)]">*</span></label>
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre del cliente" />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-[110px_1fr]">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-black">Indicativo</label>
-                    <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input w-full rounded-2xl px-3 py-3">
-                      <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-xs font-black">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
-                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Número de teléfono" />
-                  </div>
-                </div>
-
-                <div className="rounded-2xl bg-[#faf9f7] p-3">
-                  <div className="mb-1.5 flex items-center justify-between gap-3">
-                    <label className="text-xs font-black">Dirección <span className="font-medium text-neutral-400">(opcional)</span></label>
-                    {!editing.addresses?.[0]?.address && <span className="rounded-full bg-neutral-200 px-2 py-1 text-[9px] font-black uppercase text-neutral-600">Sin registrar</span>}
-                  </div>
-                  <input value={address} onChange={(e) => setAddress(e.target.value)} className="alento-input w-full rounded-xl bg-white px-4 py-3" placeholder="Ej. Av. Calle 43 Sur #79A-33" />
-                  <p className="mt-1.5 text-[10px] text-neutral-500">Se guardará como dirección principal del cliente.</p>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-black">Correo <span className="font-medium text-neutral-400">(opcional)</span></label>
-                  <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="correo@ejemplo.com" />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-black">Notas <span className="font-medium text-neutral-400">(opcional)</span></label>
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="alento-input w-full resize-none rounded-2xl px-4 py-3" placeholder="Información útil del cliente" />
-                </div>
-
-                {message && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>}
-              </div>
-
-              <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:justify-end md:px-7">
-                <button type="button" onClick={closeEdit} className="rounded-2xl border bg-white px-5 py-3 text-sm font-black">Cancelar</button>
-                <button type="submit" disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar cambios"}</button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
