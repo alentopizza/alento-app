@@ -494,7 +494,7 @@ export default function MenuPage() {
 
         <section className="space-y-3">
           <div className="alento-card rounded-[22px] p-2.5">
-            <div className="flex gap-2 overflow-x-auto pb-0.5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
               {data?.categories.map((category) => {
                 const active = activeCategory?.id === category.id;
                 return (
@@ -506,10 +506,10 @@ export default function MenuPage() {
                       setQuery("");
                       setNotice("");
                     }}
-                    className={`flex shrink-0 items-center gap-2 rounded-xl border px-4 py-2.5 text-left transition ${active ? "border-black bg-black text-white shadow-[0_6px_14px_rgba(0,0,0,.12)]" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"}`}
+                    className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-left transition ${active ? "border-black bg-black text-white shadow-[0_6px_14px_rgba(0,0,0,.12)]" : "border-neutral-200 bg-white text-neutral-800 hover:border-neutral-300 hover:bg-neutral-50"}`}
                   >
-                    <span className="text-[12px] font-black">{category.name}</span>
-                    <span className={`inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-1 text-[9px] font-bold tabular-nums ${active ? "bg-white/12 text-white/80" : "bg-neutral-100 text-neutral-500"}`}>
+                    <span className="truncate text-[14px] font-bold leading-5">{category.name}</span>
+                    <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold leading-none tabular-nums ${active ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-600"}`}>
                       {category.products.length}
                     </span>
                   </button>
@@ -569,7 +569,7 @@ export default function MenuPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {visibleProducts.map((product) => (
                 <article
                   key={product.id}
@@ -641,16 +641,11 @@ export default function MenuPage() {
                     </div>
                   </div>
 
-                  <div className="p-3.5">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-400">{product.type}</p>
-                    <h3 className="mt-1 truncate text-[15px] font-black leading-tight text-neutral-950">{product.name}</h3>
-                    <p className="mt-1 text-[13px] font-black text-[var(--brand-red)]">{displayProductPrice(product)}</p>
-                    <p className="mt-2 line-clamp-2 min-h-8 text-[11px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
-
-                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
-                      <span className="text-[10px] font-semibold text-neutral-400">Abrir producto</span>
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-100 text-sm font-black text-neutral-500 transition group-hover:bg-black group-hover:text-white">→</span>
-                    </div>
+                  <div className="p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">{product.type}</p>
+                    <h3 className="mt-1 truncate text-[15px] font-black leading-5 text-neutral-950">{product.name}</h3>
+                    <p className="mt-1 text-[13px] font-black leading-5 text-[var(--brand-red)]">{displayProductPrice(product)}</p>
+                    <p className="mt-1.5 line-clamp-2 min-h-8 text-[12px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
                   </div>
                 </article>
               ))}
