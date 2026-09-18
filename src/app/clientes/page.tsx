@@ -157,36 +157,36 @@ function customerSignal(metrics: CustomerMetrics) {
 function customerFilterTone(status: CustomerStatusFilter, active: boolean) {
   if (status === "Nuevo") {
     return active
-      ? { button: "border-sky-600 bg-sky-600 text-white", count: "bg-white text-sky-700" }
-      : { button: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100", count: "border border-sky-200 bg-white text-sky-700" };
+      ? { button: "border-sky-300 bg-sky-50 text-sky-700 shadow-[0_5px_14px_rgba(14,165,233,.12)]", count: "bg-sky-600 text-white" }
+      : { button: "border-sky-100 bg-white text-sky-700 hover:bg-sky-50", count: "border border-sky-100 bg-sky-50 text-sky-700" };
   }
 
   if (status === "Activo") {
     return active
-      ? { button: "border-amber-500 bg-amber-500 text-white", count: "bg-white text-amber-700" }
-      : { button: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100", count: "border border-amber-200 bg-white text-amber-700" };
+      ? { button: "border-amber-300 bg-amber-50 text-amber-700 shadow-[0_5px_14px_rgba(245,158,11,.12)]", count: "bg-amber-500 text-white" }
+      : { button: "border-amber-100 bg-white text-amber-700 hover:bg-amber-50", count: "border border-amber-100 bg-amber-50 text-amber-700" };
   }
 
   if (status === "Frecuente") {
     return active
-      ? { button: "border-emerald-600 bg-emerald-600 text-white", count: "bg-white text-emerald-700" }
-      : { button: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100", count: "border border-emerald-200 bg-white text-emerald-700" };
+      ? { button: "border-emerald-300 bg-emerald-50 text-emerald-700 shadow-[0_5px_14px_rgba(16,185,129,.12)]", count: "bg-emerald-600 text-white" }
+      : { button: "border-emerald-100 bg-white text-emerald-700 hover:bg-emerald-50", count: "border border-emerald-100 bg-emerald-50 text-emerald-700" };
   }
 
   if (status === "Por recuperar") {
     return active
-      ? { button: "border-rose-600 bg-rose-600 text-white", count: "bg-white text-rose-700" }
-      : { button: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100", count: "border border-rose-200 bg-white text-rose-700" };
+      ? { button: "border-rose-300 bg-rose-50 text-rose-700 shadow-[0_5px_14px_rgba(244,63,94,.12)]", count: "bg-rose-600 text-white" }
+      : { button: "border-rose-100 bg-white text-rose-700 hover:bg-rose-50", count: "border border-rose-100 bg-rose-50 text-rose-700" };
   }
 
   if (status === "Sin compras") {
     return active
-      ? { button: "border-violet-600 bg-violet-600 text-white", count: "bg-white text-violet-700" }
-      : { button: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100", count: "border border-violet-200 bg-white text-violet-700" };
+      ? { button: "border-violet-300 bg-violet-50 text-violet-700 shadow-[0_5px_14px_rgba(139,92,246,.12)]", count: "bg-violet-600 text-white" }
+      : { button: "border-violet-100 bg-white text-violet-700 hover:bg-violet-50", count: "border border-violet-100 bg-violet-50 text-violet-700" };
   }
 
   return active
-    ? { button: "border-neutral-950 bg-neutral-950 text-white", count: "bg-white text-neutral-950" }
+    ? { button: "border-neutral-300 bg-neutral-950 text-white shadow-[0_5px_14px_rgba(23,23,23,.11)]", count: "bg-white text-neutral-950" }
     : { button: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50", count: "border border-neutral-200 bg-neutral-100 text-neutral-700" };
 }
 
@@ -596,7 +596,7 @@ export default function CustomersPage() {
             />
           </div>
 
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+          <div className="mt-2 flex flex-wrap gap-1.5 pb-0.5">
             {([
               ["ALL", "Todos", customers.length],
               ["Nuevo", "Nuevo", statusCounts.Nuevo],
@@ -612,10 +612,10 @@ export default function CustomersPage() {
                   key={value}
                   type="button"
                   onClick={() => setStatusFilter(value)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.035em] shadow-sm transition ${tone.button}`}
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.025em] transition ${tone.button}`}
                 >
                   <span>{label}</span>
-                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[10px] font-bold leading-none tabular-nums shadow-sm ${tone.count}`}>
+                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-[3px] text-[9px] font-bold leading-none tabular-nums ${tone.count}`}>
                     {count}
                   </span>
                 </button>
