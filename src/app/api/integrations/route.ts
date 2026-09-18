@@ -12,6 +12,8 @@ type ProviderSettings = {
   autoAccept: boolean;
   status: IntegrationStatus;
   connectedAt: string | null;
+  commissionEstimatePercent: number;
+  commissionTaxEstimatePercent: number;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -23,6 +25,8 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     autoAccept: false,
     status: "NOT_CONFIGURED",
     connectedAt: null,
+    commissionEstimatePercent: 0,
+    commissionTaxEstimatePercent: 0,
   },
   DIDI: {
     enabled: false,
@@ -30,6 +34,8 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     autoAccept: false,
     status: "NOT_CONFIGURED",
     connectedAt: null,
+    commissionEstimatePercent: 0,
+    commissionTaxEstimatePercent: 0,
   },
 };
 
@@ -46,6 +52,8 @@ function normalizeProvider(value: unknown, fallback: ProviderSettings): Provider
       : enabled
         ? "PENDING"
         : "NOT_CONFIGURED";
+  const commissionEstimatePercent = Math.min(100, Math.max(0, Number(raw.commissionEstimatePercent ?? 0) || 0));
+  const commissionTaxEstimatePercent = Math.min(100, Math.max(0, Number(raw.commissionTaxEstimatePercent ?? 0) || 0));
 
   return {
     enabled,
@@ -53,6 +61,8 @@ function normalizeProvider(value: unknown, fallback: ProviderSettings): Provider
     autoAccept,
     status,
     connectedAt: status === "ACTIVE" && typeof raw.connectedAt === "string" ? raw.connectedAt : null,
+    commissionEstimatePercent,
+    commissionTaxEstimatePercent,
   };
 }
 
