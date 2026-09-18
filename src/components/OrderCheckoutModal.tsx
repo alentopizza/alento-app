@@ -13,7 +13,7 @@ type CouponType = "FIXED" | "PERCENTAGE";
 
 type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
-type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown };
+type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown; notes?: string };
 type DeliveryBand = { id: string; name: string; minMeters: number; maxMeters: number; fee: number; active: boolean };
 type PaymentMethodSetting = { id: string; name: string; active: boolean };
 type PosSettings = { store: { address: string; mapsUrl: string }; deliveryBands: DeliveryBand[]; paymentMethods: PaymentMethodSetting[] };
@@ -160,6 +160,13 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
         <p className="checkout-product-standard">{item.detail}</p>
       )}
 
+      {item.notes && (
+        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+          <span className="block text-[9px] font-black uppercase tracking-[0.08em] text-amber-600">Nota cocina</span>
+          <b className="mt-0.5 block text-[11px] leading-4 text-amber-900">{item.notes}</b>
+        </div>
+      )}
+
       {excluded && <span className="checkout-product-excluded">No acumula cupón</span>}
     </article>
   );
@@ -304,6 +311,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
             unitPrice: item.unitPrice,
             quantity: item.quantity,
             configuration: item.configuration,
+            notes: item.notes ?? null,
           })),
         }),
       });
