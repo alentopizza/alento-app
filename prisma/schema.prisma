@@ -32,7 +32,19 @@ enum OrderSource {
   INSTAGRAM
   FACEBOOK
   WEB
+  RAPPI
+  DIDI
   OTHER
+}
+
+enum MarketplaceProvider {
+  RAPPI
+  DIDI
+}
+
+enum MarketplaceFinancialStatus {
+  ESTIMATED
+  CONFIRMED
 }
 
 enum PaymentStatus {
@@ -286,6 +298,7 @@ model Order {
   coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items            OrderItem[]
   payments         Payment[]
+  marketplaceOrder MarketplaceOrder?
 
   @@index([customerId])
   @@index([addressId])
@@ -332,6 +345,31 @@ model Payment {
 
   @@index([orderId])
   @@index([status, paidAt])
+}
+
+model MarketplaceOrder {
+  id                  Int                        @id @default(autoincrement())
+  orderId             Int                        @unique
+  provider            MarketplaceProvider
+  externalOrderId     String
+  externalStoreId     String?
+  grossAmount         Decimal                    @default(0) @db.Decimal(12, 2)
+  commissionAmount    Decimal                    @default(0) @db.Decimal(12, 2)
+  commissionTaxAmount Decimal                    @default(0) @db.Decimal(12, 2)
+  adjustmentsAmount   Decimal                    @default(0) @db.Decimal(12, 2)
+  netReceivable       Decimal                    @default(0) @db.Decimal(12, 2)
+  financialStatus     MarketplaceFinancialStatus @default(ESTIMATED)
+  receivedAt          DateTime                   @default(now())
+  reconciledAt        DateTime?
+  rawOrder            Json?
+  rawFinancial        Json?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  order               Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalOrderId])
+  @@index([provider, externalStoreId])
+  @@index([financialStatus])
 }
 
 model AppSetting {
