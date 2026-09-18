@@ -169,9 +169,11 @@ Actualizar el cliente no elimina ni separa su historial.
 
 ## Eliminación
 
-Un cliente con pedidos asociados no puede eliminarse.
+Un cliente puede eliminarse incluso si tiene pedidos asociados.
 
-Esto protege la trazabilidad de las órdenes.
+Como la relación `Order.customerId` usa `onDelete: SetNull`, los pedidos se conservan y únicamente pierden la asociación al cliente eliminado.
+
+La interfaz muestra una confirmación explícita cuando el cliente tiene historial para dejar claro que los pedidos permanecerán en el sistema.
 
 ## Importar y exportar
 
@@ -236,6 +238,14 @@ Antes de importar se muestra:
 La operación final crea todos los clientes nuevos dentro de una transacción.
 
 El límite actual de archivo es 5 MB.
+
+### Plantilla
+
+El modal de importación ofrece una plantilla descargable:
+
+`template-clientes-alento.csv`
+
+Incluye las columnas esperadas y una fila de ejemplo para reducir errores de formato antes de cargar una base real.
 
 ### Dirección y complemento
 
