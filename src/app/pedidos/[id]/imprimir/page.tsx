@@ -21,7 +21,7 @@ type Order = {
   createdAt: string;
   customer: { name: string; countryCode: string; phone: string | null } | null;
   address: { address: string } | null;
-  items: { id: number; productName: string; quantity: number; unitPrice: number; lineTotal: number; configuration: unknown }[];
+  items: { id: number; productName: string; quantity: number; unitPrice: number; lineTotal: number; configuration: unknown; notes?: string | null }[];
   payments: { id?: number; method: string; amount: number; cashReceived: number | null; changeDue: number | null; status: string; reference?: string | null; paidAt?: string | null }[];
 };
 
@@ -136,6 +136,7 @@ export default function ThermalReceiptPage() {
                 <span>□</span><span>{item.quantity}X {item.productName.toUpperCase()}</span><span>$ {money(item.lineTotal)}</span>
               </div>
               {details.length > 0 && <div className="ml-[22px] mt-1 space-y-0.5">{details.map((detail, index) => <p key={`${detail.label}-${index}`} className="text-[11px] leading-[14px]">- {detail.label.toUpperCase()}: {detail.value.toUpperCase()}</p>)}</div>}
+              {item.notes && <div className="ml-[22px] mt-1 border-[2px] border-black px-2 py-1"><p className="text-[11px] font-black">NOTA COCINA: {item.notes.toUpperCase()}</p></div>}
             </div>;
           })}
         </div>
