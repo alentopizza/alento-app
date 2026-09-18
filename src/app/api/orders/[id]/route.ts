@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
-import { isCurrentOperationalDay } from "@/lib/operationalDate";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -54,9 +53,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (body?.action === "cancel") {
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
-      if (!isCurrentOperationalDay(current.createdAt)) {
-        return NextResponse.json({ error: "Este pedido pertenece a un día operativo anterior y ya no puede cancelarse después del cierre diario." }, { status: 409 });
-      }
       const updated = await prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({ where: { orderId: current.id, status: { not: "REFUNDED" } }, data: { status: "CANCELED" } });
         return tx.order.update({ where: { id: current.id }, data: { status: "CANCELED" } });
