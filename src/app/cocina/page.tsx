@@ -146,7 +146,7 @@ function KitchenItem({
               <div className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
-                  <b className="min-w-0 text-[12px] leading-4 text-amber-950">{item.notes}</b>
+                  <b className="min-w-0 text-[12px] uppercase leading-4 tracking-[0.02em] text-amber-950">{item.notes}</b>
                 </div>
               </div>
             </div>
