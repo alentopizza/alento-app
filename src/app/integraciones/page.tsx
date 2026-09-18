@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type ProviderId = "RAPPI" | "DIDI";
-type IntegrationStatus = "NOT_CONFIGURED" | "PENDING" | "ACTIVE";
+type IntegrationStatus = "NOT_CONFIGURED" | "PENDING" | "ACTIVE" | "ERROR";
 
 type ProviderSettings = {
   enabled: boolean;
@@ -11,8 +11,8 @@ type ProviderSettings = {
   autoAccept: boolean;
   status: IntegrationStatus;
   connectedAt: string | null;
-  commissionEstimatePercent: number;
-  commissionTaxEstimatePercent: number;
+  lastCheckedAt: string | null;
+  lastError: string | null;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -40,7 +40,7 @@ const PROVIDERS: ProviderMeta[] = [
     text: "text-rose-700",
     badge: "bg-rose-100 text-rose-700",
     icon: "R",
-    description: "Recibe pedidos de Rappi y llévalos al mismo flujo de Pedidos y Cocina de Alentó, conservando venta bruta y liquidación neta por separado.",
+    description: "Recibe pedidos de Rappi directamente en Alentó y llévalos al mismo flujo de Pedidos y Cocina con el valor exacto enviado por la plataforma.",
     requirements: [
       "Tienda activa en Rappi Partners.",
       "ID de tienda.",
@@ -67,33 +67,17 @@ const PROVIDERS: ProviderMeta[] = [
 ];
 
 function statusLabel(status: IntegrationStatus) {
-  if (status === "ACTIVE") return "Activa";
+  if (status === "ACTIVE") return "Conectada";
   if (status === "PENDING") return "Pendiente";
-  return "Sin configurar";
+  if (status === "ERROR") return "Error";
+  return "No conectada";
 }
 
 function statusTone(status: IntegrationStatus) {
   if (status === "ACTIVE") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "PENDING") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (status === "ERROR") return "border-red-200 bg-red-50 text-red-700";
   return "border-neutral-200 bg-neutral-100 text-neutral-600";
-}
-
-function money(value: number) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(Math.round(value || 0));
-}
-
-function rappiEstimate(gross: number, commissionPercent: number, commissionTaxPercent: number) {
-  const commission = Math.max(0, gross) * Math.max(0, commissionPercent) / 100;
-  const commissionTax = commission * Math.max(0, commissionTaxPercent) / 100;
-  return {
-    commission,
-    commissionTax,
-    net: Math.max(0, gross - commission - commissionTax),
-  };
 }
 
 export default function IntegrationsPage() {
@@ -101,9 +85,9 @@ export default function IntegrationsPage() {
   const [openProvider, setOpenProvider] = useState<ProviderId | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<ProviderId | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [rappiGrossPreview, setRappiGrossPreview] = useState("50000");
 
   useEffect(() => {
     async function load() {
@@ -150,6 +134,42 @@ export default function IntegrationsPage() {
       setError(err instanceof Error ? err.message : "No fue posible guardar la integración.");
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function connectRappi() {
+    if (!settings) return;
+
+    setConnecting(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const saveResponse = await fetch("/api/integrations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      const saveData = await saveResponse.json();
+      if (!saveResponse.ok) throw new Error(saveData.error || "No fue posible guardar la configuración de Rappi.");
+      setSettings(saveData.settings);
+
+      const response = await fetch("/api/integrations/rappi/connect", {
+        method: "POST",
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      const refresh = await fetch("/api/integrations", { cache: "no-store" });
+      const refreshData = await refresh.json();
+      if (refresh.ok) setSettings(refreshData.settings);
+
+      if (!response.ok) throw new Error(data.error || "No fue posible conectar con Rappi.");
+      setMessage("Rappi conectado correctamente.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible conectar con Rappi.");
+    } finally {
+      setConnecting(false);
     }
   }
 
@@ -230,7 +250,7 @@ export default function IntegrationsPage() {
 
                         <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-3">
                           <b className="block text-[11px] text-sky-900">Qué hará esta integración</b>
-                          <p className="mt-1 text-[10.5px] leading-4 text-sky-800">Los pedidos externos entrarán a Pedidos y Cocina. El objetivo es que el equipo no tenga que operar dos flujos separados.</p>
+                          <p className="mt-1 text-[10.5px] leading-4 text-sky-800">{provider.id === "RAPPI" ? "Cada pedido entrará a Pedidos y Cocina con los productos y el valor exacto recibido desde Rappi. Ese mismo total será el que se muestre en el comprobante de Alentó." : "Los pedidos externos entrarán a Pedidos y Cocina. El objetivo es que el equipo no tenga que operar dos flujos separados."}</p>
                         </div>
 
                         <div className="mt-3 rounded-xl border border-neutral-200 bg-[#fcfbf9] p-3.5">
@@ -276,20 +296,44 @@ export default function IntegrationsPage() {
                         <h3 className="mt-0.5 text-[17px] font-bold text-neutral-950">Ingreso de pedidos</h3>
 
                         <div className="mt-4 space-y-3">
-                          <div className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-[#faf9f7] p-3">
-                            <div>
-                              <b className="block text-[11px] text-neutral-900">Preparar integración</b>
-                              <p className="mt-1 text-[10px] leading-4 text-neutral-500">Activa la configuración local mientras gestionamos el acceso oficial del proveedor.</p>
+                          {provider.id === "RAPPI" ? (
+                            <div className={`rounded-xl border p-3.5 ${providerSettings.status === "ACTIVE" ? "border-emerald-200 bg-emerald-50" : providerSettings.status === "ERROR" ? "border-red-200 bg-red-50" : "border-neutral-200 bg-[#faf9f7]"}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <b className="block text-[11px] text-neutral-900">Estado de conexión</b>
+                                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                    <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.04em] ${statusTone(providerSettings.status)}`}>
+                                      {statusLabel(providerSettings.status)}
+                                    </span>
+                                    {providerSettings.lastCheckedAt && (
+                                      <span className="text-[9px] text-neutral-400">
+                                        Verificado {new Date(providerSettings.lastCheckedAt).toLocaleString("es-CO")}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {providerSettings.lastError && (
+                                    <p className="mt-2 text-[10px] leading-4 text-red-700">{providerSettings.lastError}</p>
+                                  )}
+                                </div>
+                                <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${providerSettings.status === "ACTIVE" ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,.6)]" : providerSettings.status === "ERROR" ? "bg-red-500" : "bg-amber-400"}`} />
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => updateProvider(provider.id, { enabled: !providerSettings.enabled })}
-                              className={`relative h-8 w-14 shrink-0 rounded-full transition ${providerSettings.enabled ? "bg-emerald-500" : "bg-neutral-300"}`}
-                              aria-pressed={providerSettings.enabled}
-                            >
-                              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${providerSettings.enabled ? "left-7" : "left-1"}`} />
-                            </button>
-                          </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-[#faf9f7] p-3">
+                              <div>
+                                <b className="block text-[11px] text-neutral-900">Preparar integración</b>
+                                <p className="mt-1 text-[10px] leading-4 text-neutral-500">Activa la configuración local mientras gestionamos el acceso oficial del proveedor.</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => updateProvider(provider.id, { enabled: !providerSettings.enabled })}
+                                className={`relative h-8 w-14 shrink-0 rounded-full transition ${providerSettings.enabled ? "bg-emerald-500" : "bg-neutral-300"}`}
+                                aria-pressed={providerSettings.enabled}
+                              >
+                                <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${providerSettings.enabled ? "left-7" : "left-1"}`} />
+                              </button>
+                            </div>
+                          )}
 
                           <div>
                             <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.05em] text-neutral-500">ID de tienda / referencia</label>
@@ -301,73 +345,7 @@ export default function IntegrationsPage() {
                             />
                           </div>
 
-                          {provider.id === "RAPPI" && (() => {
-                            const gross = Number(rappiGrossPreview.replace(/\D/g, "")) || 0;
-                            const estimate = rappiEstimate(gross, providerSettings.commissionEstimatePercent, providerSettings.commissionTaxEstimatePercent);
-                            return (
-                              <div className="rounded-xl border border-neutral-200 bg-[#faf9f7] p-3.5">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <b className="block text-[11px] text-neutral-900">Conciliación Rappi</b>
-                                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">Estos porcentajes sirven solo como estimación mientras Rappi no entregue el detalle financiero real por pedido.</p>
-                                  </div>
-                                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[8px] font-bold uppercase text-amber-700">Estimación</span>
-                                </div>
 
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  <label className="block">
-                                    <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Comisión estimada %</span>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={100}
-                                      step="0.01"
-                                      value={providerSettings.commissionEstimatePercent}
-                                      onChange={(event) => updateProvider(provider.id, { commissionEstimatePercent: Number(event.target.value) })}
-                                      className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
-                                    />
-                                  </label>
-                                  <label className="block">
-                                    <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Impuesto sobre comisión %</span>
-                                    <input
-                                      type="number"
-                                      min={0}
-                                      max={100}
-                                      step="0.01"
-                                      value={providerSettings.commissionTaxEstimatePercent}
-                                      onChange={(event) => updateProvider(provider.id, { commissionTaxEstimatePercent: Number(event.target.value) })}
-                                      className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
-                                    />
-                                  </label>
-                                </div>
-
-                                <label className="mt-3 block">
-                                  <span className="mb-1 block text-[9px] font-bold uppercase text-neutral-400">Probar con venta bruta</span>
-                                  <input
-                                    inputMode="numeric"
-                                    value={rappiGrossPreview}
-                                    onChange={(event) => setRappiGrossPreview(event.target.value)}
-                                    className="alento-input w-full rounded-xl px-3 py-2.5 text-sm"
-                                  />
-                                </label>
-
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                  <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                                    <span className="block text-[8px] font-bold uppercase text-neutral-400">Venta bruta</span>
-                                    <b className="mt-1 block text-[15px] text-neutral-950">{money(gross)}</b>
-                                  </div>
-                                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                                    <span className="block text-[8px] font-bold uppercase text-emerald-600">Neto estimado</span>
-                                    <b className="mt-1 block text-[15px] text-emerald-900">{money(estimate.net)}</b>
-                                  </div>
-                                </div>
-                                <div className="mt-2 flex justify-between text-[9px] text-neutral-500">
-                                  <span>Comisión: {money(estimate.commission)}</span>
-                                  <span>Impuesto: {money(estimate.commissionTax)}</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
 
                           <div className="rounded-xl border border-neutral-200 p-3">
                             <b className="block text-[11px] text-neutral-900">Estado de ingreso</b>
@@ -395,17 +373,28 @@ export default function IntegrationsPage() {
 
                           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
                             <b className="block text-[10.5px] text-amber-900">Credenciales protegidas</b>
-                            <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "El usuario y contraseña de Partners no sirven como credenciales de API y no se almacenan aquí. Cuando Rappi habilite Open Orders/Integrations Manager, las credenciales técnicas se configurarán únicamente en servidor." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
+                            <p className="mt-1 text-[10px] leading-4 text-amber-800">{provider.id === "RAPPI" ? "Para conectar directamente, Alentó valida desde servidor el client_id y client_secret de Open Orders. Tu usuario y contraseña de Rappi Partners permanecen únicamente en Rappi." : "Tokens, secretos y firmas no se guardarán en esta pantalla. Se configurarán en servidor cuando tengamos acceso oficial."}</p>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => void saveProvider(provider.id)}
-                            disabled={saving === provider.id}
-                            className="w-full rounded-xl bg-neutral-950 px-4 py-3 text-[11px] font-bold text-white disabled:bg-neutral-300"
-                          >
-                            {saving === provider.id ? "Guardando..." : "Guardar configuración"}
-                          </button>
+                          {provider.id === "RAPPI" ? (
+                            <button
+                              type="button"
+                              onClick={() => void connectRappi()}
+                              disabled={connecting || !providerSettings.storeId.trim()}
+                              className={`w-full rounded-xl px-4 py-3 text-[11px] font-bold text-white disabled:bg-neutral-300 ${providerSettings.status === "ACTIVE" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-neutral-950 hover:bg-neutral-800"}`}
+                            >
+                              {connecting ? "Verificando conexión..." : providerSettings.status === "ACTIVE" ? "Verificar conexión Rappi" : "Conectar Rappi"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void saveProvider(provider.id)}
+                              disabled={saving === provider.id}
+                              className="w-full rounded-xl bg-neutral-950 px-4 py-3 text-[11px] font-bold text-white disabled:bg-neutral-300"
+                            >
+                              {saving === provider.id ? "Guardando..." : "Guardar configuración"}
+                            </button>
+                          )}
                         </div>
                       </section>
                     </div>
