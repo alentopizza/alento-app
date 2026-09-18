@@ -51,7 +51,7 @@ Los productos pueden agregarse antes de seleccionar cliente o modalidad. Las val
 
 `OrderItem.configuration` es la fuente estructurada de lo vendido.
 
-Pizzas conservan IDs y snapshots de tamaño, sabor/sabores, porciones, borde y modificadores. Combos conservan producto combo, reglas, tamaños/sabores, grupos, opciones, cantidades, precios snapshot, `priceDelta` y descuento propio.
+Pizzas conservan IDs y snapshots de tamaño, sabor/sabores, porciones, borde y modificadores. Además, `OrderItem.notes` puede guardar una observación operativa corta por pizza (máximo 120 caracteres), por ejemplo `Ligera en salsa`; esta nota se conserva al editar el producto y se resalta en Cocina. Combos conservan producto combo, reglas, tamaños/sabores, grupos, opciones, cantidades, precios snapshot, `priceDelta` y descuento propio.
 
 Esto es requisito crítico para Cocina, inventario, recetas y costos futuros. Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
