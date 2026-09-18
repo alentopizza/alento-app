@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 const SETTINGS_KEY = "integrations_settings";
 
 type ProviderId = "RAPPI" | "DIDI";
-type IntegrationStatus = "NOT_CONFIGURED" | "PENDING" | "ACTIVE";
+type IntegrationStatus = "NOT_CONFIGURED" | "PENDING" | "ACTIVE" | "ERROR";
 
 type ProviderSettings = {
   enabled: boolean;
@@ -49,9 +49,11 @@ function normalizeProvider(value: unknown, fallback: ProviderSettings): Provider
   const status: IntegrationStatus =
     raw.status === "ACTIVE"
       ? "ACTIVE"
-      : enabled
-        ? "PENDING"
-        : "NOT_CONFIGURED";
+      : raw.status === "ERROR"
+        ? "ERROR"
+        : enabled
+          ? "PENDING"
+          : "NOT_CONFIGURED";
   return {
     enabled,
     storeId,
