@@ -3,6 +3,18 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
+    const savedSettings = await prisma.appSetting.findUnique({ where: { key: "pos_settings" } });
+    const settings = savedSettings?.value && typeof savedSettings.value === "object"
+      ? savedSettings.value as { customerManagement?: { bulkDeleteEnabled?: boolean } }
+      : null;
+
+    if (settings?.customerManagement?.bulkDeleteEnabled === false) {
+      return NextResponse.json(
+        { error: "La eliminación masiva de clientes está deshabilitada en Configuración." },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const rawIds: unknown[] = Array.isArray(body?.ids) ? body.ids : [];
     const ids: number[] = [
