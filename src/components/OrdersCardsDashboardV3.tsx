@@ -599,7 +599,7 @@ export default function OrdersCardsDashboardV3() {
                   type="button"
                   onClick={() => { if (!fullyPaid) void openPayment(order); }}
                   disabled={fullyPaid}
-                  className={`block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100 ${fullyPaid ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50 hover:border-rose-300 hover:bg-rose-100/60"}`}
+                  className={`order-payment-status ${fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"} block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100`}
                 >
                   <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : "text-rose-700"}`}>
                     {fullyPaid ? "Pagado" : "Pago pendiente"}
