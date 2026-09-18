@@ -4,9 +4,14 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const ids = Array.isArray(body?.ids)
-      ? [...new Set(body.ids.map((value: unknown) => Number(value)).filter((value: number) => Number.isInteger(value) && value > 0))]
-      : [];
+    const rawIds: unknown[] = Array.isArray(body?.ids) ? body.ids : [];
+    const ids: number[] = [
+      ...new Set(
+        rawIds
+          .map((value) => Number(value))
+          .filter((value): value is number => Number.isInteger(value) && value > 0),
+      ),
+    ];
 
     if (ids.length === 0) {
       return NextResponse.json({ error: "Selecciona al menos un cliente." }, { status: 400 });
