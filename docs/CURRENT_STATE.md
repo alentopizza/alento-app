@@ -83,7 +83,7 @@ La fase de Cocina todavía debe validarse con los escenarios definidos en `docs/
 
 ## Pedidos
 
-`/pedidos` usa tarjetas compactas y permite buscar/filtrar, abrir detalle, ver productos, registrar/eliminar pagos, editar modalidad y cantidades, cambiar domicilio, agregar productos simples, imprimir y eliminar pedidos de prueba/corrección autorizada.
+`/pedidos` usa tarjetas compactas y permite buscar/filtrar, abrir detalle, ver productos, registrar/eliminar pagos, editar modalidad y cantidades, cambiar domicilio, actualizar los datos del cliente asociado, reasignar un pedido activo a otro cliente existente, agregar productos simples, imprimir y eliminar pedidos de prueba/corrección autorizada. Al reasignar un pedido de Domicilio se exige una dirección perteneciente al nuevo cliente.
 
 Si una edición agrega o cambia productos después de que el pedido avanzó, el sistema puede devolverlo a `PREPARING` para que Cocina procese correctamente los cambios.
 
