@@ -604,7 +604,7 @@ export default function CustomersPage() {
             />
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-1.5 pb-0.5">
+          <div className="mt-2 grid grid-cols-2 gap-1.5 pb-0.5 sm:grid-cols-3 xl:grid-cols-6">
             {([
               ["ALL", "Todos", customers.length],
               ["Nuevo", "Nuevo", statusCounts.Nuevo],
@@ -620,7 +620,7 @@ export default function CustomersPage() {
                   key={value}
                   type="button"
                   onClick={() => setStatusFilter(value)}
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.025em] transition ${tone.button}`}
+                  className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.025em] transition ${tone.button}`}
                 >
                   <span>{label}</span>
                   <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-[3px] text-[9px] font-bold leading-none tabular-nums ${tone.count}`}>
