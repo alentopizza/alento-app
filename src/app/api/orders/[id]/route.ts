@@ -10,8 +10,8 @@ type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DeliveryBand = { id: string; name?: string; fee: number; active?: boolean };
 type PaymentMethod = { id: string; name: string; active?: boolean };
 type PosSettings = { deliveryBands?: DeliveryBand[]; paymentMethods?: PaymentMethod[] };
-type ExistingLinePatch = { id: number; quantity: number };
-type Addition = { productId: number; quantity: number; configuration?: unknown };
+type ExistingLinePatch = { id: number; quantity: number; notes?: unknown };
+type Addition = { productId: number; quantity: number; configuration?: unknown; notes?: unknown };
 
 function parseSettings(value: Prisma.JsonValue | null): PosSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -134,7 +134,19 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
     const quantityById = new Map<number, number>();
-    for (const patch of patches) { const itemId = Number(patch.id); const quantity = Math.max(0, Math.floor(Number(patch.quantity ?? 0))); if (Number.isInteger(itemId)) quantityById.set(itemId, quantity); }
+    const notesById = new Map<number, string | null>();
+    for (const patch of patches) {
+      const itemId = Number(patch.id);
+      const quantity = Math.max(0, Math.floor(Number(patch.quantity ?? 0)));
+      if (!Number.isInteger(itemId)) continue;
+      quantityById.set(itemId, quantity);
+      if (typeof patch.notes === "string") {
+        const note = patch.notes.trim().slice(0, 120);
+        notesById.set(itemId, note || null);
+      } else if (patch.notes === null) {
+        notesById.set(itemId, null);
+      }
+    }
 
     const additions = Array.isArray(body.additions) ? body.additions as Addition[] : [];
     const activeAdditions = additions
@@ -181,16 +193,36 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const kitchenProductChanges = current.items.some((item) => {
       const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
-      return nextQuantity !== item.quantity && requiresKitchen(item.product?.categoryId);
+      const nextNotes = notesById.has(item.id) ? notesById.get(item.id)! : item.notes;
+      const notesChanged = (nextNotes ?? null) !== (item.notes ?? null);
+      return (nextQuantity !== item.quantity || notesChanged) && requiresKitchen(item.product?.categoryId);
     }) || normalizedAdditions.some((addition) => requiresKitchen(addition.product.categoryId));
 
     await prisma.$transaction(async (tx) => {
       for (const entry of current.items) {
         const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
-        if (quantity <= 0) await tx.orderItem.delete({ where: { id: entry.id } });
-        else if (quantity !== entry.quantity) await tx.orderItem.update({ where: { id: entry.id }, data: { quantity, lineTotal: Number(entry.unitPrice) * quantity, preparedQuantity: Math.min(entry.preparedQuantity, quantity) } });
+        const notes = notesById.has(entry.id) ? notesById.get(entry.id)! : entry.notes;
+        const quantityChanged = quantity !== entry.quantity;
+        const notesChanged = (notes ?? null) !== (entry.notes ?? null);
+        if (quantity <= 0) {
+          await tx.orderItem.delete({ where: { id: entry.id } });
+        } else if (quantityChanged || notesChanged) {
+          await tx.orderItem.update({
+            where: { id: entry.id },
+            data: {
+              quantity,
+              lineTotal: Number(entry.unitPrice) * quantity,
+              notes,
+              preparedQuantity: notesChanged && requiresKitchen(entry.product?.categoryId)
+                ? 0
+                : Math.min(entry.preparedQuantity, quantity),
+            },
+          });
+        }
       }
-      for (const addition of normalizedAdditions) {
+      for (let index = 0; index < normalizedAdditions.length; index += 1) {
+        const addition = normalizedAdditions[index];
+        const rawNote = typeof activeAdditions[index]?.notes === "string" ? activeAdditions[index].notes.trim() : "";
         await tx.orderItem.create({ data: {
           orderId: current.id,
           productId: addition.product.id,
@@ -200,6 +232,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           preparedQuantity: requiresKitchen(addition.product.categoryId) ? 0 : addition.quantity,
           lineTotal: addition.lineTotal,
           configuration: addition.configuration,
+          notes: rawNote ? rawNote.slice(0, 120) : null,
         } });
       }
       await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total, status: kitchenProductChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
