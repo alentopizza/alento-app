@@ -127,3 +127,18 @@ Significa que se intentó aplicar migraciones a una base no vacía sin baseline.
 ### La UI de Configuración falla con tabla inexistente
 
 Ejecutar `npx prisma db push` y reiniciar el servicio si fuera necesario.
+
+
+## Integraciones marketplace
+
+La preparación para Rappi/DiDi agrega enums y el modelo `MarketplaceOrder` a Prisma.
+
+Después de desplegar el código que contiene este schema, ejecutar manualmente:
+
+```bash
+npx prisma db push
+```
+
+Luego reiniciar/redeployar la aplicación si Prisma Client estaba generado antes del cambio.
+
+Las credenciales técnicas de Rappi deben configurarse como variables de entorno únicamente cuando Rappi las entregue. Nunca copiar el usuario/contraseña de Rappi Partners a estas variables.
