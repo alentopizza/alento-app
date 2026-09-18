@@ -292,22 +292,18 @@ export default function KitchenPage() {
                     ))}
                   </div>
 
-                  <div className="border-t border-neutral-100 bg-[#faf9f7] p-3">
-                    {prepared ? (
+                  {prepared && (
+                    <div className="flex justify-end border-t border-neutral-100 bg-[#faf9f7] px-3 py-2">
                       <button
                         type="button"
                         onClick={() => void markReady(order)}
                         disabled={orderBusy}
-                        className="w-full rounded-xl bg-[var(--brand-red)] px-5 py-3 text-[12px] font-bold uppercase tracking-[0.04em] text-white shadow-sm [font-synthesis:none] disabled:opacity-50"
+                        className="inline-flex h-9 items-center justify-center rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-bold uppercase tracking-[0.035em] text-white shadow-sm [font-synthesis:none] transition hover:-translate-y-[1px] disabled:opacity-50"
                       >
                         {orderBusy ? "Actualizando..." : "Marcar como listo"}
                       </button>
-                    ) : (
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-[10.5px] font-semibold leading-4 text-amber-800 [font-synthesis:none]">
-                        Completa todos los productos para pasar el pedido a PREPARADO.
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </article>
               );
             })}
