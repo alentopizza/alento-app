@@ -603,34 +603,35 @@ export default function CustomersPage() {
                   }}
                   className={`group relative cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)] ${selectedCustomerIds.includes(customer.id) ? "border-red-300 ring-2 ring-red-100" : "border-neutral-200 hover:border-neutral-300"} ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
                 >
-                  {bulkMode && (
-                    <div className="absolute right-3 top-3 z-10">
-                      <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-bold shadow-sm ${customer._count.orders > 0 ? "border-neutral-200 bg-neutral-100 text-neutral-400" : selectedCustomerIds.includes(customer.id) ? "border-red-600 bg-red-600 text-white" : "border-neutral-300 bg-white text-neutral-600"}`}>
-                        {customer._count.orders > 0 ? "Bloq." : selectedCustomerIds.includes(customer.id) ? "✓" : ""}
-                      </span>
-                    </div>
-                  )}
                   <div className="p-5 [font-synthesis:none]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-3.5 shadow-[0_6px_18px_rgba(28,23,20,.035)]">
-                        <div className="flex min-w-0 items-center gap-3.5">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-[17px] font-bold text-neutral-900 shadow-sm">
-                            {customer.name.trim().charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h2 className="truncate text-[18px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
-                            <div className="mt-1.5 grid gap-1">
-                              <p className="relative truncate pl-3 text-[12px] font-medium leading-4 text-neutral-500 before:absolute before:left-0 before:top-[6px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
-                                {customer.countryCode} {customer.phone || "Sin teléfono"}
-                              </p>
-                              <p className="relative truncate pl-3 text-[12px] font-medium leading-4 text-neutral-500 before:absolute before:left-0 before:top-[6px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
-                                {customer.addresses?.[0]?.address || "Sin dirección registrada"}
-                              </p>
-                            </div>
+                    <div className={`relative w-full rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4 shadow-[0_6px_18px_rgba(28,23,20,.035)] ${bulkMode ? "pr-44" : "pr-36"}`}>
+                      <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>
+                          {signal.label}
+                        </span>
+                        {bulkMode && (
+                          <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-bold shadow-sm ${customer._count.orders > 0 ? "border-neutral-200 bg-neutral-100 text-neutral-400" : selectedCustomerIds.includes(customer.id) ? "border-red-600 bg-red-600 text-white" : "border-neutral-300 bg-white text-neutral-600"}`}>
+                            {customer._count.orders > 0 ? "Bloq." : selectedCustomerIds.includes(customer.id) ? "✓" : ""}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex min-w-0 items-center gap-3.5">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-[19px] font-bold text-neutral-900 shadow-sm">
+                          {customer.name.trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h2 className="truncate text-[19px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
+                          <div className="mt-2 grid gap-1">
+                            <p className="relative truncate pl-3 text-[13px] font-medium leading-5 text-neutral-500 before:absolute before:left-0 before:top-[8px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
+                              {customer.countryCode} {customer.phone || "Sin teléfono"}
+                            </p>
+                            <p className="relative truncate pl-3 text-[13px] font-medium leading-5 text-neutral-500 before:absolute before:left-0 before:top-[8px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
+                              {customer.addresses?.[0]?.address || "Sin dirección registrada"}
+                            </p>
                           </div>
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>{signal.label}</span>
                     </div>
 
                     <div className="mt-4 grid grid-cols-3 gap-2.5">
