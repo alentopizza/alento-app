@@ -46,6 +46,7 @@ export default function StructuredPosPageV2() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
+  const [productQuery, setProductQuery] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [query, setQuery] = useState("");
@@ -89,6 +90,20 @@ export default function StructuredPosPageV2() {
   }, []);
 
   const selectedCategory = useMemo(() => catalog?.categories.find((category) => category.slug === activeCategory) ?? catalog?.categories[0], [catalog, activeCategory]);
+  const visibleCatalogProducts = useMemo(() => {
+    const value = productQuery.trim().toLocaleLowerCase("es");
+    if (!value) return selectedCategory?.products ?? [];
+
+    const uniqueProducts = new Map<number, CatalogProduct>();
+    for (const category of catalog?.categories ?? []) {
+      for (const product of category.products) {
+        if (uniqueProducts.has(product.id)) continue;
+        const haystack = `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("es");
+        if (haystack.includes(value)) uniqueProducts.set(product.id, product);
+      }
+    }
+    return [...uniqueProducts.values()];
+  }, [catalog, selectedCategory, productQuery]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   const selectedAddress = selectedCustomer?.addresses?.[0];
@@ -412,9 +427,57 @@ export default function StructuredPosPageV2() {
             </header>
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <>
-              <div className="flex gap-2 overflow-x-auto">{catalog?.categories.map((category) => <button key={category.id} onClick={() => setActiveCategory(category.slug)} className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold ${selectedCategory?.slug === category.slug ? "bg-black text-white" : "border bg-white"}`}>{category.name}</button>)}</div>
+              <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5">
+                  {catalog?.categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(category.slug);
+                        setProductQuery("");
+                      }}
+                      className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold transition ${selectedCategory?.slug === category.slug && !productQuery.trim() ? "bg-black text-white" : "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400"}`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="group relative w-full shrink-0 xl:w-[290px]">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-neutral-400 transition group-focus-within:text-neutral-700">⌕</span>
+                  <input
+                    type="search"
+                    value={productQuery}
+                    onChange={(event) => setProductQuery(event.target.value)}
+                    placeholder="Buscar producto..."
+                    className="h-[42px] w-full rounded-full border border-neutral-300 bg-white pl-10 pr-10 text-sm font-medium text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-500 focus:shadow-[0_0_0_3px_rgba(0,0,0,.04)]"
+                    aria-label="Buscar productos"
+                  />
+                  {productQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProductQuery("")}
+                      className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+                      aria-label="Limpiar búsqueda"
+                      title="Limpiar búsqueda"
+                    >
+                      ×
+                    </button>
+                  )}
+                </label>
+              </div>
+
+              {productQuery.trim() && (
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <p className="text-[11px] font-medium text-neutral-500">
+                    {visibleCatalogProducts.length} {visibleCatalogProducts.length === 1 ? "producto encontrado" : "productos encontrados"} para <b className="text-neutral-800">“{productQuery.trim()}”</b>
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                {selectedCategory?.products.map((product) => (
+                {visibleCatalogProducts.map((product) => (
                   <article
                     key={product.id}
                     className="group overflow-hidden rounded-[22px] border border-neutral-200/90 bg-white shadow-[0_10px_26px_rgba(28,23,20,.055)] ring-1 ring-black/[0.015] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.09)]"
@@ -470,6 +533,21 @@ export default function StructuredPosPageV2() {
                   </article>
                 ))}
               </div>
+
+              {visibleCatalogProducts.length === 0 && productQuery.trim() && (
+                <div className="rounded-[22px] border border-dashed border-neutral-300 bg-white/70 px-6 py-10 text-center">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-neutral-100 text-xl text-neutral-500">⌕</div>
+                  <h3 className="mt-3 text-sm font-black text-neutral-900">No encontramos ese producto</h3>
+                  <p className="mt-1 text-xs text-neutral-500">Prueba con otro nombre o limpia la búsqueda para volver al catálogo.</p>
+                  <button
+                    type="button"
+                    onClick={() => setProductQuery("")}
+                    className="mt-3 rounded-xl bg-black px-4 py-2 text-[11px] font-black text-white"
+                  >
+                    Ver catálogo
+                  </button>
+                </div>
+              )}
             </>}
           </div>
 
