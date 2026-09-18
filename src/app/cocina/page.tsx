@@ -89,13 +89,29 @@ function KitchenItem({
       <div className="flex items-start gap-2.5">
         <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[11px] font-bold tabular-nums ${complete ? "bg-emerald-600 text-white" : "bg-black text-white"}`}>{item.quantity}×</span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <b className="block text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
-            {complete && (
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-emerald-700 tabular-nums">
-                {item.preparedQuantity}/{item.quantity} {item.quantity === 1 ? "preparado" : "preparados"}
-              </span>
-            )}
+          <div className="flex items-start justify-between gap-2">
+            <b className="min-w-0 pt-1 text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                aria-label="Restar unidad preparada"
+                disabled={busy || item.preparedQuantity <= 0}
+                onClick={() => onChangePrepared(Math.max(0, item.preparedQuantity - 1))}
+                className="h-7 w-7 rounded-lg border border-neutral-200 bg-white text-sm font-semibold text-neutral-600 disabled:opacity-30"
+              >
+                −
+              </button>
+              <b className="min-w-8 text-center text-[11px] font-semibold tabular-nums text-neutral-900">{item.preparedQuantity}/{item.quantity}</b>
+              <button
+                type="button"
+                aria-label="Agregar unidad preparada"
+                disabled={busy || item.preparedQuantity >= item.quantity}
+                onClick={() => onChangePrepared(Math.min(item.quantity, item.preparedQuantity + 1))}
+                className="h-7 w-7 rounded-lg bg-[var(--brand-red)] text-sm font-semibold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           {otherDetails.length > 0 && (
@@ -123,36 +139,16 @@ function KitchenItem({
             </div>
           )}
 
-          <div className={`mt-2 flex items-center gap-2 border-t border-black/5 pt-2 ${item.notes ? "justify-between" : "justify-end"}`}>
-            {item.notes && (
-              <div className="min-w-0 flex-1 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
+          {item.notes && (
+            <div className="mt-2 border-t border-black/5 pt-2">
+              <div className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
                   <b className="min-w-0 text-[12px] leading-4 text-amber-950">{item.notes}</b>
                 </div>
               </div>
-            )}
-
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                disabled={busy || item.preparedQuantity <= 0}
-                onClick={() => onChangePrepared(Math.max(0, item.preparedQuantity - 1))}
-                className="h-8 w-8 rounded-xl border border-neutral-200 bg-white text-base font-semibold text-neutral-600 disabled:opacity-30"
-              >
-                −
-              </button>
-              <b className="min-w-9 text-center text-xs font-semibold tabular-nums">{item.preparedQuantity}/{item.quantity}</b>
-              <button
-                type="button"
-                disabled={busy || item.preparedQuantity >= item.quantity}
-                onClick={() => onChangePrepared(Math.min(item.quantity, item.preparedQuantity + 1))}
-                className="h-8 w-8 rounded-xl bg-[var(--brand-red)] text-base font-semibold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
-              >
-                +
-              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
