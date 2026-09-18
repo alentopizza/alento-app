@@ -119,10 +119,10 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 [font-synthesis:none]">
-      <span className="block text-[8px] font-semibold uppercase tracking-[0.09em] text-neutral-400">{label}</span>
-      <b className="mt-1 block truncate text-[15px] font-bold leading-none tracking-[-0.015em] text-neutral-950">{value}</b>
-      {hint && <span className="mt-1 block truncate text-[9px] text-neutral-400">{hint}</span>}
+    <div className="min-w-0 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 [font-synthesis:none]">
+      <span className="block text-[9px] font-semibold uppercase tracking-[0.085em] text-neutral-400">{label}</span>
+      <b className="mt-1.5 block truncate text-[17px] font-bold leading-none tracking-[-0.015em] text-neutral-950">{value}</b>
+      {hint && <span className="mt-1.5 block truncate text-[10px] text-neutral-400">{hint}</span>}
     </div>
   );
 }
@@ -175,18 +175,6 @@ export default function CustomersPage() {
         .some((field) => String(field).toLowerCase().includes(value)),
     );
   }, [customers, query]);
-
-  const portfolio = useMemo(() => {
-    const totalSpent = customers.reduce((sum, customer) => sum + Number(customer.metrics?.totalSpent ?? 0), 0);
-    const totalPurchases = customers.reduce((sum, customer) => sum + Number(customer.metrics?.purchaseCount ?? 0), 0);
-    const recoverable = customers.filter((customer) => customerSignal(customer.metrics).label === "Por recuperar").length;
-    return {
-      totalSpent,
-      totalPurchases,
-      averageTicket: totalPurchases > 0 ? totalSpent / totalPurchases : 0,
-      recoverable,
-    };
-  }, [customers]);
 
   async function openCustomer(customer: Customer) {
     setDetailLoading(true);
@@ -277,13 +265,6 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Compras registradas" value={String(portfolio.totalPurchases)} />
-          <Metric label="Venta acumulada" value={money(portfolio.totalSpent)} />
-          <Metric label="Ticket promedio" value={money(portfolio.averageTicket)} />
-          <Metric label="Por recuperar" value={String(portfolio.recoverable)} hint="Según frecuencia histórica" />
-        </section>
-
         <section className="rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-sm">
           <div className="relative">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true">
@@ -307,9 +288,6 @@ export default function CustomersPage() {
           <section className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((customer) => {
               const signal = customerSignal(customer.metrics);
-              const primaryAddress = customer.addresses?.[0]?.address;
-              const inactiveDays = daysSince(customer.metrics.lastOrderAt);
-              const canDelete = customer._count.orders === 0;
 
               return (
                 <article
@@ -322,65 +300,24 @@ export default function CustomersPage() {
                   }}
                   className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)]"
                 >
-                  <div className="p-4 [font-synthesis:none]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-[#faf9f7] text-[15px] font-bold text-neutral-900 shadow-sm">
+                  <div className="p-5 [font-synthesis:none]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3.5">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-[#faf9f7] text-[17px] font-bold text-neutral-900 shadow-sm">
                           {customer.name.trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <h2 className="truncate text-[16px] font-bold leading-5 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
-                          <p className="mt-0.5 truncate text-[11px] text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p>
+                          <h2 className="truncate text-[18px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
+                          <p className="mt-0.5 truncate text-[13px] font-medium text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p>
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>{signal.label}</span>
+                      <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>{signal.label}</span>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="mt-4 grid grid-cols-3 gap-2.5">
                       <Metric label="Compras" value={String(customer.metrics.purchaseCount)} />
-                      <Metric label="Ticket prom." value={money(customer.metrics.averageTicket)} />
-                      <Metric label="Total" value={money(customer.metrics.totalSpent)} />
-                    </div>
-
-                    <div className="mt-3 rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
-                          <b className="mt-0.5 block truncate text-[11px] font-semibold text-neutral-800">{shortDate(customer.metrics.lastOrderAt)}</b>
-                        </div>
-                        {inactiveDays !== null && (
-                          <span className="shrink-0 text-[10px] font-medium text-neutral-400">{inactiveDays === 0 ? "Hoy" : `Hace ${inactiveDays} d`}</span>
-                        )}
-                      </div>
-                      <p className="mt-2 truncate text-[10.5px] text-neutral-500">{primaryAddress || customer.email || "Sin dirección registrada"}</p>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
-                      <span className="text-[10px] font-semibold text-neutral-400">Ver perfil e historial →</span>
-                      <div className="flex gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openEdit(customer);
-                          }}
-                          className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-neutral-700 hover:bg-neutral-50"
-                        >
-                          Editar
-                        </button>
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void deleteCustomer(customer);
-                            }}
-                            className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-[10px] font-semibold text-red-600"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
+                      <Metric label="Ticket promedio" value={money(customer.metrics.averageTicket)} />
+                      <Metric label="Total comprado" value={money(customer.metrics.totalSpent)} />
                     </div>
                   </div>
                 </article>
