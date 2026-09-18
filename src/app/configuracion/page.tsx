@@ -21,6 +21,9 @@ type PosSettings = {
   store: { address: string; mapsUrl: string };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
+  customerManagement: {
+    bulkDeleteEnabled: boolean;
+  };
 };
 
 function formatCOP(value: number) {
@@ -173,6 +176,38 @@ export default function SettingsPage() {
 
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
             <b>Funcionamiento actual:</b> el operador selecciona manualmente la zona/tarifa adecuada. Internamente conservamos los rangos históricos para poder automatizar esta selección con Google Maps en el futuro sin rehacer la estructura.
+          </div>
+        </section>
+
+        <section className="alento-card rounded-[28px] p-5 md:p-6">
+          <div className="mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Clientes</p>
+            <h2 className="mt-1 text-xl font-black">Gestión de clientes</h2>
+            <p className="mt-1 text-sm text-neutral-500">Controla funciones sensibles del módulo de clientes.</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-2xl border bg-[#faf9f7] p-4">
+            <div className="min-w-0">
+              <b className="block text-sm text-neutral-900">Permitir eliminación masiva</b>
+              <p className="mt-1 text-xs leading-5 text-neutral-500">
+                Si está desactivado, la selección múltiple para eliminar clientes no aparecerá y el servidor rechazará cualquier intento de borrado masivo.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSettings({
+                ...settings,
+                customerManagement: {
+                  ...settings.customerManagement,
+                  bulkDeleteEnabled: !settings.customerManagement.bulkDeleteEnabled,
+                },
+              })}
+              className={`relative h-8 w-14 shrink-0 rounded-full transition ${settings.customerManagement.bulkDeleteEnabled ? "bg-emerald-500" : "bg-neutral-300"}`}
+              aria-pressed={settings.customerManagement.bulkDeleteEnabled}
+              aria-label="Permitir eliminación masiva de clientes"
+            >
+              <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${settings.customerManagement.bulkDeleteEnabled ? "left-7" : "left-1"}`} />
+            </button>
           </div>
         </section>
 
