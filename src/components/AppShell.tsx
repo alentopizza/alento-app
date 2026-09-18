@@ -13,7 +13,6 @@ const items = [
   { href: "/menu", label: "Menú", subtitle: "Categorías y productos", icon: "▦" },
   { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%" },
   { href: "/caja", label: "Caja", icon: "$" },
-  { href: "/integraciones", label: "Integraciones", icon: "↔" },
   { href: "/configuracion", label: "Configuración", icon: "⚙" },
 ];
 
