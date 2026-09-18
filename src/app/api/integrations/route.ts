@@ -14,6 +14,9 @@ type ProviderSettings = {
   connectedAt: string | null;
   lastCheckedAt: string | null;
   lastError: string | null;
+  accountLinked: boolean;
+  storeName: string;
+  storeAddress: string;
 };
 
 type IntegrationSettings = Record<ProviderId, ProviderSettings>;
@@ -27,6 +30,9 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     connectedAt: null,
     lastCheckedAt: null,
     lastError: null,
+    accountLinked: false,
+    storeName: "",
+    storeAddress: "",
   },
   DIDI: {
     enabled: false,
@@ -36,6 +42,9 @@ const DEFAULT_SETTINGS: IntegrationSettings = {
     connectedAt: null,
     lastCheckedAt: null,
     lastError: null,
+    accountLinked: false,
+    storeName: "",
+    storeAddress: "",
   },
 };
 
@@ -62,6 +71,9 @@ function normalizeProvider(value: unknown, fallback: ProviderSettings): Provider
     connectedAt: status === "ACTIVE" && typeof raw.connectedAt === "string" ? raw.connectedAt : null,
     lastCheckedAt: typeof raw.lastCheckedAt === "string" ? raw.lastCheckedAt : null,
     lastError: typeof raw.lastError === "string" && raw.lastError.trim() ? raw.lastError.trim().slice(0, 500) : null,
+    accountLinked: raw.accountLinked === true,
+    storeName: typeof raw.storeName === "string" ? raw.storeName.trim().slice(0, 160) : "",
+    storeAddress: typeof raw.storeAddress === "string" ? raw.storeAddress.trim().slice(0, 240) : "",
   };
 }
 
@@ -85,6 +97,8 @@ export async function GET() {
         clientIdConfigured: Boolean(process.env.RAPPI_CLIENT_ID?.trim()),
         clientSecretConfigured: Boolean(process.env.RAPPI_CLIENT_SECRET?.trim()),
         apiBaseUrlConfigured: Boolean(process.env.RAPPI_API_BASE_URL?.trim()),
+        oauthClientConfigured: Boolean(process.env.RAPPI_OAUTH_CLIENT_ID?.trim()),
+        oauthStoresUrlConfigured: Boolean(process.env.RAPPI_OAUTH_STORES_URL?.trim()),
       },
     },
   });
