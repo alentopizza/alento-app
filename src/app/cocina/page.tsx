@@ -26,6 +26,7 @@ type KitchenOrder = {
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
   createdAt: string;
+  customer: { name: string } | null;
   items: KitchenOrderItem[];
 };
 
@@ -74,10 +75,11 @@ function KitchenItem({
     return !label.includes("bebida") && !label.includes("gaseosa");
   });
   const flavorDetails = details.filter((detail) => detail.label.trim().toLowerCase().startsWith("sabor"));
+  const extraDetails = details.filter((detail) => detail.label.trim().toLowerCase() === "extra");
   const normalizedProductName = item.productName.trim().toLocaleLowerCase("es");
   const otherDetails = details.filter((detail) => {
     const label = detail.label.trim().toLowerCase();
-    if (label.startsWith("sabor")) return false;
+    if (label.startsWith("sabor") || label === "extra") return false;
     if (label === "producto" && detail.value.trim().toLocaleLowerCase("es") === normalizedProductName) return false;
     return true;
   });
@@ -120,8 +122,21 @@ function KitchenItem({
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
               {otherDetails.map((detail, index) => (
                 <p key={`${detail.label}-${index}`} className="text-[11.5px] leading-4 text-neutral-800">
-                  <span className="font-bold text-neutral-500">{detail.label}:</span> {detail.value}
+                  <span className="font-semibold text-neutral-500">{detail.label}:</span> {detail.value}
                 </p>
+              ))}
+            </div>
+          )}
+
+          {extraDetails.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {extraDetails.map((detail, index) => (
+                <span
+                  key={`${detail.value}-${index}`}
+                  className="inline-flex min-h-6 items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]"
+                >
+                  + {detail.value}
+                </span>
               ))}
             </div>
           )}
@@ -276,6 +291,11 @@ export default function KitchenPage() {
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
                         <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}</span>
                       </div>
+                      {order.customer?.name && (
+                        <p className="mt-1 truncate text-[11px] font-medium leading-4 tracking-[-0.005em] text-neutral-500 [font-synthesis:none]">
+                          {order.customer.name}
+                        </p>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 tabular-nums ${minutes >= 20 ? "border-red-100 bg-red-50 text-red-700" : minutes >= 10 ? "border-amber-100 bg-amber-50 text-amber-700" : "border-neutral-200 bg-neutral-50 text-neutral-700"}`}>
