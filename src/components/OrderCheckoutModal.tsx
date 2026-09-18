@@ -6,7 +6,6 @@ import type {
   OrderLineConfiguration,
   PizzaOrderConfiguration,
 } from "@/lib/orderConfiguration";
-import { orderCode } from "@/lib/orderCode";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
@@ -326,7 +325,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
         <div className="alento-card w-full max-w-md rounded-[28px] p-6 text-center shadow-2xl">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl">✓</div>
           <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Pedido creado</p>
-          <h2 className="mt-1 text-3xl font-black">{orderCode(createdOrder.id, "POS")}</h2>
+          <h2 className="mt-1 text-3xl font-black">{createdOrder.code}</h2>
           <p className="mt-2 text-sm text-neutral-500">La orden quedó guardada en PostgreSQL y lista para continuar al flujo operativo.</p>
           <div className="mt-5 rounded-2xl bg-[#faf9f7] p-4 text-left text-sm">
             <div className="flex justify-between"><span className="text-neutral-500">Tipo</span><b>{fulfillmentLabel(createdOrder.fulfillmentType)}</b></div>
