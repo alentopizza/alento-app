@@ -483,11 +483,6 @@ export default function StructuredPosPageV2() {
                     className="group overflow-hidden rounded-[22px] border border-neutral-200/90 bg-white shadow-[0_10px_26px_rgba(28,23,20,.055)] ring-1 ring-black/[0.015] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.09)]"
                   >
                     <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-[linear-gradient(145deg,#faf9f7,#f4f2ee)]">
-                      {product.featured && (
-                        <span className="absolute left-3 top-3 z-10 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-neutral-700 shadow-sm backdrop-blur">
-                          Destacado
-                        </span>
-                      )}
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
