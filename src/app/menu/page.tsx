@@ -1060,11 +1060,31 @@ export default function MenuPage() {
       )}
 
       {comboState && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
-          <form onSubmit={saveCombo} className="alento-card max-h-[95vh] w-full max-w-6xl overflow-y-auto rounded-[30px] p-6">
-            <div className="mb-5 flex items-start justify-between gap-4"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">Constructor de combo</p><h2 className="mt-1 text-2xl font-black">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2><p className="mt-1 text-sm text-neutral-500">Define qué tamaños, sabores y productos puede escoger el cliente.</p></div><button type="button" onClick={() => setComboState(null)} className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-bold">Cerrar</button></div>
+        <div
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !savingCombo) setComboState(null);
+          }}
+        >
+          <form onSubmit={saveCombo} className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Constructor de combo</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2>
+                <p className="mt-1 text-[11px] text-neutral-500">Define productos, cantidades, tamaños, sabores y descuento.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !savingCombo && setComboState(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="overflow-y-auto p-5 md:p-6">
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
               <div className="space-y-4">
                 <section className="rounded-[24px] border border-neutral-200 p-4">
                   <h3 className="font-black">Información del combo</h3>
@@ -1099,8 +1119,26 @@ export default function MenuPage() {
               </aside>
             </div>
 
-            {comboError && <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{comboError}</p>}
-            <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setComboState(null)} className="rounded-2xl border border-neutral-200 px-4 py-3 font-bold">Cancelar</button><button type="submit" disabled={savingCombo} className="alento-red-glow rounded-2xl bg-[var(--brand-red)] px-5 py-3 font-black text-white disabled:opacity-50">{savingCombo ? "Guardando..." : comboState.id ? "Guardar combo" : "Crear combo"}</button></div>
+              {comboError && <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-medium text-red-700">{comboError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setComboState(null)}
+                disabled={savingCombo}
+                className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-bold text-neutral-700 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingCombo}
+                className="alento-red-glow h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white disabled:opacity-50"
+              >
+                {savingCombo ? "Guardando..." : comboState.id ? "Guardar combo" : "Crear combo"}
+              </button>
+            </div>
           </form>
         </div>
       )}
