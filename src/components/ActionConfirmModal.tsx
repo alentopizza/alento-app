@@ -60,13 +60,24 @@ export default function ActionConfirmModal({
         aria-modal="true"
         aria-labelledby="action-confirm-title"
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-[430px] overflow-hidden rounded-[24px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.32)]"
+        className="w-full max-w-[460px] overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
       >
-        <div className="bg-[radial-gradient(circle_at_88%_10%,rgba(229,28,17,.18),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-4 text-white">
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/45">{eyebrow}</p>
-          <h3 id="action-confirm-title" className="mt-1 text-[21px] font-bold tracking-[-0.025em]">
-            {title}
-          </h3>
+        <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-5 py-4.5">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-neutral-400">{eyebrow}</p>
+            <h3 id="action-confirm-title" className="mt-1 text-[21px] font-black tracking-[-0.025em] text-neutral-950">
+              {title}
+            </h3>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-lg text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900 disabled:opacity-50"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
         </div>
 
         <div className="p-5">
