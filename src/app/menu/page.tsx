@@ -712,30 +712,29 @@ export default function MenuPage() {
           }}
         >
           <div className="w-full max-w-[980px] overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Administrar producto</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{selectedProduct.name}</h2>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Administrar producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{selectedProduct.name}</h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-600">{selectedProduct.type}</span>
-                  <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${selectedProduct.active ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-neutral-200 bg-neutral-100 text-neutral-600"}`}>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase text-white/80">{selectedProduct.type}</span>
+                  <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${selectedProduct.active ? "border-emerald-400/25 bg-emerald-400/15 text-emerald-200" : "border-white/10 bg-white/10 text-white/55"}`}>
                     {selectedProduct.active ? "Activo" : "Inactivo"}
                   </span>
                   {selectedProduct.visibleInPos && selectedProduct.type !== "MODIFIER" && (
-                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-700">Visible en POS</span>
+                    <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-200">Visible en POS</span>
                   )}
                   {selectedProduct.featured && (
-                    <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[9px] font-bold uppercase text-red-700">Destacado</span>
+                    <span className="rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[9px] font-bold uppercase text-red-200">Destacado</span>
                   )}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedProduct(null)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
-                aria-label="Cerrar"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15"
               >
-                ×
+                Cerrar
               </button>
             </div>
 
@@ -885,21 +884,21 @@ export default function MenuPage() {
             onSubmit={saveProduct}
             className="flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
           >
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Editar producto</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{editor.name}</h2>
-                <span className="mt-2 inline-flex rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-600">
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Editar producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{editor.name}</h2>
+                <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase text-white/75">
                   {editor.type}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => !saving && setEditor(null)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
-                aria-label="Cerrar"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
+                disabled={saving}
               >
-                ×
+                Cerrar
               </button>
             </div>
 
@@ -968,19 +967,19 @@ export default function MenuPage() {
             onSubmit={createProduct}
             className="flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
           >
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Nuevo producto</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">Crear en {activeCategory?.name}</h2>
-                <p className="mt-1 text-[11px] text-neutral-500">Completa la información básica para agregarlo al catálogo.</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Nuevo producto</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">Crear en {activeCategory?.name}</h2>
+                <p className="mt-1 text-[11px] text-white/55">Completa la información básica para agregarlo al catálogo.</p>
               </div>
               <button
                 type="button"
                 onClick={() => !creating && setCreateState(null)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
-                aria-label="Cerrar"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
+                disabled={creating}
               >
-                ×
+                Cerrar
               </button>
             </div>
 
@@ -1067,19 +1066,19 @@ export default function MenuPage() {
           }}
         >
           <form onSubmit={saveCombo} className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
-            <div className="flex items-start justify-between gap-4 border-b border-neutral-100 bg-[linear-gradient(135deg,#ffffff,#faf8f5)] px-6 py-5">
+            <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-400">Constructor de combo</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-neutral-950">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2>
-                <p className="mt-1 text-[11px] text-neutral-500">Define productos, cantidades, tamaños, sabores y descuento.</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Constructor de combo</p>
+                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2>
+                <p className="mt-1 text-[11px] text-white/55">Define productos, cantidades, tamaños, sabores y descuento.</p>
               </div>
               <button
                 type="button"
                 onClick={() => !savingCombo && setComboState(null)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-xl text-neutral-500 transition hover:bg-neutral-200 hover:text-neutral-900"
-                aria-label="Cerrar"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
+                disabled={savingCombo}
               >
-                ×
+                Cerrar
               </button>
             </div>
 
