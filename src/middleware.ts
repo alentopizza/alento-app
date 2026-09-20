@@ -36,6 +36,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
     if (pathname.endsWith("/payment") || /\/payment\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER"];
     if (pathname.endsWith("/edit")) return ["ADMIN", "POS"];
     if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN", "DISPATCH"];
+    if (/^\/api\/orders\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER", "DISPATCH", "KITCHEN"];
     if (method === "GET") return ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
     return ["ADMIN", "POS"];
   }
