@@ -22,15 +22,8 @@ export async function POST(request: NextRequest) {
         { phone: phoneE164.replace(/^\+/, "") },
       ],
     },
-    select: { id: true, phone: true, countryCode: true },
+    select: { id: true, name: true, phone: true, countryCode: true },
   });
-
-  if (!customer) {
-    return NextResponse.json({
-      error: "No encontramos un cliente registrado con ese número. Puedes seguir navegando como invitado.",
-      code: "CUSTOMER_NOT_FOUND",
-    }, { status: 404 });
-  }
 
   const latest = await prisma.customerAuthCode.findFirst({
     where: { phoneE164, consumedAt: null },
@@ -51,7 +44,7 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    await sendCustomerOtpWhatsApp(phoneE164, code);
+    await sendCustomerOtpWhatsApp(phoneE164, code, customer?.name?.trim() || "NUEVO");
   } catch (error) {
     console.error("Customer OTP send failed", error);
     await prisma.customerAuthCode.delete({ where: { id: authCode.id } }).catch(() => undefined);
