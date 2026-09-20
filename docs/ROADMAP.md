@@ -6,194 +6,168 @@
 Punto de venta        ✅ CERRADO
 Pedidos               ✅ CERRADO
 Cocina                ✅ CERRADO
-Clientes              ✅ CERRADO POR AHORA
-Menú                  ▶ SIGUIENTE FASE
+Clientes              ✅ CERRADO
+Menú                  ✅ CERRADO
+Autenticación/Roles   ⏳ PENDIENTE ESTRATÉGICO
+Caja avanzada         ⏳ PENDIENTE
+Inventario/Costos     ⏳ FUTURO
+Experiencia pública   ⏳ FUTURO
 Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
-Los módulos cerrados siguen sujetos a corrección de bugs, pero no deben reabrirse como fase de diseño salvo decisión explícita.
+Los módulos cerrados pueden recibir correcciones de bugs y pequeños ajustes de UX, pero no deben reabrirse como fase de diseño sin una solicitud explícita.
 
 ---
 
 # Fase completada — Punto de venta
 
-Estado: **CERRADO**
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Referencia canónica: `docs/POS.md`.
+Referencia: `docs/POS.md`.
 
-Incluye:
-
-- modalidades;
-- clientes;
-- catálogo;
-- pizzas;
-- dos sabores;
-- bordes;
-- extras;
-- combos;
-- carrito;
-- notas por pizza;
-- checkout;
-- pagos previstos;
-- creación real del pedido;
-- consecutivo global;
-- recalculo server-side.
+Incluye modalidades, clientes, catálogo, búsqueda, pizzas, dos sabores, tamaños, bordes, extras donde aplican, combos, carrito, notas, checkout, intención de pago, creación real del pedido, consecutivo global y recálculo server-side.
 
 ---
 
 # Fase completada — Pedidos
 
-Estado: **CERRADO**
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Referencia canónica: `docs/ORDERS.md`.
+Referencia: `docs/ORDERS.md`.
 
-Incluye:
-
-- tarjetas operativas;
-- búsqueda/filtros;
-- drawer;
-- edición;
-- cambio de cliente;
-- configuración estructurada;
-- notas;
-- pagos;
-- saldo;
-- impresión;
-- cancelación;
-- eliminación;
-- estados posteriores a Cocina.
+Incluye tarjetas, búsqueda/filtros, drawer, edición estructurada, cliente, notas, pagos, saldo, impresión, cancelación, eliminación y estados posteriores a Cocina.
 
 ---
 
 # Fase completada — Cocina
 
-Estado: **CERRADO**
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Referencia canónica: `docs/KITCHEN.md`.
+Referencia: `docs/KITCHEN.md`.
 
-Incluye:
-
-- cola real;
-- 3 pedidos por fila;
-- prioridad pizzas → antojos;
-- bebidas excluidas;
-- preparación por cantidades;
-- auto `PREPARED`;
-- acción `READY`;
-- cronómetro;
-- cliente;
-- chips de tamaño/borde/sabores/extras;
-- notas visibles;
-- UI optimizada para lectura a distancia.
+Incluye cola real, prioridad de preparación, bebidas excluidas, preparación por cantidades, auto `PREPARED`, acción `READY`, cronómetro, cliente, configuración legible y notas.
 
 ---
- 
+
 # Fase completada — Clientes
 
-Estado: **CERRADO POR AHORA**
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Referencia canónica: `docs/CUSTOMERS.md`.
+Referencia: `docs/CUSTOMERS.md`.
+
+Incluye búsqueda, clasificación comercial, métricas, perfil, historial, impresión, importación/exportación CSV, edición, eliminación individual y eliminación masiva configurable.
+
+---
+
+# Fase completada — Menú
+
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
+
+Referencia: `docs/MENU.md`.
 
 Incluye:
 
-- búsqueda y filtros;
-- estados comerciales;
-- métricas de compra;
-- perfil detallado;
-- historial estructurado;
-- impresión de copias;
-- importación/exportación CSV;
-- edición/eliminación;
-- eliminación masiva configurable.
+- categorías administrables;
+- drag & drop de categorías;
+- nombres editables sin cambiar slugs;
+- categorías personalizadas;
+- eliminación segura;
+- productos;
+- búsqueda;
+- tarjetas visuales;
+- drag & drop de productos;
+- Destacados con orden independiente;
+- Activo / Visible en POS / Destacado;
+- edición visual;
+- eliminación protegida;
+- combos configurables;
+- sincronización con POS.
+
+## Backlog futuro de Menú
+
+No forma parte del cierre actual:
+
+1. **Tipos de producto**
+   - convertir comportamiento rígido del enum actual en una capa más configurable;
+   - definir capacidades por tipo: Cocina, tamaño, borde, sabores, modificadores, precio, combos.
+
+2. **Modificadores**
+   - grupos de modificadores;
+   - mínimos/máximos;
+   - disponibilidad por producto/categoría/tamaño;
+   - reglas e incompatibilidades;
+   - modificadores por mitad para pizzas de dos sabores.
+
+No implementar estas mejoras como parche. Requieren diseño estructural porque afectan POS, Cocina, normalización de pedidos e inventario futuro.
 
 ---
 
-# Fase siguiente — Menú
+# Autenticación y Roles
 
-Estado: **SIGUIENTE FASE DE TRABAJO**
+Estado: **PENDIENTE ESTRATÉGICO**
 
-Objetivo: revisar y cerrar el módulo administrativo de catálogo/menú. Las integraciones externas quedan pospuestas hasta la última fase del desarrollo.
+Documento: `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
----
+Antes de exponer el sistema interno en el dominio principal se debe resolver autenticación y autorización en servidor.
 
-# Fase activa — Autenticación y Roles
+Roles iniciales propuestos:
 
-Estado: **SIGUIENTE FASE APROBADA**
+- `ADMIN`;
+- `POS`;
+- `KITCHEN`;
+- `CASHIER`;
+- `DISPATCH`.
 
-Documento de diseño:
-
-`docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-
-Orden recomendado:
-
-1. agregar `User` y `UserRole` a Prisma;
-2. definir solución de autenticación;
-3. hash seguro de contraseñas;
-4. login;
-5. logout;
-6. sesión segura;
-7. proteger una ruta piloto;
-8. proteger todas las páginas internas;
-9. proteger APIs internas;
-10. autorización por rol en servidor;
-11. adaptar navegación;
-12. administración de usuarios;
-13. desactivación de usuarios;
-14. documentar despliegue y variables;
-15. probar accesos permitidos/denegados.
-
-Roles iniciales:
-
-- `ADMIN`
-- `POS`
-- `KITCHEN`
-- `CASHIER`
-- `DISPATCH`
-
-`Customer` y `User` deben seguir siendo entidades distintas.
+`Customer` y el futuro `User` deben permanecer como entidades distintas.
 
 ---
 
-# Fases posteriores
+# Fases posteriores conocidas
 
-Después de autenticación:
-
-- cierre de Caja y conciliación;
-- devoluciones/reembolsos;
+- Caja avanzada / conciliación / cierres;
+- devoluciones y reembolsos;
 - auditoría;
 - inventario;
 - recetas;
 - costos;
 - rentabilidad;
-- integraciones como Chatwoot;
 - experiencia pública;
 - sustitución de Glide;
 - migración de `alentopizza.com`;
-- parametrización para replicar/comercializar.
+- parametrización para replicar/comercializar;
+- integraciones externas al final.
 
 ---
 
-# Dominio objetivo
+# Integraciones
 
-```text
-alentopizza.com/        → experiencia pública
-alentopizza.com/interno → sistema interno protegido
-```
+Estado: **ÚLTIMA FASE DEL DESARROLLO**
 
-Durante construcción puede seguir utilizándose infraestructura temporal.
+No existe integración activa con Rappi/DiDi en el código actual.
+
+No reintroducir la implementación experimental sin:
+
+- credenciales/API oficial;
+- flujo aprobado por proveedor;
+- estrategia de catálogo;
+- estrategia de estados;
+- conciliación financiera;
+- pruebas aisladas.
 
 ---
 
 # Regla de trabajo
 
-Antes de un cambio:
+Antes de modificar un módulo cerrado:
 
-1. leer `CURRENT_STATE.md`;
+1. leer `docs/CURRENT_STATE.md`;
 2. leer el documento canónico del módulo;
-3. identificar fase activa;
-4. mantener cambios pequeños;
-5. validar no regresiones;
-6. actualizar documentación;
-7. indicar si requiere `npx prisma db push`.
+3. revisar `prisma/schema.prisma`;
+4. revisar los endpoints y componentes indicados;
+5. identificar reglas de no regresión;
+6. hacer el cambio más pequeño posible;
+7. validar build;
+8. actualizar documentación;
+9. indicar si requiere `npx prisma db push`.
 
-El siguiente bloque de trabajo acordado es **Menú**. **Integraciones queda explícitamente reservada para la última fase del desarrollo.** Autenticación y Roles continúa como bloque estratégico pendiente.
+La documentación del repositorio debe tener prioridad sobre el historial de chats.
