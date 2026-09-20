@@ -698,21 +698,15 @@ export default function MenuPage() {
                   </div>
 
                   <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-3.5 text-white">
-                    <h3 className="line-clamp-2 text-[16px] font-semibold leading-[22px] tracking-[-0.005em] text-white">
+                    <h3 className="truncate text-[17px] font-medium leading-6 tracking-[-0.01em] text-white">
                       {product.name}
                     </h3>
-                    <p className="mt-1.5 line-clamp-2 min-h-10 text-[12px] font-normal leading-[18px] text-white/82">
-                      {product.description || "Sin descripción"}
-                    </p>
 
-                    <div className="mt-3 flex items-end justify-between gap-3 border-t border-white/10 pt-3">
-                      <div className="min-w-0">
-                        <span className="block text-[11px] font-semibold uppercase tracking-[0.04em] text-white/70">Precio</span>
-                        <b className="mt-1 block truncate text-[16px] font-bold leading-none tracking-[-0.01em] text-white">
-                          {displayProductPrice(product)}
-                        </b>
-                      </div>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-semibold leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition group-hover:scale-[1.04]">
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/12 pt-3">
+                      <span className="min-w-0 truncate text-[17px] font-semibold leading-6 tracking-[-0.015em] text-white">
+                        {displayProductPrice(product)}
+                      </span>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-medium leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition group-hover:scale-[1.04]">
                         +
                       </span>
                     </div>
