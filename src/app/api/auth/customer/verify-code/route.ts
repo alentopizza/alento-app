@@ -33,23 +33,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "El código no coincide." }, { status: 401 });
   }
 
-  const customer = await prisma.customer.findFirst({
+  const existingCustomer = await prisma.customer.findFirst({
     where: { OR: [{ phone: localPhone }, { phone: phoneE164.replace(/^\+/, "") }] },
     select: { id: true, name: true },
   });
 
-  if (!customer) {
-    return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
-  }
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.customerAuthCode.update({
+      where: { id: authCode.id },
+      data: { consumedAt: new Date() },
+    });
 
-  const account = await prisma.$transaction(async (tx) => {
-    await tx.customerAuthCode.update({ where: { id: authCode.id }, data: { consumedAt: new Date() } });
-    return tx.customerAccount.upsert({
+    const customer = existingCustomer ?? await tx.customer.create({
+      data: {
+        name: "NUEVO",
+        countryCode,
+        phone: localPhone,
+      },
+      select: { id: true, name: true },
+    });
+
+    const account = await tx.customerAccount.upsert({
       where: { customerId: customer.id },
       update: { phoneE164, phoneVerifiedAt: new Date(), active: true },
       create: { customerId: customer.id, phoneE164, phoneVerifiedAt: new Date(), active: true },
     });
+
+    return { customer, account };
   });
+
+  const { customer, account } = result;
 
   await setCustomerSession(account);
 
