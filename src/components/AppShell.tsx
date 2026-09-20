@@ -1,23 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 const items = [
-  { href: "/", label: "Punto de venta", icon: "◉" },
-  { href: "/pedidos", label: "Pedidos", icon: "▤" },
-  { href: "/cocina", label: "Cocina", icon: "♨" },
-  { href: "/clientes", label: "Clientes", icon: "◎" },
-  { href: "/menu", label: "Menú", icon: "▦" },
-  { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%" },
-  { href: "/caja", label: "Caja", icon: "$" },
-  { href: "/configuracion", label: "Configuración", icon: "⚙" },
+  { href: "/", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
+  { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER", "DISPATCH"] },
+  { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
+  { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
+  { href: "/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
+  { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%", roles: ["ADMIN"] },
+  { href: "/caja", label: "Caja", icon: "$", roles: ["ADMIN", "CASHIER"] },
+  { href: "/configuracion", label: "Configuración", icon: "⚙", roles: ["ADMIN"] },
+  { href: "/usuarios", label: "Usuarios y Roles", icon: "♟", roles: ["ADMIN"] },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [roles, setRoles] = useState<string[]>([]);
+  const [userName, setUserName] = useState("");
+
+  const publicSurface =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/setup/") ||
+    pathname.startsWith("/cuenta") ||
+    pathname.startsWith("/sin-acceso");
+
+  useEffect(() => {
+    if (publicSurface) return;
+    fetch("/api/auth/staff/me", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result?.authenticated) {
+          setRoles(result.user?.roles ?? []);
+          setUserName(result.user?.name ?? "");
+        }
+      })
+      .catch(() => {});
+  }, [publicSurface]);
+
+  async function logout() {
+    await fetch("/api/auth/staff/logout", { method: "POST" });
+    router.replace("/login");
+    router.refresh();
+  }
+
+  if (publicSurface) return <>{children}</>;
+
+  const visibleItems = items.filter((item) => !roles.length || item.roles.some((role) => roles.includes(role)));
 
   return (
     <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[224px_1fr]">
@@ -40,7 +74,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-4 hidden h-px bg-gradient-to-r from-transparent via-white/15 to-transparent lg:block" />
 
         <nav className="flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-4 lg:block lg:space-y-1.5 lg:overflow-visible lg:px-2.5 lg:pb-0">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
               <Link
@@ -74,12 +108,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="hidden px-4 lg:absolute lg:bottom-5 lg:block lg:w-[224px]">
           <div className="rounded-[22px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-4 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-white">Alentó Pizza</p>
-                <p className="mt-1 text-[11px] leading-4 text-white/38">POS · Cocina · Clientes · Menú</p>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-white">{userName || "Alentó Pizza"}</p>
+                <p className="mt-1 text-[10px] leading-4 text-white/38">{roles.join(" · ") || "Sesión interna"}</p>
               </div>
-              <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand-red)] shadow-[0_0_16px_rgba(229,28,17,.75)]" />
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,.55)]" />
             </div>
+            <button onClick={logout} className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-semibold text-white/60 transition hover:bg-white/10 hover:text-white">
+              Cerrar sesión
+            </button>
           </div>
         </div>
       </aside>
