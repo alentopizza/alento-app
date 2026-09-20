@@ -83,7 +83,7 @@ export default function PublicLandingPage() {
         >
           <div
             ref={trackRef}
-            className="relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border border-white/70 bg-white/92 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
+            className="landing-menu-slider relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
           >
             <div
               className="absolute inset-y-1 left-1 rounded-full bg-[#df1f26]"
@@ -94,21 +94,21 @@ export default function PublicLandingPage() {
             />
 
             <div
-              className="pointer-events-none absolute inset-0 flex items-center justify-center px-[74px] text-center"
+              className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center px-[74px] text-center"
               style={{
                 opacity: Math.max(0.18, 1 - progress * 1.15),
                 transition: dragging ? "none" : "opacity 180ms ease",
               }}
             >
               <span className="truncate text-[12px] font-black uppercase tracking-[0.11em] text-black/72">
-                Desliza para ver el menú
+                Desliza y descubre el menú
               </span>
             </div>
 
             <button
               type="button"
-              aria-label="Desliza para ver el menú"
-              className="absolute top-1 flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform active:scale-[.98]"
+              aria-label="Desliza y descubre el menú"
+              className="landing-menu-slider-knob absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 active:scale-[.98]"
               style={{
                 left: `calc(4px + (100% - 62px) * ${progress})`,
                 transition: dragging ? "none" : "left 220ms cubic-bezier(.2,.8,.2,1)",
