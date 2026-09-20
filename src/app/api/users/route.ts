@@ -3,7 +3,7 @@ import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, requireStaffSession } from "@/lib/auth";
 
-const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
+const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DRIVER", "DISPATCH"];
 const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
 
 function parsePermissions(value: unknown): UserPermission[] {
@@ -13,7 +13,20 @@ function parsePermissions(value: unknown): UserPermission[] {
 
 function parseRoles(value: unknown): UserRole[] {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((role): role is UserRole => VALID_ROLES.includes(role as UserRole)))];
+  const roles = value
+    .map((role) => role === "DISPATCH" ? "DRIVER" : role)
+    .filter((role): role is UserRole => VALID_ROLES.includes(role as UserRole));
+  return [...new Set(roles)];
+}
+
+function allowedPermissionsForRoles(roles: UserRole[], permissions: UserPermission[]) {
+  if (roles.includes("ADMIN")) return [];
+  const eligible = roles.includes("POS") || roles.includes("CASHIER");
+  return eligible ? permissions : [];
+}
+
+function publicRoles(roles: UserRole[]) {
+  return roles.map((role) => role === "DISPATCH" ? "DRIVER" : role);
 }
 
 export async function GET() {
@@ -27,7 +40,9 @@ export async function GET() {
     orderBy: [{ active: "desc" }, { name: "asc" }],
     select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
   });
-  return NextResponse.json({ users });
+  return NextResponse.json({
+    users: users.map((user) => ({ ...user, roles: publicRoles(user.roles) })),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -42,7 +57,7 @@ export async function POST(request: NextRequest) {
   const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
   const password = typeof body.password === "string" ? body.password : "";
   const roles = parseRoles(body.roles);
-  const permissions = parsePermissions(body.permissions);
+  const permissions = allowedPermissionsForRoles(roles, parsePermissions(body.permissions));
 
   if (!name || !email || password.length < 8 || roles.length === 0) {
     return NextResponse.json({ error: "Nombre, correo, contraseña de mínimo 8 caracteres y al menos un rol son obligatorios." }, { status: 400 });
