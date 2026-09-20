@@ -480,44 +480,34 @@ export default function StructuredPosPageV2() {
                 {visibleCatalogProducts.map((product) => (
                   <article
                     key={product.id}
-                    className="group overflow-hidden rounded-[22px] border border-neutral-200/90 bg-white shadow-[0_10px_26px_rgba(28,23,20,.055)] ring-1 ring-black/[0.015] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.09)]"
+                    className="group relative overflow-hidden rounded-[22px] border-[5px] border-white bg-white shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(28,23,20,.14)]"
                   >
-                    <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-[linear-gradient(145deg,#faf9f7,#f4f2ee)]">
+                    <div className="relative aspect-square overflow-hidden rounded-[17px_17px_0_0] bg-white">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.02]"
+                          className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-[1.012]"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-4xl">🍕</div>
+                        <div className="flex h-full items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
                       )}
                     </div>
 
-                    <div className="p-3.5">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-[15px] font-black leading-5 tracking-[-0.018em] text-neutral-950">
-                          {product.name}
-                        </h3>
-                        <p className="mt-0.5 line-clamp-2 text-[11px] leading-[15px] text-neutral-500">
-                          {product.description || "Producto Alentó Pizza"}
-                        </p>
-                      </div>
+                    <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-3.5 text-white">
+                      <h3 className="truncate text-[17px] font-medium leading-6 tracking-[-0.01em] text-white">
+                        {product.name}
+                      </h3>
 
-                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3">
-                        <div className="min-w-0">
-                          <span className="block text-[8px] font-bold uppercase tracking-[0.09em] text-neutral-400">
-                            {product.type === "COMBO" && (product.comboDiscount ?? 0) > 0 ? "Beneficio" : "Precio"}
-                          </span>
-                          <b className={`mt-0.5 block truncate text-[15px] font-black leading-none tracking-[-0.018em] ${product.type === "COMBO" && (product.comboDiscount ?? 0) > 0 ? "text-emerald-700" : "text-neutral-950"}`}>
-                            {displayPrice(product)}
-                          </b>
-                        </div>
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/12 pt-3">
+                        <span className="min-w-0 truncate text-[17px] font-semibold leading-6 tracking-[-0.015em] text-white">
+                          {displayPrice(product)}
+                        </span>
 
                         <button
                           type="button"
                           onClick={() => startAdd(product)}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[var(--brand-red)] text-[23px] font-medium leading-none text-white shadow-[0_8px_18px_rgba(229,28,17,.22)] ring-1 ring-red-600/10 transition hover:scale-[1.05] hover:brightness-95 active:scale-95"
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-medium leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition hover:scale-[1.05] active:scale-95"
                           aria-label={`Agregar ${product.name}`}
                           title={`Agregar ${product.name}`}
                         >
