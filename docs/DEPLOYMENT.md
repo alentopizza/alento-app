@@ -127,3 +127,66 @@ Significa que se intentó aplicar migraciones a una base no vacía sin baseline.
 ### La UI de Configuración falla con tabla inexistente
 
 Ejecutar `npx prisma db push` y reiniciar el servicio si fuera necesario.
+
+
+## Activación de autenticación (2026-09-20)
+
+La primera versión de autenticación agrega tablas y enum nuevos.
+
+Después de desplegar el código ejecutar:
+
+```bash
+npx prisma db push
+```
+
+Luego definir en EasyPanel:
+
+```text
+AUTH_SESSION_SECRET=<secreto aleatorio de al menos 32 caracteres>
+AUTH_BOOTSTRAP_KEY=<clave temporal fuerte para crear el primer ADMIN>
+```
+
+Para login de clientes por WhatsApp:
+
+```text
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=...
+WHATSAPP_GRAPH_VERSION=v25.0
+WHATSAPP_AUTH_TEMPLATE_NAME=authentication_code_copy_code_button
+WHATSAPP_AUTH_LANGUAGE_CODE=es
+```
+
+La plantilla de WhatsApp debe ser categoría AUTHENTICATION y estar aprobada.
+
+Orden recomendado de activación:
+
+1. desplegar código;
+2. ejecutar `npx prisma db push`;
+3. configurar `AUTH_SESSION_SECRET`;
+4. configurar `AUTH_BOOTSTRAP_KEY`;
+5. reiniciar/redeploy;
+6. abrir `/login`;
+7. usar `Configurar primer administrador`;
+8. crear el ADMIN;
+9. entrar a `/usuarios` y crear colaboradores;
+10. cuando WhatsApp esté listo, configurar sus variables y probar `/cuenta/login`.
+
+Después de crear el primer ADMIN, `/setup/admin` deja de aceptar creación porque el backend exige `User.count() === 0`.
+
+### Generación de secretos
+
+No guardar secretos reales en Git.
+
+Usar valores aleatorios largos. Por ejemplo, desde una terminal segura puede utilizarse un generador criptográfico del sistema.
+
+### Desarrollo sin WhatsApp
+
+Solo fuera de producción:
+
+```text
+WHATSAPP_DEV_LOG_OTP=1
+```
+
+Esto escribe el OTP en logs para pruebas.
+
+Nunca habilitarlo en producción.
