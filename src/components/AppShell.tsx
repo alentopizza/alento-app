@@ -8,7 +8,7 @@ const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads
 
 const items = [
   { href: "/", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
-  { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER", "DISPATCH"] },
+  { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
   { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
   { href: "/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
@@ -23,7 +23,8 @@ const ROLE_LABELS: Record<string, string> = {
   POS: "Punto de venta",
   KITCHEN: "Cocina",
   CASHIER: "Caja",
-  DISPATCH: "Despacho",
+  DRIVER: "Repartidor",
+  DISPATCH: "Repartidor",
 };
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
