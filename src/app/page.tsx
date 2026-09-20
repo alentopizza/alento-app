@@ -1,17 +1,38 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const INTRO_IMAGE =
+const FALLBACK_INTRO_IMAGE =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/CpQ55KIWphJs8CeomkY3.png";
 
-export default function App2LandingPage() {
+type PublicHomeSettings = {
+  landing?: {
+    mobileImageUrl?: string;
+    desktopImageUrl?: string;
+  };
+};
+
+export default function PublicLandingPage() {
   const router = useRouter();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [home, setHome] = useState<PublicHomeSettings | null>(null);
+
+  useEffect(() => {
+    fetch("/api/public-home", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => setHome(data?.settings ?? null))
+      .catch(() => {});
+  }, []);
+
+  const mobileImage = home?.landing?.mobileImageUrl || FALLBACK_INTRO_IMAGE;
+  const desktopImage =
+    home?.landing?.desktopImageUrl ||
+    home?.landing?.mobileImageUrl ||
+    FALLBACK_INTRO_IMAGE;
 
   function updateFromPointer(clientX: number) {
     const track = trackRef.current;
@@ -44,13 +65,16 @@ export default function App2LandingPage() {
 
   return (
     <main className="min-h-[100dvh] bg-black">
-      <div className="relative mx-auto min-h-[100dvh] w-full max-w-[760px] overflow-hidden bg-white">
-        <img
-          src={INTRO_IMAGE}
-          alt="Alentó Pizza"
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          draggable={false}
-        />
+      <div className="relative min-h-[100dvh] w-full overflow-hidden bg-white">
+        <picture>
+          <source media="(min-width: 900px)" srcSet={desktopImage} />
+          <img
+            src={mobileImage}
+            alt="Alentó Pizza"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+            draggable={false}
+          />
+        </picture>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-black/30 via-black/5 to-transparent" />
 
