@@ -555,10 +555,10 @@ export default function StructuredPosPageV2() {
                       📍
                     </span>
                     <span className="min-w-0 flex-1">
-                      <b className="block text-[11px] font-black leading-4 text-amber-950">Sin dirección registrada</b>
-                      <span className="block text-[10px] leading-4 text-amber-800/75">Necesaria para pedidos a domicilio.</span>
+                      <b className="block text-[12px] font-semibold leading-[17px] tracking-[-0.005em] text-amber-950">Sin dirección registrada</b>
+                      <span className="block text-[11px] font-normal leading-[16px] text-amber-800/80">Necesaria para pedidos a domicilio.</span>
                     </span>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-white text-[18px] font-black leading-none text-amber-900 shadow-sm">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-white text-[20px] font-normal leading-none text-amber-900 shadow-sm">
                       +
                     </span>
                   </button>
