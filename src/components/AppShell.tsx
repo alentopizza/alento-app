@@ -14,6 +14,7 @@ const items = [
   { href: "/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
   { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%", roles: ["ADMIN"] },
   { href: "/caja", label: "Caja", icon: "$", roles: ["ADMIN", "CASHIER"] },
+  { href: "/personalizacion", label: "Personalización", subtitle: "Portada pública", icon: "✦", roles: ["ADMIN"] },
   { href: "/configuracion", label: "Configuración", icon: "⚙", roles: ["ADMIN"] },
   { href: "/usuarios", label: "Usuarios y Roles", icon: "♟", roles: ["ADMIN"] },
 ];
