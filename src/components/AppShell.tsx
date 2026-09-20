@@ -68,7 +68,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[224px_1fr]">
       <aside className="border-b border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:border-white/10">
         <div className="flex items-center justify-between px-4 py-4 lg:block lg:px-4 lg:pb-5 lg:pt-5">
-          <Link href="/" className="block">
+          <Link href="/interno" className="block">
             <div className="flex items-center gap-3 lg:items-start">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] lg:h-14 lg:w-14">
                 <img src={LOGO_DARK} alt="Alentó Pizza" className="h-full w-full object-cover" />
