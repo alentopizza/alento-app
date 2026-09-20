@@ -8,7 +8,7 @@ Pedidos               ✅ CERRADO
 Cocina                ✅ CERRADO
 Clientes              ✅ CERRADO
 Menú                  ✅ CERRADO
-Autenticación/Roles   ⏳ PENDIENTE ESTRATÉGICO
+Autenticación/Roles   🟡 V1 IMPLEMENTADA
 Caja avanzada         ⏳ PENDIENTE
 Inventario/Costos     ⏳ FUTURO
 Experiencia pública   ⏳ FUTURO
@@ -104,11 +104,11 @@ No implementar estas mejoras como parche. Requieren diseño estructural porque a
 
 # Autenticación y Roles
 
-Estado: **PENDIENTE ESTRATÉGICO**
+Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
 Documento: `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-Antes de exponer el sistema interno en el dominio principal se debe resolver autenticación y autorización en servidor.
+Ya existe login interno, roles, sesiones firmadas, navegación por rol, protección inicial de páginas/APIs y administración de usuarios. Antes de la exposición definitiva todavía conviene completar recuperación de contraseña, auditoría y revocación inmediata de sesiones.
 
 Roles iniciales propuestos:
 
