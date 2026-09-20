@@ -51,7 +51,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   if (publicSurface) return <>{children}</>;
 
-  const visibleItems = items.filter((item) => !roles.length || item.roles.some((role) => roles.includes(role)));
+  const visibleItems = roles.length ? items.filter((item) => item.roles.some((role) => roles.includes(role))) : [];
 
   return (
     <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[224px_1fr]">
