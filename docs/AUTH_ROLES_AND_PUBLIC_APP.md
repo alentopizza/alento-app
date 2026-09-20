@@ -1,221 +1,397 @@
-# Autenticación, roles y app pública
+# Autenticación, roles y acceso de clientes
 
-Este documento define la arquitectura objetivo para proteger el sistema interno de Alentó App y convivir con la futura experiencia pública de pedidos de clientes.
+Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
-## Estado actual
+Última actualización: 2026-09-20.
 
-A septiembre de 2026 el proyecto todavía **no tiene autenticación ni autorización implementadas**.
+Este documento describe la autenticación vigente de Alentó App y la separación entre colaboradores internos y clientes.
 
-Actualmente no existe un modelo de usuario interno, sesión, login, middleware de protección ni control de permisos por rol. Las rutas y APIs internas deben considerarse en etapa de desarrollo hasta que este bloque sea implementado.
+## Principio central
 
-No se debe asumir que ocultar enlaces en la interfaz protege una función. La protección debe existir también del lado servidor para páginas y APIs.
-
-## Objetivo de producto
-
-Alentó App debe funcionar desde **una sola URL principal**.
-
-La arquitectura objetivo no requiere un dominio distinto para POS, Cocina, Caja o la futura app pública. El mismo dominio servirá contenido diferente según la ruta y los permisos del usuario.
-
-Objetivo futuro:
+Existen dos identidades distintas:
 
 ```text
-alentopizza.com/
-├── experiencia pública del cliente
-├── menú
-├── carrito
-├── checkout
-└── seguimiento del pedido
-
-alentopizza.com/interno
-├── login de empleados
-├── POS
-├── Pedidos
-├── Cocina
-├── Clientes
-├── Caja
-├── Menú administrativo
-├── Cupones
-└── Configuración
+User      → colaborador interno
+Customer  → comprador
 ```
 
-La estructura exacta de rutas puede evolucionar, pero la decisión de producto es mantener una sola URL y controlar el acceso mediante autenticación y permisos.
+Nunca reutilizar `Customer` como usuario administrativo.
 
-## Situación actual del dominio
+## Colaboradores
 
-`alentopizza.com` continúa ocupado por la aplicación actual construida en Glide.
+Los colaboradores ingresan con:
 
-Mientras Alentó App termina su etapa de construcción y validación, la infraestructura actual puede seguir usando rutas o dominios temporales como el POS existente.
+- correo;
+- contraseña asignada al crear el usuario.
 
-Cuando Alentó App esté lista para reemplazar Glide, el dominio principal `alentopizza.com` debe apuntar a esta aplicación. A partir de ese momento la experiencia pública y el sistema interno convivirán en el mismo host.
+Ruta:
 
-No diseñar la plataforma suponiendo que cada módulo necesita su propio dominio.
+`/login`
 
-## Separación conceptual: clientes y empleados
+Las contraseñas se guardan como hash `scrypt` con salt aleatorio.
 
-`Customer` representa a la persona que compra y no debe reutilizarse como usuario administrativo.
+Nunca se guarda una contraseña en texto plano.
 
-Debe existir un modelo independiente para personal interno, por ejemplo:
+## Modelo User
 
-```prisma
-model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         UserRole
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-```
+Campos principales:
 
-El diseño final puede evolucionar a permisos múltiples, pero clientes y empleados deben seguir siendo conceptos separados.
+- `id`;
+- `name`;
+- `email` único;
+- `passwordHash`;
+- `roles UserRole[]`;
+- `active`;
+- `lastLoginAt`;
+- timestamps.
 
-## Roles iniciales propuestos
+Roles actuales:
 
-Primera versión:
+- `ADMIN`;
+- `POS`;
+- `KITCHEN`;
+- `CASHIER`;
+- `DISPATCH`.
 
-- `ADMIN`: acceso completo y administración del sistema.
-- `POS`: toma de pedidos, clientes y consulta operativa de pedidos.
-- `KITCHEN`: acceso a Cocina y únicamente a los datos necesarios para preparar órdenes.
-- `CASHIER`: pedidos, registro de pagos y Caja.
-- `DISPATCH`: gestión de órdenes listas, domicilio y entrega.
+Un usuario puede tener varios roles.
 
-Los roles son una primera capa. Más adelante puede ser conveniente evolucionar a permisos granulares si distintos negocios requieren combinaciones diferentes.
+## Usuarios y Roles
 
-## Principio de mínimo acceso
+Ruta:
 
-Cada puesto debe ver solo lo que necesita para trabajar.
+`/usuarios`
 
-Ejemplos:
+Solo `ADMIN`.
 
-- Cocina no necesita acceso a Configuración, Cupones o administración de Caja.
-- Un usuario de Cocina tampoco debería necesitar toda la información financiera del pedido.
-- Caja no necesita poder modificar recetas o configuración técnica del catálogo.
-- Solo roles autorizados deben poder eliminar registros o cambiar configuraciones críticas.
+Permite:
 
-## Protección obligatoria
+- listar colaboradores;
+- crear usuario;
+- asignar uno o varios roles;
+- editar nombre/correo;
+- cambiar contraseña;
+- activar/desactivar usuario.
 
-La futura autenticación debe proteger dos capas.
+No permite que el administrador logueado se quite a sí mismo el rol ADMIN ni se desactive desde ese flujo.
 
-### Interfaz / páginas
+## Permisos iniciales
 
-Una persona sin sesión no debe poder abrir módulos internos escribiendo manualmente la URL.
+### ADMIN
 
-### APIs
+Acceso total al sistema interno.
 
-La protección principal debe estar del lado servidor.
+### POS
 
-No debe ser posible invocar sin autorización endpoints internos para:
+- Punto de venta;
+- Pedidos;
+- Clientes.
 
-- crear, editar, cancelar o eliminar pedidos;
-- registrar o eliminar pagos;
-- consultar Caja;
-- editar clientes;
-- cambiar configuración;
-- administrar productos o cupones;
-- cambiar estados operativos.
+### KITCHEN
 
-Ocultar un botón no reemplaza una autorización de servidor.
+- Cocina.
 
-## Sesiones y contraseñas
+### CASHIER
 
-Requisitos mínimos de seguridad:
+- Punto de venta;
+- Pedidos;
+- Caja.
 
-- contraseñas almacenadas únicamente como hash seguro;
-- nunca guardar contraseñas en texto plano;
-- sesión persistida mediante mecanismo seguro;
-- cookies de sesión `HttpOnly`;
-- cookies `Secure` en producción;
-- expiración y cierre de sesión;
-- usuario `active = false` debe perder acceso;
-- autorización validada en servidor en cada operación sensible.
+### DISPATCH
 
-La librería concreta de autenticación todavía no está seleccionada. Debe elegirse antes de implementar este bloque y documentarse en `package.json`, `docs/ARCHITECTURE.md` y `docs/DEPLOYMENT.md`.
+- Pedidos.
 
-## App pública de clientes
+La navegación se filtra por roles y las rutas sensibles también se validan en servidor/middleware.
 
-La futura experiencia estilo aplicación de delivery reutilizará el mismo backend comercial de Alentó App.
+## Sesión de colaboradores
 
-Debe consumir las mismas reglas de:
+Cookie:
 
-- catálogo;
-- disponibilidad;
-- tamaños, sabores, bordes y modificadores;
-- combos;
-- precios;
-- descuentos y cupones;
-- zonas/tarifas de domicilio;
-- clientes;
+`alento_staff_session`
+
+Características:
+
+- firmada con HMAC SHA-256;
+- `HttpOnly`;
+- `SameSite=Lax`;
+- `Secure` en producción;
+- duración actual: 12 horas.
+
+El secreto proviene de:
+
+`AUTH_SESSION_SECRET`
+
+Debe tener mínimo 32 caracteres y ser aleatorio.
+
+## Primer administrador
+
+Mientras `User.count() === 0`, el login ofrece:
+
+`/setup/admin`
+
+El formulario exige:
+
+- nombre;
+- correo;
+- contraseña;
+- `AUTH_BOOTSTRAP_KEY`.
+
+Al crear el primer administrador:
+
+- se crea con rol `ADMIN`;
+- se inicia sesión automáticamente;
+- el bootstrap deja de funcionar porque ya existe un usuario.
+
+No reutilizar la bootstrap key como contraseña de usuario.
+
+## Protección de rutas internas
+
+La primera versión protege:
+
+- `/` POS;
+- `/pedidos`;
+- `/cocina`;
+- `/clientes`;
+- `/menu`;
+- `/cupones`;
+- `/caja`;
+- `/configuracion`;
+- `/usuarios`.
+
+También protege las APIs internas correspondientes:
+
+- `/api/users`;
+- `/api/menu-admin`;
+- `/api/settings`;
+- `/api/coupons`;
+- `/api/caja`;
+- `/api/customers`;
+- `/api/orders`;
+- `/api/delivery`;
+- `/api/discount`.
+
+`/api/catalog` permanece público porque será compartido con la futura app de clientes.
+
+Las APIs de autenticación también permanecen públicas por definición.
+
+## Clientes
+
+Los clientes **no necesitan iniciar sesión para navegar la futura app pública**.
+
+El login sirve para vincular la sesión con el `Customer` existente y habilitar información privada:
+
+- perfil;
+- direcciones;
+- historial;
 - pedidos;
-- pagos;
-- configuración estructurada de `OrderItem`.
+- futuras recompensas/favoritos.
 
-No debe existir un segundo motor de pedidos para la web.
+Ruta actual de acceso:
 
-Los pedidos públicos usarán `Order.source = WEB` y compartirán el mismo consecutivo comercial global con POS.
+`/cuenta/login`
 
-Ejemplo:
+Ruta de perfil:
+
+`/cuenta`
+
+## Identidad de clientes
+
+El identificador principal es el teléfono.
+
+El sistema normaliza:
 
 ```text
-POS-0001
-POS-0002
-WEB-0003
-POS-0004
+3001234567
++57 3001234567
+573001234567
 ```
 
-El prefijo identifica el origen; el número se comparte entre todos los canales.
+a una identidad E.164 conceptual:
 
-## Plan de implementación por pasos pequeños
+`+573001234567`
 
-Este bloque debe implementarse gradualmente para reducir riesgo:
+La cuenta de acceso vive en `CustomerAccount`, separada de `Customer`.
 
-1. Agregar `User` y `UserRole` a Prisma.
-2. Elegir e instalar la solución de autenticación.
-3. Implementar login/logout y hash de contraseñas.
-4. Implementar sesión segura.
-5. Proteger una ruta piloto, preferiblemente `/cocina`.
-6. Proteger todas las páginas internas.
-7. Proteger todas las APIs internas.
-8. Aplicar permisos por rol en servidor.
-9. Adaptar navegación para mostrar únicamente módulos autorizados.
-10. Crear administración de usuarios para `ADMIN`.
-11. Registrar auditoría para operaciones sensibles cuando sea necesario.
-12. Reorganizar progresivamente las rutas internas bajo `/interno` si se aprueba el cambio.
-13. Construir la experiencia pública en `/` cuando se prepare el reemplazo de Glide.
-14. Migrar `alentopizza.com` desde Glide hacia Alentó App en el corte de producción.
+## CustomerAccount
 
-No es necesario ejecutar todos los pasos en un solo cambio.
+Campos:
 
-## Portabilidad y comercialización
+- `id`;
+- `customerId` único;
+- `phoneE164` único;
+- `phoneVerifiedAt`;
+- `active`;
+- timestamps.
 
-El proyecto debe poder replicarse para otros restaurantes sin reescribir su núcleo.
+La cuenta se crea automáticamente cuando un cliente verifica exitosamente su primer código.
 
-Por eso se deben mantener separados:
+## OTP por WhatsApp
 
-- motor de pedidos;
-- autenticación y permisos;
-- reglas comerciales configurables;
-- identidad visual / marca;
-- datos propios del restaurante;
-- infraestructura y secretos de cada instalación.
+Flujo:
 
-Evitar codificar en lógica de negocio valores exclusivos de Alentó Pizza cuando puedan ser configuración.
+```text
+Cliente escribe teléfono
+→ POST /api/auth/customer/request-code
+→ localizar Customer
+→ generar código de 6 dígitos
+→ guardar hash del código
+→ enviar plantilla AUTHENTICATION por WhatsApp Cloud API
+→ cliente escribe código
+→ POST /api/auth/customer/verify-code
+→ verificar hash / expiración / intentos
+→ crear o actualizar CustomerAccount
+→ crear cookie de cliente
+→ /cuenta
+```
 
-Una futura instalación para otro negocio debería poder cambiar nombre, logotipo, catálogo, colores, tarifas, medios de pago, usuarios y dominio sin modificar el flujo central de pedidos.
+El código:
 
-Esto no significa que el sistema sea multi-tenant hoy. La arquitectura actual es una instalación por negocio. La posibilidad de convertirlo en un producto multi-negocio debe evaluarse por separado antes de introducir complejidad de tenancy.
+- tiene 6 dígitos;
+- vence en 10 minutos;
+- máximo 5 intentos;
+- no puede reutilizarse;
+- no se guarda en texto plano;
+- tiene espera mínima de 60 segundos antes de solicitar otro.
 
-## Criterio para considerar seguro el sistema interno
+## Sesión de cliente
 
-El sistema interno no debe considerarse listo para exposición pública en `alentopizza.com` hasta que:
+Cookie:
 
-- exista login;
-- exista sesión segura;
-- las páginas internas estén protegidas;
-- las APIs internas estén protegidas;
-- los permisos de rol se validen en servidor;
-- exista al menos un flujo seguro para crear/desactivar usuarios;
-- la configuración de producción tenga secretos y cookies correctamente configurados.
+`alento_customer_session`
 
-Hasta entonces, cualquier despliegue accesible desde Internet debe considerarse un entorno de construcción/validación y no un sistema interno protegido.
+Características:
+
+- firmada;
+- `HttpOnly`;
+- `SameSite=Lax`;
+- `Secure` en producción;
+- duración: 30 días.
+
+La sesión de cliente **no concede ningún permiso interno**.
+
+## WhatsApp Cloud API
+
+Variables:
+
+- `WHATSAPP_ACCESS_TOKEN`;
+- `WHATSAPP_PHONE_NUMBER_ID`;
+- `WHATSAPP_GRAPH_VERSION`;
+- `WHATSAPP_AUTH_TEMPLATE_NAME`;
+- `WHATSAPP_AUTH_LANGUAGE_CODE`.
+
+Se utiliza una plantilla de categoría `AUTHENTICATION` con botón OTP tipo copy-code.
+
+El valor OTP se envía tanto como parámetro del body como del botón.
+
+La plantilla debe existir y estar aprobada en la cuenta de WhatsApp Business antes de usar producción.
+
+## Modo desarrollo
+
+Si WhatsApp todavía no está conectado se puede habilitar:
+
+`WHATSAPP_DEV_LOG_OTP=1`
+
+Solo fuera de producción.
+
+Esto imprime el OTP en logs para probar el flujo.
+
+**Nunca activar en producción.**
+
+## Archivos principales
+
+- `prisma/schema.prisma`
+- `src/lib/auth.ts`
+- `src/lib/whatsappAuth.ts`
+- `src/middleware.ts`
+- `src/app/login/page.tsx`
+- `src/app/setup/admin/page.tsx`
+- `src/app/usuarios/page.tsx`
+- `src/app/cuenta/login/page.tsx`
+- `src/app/cuenta/page.tsx`
+- `src/app/api/auth/**`
+- `src/app/api/users/**`
+
+## Variables obligatorias
+
+### Siempre
+
+`AUTH_SESSION_SECRET`
+
+`AUTH_BOOTSTRAP_KEY` durante la creación del primer administrador.
+
+### WhatsApp en producción
+
+`WHATSAPP_ACCESS_TOKEN`
+
+`WHATSAPP_PHONE_NUMBER_ID`
+
+`WHATSAPP_GRAPH_VERSION`
+
+`WHATSAPP_AUTH_TEMPLATE_NAME`
+
+`WHATSAPP_AUTH_LANGUAGE_CODE`
+
+## Prisma
+
+Esta implementación agrega:
+
+- enum `UserRole`;
+- model `User`;
+- model `CustomerAccount`;
+- model `CustomerAuthCode`;
+- relación `Customer.account`.
+
+Después del deploy:
+
+```bash
+npx prisma db push
+```
+
+Es obligatorio antes de probar login.
+
+## Limitaciones conocidas de esta primera versión
+
+- la app pública completa todavía no está construida;
+- `/` continúa siendo POS, por lo que sigue protegido como ruta interna;
+- todavía no existe recuperación de contraseña por correo;
+- todavía no existe auditoría de cambios de usuarios;
+- la sesión interna es stateless firmada: cambios de roles/desactivación se reflejan plenamente al renovar/iniciar nuevamente la sesión; en una fase posterior puede añadirse revocación inmediata basada en sesiones persistidas;
+- no existe segundo factor para colaboradores;
+- WhatsApp depende de Meta, plantilla aprobada y credenciales válidas.
+
+## Futuro al construir la app pública
+
+La experiencia pública debe permanecer navegable como invitado.
+
+Login será opcional y debe aparecer como:
+
+`Ingresar / Mi cuenta`
+
+Nunca bloquear:
+
+- home;
+- catálogo;
+- búsqueda;
+- producto;
+- carrito inicial
+
+solo por no haber iniciado sesión.
+
+Las operaciones privadas sí deben exigir sesión:
+
+- ver historial;
+- editar datos personales;
+- administrar direcciones privadas;
+- recompensas;
+- favoritos sincronizados;
+- seguimiento privado cuando corresponda.
+
+## Regla de no regresión
+
+- no mezclar cookies de cliente y colaborador;
+- no usar teléfono como contraseña;
+- no guardar OTP en texto plano;
+- no guardar contraseña interna en texto plano;
+- no conceder acceso interno desde `CustomerAccount`;
+- no obligar al cliente a loguearse para navegar;
+- no crear un segundo modelo comercial de cliente para autenticación;
+- mantener autorización de operaciones internas del lado servidor.
