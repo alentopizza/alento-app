@@ -53,7 +53,7 @@ function sortFeaturedProducts<T extends { id: number; sortOrder: number; name: s
   });
 }
 
-const PROTECTED_CATEGORY_SLUGS = new Set(["destacados", "pizzas", "combos", "ingredientes"]);
+const PROTECTED_CATEGORY_SLUGS = new Set(["destacados", "pizzas", "antojos", "bebidas", "combos", "ingredientes"]);
 
 function slugifyCategoryName(value: string) {
   return value
