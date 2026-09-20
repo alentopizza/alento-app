@@ -417,3 +417,16 @@ La portada pública sigue esta jerarquía visual:
 La navegación inferior usa cinco accesos visuales: Inicio, Menú, Pedir, Ofertas y Cuenta.
 
 La configuración ya guardada de banners sigue siendo compatible; agregar el logo no requiere recrear las piezas existentes.
+
+
+## Promoción de App 2 a experiencia principal
+
+Desde 2026-09-20 la variante aprobada como App 2 pasa a ser la experiencia pública principal:
+
+- `/`: nueva pantalla inicial publicitaria con imagen 1:2 y slider de acceso;
+- `/pedir`: segunda pantalla del nuevo diseño con catálogo, búsqueda y categorías;
+- `/app2`: conserva la versión pública anterior para comparación temporal;
+- `/app`: se mantiene temporalmente como alias de la versión anterior para no romper enlaces existentes;
+- la PWA instalada inicia en `/`.
+
+El POS interno continúa en `/interno`.
