@@ -20,12 +20,17 @@ type PublicHomeSettings = {
   brand: {
     logoUrl: string;
   };
+  landing: {
+    mobileImageUrl: string;
+    desktopImageUrl: string;
+  };
   primaryBanner: BannerSetting;
   secondaryBanner: BannerSetting;
 };
 
 type BannerKey = "primaryBanner" | "secondaryBanner";
-type ProcessingKey = BannerKey | "logo";
+type LandingKey = "mobileImageUrl" | "desktopImageUrl";
+type ProcessingKey = BannerKey | "logo" | "landingMobile" | "landingDesktop";
 
 const FORMATS: Record<BannerKey, {
   title: string;
@@ -205,6 +210,37 @@ export default function PersonalizationPage() {
   }
 
 
+  async function onLandingFile(key: LandingKey, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const isMobile = key === "mobileImageUrl";
+    setProcessing(isMobile ? "landingMobile" : "landingDesktop");
+    setError("");
+    setMessage("");
+
+    try {
+      const imageUrl = await prepareBannerImage(
+        file,
+        isMobile ? 1080 : 1920,
+        isMobile ? 2160 : 1080,
+      );
+
+      setSettings((current) => current ? {
+        ...current,
+        landing: {
+          ...current.landing,
+          [key]: imageUrl,
+        },
+      } : current);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "No fue posible preparar la imagen del home.");
+    } finally {
+      setProcessing(null);
+    }
+  }
+
   async function onLogoFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -287,9 +323,121 @@ export default function PersonalizationPage() {
         )}
 
         <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          <b>Tamaños recomendados:</b> logo <b>600 × 180 px</b> (3.33:1), principal <b>1200 × 625 px</b> (1.92:1) y secundario <b>1200 × 310 px</b> (3.9:1).
-          Los banners se recortan al centro. El logo se ajusta completo, sin deformarlo ni cortarlo.
+          <b>Home:</b> móvil <b>1080 × 2160 px</b> (1:2) y PC <b>1920 × 1080 px</b> (16:9). ·
+          <b> Logo:</b> 600 × 180 px · <b>Banners:</b> 1200 × 625 px y 1200 × 310 px.
+          Las imágenes del Home y los banners se recortan al centro; el logo se ajusta completo sin deformarse.
         </div>
+
+
+        <section className="alento-card rounded-[28px] p-5 md:p-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pantalla inicial</p>
+            <h2 className="mt-1 text-xl font-black">Imágenes del Home principal</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-neutral-500">
+              Estas imágenes ocupan el fondo de la URL principal antes de deslizar para entrar al menú.
+              Carga una pieza vertical para celulares y otra horizontal para computadores.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <div className="rounded-[24px] border bg-[#faf9f7] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <b className="text-sm">Home móvil</b>
+                  <p className="mt-1 text-[11px] font-bold text-neutral-400">1080 × 2160 px · 1:2</p>
+                </div>
+                <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white">Móvil</span>
+              </div>
+
+              <div className="mx-auto mt-4 aspect-[1/2] max-h-[480px] overflow-hidden rounded-[22px] border border-neutral-200 bg-neutral-100">
+                {settings.landing.mobileImageUrl ? (
+                  <img src={settings.landing.mobileImageUrl} alt="Home móvil" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-6 text-center text-xs text-neutral-400">
+                    Se seguirá mostrando la imagen actual hasta que cargues una nueva.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <label className="cursor-pointer rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-black text-white">
+                  {processing === "landingMobile" ? "Procesando..." : settings.landing.mobileImageUrl ? "Cambiar imagen móvil" : "Subir imagen móvil"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={processing !== null}
+                    onChange={(event) => void onLandingFile("mobileImageUrl", event)}
+                    className="hidden"
+                  />
+                </label>
+
+                {settings.landing.mobileImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({
+                      ...settings,
+                      landing: { ...settings.landing, mobileImageUrl: "" },
+                    })}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-black text-red-600"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border bg-[#faf9f7] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <b className="text-sm">Home PC</b>
+                  <p className="mt-1 text-[11px] font-bold text-neutral-400">1920 × 1080 px · 16:9</p>
+                </div>
+                <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white">Escritorio</span>
+              </div>
+
+              <div className="mt-4 aspect-video overflow-hidden rounded-[22px] border border-neutral-200 bg-neutral-100">
+                {settings.landing.desktopImageUrl ? (
+                  <img src={settings.landing.desktopImageUrl} alt="Home para PC" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-6 text-center text-xs text-neutral-400">
+                    Si no cargas esta pieza, en PC se usará la imagen móvil/actual como respaldo.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <label className="cursor-pointer rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-black text-white">
+                  {processing === "landingDesktop" ? "Procesando..." : settings.landing.desktopImageUrl ? "Cambiar imagen PC" : "Subir imagen PC"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={processing !== null}
+                    onChange={(event) => void onLandingFile("desktopImageUrl", event)}
+                    className="hidden"
+                  />
+                </label>
+
+                {settings.landing.desktopImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({
+                      ...settings,
+                      landing: { ...settings.landing, desktopImageUrl: "" },
+                    })}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-black text-red-600"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+            <b>Importante:</b> conserva textos y elementos importantes dentro de una zona segura. La portada usa <code>object-cover</code>,
+            por lo que pantallas con una proporción distinta pueden recortar ligeramente los bordes.
+          </div>
+        </section>
 
         <section className="alento-card rounded-[28px] p-5 md:p-6">
           <div>
