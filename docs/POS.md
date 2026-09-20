@@ -48,9 +48,9 @@ El POS consume `GET /api/catalog`.
 
 El catálogo entrega:
 
-- categorías visibles;
+- categorías visibles y su orden persistente desde Menú;
 - productos activos;
-- productos destacados;
+- productos destacados con orden independiente;
 - pizzas;
 - tamaños;
 - bordes y precios por tamaño;
@@ -58,9 +58,19 @@ El catálogo entrega:
 - combos;
 - reglas internas de combos.
 
+### Navegación y búsqueda
+
+Las categorías del POS respetan `Category.sortOrder` configurado en Menú.
+
+El POS incluye búsqueda rápida por nombre/descripción y puede encontrar productos sin depender de la categoría activa.
+
+Las tarjetas usan la misma línea visual aprobada en Menú: imagen 1:1 completa, bloque inferior oscuro, nombre, precio y acción `+`.
+
 ### Destacados
 
 Un producto puede aparecer visualmente en la categoría Destacados sin convertirse en una entidad nueva.
+
+El orden de Destacados es independiente y se administra desde Menú.
 
 La lista `pizzaFlavors` se deduplica por `product.id`; marcar una pizza como destacada no puede duplicar su sabor dentro del configurador de dos sabores.
 
@@ -112,6 +122,13 @@ flavors: [
 Los extras se guardan como modificadores estructurados con ID, nombre, cantidad y precio snapshot.
 
 No se deben representar como texto libre.
+
+Regla vigente:
+
+- `PIZZA_SINGLE`: puede usar ingredientes extra;
+- `PIZZA_TWO_FLAVORS`: **no muestra ni acepta ingredientes extra**.
+
+La restricción de dos sabores existe porque el modelo actual aplicaría el extra a toda la pizza y no puede expresar de forma inequívoca a qué mitad corresponde. Esta capacidad queda pendiente del futuro rediseño de modificadores documentado en `docs/MENU.md`.
 
 ### Nota para Cocina
 
@@ -316,6 +333,8 @@ La interfaz prioriza:
 - no volver a crear pizzas/combos como texto plano;
 - no usar `Order.id` como consecutivo comercial;
 - no duplicar sabores por pertenecer también a Destacados;
+- no reactivar ingredientes extra en `PIZZA_TWO_FLAVORS` sin un modelo estructurado de alcance por mitad;
+- respetar el orden de categorías y Destacados definido desde Menú;
 - no considerar `Payment PENDING` como ingreso de Caja;
 - no eliminar la nota de producto durante edición;
 - no calcular precios finales de configurables únicamente en el navegador;
