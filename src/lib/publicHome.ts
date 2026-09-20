@@ -61,10 +61,19 @@ function normalizeBrand(value: unknown): PublicHomeBrand {
 export function normalizePublicHomeSettings(value: unknown): PublicHomeSettings {
   if (!value || typeof value !== "object") return DEFAULT_PUBLIC_HOME_SETTINGS;
   const raw = value as Partial<PublicHomeSettings>;
+  const legacyWithoutBrand = !("brand" in (value as Record<string, unknown>));
+
+  const primaryBanner = normalizeBanner(raw.primaryBanner);
+  const secondaryBanner = normalizeBanner(raw.secondaryBanner);
+
+  if (legacyWithoutBrand) {
+    if (primaryBanner.imageUrl) primaryBanner.active = true;
+    if (secondaryBanner.imageUrl) secondaryBanner.active = true;
+  }
 
   return {
     brand: normalizeBrand(raw.brand),
-    primaryBanner: normalizeBanner(raw.primaryBanner),
-    secondaryBanner: normalizeBanner(raw.secondaryBanner),
+    primaryBanner,
+    secondaryBanner,
   };
 }
