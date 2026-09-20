@@ -644,8 +644,31 @@ export default function MenuPage() {
                     moveProductBefore(product.id);
                     setDraggingProductId(null);
                   }}
-                  className={`alento-card group relative cursor-pointer overflow-hidden rounded-[20px] border border-neutral-200 transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_14px_30px_rgba(28,23,20,.08)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
+                  className={`group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-neutral-950 shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_18px_36px_rgba(28,23,20,.16)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
                 >
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
+                  )}
+
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.02)_25%,rgba(0,0,0,.18)_48%,rgba(0,0,0,.88)_100%)]" />
+
+                  <div className="absolute left-2.5 top-2.5 z-10 flex flex-wrap gap-1.5">
+                    <span className={`rounded-full border border-white/20 px-2.5 py-1 text-[9px] font-black uppercase shadow-sm backdrop-blur-md ${product.active ? "bg-emerald-500/90 text-white" : "bg-neutral-950/80 text-white"}`}>
+                      {product.active ? "Activo" : "Inactivo"}
+                    </span>
+                    {product.featured && (
+                      <span className="rounded-full border border-white/20 bg-[var(--brand-red)]/90 px-2.5 py-1 text-[9px] font-black uppercase text-white shadow-sm backdrop-blur-md">
+                        Destacado
+                      </span>
+                    )}
+                  </div>
+
                   {!query.trim() && activeCategory?.slug !== "destacados" && (
                     <div
                       role="button"
@@ -667,34 +690,33 @@ export default function MenuPage() {
                         event.stopPropagation();
                         setDraggingProductId(null);
                       }}
-                      className="absolute right-2.5 top-2.5 z-20 flex h-8 w-8 cursor-grab items-center justify-center rounded-xl border border-white/80 bg-white/95 text-[15px] font-black text-neutral-500 shadow-sm backdrop-blur active:cursor-grabbing"
+                      className="absolute right-2.5 top-2.5 z-20 flex h-9 w-9 cursor-grab items-center justify-center rounded-xl border border-white/25 bg-black/35 text-[16px] font-black text-white shadow-sm backdrop-blur-md transition hover:bg-black/55 active:cursor-grabbing"
                       title="Arrastrar para reordenar"
                     >
                       ⋮⋮
                     </div>
                   )}
 
-                  <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-[#f7f6f3] p-1.5">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.02]" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-4xl">🍕</div>
-                    )}
-                    <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
-                      <span className={`rounded-full px-2 py-1 text-[9px] font-black ${product.active ? "bg-emerald-500 text-white" : "bg-neutral-700 text-white"}`}>
-                        {product.active ? "Activo" : "Inactivo"}
-                      </span>
-                      {product.featured && (
-                        <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black text-white">Destacado</span>
-                      )}
-                    </div>
-                  </div>
+                  <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/55">{product.type}</p>
+                    <h3 className="mt-1 line-clamp-2 text-[16px] font-black leading-5 tracking-[-0.015em] text-white">
+                      {product.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 min-h-8 text-[11px] leading-4 text-white/68">
+                      {product.description || "Sin descripción"}
+                    </p>
 
-                  <div className="p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">{product.type}</p>
-                    <h3 className="mt-1 truncate text-[15px] font-black leading-5 text-neutral-950">{product.name}</h3>
-                    <p className="mt-1 text-[13px] font-black leading-5 text-[var(--brand-red)]">{displayProductPrice(product)}</p>
-                    <p className="mt-1.5 line-clamp-2 min-h-8 text-[12px] leading-4 text-neutral-500">{product.description || "Sin descripción"}</p>
+                    <div className="mt-3 flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-white/45">Precio</span>
+                        <b className="mt-0.5 block truncate text-[15px] font-black leading-none text-white">
+                          {displayProductPrice(product)}
+                        </b>
+                      </div>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white text-[18px] font-black text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.18)] transition group-hover:scale-[1.04]">
+                        +
+                      </span>
+                    </div>
                   </div>
                 </article>
               ))}
