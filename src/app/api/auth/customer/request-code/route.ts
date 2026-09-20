@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   }
 
   const code = String(randomInt(100000, 1_000_000));
-  await prisma.customerAuthCode.create({
+  const authCode = await prisma.customerAuthCode.create({
     data: {
       phoneE164,
       codeHash: hashOtp(code),
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     await sendCustomerOtpWhatsApp(phoneE164, code);
   } catch (error) {
     console.error("Customer OTP send failed", error);
+    await prisma.customerAuthCode.delete({ where: { id: authCode.id } }).catch(() => undefined);
     return NextResponse.json({ error: "No fue posible enviar el código por WhatsApp." }, { status: 502 });
   }
 
