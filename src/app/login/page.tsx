@@ -1,13 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 export default function StaffLoginPage() {
   const router = useRouter();
-  const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,7 +32,8 @@ export default function StaffLoginPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible iniciar sesión.");
-      router.replace(params.get("next") || "/");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(next || "/");
       router.refresh();
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "No fue posible iniciar sesión.");
