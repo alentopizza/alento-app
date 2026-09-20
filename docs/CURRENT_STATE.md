@@ -47,7 +47,7 @@ Alentó App ya funciona como sistema interno para:
 - configuración;
 - impresión térmica.
 
-Todavía no existe autenticación ni autorización por roles.
+La primera versión de autenticación y autorización por roles ya está implementada para colaboradores. También existe acceso opcional de clientes por teléfono + OTP de WhatsApp.
 
 Cupones, Caja y Configuración existen, pero no están incluidos en el grupo de cinco módulos declarados cerrados en esta actualización.
 
@@ -267,17 +267,30 @@ La implementación experimental fue retirada.
 
 **Integraciones permanece reservada para la última fase del desarrollo.**
 
-## Autenticación y roles — pendiente estratégico
+## Autenticación y roles — primera versión implementada
 
-Actualmente no existe:
+Colaboradores:
 
 - modelo `User`;
-- login;
-- hash de contraseña;
-- sesión;
-- middleware de protección;
-- autorización por rol;
-- protección completa de APIs internas.
+- roles múltiples;
+- correo + contraseña;
+- hash scrypt;
+- cookie HttpOnly firmada;
+- login/logout;
+- bootstrap del primer ADMIN;
+- pestaña `/usuarios`;
+- navegación filtrada por rol;
+- rutas internas protegidas;
+- APIs internas principales protegidas.
+
+Clientes:
+
+- navegación pública futura no requiere login;
+- `/cuenta/login` usa teléfono + OTP por WhatsApp;
+- `CustomerAccount` permanece separado de `Customer`;
+- `/cuenta` muestra información privada del cliente autenticado.
+
+Este bloque requiere `npx prisma db push` y variables de entorno nuevas.
 
 Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
@@ -301,7 +314,7 @@ No asumir un siguiente módulo operativo sin una decisión explícita.
 
 Pendientes estratégicos conocidos:
 
-- autenticación y roles;
+- endurecimiento futuro de autenticación: recuperación, auditoría y revocación inmediata de sesiones;
 - cierre/conciliación avanzada de Caja;
 - inventario;
 - recetas;
