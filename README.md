@@ -285,3 +285,15 @@ Durante la etapa temporal en `pos.alentopizza.com`:
 - `/login` y `/cuenta/login`: acceso unificado para clientes y colaboradores.
 
 El acceso abre como cliente por teléfono + OTP y ofrece `Iniciar como colaborador` para cambiar a correo + contraseña. Cuando el producto esté listo, esta misma arquitectura pasará al dominio principal `alentopizza.com`.
+
+
+## Personalización de la portada
+
+Los banners promocionales de la experiencia pública se administran desde `/personalizacion` (ADMIN).
+
+Formatos oficiales:
+
+- principal: `1200 × 625 px`;
+- secundario: `1200 × 310 px`.
+
+Cada banner se asocia a un producto real del catálogo y reutiliza `AppSetting`, por lo que no introduce una tabla ni un esquema comercial adicional.
