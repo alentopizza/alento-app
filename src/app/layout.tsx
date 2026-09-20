@@ -20,14 +20,15 @@ import "./orders-detail-drawer-compact.css";
 import "./orders-canceled-card.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 const ALENTO_ICON =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 export const metadata: Metadata = {
-  title: "Alentó App",
-  description: "Operación interna de Alentó Pizza",
-  applicationName: "Alentó App",
+  title: "Alentó Pizza",
+  description: "Pide pizzas, combos y antojos de Alentó Pizza desde tu celular.",
+  applicationName: "Alentó Pizza",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: ALENTO_ICON, type: "image/png" }],
@@ -55,6 +56,7 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <PwaRegister />
+        <PwaInstallPrompt />
         <AppShell>{children}</AppShell>
       </body>
     </html>
