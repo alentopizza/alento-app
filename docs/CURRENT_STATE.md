@@ -396,3 +396,24 @@ Cada banner puede:
 La configuración se persiste en `AppSetting` con clave `public.home`.
 
 No requiere cambios de Prisma ni `npx prisma db push`.
+
+
+### Logo de portada y composición visual
+
+Personalización también permite cargar el logo usado en la cabecera de la experiencia pública.
+
+Formato recomendado:
+
+- Logo de portada: `600 × 180 px` (3.33:1), preferiblemente con fondo transparente.
+- Banner principal: `1200 × 625 px` (~1.92:1).
+- Banner secundario: `1200 × 310 px` (~3.9:1).
+
+El logo se ajusta completo con `object-contain`, sin recorte ni deformación.
+
+La portada pública sigue esta jerarquía visual:
+
+`cabecera → buscador → banner principal → categorías → populares → banner secundario → menú completo`
+
+La navegación inferior usa cinco accesos visuales: Inicio, Menú, Pedir, Ofertas y Cuenta.
+
+La configuración ya guardada de banners sigue siendo compatible; agregar el logo no requiere recrear las piezas existentes.
