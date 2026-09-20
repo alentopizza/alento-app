@@ -3,11 +3,14 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Role = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DISPATCH";
+type Permission = "CANCEL_ORDERS" | "DELETE_ORDERS";
+
 type StaffUser = {
   id: number;
   name: string;
   email: string;
   roles: Role[];
+  permissions: Permission[];
   active: boolean;
   lastLoginAt: string | null;
   createdAt: string;
@@ -21,12 +24,27 @@ const ROLE_OPTIONS: Array<{ id: Role; label: string; description: string }> = [
   { id: "DISPATCH", label: "Despacho", description: "Pedidos y estados posteriores a cocina." },
 ];
 
+const PERMISSION_OPTIONS: Array<{ id: Permission; label: string; description: string; tone: string }> = [
+  {
+    id: "CANCEL_ORDERS",
+    label: "Cancelar pedidos",
+    description: "Permite sacar un pedido de la operación conservando su trazabilidad.",
+    tone: "amber",
+  },
+  {
+    id: "DELETE_ORDERS",
+    label: "Eliminar pedidos cancelados",
+    description: "Permite borrar definitivamente un pedido después de cancelarlo.",
+    tone: "red",
+  },
+];
+
 export default function UsersPage() {
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [editor, setEditor] = useState<{ id?: number; name: string; email: string; password: string; roles: Role[]; active: boolean } | null>(null);
+  const [editor, setEditor] = useState<{ id?: number; name: string; email: string; password: string; roles: Role[]; permissions: Permission[]; active: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function loadUsers() {
@@ -53,6 +71,16 @@ export default function UsersPage() {
     setEditor({
       ...editor,
       roles: editor.roles.includes(role) ? editor.roles.filter((item) => item !== role) : [...editor.roles, role],
+    });
+  }
+
+  function togglePermission(permission: Permission) {
+    if (!editor || editor.roles.includes("ADMIN")) return;
+    setEditor({
+      ...editor,
+      permissions: editor.permissions.includes(permission)
+        ? editor.permissions.filter((item) => item !== permission)
+        : [...editor.permissions, permission],
     });
   }
 
@@ -94,7 +122,7 @@ export default function UsersPage() {
                 <span className="block text-[8px] font-semibold uppercase tracking-[0.14em] text-white/40">Activos</span>
                 <b className="mt-0.5 block text-[26px] font-semibold leading-none text-white">{activeCount}</b>
               </div>
-              <button onClick={() => setEditor({ name: "", email: "", password: "", roles: ["POS"], active: true })} className="h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white">
+              <button onClick={() => setEditor({ name: "", email: "", password: "", roles: ["POS"], permissions: [], active: true })} className="h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white">
                 + Crear usuario
               </button>
             </div>
@@ -123,9 +151,15 @@ export default function UsersPage() {
               <span className="truncate text-[12px] text-neutral-600">{user.email}</span>
               <div className="flex flex-wrap gap-1.5">
                 {user.roles.map((role) => <span key={role} className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-semibold text-neutral-600">{ROLE_OPTIONS.find((item) => item.id === role)?.label ?? role}</span>)}
+                {!user.roles.includes("ADMIN") && user.permissions?.includes("CANCEL_ORDERS") && (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700">Cancela pedidos</span>
+                )}
+                {!user.roles.includes("ADMIN") && user.permissions?.includes("DELETE_ORDERS") && (
+                  <span className="rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[9px] font-semibold text-red-700">Elimina pedidos</span>
+                )}
               </div>
               <span className="text-[10px] text-neutral-500">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString("es-CO") : "Nunca"}</span>
-              <button onClick={() => setEditor({ id: user.id, name: user.name, email: user.email, password: "", roles: user.roles, active: user.active })} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-semibold">Editar</button>
+              <button onClick={() => setEditor({ id: user.id, name: user.name, email: user.email, password: "", roles: user.roles, permissions: user.permissions ?? [], active: user.active })} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-semibold">Editar</button>
             </div>
           ))}
         </section>
@@ -133,7 +167,7 @@ export default function UsersPage() {
 
       {editor && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]">
-          <form onSubmit={save} className="w-full max-w-[760px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
+          <form onSubmit={save} className="w-full max-w-[860px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[linear-gradient(135deg,#09090a,#281516)] px-6 py-5 text-white">
               <div>
                 <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">{editor.id ? "Editar colaborador" : "Nuevo colaborador"}</p>
@@ -167,6 +201,44 @@ export default function UsersPage() {
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="mt-5 border-t border-neutral-100 pt-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Permisos especiales</p>
+                      <p className="mt-1 text-[10px] leading-4 text-neutral-500">Acciones sensibles que no se conceden automáticamente por el rol.</p>
+                    </div>
+                    {editor.roles.includes("ADMIN") && (
+                      <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[9px] font-semibold text-white">Incluidos en Admin</span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {PERMISSION_OPTIONS.map((permission) => {
+                      const inherited = editor.roles.includes("ADMIN");
+                      const selected = inherited || editor.permissions.includes(permission.id);
+                      const danger = permission.tone === "red";
+
+                      return (
+                        <button
+                          type="button"
+                          key={permission.id}
+                          disabled={inherited}
+                          onClick={() => togglePermission(permission.id)}
+                          className={`flex w-full items-center justify-between rounded-2xl border p-3.5 text-left transition disabled:cursor-default ${selected ? danger ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50" : "border-neutral-200 bg-white"}`}
+                        >
+                          <span>
+                            <b className="block text-[12px] font-semibold text-neutral-900">{permission.label}</b>
+                            <span className="mt-0.5 block text-[10px] leading-4 text-neutral-500">{permission.description}</span>
+                          </span>
+                          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] ${selected ? danger ? "bg-red-500 text-white" : "bg-amber-500 text-white" : "bg-neutral-100 text-neutral-400"}`}>
+                            {selected ? "✓" : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
