@@ -68,7 +68,7 @@ Integraciones externas permanecen pospuestas y deben abordarse al final del desa
 
 ## Punto de venta — cerrado
 
-Ruta: `/`
+Ruta: `/interno`
 
 Soporta:
 
@@ -328,7 +328,11 @@ Pendientes estratégicos conocidos:
 
 ## App pública de clientes — V1 iniciada
 
-Ruta pública actual:
+Ruta pública principal:
+
+`/`
+
+Alias temporal compatible:
 
 `/app`
 
@@ -349,6 +353,19 @@ Incluye:
 - navegación inferior;
 - acceso a Pedidos/Cuenta mediante la sesión de cliente existente.
 
-La raíz `/` permanece reservada al POS interno para no romper la operación actual.
+La raíz `/` es ahora la experiencia pública principal. El POS interno se encuentra en `/interno` y permanece protegido por sesión y roles.
 
 El carrito/configurador público todavía no está conectado. Debe reutilizar la misma estructura comercial del POS para pizzas, dos sabores y combos, evitando implementar precios o configuraciones paralelas.
+
+
+## Navegación principal y acceso unificado
+
+Desde 2026-09-20:
+
+- `/` muestra la experiencia pública de Alentó;
+- `/app` se conserva como alias temporal de la misma experiencia;
+- `/interno` es la ruta protegida del Punto de Venta;
+- `/login` y `/cuenta/login` muestran el mismo acceso unificado;
+- el modo inicial es Cliente por teléfono + OTP;
+- el botón `Iniciar como colaborador` cambia al acceso por correo + contraseña;
+- después del login de colaborador, la navegación se resuelve por roles y permisos.
