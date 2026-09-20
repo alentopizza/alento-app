@@ -196,7 +196,7 @@ export default function PersonalizationPage() {
     try {
       const format = FORMATS[key];
       const imageUrl = await prepareBannerImage(file, format.width, format.height);
-      updateBanner(key, { imageUrl });
+      updateBanner(key, { imageUrl, active: true });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "No fue posible preparar la imagen.");
     } finally {
