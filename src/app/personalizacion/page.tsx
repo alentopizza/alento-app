@@ -17,11 +17,15 @@ type BannerSetting = {
 };
 
 type PublicHomeSettings = {
+  brand: {
+    logoUrl: string;
+  };
   primaryBanner: BannerSetting;
   secondaryBanner: BannerSetting;
 };
 
-type BannerKey = keyof PublicHomeSettings;
+type BannerKey = "primaryBanner" | "secondaryBanner";
+type ProcessingKey = BannerKey | "logo";
 
 const FORMATS: Record<BannerKey, {
   title: string;
@@ -95,12 +99,57 @@ async function prepareBannerImage(file: File, width: number, height: number) {
   }
 }
 
+
+
+async function prepareLogoImage(file: File) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecciona una imagen JPG, PNG o WebP.");
+  }
+
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("El logo original no puede superar 8 MB.");
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new window.Image();
+    image.src = objectUrl;
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("No fue posible leer el logo."));
+    });
+
+    const width = 600;
+    const height = 180;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("No fue posible preparar el logo.");
+
+    context.clearRect(0, 0, width, height);
+
+    const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+    const drawWidth = image.naturalWidth * scale;
+    const drawHeight = image.naturalHeight * scale;
+    const dx = (width - drawWidth) / 2;
+    const dy = (height - drawHeight) / 2;
+
+    context.drawImage(image, dx, dy, drawWidth, drawHeight);
+    return canvas.toDataURL("image/webp", 0.92);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 export default function PersonalizationPage() {
   const [settings, setSettings] = useState<PublicHomeSettings | null>(null);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [processing, setProcessing] = useState<BannerKey | null>(null);
+  const [processing, setProcessing] = useState<ProcessingKey | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -154,6 +203,30 @@ export default function PersonalizationPage() {
       setProcessing(null);
     }
   }
+
+
+  async function onLogoFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setProcessing("logo");
+    setError("");
+    setMessage("");
+
+    try {
+      const logoUrl = await prepareLogoImage(file);
+      setSettings((current) => current ? {
+        ...current,
+        brand: { ...current.brand, logoUrl },
+      } : current);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "No fue posible preparar el logo.");
+    } finally {
+      setProcessing(null);
+    }
+  }
+
 
   async function save() {
     if (!settings) return;
@@ -214,9 +287,69 @@ export default function PersonalizationPage() {
         )}
 
         <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-          <b>Tamaños recomendados:</b> principal <b>1200 × 625 px</b> (1.92:1) y secundario <b>1200 × 310 px</b> (3.9:1).
-          Al seleccionar un archivo, Alentó lo recorta al centro y lo convierte a WebP en la proporción correcta.
+          <b>Tamaños recomendados:</b> logo <b>600 × 180 px</b> (3.33:1), principal <b>1200 × 625 px</b> (1.92:1) y secundario <b>1200 × 310 px</b> (3.9:1).
+          Los banners se recortan al centro. El logo se ajusta completo, sin deformarlo ni cortarlo.
         </div>
+
+        <section className="alento-card rounded-[28px] p-5 md:p-6">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cabecera pública</p>
+            <h2 className="mt-1 text-xl font-black">Logo de la portada</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Se muestra centrado en la cabecera principal, como en la referencia de la app.
+            </p>
+            <p className="mt-2 text-xs font-bold text-neutral-400">
+              Recomendado: 600 × 180 px · 3.33:1 · fondo transparente preferiblemente
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
+            <div className="flex min-h-[150px] items-center justify-center rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-6">
+              {settings.brand.logoUrl ? (
+                <img src={settings.brand.logoUrl} alt="Logo público Alentó Pizza" className="max-h-[90px] w-full max-w-[360px] object-contain" />
+              ) : (
+                <div className="text-center text-neutral-400">
+                  <div className="text-3xl">◇</div>
+                  <b className="mt-2 block text-sm text-neutral-500">Sin logo personalizado</b>
+                  <span className="mt-1 block text-xs">La portada seguirá usando el logo actual como respaldo.</span>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[22px] border bg-[#faf9f7] p-4">
+              <b className="text-sm">Archivo del logo</b>
+              <p className="mt-1 text-[11px] leading-5 text-neutral-500">
+                Alentó lo prepara a 600 × 180 px conservando todo el diseño dentro del área.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <label className="cursor-pointer rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-black text-white">
+                  {processing === "logo" ? "Procesando..." : settings.brand.logoUrl ? "Cambiar logo" : "Subir logo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={processing !== null}
+                    onChange={(event) => void onLogoFile(event)}
+                    className="hidden"
+                  />
+                </label>
+
+                {settings.brand.logoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({
+                      ...settings,
+                      brand: { ...settings.brand, logoUrl: "" },
+                    })}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-black text-red-600"
+                  >
+                    Quitar logo
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
 
         {(Object.keys(FORMATS) as BannerKey[]).map((key) => {
           const banner = settings[key];
