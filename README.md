@@ -120,26 +120,29 @@ Roles iniciales propuestos:
 
 La guía completa está en [`docs/AUTH_ROLES_AND_PUBLIC_APP.md`](docs/AUTH_ROLES_AND_PUBLIC_APP.md).
 
-## App pública futura
+## Experiencia pública
 
-La futura experiencia tipo app de delivery para clientes reutilizará el mismo motor de negocio del sistema interno.
+La experiencia pública ya está en desarrollo activo y reutiliza el mismo motor de negocio del sistema interno.
 
-No debe existir un segundo sistema de pedidos.
+La **Home principal está aprobada** y vive en `/`.
 
-La app pública compartirá:
+Incluye:
 
-- catálogo;
-- configuradores de producto;
-- precios;
-- promociones;
-- cobertura/domicilio;
-- clientes;
-- pedidos;
-- pagos;
-- configuración estructurada de `OrderItem`;
-- consecutivo comercial global.
+- pieza publicitaria a pantalla completa;
+- imagen independiente para móvil y escritorio;
+- administración desde `/personalizacion`;
+- formato móvil `1080 × 2160 px`;
+- formato escritorio `1920 × 1080 px`;
+- CTA deslizante con flecha para entrar al menú;
+- instalación PWA orientada al cliente.
 
-Las órdenes originadas por esa experiencia usarán `Order.source = WEB`.
+El CTA de la Home lleva actualmente a `/pedir`.
+
+La pantalla `/pedir` consume el catálogo real, pero su diseño de productos **todavía está en definición**. No debe considerarse visualmente cerrada hasta aprobación explícita.
+
+No debe existir un segundo sistema de pedidos. La experiencia pública debe compartir catálogo, configuradores, precios, promociones, cobertura, clientes, pedidos, pagos, configuración estructurada de `OrderItem` y consecutivo comercial global.
+
+Las órdenes originadas por esta experiencia usarán `Order.source = WEB`.
 
 ## Arquitectura técnica
 
@@ -279,8 +282,10 @@ Pendientes estratégicos conocidos:
 
 Durante la etapa temporal en `pos.alentopizza.com`:
 
-- `/`: experiencia pública principal;
-- `/app`: alias temporal de la experiencia pública;
+- `/`: Home pública principal aprobada;
+- `/pedir`: experiencia de catálogo/productos en definición;
+- `/app2`: versión pública anterior conservada temporalmente para comparación;
+- `/app`: alias temporal de la versión pública anterior;
 - `/interno`: Punto de Venta protegido;
 - `/login` y `/cuenta/login`: acceso unificado para clientes y colaboradores.
 
@@ -293,7 +298,10 @@ Los banners promocionales de la experiencia pública se administran desde `/pers
 
 Formatos oficiales:
 
-- principal: `1200 × 625 px`;
-- secundario: `1200 × 310 px`.
+- Home móvil: `1080 × 2160 px`;
+- Home escritorio: `1920 × 1080 px`;
+- logo: `600 × 180 px`;
+- banner principal: `1200 × 625 px`;
+- banner secundario: `1200 × 310 px`.
 
 Cada banner se asocia a un producto real del catálogo y reutiliza `AppSetting`, por lo que no introduce una tabla ni un esquema comercial adicional.
