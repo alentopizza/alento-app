@@ -1139,10 +1139,10 @@ export default function MenuPage() {
                     return (
                       <div
                         key={option.field}
-                        className={\`relative overflow-hidden rounded-[20px] border p-4 shadow-[0_8px_20px_rgba(28,23,20,.04)] \${option.disabled ? "border-neutral-200 bg-neutral-100/75 opacity-55" : option.shell}\`}
+                        className={`relative overflow-hidden rounded-[20px] border p-4 shadow-[0_8px_20px_rgba(28,23,20,.04)] ${option.disabled ? "border-neutral-200 bg-neutral-100/75 opacity-55" : option.shell}`}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <span className={\`flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-[11px] font-semibold \${option.disabled ? "bg-neutral-200 text-neutral-500" : option.iconClass}\`}>
+                          <span className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-[11px] font-semibold ${option.disabled ? "bg-neutral-200 text-neutral-500" : option.iconClass}`}>
                             {option.icon}
                           </span>
                           <button
@@ -1151,16 +1151,16 @@ export default function MenuPage() {
                             aria-checked={option.enabled}
                             disabled={option.disabled || savingToggle !== null}
                             onClick={() => void quickToggle(selectedProduct, option.field)}
-                            className={\`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed \${option.enabled && !option.disabled ? option.switchClass : "bg-neutral-300"} \${busy ? "opacity-60" : ""}\`}
+                            className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed ${option.enabled && !option.disabled ? option.switchClass : "bg-neutral-300"} ${busy ? "opacity-60" : ""}`}
                             title={option.disabled ? "No disponible para este tipo de producto" : undefined}
                           >
-                            <span className={\`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition \${option.enabled ? "left-6" : "left-1"}\`} />
+                            <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition ${option.enabled ? "left-6" : "left-1"}`} />
                           </button>
                         </div>
 
                         <b className="mt-4 block text-[13px] font-semibold text-neutral-950">{option.label}</b>
                         <p className="mt-1 min-h-8 text-[10px] leading-4 text-neutral-500">{option.description}</p>
-                        <span className={\`mt-3 inline-flex rounded-full px-2 py-1 text-[9px] font-semibold \${option.enabled && !option.disabled ? "bg-white/80 text-neutral-700 shadow-sm" : "bg-neutral-200/70 text-neutral-500"}\`}>
+                        <span className={`mt-3 inline-flex rounded-full px-2 py-1 text-[9px] font-semibold ${option.enabled && !option.disabled ? "bg-white/80 text-neutral-700 shadow-sm" : "bg-neutral-200/70 text-neutral-500"}`}>
                           {option.disabled ? "No disponible" : option.enabled ? "Activado" : "Desactivado"}
                         </span>
                       </div>
