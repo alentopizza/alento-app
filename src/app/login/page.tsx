@@ -5,6 +5,42 @@ import { useRouter } from "next/navigation";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
+type StaffRole = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DISPATCH";
+
+function defaultRouteForRoles(roles: StaffRole[]) {
+  if (roles.includes("ADMIN") || roles.includes("POS")) return "/";
+  if (roles.includes("KITCHEN")) return "/cocina";
+  if (roles.includes("CASHIER")) return "/caja";
+  if (roles.includes("DISPATCH")) return "/pedidos";
+  return "/sin-acceso";
+}
+
+function canAccessRoute(pathname: string, roles: StaffRole[]) {
+  if (roles.includes("ADMIN")) return true;
+
+  if (pathname === "/") {
+    return roles.includes("POS") || roles.includes("CASHIER");
+  }
+
+  if (pathname === "/cocina" || pathname.startsWith("/cocina/")) {
+    return roles.includes("KITCHEN");
+  }
+
+  if (pathname === "/caja" || pathname.startsWith("/caja/")) {
+    return roles.includes("CASHIER");
+  }
+
+  if (pathname === "/clientes" || pathname.startsWith("/clientes/")) {
+    return roles.includes("POS");
+  }
+
+  if (pathname === "/pedidos" || pathname.startsWith("/pedidos/")) {
+    return roles.includes("POS") || roles.includes("CASHIER") || roles.includes("DISPATCH");
+  }
+
+  return false;
+}
+
 export default function StaffLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -32,8 +68,15 @@ export default function StaffLoginPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible iniciar sesión.");
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(next || "/");
+
+      const roles = (result.user?.roles ?? []) as StaffRole[];
+      const requestedRoute = new URLSearchParams(window.location.search).get("next");
+      const destination =
+        requestedRoute && canAccessRoute(requestedRoute, roles)
+          ? requestedRoute
+          : defaultRouteForRoles(roles);
+
+      router.replace(destination);
       router.refresh();
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "No fue posible iniciar sesión.");
