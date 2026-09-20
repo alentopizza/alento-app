@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 const items = [
-  { href: "/", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
+  { href: "/interno", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
   { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
@@ -37,6 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/setup/") ||
     pathname.startsWith("/cuenta") ||
+    pathname === "/" ||
     pathname.startsWith("/app") ||
     pathname.startsWith("/sin-acceso");
 
@@ -89,7 +90,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-4 lg:block lg:space-y-1.5 lg:overflow-visible lg:px-2.5 lg:pb-0">
           {visibleItems.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
