@@ -345,3 +345,10 @@ La interfaz prioriza:
 El cierre actual del POS no requiere cambios adicionales de schema.
 
 No ejecutar `npx prisma db push` por cambios exclusivamente visuales/funcionales aquí documentados.
+
+
+## Ruta interna vigente
+
+El Punto de Venta se sirve desde `/interno`.
+
+La raíz `/` corresponde a la experiencia pública principal de Alentó y no debe volver a protegerse como POS. El acceso del colaborador se realiza desde el login unificado y, según sus roles, puede redirigir a `/interno`.
