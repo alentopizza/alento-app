@@ -83,15 +83,13 @@ export default function PublicAppPage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
-  const [customerName, setCustomerName] = useState("");
   const [publicHome, setPublicHome] = useState<PublicHomeSettings>(EMPTY_PUBLIC_HOME);
 
   useEffect(() => {
     async function load() {
       try {
-        const [catalogResponse, accountResponse, publicHomeResponse] = await Promise.all([
+        const [catalogResponse, publicHomeResponse] = await Promise.all([
           fetch("/api/catalog", { cache: "no-store" }),
-          fetch("/api/auth/customer/me", { cache: "no-store" }),
           fetch("/api/public-home", { cache: "no-store" }),
         ]);
 
@@ -106,11 +104,6 @@ export default function PublicAppPage() {
           data.categories?.[0];
 
         if (preferred) setActiveCategory(preferred.slug);
-
-        if (accountResponse.ok) {
-          const account = await accountResponse.json();
-          setCustomerName(account?.customer?.name && account.customer.name !== "NUEVO" ? account.customer.name : "");
-        }
 
         if (publicHomeResponse.ok) {
           const home = await publicHomeResponse.json();
@@ -207,80 +200,97 @@ export default function PublicAppPage() {
   return (
     <main className="min-h-screen bg-[#f6f1e9] pb-28 text-[#161311]">
       <div className="mx-auto min-h-screen w-full max-w-[760px] bg-[#fffaf3] px-4 pb-10 pt-4 shadow-[0_0_55px_rgba(73,45,20,.06)] sm:px-6">
-        <header className="grid grid-cols-[48px_1fr_96px] items-center gap-3">
+        <header className="relative flex min-h-[72px] items-center justify-between">
           <button
             type="button"
             onClick={scrollMenu}
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[25px] shadow-[0_8px_22px_rgba(60,35,15,.08)]"
+            className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-black/[0.035] bg-white text-neutral-800 shadow-[0_8px_24px_rgba(52,32,18,.07)] transition active:scale-95"
             aria-label="Abrir menú"
           >
-            ☰
+            <svg viewBox="0 0 24 24" className="h-[20px] w-[20px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
           </button>
 
-          <div className="min-w-0 text-center">
-            <p className="mb-1 truncate text-[11px] font-semibold text-neutral-500">
-              {customerName ? `Hola, ${customerName}! 🍕` : "Hola, Pizza Lover! 🍕"}
-            </p>
-
+          <div className="pointer-events-none absolute inset-x-[66px] top-1/2 flex -translate-y-1/2 justify-center">
             {publicHome.brand.logoUrl ? (
               <img
                 src={publicHome.brand.logoUrl}
                 alt="Alentó Pizza"
-                className="mx-auto h-[46px] w-full max-w-[190px] object-contain"
+                className="h-[54px] w-full max-w-[170px] object-contain sm:max-w-[190px]"
               />
             ) : (
-              <div className="mx-auto flex w-fit items-center justify-center gap-2">
-                <img src={FALLBACK_LOGO} alt="Alentó Pizza" className="h-10 w-10 rounded-xl object-cover" />
+              <div className="flex items-center justify-center gap-2.5">
+                <img src={FALLBACK_LOGO} alt="Alentó Pizza" className="h-11 w-11 rounded-xl object-cover" />
                 <div className="text-left">
-                  <b className="block text-[19px] leading-5">Alentó Pizza</b>
-                  <span className="text-[8px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Sabor que te hace volver</span>
+                  <b className="block text-[18px] leading-5 tracking-[-0.03em]">Alentó Pizza</b>
+                  <span className="text-[7px] font-bold uppercase tracking-[0.13em] text-neutral-400">Sabor que te hace volver</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               onClick={() => document.getElementById("populares")?.scrollIntoView({ behavior: "smooth" })}
-              className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-lg shadow-[0_8px_22px_rgba(60,35,15,.08)]"
-              aria-label="Ver novedades"
+              className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-black/[0.035] bg-white text-neutral-800 shadow-[0_8px_24px_rgba(52,32,18,.07)] transition active:scale-95"
+              aria-label="Ver favoritos"
             >
-              ♡
+              <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.8 4.9a5.5 5.5 0 0 0-7.8 0L12 5.9l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.3 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+              </svg>
             </button>
-            <button
-              type="button"
-              onClick={scrollMenu}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-lg shadow-[0_8px_22px_rgba(60,35,15,.08)]"
-              aria-label="Ir al menú"
+
+            <Link
+              href="/cuenta"
+              className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-black/[0.035] bg-white text-neutral-800 shadow-[0_8px_24px_rgba(52,32,18,.07)] transition active:scale-95"
+              aria-label="Mi cuenta"
             >
-              🛍
-            </button>
+              <svg viewBox="0 0 24 24" className="h-[20px] w-[20px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="8" r="3.5" />
+                <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
+              </svg>
+            </Link>
           </div>
         </header>
 
-        <div className="mt-5 flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-white px-4 py-3.5 shadow-[0_10px_28px_rgba(60,35,15,.07)]">
-            <span className="text-xl text-neutral-700">⌕</span>
+        <div className="mt-3 flex items-center gap-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[18px] border border-black/[0.035] bg-white px-4 py-3.5 shadow-[0_10px_28px_rgba(52,32,18,.055)]">
+            <svg viewBox="0 0 24 24" className="h-[19px] w-[19px] shrink-0 text-neutral-500" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <circle cx="11" cy="11" r="6" />
+              <path d="m16 16 4 4" />
+            </svg>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Busca tu pizza favorita..."
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-neutral-400"
+              className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-neutral-800 outline-none placeholder:font-normal placeholder:text-neutral-400"
             />
             {query && (
-              <button type="button" onClick={() => setQuery("")} className="text-[11px] font-semibold text-neutral-400">
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-100 text-[14px] text-neutral-500"
+                aria-label="Limpiar búsqueda"
+              >
                 ×
               </button>
             )}
           </div>
+
           <button
             type="button"
             onClick={scrollMenu}
-            className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[18px] bg-white text-xl shadow-[0_10px_28px_rgba(60,35,15,.07)]"
-            aria-label="Filtrar productos"
+            className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-[18px] border border-black/[0.035] bg-white text-neutral-800 shadow-[0_10px_28px_rgba(52,32,18,.055)] transition active:scale-95"
+            aria-label="Explorar menú"
           >
-            ≡
+            <svg viewBox="0 0 24 24" className="h-[20px] w-[20px]" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+              <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h7M15 17h5" />
+              <circle cx="16" cy="7" r="1.7" fill="white" />
+              <circle cx="10" cy="12" r="1.7" fill="white" />
+              <circle cx="13" cy="17" r="1.7" fill="white" />
+            </svg>
           </button>
         </div>
 
