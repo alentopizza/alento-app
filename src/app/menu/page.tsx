@@ -60,15 +60,6 @@ type ComboState = {
   beverageProductIds: number[];
 };
 
-const priority = new Map([
-  ["destacados", 1],
-  ["pizzas", 2],
-  ["antojos", 3],
-  ["bebidas", 4],
-  ["combos", 5],
-  ["ingredientes", 20],
-]);
-
 function formatCOP(value: number | null | undefined) {
   if (value == null) return "Sin precio";
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
@@ -99,6 +90,12 @@ export default function MenuPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [savingToggle, setSavingToggle] = useState<"active" | "visibleInPos" | "featured" | null>(null);
+  const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
+  const [savingCategoryOrder, setSavingCategoryOrder] = useState(false);
+  const [categoryEditor, setCategoryEditor] = useState<{ id?: number; name: string } | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState("");
+  const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<Category | null>(null);
 
   async function loadMenu(preserveCategory = true) {
     setLoading(true);
@@ -107,11 +104,9 @@ export default function MenuPage() {
       const response = await fetch("/api/menu-admin", { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible cargar el menú.");
-      const categories = [...(result.categories ?? [])].sort((a: Category, b: Category) => {
-        const aPriority = priority.get(a.slug) ?? 100 + a.sortOrder;
-        const bPriority = priority.get(b.slug) ?? 100 + b.sortOrder;
-        return aPriority - bPriority || a.name.localeCompare(b.name, "es");
-      });
+      const categories = [...(result.categories ?? [])].sort((a: Category, b: Category) =>
+        a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es"),
+      );
       setData({ categories, sizes: result.sizes ?? [] });
       if (!preserveCategory || activeCategoryId == null || !categories.some((category: Category) => category.id === activeCategoryId)) {
         setActiveCategoryId(categories[0]?.id ?? null);
@@ -360,6 +355,115 @@ export default function MenuPage() {
     void persistProductOrder(activeCategory, productIds);
   }
 
+  async function persistCategoryOrder(categoryIds: number[]) {
+    setSavingCategoryOrder(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/menu-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reorderCategories", categoryIds }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible guardar el orden de categorías.");
+
+      setData((current) => {
+        if (!current) return current;
+        const byId = new Map(current.categories.map((category) => [category.id, category] as const));
+        return {
+          ...current,
+          categories: categoryIds.map((id, index) => ({
+            ...byId.get(id)!,
+            sortOrder: index,
+          })),
+        };
+      });
+
+      setNotice("Orden de categorías actualizado.");
+    } catch (categoryOrderError) {
+      setError(categoryOrderError instanceof Error ? categoryOrderError.message : "No fue posible guardar el orden de categorías.");
+      await loadMenu();
+    } finally {
+      setSavingCategoryOrder(false);
+    }
+  }
+
+  function moveCategoryBefore(targetCategoryId: number) {
+    if (!data || draggingCategoryId == null || draggingCategoryId === targetCategoryId) return;
+
+    const current = [...data.categories];
+    const fromIndex = current.findIndex((category) => category.id === draggingCategoryId);
+    const toIndex = current.findIndex((category) => category.id === targetCategoryId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const [moved] = current.splice(fromIndex, 1);
+    current.splice(toIndex, 0, moved);
+
+    setData({
+      ...data,
+      categories: current.map((category, index) => ({ ...category, sortOrder: index })),
+    });
+
+    void persistCategoryOrder(current.map((category) => category.id));
+  }
+
+  async function saveCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!categoryEditor?.name.trim()) return setCategoryError("El nombre de la categoría es obligatorio.");
+
+    setSavingCategory(true);
+    setCategoryError("");
+    try {
+      const editing = categoryEditor.id != null;
+      const response = await fetch("/api/menu-admin", {
+        method: editing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editing
+            ? { action: "updateCategory", categoryId: categoryEditor.id, name: categoryEditor.name }
+            : { action: "createCategory", name: categoryEditor.name },
+        ),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible guardar la categoría.");
+
+      const categoryId = result.category?.id as number | undefined;
+      setCategoryEditor(null);
+      setNotice(editing ? "Categoría actualizada correctamente." : "Categoría creada correctamente.");
+      await loadMenu(false);
+      if (categoryId) setActiveCategoryId(categoryId);
+    } catch (categorySaveError) {
+      setCategoryError(categorySaveError instanceof Error ? categorySaveError.message : "No fue posible guardar la categoría.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  async function deleteCategory(category: Category) {
+    setSavingCategory(true);
+    setCategoryError("");
+    try {
+      const response = await fetch("/api/menu-admin", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deleteCategory", categoryId: category.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "No fue posible eliminar la categoría.");
+
+      setDeleteCategoryTarget(null);
+      setNotice(`${category.name} fue eliminada.`);
+      await loadMenu(false);
+    } catch (categoryDeleteError) {
+      setDeleteCategoryTarget(null);
+      setError(categoryDeleteError instanceof Error ? categoryDeleteError.message : "No fue posible eliminar la categoría.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
   async function deleteProduct(product: Product) {
     setDeletingProductId(product.id);
     setError("");
@@ -541,25 +645,80 @@ export default function MenuPage() {
 
         <section className="space-y-3">
           <div className="alento-card rounded-[22px] p-2.5">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
+              <div>
+                <b className="text-[13px] font-semibold text-neutral-900">Categorías</b>
+                <span className="ml-2 text-[11px] text-neutral-400">
+                  {savingCategoryOrder ? "Guardando orden..." : "Arrastra para reorganizar"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryError("");
+                  setCategoryEditor({ name: "" });
+                }}
+                className="h-9 rounded-xl bg-black px-3.5 text-[11px] font-semibold text-white"
+              >
+                + Categoría
+              </button>
+            </div>
+
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">
               {data?.categories.map((category) => {
                 const active = activeCategory?.id === category.id;
                 return (
-                  <button
+                  <div
                     key={category.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveCategoryId(category.id);
-                      setQuery("");
-                      setNotice("");
+                    onDragOver={(event) => {
+                      if (draggingCategoryId == null) return;
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
                     }}
-                    className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-left transition ${active ? "border-black bg-black text-white shadow-[0_6px_14px_rgba(0,0,0,.12)]" : "border-neutral-200 bg-white text-neutral-800 hover:border-neutral-300 hover:bg-neutral-50"}`}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      moveCategoryBefore(category.id);
+                      setDraggingCategoryId(null);
+                    }}
+                    className={`group relative flex min-w-0 items-center rounded-xl border transition ${active ? "border-black bg-black text-white shadow-[0_6px_14px_rgba(0,0,0,.12)]" : "border-neutral-200 bg-white text-neutral-800 hover:border-neutral-300"} ${draggingCategoryId === category.id ? "opacity-45" : ""}`}
                   >
-                    <span className="truncate text-[14px] font-bold leading-5">{category.name}</span>
-                    <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[11px] font-bold leading-none tabular-nums ${active ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-600"}`}>
-                      {category.products.length}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveCategoryId(category.id);
+                        setQuery("");
+                        setNotice("");
+                      }}
+                      className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left"
+                    >
+                      <span className="truncate text-[14px] font-semibold leading-5">{category.name}</span>
+                      <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-[11px] font-semibold leading-none tabular-nums ${active ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-600"}`}>
+                        {category.products.length}
+                      </span>
+                    </button>
+
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      draggable={!savingCategoryOrder}
+                      onClick={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        event.stopPropagation();
+                        if (savingCategoryOrder) {
+                          event.preventDefault();
+                          return;
+                        }
+                        setDraggingCategoryId(category.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", String(category.id));
+                      }}
+                      onDragEnd={() => setDraggingCategoryId(null)}
+                      className={`mr-2 flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg text-[14px] font-semibold transition active:cursor-grabbing ${active ? "bg-white/10 text-white/70" : "bg-neutral-100 text-neutral-500"}`}
+                      title="Arrastrar categoría"
+                    >
+                      ⋮⋮
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -599,11 +758,24 @@ export default function MenuPage() {
                     />
                   </label>
 
-                  {activeCategory && ["pizzas", "antojos", "bebidas", "ingredientes"].includes(activeCategory.slug) && (
+                  {activeCategory && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoryError("");
+                        setCategoryEditor({ id: activeCategory.id, name: activeCategory.name });
+                      }}
+                      className="h-11 shrink-0 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-semibold text-neutral-700"
+                    >
+                      Editar categoría
+                    </button>
+                  )}
+
+                  {activeCategory && !["destacados", "combos"].includes(activeCategory.slug) && (
                     <button
                       type="button"
                       onClick={() => startCreateProduct(activeCategory)}
-                      className="h-11 shrink-0 rounded-xl bg-black px-4 text-[11px] font-black text-white"
+                      className="h-11 shrink-0 rounded-xl bg-black px-4 text-[11px] font-semibold text-white"
                     >
                       + {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}
                     </button>
@@ -722,6 +894,128 @@ export default function MenuPage() {
           </div>
         </section>
       </div>
+
+      {categoryEditor && (
+        <div
+          className="fixed inset-0 z-[135] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !savingCategory) setCategoryEditor(null);
+          }}
+        >
+          <form
+            onSubmit={saveCategory}
+            className="w-full max-w-[620px] overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
+          >
+            <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  {categoryEditor.id ? "Editar categoría" : "Nueva categoría"}
+                </p>
+                <h2 className="mt-1 text-[25px] font-semibold tracking-[-0.02em] text-white">
+                  {categoryEditor.id ? categoryEditor.name || "Categoría" : "Crear categoría"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => !savingCategory && setCategoryEditor(null)}
+                className="rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-semibold text-white"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="p-5">
+              <label className="block">
+                <span className="text-[12px] font-semibold text-neutral-800">Nombre de la categoría</span>
+                <input
+                  autoFocus
+                  value={categoryEditor.name}
+                  onChange={(event) => setCategoryEditor({ ...categoryEditor, name: event.target.value })}
+                  className="alento-input mt-2 w-full rounded-xl px-4 py-3 text-sm"
+                  placeholder="Ej. Postres"
+                />
+              </label>
+
+              {categoryEditor.id && (
+                <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                  <p className="text-[11px] leading-5 text-neutral-600">
+                    Los productos vinculados permanecen en esta categoría y mostrarán automáticamente el nuevo nombre.
+                  </p>
+
+                  {(() => {
+                    const category = data?.categories.find((item) => item.id === categoryEditor.id);
+                    const protectedCategory = category ? ["destacados", "pizzas", "combos", "ingredientes"].includes(category.slug) : false;
+                    if (!category) return null;
+                    return (
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-200 pt-3">
+                        <div>
+                          <b className="text-[11px] text-neutral-800">Eliminar categoría</b>
+                          <p className="mt-0.5 text-[10px] text-neutral-500">
+                            {protectedCategory
+                              ? "Categoría base del sistema: puede renombrarse y moverse, pero no eliminarse."
+                              : category.products.length
+                                ? `Tiene ${category.products.length} producto(s) vinculados.`
+                                : "Disponible porque no tiene productos vinculados."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={protectedCategory || category.products.length > 0 || savingCategory}
+                          onClick={() => setDeleteCategoryTarget(category)}
+                          className="shrink-0 rounded-xl border border-red-200 bg-white px-3.5 py-2.5 text-[11px] font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-35"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {categoryError && (
+                <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] text-red-700">
+                  {categoryError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setCategoryEditor(null)}
+                disabled={savingCategory}
+                className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-semibold text-neutral-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingCategory}
+                className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white disabled:opacity-50"
+              >
+                {savingCategory ? "Guardando..." : categoryEditor.id ? "Guardar cambios" : "Crear categoría"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deleteCategoryTarget && (
+        <ActionConfirmModal
+          variant="danger"
+          eyebrow="Eliminar categoría"
+          title={`Eliminar ${deleteCategoryTarget.name}`}
+          description="Esta acción no se puede deshacer."
+          detail="La categoría solo se eliminará si no tiene productos vinculados."
+          confirmLabel={savingCategory ? "Eliminando..." : "Eliminar categoría"}
+          cancelLabel="Cancelar"
+          busy={savingCategory}
+          onClose={() => {
+            if (!savingCategory) setDeleteCategoryTarget(null);
+          }}
+          onConfirm={() => void deleteCategory(deleteCategoryTarget)}
+        />
+      )}
 
       {selectedProduct && (
         <div
