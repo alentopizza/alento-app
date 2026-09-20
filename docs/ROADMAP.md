@@ -177,12 +177,27 @@ La documentación del repositorio debe tener prioridad sobre el historial de cha
 
 # Experiencia pública — V1
 
-Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
+Estado: **HOME APROBADA / PRODUCTOS EN DEFINICIÓN**
 
-- `/` es la superficie pública principal;
-- `/app` se conserva como alias temporal;
-- usa el mismo `GET /api/catalog` del sistema;
-- navegación pública no exige login;
-- login unificado permite Cliente por OTP o Colaborador por correo + contraseña;
-- POS interno vive en `/interno`;
-- carrito, configurador y checkout público siguen pendientes y deben reutilizar la estructura comercial existente.
+### Home
+
+- `/` es la Home pública principal aprobada;
+- usa pieza publicitaria responsive administrable;
+- móvil: `1080 × 2160 px`;
+- escritorio: `1920 × 1080 px`;
+- CTA deslizante hacia `/pedir`;
+- configuración desde `/personalizacion`;
+- instalación PWA disponible;
+- PWA abre en `/`.
+
+### Productos
+
+- `/pedir` consume el mismo `GET /api/catalog` del sistema;
+- la lógica de catálogo es válida;
+- la visual de productos todavía no está cerrada;
+- definir diseño antes de avanzar con configurador/carrito;
+- `/app2` y `/app` conservan temporalmente la experiencia anterior para comparación.
+
+POS interno continúa en `/interno`.
+
+Carrito, configurador y checkout público siguen pendientes y deben reutilizar la estructura comercial existente.
