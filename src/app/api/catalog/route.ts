@@ -22,14 +22,6 @@ function sortFeaturedProducts<T extends { id: number; sortOrder: number; name: s
   });
 }
 
-const categoryPriority = new Map([
-  ["destacados", 1],
-  ["pizzas", 2],
-  ["antojos", 3],
-  ["bebidas", 4],
-  ["combos", 5],
-]);
-
 const comboInclude = {
   comboPizzaRules: {
     orderBy: { sortOrder: "asc" as const },
@@ -53,7 +45,7 @@ export async function GET() {
   try {
     const [categories, sizes, crusts, modifiers, featuredProducts, combos, featuredOrderSetting] = await Promise.all([
       prisma.category.findMany({
-        where: { active: true, visibleInPos: true, slug: { not: "combos" } },
+        where: { active: true, visibleInPos: true, slug: { not: "insumos" } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         include: {
           products: {
@@ -144,26 +136,17 @@ export async function GET() {
       name: category.name,
       slug: category.slug,
       imageUrl: category.imageUrl,
+      sortOrder: category.sortOrder,
       products: category.slug === "destacados"
         ? orderedFeaturedProducts.map(normalizeProduct)
-        : category.products.filter((product) => product.type !== "COMBO").map(normalizeProduct),
+        : category.slug === "combos"
+          ? combos.map(normalizeProduct)
+          : category.products.filter((product) => product.type !== "COMBO").map(normalizeProduct),
     }));
 
-    if (combos.length) {
-      normalizedCategories.push({
-        id: -5,
-        name: "Combos",
-        slug: "combos",
-        imageUrl: null,
-        products: combos.map(normalizeProduct),
-      });
-    }
-
-    normalizedCategories.sort((a, b) => {
-      const aPriority = categoryPriority.get(a.slug) ?? 100;
-      const bPriority = categoryPriority.get(b.slug) ?? 100;
-      return aPriority - bPriority || a.name.localeCompare(b.name, "es");
-    });
+    normalizedCategories.sort((a, b) =>
+      a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es"),
+    );
 
     const pizzaFlavors = [
       ...new Map(
