@@ -57,6 +57,14 @@ enum CouponType {
   PERCENTAGE
 }
 
+enum UserRole {
+  ADMIN
+  POS
+  KITCHEN
+  CASHIER
+  DISPATCH
+}
+
 model Customer {
   id          Int               @id @default(autoincrement())
   name        String
@@ -68,6 +76,45 @@ model Customer {
   updatedAt   DateTime          @updatedAt
   addresses   CustomerAddress[]
   orders      Order[]
+  account     CustomerAccount?
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  passwordHash String
+  roles        UserRole[] @default([])
+  active       Boolean    @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([active])
+}
+
+model CustomerAccount {
+  id              Int       @id @default(autoincrement())
+  customerId      Int       @unique
+  phoneE164       String    @unique
+  phoneVerifiedAt DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model CustomerAuthCode {
+  id          String    @id @default(cuid())
+  phoneE164   String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phoneE164, createdAt])
+  @@index([expiresAt])
 }
 
 model CustomerAddress {
