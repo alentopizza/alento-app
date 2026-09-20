@@ -5,17 +5,17 @@ const ALENTO_ICON =
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/",
-    name: "Alentó App",
+    id: "/app2",
+    name: "Alentó Pizza",
     short_name: "Alentó",
-    description: "Punto de venta y operación interna de Alentó Pizza",
-    start_url: "/",
+    description: "Pide pizzas, combos y antojos de Alentó Pizza desde tu celular.",
+    start_url: "/app2",
     scope: "/",
     display: "standalone",
-    orientation: "any",
-    background_color: "#f6f4f1",
+    orientation: "portrait",
+    background_color: "#ffffff",
     theme_color: "#111111",
-    categories: ["business", "food", "productivity"],
+    categories: ["food", "shopping"],
     prefer_related_applications: false,
     icons: [
       {
