@@ -9,7 +9,11 @@ export async function POST(request: NextRequest) {
   const countryCode = typeof body.countryCode === "string" ? body.countryCode : "+57";
   const rawPhone = typeof body.phone === "string" ? body.phone : "";
   const phoneE164 = normalizePhoneE164(countryCode, rawPhone);
-  const localPhone = rawPhone.replace(/\D/g, "");
+  const countryDigits = countryCode.replace(/\D/g, "");
+  let localPhone = rawPhone.replace(/\D/g, "");
+  if (countryDigits && localPhone.startsWith(countryDigits)) {
+    localPhone = localPhone.slice(countryDigits.length);
+  }
 
   if (!phoneE164 || localPhone.length < 7) {
     return NextResponse.json({ error: "Ingresa un número de teléfono válido." }, { status: 400 });
