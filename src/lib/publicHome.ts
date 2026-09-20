@@ -10,8 +10,14 @@ export type PublicHomeBrand = {
   logoUrl: string;
 };
 
+export type PublicHomeLanding = {
+  mobileImageUrl: string;
+  desktopImageUrl: string;
+};
+
 export type PublicHomeSettings = {
   brand: PublicHomeBrand;
+  landing: PublicHomeLanding;
   primaryBanner: PublicHomeBanner;
   secondaryBanner: PublicHomeBanner;
 };
@@ -19,6 +25,10 @@ export type PublicHomeSettings = {
 export const DEFAULT_PUBLIC_HOME_SETTINGS: PublicHomeSettings = {
   brand: {
     logoUrl: "",
+  },
+  landing: {
+    mobileImageUrl: "",
+    desktopImageUrl: "",
   },
   primaryBanner: {
     active: false,
@@ -58,6 +68,18 @@ function normalizeBrand(value: unknown): PublicHomeBrand {
   };
 }
 
+function normalizeLanding(value: unknown): PublicHomeLanding {
+  if (!value || typeof value !== "object") {
+    return DEFAULT_PUBLIC_HOME_SETTINGS.landing;
+  }
+
+  const raw = value as Partial<PublicHomeLanding>;
+  return {
+    mobileImageUrl: typeof raw.mobileImageUrl === "string" ? raw.mobileImageUrl.trim() : "",
+    desktopImageUrl: typeof raw.desktopImageUrl === "string" ? raw.desktopImageUrl.trim() : "",
+  };
+}
+
 export function normalizePublicHomeSettings(value: unknown): PublicHomeSettings {
   if (!value || typeof value !== "object") return DEFAULT_PUBLIC_HOME_SETTINGS;
   const raw = value as Partial<PublicHomeSettings>;
@@ -73,6 +95,7 @@ export function normalizePublicHomeSettings(value: unknown): PublicHomeSettings 
 
   return {
     brand: normalizeBrand(raw.brand),
+    landing: normalizeLanding(raw.landing),
     primaryBanner,
     secondaryBanner,
   };
