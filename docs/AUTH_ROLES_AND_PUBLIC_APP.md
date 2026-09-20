@@ -24,9 +24,13 @@ Los colaboradores ingresan con:
 - correo;
 - contraseña asignada al crear el usuario.
 
-Ruta:
+Ruta unificada:
 
 `/login`
+
+También disponible desde:
+
+`/cuenta/login`
 
 Las contraseñas se guardan como hash `scrypt` con salt aleatorio.
 
@@ -147,7 +151,7 @@ No reutilizar la bootstrap key como contraseña de usuario.
 
 La primera versión protege:
 
-- `/` POS;
+- `/interno` POS;
 - `/pedidos`;
 - `/cocina`;
 - `/clientes`;
@@ -185,9 +189,11 @@ El login sirve para vincular la sesión con el `Customer` existente y habilitar 
 - pedidos;
 - futuras recompensas/favoritos.
 
-Ruta actual de acceso:
+Ruta unificada de acceso:
 
 `/cuenta/login`
+
+El mismo formulario está disponible en `/login`.
 
 Ruta de perfil:
 
@@ -351,7 +357,7 @@ Es obligatorio antes de probar login.
 ## Limitaciones conocidas de esta primera versión
 
 - la app pública completa todavía no está construida;
-- `/` continúa siendo POS, por lo que sigue protegido como ruta interna;
+- `/` es la superficie pública principal y `/interno` contiene el POS protegido;
 - todavía no existe recuperación de contraseña por correo;
 - todavía no existe auditoría de cambios de usuarios;
 - la sesión interna es stateless firmada: cambios de roles/desactivación se reflejan plenamente al renovar/iniciar nuevamente la sesión; en una fase posterior puede añadirse revocación inmediata basada en sesiones persistidas;
@@ -463,3 +469,25 @@ La autenticación del cliente es opcional y se accede desde Cuenta.
 La raíz `/` sigue siendo POS interno durante esta etapa.
 
 La próxima ampliación de la app pública debe conectar carrito y checkout reutilizando configuradores y estructuras del POS, no creando una segunda lógica comercial.
+
+
+## Acceso unificado cliente / colaborador
+
+El acceso principal abre en modo Cliente:
+
+`teléfono → OTP por WhatsApp`
+
+En la parte inferior aparece:
+
+`Iniciar como colaborador`
+
+Al activarlo, el mismo formulario cambia a:
+
+`correo + contraseña`
+
+No se mezclan las sesiones ni las identidades. El formulario es compartido, pero continúa usando:
+
+- `alento_customer_session` para clientes;
+- `alento_staff_session` para colaboradores.
+
+Después de iniciar sesión como colaborador, el destino depende de roles. El Punto de Venta se encuentra en `/interno`.
