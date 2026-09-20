@@ -33,10 +33,30 @@ function uniqueIntegerArray(value: unknown): number[] {
   return [...new Set(value.map((item: unknown) => Number(item)).filter((item: number) => Number.isInteger(item)))];
 }
 
+const FEATURED_ORDER_SETTING_KEY = "menu.featuredProductOrder";
+
+function readFeaturedOrder(value: unknown): number[] {
+  return uniqueIntegerArray(value);
+}
+
+function sortFeaturedProducts<T extends { id: number; sortOrder: number; name: string }>(products: T[], storedOrder: number[]) {
+  const rank = new Map(storedOrder.map((id, index) => [id, index] as const));
+  return [...products].sort((a, b) => {
+    const aRank = rank.get(a.id);
+    const bRank = rank.get(b.id);
+    if (aRank != null || bRank != null) {
+      if (aRank == null) return 1;
+      if (bRank == null) return -1;
+      if (aRank !== bRank) return aRank - bRank;
+    }
+    return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es");
+  });
+}
+
 export async function GET() {
   await ensureCombosCategory();
 
-  const [categories, sizes, featuredProducts] = await Promise.all([
+  const [categories, sizes, featuredProducts, featuredOrderSetting] = await Promise.all([
     prisma.category.findMany({
       where: { slug: { not: "insumos" } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -74,7 +94,13 @@ export async function GET() {
         },
       },
     }),
+    prisma.appSetting.findUnique({ where: { key: FEATURED_ORDER_SETTING_KEY } }),
   ]);
+
+  const orderedFeaturedProducts = sortFeaturedProducts(
+    featuredProducts,
+    readFeaturedOrder(featuredOrderSetting?.value),
+  );
 
   const minPizzaSizePrice = sizes.length ? Math.min(...sizes.map((size) => Number(size.basePrice))) : 0;
 
@@ -157,7 +183,7 @@ export async function GET() {
       active: category.active,
       visibleInPos: category.visibleInPos,
       sortOrder: category.sortOrder,
-      products: category.slug === "destacados" ? featuredProducts.map(serializeProduct) : category.products.map(serializeProduct),
+      products: category.slug === "destacados" ? orderedFeaturedProducts.map(serializeProduct) : category.products.map(serializeProduct),
     })),
     sizes: sizes.map((size) => ({ id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: Number(size.basePrice) })),
   });
@@ -265,7 +291,33 @@ export async function POST(request: NextRequest) {
     }
 
     if (category.slug === "destacados") {
-      return NextResponse.json({ error: "Destacados usa el orden de los productos originales." }, { status: 400 });
+      const featuredProducts = await prisma.product.findMany({
+        where: { featured: true, type: { notIn: ["MODIFIER", "INTERNAL"] } },
+        select: { id: true },
+      });
+      const existingIds = featuredProducts.map((product) => product.id);
+
+      if (
+        productIds.length !== existingIds.length ||
+        existingIds.some((id) => !productIds.includes(id))
+      ) {
+        return NextResponse.json({
+          error: "La lista de destacados cambió. Actualiza el menú e intenta nuevamente.",
+        }, { status: 409 });
+      }
+
+      await prisma.appSetting.upsert({
+        where: { key: FEATURED_ORDER_SETTING_KEY },
+        update: { value: productIds },
+        create: { key: FEATURED_ORDER_SETTING_KEY, value: productIds },
+      });
+
+      return NextResponse.json({
+        reordered: true,
+        categoryId,
+        productIds,
+        scope: "featured",
+      });
     }
 
     const existingIds = category.products.map((product) => product.id);
