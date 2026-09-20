@@ -19,6 +19,7 @@ alentopizza.com/
 └── seguimiento del pedido
 
 alentopizza.com/interno
+├── POS protegido
 ├── login de empleados
 ├── POS
 ├── Pedidos
@@ -272,3 +273,15 @@ Pendientes estratégicos conocidos:
 9. Sustituir Glide y migrar `alentopizza.com` a Alentó App.
 10. Evaluar empaquetado/parametrización para replicar la solución en otros negocios.
 11. Implementaciones externas como Rappi/DiDi/Chatwoot se reservan para la última fase.
+
+
+## Rutas principales vigentes
+
+Durante la etapa temporal en `pos.alentopizza.com`:
+
+- `/`: experiencia pública principal;
+- `/app`: alias temporal de la experiencia pública;
+- `/interno`: Punto de Venta protegido;
+- `/login` y `/cuenta/login`: acceso unificado para clientes y colaboradores.
+
+El acceso abre como cliente por teléfono + OTP y ofrece `Iniciar como colaborador` para cambiar a correo + contraseña. Cuando el producto esté listo, esta misma arquitectura pasará al dominio principal `alentopizza.com`.
