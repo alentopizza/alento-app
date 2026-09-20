@@ -26,7 +26,8 @@ function isPublicAppPath(pathname: string) {
   return (
     pathname === "/" ||
     pathname.startsWith("/app") ||
-    pathname.startsWith("/app2")
+    pathname.startsWith("/app2") ||
+    pathname.startsWith("/pedir")
   );
 }
 
