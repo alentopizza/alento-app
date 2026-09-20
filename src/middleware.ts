@@ -10,7 +10,7 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/caja", roles: ["ADMIN", "CASHIER"] },
   { prefix: "/cocina", roles: ["ADMIN", "KITCHEN"] },
   { prefix: "/clientes", roles: ["ADMIN", "POS"] },
-  { prefix: "/pedidos", roles: ["ADMIN", "POS", "DISPATCH", "CASHIER"] },
+  { prefix: "/pedidos", roles: ["ADMIN", "POS", "CASHIER"] },
 ];
 
 function apiRoles(pathname: string, method: string): string[] | null {
@@ -35,15 +35,15 @@ function apiRoles(pathname: string, method: string): string[] | null {
     if (pathname.includes("/items/") && pathname.endsWith("/prepared")) return ["ADMIN", "KITCHEN"];
     if (pathname.endsWith("/payment") || /\/payment\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER"];
     if (pathname.endsWith("/edit")) return ["ADMIN", "POS"];
-    if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN", "DISPATCH"];
-    if (/^\/api\/orders\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER", "DISPATCH", "KITCHEN"];
-    if (method === "GET") return ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
+    if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN"];
+    if (/^\/api\/orders\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER", "KITCHEN"];
+    if (method === "GET") return ["ADMIN", "POS", "KITCHEN", "CASHIER"];
     return ["ADMIN", "POS"];
   }
 
   if (pathname === "/api/orders") {
     return method === "GET"
-      ? ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"]
+      ? ["ADMIN", "POS", "KITCHEN", "CASHIER"]
       : ["ADMIN", "POS"];
   }
 
