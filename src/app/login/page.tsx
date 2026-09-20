@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
-type StaffRole = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DISPATCH";
+type StaffRole = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DRIVER" | "DISPATCH";
 
 function defaultRouteForRoles(roles: StaffRole[]) {
   if (roles.includes("ADMIN") || roles.includes("POS")) return "/";
   if (roles.includes("KITCHEN")) return "/cocina";
   if (roles.includes("CASHIER")) return "/caja";
-  if (roles.includes("DISPATCH")) return "/pedidos";
+  if (roles.includes("DRIVER") || roles.includes("DISPATCH")) return "/sin-acceso";
   return "/sin-acceso";
 }
 
@@ -35,7 +35,7 @@ function canAccessRoute(pathname: string, roles: StaffRole[]) {
   }
 
   if (pathname === "/pedidos" || pathname.startsWith("/pedidos/")) {
-    return roles.includes("POS") || roles.includes("CASHIER") || roles.includes("DISPATCH");
+    return roles.includes("POS") || roles.includes("CASHIER");
   }
 
   return false;
