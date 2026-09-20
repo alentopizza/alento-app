@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { UserRole } from "@prisma/client";
+import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, requireStaffSession } from "@/lib/auth";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
+const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
+
+function parsePermissions(value: unknown): UserPermission[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((permission): permission is UserPermission => VALID_PERMISSIONS.includes(permission as UserPermission)))];
+}
 
 function parseRoles(value: unknown): UserRole[] {
   if (!Array.isArray(value)) return [];
@@ -27,6 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!existing) return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
 
   const roles = body.roles === undefined ? existing.roles : parseRoles(body.roles);
+  const permissions = body.permissions === undefined ? existing.permissions : parsePermissions(body.permissions);
   const active = typeof body.active === "boolean" ? body.active : existing.active;
   if (roles.length === 0) return NextResponse.json({ error: "El usuario debe conservar al menos un rol." }, { status: 400 });
 
@@ -46,10 +53,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         ...(typeof body.name === "string" && body.name.trim() ? { name: body.name.trim() } : {}),
         ...(typeof body.email === "string" && body.email.trim() ? { email: normalizeEmail(body.email) } : {}),
         roles,
+        permissions,
         active,
         ...(password ? { passwordHash: hashPassword(password) } : {}),
       },
-      select: { id: true, name: true, email: true, roles: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
     });
     return NextResponse.json({ user });
   } catch (error) {
