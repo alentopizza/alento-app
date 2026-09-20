@@ -119,7 +119,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname === "/" && !["ADMIN", "POS", "CASHIER"].some((role) => session.roles?.includes(role))) {
+  if (pathname === "/interno" && !["ADMIN", "POS", "CASHIER"].some((role) => session.roles?.includes(role))) {
     return NextResponse.redirect(new URL("/sin-acceso", request.url));
   }
 
@@ -128,7 +128,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
+    "/interno/:path*",
     "/pedidos/:path*",
     "/cocina/:path*",
     "/clientes/:path*",
