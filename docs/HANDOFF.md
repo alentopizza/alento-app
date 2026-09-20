@@ -1,8 +1,8 @@
 # Handoff y continuidad del proyecto
 
-Este documento existe para que una nueva persona, desarrollador o IA pueda retomar Alentó App sin depender del historial de una conversación anterior.
+Este documento permite que una nueva persona, desarrollador o IA retome Alentó App sin depender del historial de conversaciones.
 
-## Lectura obligatoria al retomar
+## Lectura obligatoria
 
 Leer en este orden:
 
@@ -12,140 +12,212 @@ Leer en este orden:
 4. `docs/POS.md`
 5. `docs/ORDERS.md`
 6. `docs/KITCHEN.md`
-7. `docs/ARCHITECTURE.md`
-8. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-9. `docs/ORDER_NUMBERING.md`
-10. `docs/PAYMENTS_AND_CASH.md`
-11. `docs/ORDER_DATA_INTEGRITY.md`
-12. `docs/DEPLOYMENT.md`
-13. `prisma/schema.prisma`
-14. Los archivos del módulo que se vaya a modificar.
+7. `docs/CUSTOMERS.md`
+8. `docs/MENU.md`
+9. `docs/ARCHITECTURE.md`
+10. `docs/ORDER_DATA_INTEGRITY.md`
+11. `docs/ORDER_NUMBERING.md`
+12. `docs/PAYMENTS.md`
+13. `docs/PAYMENTS_AND_CASH.md`
+14. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+15. `docs/DEPLOYMENT.md`
+16. `prisma/schema.prisma`
+17. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
-## Regla obligatoria de documentación
+## Fuente de verdad
 
-Todo cambio funcional o estructural importante debe quedar documentado en el mismo bloque de trabajo.
-
-Como mínimo:
-
-- actualizar `docs/CURRENT_STATE.md` cuando cambie el comportamiento real;
-- actualizar `docs/ARCHITECTURE.md` cuando cambie una regla estructural;
-- actualizar `docs/AUTH_ROLES_AND_PUBLIC_APP.md` cuando cambien autenticación, permisos, dominio o app pública;
-- actualizar `docs/ORDER_NUMBERING.md` cuando cambie el consecutivo o identificación comercial;
-- actualizar `docs/PAYMENTS_AND_CASH.md` cuando cambien pagos, Caja o conciliación;
-- actualizar `docs/ORDER_DATA_INTEGRITY.md` cuando cambie cómo se representa un producto vendido;
-- actualizar `docs/DEPLOYMENT.md` cuando cambie Prisma, EasyPanel, variables de entorno o procedimiento de despliegue;
-- actualizar `README.md` cuando cambie el objetivo o roadmap general.
-
-No considerar una funcionalidad importante terminada hasta actualizar su documentación.
-
-## Estado conceptual actual
-
-Alentó App es la fuente operativa principal en construcción.
-
-Debe terminar centralizando:
-
-- POS;
-- clientes;
-- catálogo;
-- pedidos;
-- Cocina;
-- pagos;
-- Caja;
-- configuración;
-- futura experiencia pública;
-- inventario/costos;
-- integraciones.
-
-Chatwoot u otros canales deben funcionar como interfaces de atención, no como motores paralelos de pedidos.
-
-## Decisión de dominio
-
-La arquitectura objetivo es un solo dominio principal.
-
-Actualmente `alentopizza.com` sigue ocupado por Glide. Durante el desarrollo Alentó App usa infraestructura temporal.
-
-Objetivo cuando se sustituya Glide:
+Orden de prioridad:
 
 ```text
-alentopizza.com/        → experiencia pública
-alentopizza.com/interno → sistema interno protegido
+1. comportamiento actual del código
+2. prisma/schema.prisma
+3. documento canónico del módulo
+4. CURRENT_STATE / ROADMAP
+5. historial de commits
+6. historial de chats
 ```
 
-No asumir que POS, Cocina o Caja necesitan dominios separados permanentes.
+Si documentación y código discrepan, verificar el comportamiento real y actualizar la documentación en el mismo bloque.
 
-## Estado de módulos operativos
+## Módulos cerrados
 
-**POS, Pedidos, Cocina y Clientes están cerrados para la etapa operativa actual.**
+Están cerrados para la etapa operativa actual:
 
-Sus referencias canónicas son:
+- Punto de venta;
+- Pedidos;
+- Cocina;
+- Clientes;
+- Menú.
+
+Documentos canónicos:
 
 - `docs/POS.md`
 - `docs/ORDERS.md`
 - `docs/KITCHEN.md`
 - `docs/CUSTOMERS.md`
+- `docs/MENU.md`
 
-Corregir bugs cuando aparezcan, pero no reabrir decisiones de diseño cerradas sin una solicitud explícita.
+"Cerrado" no significa congelado para siempre. Significa que:
 
-## Siguiente bloque acordado
+- el flujo aprobado ya existe;
+- no se debe rediseñar por iniciativa propia;
+- bugs sí se corrigen;
+- pequeñas mejoras visuales sí pueden hacerse;
+- cambios estructurales requieren solicitud explícita;
+- toda modificación debe respetar reglas de no regresión.
 
-El siguiente módulo a trabajar es **Menú**.
+## Mapa para reconstrucción
 
-Después de cerrar Menú se revisarán **Integraciones**.
+### Punto de venta
 
-Autenticación y Roles continúa como prioridad estratégica de seguridad, pero no es el siguiente bloque operativo acordado.
+Ruta: `/`
 
-## Autenticación — prioridad estratégica actual
+Entrada principal:
 
-Hoy no existe autenticación ni autorización implementada.
+- `src/components/StructuredPosPageV2.tsx`
 
-Antes de considerar el sistema interno listo para el dominio público principal se debe implementar:
+Dependencias críticas:
 
-1. `User` y `UserRole` en Prisma;
-2. solución de autenticación;
-3. hash seguro de contraseñas;
-4. login/logout;
-5. sesión segura;
-6. protección piloto de `/cocina`;
-7. protección de todas las páginas internas;
-8. protección de todas las APIs internas;
-9. permisos por rol;
-10. administración de usuarios.
+- `GET /api/catalog`
+- `POST /api/orders`
+- `src/lib/orderLineNormalizer.ts`
+- `src/lib/orderConfiguration.ts`
+- `src/lib/orderCode.ts`
 
-Roles iniciales propuestos:
+Responsabilidad: construir una orden válida y estructurada.
 
-- `ADMIN`
-- `POS`
-- `KITCHEN`
-- `CASHIER`
-- `DISPATCH`
+### Pedidos
 
-No basta con ocultar botones. La autorización debe existir en servidor.
+Ruta: `/pedidos`
 
-## Clientes y empleados son entidades distintas
+Archivos principales:
 
-`Customer` representa compradores.
+- `src/app/pedidos/page.tsx`
+- `src/components/OrdersCardsDashboardV3.tsx`
+- `src/components/OrderEditStructuredAdder.tsx`
+- `src/components/ActionConfirmModal.tsx`
 
-No reutilizar `Customer` como cuenta de empleado. El personal interno debe tener su propio modelo `User`.
+Responsabilidad: administrar una orden ya creada, pagos, cliente, impresión, cancelación, eliminación y estados posteriores a Cocina.
 
-## Regla crítica: integridad estructurada
+### Cocina
+
+Ruta: `/cocina`
+
+Archivos principales:
+
+- `src/app/cocina/page.tsx`
+- endpoints de prepared/status en `src/app/api/orders/[id]/...`
+- `src/lib/orderPresentation.ts`
+- `src/lib/orderWorkflow.ts`
+
+Responsabilidad: preparación, no finanzas.
+
+### Clientes
+
+Ruta: `/clientes`
+
+Archivos principales:
+
+- `src/app/clientes/page.tsx`
+- `src/app/api/customers/**`
+- `src/lib/customerCsv.ts`
+
+Responsabilidad: CRM operativo, historial y administración de datos.
+
+### Menú
+
+Ruta: `/menu`
+
+Archivos principales:
+
+- `src/app/menu/page.tsx`
+- `src/app/api/menu-admin/route.ts`
+- `src/app/api/catalog/route.ts`
+
+Responsabilidad: administrar el catálogo que consume POS.
+
+Regla crítica:
+
+```text
+Category.name = nombre visible
+Category.slug = identificador interno estable
+Product.categoryId = relación real
+Product.type = comportamiento estructural
+```
+
+No confundir estos conceptos.
+
+## Dependencias entre módulos
+
+```text
+Menú
+  ↓
+/api/catalog
+  ↓
+POS
+  ↓
+Order + OrderItem.configuration
+  ↓
+Pedidos
+  ↓
+Cocina
+  ↓
+Estados posteriores / Caja
+```
+
+Clientes se relaciona con Order mediante `customerId`, pero no debe ser utilizado como usuario interno.
+
+## Integridad estructurada
 
 Cada orden debe guardar de forma estructurada qué se vendió.
 
+No reemplazar configuración por texto de ticket.
+
 Pizzas y combos deben conservar IDs reales y snapshots de tamaño, sabores, porciones, bordes, modificadores, grupos, opciones y cantidades.
 
-Esta información es la base futura de Cocina, inventario, recetas y costos.
+Esta estructura alimenta:
 
-`POS_SNAPSHOT` es compatibilidad histórica, no arquitectura objetivo.
+- Cocina;
+- impresión;
+- edición;
+- inventario futuro;
+- recetas;
+- costos;
+- rentabilidad.
 
-## Flujo operativo actual
+## Menú: reglas que una IA no debe inferir
 
-Pedidos nuevos nacen directamente en:
+- renombrar categoría no cambia slug;
+- categorías base pueden moverse/renombrarse pero no eliminarse;
+- categoría personalizada solo se elimina vacía;
+- el orden de categorías viene de `Category.sortOrder`;
+- el orden normal de productos viene de `Product.sortOrder`;
+- Destacados usa `Product.featured` y orden propio en `AppSetting`;
+- una categoría personalizada crea actualmente productos `STANDARD`;
+- `ProductType` todavía es enum fijo;
+- modificadores avanzados son backlog, no comportamiento implementado;
+- extras están deshabilitados para pizzas de dos sabores hasta definir alcance por mitad.
 
-```text
-PREPARING
-```
+## Pagos y Caja
+
+Medio previsto no significa ingreso.
+
+- `PENDING`: intención.
+- `PAID`: dinero recibido.
+
+Caja solo debe contar `PAID`.
+
+## Consecutivo
+
+`Order.id` es técnico.
+
+Usar `Order.sequenceNumber` + `Order.source`.
+
+No reutilizar números eliminados.
+
+## Estados
 
 Domicilio:
 
@@ -159,51 +231,49 @@ Recoger/Local:
 PREPARING → PREPARED → READY → COMPLETED
 ```
 
-Cocina controla preparación hasta `READY`. Pedidos continúa el despacho/cierre.
+Cocina controla preparación hasta `READY`; Pedidos continúa después.
 
-## Consecutivo comercial
+## Eliminaciones
 
-`Order.id` es técnico.
-
-`Order.sequenceNumber` es el consecutivo comercial global compartido por canales.
-
-Ejemplo:
+### Pedido
 
 ```text
-POS-0001
-WEB-0002
-POS-0003
+Activo → Cancelar → Eliminar
 ```
 
-El prefijo depende de `Order.source`; el número no se separa por canal.
+### Producto
 
-No reutilizar números eliminados.
+No eliminar si tiene historial o dependencias de combo.
 
-## Pagos y Caja
+### Categoría
 
-Medio seleccionado no significa dinero recibido.
+No eliminar categoría base.
 
-Caja solo cuenta `Payment.status = PAID` y `paidAt`.
+No eliminar categoría personalizada con productos.
 
-Eliminar un pago ingresado por error significa borrado físico; deja de contar en Caja.
+### Cliente
 
-## Eliminación de pedidos
+La semántica está documentada en `CUSTOMERS.md`; no extrapolar reglas de otros modelos.
 
-Eliminar pedido significa borrado físico definitivo.
+## Autenticación
 
-El backend borra dentro de una transacción:
+Todavía no existe autorización completa.
 
-```text
-Payment → OrderItem → Order
-```
+No asumir seguridad porque un botón esté oculto.
 
-Cancelar es diferente: conserva trazabilidad con `CANCELED`.
+Antes del dominio principal deben existir controles server-side.
+
+## Integraciones
+
+Integraciones externas son la última fase.
+
+No reintroducir Rappi/DiDi experimentalmente sin acceso oficial y diseño aprobado.
 
 ## Prisma en producción
 
-La base de producción no tiene baseline formal de Prisma Migrate.
+No existe baseline formal de Prisma Migrate.
 
-Cuando cambie el schema usar:
+Cuando cambie schema:
 
 ```bash
 npx prisma db push
@@ -211,45 +281,27 @@ npx prisma db push
 
 No usar `prisma migrate deploy` hasta realizar baseline.
 
-`db push` no ejecuta triggers/functions SQL definidos solamente dentro de migraciones.
+## Regla obligatoria de documentación
 
-## Portabilidad / posibilidad de comercialización
+Todo cambio funcional relevante debe actualizar:
 
-El repositorio debe permanecer comprensible y adaptable para poder replicarse en otros restaurantes.
+- documento canónico del módulo;
+- `CURRENT_STATE.md` si cambia estado/comportamiento;
+- `ROADMAP.md` si cambia fase;
+- `README.md` si cambia arquitectura/objetivo global;
+- `DEPLOYMENT.md` si cambia infraestructura/Prisma.
 
-Separar el núcleo de negocio de:
+## Al cerrar un bloque
 
-- marca;
-- logos/colores;
-- catálogo;
-- precios;
-- tarifas;
-- usuarios;
-- dominio;
-- secretos;
-- infraestructura.
+Registrar:
 
-La arquitectura actual es una instalación por negocio. No asumir multi-tenancy todavía.
+- commit;
+- comportamiento añadido/cambiado;
+- archivos principales;
+- endpoints;
+- datos/modelos involucrados;
+- reglas de no regresión;
+- necesidad o no de `npx prisma db push`;
+- prueba mínima después de redeploy.
 
-## Antes de empezar un desarrollo
-
-Confirmar:
-
-1. que `main` contiene el último trabajo;
-2. que `CURRENT_STATE.md` describe el comportamiento real;
-3. si el cambio requiere Prisma;
-4. si afecta integridad estructurada;
-5. si afecta pagos/consecutivo/seguridad;
-6. qué documento debe actualizarse al cerrar.
-
-## Al cerrar cada bloque
-
-Registrar claramente:
-
-- commit(s) realizados;
-- qué cambió;
-- si requiere `npx prisma db push`;
-- qué debe probarse después del redeploy;
-- cuál es el siguiente paso pequeño recomendado.
-
-La documentación del repositorio tiene prioridad como fuente de continuidad frente al historial de chats.
+La documentación del repositorio tiene prioridad sobre el historial de chats.
