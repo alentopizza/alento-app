@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const FEATURED_ORDER_SETTING_KEY = "menu.featuredProductOrder";
+
+function readFeaturedOrder(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => Number(item)).filter((item) => Number.isInteger(item)))];
+}
+
+function sortFeaturedProducts<T extends { id: number; sortOrder: number; name: string }>(products: T[], storedOrder: number[]) {
+  const rank = new Map(storedOrder.map((id, index) => [id, index] as const));
+  return [...products].sort((a, b) => {
+    const aRank = rank.get(a.id);
+    const bRank = rank.get(b.id);
+    if (aRank != null || bRank != null) {
+      if (aRank == null) return 1;
+      if (bRank == null) return -1;
+      if (aRank !== bRank) return aRank - bRank;
+    }
+    return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es");
+  });
+}
+
 const categoryPriority = new Map([
   ["destacados", 1],
   ["pizzas", 2],
@@ -30,7 +51,7 @@ const comboInclude = {
 
 export async function GET() {
   try {
-    const [categories, sizes, crusts, modifiers, featuredProducts, combos] = await Promise.all([
+    const [categories, sizes, crusts, modifiers, featuredProducts, combos, featuredOrderSetting] = await Promise.all([
       prisma.category.findMany({
         where: { active: true, visibleInPos: true, slug: { not: "combos" } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -65,7 +86,13 @@ export async function GET() {
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         include: comboInclude,
       }),
+      prisma.appSetting.findUnique({ where: { key: FEATURED_ORDER_SETTING_KEY } }),
     ]);
+
+    const orderedFeaturedProducts = sortFeaturedProducts(
+      featuredProducts,
+      readFeaturedOrder(featuredOrderSetting?.value),
+    );
 
     const normalizeProduct = (product: (typeof featuredProducts)[number]) => ({
       id: product.id,
@@ -118,7 +145,7 @@ export async function GET() {
       slug: category.slug,
       imageUrl: category.imageUrl,
       products: category.slug === "destacados"
-        ? featuredProducts.map(normalizeProduct)
+        ? orderedFeaturedProducts.map(normalizeProduct)
         : category.products.filter((product) => product.type !== "COMBO").map(normalizeProduct),
     }));
 
