@@ -29,6 +29,22 @@ type CatalogResponse = {
   sizes: PizzaSize[];
 };
 
+type PublicHomeBanner = {
+  active: boolean;
+  imageUrl: string;
+  productId: number | null;
+};
+
+type PublicHomeSettings = {
+  primaryBanner: PublicHomeBanner;
+  secondaryBanner: PublicHomeBanner;
+};
+
+const EMPTY_PUBLIC_HOME: PublicHomeSettings = {
+  primaryBanner: { active: false, imageUrl: "", productId: null },
+  secondaryBanner: { active: false, imageUrl: "", productId: null },
+};
+
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 function money(value: number) {
@@ -61,13 +77,15 @@ export default function PublicAppPage() {
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
   const [customerName, setCustomerName] = useState("");
+  const [publicHome, setPublicHome] = useState<PublicHomeSettings>(EMPTY_PUBLIC_HOME);
 
   useEffect(() => {
     async function load() {
       try {
-        const [catalogResponse, accountResponse] = await Promise.all([
+        const [catalogResponse, accountResponse, publicHomeResponse] = await Promise.all([
           fetch("/api/catalog", { cache: "no-store" }),
           fetch("/api/auth/customer/me", { cache: "no-store" }),
+          fetch("/api/public-home", { cache: "no-store" }),
         ]);
 
         const data = await catalogResponse.json();
@@ -85,6 +103,11 @@ export default function PublicAppPage() {
         if (accountResponse.ok) {
           const account = await accountResponse.json();
           setCustomerName(account?.customer?.name && account.customer.name !== "NUEVO" ? account.customer.name : "");
+        }
+
+        if (publicHomeResponse.ok) {
+          const home = await publicHomeResponse.json();
+          if (home?.settings) setPublicHome(home.settings);
         }
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "No fue posible cargar el menú.");
@@ -132,6 +155,12 @@ export default function PublicAppPage() {
 
   const heroProduct = featuredProducts[0] ?? allProducts[0] ?? null;
   const secondaryHero = featuredProducts[1] ?? allProducts[1] ?? heroProduct;
+  const primaryBannerProduct = publicHome.primaryBanner.productId
+    ? allProducts.find((product) => product.id === publicHome.primaryBanner.productId) ?? null
+    : null;
+  const secondaryBannerProduct = publicHome.secondaryBanner.productId
+    ? allProducts.find((product) => product.id === publicHome.secondaryBanner.productId) ?? null
+    : null;
 
   function displayPrice(product: CatalogProduct) {
     const minSize = catalog?.sizes.length
@@ -198,6 +227,23 @@ export default function PublicAppPage() {
           )}
         </div>
 
+        {!query && publicHome.primaryBanner.active && publicHome.primaryBanner.imageUrl && (
+          <button
+            type="button"
+            onClick={() => primaryBannerProduct && setSelectedProduct(primaryBannerProduct)}
+            className="group mt-5 block w-full overflow-hidden rounded-[28px] bg-neutral-950 text-left shadow-[0_20px_55px_rgba(61,35,18,.14)]"
+            aria-label={primaryBannerProduct ? `Abrir ${primaryBannerProduct.name}` : "Banner principal"}
+          >
+            <div className="aspect-[1.92/1] w-full overflow-hidden">
+              <img
+                src={publicHome.primaryBanner.imageUrl}
+                alt={primaryBannerProduct?.name || "Promoción Alentó Pizza"}
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.01]"
+              />
+            </div>
+          </button>
+        )}
+
         <div className="alento-scroll mt-5 flex gap-3 overflow-x-auto pb-2">
           {categories.map((category) => {
             const active = category.slug === selectedCategory?.slug && !query;
@@ -224,7 +270,7 @@ export default function PublicAppPage() {
           <div className="mt-8 rounded-[28px] border border-red-100 bg-red-50 p-8 text-center text-sm text-red-700">{error}</div>
         ) : (
           <>
-            {!query && heroProduct && (
+            {!query && !(publicHome.primaryBanner.active && publicHome.primaryBanner.imageUrl) && heroProduct && (
               <section className="relative mt-4 min-h-[300px] overflow-hidden rounded-[30px] bg-[#15100e] shadow-[0_24px_60px_rgba(61,24,7,.18)] sm:min-h-[360px]">
                 {heroProduct.imageUrl && (
                   <img src={heroProduct.imageUrl} alt={heroProduct.name} className="absolute inset-0 h-full w-full object-cover opacity-75 sm:object-contain sm:object-right" />
@@ -260,7 +306,24 @@ export default function PublicAppPage() {
               </section>
             )}
 
-            {!query && secondaryHero && secondaryHero.id !== heroProduct?.id && (
+            {!query && publicHome.secondaryBanner.active && publicHome.secondaryBanner.imageUrl && (
+              <button
+                type="button"
+                onClick={() => secondaryBannerProduct && setSelectedProduct(secondaryBannerProduct)}
+                className="group mt-8 block w-full overflow-hidden rounded-[24px] bg-neutral-950 text-left shadow-[0_16px_38px_rgba(61,35,18,.12)]"
+                aria-label={secondaryBannerProduct ? `Abrir ${secondaryBannerProduct.name}` : "Banner secundario"}
+              >
+                <div className="aspect-[3.9/1] w-full overflow-hidden">
+                  <img
+                    src={publicHome.secondaryBanner.imageUrl}
+                    alt={secondaryBannerProduct?.name || "Promoción Alentó Pizza"}
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.01]"
+                  />
+                </div>
+              </button>
+            )}
+
+            {!query && !(publicHome.secondaryBanner.active && publicHome.secondaryBanner.imageUrl) && secondaryHero && secondaryHero.id !== heroProduct?.id && (
               <section className="relative mt-8 overflow-hidden rounded-[28px] bg-[#17110f] p-6 text-white shadow-[0_18px_46px_rgba(61,24,7,.14)] sm:p-8">
                 {secondaryHero.imageUrl && <img src={secondaryHero.imageUrl} alt="" className="absolute inset-y-0 right-0 h-full w-[58%] object-cover opacity-65" />}
                 <div className="absolute inset-0 bg-[linear-gradient(90deg,#17110f_0%,#17110f_44%,rgba(23,17,15,.45)_75%,rgba(23,17,15,.08)_100%)]" />
