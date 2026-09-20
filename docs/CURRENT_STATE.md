@@ -369,3 +369,30 @@ Desde 2026-09-20:
 - el modo inicial es Cliente por teléfono + OTP;
 - el botón `Iniciar como colaborador` cambia al acceso por correo + contraseña;
 - después del login de colaborador, la navegación se resuelve por roles y permisos.
+
+
+## Personalización de portada pública
+
+Ruta administrativa:
+
+`/personalizacion`
+
+Solo disponible para `ADMIN`.
+
+Permite administrar dos piezas promocionales de la experiencia pública:
+
+- Banner principal: formato recomendado `1200 × 625 px` (~1.92:1).
+- Banner secundario: formato recomendado `1200 × 310 px` (~3.9:1).
+
+Cada banner puede:
+
+- activarse o desactivarse;
+- cargar una imagen JPG/PNG/WebP;
+- recortarse automáticamente al formato objetivo;
+- convertirse a WebP en el navegador;
+- vincularse a un producto activo y visible del catálogo;
+- abrir el producto vinculado al tocar el banner en la portada.
+
+La configuración se persiste en `AppSetting` con clave `public.home`.
+
+No requiere cambios de Prisma ni `npx prisma db push`.
