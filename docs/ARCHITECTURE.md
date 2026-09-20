@@ -80,9 +80,16 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 `Customer` representa a quien compra.
 
-Los empleados deben usar un modelo independiente (`User`) y nunca reutilizar `Customer` como cuenta administrativa.
+Los empleados usan un modelo independiente (`User`) y nunca reutilizan `Customer` como cuenta administrativa.
 
-La autenticación todavía no está implementada.
+La primera versión de autenticación ya está implementada:
+
+- colaboradores: correo + contraseña;
+- clientes: teléfono + OTP de WhatsApp;
+- cookies de sesión separadas;
+- roles internos múltiples;
+- middleware de protección;
+- administración de usuarios en `/usuarios`.
 
 ## Roles objetivo iniciales
 
@@ -131,6 +138,22 @@ Administración de descuentos reutilizables.
 ### `/configuracion`
 
 Tarifas, medios de pago y configuración operativa.
+
+### `/usuarios`
+
+Administración de colaboradores y roles. Solo `ADMIN`.
+
+### `/login`
+
+Login de colaboradores con correo + contraseña.
+
+### `/cuenta/login`
+
+Login opcional de clientes con teléfono + OTP de WhatsApp.
+
+### `/cuenta`
+
+Información privada del cliente autenticado.
 
 ### `/pedidos/[id]/imprimir`
 
@@ -289,19 +312,27 @@ Para que el proyecto pueda replicarse o comercializarse, separar siempre:
 
 La arquitectura actual es una instalación por negocio. No introducir multi-tenancy sin una decisión explícita y un diseño separado.
 
-## Seguridad pendiente
+## Seguridad
 
-Antes de mover `alentopizza.com` a Alentó App deben existir:
+Ya existen:
 
 - usuarios internos;
-- hash de contraseñas;
+- hash scrypt de contraseñas;
 - login/logout;
-- sesiones seguras;
+- cookies HttpOnly firmadas;
 - páginas internas protegidas;
-- APIs internas protegidas;
-- permisos por rol;
+- APIs internas principales protegidas;
+- permisos iniciales por rol;
 - administración de usuarios;
-- configuración correcta de cookies/secrets en producción.
+- login opcional de clientes por WhatsApp OTP.
+
+Antes de migrar el dominio principal todavía deben completarse endurecimientos como:
+
+- recuperación de contraseña;
+- auditoría;
+- revocación inmediata de sesiones activas;
+- pruebas de permisos por rol;
+- revisión final de secretos/cookies en producción.
 
 ## Base de datos y despliegue
 
