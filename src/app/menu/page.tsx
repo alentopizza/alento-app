@@ -1220,75 +1220,175 @@ export default function MenuPage() {
         >
           <form
             onSubmit={saveProduct}
-            className="flex max-h-[92vh] w-full max-w-[900px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
+            className="flex max-h-[94vh] w-full max-w-[1040px] flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
           >
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Editar producto</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{editor.name}</h2>
-                <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase text-white/75">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">Editar producto</p>
+                <h2 className="mt-1 text-[26px] font-semibold tracking-[-0.025em] text-white">{editor.name}</h2>
+                <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-white/75">
                   {editor.type}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => !saving && setEditor(null)}
-                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15 disabled:opacity-50"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-semibold text-white transition hover:bg-white/15 disabled:opacity-50"
                 disabled={saving}
               >
                 Cerrar
               </button>
             </div>
 
-            <div className="overflow-y-auto p-5 md:p-6">
-              <section className="rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
-                <div className="mt-3 grid gap-4 md:grid-cols-2">
-                  <label className="space-y-1.5 md:col-span-2">
-                    <span className="text-[12px] font-bold text-neutral-800">Nombre</span>
-                    <input value={editor.name} onChange={(event) => setEditor({ ...editor, name: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                  <label className="space-y-1.5 md:col-span-2">
-                    <span className="text-[12px] font-bold text-neutral-800">Descripción</span>
-                    <textarea value={editor.description} onChange={(event) => setEditor({ ...editor, description: event.target.value })} className="alento-input min-h-24 w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">{editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}</span>
-                    <input value={editor.basePrice} onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                  <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                    <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Tipo</span>
-                    <b className="mt-1 block text-[12px] text-neutral-800">{editor.type}</b>
+            <div className="overflow-y-auto bg-[#f5f3f0] p-5 md:p-6">
+              <div className="grid gap-5 lg:grid-cols-[330px_minmax(0,1fr)]">
+                <aside className="space-y-3">
+                  <div className="overflow-hidden rounded-[24px] border-[5px] border-white bg-white shadow-[0_14px_34px_rgba(28,23,20,.09)]">
+                    <div className="aspect-square bg-white p-2">
+                      {editor.imageUrl ? (
+                        <img
+                          src={editor.imageUrl}
+                          alt={editor.name}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center rounded-[18px] bg-[#f7f6f3] text-5xl">🍕</div>
+                      )}
+                    </div>
+                    <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-4 text-white">
+                      <span className="text-[9px] font-medium uppercase tracking-[0.09em] text-white/45">Vista principal</span>
+                      <h3 className="mt-1 truncate text-[16px] font-medium leading-6">{editor.name || "Producto"}</h3>
+                      <b className="mt-2 block text-[20px] font-semibold leading-6 tracking-[-0.02em]">
+                        {formatCOP(Number(editor.basePrice) || 0)}
+                      </b>
+                    </div>
                   </div>
-                </div>
-              </section>
 
-              <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
-                <div className="mt-3 grid gap-3">
-                  <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">Imagen principal · URL</span>
-                    <input value={editor.imageUrl} onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">Imagen secundaria · URL</span>
-                    <input value={editor.imageUrl2} onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                </div>
-              </section>
+                  <div className="rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-neutral-400">Imagen secundaria</p>
+                        <p className="mt-0.5 text-[10px] text-neutral-500">Vista alternativa del producto.</p>
+                      </div>
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-[#faf9f7]">
+                        {editor.imageUrl2 ? (
+                          <img src={editor.imageUrl2} alt="" className="h-full w-full object-contain p-1" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[10px] text-neutral-300">Sin imagen</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </aside>
 
-              <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-[10.5px] leading-4 text-sky-800">
-                Los estados Activo, Visible en POS y Destacado se administran desde el panel principal del producto.
+                <div className="min-w-0 space-y-4">
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-sm">
+                    <div className="mb-4">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
+                      <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.015em] text-neutral-950">Datos que verá el cliente</h3>
+                    </div>
+
+                    <div className="grid gap-4">
+                      <label className="space-y-1.5">
+                        <span className="text-[12px] font-semibold text-neutral-800">Nombre del producto</span>
+                        <input
+                          value={editor.name}
+                          onChange={(event) => setEditor({ ...editor, name: event.target.value })}
+                          className="alento-input h-12 w-full rounded-xl px-4 text-[14px]"
+                        />
+                      </label>
+
+                      <label className="space-y-1.5">
+                        <span className="text-[12px] font-semibold text-neutral-800">Descripción</span>
+                        <textarea
+                          value={editor.description}
+                          onChange={(event) => setEditor({ ...editor, description: event.target.value })}
+                          className="alento-input min-h-[108px] w-full rounded-xl px-4 py-3 text-[13px] leading-5"
+                          placeholder="Describe brevemente el producto."
+                        />
+                      </label>
+
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+                        <label className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                          <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                            {editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}
+                          </span>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[20px] font-medium text-neutral-400">$</span>
+                            <input
+                              value={editor.basePrice}
+                              onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })}
+                              inputMode="numeric"
+                              className="min-w-0 flex-1 bg-transparent text-[22px] font-semibold tracking-[-0.02em] text-neutral-950 outline-none"
+                            />
+                          </div>
+                          <span className="mt-1 block text-[10px] text-neutral-400">
+                            {formatCOP(Number(editor.basePrice) || 0)}
+                          </span>
+                        </label>
+
+                        <div className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                          <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Tipo</span>
+                          <b className="mt-3 block truncate text-[12px] font-semibold text-neutral-800">{editor.type}</b>
+                          <span className="mt-1 block text-[10px] text-neutral-400">Configuración interna</span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Recursos visuales</p>
+                        <h3 className="mt-1 text-[16px] font-semibold text-neutral-950">Imágenes del producto</h3>
+                      </div>
+                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-medium text-neutral-500">URLs</span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3">
+                      <label className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-neutral-700">Imagen principal</span>
+                        <input
+                          value={editor.imageUrl}
+                          onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })}
+                          className="alento-input w-full rounded-xl px-4 py-3 text-[11px]"
+                          placeholder="https://..."
+                        />
+                      </label>
+                      <label className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-neutral-700">Imagen secundaria</span>
+                        <input
+                          value={editor.imageUrl2}
+                          onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })}
+                          className="alento-input w-full rounded-xl px-4 py-3 text-[11px]"
+                          placeholder="https://..."
+                        />
+                      </label>
+                    </div>
+                  </section>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
-              <button type="button" onClick={() => setEditor(null)} disabled={saving} className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-bold text-neutral-700 disabled:opacity-50">
-                Cancelar
-              </button>
-              <button type="submit" disabled={saving} className="alento-red-glow h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white disabled:opacity-50">
-                {saving ? "Guardando..." : "Guardar cambios"}
-              </button>
+            <div className="flex items-center justify-between gap-3 border-t border-neutral-100 bg-white px-5 py-4">
+              <p className="hidden text-[10px] text-neutral-400 sm:block">Los cambios se aplicarán al catálogo y al POS.</p>
+              <div className="ml-auto flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditor(null)}
+                  disabled={saving}
+                  className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-semibold text-neutral-700 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="alento-red-glow h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white disabled:opacity-50"
+                >
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
             </div>
           </form>
         </div>
