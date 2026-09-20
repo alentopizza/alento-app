@@ -631,7 +631,7 @@ export default function MenuPage() {
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Menú</h1>
-              <p className="mt-1 text-sm text-white/65">Administra el catálogo que alimenta el punto de venta.</p>
+              <p className="mt-1.5 text-[13px] font-normal leading-5 text-white/65">Organiza categorías, productos y disponibilidad desde un solo lugar.</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
@@ -1025,161 +1025,185 @@ export default function MenuPage() {
             if (event.target === event.currentTarget) setSelectedProduct(null);
           }}
         >
-          <div className="w-full max-w-[980px] overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+          <div className="w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Administrar producto</p>
-                <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{selectedProduct.name}</h2>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">Administrar producto</p>
+                <h2 className="mt-1 text-[26px] font-semibold tracking-[-0.025em] text-white">{selectedProduct.name}</h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase text-white/80">{selectedProduct.type}</span>
-                  <span className={`rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase ${selectedProduct.active ? "border-emerald-400/25 bg-emerald-400/15 text-emerald-200" : "border-white/10 bg-white/10 text-white/55"}`}>
-                    {selectedProduct.active ? "Activo" : "Inactivo"}
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-white/80">{selectedProduct.type}</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold text-white/70">
+                    {data?.categories.find((category) => category.id === selectedProduct.categoryId)?.name ?? "Producto"}
                   </span>
-                  {selectedProduct.visibleInPos && selectedProduct.type !== "MODIFIER" && (
-                    <span className="rounded-full border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-200">Visible en POS</span>
-                  )}
-                  {selectedProduct.featured && (
-                    <span className="rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[9px] font-bold uppercase text-red-200">Destacado</span>
-                  )}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedProduct(null)}
-                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-bold text-white transition hover:bg-white/15"
+                className="shrink-0 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-[11px] font-semibold text-white transition hover:bg-white/15"
               >
                 Cerrar
               </button>
             </div>
 
-            <div className="grid gap-5 p-5 md:grid-cols-[300px_minmax(0,1fr)] md:p-6">
-              <div>
-                <div className="aspect-square overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f7f6f3] p-2">
-                  {selectedProduct.imageUrl ? (
-                    <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="h-full w-full object-contain" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-5xl">🍕</div>
-                  )}
+            <div className="grid gap-5 bg-[#f5f3f0] p-5 md:grid-cols-[310px_minmax(0,1fr)] md:p-6">
+              <div className="min-w-0">
+                <div className="overflow-hidden rounded-[24px] border-[5px] border-white bg-white shadow-[0_14px_34px_rgba(28,23,20,.10)]">
+                  <div className="aspect-square bg-white p-2">
+                    {selectedProduct.imageUrl ? (
+                      <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="h-full w-full object-contain" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-[18px] bg-[#f7f6f3] text-5xl">🍕</div>
+                    )}
+                  </div>
+
+                  <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-4 text-white">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-white/50">Precio actual</span>
+                    <b className="mt-1 block text-[22px] font-semibold leading-7 tracking-[-0.02em] text-white">
+                      {displayProductPrice(selectedProduct)}
+                    </b>
+                    {selectedProduct.description && (
+                      <p className="mt-2 line-clamp-3 text-[11px] font-normal leading-[17px] text-white/65">
+                        {selectedProduct.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="mt-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
-                  <span className="block text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Precio</span>
-                  <b className="mt-1.5 block text-[20px] font-black tracking-[-0.02em] text-[var(--brand-red)]">{displayProductPrice(selectedProduct)}</b>
-                  <p className="mt-2 text-[11px] leading-4 text-neutral-500">{selectedProduct.description || "Sin descripción registrada."}</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const product = selectedProduct;
+                    setSelectedProduct(null);
+                    openEditor(product);
+                  }}
+                  className="mt-3 flex w-full items-center justify-between rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-neutral-300 hover:shadow-md"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-950 text-[14px] font-medium text-white">✎</span>
+                    <span>
+                      <b className="block text-[12px] font-semibold text-neutral-950">Editar información</b>
+                      <span className="mt-0.5 block text-[10px] text-neutral-500">Nombre, precio, descripción e imágenes.</span>
+                    </span>
+                  </span>
+                  <span className="text-lg text-neutral-300">›</span>
+                </button>
               </div>
 
               <div className="min-w-0">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Acciones del producto</p>
-                  <h3 className="mt-1 text-[19px] font-black tracking-[-0.02em] text-neutral-950">¿Qué deseas hacer?</h3>
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Control del producto</p>
+                    <h3 className="mt-1 text-[21px] font-semibold tracking-[-0.02em] text-neutral-950">Estado y visibilidad</h3>
+                    <p className="mt-1 text-[11px] leading-4 text-neutral-500">Los cambios se guardan al instante sin cerrar esta ventana.</p>
+                  </div>
                 </div>
 
-                <div className="mt-4 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Estado y visibilidad</p>
-                  <div className="mt-3 grid gap-2">
-                    {[
-                      {
-                        field: "active" as const,
-                        label: "Producto activo",
-                        description: "Permite ofrecer y usar este producto dentro del catálogo.",
-                        enabled: selectedProduct.active,
-                        disabled: false,
-                      },
-                      {
-                        field: "visibleInPos" as const,
-                        label: "Visible en POS",
-                        description: "Controla si aparece en el catálogo del punto de venta.",
-                        enabled: selectedProduct.visibleInPos,
-                        disabled: selectedProduct.type === "MODIFIER",
-                      },
-                      {
-                        field: "featured" as const,
-                        label: "Producto destacado",
-                        description: "Lo incluye o retira de la categoría Destacados.",
-                        enabled: selectedProduct.featured,
-                        disabled: selectedProduct.type === "MODIFIER",
-                      },
-                    ].map((option) => {
-                      const busy = savingToggle === option.field;
-                      return (
-                        <div
-                          key={option.field}
-                          className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${option.disabled ? "border-neutral-200 bg-neutral-100/70 opacity-60" : option.enabled ? "border-emerald-200 bg-emerald-50/65" : "border-neutral-200 bg-white"}`}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <b className="text-[12px] text-neutral-950">{option.label}</b>
-                              <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold uppercase ${option.enabled ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-500"}`}>
-                                {option.enabled ? "Activo" : "Inactivo"}
-                              </span>
-                            </div>
-                            <p className="mt-1 text-[10px] leading-4 text-neutral-500">{option.description}</p>
-                          </div>
-
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      field: "active" as const,
+                      label: "Activo",
+                      description: "Disponible para operar.",
+                      enabled: selectedProduct.active,
+                      disabled: false,
+                      shell: "border-emerald-200 bg-[linear-gradient(160deg,#ffffff,#ecfdf5)]",
+                      icon: "●",
+                      iconClass: "bg-emerald-100 text-emerald-700",
+                      switchClass: "bg-emerald-500",
+                    },
+                    {
+                      field: "visibleInPos" as const,
+                      label: "Visible en POS",
+                      description: "Aparece en el catálogo.",
+                      enabled: selectedProduct.visibleInPos,
+                      disabled: selectedProduct.type === "MODIFIER",
+                      shell: "border-sky-200 bg-[linear-gradient(160deg,#ffffff,#eff8ff)]",
+                      icon: "POS",
+                      iconClass: "bg-sky-100 text-sky-700",
+                      switchClass: "bg-sky-500",
+                    },
+                    {
+                      field: "featured" as const,
+                      label: "Destacado",
+                      description: "Aparece en Destacados.",
+                      enabled: selectedProduct.featured,
+                      disabled: selectedProduct.type === "MODIFIER",
+                      shell: "border-amber-200 bg-[linear-gradient(160deg,#ffffff,#fff9e8)]",
+                      icon: "★",
+                      iconClass: "bg-amber-100 text-amber-700",
+                      switchClass: "bg-amber-500",
+                    },
+                  ].map((option) => {
+                    const busy = savingToggle === option.field;
+                    return (
+                      <div
+                        key={option.field}
+                        className={\`relative overflow-hidden rounded-[20px] border p-4 shadow-[0_8px_20px_rgba(28,23,20,.04)] \${option.disabled ? "border-neutral-200 bg-neutral-100/75 opacity-55" : option.shell}\`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <span className={\`flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-[11px] font-semibold \${option.disabled ? "bg-neutral-200 text-neutral-500" : option.iconClass}\`}>
+                            {option.icon}
+                          </span>
                           <button
                             type="button"
                             role="switch"
                             aria-checked={option.enabled}
                             disabled={option.disabled || savingToggle !== null}
                             onClick={() => void quickToggle(selectedProduct, option.field)}
-                            className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:cursor-not-allowed ${option.enabled ? "bg-emerald-500" : "bg-neutral-300"} ${busy ? "opacity-60" : ""}`}
+                            className={\`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed \${option.enabled && !option.disabled ? option.switchClass : "bg-neutral-300"} \${busy ? "opacity-60" : ""}\`}
                             title={option.disabled ? "No disponible para este tipo de producto" : undefined}
                           >
-                            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition ${option.enabled ? "left-7" : "left-1"}`} />
+                            <span className={\`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition \${option.enabled ? "left-6" : "left-1"}\`} />
                           </button>
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <b className="mt-4 block text-[13px] font-semibold text-neutral-950">{option.label}</b>
+                        <p className="mt-1 min-h-8 text-[10px] leading-4 text-neutral-500">{option.description}</p>
+                        <span className={\`mt-3 inline-flex rounded-full px-2 py-1 text-[9px] font-semibold \${option.enabled && !option.disabled ? "bg-white/80 text-neutral-700 shadow-sm" : "bg-neutral-200/70 text-neutral-500"}\`}>
+                          {option.disabled ? "No disponible" : option.enabled ? "Activado" : "Desactivado"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <div className={`mt-4 grid gap-2.5 ${selectedProduct.type === "COMBO" ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+                {selectedProduct.type === "COMBO" && (
                   <button
                     type="button"
                     onClick={() => {
                       const product = selectedProduct;
                       setSelectedProduct(null);
-                      openEditor(product);
+                      startCombo(product);
                     }}
-                    className="group rounded-2xl border border-neutral-200 bg-white p-4 text-left transition hover:border-neutral-400 hover:shadow-sm"
+                    className="mt-4 flex w-full items-center justify-between rounded-[20px] border border-red-200 bg-[linear-gradient(135deg,#ffffff,#fff3f3)] px-4 py-3.5 text-left shadow-[0_8px_20px_rgba(229,28,17,.05)] transition hover:border-red-300 hover:shadow-md"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-950 text-sm font-black text-white">✎</span>
-                    <b className="mt-3 block text-[13px] text-neutral-950">Editar información</b>
-                    <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Nombre, precio, descripción e imágenes.</span>
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-[17px] font-medium text-red-700">+</span>
+                      <span>
+                        <b className="block text-[13px] font-semibold text-neutral-950">Configurar combo</b>
+                        <span className="mt-0.5 block text-[10px] text-neutral-500">Productos, cantidades, sabores, tamaños y descuento.</span>
+                      </span>
+                    </span>
+                    <span className="text-xl text-red-300">›</span>
                   </button>
+                )}
 
-                  {selectedProduct.type === "COMBO" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const product = selectedProduct;
-                        setSelectedProduct(null);
-                        startCombo(product);
-                      }}
-                      className="rounded-2xl border border-red-200 bg-red-50/60 p-4 text-left transition hover:bg-red-50"
-                    >
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-sm font-black text-red-700">+</span>
-                      <b className="mt-3 block text-[13px] text-neutral-950">Configurar combo</b>
-                      <span className="mt-1 block text-[10px] leading-4 text-neutral-500">Productos, cantidades, sabores, tamaños y descuento.</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-4 rounded-2xl border border-red-100 bg-red-50/50 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-4 flex flex-col gap-3 rounded-[20px] border border-neutral-200 bg-white px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-[14px] font-medium text-red-600">×</span>
                     <div>
-                      <b className="text-[12px] text-red-900">Eliminar producto</b>
-                      <p className="mt-1 text-[10px] leading-4 text-red-700">Solo podrá eliminarse si no tiene pedidos ni dependencias activas.</p>
+                      <b className="text-[12px] font-semibold text-neutral-900">Eliminar producto</b>
+                      <p className="mt-0.5 text-[10px] leading-4 text-neutral-500">Solo si no tiene pedidos ni dependencias activas.</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteTarget(selectedProduct)}
-                      className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-[11px] font-black text-red-700 shadow-sm hover:bg-red-50"
-                    >
-                      Eliminar
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(selectedProduct)}
+                    className="shrink-0 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-[11px] font-semibold text-red-700 transition hover:bg-red-50"
+                  >
+                    Eliminar
+                  </button>
                 </div>
               </div>
             </div>
