@@ -10,7 +10,7 @@ const items = [
   { href: "/pedidos", label: "Pedidos", icon: "▤" },
   { href: "/cocina", label: "Cocina", icon: "♨" },
   { href: "/clientes", label: "Clientes", icon: "◎" },
-  { href: "/menu", label: "Menú", subtitle: "Categorías y productos", icon: "▦" },
+  { href: "/menu", label: "Menú", icon: "▦" },
   { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%" },
   { href: "/caja", label: "Caja", icon: "$" },
   { href: "/configuracion", label: "Configuración", icon: "⚙" },
