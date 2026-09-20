@@ -337,3 +337,54 @@ Registrar:
 - prueba mínima después de redeploy.
 
 La documentación del repositorio tiene prioridad sobre el historial de chats.
+
+
+## Experiencia pública actual
+
+### Experiencia pública / Home
+
+Ruta principal:
+
+`/`
+
+Estado: **APROBADA COMO HOME PRINCIPAL**.
+
+Archivos principales:
+
+- `src/app/page.tsx`
+- `src/app/personalizacion/page.tsx`
+- `src/lib/publicHome.ts`
+- `src/components/PwaInstallPrompt.tsx`
+- `src/app/manifest.ts`
+
+Comportamiento vigente:
+
+- pantalla publicitaria a pantalla completa;
+- slider con flecha hacia la derecha;
+- al completar el gesto navega a `/pedir`;
+- imagen móvil administrable: `1080 × 2160 px`;
+- imagen PC administrable: `1920 × 1080 px`;
+- las imágenes se guardan en `AppSetting` bajo `public.home`;
+- PWA orientada al cliente;
+- la PWA instalada abre en `/`.
+
+Regla de no regresión:
+
+**no rediseñar la Home principal sin solicitud explícita.** Se considera aprobada para continuar con el resto de la experiencia pública.
+
+### Productos / catálogo público
+
+Ruta actual:
+
+`/pedir`
+
+Estado: **EN DEFINICIÓN VISUAL**.
+
+La ruta ya consume el catálogo real, pero su diseño no está cerrado. Antes de hacer cambios grandes se debe definir la experiencia de productos con el usuario.
+
+La versión pública anterior se conserva temporalmente en:
+
+- `/app2`;
+- `/app`.
+
+No reutilizar una segunda lógica comercial: catálogo, precios y futura configuración/checkout deben seguir saliendo del motor existente del POS.
