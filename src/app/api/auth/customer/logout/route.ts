@@ -3,8 +3,12 @@ import { clearCustomerSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   await clearCustomerSession();
+
   if (request.headers.get("accept")?.includes("text/html")) {
-    return NextResponse.redirect(new URL("/cuenta/login", request.url), { status: 303 });
+    const response = new NextResponse(null, { status: 303 });
+    response.headers.set("Location", "/");
+    return response;
   }
+
   return NextResponse.json({ ok: true });
 }
