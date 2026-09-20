@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 const STAFF_COOKIE = "alento_staff_session";
 
 const ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
+  { prefix: "/api/users", roles: ["ADMIN"] },
+  { prefix: "/api/menu-admin", roles: ["ADMIN"] },
+  { prefix: "/api/settings", roles: ["ADMIN"] },
+  { prefix: "/api/coupons", roles: ["ADMIN"] },
+  { prefix: "/api/caja", roles: ["ADMIN", "CASHIER"] },
+  { prefix: "/api/customers", roles: ["ADMIN", "POS"] },
+  { prefix: "/api/orders", roles: ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"] },
+  { prefix: "/api/delivery", roles: ["ADMIN", "POS"] },
+  { prefix: "/api/discount", roles: ["ADMIN", "POS"] },
   { prefix: "/usuarios", roles: ["ADMIN"] },
   { prefix: "/configuracion", roles: ["ADMIN"] },
   { prefix: "/menu", roles: ["ADMIN"] },
@@ -62,6 +71,9 @@ export async function middleware(request: NextRequest) {
   const session = await readStaffSession(request);
 
   if (!session) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
@@ -69,6 +81,9 @@ export async function middleware(request: NextRequest) {
 
   const rule = ROLE_RULES.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`));
   if (rule && !rule.roles.some((role) => session.roles?.includes(role))) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/sin-acceso", request.url));
   }
 
@@ -90,5 +105,14 @@ export const config = {
     "/caja/:path*",
     "/configuracion/:path*",
     "/usuarios/:path*",
+    "/api/users/:path*",
+    "/api/menu-admin/:path*",
+    "/api/settings/:path*",
+    "/api/coupons/:path*",
+    "/api/caja/:path*",
+    "/api/customers/:path*",
+    "/api/orders/:path*",
+    "/api/delivery/:path*",
+    "/api/discount/:path*",
   ],
 };
