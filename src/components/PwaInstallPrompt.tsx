@@ -19,11 +19,28 @@ declare global {
   }
 }
 
+const ALENTO_ICON =
+  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+
 function isPublicAppPath(pathname: string) {
   return (
     pathname === "/" ||
     pathname.startsWith("/app") ||
     pathname.startsWith("/app2")
+  );
+}
+
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    navigator.standalone === true
+  );
+}
+
+function isMobile() {
+  return (
+    window.matchMedia("(max-width: 900px)").matches ||
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   );
 }
 
@@ -33,66 +50,61 @@ export default function PwaInstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const [dismissedPath, setDismissedPath] = useState("");
 
   useEffect(() => {
-    if (!isPublicAppPath(pathname)) {
-      setVisible(false);
-      return;
-    }
-
-    const mobile =
-      window.matchMedia("(max-width: 900px)").matches ||
-      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      navigator.standalone === true;
-
-    if (!mobile || standalone) {
-      setInstalled(standalone);
-      setVisible(false);
-      return;
-    }
+    const standalone = isStandalone();
+    setInstalled(standalone);
 
     const ios =
       /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !window.matchMedia("(display-mode: standalone)").matches;
+      !standalone;
 
     setIsIos(ios);
 
-    const dismissed = sessionStorage.getItem("alento_pwa_install_dismissed") === "1";
-
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
-      const promptEvent = event as BeforeInstallPromptEvent;
-      setInstallEvent(promptEvent);
-
-      if (!dismissed) {
-        window.setTimeout(() => setVisible(true), 700);
-      }
+      setInstallEvent(event as BeforeInstallPromptEvent);
     };
 
     const handleInstalled = () => {
       setInstalled(true);
       setVisible(false);
       setInstallEvent(null);
-      sessionStorage.removeItem("alento_pwa_install_dismissed");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleInstalled);
 
-    let iosTimer: number | undefined;
-    if (ios && !dismissed) {
-      iosTimer = window.setTimeout(() => setVisible(true), 1100);
-    }
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleInstalled);
-      if (iosTimer) window.clearTimeout(iosTimer);
     };
-  }, [pathname]);
+  }, []);
+
+  useEffect(() => {
+    if (
+      installed ||
+      !isMobile() ||
+      !isPublicAppPath(pathname) ||
+      dismissedPath === pathname
+    ) {
+      setVisible(false);
+      return;
+    }
+
+    if (!isIos && !installEvent) {
+      setVisible(false);
+      return;
+    }
+
+    const timer = window.setTimeout(
+      () => setVisible(true),
+      isIos ? 900 : 550,
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [pathname, installEvent, isIos, installed, dismissedPath]);
 
   async function install() {
     if (!installEvent) return;
@@ -100,18 +112,16 @@ export default function PwaInstallPrompt() {
     await installEvent.prompt();
     const choice = await installEvent.userChoice;
 
-    if (choice.outcome === "accepted") {
-      setVisible(false);
-    } else {
-      sessionStorage.setItem("alento_pwa_install_dismissed", "1");
-      setVisible(false);
-    }
-
+    setVisible(false);
     setInstallEvent(null);
+
+    if (choice.outcome === "dismissed") {
+      setDismissedPath(pathname);
+    }
   }
 
   function dismiss() {
-    sessionStorage.setItem("alento_pwa_install_dismissed", "1");
+    setDismissedPath(pathname);
     setVisible(false);
   }
 
@@ -123,9 +133,14 @@ export default function PwaInstallPrompt() {
       <div className="w-full max-w-[430px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_28px_80px_rgba(0,0,0,.30)]">
         <div className="bg-[linear-gradient(135deg,#090909,#241010)] px-5 py-5 text-white">
           <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-[#d71920] text-[25px] shadow-lg">
-              🍕
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-black shadow-lg">
+              <img
+                src={ALENTO_ICON}
+                alt="Alentó Pizza"
+                className="h-full w-full object-cover"
+              />
             </div>
+
             <div className="min-w-0 flex-1">
               <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/45">
                 Alentó Pizza
