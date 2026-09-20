@@ -37,6 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/setup/") ||
     pathname.startsWith("/cuenta") ||
+    pathname.startsWith("/app") ||
     pathname.startsWith("/sin-acceso");
 
   useEffect(() => {
