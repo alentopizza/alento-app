@@ -2,16 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const STAFF_COOKIE = "alento_staff_session";
 
-const ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
-  { prefix: "/api/users", roles: ["ADMIN"] },
-  { prefix: "/api/menu-admin", roles: ["ADMIN"] },
-  { prefix: "/api/settings", roles: ["ADMIN"] },
-  { prefix: "/api/coupons", roles: ["ADMIN"] },
-  { prefix: "/api/caja", roles: ["ADMIN", "CASHIER"] },
-  { prefix: "/api/customers", roles: ["ADMIN", "POS"] },
-  { prefix: "/api/orders", roles: ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"] },
-  { prefix: "/api/delivery", roles: ["ADMIN", "POS"] },
-  { prefix: "/api/discount", roles: ["ADMIN", "POS"] },
+const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/usuarios", roles: ["ADMIN"] },
   { prefix: "/configuracion", roles: ["ADMIN"] },
   { prefix: "/menu", roles: ["ADMIN"] },
@@ -21,6 +12,42 @@ const ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/clientes", roles: ["ADMIN", "POS"] },
   { prefix: "/pedidos", roles: ["ADMIN", "POS", "DISPATCH", "CASHIER"] },
 ];
+
+function apiRoles(pathname: string, method: string): string[] | null {
+  if (pathname.startsWith("/api/users")) return ["ADMIN"];
+  if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
+
+  if (pathname === "/api/settings") {
+    return method === "GET" ? ["ADMIN", "POS", "CASHIER"] : ["ADMIN"];
+  }
+
+  if (pathname === "/api/coupons") {
+    return method === "GET" ? ["ADMIN", "POS"] : ["ADMIN"];
+  }
+  if (pathname.startsWith("/api/coupons/")) return ["ADMIN"];
+
+  if (pathname.startsWith("/api/caja")) return ["ADMIN", "CASHIER"];
+  if (pathname.startsWith("/api/customers")) return ["ADMIN", "POS"];
+  if (pathname.startsWith("/api/delivery")) return ["ADMIN", "POS"];
+  if (pathname.startsWith("/api/discount")) return ["ADMIN", "POS"];
+
+  if (pathname.startsWith("/api/orders/")) {
+    if (pathname.includes("/items/") && pathname.endsWith("/prepared")) return ["ADMIN", "KITCHEN"];
+    if (pathname.endsWith("/payment") || /\/payment\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER"];
+    if (pathname.endsWith("/edit")) return ["ADMIN", "POS"];
+    if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN", "DISPATCH"];
+    if (method === "GET") return ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
+    return ["ADMIN", "POS"];
+  }
+
+  if (pathname === "/api/orders") {
+    return method === "GET"
+      ? ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"]
+      : ["ADMIN", "POS"];
+  }
+
+  return null;
+}
 
 function base64urlToBytes(value: string) {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
@@ -79,12 +106,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const rule = ROLE_RULES.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`));
-  if (rule && !rule.roles.some((role) => session.roles?.includes(role))) {
-    if (pathname.startsWith("/api/")) {
+  if (pathname.startsWith("/api/")) {
+    const roles = apiRoles(pathname, request.method);
+    if (roles && !roles.some((role) => session.roles?.includes(role))) {
       return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/sin-acceso", request.url));
+  } else {
+    const rule = PAGE_ROLE_RULES.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`));
+    if (rule && !rule.roles.some((role) => session.roles?.includes(role))) {
+      return NextResponse.redirect(new URL("/sin-acceso", request.url));
+    }
   }
 
   if (pathname === "/" && !["ADMIN", "POS", "CASHIER"].some((role) => session.roles?.includes(role))) {
