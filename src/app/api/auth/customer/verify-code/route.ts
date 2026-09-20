@@ -8,7 +8,11 @@ export async function POST(request: NextRequest) {
   const rawPhone = typeof body.phone === "string" ? body.phone : "";
   const code = typeof body.code === "string" ? body.code.replace(/\D/g, "") : "";
   const phoneE164 = normalizePhoneE164(countryCode, rawPhone);
-  const localPhone = rawPhone.replace(/\D/g, "");
+  const countryDigits = countryCode.replace(/\D/g, "");
+  let localPhone = rawPhone.replace(/\D/g, "");
+  if (countryDigits && localPhone.startsWith(countryDigits)) {
+    localPhone = localPhone.slice(countryDigits.length);
+  }
 
   if (!phoneE164 || code.length !== 6) {
     return NextResponse.json({ error: "Código inválido." }, { status: 400 });
