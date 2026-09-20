@@ -24,6 +24,7 @@ export async function GET() {
     authenticated: true,
     user: {
       ...user,
+      roles: user.roles.map((role) => role === "DISPATCH" ? "DRIVER" : role),
       isAdmin: user.roles.includes("ADMIN"),
     },
   });
