@@ -86,7 +86,7 @@ export default function PublicLandingPage() {
             className="landing-menu-slider relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
           >
             <div
-              className="absolute inset-y-1 left-1 rounded-full bg-[#df1f26]"
+              className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#df1f26]"
               style={{
                 width: `calc(54px + (100% - 62px) * ${progress})`,
                 transition: dragging ? "none" : "width 220ms cubic-bezier(.2,.8,.2,1)",
@@ -100,7 +100,7 @@ export default function PublicLandingPage() {
                 transition: dragging ? "none" : "opacity 180ms ease",
               }}
             >
-              <span className="truncate text-[12px] font-black uppercase tracking-[0.11em] text-black/72">
+              <span className="landing-menu-slider-text truncate text-[12px] font-black uppercase tracking-[0.11em] text-black/75">
                 Desliza y descubre el menú
               </span>
             </div>
@@ -108,7 +108,7 @@ export default function PublicLandingPage() {
             <button
               type="button"
               aria-label="Desliza y descubre el menú"
-              className="landing-menu-slider-knob absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 active:scale-[.98]"
+              className={`landing-menu-slider-knob ${!dragging && progress === 0 ? "landing-menu-slider-knob-idle" : ""} absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 active:scale-[.98]`}
               style={{
                 left: `calc(4px + (100% - 62px) * ${progress})`,
                 transition: dragging ? "none" : "left 220ms cubic-bezier(.2,.8,.2,1)",
@@ -142,7 +142,7 @@ export default function PublicLandingPage() {
             >
               <svg
                 viewBox="0 0 24 24"
-                className="h-[22px] w-[22px]"
+                className="landing-menu-slider-arrow h-[22px] w-[22px]"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.9"
