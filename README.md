@@ -34,18 +34,13 @@ Actualmente `alentopizza.com` continúa ocupado por la solución construida en G
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
-## Fase activa de desarrollo
+## Estado de desarrollo
 
-**Punto de venta, Pedidos y Cocina están cerrados para la etapa operativa actual.**
+**Punto de venta, Pedidos, Cocina, Clientes y Menú están cerrados para la etapa operativa actual.**
 
-La siguiente fase habilitada es:
+Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-```text
-Autenticación y Roles
-→ protección de páginas y APIs internas
-→ administración de usuarios
-→ continuar módulos posteriores
-```
+Autenticación y Roles sigue siendo un pendiente estratégico antes de exponer el sistema interno en el dominio principal. Integraciones externas permanece reservada para la última fase del desarrollo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -54,7 +49,10 @@ La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 Ya están implementados, entre otros:
 
 - POS operativo;
-- clientes;
+- Clientes como panel comercial y de historial;
+- Menú administrativo con categorías y productos reordenables;
+- categorías personalizadas y renombrado seguro;
+- Destacados con orden independiente;
 - productos simples;
 - pizzas de un sabor y dos sabores;
 - tamaños, bordes e ingredientes extra;
@@ -212,6 +210,8 @@ Documentos principales:
 - [`docs/POS.md`](docs/POS.md): funcionamiento completo del Punto de Venta.
 - [`docs/ORDERS.md`](docs/ORDERS.md): funcionamiento completo de Pedidos.
 - [`docs/KITCHEN.md`](docs/KITCHEN.md): funcionamiento completo de Cocina.
+- [`docs/CUSTOMERS.md`](docs/CUSTOMERS.md): funcionamiento completo de Clientes.
+- [`docs/MENU.md`](docs/MENU.md): funcionamiento completo de Menú, categorías, productos, destacados y backlog futuro.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): orden de implementación por fases y criterios de cierre.
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura y responsabilidades.
@@ -257,13 +257,18 @@ Actualmente la arquitectura corresponde a una instalación por negocio. No asumi
 
 ## Roadmap recomendado
 
+Los cinco módulos operativos principales ya cerrados son POS, Pedidos, Cocina, Clientes y Menú.
+
+Pendientes estratégicos conocidos:
+
 1. Implementar usuarios internos, login y sesiones.
 2. Proteger páginas y APIs internas.
 3. Aplicar permisos por rol.
 4. Crear administración de usuarios y auditoría básica.
 5. Terminar Caja/conciliación y cierres operativos.
 6. Inventario, recetas y costos usando los IDs estructurados guardados en pedidos.
-7. Integraciones de atención como Chatwoot.
+7. Retomar mejoras estructurales de Menú cuando se aprueben: tipos de producto y modificadores.
 8. Construir experiencia pública de pedidos reutilizando el mismo motor comercial.
 9. Sustituir Glide y migrar `alentopizza.com` a Alentó App.
 10. Evaluar empaquetado/parametrización para replicar la solución en otros negocios.
+11. Implementaciones externas como Rappi/DiDi/Chatwoot se reservan para la última fase.
