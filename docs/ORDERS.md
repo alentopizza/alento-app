@@ -437,3 +437,29 @@ y el número correspondiente.
 ## Prisma
 
 El cierre actual de Pedidos no requiere un cambio adicional del schema.
+
+
+## Permisos para cancelar y eliminar pedidos
+
+Cancelar y eliminar pedidos son acciones sensibles y ya no dependen únicamente del rol.
+
+Permisos:
+
+- `CANCEL_ORDERS`: permite cancelar un pedido activo;
+- `DELETE_ORDERS`: permite eliminar definitivamente un pedido ya cancelado.
+
+`ADMIN` dispone de ambos implícitamente.
+
+Para cualquier otro colaborador deben habilitarse expresamente desde **Usuarios y Roles**.
+
+La UI oculta los botones cuando el usuario no tiene el permiso, pero la regla real se valida también en `/api/orders/[id]`.
+
+Flujo de eliminación continúa siendo:
+
+```text
+Pedido activo
+→ permiso CANCEL_ORDERS
+→ CANCELED
+→ permiso DELETE_ORDERS
+→ eliminación definitiva
+```
