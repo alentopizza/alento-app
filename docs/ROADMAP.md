@@ -11,7 +11,7 @@ Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
 Caja avanzada         ⏳ PENDIENTE
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   ⏳ FUTURO
+Experiencia pública   🟡 V1 IMPLEMENTADA
 Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
@@ -171,3 +171,18 @@ Antes de modificar un módulo cerrado:
 9. indicar si requiere `npx prisma db push`.
 
 La documentación del repositorio debe tener prioridad sobre el historial de chats.
+
+
+---
+
+# Experiencia pública — V1
+
+Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
+
+- `/` es la superficie pública principal;
+- `/app` se conserva como alias temporal;
+- usa el mismo `GET /api/catalog` del sistema;
+- navegación pública no exige login;
+- login unificado permite Cliente por OTP o Colaborador por correo + contraseña;
+- POS interno vive en `/interno`;
+- carrito, configurador y checkout público siguen pendientes y deben reutilizar la estructura comercial existente.
