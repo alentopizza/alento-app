@@ -430,3 +430,15 @@ Desde 2026-09-20 la variante aprobada como App 2 pasa a ser la experiencia públ
 - la PWA instalada inicia en `/`.
 
 El POS interno continúa en `/interno`.
+
+
+## Imágenes responsivas del Home principal
+
+La sección `/personalizacion` permite administrar dos imágenes independientes para la pantalla inicial de `/`:
+
+- móvil: `1080 × 2160 px` (1:2);
+- escritorio/PC: `1920 × 1080 px` (16:9).
+
+La portada selecciona automáticamente la imagen de escritorio a partir de 900 px de ancho y usa la pieza móvil por debajo de ese punto.
+
+Si no existe una imagen configurada, se conserva la pieza histórica del Home como respaldo. La configuración se guarda en `AppSetting(public.home)`; no requiere cambios de Prisma.
