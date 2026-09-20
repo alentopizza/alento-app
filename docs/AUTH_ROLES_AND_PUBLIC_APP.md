@@ -446,3 +446,20 @@ Los permisos `CANCEL_ORDERS` y `DELETE_ORDERS` solo son configurables cuando el 
 - `CASHIER`.
 
 Un usuario únicamente `KITCHEN` o `DRIVER` no ve estos permisos y el backend limpia cualquier permiso sensible heredado cuando se guardan sus roles.
+
+
+## Superficie pública inicial
+
+Ruta:
+
+`/app`
+
+Es navegable sin iniciar sesión.
+
+La autenticación del cliente es opcional y se accede desde Cuenta.
+
+`/app` consume el mismo `/api/catalog` que el resto del sistema, por lo que no existe un catálogo duplicado.
+
+La raíz `/` sigue siendo POS interno durante esta etapa.
+
+La próxima ampliación de la app pública debe conectar carrito y checkout reutilizando configuradores y estructuras del POS, no creando una segunda lógica comercial.
