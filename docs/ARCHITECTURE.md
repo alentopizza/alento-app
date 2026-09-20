@@ -97,7 +97,7 @@ La primera versión de autenticación ya está implementada:
 - `POS`
 - `KITCHEN`
 - `CASHIER`
-- `DISPATCH`
+- `DRIVER`
 
 La autorización debe validarse en servidor, no solo ocultando elementos de UI.
 
@@ -358,3 +358,22 @@ No usar `prisma migrate deploy` hasta realizar baseline.
 - `docs/ORDERS.md`
 - `docs/DEPLOYMENT.md`
 - `docs/HANDOFF.md`
+
+
+## Domicilios y rol Repartidor
+
+El rol `DRIVER` representa al repartidor.
+
+No debe reutilizarse el dashboard general de Pedidos como interfaz final del repartidor. La arquitectura futura debe separar:
+
+```text
+Pedido DELIVERY
+→ disponible/asignable
+→ asignación a User con rol DRIVER
+→ seguimiento operativo del repartidor
+→ ubicación/tracking
+→ entrega
+→ información visible para el cliente
+```
+
+La futura implementación deberá agregar una relación explícita entre el pedido de domicilio y el repartidor asignado, evitando guardar el nombre del repartidor como texto libre.
