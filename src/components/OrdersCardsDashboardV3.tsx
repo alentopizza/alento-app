@@ -204,6 +204,25 @@ export default function OrdersCardsDashboardV3() {
   const [replacementAddressId, setReplacementAddressId] = useState<number | null>(null);
   const [customerSaving, setCustomerSaving] = useState(false);
   const [customerError, setCustomerError] = useState("");
+  const [staffAccess, setStaffAccess] = useState<{ isAdmin: boolean; permissions: string[] }>({ isAdmin: false, permissions: [] });
+
+  const canCancelOrders = staffAccess.isAdmin || staffAccess.permissions.includes("CANCEL_ORDERS");
+  const canDeleteOrders = staffAccess.isAdmin || staffAccess.permissions.includes("DELETE_ORDERS");
+
+  async function loadStaffAccess() {
+    try {
+      const response = await fetch("/api/auth/staff/me", { cache: "no-store" });
+      const data = await response.json();
+      if (response.ok && data.authenticated) {
+        setStaffAccess({
+          isAdmin: Boolean(data.user?.isAdmin),
+          permissions: Array.isArray(data.user?.permissions) ? data.user.permissions : [],
+        });
+      }
+    } catch {
+      setStaffAccess({ isAdmin: false, permissions: [] });
+    }
+  }
 
   async function load(silent = false) {
     if (!silent) setLoading(true);
@@ -225,7 +244,11 @@ export default function OrdersCardsDashboardV3() {
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(true), 15000);
+    void loadStaffAccess();
+    const timer = window.setInterval(() => {
+      void load(true);
+      void loadStaffAccess();
+    }, 15000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -612,14 +635,16 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
                 {order.status === "CANCELED" ? (
-                  <button
-                    onClick={() => setConfirmAction({ kind: "delete-order", order })}
-                    disabled={busyOrder}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Eliminar pedido definitivamente"
-                    aria-label="Eliminar pedido definitivamente"
-                  ><Icon name="trash" /></button>
-                ) : order.status !== "COMPLETED" ? (
+                  canDeleteOrders ? (
+                    <button
+                      onClick={() => setConfirmAction({ kind: "delete-order", order })}
+                      disabled={busyOrder}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      title="Eliminar pedido definitivamente"
+                      aria-label="Eliminar pedido definitivamente"
+                    ><Icon name="trash" /></button>
+                  ) : null
+                ) : order.status !== "COMPLETED" && canCancelOrders ? (
                   <button
                     onClick={() => setConfirmAction({ kind: "cancel-order", order })}
                     disabled={busyOrder}
