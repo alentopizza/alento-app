@@ -644,25 +644,25 @@ export default function MenuPage() {
                     moveProductBefore(product.id);
                     setDraggingProductId(null);
                   }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_18px_36px_rgba(28,23,20,.14)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-[22px] border-[5px] border-white bg-white shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(28,23,20,.14)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
                 >
-                  <div className="relative aspect-square overflow-hidden bg-[#f5f3ef]">
+                  <div className="relative aspect-square overflow-hidden rounded-[17px_17px_0_0] bg-white">
                     {product.imageUrl ? (
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-[1.015]"
+                        className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-[1.012]"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
                     )}
 
                     <div className="absolute left-2.5 top-2.5 z-10 flex flex-wrap gap-1.5">
-                      <span className={`rounded-full border px-2.5 py-1.5 text-[10px] font-black uppercase leading-none shadow-sm ${product.active ? "border-emerald-600 bg-emerald-600 text-white" : "border-neutral-800 bg-neutral-900 text-white"}`}>
+                      <span className={`rounded-full border px-2.5 py-1.5 text-[11px] font-semibold uppercase leading-none shadow-sm ${product.active ? "border-emerald-600 bg-emerald-600 text-white" : "border-neutral-800 bg-neutral-900 text-white"}`}>
                         {product.active ? "Activo" : "Inactivo"}
                       </span>
                       {product.featured && (
-                        <span className="rounded-full border border-red-600 bg-[var(--brand-red)] px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-white shadow-sm">
+                        <span className="rounded-full border border-red-600 bg-[var(--brand-red)] px-2.5 py-1.5 text-[11px] font-semibold uppercase leading-none text-white shadow-sm">
                           Destacado
                         </span>
                       )}
@@ -698,21 +698,21 @@ export default function MenuPage() {
                   </div>
 
                   <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-3.5 text-white">
-                    <h3 className="line-clamp-2 text-[16px] font-black leading-5 tracking-[-0.015em] text-white">
+                    <h3 className="line-clamp-2 text-[16px] font-semibold leading-[22px] tracking-[-0.005em] text-white">
                       {product.name}
                     </h3>
-                    <p className="mt-1.5 line-clamp-2 min-h-10 text-[12px] font-medium leading-5 text-white/80">
+                    <p className="mt-1.5 line-clamp-2 min-h-10 text-[12px] font-normal leading-[18px] text-white/82">
                       {product.description || "Sin descripción"}
                     </p>
 
                     <div className="mt-3 flex items-end justify-between gap-3 border-t border-white/10 pt-3">
                       <div className="min-w-0">
-                        <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-white/65">Precio</span>
-                        <b className="mt-1 block truncate text-[15px] font-black leading-none text-white">
+                        <span className="block text-[11px] font-semibold uppercase tracking-[0.04em] text-white/70">Precio</span>
+                        <b className="mt-1 block truncate text-[16px] font-bold leading-none tracking-[-0.01em] text-white">
                           {displayProductPrice(product)}
                         </b>
                       </div>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-black leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition group-hover:scale-[1.04]">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-semibold leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition group-hover:scale-[1.04]">
                         +
                       </span>
                     </div>
