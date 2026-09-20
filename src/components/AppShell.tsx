@@ -18,6 +18,14 @@ const items = [
   { href: "/usuarios", label: "Usuarios y Roles", icon: "♟", roles: ["ADMIN"] },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Administrador",
+  POS: "Punto de venta",
+  KITCHEN: "Cocina",
+  CASHIER: "Caja",
+  DISPATCH: "Despacho",
+};
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,19 +64,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--background)] lg:grid lg:grid-cols-[224px_1fr]">
       <aside className="border-b border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:border-white/10">
-        <div className="flex items-center justify-between px-4 py-4 lg:block lg:px-4 lg:py-5">
+        <div className="flex items-center justify-between px-4 py-4 lg:block lg:px-4 lg:pb-5 lg:pt-5">
           <Link href="/" className="block">
-            <div className="flex items-center gap-3 lg:block">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] lg:h-16 lg:w-16">
+            <div className="flex items-center gap-3 lg:items-start">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] lg:h-14 lg:w-14">
                 <img src={LOGO_DARK} alt="Alentó Pizza" className="h-full w-full object-cover" />
               </div>
-              <div className="lg:mt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/40">Alentó Pizza</p>
-                <p className="mt-1 text-xl font-black tracking-[-0.03em]">ALENTÓ APP</p>
+              <div className="min-w-0 pt-0.5">
+                <p className="text-[17px] font-semibold leading-5 tracking-[-0.02em] text-white">Alentó Pizza</p>
+                <p className="mt-1 max-w-[130px] text-[10px] font-normal leading-[15px] text-white/45">
+                  Sabor Que Te Hace Volver.
+                </p>
+                <span className="mt-2 hidden w-fit rounded-full border border-white/10 bg-white/[0.045] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-white/35 lg:inline-flex">
+                  Panel interno
+                </span>
               </div>
             </div>
           </Link>
-          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/50 lg:mt-3 lg:inline-block">Interno</span>
         </div>
 
         <div className="mx-4 hidden h-px bg-gradient-to-r from-transparent via-white/15 to-transparent lg:block" />
@@ -105,17 +117,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="hidden px-4 lg:absolute lg:bottom-5 lg:block lg:w-[224px]">
-          <div className="rounded-[22px] border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.03] p-4 backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">{userName || "Alentó Pizza"}</p>
-                <p className="mt-1 text-[10px] leading-4 text-white/38">{roles.join(" · ") || "Sesión interna"}</p>
+        <div className="hidden px-3 lg:absolute lg:bottom-4 lg:block lg:w-[224px]">
+          <div className="overflow-hidden rounded-[20px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025))] shadow-[0_12px_30px_rgba(0,0,0,.18)] backdrop-blur">
+            <div className="flex items-center gap-3 p-3.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-[13px] font-semibold text-white">
+                {(userName || "A").trim().charAt(0).toUpperCase()}
               </div>
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,.55)]" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-[12px] font-semibold leading-4 text-white">{userName || "Alentó Pizza"}</p>
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.75)]" />
+                </div>
+                <p className="mt-1 truncate text-[9px] font-medium leading-3 text-white/38">
+                  {roles.map((role) => ROLE_LABELS[role] ?? role).join(" · ") || "Sesión interna"}
+                </p>
+              </div>
             </div>
-            <button onClick={logout} className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-semibold text-white/60 transition hover:bg-white/10 hover:text-white">
-              Cerrar sesión
+
+            <div className="mx-3 h-px bg-white/[0.07]" />
+
+            <button
+              onClick={logout}
+              className="group flex w-full items-center justify-between px-3.5 py-3 text-left transition hover:bg-white/[0.055]"
+            >
+              <span className="text-[10px] font-medium text-white/52 transition group-hover:text-white/80">Cerrar sesión</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.045] text-[14px] font-normal text-white/45 transition group-hover:border-red-400/20 group-hover:bg-red-500/10 group-hover:text-red-300">
+                ↗
+              </span>
             </button>
           </div>
         </div>
