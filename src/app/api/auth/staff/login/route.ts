@@ -20,6 +20,11 @@ export async function POST(request: NextRequest) {
   await setStaffSession(user);
 
   return NextResponse.json({
-    user: { id: user.id, name: user.name, email: user.email, roles: user.roles },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      roles: user.roles.map((role) => role === "DISPATCH" ? "DRIVER" : role),
+    },
   });
 }
