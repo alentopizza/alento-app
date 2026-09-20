@@ -51,7 +51,7 @@ Roles actuales:
 - `POS`;
 - `KITCHEN`;
 - `CASHIER`;
-- `DISPATCH`.
+- `DRIVER`.
 
 Un usuario puede tener varios roles.
 
@@ -96,7 +96,7 @@ Acceso total al sistema interno.
 - Pedidos;
 - Caja.
 
-### DISPATCH
+### DRIVER
 
 - Pedidos.
 
@@ -410,10 +410,39 @@ Reglas:
 
 - `ADMIN` hereda ambos permisos de forma implícita;
 - ningún otro rol los recibe automáticamente;
-- un usuario `POS`, `CASHIER`, `DISPATCH` u otro puede recibirlos individualmente;
+- un usuario `POS`, `CASHIER`, `DRIVER` u otro puede recibirlos individualmente;
 - el permiso se administra desde `/usuarios`;
 - cancelar y eliminar son permisos distintos;
 - eliminar sigue requiriendo que el pedido esté previamente `CANCELED`;
 - la API consulta los permisos vigentes en base de datos al ejecutar estas acciones.
 
 Esto evita que un cajero pueda cancelar o borrar pedidos solo por pertenecer al rol Caja.
+
+
+## Rol Repartidor
+
+El rol operativo para domicilio es `DRIVER` y se muestra como **Repartidor**.
+
+No hereda acceso al dashboard general de Pedidos, Caja, POS ni permisos para cancelar/eliminar.
+
+Objetivo futuro:
+
+- pantalla propia de domicilios disponibles;
+- asignación de pedido a repartidor;
+- domicilios asignados;
+- datos necesarios para entrega;
+- transición de estados de reparto autorizados;
+- ubicación/tracking cuando se implemente;
+- información de seguimiento reutilizable por la app del cliente.
+
+El valor histórico `DISPATCH` se conserva temporalmente únicamente en el enum de Prisma para evitar pérdida de datos en instalaciones existentes. La UI y las APIs de administración lo normalizan a `DRIVER`.
+
+### Visibilidad de permisos sensibles
+
+Los permisos `CANCEL_ORDERS` y `DELETE_ORDERS` solo son configurables cuando el colaborador tiene alguno de estos roles:
+
+- `ADMIN`;
+- `POS`;
+- `CASHIER`.
+
+Un usuario únicamente `KITCHEN` o `DRIVER` no ve estos permisos y el backend limpia cualquier permiso sensible heredado cuando se guardan sus roles.
