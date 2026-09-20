@@ -395,3 +395,25 @@ Las operaciones privadas sí deben exigir sesión:
 - no obligar al cliente a loguearse para navegar;
 - no crear un segundo modelo comercial de cliente para autenticación;
 - mantener autorización de operaciones internas del lado servidor.
+
+
+## Permisos sensibles por usuario
+
+Además de los roles, `User` dispone de permisos granulares para acciones sensibles.
+
+Permisos actuales:
+
+- `CANCEL_ORDERS`;
+- `DELETE_ORDERS`.
+
+Reglas:
+
+- `ADMIN` hereda ambos permisos de forma implícita;
+- ningún otro rol los recibe automáticamente;
+- un usuario `POS`, `CASHIER`, `DISPATCH` u otro puede recibirlos individualmente;
+- el permiso se administra desde `/usuarios`;
+- cancelar y eliminar son permisos distintos;
+- eliminar sigue requiriendo que el pedido esté previamente `CANCELED`;
+- la API consulta los permisos vigentes en base de datos al ejecutar estas acciones.
+
+Esto evita que un cajero pueda cancelar o borrar pedidos solo por pertenecer al rol Caja.
