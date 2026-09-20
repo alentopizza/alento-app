@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
+import { getStaffSession } from "@/lib/auth";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -26,6 +27,24 @@ function serializeOrder(order: Awaited<ReturnType<typeof loadOrder>>) {
     payments: order.payments.map((payment) => ({ ...payment, amount: Number(payment.amount), cashReceived: payment.cashReceived == null ? null : Number(payment.cashReceived), changeDue: payment.changeDue == null ? null : Number(payment.changeDue) })),
   };
 }
+async function currentStaffAccess() {
+  const session = await getStaffSession();
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { active: true, roles: true, permissions: true },
+  });
+
+  if (!user?.active) return null;
+
+  return {
+    isAdmin: user.roles.includes("ADMIN"),
+    roles: user.roles,
+    permissions: user.permissions,
+  };
+}
+
 function loadOrder(id: number) {
   return prisma.order.findUnique({
     where: { id },
@@ -51,7 +70,20 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!current) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     const body = await request.json();
 
+    if (body?.action !== "cancel") {
+      const access = await currentStaffAccess();
+      if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+      if (!access.isAdmin && !access.roles.includes("POS")) {
+        return NextResponse.json({ error: "No tienes permiso para editar pedidos." }, { status: 403 });
+      }
+    }
+
     if (body?.action === "cancel") {
+      const access = await currentStaffAccess();
+      if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+      if (!access.isAdmin && !access.permissions.includes("CANCEL_ORDERS")) {
+        return NextResponse.json({ error: "No tienes permiso para cancelar pedidos." }, { status: 403 });
+      }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
       const updated = await prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({ where: { orderId: current.id, status: { not: "REFUNDED" } }, data: { status: "CANCELED" } });
@@ -255,6 +287,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
 export async function DELETE(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const access = await currentStaffAccess();
+    if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    if (!access.isAdmin && !access.permissions.includes("DELETE_ORDERS")) {
+      return NextResponse.json({ error: "No tienes permiso para eliminar pedidos." }, { status: 403 });
+    }
+
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
