@@ -331,8 +331,6 @@ export default function MenuPage() {
   function moveProductBefore(targetProductId: number) {
     if (!activeCategory || draggingProductId == null || draggingProductId === targetProductId) return;
     if (query.trim()) return;
-    if (activeCategory.slug === "destacados") return;
-
     const current = [...activeCategory.products];
     const fromIndex = current.findIndex((product) => product.id === draggingProductId);
     const toIndex = current.findIndex((product) => product.id === targetProductId);
@@ -577,9 +575,15 @@ export default function MenuPage() {
                       {activeCategory?.products.length ?? 0}
                     </span>
                   </div>
-                  {activeCategory && activeCategory.slug !== "destacados" && (
+                  {activeCategory && (
                     <p className="mt-1 text-[10.5px] text-neutral-400">
-                      {query.trim() ? "Quita la búsqueda para reorganizar productos." : savingOrder ? "Guardando nuevo orden..." : "Arrastra desde ⋮⋮ para reorganizar el POS."}
+                      {query.trim()
+                        ? "Quita la búsqueda para reorganizar productos."
+                        : savingOrder
+                          ? "Guardando nuevo orden..."
+                          : activeCategory.slug === "destacados"
+                            ? "Arrastra desde ⋮⋮ para reorganizar Destacados."
+                            : "Arrastra desde ⋮⋮ para reorganizar el POS."}
                     </p>
                   )}
                 </div>
@@ -634,7 +638,7 @@ export default function MenuPage() {
                     }
                   }}
                   onDragOver={(event) => {
-                    if (draggingProductId == null || query.trim() || activeCategory?.slug === "destacados") return;
+                    if (draggingProductId == null || query.trim()) return;
                     event.preventDefault();
                     event.dataTransfer.dropEffect = "move";
                   }}
@@ -668,7 +672,7 @@ export default function MenuPage() {
                       )}
                     </div>
 
-                    {!query.trim() && activeCategory?.slug !== "destacados" && (
+                    {!query.trim() && (
                       <div
                         role="button"
                         tabIndex={0}
