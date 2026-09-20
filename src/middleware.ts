@@ -5,6 +5,7 @@ const STAFF_COOKIE = "alento_staff_session";
 const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/usuarios", roles: ["ADMIN"] },
   { prefix: "/configuracion", roles: ["ADMIN"] },
+  { prefix: "/personalizacion", roles: ["ADMIN"] },
   { prefix: "/menu", roles: ["ADMIN"] },
   { prefix: "/cupones", roles: ["ADMIN"] },
   { prefix: "/caja", roles: ["ADMIN", "CASHIER"] },
@@ -16,6 +17,7 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
 function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/users")) return ["ADMIN"];
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
+  if (pathname.startsWith("/api/public-home-admin")) return ["ADMIN"];
 
   if (pathname === "/api/settings") {
     return method === "GET" ? ["ADMIN", "POS", "CASHIER"] : ["ADMIN"];
@@ -136,9 +138,11 @@ export const config = {
     "/cupones/:path*",
     "/caja/:path*",
     "/configuracion/:path*",
+    "/personalizacion/:path*",
     "/usuarios/:path*",
     "/api/users/:path*",
     "/api/menu-admin/:path*",
+    "/api/public-home-admin/:path*",
     "/api/settings/:path*",
     "/api/coupons/:path*",
     "/api/caja/:path*",
