@@ -1,104 +1,136 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-type PublicHomeSettings = {
-  brand: { logoUrl: string };
-  primaryBanner: { active: boolean; imageUrl: string; productId: number | null };
-  secondaryBanner: { active: boolean; imageUrl: string; productId: number | null };
-};
-
-const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+const INTRO_IMAGE =
+  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/CpQ55KIWphJs8CeomkY3.png";
 
 export default function App2LandingPage() {
-  const [settings, setSettings] = useState<PublicHomeSettings | null>(null);
+  const router = useRouter();
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/public-home", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => setSettings(data?.settings ?? null))
-      .catch(() => {});
-  }, []);
+  function updateFromPointer(clientX: number) {
+    const track = trackRef.current;
+    if (!track) return 0;
 
-  const logo = settings?.brand.logoUrl || FALLBACK_LOGO;
-  const heroImage =
-    settings?.primaryBanner.active && settings.primaryBanner.imageUrl
-      ? settings.primaryBanner.imageUrl
-      : settings?.secondaryBanner.active && settings.secondaryBanner.imageUrl
-        ? settings.secondaryBanner.imageUrl
-        : "";
+    const rect = track.getBoundingClientRect();
+    const knobSize = 54;
+    const padding = 4;
+    const usable = Math.max(1, rect.width - knobSize - padding * 2);
+    const raw = (clientX - rect.left - padding - knobSize / 2) / usable;
+    const next = Math.min(1, Math.max(0, raw));
+    setProgress(next);
+    return next;
+  }
+
+  function finish(nextProgress = progress) {
+    setDragging(false);
+
+    if (nextProgress >= 0.82) {
+      setProgress(1);
+      setLeaving(true);
+      window.setTimeout(() => {
+        router.push("/app2/menu");
+      }, 180);
+      return;
+    }
+
+    setProgress(0);
+  }
 
   return (
-    <main className="min-h-screen bg-[#effff4] text-[#11140f]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[760px] flex-col overflow-hidden bg-[radial-gradient(circle_at_10%_10%,rgba(201,255,74,.95),transparent_34%),radial-gradient(circle_at_100%_30%,rgba(180,244,255,.9),transparent_35%),linear-gradient(160deg,#f7fff2_0%,#effcf8_54%,#eef8ff_100%)] px-5 pb-6 pt-[max(24px,env(safe-area-inset-top))] sm:px-8">
-        <header className="flex items-center justify-center py-2">
-          <img
-            src={logo}
-            alt="Alentó Pizza"
-            className="h-[58px] w-full max-w-[190px] object-contain"
-          />
-        </header>
+    <main className="min-h-[100dvh] bg-black">
+      <div className="relative mx-auto min-h-[100dvh] w-full max-w-[760px] overflow-hidden bg-white">
+        <img
+          src={INTRO_IMAGE}
+          alt="Alentó Pizza"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          draggable={false}
+        />
 
-        <section className="flex flex-1 flex-col justify-between pt-6">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-black/45">
-              Alentó Pizza
-            </p>
-            <h1 className="mt-3 max-w-[520px] text-[48px] font-black leading-[0.92] tracking-[-0.055em] sm:text-[66px]">
-              Pide rico.
-              <br />
-              Disfruta fácil.
-            </h1>
-            <p className="mt-5 max-w-[420px] text-[14px] font-medium leading-6 text-black/55 sm:text-[16px]">
-              Tus pizzas, combos y antojos favoritos en una experiencia más rápida, visual y hecha para pedir desde el celular.
-            </p>
-          </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-black/30 via-black/5 to-transparent" />
 
-          <div className="relative my-7 overflow-hidden rounded-[34px] border border-white/70 bg-white/70 p-2 shadow-[0_26px_70px_rgba(45,78,40,.16)] backdrop-blur">
-            {heroImage ? (
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] bg-black">
-                <img
-                  src={heroImage}
-                  alt="Promoción Alentó Pizza"
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 to-transparent" />
-                <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-black backdrop-blur">
-                  Sabor que te hace volver
-                </div>
-              </div>
-            ) : (
-              <div className="flex aspect-[4/3] items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#caff36,#dfffb3_48%,#c8f2ff)] text-center">
-                <div>
-                  <div className="text-[74px]">🍕</div>
-                  <b className="mt-3 block text-[26px] font-black tracking-[-0.04em]">Tu próximo antojo empieza aquí</b>
-                </div>
-              </div>
-            )}
-          </div>
+        <div
+          className={`absolute inset-x-0 bottom-[max(22px,env(safe-area-inset-bottom))] px-5 transition-opacity duration-200 sm:px-7 ${leaving ? "opacity-0" : "opacity-100"}`}
+        >
+          <div
+            ref={trackRef}
+            className="relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border border-white/70 bg-white/92 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
+          >
+            <div
+              className="absolute inset-y-1 left-1 rounded-full bg-[#df1f26]"
+              style={{
+                width: `calc(54px + (100% - 62px) * ${progress})`,
+                transition: dragging ? "none" : "width 220ms cubic-bezier(.2,.8,.2,1)",
+              }}
+            />
 
-          <div className="grid grid-cols-[54px_1fr] gap-3">
-            <Link
-              href="/"
-              className="flex h-14 items-center justify-center rounded-full border border-black/15 bg-white/65 text-xl backdrop-blur"
-              aria-label="Volver a la versión actual"
+            <div
+              className="pointer-events-none absolute inset-0 flex items-center justify-center px-[74px] text-center"
+              style={{
+                opacity: Math.max(0.18, 1 - progress * 1.15),
+                transition: dragging ? "none" : "opacity 180ms ease",
+              }}
             >
-              ←
-            </Link>
-            <Link
-              href="/app2/menu"
-              className="flex h-14 items-center justify-center rounded-full bg-[#72df00] px-6 text-[14px] font-black text-[#102300] shadow-[0_12px_30px_rgba(91,190,0,.24)] transition active:scale-[.98]"
-            >
-              Ver menú
-              <span className="ml-3 text-lg">→</span>
-            </Link>
-          </div>
+              <span className="truncate text-[12px] font-black uppercase tracking-[0.11em] text-black/72">
+                Desliza para ver el menú
+              </span>
+            </div>
 
-          <p className="mt-4 text-center text-[10px] font-semibold text-black/35">
-            Prototipo App 2 · La versión actual sigue disponible
-          </p>
-        </section>
+            <button
+              type="button"
+              aria-label="Desliza para ver el menú"
+              className="absolute top-1 flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform active:scale-[.98]"
+              style={{
+                left: `calc(4px + (100% - 62px) * ${progress})`,
+                transition: dragging ? "none" : "left 220ms cubic-bezier(.2,.8,.2,1)",
+              }}
+              onPointerDown={(event) => {
+                if (leaving) return;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                setDragging(true);
+                updateFromPointer(event.clientX);
+              }}
+              onPointerMove={(event) => {
+                if (!dragging || leaving) return;
+                updateFromPointer(event.clientX);
+              }}
+              onPointerUp={(event) => {
+                if (!dragging || leaving) return;
+                const next = updateFromPointer(event.clientX);
+                finish(next);
+              }}
+              onPointerCancel={() => {
+                if (!leaving) finish(0);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setProgress(1);
+                  setLeaving(true);
+                  window.setTimeout(() => router.push("/app2/menu"), 180);
+                }
+              }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-[22px] w-[22px]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h13" />
+                <path d="m14 7 5 5-5 5" />
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );
