@@ -257,17 +257,47 @@ La semántica está documentada en `CUSTOMERS.md`; no extrapolar reglas de otros
 
 ## Autenticación
 
-Todavía no existe autorización completa.
+La primera versión ya existe.
 
-No asumir seguridad porque un botón esté oculto.
+Colaboradores:
 
-Antes del dominio principal deben existir controles server-side.
+- `User` separado de `Customer`;
+- correo + contraseña;
+- roles múltiples;
+- cookie `alento_staff_session`;
+- `/login`;
+- `/usuarios`;
+- middleware para páginas y APIs internas principales.
+
+Clientes:
+
+- navegación pública futura sin login obligatorio;
+- teléfono + OTP de WhatsApp;
+- `CustomerAccount`;
+- cookie `alento_customer_session`;
+- `/cuenta/login`;
+- `/cuenta`.
+
+Variables y activación están documentadas en `docs/AUTH_ROLES_AND_PUBLIC_APP.md` y `docs/DEPLOYMENT.md`.
+
+No confundir autorización visual con autorización server-side.
 
 ## Integraciones
 
 Integraciones externas son la última fase.
 
 No reintroducir Rappi/DiDi experimentalmente sin acceso oficial y diseño aprobado.
+
+## Activación pendiente después del cambio de autenticación
+
+Antes de probar login en un despliegue existente:
+
+1. configurar `AUTH_SESSION_SECRET`;
+2. configurar `AUTH_BOOTSTRAP_KEY`;
+3. ejecutar `npx prisma db push`;
+4. crear el primer ADMIN desde `/setup/admin`;
+5. crear colaboradores desde `/usuarios`;
+6. configurar WhatsApp cuando se vaya a probar login de clientes.
 
 ## Prisma en producción
 
