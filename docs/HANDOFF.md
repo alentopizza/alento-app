@@ -72,7 +72,9 @@ Documentos canónicos:
 
 ### Punto de venta
 
-Ruta: `/`
+Ruta: `/interno`
+
+La raíz `/` corresponde a la experiencia pública del cliente.
 
 Entrada principal:
 
