@@ -32,6 +32,8 @@ enum OrderSource {
   INSTAGRAM
   FACEBOOK
   WEB
+  RAPPI
+  DIDI
   OTHER
 }
 
