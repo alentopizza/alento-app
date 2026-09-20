@@ -324,3 +324,31 @@ Pendientes estratégicos conocidos:
 - experiencia pública;
 - sustitución de Glide;
 - integraciones externas como última fase.
+
+
+## App pública de clientes — V1 iniciada
+
+Ruta pública actual:
+
+`/app`
+
+La primera versión ya consume `GET /api/catalog` y permite navegar sin autenticación.
+
+Incluye:
+
+- identidad visual Alentó;
+- acceso opcional a Cuenta;
+- buscador público;
+- categorías reales;
+- orden real del catálogo;
+- destacados reales;
+- imágenes reales;
+- precios calculados desde los datos existentes;
+- tarjetas de producto;
+- modal de detalle;
+- navegación inferior;
+- acceso a Pedidos/Cuenta mediante la sesión de cliente existente.
+
+La raíz `/` permanece reservada al POS interno para no romper la operación actual.
+
+El carrito/configurador público todavía no está conectado. Debe reutilizar la misma estructura comercial del POS para pizzas, dos sabores y combos, evitando implementar precios o configuraciones paralelas.
