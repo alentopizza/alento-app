@@ -454,6 +454,7 @@ export default function MenuPage() {
       if (!response.ok) throw new Error(result.error || "No fue posible eliminar la categoría.");
 
       setDeleteCategoryTarget(null);
+      setCategoryEditor(null);
       setNotice(`${category.name} fue eliminada.`);
       await loadMenu(false);
     } catch (categoryDeleteError) {
@@ -944,7 +945,7 @@ export default function MenuPage() {
 
                   {(() => {
                     const category = data?.categories.find((item) => item.id === categoryEditor.id);
-                    const protectedCategory = category ? ["destacados", "pizzas", "combos", "ingredientes"].includes(category.slug) : false;
+                    const protectedCategory = category ? ["destacados", "pizzas", "antojos", "bebidas", "combos", "ingredientes"].includes(category.slug) : false;
                     if (!category) return null;
                     return (
                       <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-200 pt-3">
