@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-type Role = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DISPATCH";
+type Role = "ADMIN" | "POS" | "KITCHEN" | "CASHIER" | "DRIVER";
 type Permission = "CANCEL_ORDERS" | "DELETE_ORDERS";
 
 type StaffUser = {
@@ -21,7 +21,7 @@ const ROLE_OPTIONS: Array<{ id: Role; label: string; description: string }> = [
   { id: "POS", label: "Punto de venta", description: "POS, pedidos y clientes." },
   { id: "KITCHEN", label: "Cocina", description: "Acceso al panel de preparación." },
   { id: "CASHIER", label: "Caja", description: "Caja, pagos y consulta operativa." },
-  { id: "DISPATCH", label: "Despacho", description: "Pedidos y estados posteriores a cocina." },
+  { id: "DRIVER", label: "Repartidor", description: "Domicilios asignados, entrega y seguimiento del pedido." },
 ];
 
 const PERMISSION_OPTIONS: Array<{ id: Permission; label: string; description: string; tone: string }> = [
@@ -68,9 +68,20 @@ export default function UsersPage() {
 
   function toggleRole(role: Role) {
     if (!editor) return;
+
+    const nextRoles = editor.roles.includes(role)
+      ? editor.roles.filter((item) => item !== role)
+      : [...editor.roles, role];
+
+    const canManageSensitiveOrders =
+      nextRoles.includes("ADMIN") ||
+      nextRoles.includes("POS") ||
+      nextRoles.includes("CASHIER");
+
     setEditor({
       ...editor,
-      roles: editor.roles.includes(role) ? editor.roles.filter((item) => item !== role) : [...editor.roles, role],
+      roles: nextRoles,
+      permissions: canManageSensitiveOrders ? editor.permissions : [],
     });
   }
 
@@ -203,7 +214,8 @@ export default function UsersPage() {
                   })}
                 </div>
 
-                <div className="mt-5 border-t border-neutral-100 pt-4">
+                {(editor.roles.includes("ADMIN") || editor.roles.includes("POS") || editor.roles.includes("CASHIER")) && (
+                  <div className="mt-5 border-t border-neutral-100 pt-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Permisos especiales</p>
@@ -240,6 +252,7 @@ export default function UsersPage() {
                     })}
                   </div>
                 </div>
+                )}
               </div>
             </div>
 
