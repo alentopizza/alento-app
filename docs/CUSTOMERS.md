@@ -1,6 +1,6 @@
 # Clientes
 
-Estado: **CERRADO POR AHORA**
+Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
 Ruta: `/clientes`
 
@@ -327,7 +327,7 @@ No requiere `npx prisma db push`.
 
 ## Cierre del módulo
 
-Clientes se considera **cerrado por ahora** para la etapa actual.
+Clientes se considera **cerrado para la etapa operativa actual**.
 
 Quedan operativos:
 
