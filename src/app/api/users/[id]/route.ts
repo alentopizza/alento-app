@@ -3,7 +3,7 @@ import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, requireStaffSession } from "@/lib/auth";
 
-const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DISPATCH"];
+const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DRIVER", "DISPATCH"];
 const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
 
 function parsePermissions(value: unknown): UserPermission[] {
@@ -13,7 +13,20 @@ function parsePermissions(value: unknown): UserPermission[] {
 
 function parseRoles(value: unknown): UserRole[] {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((role): role is UserRole => VALID_ROLES.includes(role as UserRole)))];
+  const roles = value
+    .map((role) => role === "DISPATCH" ? "DRIVER" : role)
+    .filter((role): role is UserRole => VALID_ROLES.includes(role as UserRole));
+  return [...new Set(roles)];
+}
+
+function allowedPermissionsForRoles(roles: UserRole[], permissions: UserPermission[]) {
+  if (roles.includes("ADMIN")) return [];
+  const eligible = roles.includes("POS") || roles.includes("CASHIER");
+  return eligible ? permissions : [];
+}
+
+function publicRoles(roles: UserRole[]) {
+  return roles.map((role) => role === "DISPATCH" ? "DRIVER" : role);
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -32,8 +45,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const existing = await prisma.user.findUnique({ where: { id: userId } });
   if (!existing) return NextResponse.json({ error: "Usuario no encontrado." }, { status: 404 });
 
-  const roles = body.roles === undefined ? existing.roles : parseRoles(body.roles);
-  const permissions = body.permissions === undefined ? existing.permissions : parsePermissions(body.permissions);
+  const roles = body.roles === undefined ? parseRoles(existing.roles) : parseRoles(body.roles);
+  const requestedPermissions = body.permissions === undefined ? existing.permissions : parsePermissions(body.permissions);
+  const permissions = allowedPermissionsForRoles(roles, requestedPermissions);
   const active = typeof body.active === "boolean" ? body.active : existing.active;
   if (roles.length === 0) return NextResponse.json({ error: "El usuario debe conservar al menos un rol." }, { status: 400 });
 
@@ -59,7 +73,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       },
       select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
     });
-    return NextResponse.json({ user });
+    return NextResponse.json({ user: { ...user, roles: publicRoles(user.roles) } });
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") {
       return NextResponse.json({ error: "Ya existe un usuario con ese correo." }, { status: 409 });
