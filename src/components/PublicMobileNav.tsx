@@ -197,14 +197,14 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
             <ItemContent tab="cart" visualActive={visualActive} cartCount={cartCount} />
           </Link>
 
-          <button
-            type="button"
+          <Link
+            href="/club"
+            onClick={() => rememberOrigin(active)}
             className={itemClass("club")}
-            aria-label="Club de la Pizza próximamente"
-            title="Club de la Pizza próximamente"
+            aria-label="Club Alentó"
           >
             <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} />
-          </button>
+          </Link>
 
           <Link
             href="/cuenta"
