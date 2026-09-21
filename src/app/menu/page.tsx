@@ -418,56 +418,71 @@ export default function PublicMenuPage() {
       </section>
 
       <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:hidden">
-        <div className="mx-auto grid max-w-[430px] grid-cols-4 rounded-[28px] border border-black/10 bg-white/95 p-1.5 text-[#8a8a8a] shadow-[0_18px_50px_rgba(0,0,0,.32)] backdrop-blur-xl">
-          <Link
-            href="/"
-            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m3 10 9-7 9 7" />
-              <path d="M5 9.5V21h14V9.5" />
-              <path d="M9 21v-7h6v7" />
-            </svg>
-            <span className="text-[10px] font-medium">Home</span>
-          </Link>
+        <div className="relative mx-auto h-[68px] max-w-[430px] rounded-[18px] border border-black/10 bg-white shadow-[0_18px_45px_rgba(0,0,0,.30)]">
+          <div className="grid h-full grid-cols-5 items-center">
+            <Link
+              href="/"
+              className="flex h-full items-center justify-center text-[#252525] transition active:scale-95"
+              aria-label="Home"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m3 10 9-7 9 7" />
+                <path d="M5 9.5V21h14V9.5" />
+                <path d="M9 21v-7h6v7" />
+              </svg>
+            </Link>
 
-          <Link
-            href="/menu"
-            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] bg-[#fff0f0] text-[#e21a22] transition active:scale-[.98]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="8.5" />
-              <path d="M12 7.5v4.5l3 2" />
-              <path d="M8 4.5 6.5 2.8" />
-              <path d="m16 4.5 1.5-1.7" />
-            </svg>
-            <span className="text-[10px] font-semibold">Menú</span>
-          </Link>
+            <Link
+              href="/menu"
+              className="relative flex h-full items-center justify-center"
+              aria-label="Menú"
+            >
+              <span className="absolute -top-[24px] flex h-[62px] w-[62px] items-center justify-center rounded-full border-[6px] border-[#090909] bg-[#e21a22] text-white shadow-[0_10px_26px_rgba(226,26,34,.38)]">
+                <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden="true">
+                  <path d="M10 46 31 11c2-3 6-4 9-2 8 5 13 13 14 23 .4 3-2 6-5 7L15 51c-4 1-7-2-5-5Z" fill="currentColor"/>
+                  <circle cx="37" cy="20" r="3.3" fill="#e21a22"/>
+                  <circle cx="45" cy="29" r="3.3" fill="#e21a22"/>
+                  <circle cx="29" cy="31" r="3.3" fill="#e21a22"/>
+                  <path d="M15 48c10-1 23-6 35-12" fill="none" stroke="#e21a22" strokeWidth="3" strokeLinecap="round"/>
+                </svg>
+              </span>
+            </Link>
 
-          <button
-            type="button"
-            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
-            aria-label="Carrito próximamente"
-            title="Carrito próximamente"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
-              <circle cx="10" cy="19" r="1.2" />
-              <circle cx="18" cy="19" r="1.2" />
-            </svg>
-            <span className="text-[10px] font-medium">Carrito</span>
-          </button>
+            <button
+              type="button"
+              className="flex h-full items-center justify-center text-[#8d8d8d]"
+              aria-label="Carrito próximamente"
+              title="Carrito próximamente"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+                <circle cx="10" cy="19" r="1.2" />
+                <circle cx="18" cy="19" r="1.2" />
+              </svg>
+            </button>
 
-          <Link
-            href="/cuenta"
-            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.5" />
-              <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
-            </svg>
-            <span className="text-[10px] font-medium">Perfil</span>
-          </Link>
+            <button
+              type="button"
+              className="flex h-full items-center justify-center text-[#8d8d8d]"
+              aria-label="Club de la Pizza próximamente"
+              title="Club de la Pizza próximamente"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m12 3 2.7 5.4 6 .9-4.35 4.2 1.03 5.95L12 16.65l-5.38 2.8 1.03-5.95L3.3 9.3l6-.9L12 3Z" />
+              </svg>
+            </button>
+
+            <Link
+              href="/cuenta"
+              className="flex h-full items-center justify-center text-[#8d8d8d] transition active:scale-95"
+              aria-label="Perfil"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.5" />
+                <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </nav>
 
