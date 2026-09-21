@@ -40,7 +40,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/cuenta") ||
     pathname === "/" ||
     pathname.startsWith("/menu") ||
-    pathname.startsWith("/pedir") ||
     pathname.startsWith("/sin-acceso");
 
   useEffect(() => {
