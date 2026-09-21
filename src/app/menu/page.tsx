@@ -109,7 +109,78 @@ export default function PublicMenuPage() {
     const onScroll = () => setShowBackToTop(window.scrollY > 520);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const categories = useMemo(
+    () =>
+      (catalog?.categories ?? []).filter(
+        (category) =>
+          category.slug !== "ingredientes" && category.products.length > 0,
+      ),
+    [catalog],
+  );
+
+  const allProducts = useMemo(() => {
+    const map = new Map<number, CatalogProduct>();
+
+    for (const category of categories) {
+      for (const product of category.products) {
+        if (!map.has(product.id)) map.set(product.id, product);
+      }
+    }
+
+    return [...map.values()];
+  }, [categories]);
+
+  const activeProducts = useMemo(() => {
+    const value = query.trim().toLocaleLowerCase("es");
+
+    if (value) {
+      return allProducts.filter((product) =>
+        `${product.name} ${product.description ?? ""}`
+          .toLocaleLowerCase("es")
+          .includes(value),
+      );
+    }
+
     return (
+      categories.find((category) => category.slug === activeCategory)?.products ??
+      allProducts
+    );
+  }, [activeCategory, allProducts, categories, query]);
+
+  const featuredProducts = useMemo(() => {
+    const highlighted = allProducts.filter((product) => product.featured);
+    return (highlighted.length ? highlighted : allProducts).slice(0, 4);
+  }, [allProducts]);
+
+  function displayPrice(product: CatalogProduct) {
+    const minSize = catalog?.sizes.length
+      ? Math.min(...catalog.sizes.map((size) => size.basePrice))
+      : 0;
+
+    if (isTwoFlavorPizza(product)) {
+      const flavorPrices =
+        catalog?.pizzaFlavors.map((flavor) => flavor.basePrice ?? 0) ?? [];
+
+      return money(
+        minSize + (flavorPrices.length ? Math.min(...flavorPrices) : 0),
+      );
+    }
+
+    if (product.type === "PIZZA_SINGLE") {
+      return money(minSize + (product.basePrice ?? 0));
+    }
+
+    if (product.type === "COMBO") {
+      return product.basePrice != null ? money(product.basePrice) : "Configurable";
+    }
+
+    return product.basePrice == null ? "Consultar" : money(product.basePrice);
+  }
+
+  return (
     <main className="min-h-screen bg-[#090909] text-white">
       <section className="min-h-screen bg-[#090909]">
         <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_12px_34px_rgba(0,0,0,.34)] backdrop-blur-xl">
