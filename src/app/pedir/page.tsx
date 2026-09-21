@@ -343,20 +343,33 @@ export default function App2MenuPage() {
                   key={product.id}
                   type="button"
                   onClick={() => setSelectedProduct(product)}
-                  className="overflow-hidden rounded-[18px] border border-white/10 bg-[#141414] text-left transition hover:border-[#d71920]/60"
+                  className="group overflow-hidden rounded-[18px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70"
                 >
-                  <div className="aspect-square overflow-hidden bg-[#101010]">
+                  <div className="relative aspect-square overflow-hidden bg-[#101010]">
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-4" />
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                      />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-6xl">🍕</div>
+                      <div className="flex h-full items-center justify-center text-7xl">🍕</div>
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="line-clamp-2 min-h-[44px] text-[15px] font-black text-white">{product.name}</h3>
-                    <div className="mt-3 flex items-center justify-between">
-                      <b className="text-[14px] font-black text-[#ff3439]">{displayPrice(product)}</b>
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d71920] text-lg text-white">+</span>
+
+                  <div className="px-4 pb-2.5 pt-2 antialiased">
+                    <h3 className="line-clamp-1 text-[20px] font-semibold leading-[23px] tracking-[-0.014em] text-white">
+                      {product.name}
+                    </h3>
+
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="text-[18px] font-bold leading-none tracking-[-0.008em] text-[#ff3439]">
+                        {displayPrice(product)}
+                      </span>
+
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e21a22] text-[18px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)]">
+                        +
+                      </span>
                     </div>
                   </div>
                 </button>
