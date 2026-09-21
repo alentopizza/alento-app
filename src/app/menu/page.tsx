@@ -109,123 +109,83 @@ export default function PublicMenuPage() {
     const onScroll = () => setShowBackToTop(window.scrollY > 520);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const categories = useMemo(
-    () => (catalog?.categories ?? []).filter((category) => category.slug !== "ingredientes" && category.products.length > 0),
-    [catalog],
-  );
-
-  const allProducts = useMemo(() => {
-    const map = new Map<number, CatalogProduct>();
-    for (const category of categories) {
-      for (const product of category.products) {
-        if (!map.has(product.id)) map.set(product.id, product);
-      }
-    }
-    return [...map.values()];
-  }, [categories]);
-
-  const activeProducts = useMemo(() => {
-    const value = query.trim().toLocaleLowerCase("es");
-    if (value) {
-      return allProducts.filter((product) =>
-        `${product.name} ${product.description ?? ""}`.toLocaleLowerCase("es").includes(value),
-      );
-    }
-
-    return categories.find((category) => category.slug === activeCategory)?.products ?? allProducts;
-  }, [activeCategory, allProducts, categories, query]);
-
-  const featuredProducts = useMemo(() => {
-    const highlighted = allProducts.filter((product) => product.featured);
-    return (highlighted.length ? highlighted : allProducts).slice(0, 4);
-  }, [allProducts]);
-
-  function displayPrice(product: CatalogProduct) {
-    const minSize = catalog?.sizes.length
-      ? Math.min(...catalog.sizes.map((size) => size.basePrice))
-      : 0;
-
-    if (isTwoFlavorPizza(product)) {
-      const flavorPrices = catalog?.pizzaFlavors.map((flavor) => flavor.basePrice ?? 0) ?? [];
-      return money(minSize + (flavorPrices.length ? Math.min(...flavorPrices) : 0));
-    }
-
-    if (product.type === "PIZZA_SINGLE") {
-      return money(minSize + (product.basePrice ?? 0));
-    }
-
-    if (product.type === "COMBO") {
-      return product.basePrice != null ? money(product.basePrice) : "Configurable";
-    }
-
-    return product.basePrice == null ? "Consultar" : money(product.basePrice);
-  }
-
-  return (
+    return (
     <main className="min-h-screen bg-[#090909] text-white">
-      <section className="hidden min-h-screen bg-[#090909] lg:block">
+      <section className="min-h-screen bg-[#090909]">
         <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_12px_34px_rgba(0,0,0,.34)] backdrop-blur-xl">
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/45 to-transparent" />
 
-          <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
-            <Link href="/" className="group flex items-center">
-              {homeLoaded ? (
-                <img
-                  src={home?.brand?.logoUrl || FALLBACK_LOGO}
-                  alt="Alentó Pizza"
-                  className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
-                />
-              ) : (
-                <span className="block h-[54px] w-[210px]" aria-hidden="true" />
-              )}
-            </Link>
+          <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
+            <div className="flex h-[72px] items-center justify-between gap-3 lg:h-[86px]">
+              <Link href="/" className="group flex min-w-0 items-center">
+                {homeLoaded ? (
+                  <img
+                    src={home?.brand?.logoUrl || FALLBACK_LOGO}
+                    alt="Alentó Pizza"
+                    className="h-[42px] w-[145px] object-contain object-left transition duration-200 group-hover:opacity-90 sm:h-[48px] sm:w-[175px] lg:h-[54px] lg:w-[210px]"
+                  />
+                ) : (
+                  <span className="block h-[42px] w-[145px] sm:h-[48px] sm:w-[175px] lg:h-[54px] lg:w-[210px]" aria-hidden="true" />
+                )}
+              </Link>
 
-            <nav className="flex items-center gap-10">
+              <nav className="hidden items-center gap-10 md:flex">
+                <Link
+                  href="/"
+                  className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/menu"
+                  className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
+                >
+                  Menú
+                </Link>
+                <span
+                  className="cursor-default py-3 text-[14px] font-medium tracking-[0.015em] text-white/72"
+                  aria-disabled="true"
+                >
+                  Club De La Pizza
+                </span>
+              </nav>
+
               <Link
-                href="/"
-                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+                href="/login"
+                className="group relative shrink-0 overflow-hidden rounded-full bg-[#e21a22] px-4 py-3 text-[12px] font-extrabold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] sm:px-5 sm:text-[13px] lg:px-7 lg:py-3.5 lg:text-[14px]"
               >
+                <span className="relative z-10 flex items-center gap-2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-[17px] w-[17px] lg:h-[18px] lg:w-[18px]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="8" r="3.5" />
+                    <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
+                  </svg>
+                  <span className="hidden xs:inline sm:inline">Mi Cuenta</span>
+                  <span className="sm:hidden">Cuenta</span>
+                </span>
+              </Link>
+            </div>
+
+            <nav className="flex h-[44px] items-center justify-center gap-7 border-t border-white/[0.05] md:hidden">
+              <Link href="/" className="text-[12px] font-medium text-white/62">
                 Home
               </Link>
               <Link
                 href="/menu"
-                className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
+                className="relative flex h-full items-center text-[12px] font-semibold text-white after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-6 after:bg-[#e21a22] after:content-['']"
               >
                 Menú
               </Link>
-              <span
-                className="cursor-default py-3 text-[14px] font-medium tracking-[0.015em] text-white/72"
-                aria-disabled="true"
-              >
-                Club De La Pizza
-              </span>
+              <span className="text-[12px] font-medium text-white/62">Club De La Pizza</span>
             </nav>
-
-            <Link
-              href="/login"
-              className="group relative overflow-hidden rounded-full bg-[#e21a22] px-7 py-3.5 text-[14px] font-extrabold tracking-[0.025em] text-white shadow-[0_12px_30px_rgba(226,26,34,.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] hover:shadow-[0_16px_36px_rgba(226,26,34,.36)] active:translate-y-0"
-            >
-              <span className="relative z-10 flex items-center gap-2.5">
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-[18px] w-[18px]"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="8" r="3.5" />
-                  <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
-                </svg>
-                Mi Cuenta
-              </span>
-              <span className="absolute inset-y-0 -left-10 w-8 rotate-12 bg-white/18 blur-md transition-all duration-500 group-hover:left-[110%]" />
-            </Link>
           </div>
         </header>
 
@@ -235,16 +195,16 @@ export default function PublicMenuPage() {
               <img
                 src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
                 alt="Alentó Pizza"
-                className="block aspect-[1920/730] w-full object-cover object-center"
+                className="block aspect-[16/9] w-full object-cover object-center sm:aspect-[2/1] lg:aspect-[1920/730]"
               />
             ) : (
-              <div className="aspect-[1920/730] w-full bg-black" aria-hidden="true" />
+              <div className="aspect-[16/9] w-full bg-black sm:aspect-[2/1] lg:aspect-[1920/730]" aria-hidden="true" />
             )}
           </div>
         </section>
 
-        <section id="categorias-menu" className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-7">
-          <div className="flex overflow-hidden rounded-[22px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)]">
+        <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-3 sm:-mt-7 sm:px-5 lg:-mt-10 lg:px-7">
+          <div className="alento-scroll flex overflow-x-auto rounded-[18px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)] lg:overflow-hidden lg:rounded-[22px]">
             {categories.slice(0, 6).map((category) => {
               const active = activeCategory === category.slug;
 
@@ -257,11 +217,11 @@ export default function PublicMenuPage() {
                     setQuery("");
                     document.getElementById("catalogo-menu")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className={`group relative flex min-h-[86px] min-w-0 flex-1 flex-col items-center justify-center gap-1.5 border-r border-neutral-200 px-3 text-center transition last:border-r-0 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
+                  className={`group relative flex min-h-[76px] min-w-[108px] flex-1 flex-col items-center justify-center gap-1 border-r border-neutral-200 px-2 text-center transition last:border-r-0 sm:min-w-[126px] lg:min-h-[86px] lg:min-w-0 lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
                 >
                   {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
 
-                  <div className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-[24px] transition ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
+                  <div className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-[20px] transition sm:h-10 sm:w-10 sm:text-[22px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
                     {category.imageUrl ? (
                       <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -269,50 +229,54 @@ export default function PublicMenuPage() {
                     )}
                   </div>
 
-                  <span className={`truncate text-[11px] font-extrabold uppercase tracking-[0.015em] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
+                  <span className={`max-w-[96px] truncate text-[9px] font-extrabold uppercase tracking-[0.01em] sm:text-[10px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
                     {category.name}
                   </span>
                 </button>
               );
             })}
           </div>
-
         </section>
 
-        <section id="destacados-menu" className="mx-auto max-w-[1320px] px-8 pb-14 pt-5">
+        <section id="destacados-menu" className="mx-auto max-w-[1320px] px-3 pb-10 pt-6 sm:px-5 sm:pb-12 lg:px-8 lg:pb-14 lg:pt-5">
           <div className="text-center">
-            <h2 className="text-[38px] font-extrabold uppercase leading-none tracking-[-0.035em] text-white">
+            <h2 className="text-[27px] font-extrabold uppercase leading-[.98] tracking-[-0.035em] text-white sm:text-[32px] lg:text-[38px]">
               Nuestros <span className="text-[#e21a22]">más vendidos</span>
             </h2>
-            <p className="mx-auto mt-2 max-w-[520px] text-[10px] font-medium uppercase tracking-[0.16em] text-white/28">
+            <p className="mx-auto mt-2 max-w-[520px] text-[8px] font-medium uppercase tracking-[0.14em] text-white/28 sm:text-[9px] lg:text-[10px] lg:tracking-[0.16em]">
               Favoritos de quienes siempre vuelven
             </p>
           </div>
 
-          <div className="mt-6 grid grid-cols-4 gap-4">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-4">
             {featuredProducts.map((product) => (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => setSelectedProduct(product)}
-                className="group overflow-hidden rounded-[18px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70"
+                className="group overflow-hidden rounded-[16px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70 lg:rounded-[18px]"
               >
                 <div className="relative aspect-square overflow-hidden bg-[#101010]">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-7xl">🍕</div>
+                    <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">🍕</div>
                   )}
                 </div>
-                <div className="px-4 pb-2.5 pt-2 antialiased">
-                  <h3 className="line-clamp-1 text-[20px] font-semibold leading-[23px] tracking-[-0.014em] text-white">
+
+                <div className="px-3 pb-2.5 pt-2 antialiased lg:px-4">
+                  <h3 className="line-clamp-1 text-[14px] font-semibold leading-[18px] tracking-[-0.012em] text-white sm:text-[16px] sm:leading-[20px] lg:text-[20px] lg:leading-[23px]">
                     {product.name}
                   </h3>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-[18px] font-bold leading-none tracking-[-0.008em] text-[#ff3439]">
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
                       {displayPrice(product)}
                     </span>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e21a22] text-[18px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]">
                       +
                     </span>
                   </div>
@@ -322,15 +286,16 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-8 pb-20">
-          <div className="mb-6 flex items-end justify-between gap-4">
+        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-20 sm:px-5 lg:px-8">
+          <div className="mb-5 flex flex-col gap-4 sm:mb-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Catálogo</p>
-              <h2 className="mt-1 text-[34px] font-black tracking-[-0.04em] text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35 lg:text-[10px]">Catálogo</p>
+              <h2 className="mt-1 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[31px] lg:text-[34px]">
                 {categories.find((category) => category.slug === activeCategory)?.name || "Menú"}
               </h2>
             </div>
-            <div className="flex w-[340px] items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] px-4 py-3">
+
+            <div className="flex w-full items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] px-4 py-3 md:w-[340px]">
               <span className="text-white/45">⌕</span>
               <input
                 value={query}
@@ -338,19 +303,26 @@ export default function PublicMenuPage() {
                 placeholder="Buscar en el menú..."
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-white outline-none placeholder:text-white/25"
               />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} className="text-white/40" aria-label="Limpiar búsqueda">
+                  ×
+                </button>
+              )}
             </div>
           </div>
 
           {loading ? (
-            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/40">Cargando menú...</div>
-          ) : (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/40">
+              Cargando menú...
+            </div>
+          ) : activeProducts.length ? (
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {activeProducts.map((product) => (
                 <button
                   key={product.id}
                   type="button"
                   onClick={() => setSelectedProduct(product)}
-                  className="group overflow-hidden rounded-[18px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70"
+                  className="group overflow-hidden rounded-[16px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70 lg:rounded-[18px]"
                 >
                   <div className="relative aspect-square overflow-hidden bg-[#101010]">
                     {product.imageUrl ? (
@@ -360,21 +332,19 @@ export default function PublicMenuPage() {
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-7xl">🍕</div>
+                      <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">🍕</div>
                     )}
                   </div>
 
-                  <div className="px-4 pb-2.5 pt-2 antialiased">
-                    <h3 className="line-clamp-1 text-[20px] font-semibold leading-[23px] tracking-[-0.014em] text-white">
+                  <div className="px-3 pb-2.5 pt-2 antialiased lg:px-4">
+                    <h3 className="line-clamp-1 text-[14px] font-semibold leading-[18px] tracking-[-0.012em] text-white sm:text-[16px] sm:leading-[20px] lg:text-[20px] lg:leading-[23px]">
                       {product.name}
                     </h3>
-
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="text-[18px] font-bold leading-none tracking-[-0.008em] text-[#ff3439]">
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
                         {displayPrice(product)}
                       </span>
-
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e21a22] text-[18px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]">
                         +
                       </span>
                     </div>
@@ -382,191 +352,19 @@ export default function PublicMenuPage() {
                 </button>
               ))}
             </div>
-          )}
-        </section>
-
-
-      </section>
-
-      <section className="lg:hidden">
-        <div className="min-h-screen bg-[#eef7f2] pb-24 text-[#101410]">
-          <div className="mx-auto min-h-screen w-full max-w-[760px] bg-[linear-gradient(180deg,#eaffc5_0px,#f5fff9_210px,#f7faf8_420px)] px-4 pb-10 pt-[max(18px,env(safe-area-inset-top))] sm:px-6">
-        <header className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-lg shadow-sm backdrop-blur"
-              aria-label="Volver"
-            >
-              ←
-            </Link>
-            <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-black/35">Alentó Pizza</p>
-              <b className="block truncate text-[17px] font-black tracking-[-0.025em]">¿Qué se te antoja hoy?</b>
-            </div>
-          </div>
-
-          <Link
-            href="/login"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur"
-            aria-label="Mi cuenta"
-          >
-            ○
-          </Link>
-        </header>
-
-        <div className="mt-5 flex items-center gap-3 rounded-[18px] bg-white/85 px-4 py-3.5 shadow-[0_10px_26px_rgba(45,78,40,.07)] backdrop-blur">
-          <span className="text-lg">⌕</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar pizzas, combos, bebidas..."
-            className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-black/35"
-          />
-          <span className="text-lg">≡</span>
-        </div>
-
-        <div className="alento-scroll mt-6 flex gap-5 overflow-x-auto border-b border-black/5 pb-2">
-          {categories.map((category) => {
-            const active = category.slug === activeCategory && !query;
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(category.slug);
-                  setQuery("");
-                }}
-                className={`relative shrink-0 pb-2 text-[11px] font-black ${active ? "text-black" : "text-black/42"}`}
-              >
-                {category.name}
-                {active && <span className="absolute inset-x-0 -bottom-[9px] mx-auto h-[3px] w-7 rounded-full bg-[#70de00]" />}
-              </button>
-            );
-          })}
-        </div>
-
-        <section className="pt-6">
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-black/30">
-                {query ? "Resultados" : "Explora"}
-              </p>
-              <h1 className="mt-1 text-[24px] font-black tracking-[-0.035em]">
-                {query
-                  ? "Lo que encontramos"
-                  : categories.find((category) => category.slug === activeCategory)?.name || "Menú"}
-              </h1>
-            </div>
-            <span className="rounded-full bg-black px-2.5 py-1 text-[9px] font-black text-white">
-              {activeProducts.length}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="rounded-[24px] bg-white p-8 text-center text-sm text-black/35">Cargando menú...</div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {activeProducts.map((product, index) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => setSelectedProduct(product)}
-                  className={`relative min-h-[235px] overflow-hidden rounded-[24px] p-3 text-left shadow-[0_12px_26px_rgba(45,78,40,.08)] ${index % 4 === 0 ? "bg-[#fff0df]" : index % 4 === 1 ? "bg-[#e7f8d9]" : index % 4 === 2 ? "bg-[#f5e7eb]" : "bg-[#fff5c9]"}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <b className="line-clamp-2 block text-[12px] font-black leading-[16px]">{product.name}</b>
-                      <span className="mt-1 block text-[10px] font-black text-black/70">{displayPrice(product)}</span>
-                    </div>
-                    <span className="shrink-0 text-lg">♡</span>
-                  </div>
-
-                  <div className="mt-2 flex h-[150px] items-center justify-center">
-                    {product.imageUrl ? (
-                      <img src={product.imageUrl} alt={product.name} className="max-h-full max-w-full object-contain drop-shadow-[0_14px_12px_rgba(0,0,0,.10)]" />
-                    ) : (
-                      <span className="text-6xl">🍕</span>
-                    )}
-                  </div>
-
-                  <span className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-black text-sm text-white">
-                    →
-                  </span>
-
-                  {product.featured && (
-                    <span className="absolute bottom-3 right-3 -rotate-6 rounded-full border border-white/70 bg-white/65 px-2 py-1 text-[8px] font-black uppercase backdrop-blur">
-                      Popular
-                    </span>
-                  )}
-                </button>
-              ))}
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/45">
+              No encontramos productos con esa búsqueda.
             </div>
           )}
         </section>
-          </div>
-        </div>
-
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
-        <div className="mx-auto grid max-w-[600px] grid-cols-4">
-          <Link href="/" className="flex flex-col items-center gap-1 text-black/45">
-            <span className="text-lg">⌂</span><span className="text-[9px] font-bold">Inicio</span>
-          </Link>
-          <button type="button" className="flex flex-col items-center gap-1 text-[#64c900]">
-            <span className="text-lg">▦</span><span className="text-[9px] font-black">Menú</span>
-          </button>
-          <button type="button" className="flex flex-col items-center gap-1 text-black/45">
-            <span className="text-lg">♡</span><span className="text-[9px] font-bold">Favoritos</span>
-          </button>
-          <Link href="/login" className="flex flex-col items-center gap-1 text-black/45">
-            <span className="text-lg">○</span><span className="text-[9px] font-bold">Cuenta</span>
-          </Link>
-        </div>
-      </nav>
-
-      {selectedProduct && (
-        <div
-          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setSelectedProduct(null);
-          }}
-        >
-          <div className="max-h-[88vh] w-full max-w-[560px] overflow-y-auto rounded-t-[30px] bg-white p-5 shadow-2xl">
-            <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-black/10" />
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#62c900]">Producto</p>
-                <h2 className="mt-1 text-[25px] font-black tracking-[-0.035em]">{selectedProduct.name}</h2>
-              </div>
-              <button type="button" onClick={() => setSelectedProduct(null)} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5">×</button>
-            </div>
-
-            <div className="mt-4 flex aspect-[4/3] items-center justify-center rounded-[24px] bg-[#f5f7f4] p-4">
-              {selectedProduct.imageUrl ? (
-                <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="max-h-full max-w-full object-contain" />
-              ) : (
-                <span className="text-7xl">🍕</span>
-              )}
-            </div>
-
-            <p className="mt-4 text-[12px] leading-5 text-black/50">
-              {selectedProduct.description || "Producto Alentó Pizza."}
-            </p>
-
-            <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-              <b className="text-[18px] font-black">{displayPrice(selectedProduct)}</b>
-              <span className="rounded-full bg-black px-4 py-2.5 text-[10px] font-black text-white">Configurador próximamente</span>
-            </div>
-          </div>
-        </div>
-      )}
       </section>
 
       {showBackToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-[92px] right-4 z-[80] flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-[#111] text-white shadow-[0_12px_30px_rgba(0,0,0,.42)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#e21a22] lg:bottom-7 lg:right-7 lg:h-13 lg:w-13"
+          className="fixed bottom-5 right-4 z-[80] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#111] text-white shadow-[0_12px_30px_rgba(0,0,0,.42)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#e21a22] sm:bottom-6 sm:right-5 lg:bottom-7 lg:right-7 lg:h-12 lg:w-12"
           aria-label="Volver arriba"
           title="Volver arriba"
         >
@@ -583,6 +381,57 @@ export default function PublicMenuPage() {
             <path d="m6 14 6-6 6 6" />
           </svg>
         </button>
+      )}
+
+      {selectedProduct && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedProduct(null);
+          }}
+        >
+          <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#121212] text-white shadow-2xl sm:max-w-[560px] sm:rounded-[26px]">
+            <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-white/15 sm:hidden" />
+
+            <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#e21a22]">Producto</p>
+                <h2 className="mt-1 text-[24px] font-semibold tracking-[-0.035em] text-white">{selectedProduct.name}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProduct(null)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70"
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mx-5 overflow-hidden rounded-[20px] bg-[#0b0b0b]">
+              <div className="aspect-square">
+                {selectedProduct.imageUrl ? (
+                  <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-7xl">🍕</div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-5 pb-6 pt-4">
+              {selectedProduct.description && (
+                <p className="text-[12px] leading-5 text-white/45">{selectedProduct.description}</p>
+              )}
+
+              <div className={`flex items-center justify-between gap-3 ${selectedProduct.description ? "mt-4 border-t border-white/10 pt-4" : ""}`}>
+                <b className="text-[20px] text-[#ff3439]">{displayPrice(selectedProduct)}</b>
+                <span className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white">
+                  Configurador próximamente
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
