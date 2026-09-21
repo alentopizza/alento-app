@@ -489,3 +489,10 @@ El logo del header de escritorio en `/menu` usa `public.home.brand.logoUrl`.
 - tamaño recomendado: `600 × 180 px`;
 - se muestra con `object-contain`, sin deformación;
 - si el campo queda vacío, se usa el logo oficial actual como fallback.
+
+
+## Banner secundario pausado
+
+Temporalmente se ocultó el banner secundario del menú público y también su editor en `/personalizacion`.
+
+La estructura `secondaryBanner` se conserva en la configuración y APIs para poder reutilizarla o reemplazarla más adelante sin migración de datos.
