@@ -31,7 +31,7 @@ export default function PublicBrandHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_10px_28px_rgba(0,0,0,.28)] backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_10px_28px_rgba(0,0,0,.28)] backdrop-blur-xl md:hidden">
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/35 to-transparent" />
 
       <div className="mx-auto flex h-[68px] w-full items-center justify-center px-4 md:h-[76px]">
