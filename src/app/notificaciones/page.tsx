@@ -6,12 +6,14 @@ type TemplateConfig = {
   id: string;
   title: string;
   event: string;
+  events?: string[];
   audience: "CUSTOMER" | "DRIVER";
   fulfillmentTypes: string[];
   templateName: string;
   language: string;
   category: string;
   headerImageUrl: string;
+  requiresImage?: boolean;
   active: boolean;
   variables: Array<{ key: string; label: string; source: string }>;
   button?: { type: "tracking" | "driver_tracking" | "static"; label: string; value?: string } | null;
@@ -86,15 +88,24 @@ function Switch({ checked, onChange, disabled = false }: { checked: boolean; onC
   );
 }
 
+function needsImage(template: TemplateConfig) {
+  return template.requiresImage !== false;
+}
+
 function TemplateImage({ template }: { template: TemplateConfig }) {
   return (
     <div className="aspect-video overflow-hidden rounded-[18px] border border-neutral-200 bg-[#f5f4f1]">
       {template.headerImageUrl ? (
         <img src={template.headerImageUrl} alt={template.title} className="h-full w-full object-contain" />
-      ) : (
+      ) : needsImage(template) ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-neutral-300">
           <ImageIcon />
           <span className="text-[10px] font-bold uppercase tracking-[.08em]">Sin imagen</span>
+        </div>
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#fafafa,#f3f3f3)] text-neutral-500">
+          <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[.08em] shadow-sm ring-1 ring-neutral-200">Solo texto</span>
+          <span className="text-[9px] font-semibold text-neutral-400">No requiere encabezado multimedia</span>
         </div>
       )}
     </div>
@@ -160,7 +171,7 @@ export default function NotificationsPage() {
   async function setTemplateActive(templateId: string, active: boolean) {
     if (togglingId) return;
     const target = templates.find((item) => item.id === templateId);
-    if (active && !target?.headerImageUrl) {
+    if (active && target && needsImage(target) && !target.headerImageUrl) {
       setError("Primero carga una imagen para poder activar esta notificación.");
       setNotice("");
       return;
@@ -304,11 +315,17 @@ export default function NotificationsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`hidden rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[.07em] sm:inline-flex ${template.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
-                          {template.active ? "Activa" : template.headerImageUrl ? "Inactiva" : "Sin imagen"}
+                          {template.active
+                            ? "Activa"
+                            : !needsImage(template)
+                              ? "Inactiva"
+                              : template.headerImageUrl
+                                ? "Inactiva"
+                                : "Sin imagen"}
                         </span>
                         <Switch
                           checked={template.active}
-                          disabled={!template.headerImageUrl}
+                          disabled={needsImage(template) && !template.headerImageUrl}
                           onChange={(active) => void setTemplateActive(template.id, active)}
                         />
                       </div>
@@ -359,7 +376,8 @@ export default function NotificationsPage() {
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
                 <div className="space-y-5">
-                  <section>
+                  {needsImage(selected) ? (
+                    <section>
                     <div className="flex items-end justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-black text-neutral-950">Imagen de la plantilla</p>
@@ -406,7 +424,18 @@ export default function NotificationsPage() {
                       </div>
                     </div>
                     <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. No se muestran ni gestionan URLs manuales.</p>
-                  </section>
+                    </section>
+                  ) : (
+                    <section className="rounded-[22px] border border-neutral-200 bg-[linear-gradient(145deg,#fff,#fafafa)] p-5">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-[15px] font-black text-white">T</div>
+                        <div>
+                          <p className="text-[11px] font-black text-neutral-950">Plantilla de solo texto</p>
+                          <p className="mt-1 text-[10px] leading-5 text-neutral-500">Esta notificación no usa imagen de encabezado en Meta. Puede activarse directamente.</p>
+                        </div>
+                      </div>
+                    </section>
+                  )}
 
                   <section className="border-t border-neutral-100 pt-5">
                     <div className="mb-3">
@@ -466,20 +495,28 @@ export default function NotificationsPage() {
                         <div className="min-w-0">
                           <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Notificación</p>
                           <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
-                            {selected.active ? "Activa" : selected.headerImageUrl ? "Inactiva" : "Pendiente de imagen"}
+                            {selected.active
+                            ? "Activa"
+                            : !needsImage(selected)
+                              ? "Inactiva"
+                              : selected.headerImageUrl
+                                ? "Inactiva"
+                                : "Pendiente de imagen"}
                           </h3>
                           <p className="mt-1.5 text-[10px] leading-5 text-neutral-500">
                             {selected.active
                             ? "Disponible para operar automáticamente."
-                            : selected.headerImageUrl
-                              ? "No se enviará hasta volver a activarla."
-                              : "Carga primero la imagen aprobada. Después podrás activar esta notificación."}
+                            : !needsImage(selected)
+                              ? "Plantilla de texto lista para activar cuando quieras."
+                              : selected.headerImageUrl
+                                ? "No se enviará hasta volver a activarla."
+                                : "Carga primero la imagen aprobada. Después podrás activar esta notificación."}
                           </p>
                         </div>
                       </div>
                       <Switch
                         checked={selected.active}
-                        disabled={!selected.headerImageUrl}
+                        disabled={needsImage(selected) && !selected.headerImageUrl}
                         onChange={(active) => void setTemplateActive(selected.id, active)}
                       />
                     </div>
@@ -489,9 +526,11 @@ export default function NotificationsPage() {
                           ? "Guardando..."
                           : selected.active
                             ? "Activado"
-                            : selected.headerImageUrl
+                            : !needsImage(selected)
                               ? "Desactivado"
-                              : "Falta imagen"}
+                              : selected.headerImageUrl
+                                ? "Desactivado"
+                                : "Falta imagen"}
                       </span>
                       <span className="text-[8px] font-bold uppercase tracking-[.08em] text-neutral-400">Auto guardado</span>
                     </div>
@@ -548,7 +587,7 @@ export default function NotificationsPage() {
             </div>
 
             <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 sm:px-6">
-              <p className="hidden text-[9px] text-neutral-400 sm:block">Solo puedes activar la notificación o reemplazar su imagen. Los datos de Meta son informativos.</p>
+              <p className="hidden text-[9px] text-neutral-400 sm:block">Puedes activar/desactivar la notificación. Las plantillas multimedia permiten además cargar su imagen desde Alentó.</p>
               <button type="button" onClick={() => setSelectedId(null)} disabled={uploading}
                 className="ml-auto h-11 rounded-xl bg-neutral-950 px-5 text-[11px] font-black text-white">
                 Cerrar
