@@ -217,45 +217,61 @@ export default function App2MenuPage() {
         </header>
 
         <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
-          <div className="mx-auto w-full max-w-[1320px]">
+          <div className="mx-auto h-[470px] w-full max-w-[1320px] overflow-hidden xl:h-[500px] 2xl:h-[520px]">
             <img
               src={DESKTOP_HERO_IMAGE}
               alt="Alentó Pizza"
-              className="block aspect-[1920/950] w-full object-cover object-center"
+              className="h-full w-full object-cover object-center"
             />
           </div>
         </section>
 
-        <section id="categorias-pedir" className="relative z-20 mx-auto -mt-8 max-w-[1240px] px-8">
-          <div className="grid grid-cols-6 overflow-hidden rounded-[24px] border border-white/10 bg-white text-[#111] shadow-[0_24px_70px_rgba(0,0,0,.28)]">
-            {categories.slice(0, 6).map((category, index) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => {
-                  setActiveCategory(category.slug);
-                  setQuery("");
-                  document.getElementById("catalogo-pedir")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className={`flex min-h-[126px] flex-col items-center justify-center gap-2 border-r border-neutral-200 px-3 text-center last:border-r-0 ${activeCategory === category.slug ? "bg-[#fff1f1]" : "bg-white"}`}
-              >
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-neutral-50 text-3xl">
-                  {category.imageUrl ? (
-                    <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span>{categoryEmoji(category.slug)}</span>
-                  )}
-                </div>
-                <b className="text-[12px] font-black uppercase">{category.name}</b>
-                <span className="text-[9px] font-semibold text-neutral-400">
-                  {index === 0 ? "Lo más pedido" : "Explorar"}
-                </span>
-              </button>
-            ))}
+        <section id="categorias-pedir" className="relative z-20 mx-auto -mt-6 max-w-[1180px] px-7">
+          <div className="flex overflow-hidden rounded-[22px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)]">
+            {categories.slice(0, 6).map((category, index) => {
+              const active = activeCategory === category.slug;
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory(category.slug);
+                    setQuery("");
+                    document.getElementById("catalogo-pedir")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className={`group relative flex min-h-[102px] min-w-0 flex-1 flex-col items-center justify-center gap-1.5 border-r border-neutral-200 px-3 text-center transition last:border-r-0 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
+                >
+                  {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
+
+                  <div className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-[24px] transition ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
+                    {category.imageUrl ? (
+                      <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{categoryEmoji(category.slug)}</span>
+                    )}
+                  </div>
+
+                  <span className={`truncate text-[11px] font-extrabold uppercase tracking-[0.015em] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
+                    {category.name}
+                  </span>
+                  <span className="text-[8px] font-medium text-neutral-400">
+                    {index === 0 ? "Lo más pedido" : "Explorar"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mx-auto mt-3 flex w-fit items-center gap-2 text-[9px] font-medium uppercase tracking-[0.14em] text-white/35">
+            <span className="h-px w-8 bg-white/15" />
+            Sigue explorando
+            <span className="text-[#d71920]">↓</span>
+            <span className="h-px w-8 bg-white/15" />
           </div>
         </section>
 
-        <section id="populares-pedir" className="mx-auto max-w-[1320px] px-8 pb-16 pt-20">
+        <section id="populares-pedir" className="mx-auto max-w-[1320px] px-8 pb-16 pt-10">
           <div className="text-center">
             <p className="text-[25px] italic text-[#d71920]" style={{ fontFamily: "cursive" }}>Popular entre clientes</p>
             <h2 className="mt-1 text-[46px] font-black uppercase tracking-[-0.04em]">Nuestros <span className="text-[#d71920]">más vendidos</span></h2>
