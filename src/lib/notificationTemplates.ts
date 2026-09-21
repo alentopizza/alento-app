@@ -191,10 +191,11 @@ export async function getNotificationTemplates() {
 }
 
 export async function saveNotificationTemplates(templates: NotificationTemplateConfig[]) {
+  const value = JSON.parse(JSON.stringify(templates)) as Prisma.InputJsonValue;
   await prisma.appSetting.upsert({
     where: { key: NOTIFICATION_TEMPLATES_KEY },
-    create: { key: NOTIFICATION_TEMPLATES_KEY, value: templates as unknown as Prisma.InputJsonValue },
-    update: { value: templates as unknown as Prisma.InputJsonValue },
+    create: { key: NOTIFICATION_TEMPLATES_KEY, value },
+    update: { value },
   });
   return templates;
 }
