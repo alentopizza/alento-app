@@ -53,16 +53,28 @@ function ImageIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 15-5-5L5 20"/></svg>;
 }
 
-function Switch({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return { error: text };
+  }
+}
+
+function Switch({ checked, onChange, disabled = false }: { checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={(event) => {
         event.stopPropagation();
-        onChange(!checked);
+        if (!disabled) onChange(!checked);
       }}
       aria-pressed={checked}
-      className={`relative h-8 w-14 shrink-0 rounded-full border transition-all duration-200 ${checked
+      aria-disabled={disabled}
+      disabled={disabled}
+      className={`relative h-8 w-14 shrink-0 rounded-full border transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-45 ${checked
         ? "border-emerald-500 bg-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,.22)]"
         : "border-neutral-300 bg-neutral-200"
       }`}
@@ -104,7 +116,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetch("/api/notification-templates", { cache: "no-store" })
       .then(async (response) => {
-        const data = await response.json();
+        const data = await readJsonResponse(response);
         if (!response.ok) throw new Error(data.error || "No fue posible cargar las notificaciones.");
         const loaded = (data.templates ?? []) as TemplateConfig[];
         setTemplates(loaded);
@@ -141,6 +153,12 @@ export default function NotificationsPage() {
 
   async function setTemplateActive(templateId: string, active: boolean) {
     if (togglingId) return;
+    const target = templates.find((item) => item.id === templateId);
+    if (active && !target?.headerImageUrl) {
+      setError("Primero carga una imagen para poder activar esta notificación.");
+      setNotice("");
+      return;
+    }
     setTogglingId(templateId);
     setError("");
     setNotice("");
@@ -181,14 +199,16 @@ export default function NotificationsPage() {
       form.append("file", file);
       form.append("templateId", selected.id);
       const response = await fetch("/api/notification-images", { method: "POST", body: form });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible cargar la imagen.");
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(typeof data.error === "string" ? data.error : `No fue posible cargar la imagen (HTTP ${response.status}).`);
+      }
 
       const uploadedUrl = String(data.url || "");
       setTemplates((current) => current.map((item) =>
-        item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl } : item,
+        item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl, active: false } : item,
       ));
-      setNotice("Imagen guardada y vinculada a la plantilla. Esta es ahora la imagen que usará WhatsApp.");
+      setNotice("Imagen cargada correctamente. La notificación quedó inactiva; actívala cuando estés listo.");
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "No fue posible cargar la imagen.");
     } finally {
@@ -272,9 +292,13 @@ export default function NotificationsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`hidden rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[.07em] sm:inline-flex ${template.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
-                          {template.active ? "Activa" : "Inactiva"}
+                          {template.active ? "Activa" : template.headerImageUrl ? "Inactiva" : "Sin imagen"}
                         </span>
-                        <Switch checked={template.active} onChange={(active) => void setTemplateActive(template.id, active)} />
+                        <Switch
+                          checked={template.active}
+                          disabled={!template.headerImageUrl}
+                          onChange={(active) => void setTemplateActive(template.id, active)}
+                        />
                       </div>
                     </div>
 
@@ -430,18 +454,32 @@ export default function NotificationsPage() {
                         <div className="min-w-0">
                           <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Notificación</p>
                           <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
-                            {selected.active ? "Activa" : "Inactiva"}
+                            {selected.active ? "Activa" : selected.headerImageUrl ? "Inactiva" : "Pendiente de imagen"}
                           </h3>
                           <p className="mt-1.5 text-[10px] leading-5 text-neutral-500">
-                            {selected.active ? "Disponible para operar automáticamente." : "No se enviará hasta volver a activarla."}
+                            {selected.active
+                            ? "Disponible para operar automáticamente."
+                            : selected.headerImageUrl
+                              ? "No se enviará hasta volver a activarla."
+                              : "Carga primero la imagen aprobada. Después podrás activar esta notificación."}
                           </p>
                         </div>
                       </div>
-                      <Switch checked={selected.active} onChange={(active) => void setTemplateActive(selected.id, active)} />
+                      <Switch
+                        checked={selected.active}
+                        disabled={!selected.headerImageUrl}
+                        onChange={(active) => void setTemplateActive(selected.id, active)}
+                      />
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
                       <span className={`rounded-full px-2.5 py-1 text-[8px] font-black ${selected.active ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
-                        {togglingId === selected.id ? "Guardando..." : selected.active ? "Activado" : "Desactivado"}
+                        {togglingId === selected.id
+                          ? "Guardando..."
+                          : selected.active
+                            ? "Activado"
+                            : selected.headerImageUrl
+                              ? "Desactivado"
+                              : "Falta imagen"}
                       </span>
                       <span className="text-[8px] font-bold uppercase tracking-[.08em] text-neutral-400">Auto guardado</span>
                     </div>
