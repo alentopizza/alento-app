@@ -5,6 +5,11 @@ import type { UserRole } from "@prisma/client";
 export const STAFF_COOKIE = "alento_staff_session";
 export const CUSTOMER_COOKIE = "alento_customer_session";
 
+// Chrome y otros navegadores limitan la vida de una cookie persistente.
+// Usamos 400 días y la renovamos mientras el colaborador siga usando Alentó,
+// de modo que la sesión permanezca abierta hasta cerrar sesión explícitamente.
+export const STAFF_SESSION_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+
 type StaffSession = {
   kind: "staff";
   userId: number;
@@ -99,7 +104,7 @@ export async function setStaffSession(user: {
   name: string;
   roles: UserRole[];
 }) {
-  const exp = Date.now() + 12 * 60 * 60 * 1000;
+  const exp = Date.now() + STAFF_SESSION_MAX_AGE_SECONDS * 1000;
   const token = sign({
     kind: "staff",
     userId: user.id,
@@ -115,7 +120,7 @@ export async function setStaffSession(user: {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 12 * 60 * 60,
+    maxAge: STAFF_SESSION_MAX_AGE_SECONDS,
   });
 }
 
