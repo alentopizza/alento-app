@@ -163,18 +163,24 @@ export default function PublicMenuPage() {
             </Link>
 
             <nav className="flex items-center gap-10">
-              <a
-                href="#inicio-menu"
+              <Link
+                href="/"
+                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+              >
+                Home
+              </Link>
+              <Link
+                href="/menu"
                 className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
               >
                 Menú
-              </a>
-              <a
-                href="#destacados-menu"
-                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+              </Link>
+              <span
+                className="cursor-default py-3 text-[14px] font-medium tracking-[0.015em] text-white/72"
+                aria-disabled="true"
               >
-                Destacados
-              </a>
+                Club De La Pizza
+              </span>
             </nav>
 
             <Link
