@@ -34,7 +34,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [
       { key: "1", label: "Nombre del cliente", source: "customerName" },
       { key: "2", label: "Número de orden", source: "orderCode" },
@@ -51,7 +51,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
   },
@@ -65,7 +65,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [
       { key: "1", label: "Nombre del repartidor", source: "driverName" },
       { key: "2", label: "Número de orden", source: "orderCode" },
@@ -82,7 +82,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: { type: "tracking", label: "Ver seguimiento" },
   },
@@ -96,7 +96,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
   },
@@ -110,7 +110,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
   },
@@ -124,7 +124,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
   },
@@ -138,7 +138,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
-    active: true,
+    active: false,
     variables: [],
     button: null,
     delayMinutes: 60,
@@ -173,13 +173,14 @@ export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | 
   return DEFAULT_NOTIFICATION_TEMPLATES.map((fallback) => {
     const current = saved.get(fallback.id);
     if (!current) return fallback;
+    const headerImageUrl = managedImagePath(current.headerImageUrl);
     return {
       ...fallback,
       templateName: typeof current.templateName === "string" ? current.templateName.trim() || fallback.templateName : fallback.templateName,
       language: typeof current.language === "string" ? current.language.trim() || fallback.language : fallback.language,
       category: typeof current.category === "string" ? current.category.trim() || fallback.category : fallback.category,
-      headerImageUrl: managedImagePath(current.headerImageUrl),
-      active: typeof current.active === "boolean" ? current.active : fallback.active,
+      headerImageUrl,
+      active: headerImageUrl && typeof current.active === "boolean" ? current.active : false,
       delayMinutes: typeof current.delayMinutes === "number" && Number.isFinite(current.delayMinutes)
         ? Math.max(0, Math.round(current.delayMinutes))
         : fallback.delayMinutes,
