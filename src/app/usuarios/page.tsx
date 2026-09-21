@@ -9,6 +9,8 @@ type StaffUser = {
   id: number;
   name: string;
   email: string;
+  whatsappCountryCode: string;
+  whatsappPhone: string | null;
   roles: Role[];
   permissions: Permission[];
   active: boolean;
@@ -44,7 +46,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [editor, setEditor] = useState<{ id?: number; name: string; email: string; password: string; roles: Role[]; permissions: Permission[]; active: boolean } | null>(null);
+  const [editor, setEditor] = useState<{ id?: number; name: string; email: string; password: string; whatsappCountryCode: string; whatsappPhone: string; roles: Role[]; permissions: Permission[]; active: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function loadUsers() {
@@ -133,7 +135,7 @@ export default function UsersPage() {
                 <span className="block text-[8px] font-semibold uppercase tracking-[0.14em] text-white/40">Activos</span>
                 <b className="mt-0.5 block text-[26px] font-semibold leading-none text-white">{activeCount}</b>
               </div>
-              <button onClick={() => setEditor({ name: "", email: "", password: "", roles: ["POS"], permissions: [], active: true })} className="h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white">
+              <button onClick={() => setEditor({ name: "", email: "", password: "", whatsappCountryCode: "+57", whatsappPhone: "", roles: ["POS"], permissions: [], active: true })} className="h-[52px] rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-semibold text-white">
                 + Crear usuario
               </button>
             </div>
@@ -144,15 +146,15 @@ export default function UsersPage() {
         {notice && <p className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] text-emerald-700">{notice}</p>}
 
         <section className="alento-card overflow-hidden rounded-[24px]">
-          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,2fr)_110px_80px] gap-3 border-b border-neutral-100 px-5 py-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-            <span>Colaborador</span><span>Correo</span><span>Roles</span><span>Último acceso</span><span></span>
+          <div className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1.35fr)_minmax(0,1.15fr)_minmax(0,1.8fr)_100px_80px] gap-3 border-b border-neutral-100 px-5 py-3 text-[9px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            <span>Colaborador</span><span>Correo</span><span>WhatsApp</span><span>Roles</span><span>Último acceso</span><span></span>
           </div>
           {loading ? (
             <div className="p-8 text-center text-sm text-neutral-400">Cargando usuarios...</div>
           ) : users.length === 0 ? (
             <div className="p-8 text-center text-sm text-neutral-400">No hay usuarios registrados.</div>
           ) : users.map((user) => (
-            <div key={user.id} className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,2fr)_110px_80px] items-center gap-3 border-b border-neutral-100 px-5 py-4 last:border-b-0">
+            <div key={user.id} className="grid grid-cols-[minmax(0,1.35fr)_minmax(0,1.35fr)_minmax(0,1.15fr)_minmax(0,1.8fr)_100px_80px] items-center gap-3 border-b border-neutral-100 px-5 py-4 last:border-b-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <b className="truncate text-[14px] font-semibold text-neutral-950">{user.name}</b>
@@ -160,6 +162,7 @@ export default function UsersPage() {
                 </div>
               </div>
               <span className="truncate text-[12px] text-neutral-600">{user.email}</span>
+              <span className="truncate text-[12px] text-neutral-600">{user.whatsappPhone ? `${user.whatsappCountryCode} ${user.whatsappPhone}` : "—"}</span>
               <div className="flex flex-wrap gap-1.5">
                 {user.roles.map((role) => <span key={role} className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-semibold text-neutral-600">{ROLE_OPTIONS.find((item) => item.id === role)?.label ?? role}</span>)}
                 {!user.roles.includes("ADMIN") && user.permissions?.includes("CANCEL_ORDERS") && (
@@ -170,7 +173,7 @@ export default function UsersPage() {
                 )}
               </div>
               <span className="text-[10px] text-neutral-500">{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString("es-CO") : "Nunca"}</span>
-              <button onClick={() => setEditor({ id: user.id, name: user.name, email: user.email, password: "", roles: user.roles, permissions: user.permissions ?? [], active: user.active })} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-semibold">Editar</button>
+              <button onClick={() => setEditor({ id: user.id, name: user.name, email: user.email, password: "", whatsappCountryCode: user.whatsappCountryCode || "+57", whatsappPhone: user.whatsappPhone || "", roles: user.roles, permissions: user.permissions ?? [], active: user.active })} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-semibold">Editar</button>
             </div>
           ))}
         </section>
@@ -192,6 +195,14 @@ export default function UsersPage() {
                 <label className="block"><span className="text-[12px] font-semibold text-neutral-700">Nombre</span><input value={editor.name} onChange={(e) => setEditor({ ...editor, name: e.target.value })} className="alento-input mt-2 h-12 w-full rounded-xl px-4 text-sm" /></label>
                 <label className="block"><span className="text-[12px] font-semibold text-neutral-700">Correo</span><input type="email" value={editor.email} onChange={(e) => setEditor({ ...editor, email: e.target.value })} className="alento-input mt-2 h-12 w-full rounded-xl px-4 text-sm" /></label>
                 <label className="block"><span className="text-[12px] font-semibold text-neutral-700">{editor.id ? "Nueva contraseña · opcional" : "Contraseña"}</span><input type="password" value={editor.password} onChange={(e) => setEditor({ ...editor, password: e.target.value })} className="alento-input mt-2 h-12 w-full rounded-xl px-4 text-sm" placeholder="Mínimo 8 caracteres" /></label>
+                <div>
+                  <span className="text-[12px] font-semibold text-neutral-700">WhatsApp {editor.roles.includes("DRIVER") ? "· obligatorio para repartidor" : "· opcional"}</span>
+                  <div className="mt-2 grid grid-cols-[100px_1fr] gap-2">
+                    <input value={editor.whatsappCountryCode} onChange={(e) => setEditor({ ...editor, whatsappCountryCode: e.target.value })} className="alento-input h-12 w-full rounded-xl px-3 text-sm" placeholder="+57" />
+                    <input inputMode="tel" value={editor.whatsappPhone} onChange={(e) => setEditor({ ...editor, whatsappPhone: e.target.value.replace(/\D/g, "") })} className="alento-input h-12 w-full rounded-xl px-4 text-sm" placeholder="3001234567" />
+                  </div>
+                  {editor.roles.includes("DRIVER") && <p className="mt-1.5 text-[10px] leading-4 text-neutral-500">Aquí recibirá la orden asignada y el enlace operativo del domicilio.</p>}
+                </div>
                 {editor.id && (
                   <label className="flex items-center justify-between rounded-xl border border-neutral-200 bg-[#faf9f7] px-4 py-3">
                     <span><b className="block text-[12px] font-semibold">Usuario activo</b><span className="text-[10px] text-neutral-500">Permite o bloquea el inicio de sesión.</span></span>
