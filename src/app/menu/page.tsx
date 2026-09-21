@@ -538,7 +538,7 @@ export default function PublicMenuPage() {
   return (
     <main className="min-h-screen bg-[#090909] text-white md:pl-[112px]">
       <section className="min-h-screen bg-[#090909]">
-        <PublicDesktopSidebar active="menu" cartCount={cartCount} />
+        <PublicDesktopSidebar active="menu" cartCount={cartCount} contentMaxWidth={1320} />
         <PublicBrandHeader />
 
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
