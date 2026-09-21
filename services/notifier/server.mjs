@@ -190,13 +190,13 @@ async function sendTemplate(data) {
     throw new Error("No se pudo crear o encontrar la conversación de WhatsApp.");
   }
 
-  await cw(
+  const message = await cw(
     `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${conversation.id}/messages`,
     {
       method: "POST",
       body: JSON.stringify({
-        // Chatwoot muestra este contenido como transcripción interna de la conversación.
-        // El envío real a WhatsApp sigue siendo la plantilla indicada en template_params.
+        // Chatwoot guarda este contenido como transcripción interna.
+        // El envío real a WhatsApp se determina por template_params.
         content: `${data.template.title || "Notificación Alentó"} · ${data.orderCode || ""}`.trim(),
         message_type: "outgoing",
         content_type: "text",
@@ -212,7 +212,32 @@ async function sendTemplate(data) {
     },
   );
 
-  return { contactId: contact.id, conversationId: conversation.id, template: data.template.templateName };
+  const templateMetadata =
+    message?.additional_attributes?.template_params ||
+    message?.template_params ||
+    null;
+
+  if (!templateMetadata) {
+    throw new Error(
+      `Chatwoot creó el mensaje ${message?.id ?? ""}, pero no conservó template_params. El mensaje no debe tratarse como texto normal.`,
+    );
+  }
+
+  console.log("WhatsApp template queued", {
+    messageId: message?.id ?? null,
+    conversationId: conversation.id,
+    template: data.template.templateName,
+    recipient: normalizePhone(data.phone),
+    status: message?.status ?? null,
+  });
+
+  return {
+    contactId: contact.id,
+    conversationId: conversation.id,
+    messageId: message?.id ?? null,
+    messageStatus: message?.status ?? null,
+    template: data.template.templateName,
+  };
 }
 
 async function readBody(req) {
