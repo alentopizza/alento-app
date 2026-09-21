@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type {
+  OrderLineConfiguration,
+  PizzaOrderConfiguration,
+  StandardOrderConfiguration,
+} from "@/lib/orderConfiguration";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
+type Modifier = { id: number; name: string; description: string | null; imageUrl: string | null; basePrice: number };
+type Crust = { id: number; name: string; prices: { sizeId: number; price: number }[] };
 type CatalogProduct = {
   id: number;
   name: string;
@@ -27,6 +34,8 @@ type CatalogResponse = {
   categories: CatalogCategory[];
   pizzaFlavors: CatalogProduct[];
   sizes: PizzaSize[];
+  crusts: Crust[];
+  modifiers: Modifier[];
 };
 type PublicHomeSettings = {
   brand: { logoUrl: string };
@@ -38,8 +47,21 @@ type CartItem = {
   productId: number;
   name: string;
   imageUrl: string | null;
+  detail?: string;
   unitPrice: number;
   quantity: number;
+  configuration?: OrderLineConfiguration;
+  notes?: string;
+};
+
+type PizzaConfig = {
+  product: CatalogProduct;
+  sizeId: number | null;
+  firstFlavorId: number | null;
+  secondFlavorId: number | null;
+  crustId: number | null;
+  modifierIds: number[];
+  note: string;
 };
 
 const CART_STORAGE_KEY = "alento-cart-v1";
@@ -57,6 +79,11 @@ function money(value: number) {
 
 function isTwoFlavorPizza(product: CatalogProduct) {
   return product.type === "PIZZA_TWO_FLAVORS" || product.name.toLowerCase().includes("2 sabores");
+}
+
+function crustPriceForSize(crust: Crust, sizeId: number | null) {
+  if (!sizeId) return null;
+  return crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null;
 }
 
 function categoryEmoji(slug: string) {
@@ -81,6 +108,9 @@ export default function PublicMenuPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartReady, setCartReady] = useState(false);
+  const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
+  const [editingCartKey, setEditingCartKey] = useState<string | null>(null);
+  const [configError, setConfigError] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -224,19 +254,23 @@ export default function PublicMenuPage() {
     return money(value);
   }
 
-  function addToCart(product: CatalogProduct) {
-    const unitPrice = productPriceValue(product);
-
+  function addSimpleProduct(product: CatalogProduct) {
+    const unitPrice = product.basePrice;
     if (unitPrice == null) {
       setSelectedProduct(product);
       return;
     }
 
-    const key = `product-${product.id}`;
+    const configuration: StandardOrderConfiguration = {
+      schemaVersion: 1,
+      kind: "STANDARD",
+      productId: product.id,
+      productName: product.name,
+    };
+    const key = `standard-${product.id}`;
 
     setCart((current) => {
       const existing = current.find((item) => item.key === key);
-
       if (existing) {
         return current.map((item) =>
           item.key === key ? { ...item, quantity: item.quantity + 1 } : item,
@@ -250,14 +284,263 @@ export default function PublicMenuPage() {
           productId: product.id,
           name: product.name,
           imageUrl: product.imageUrl,
+          detail: "Producto",
           unitPrice,
           quantity: 1,
+          configuration,
         },
       ];
     });
 
     setSelectedProduct(null);
     setCartOpen(true);
+  }
+
+  function startPizzaConfiguration(product: CatalogProduct) {
+    if (!catalog) return;
+
+    const defaultSize = catalog.sizes[0] ?? null;
+    const defaultCrust =
+      catalog.crusts.find(
+        (crust) =>
+          crust.name.toLowerCase().includes("tradicional") &&
+          crustPriceForSize(crust, defaultSize?.id ?? null) != null,
+      ) ??
+      catalog.crusts.find(
+        (crust) => crustPriceForSize(crust, defaultSize?.id ?? null) != null,
+      ) ??
+      null;
+
+    setSelectedProduct(null);
+    setEditingCartKey(null);
+    setConfigError("");
+    setPizzaConfig({
+      product,
+      sizeId: defaultSize?.id ?? null,
+      firstFlavorId: isTwoFlavorPizza(product) ? null : product.id,
+      secondFlavorId: null,
+      crustId: defaultCrust?.id ?? null,
+      modifierIds: [],
+      note: "",
+    });
+  }
+
+  function startAdd(product: CatalogProduct) {
+    if (product.type === "PIZZA_SINGLE" || isTwoFlavorPizza(product)) {
+      startPizzaConfiguration(product);
+      return;
+    }
+
+    addSimpleProduct(product);
+  }
+
+  function closePizzaConfiguration() {
+    setPizzaConfig(null);
+    setEditingCartKey(null);
+    setConfigError("");
+  }
+
+  function updatePizzaSize(sizeId: number) {
+    if (!pizzaConfig || !catalog) return;
+
+    const currentCrust = catalog.crusts.find(
+      (crust) => crust.id === pizzaConfig.crustId,
+    );
+    const currentAvailable =
+      currentCrust && crustPriceForSize(currentCrust, sizeId) != null;
+
+    const nextCrustId = currentAvailable
+      ? pizzaConfig.crustId
+      : catalog.crusts.find(
+          (crust) => crustPriceForSize(crust, sizeId) != null,
+        )?.id ?? null;
+
+    setPizzaConfig({ ...pizzaConfig, sizeId, crustId: nextCrustId });
+  }
+
+  function pizzaPrice(config: PizzaConfig) {
+    if (!catalog || !config.sizeId) return 0;
+
+    const size = catalog.sizes.find((item) => item.id === config.sizeId);
+    if (!size) return 0;
+
+    const flavorPrices = isTwoFlavorPizza(config.product)
+      ? [config.firstFlavorId, config.secondFlavorId].map(
+          (id) =>
+            catalog.pizzaFlavors.find((flavor) => flavor.id === id)?.basePrice ??
+            0,
+        )
+      : [config.product.basePrice ?? 0];
+
+    const crust = catalog.crusts.find((item) => item.id === config.crustId);
+    const crustPrice =
+      crust?.prices.find((price) => price.sizeId === size.id)?.price ?? 0;
+
+    const modifiersPrice = isTwoFlavorPizza(config.product)
+      ? 0
+      : catalog.modifiers
+          .filter((item) => config.modifierIds.includes(item.id))
+          .reduce((sum, item) => sum + item.basePrice, 0);
+
+    return (
+      size.basePrice +
+      Math.max(0, ...flavorPrices) +
+      crustPrice +
+      modifiersPrice
+    );
+  }
+
+  function confirmPizza() {
+    if (
+      !pizzaConfig ||
+      !catalog ||
+      !pizzaConfig.sizeId ||
+      !pizzaConfig.crustId
+    ) {
+      setConfigError("Completa el tamaño y el borde.");
+      return;
+    }
+
+    const size = catalog.sizes.find((item) => item.id === pizzaConfig.sizeId);
+    const crust = catalog.crusts.find((item) => item.id === pizzaConfig.crustId);
+    if (!size || !crust) {
+      setConfigError("La configuración seleccionada ya no está disponible.");
+      return;
+    }
+
+    const twoFlavors = isTwoFlavorPizza(pizzaConfig.product);
+    if (
+      twoFlavors &&
+      (!pizzaConfig.firstFlavorId || !pizzaConfig.secondFlavorId)
+    ) {
+      setConfigError("Selecciona los dos sabores.");
+      return;
+    }
+    if (
+      twoFlavors &&
+      pizzaConfig.firstFlavorId === pizzaConfig.secondFlavorId
+    ) {
+      setConfigError("Los dos sabores deben ser diferentes.");
+      return;
+    }
+
+    const flavorIds = twoFlavors
+      ? [pizzaConfig.firstFlavorId!, pizzaConfig.secondFlavorId!]
+      : [pizzaConfig.product.id];
+
+    const flavors = flavorIds
+      .map((id) => catalog.pizzaFlavors.find((item) => item.id === id))
+      .filter((item): item is CatalogProduct => Boolean(item));
+
+    if (flavors.length !== flavorIds.length) {
+      setConfigError("Uno de los sabores ya no está disponible.");
+      return;
+    }
+
+    const selectedCrustPrice = crustPriceForSize(crust, size.id);
+    if (selectedCrustPrice == null) {
+      setConfigError("Ese borde no está disponible para este tamaño.");
+      return;
+    }
+
+    const modifiers = twoFlavors
+      ? []
+      : catalog.modifiers.filter((modifier) =>
+          pizzaConfig.modifierIds.includes(modifier.id),
+        );
+
+    const configuration: PizzaOrderConfiguration = {
+      schemaVersion: 1,
+      kind: "PIZZA",
+      productId: pizzaConfig.product.id,
+      productName: pizzaConfig.product.name,
+      size: {
+        id: size.id,
+        name: size.name,
+        diameterCm: size.diameterCm,
+        basePrice: size.basePrice,
+      },
+      flavors: flavors.map((flavor) => ({
+        productId: flavor.id,
+        name: flavor.name,
+        portion: twoFlavors ? 0.5 : 1,
+        basePrice: flavor.basePrice ?? 0,
+      })),
+      crust: {
+        id: crust.id,
+        name: crust.name,
+        price: selectedCrustPrice,
+      },
+      modifiers: modifiers.map((modifier) => ({
+        productId: modifier.id,
+        name: modifier.name,
+        quantity: 1,
+        unitPrice: modifier.basePrice,
+      })),
+    };
+
+    const detail = [
+      size.name,
+      twoFlavors
+        ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
+        : flavors[0]?.name,
+      `Borde ${crust.name}`,
+      ...modifiers.map((modifier) => `+ ${modifier.name}`),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    const item: CartItem = {
+      key:
+        editingCartKey ??
+        `pizza-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      productId: pizzaConfig.product.id,
+      name: pizzaConfig.product.name,
+      imageUrl: pizzaConfig.product.imageUrl,
+      detail,
+      unitPrice: pizzaPrice(pizzaConfig),
+      quantity: 1,
+      configuration,
+      notes: pizzaConfig.note.trim().slice(0, 120) || undefined,
+    };
+
+    setCart((current) =>
+      editingCartKey
+        ? current.map((cartItem) =>
+            cartItem.key === editingCartKey
+              ? { ...item, quantity: cartItem.quantity }
+              : cartItem,
+          )
+        : [...current, item],
+    );
+
+    closePizzaConfiguration();
+    setCartOpen(true);
+  }
+
+  function editCartPizza(item: CartItem) {
+    if (!catalog || item.configuration?.kind !== "PIZZA") return;
+
+    const product =
+      allProducts.find((candidate) => candidate.id === item.productId) ??
+      catalog.pizzaFlavors.find((candidate) => candidate.id === item.productId);
+
+    if (!product) return;
+
+    setCartOpen(false);
+    setEditingCartKey(item.key);
+    setConfigError("");
+    setPizzaConfig({
+      product,
+      sizeId: item.configuration.size.id,
+      firstFlavorId: item.configuration.flavors[0]?.productId ?? null,
+      secondFlavorId: item.configuration.flavors[1]?.productId ?? null,
+      crustId: item.configuration.crust.id,
+      modifierIds: item.configuration.modifiers.map(
+        (modifier) => modifier.productId,
+      ),
+      note: item.notes ?? "",
+    });
   }
 
   function changeCartQuantity(key: string, delta: number) {
@@ -454,13 +737,13 @@ export default function PublicMenuPage() {
                       tabIndex={0}
                       onClick={(event) => {
                         event.stopPropagation();
-                        addToCart(product);
+                        startAdd(product);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           event.stopPropagation();
-                          addToCart(product);
+                          startAdd(product);
                         }
                       }}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
@@ -538,13 +821,13 @@ export default function PublicMenuPage() {
                       tabIndex={0}
                       onClick={(event) => {
                         event.stopPropagation();
-                        addToCart(product);
+                        startAdd(product);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           event.stopPropagation();
-                          addToCart(product);
+                          startAdd(product);
                         }
                       }}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
@@ -831,7 +1114,7 @@ export default function PublicMenuPage() {
                 {productPriceValue(selectedProduct) != null ? (
                   <button
                     type="button"
-                    onClick={() => addToCart(selectedProduct)}
+                    onClick={() => startAdd(selectedProduct)}
                     className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#ef1c25]"
                   >
                     Agregar al carrito
