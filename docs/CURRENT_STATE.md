@@ -521,3 +521,12 @@ La superficie pública vigente queda reducida a:
 - `/menu`: catálogo público;
 - `/login`: autenticación unificada;
 - `/cuenta`: cuenta autenticada del cliente.
+
+
+## Carga visual sin fallback legado
+
+La Home y el hero de `/menu` esperan a resolver `/api/public-home` antes de pintar una imagen.
+
+Esto evita que las piezas fallback antiguas aparezcan durante el primer render antes de cargar las imágenes configuradas desde `/personalizacion`.
+
+El botón flotante `Volver arriba` de `/menu` quedó fuera de los bloques responsive y funciona tanto en escritorio como en móvil.
