@@ -530,3 +530,15 @@ La Home y el hero de `/menu` esperan a resolver `/api/public-home` antes de pint
 Esto evita que las piezas fallback antiguas aparezcan durante el primer render antes de cargar las imágenes configuradas desde `/personalizacion`.
 
 El botón flotante `Volver arriba` de `/menu` quedó fuera de los bloques responsive y funciona tanto en escritorio como en móvil.
+
+
+## /menu unificado responsive
+
+Se eliminó la interfaz móvil alternativa de color verde. `/menu` usa una sola experiencia visual negro/rojo/blanco para escritorio y móvil.
+
+- mismo header, hero, categorías, destacados y catálogo;
+- categorías horizontales en pantallas pequeñas;
+- destacados y catálogo usan 2 columnas en móvil y 4 en escritorio;
+- búsqueda y tipografía responden al ancho disponible;
+- el modal de producto también es único y responsive;
+- se eliminó la barra inferior móvil y el segundo árbol JSX de productos.
