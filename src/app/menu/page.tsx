@@ -80,7 +80,14 @@ export default function PublicMenuPage() {
         if (catalogResponse.ok) {
           setCatalog(catalogData);
           const first =
-            catalogData.categories?.find((category: CatalogCategory) => category.slug === "destacados") ??
+            catalogData.categories?.find(
+              (category: CatalogCategory) =>
+                category.slug === "pizzas" && category.products.length > 0,
+            ) ??
+            catalogData.categories?.find(
+              (category: CatalogCategory) =>
+                category.slug.includes("pizza") && category.products.length > 0,
+            ) ??
             catalogData.categories?.find((category: CatalogCategory) => category.products.length > 0);
           if (first) setActiveCategory(first.slug);
         }
