@@ -542,3 +542,16 @@ Se eliminó la interfaz móvil alternativa de color verde. `/menu` usa una sola 
 - búsqueda y tipografía responden al ancho disponible;
 - el modal de producto también es único y responsive;
 - se eliminó la barra inferior móvil y el segundo árbol JSX de productos.
+
+
+## Carrito público como ruta dedicada
+
+El carrito público dejó de ser un drawer de `/menu` y ahora vive en `/cart`.
+
+- `/menu` conserva el carrito persistente y el agregado de productos;
+- los accesos al carrito navegan a `/cart`;
+- la barra móvil es compartida mediante `PublicMobileNav`;
+- en `/menu` el elemento activo elevado es Menú;
+- en `/cart` el elemento activo elevado es Carrito;
+- la persistencia se centraliza en `src/lib/publicCart.ts`;
+- `/cart` está marcado como superficie pública y parte de la PWA.
