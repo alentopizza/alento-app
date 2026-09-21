@@ -24,13 +24,17 @@ type PublicHomeSettings = {
     mobileImageUrl: string;
     desktopImageUrl: string;
   };
+  menuHero: {
+    active: boolean;
+    imageUrl: string;
+  };
   primaryBanner: BannerSetting;
   secondaryBanner: BannerSetting;
 };
 
 type BannerKey = "primaryBanner" | "secondaryBanner";
 type LandingKey = "mobileImageUrl" | "desktopImageUrl";
-type ProcessingKey = BannerKey | "logo" | "landingMobile" | "landingDesktop";
+type ProcessingKey = BannerKey | "logo" | "landingMobile" | "landingDesktop" | "menuHero";
 
 const FORMATS: Record<BannerKey, {
   title: string;
@@ -40,8 +44,8 @@ const FORMATS: Record<BannerKey, {
   ratio: string;
 }> = {
   primaryBanner: {
-    title: "Banner principal",
-    description: "Aparece debajo del buscador, antes de las categorías.",
+    title: "Banner principal legado",
+    description: "Configuración anterior conservada por compatibilidad.",
     width: 1200,
     height: 625,
     ratio: "1.92:1",
@@ -210,6 +214,31 @@ export default function PersonalizationPage() {
   }
 
 
+  async function onMenuHeroFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setProcessing("menuHero");
+    setError("");
+    setMessage("");
+
+    try {
+      const imageUrl = await prepareBannerImage(file, 1920, 730);
+      setSettings((current) => current ? {
+        ...current,
+        menuHero: {
+          active: true,
+          imageUrl,
+        },
+      } : current);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "No fue posible preparar la portada del menú.");
+    } finally {
+      setProcessing(null);
+    }
+  }
+
   async function onLandingFile(key: LandingKey, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -303,7 +332,7 @@ export default function PersonalizationPage() {
             <p className="text-sm font-medium text-neutral-500">Experiencia pública</p>
             <h1 className="text-3xl font-black tracking-tight">Personalización</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-500">
-              Administra las piezas promocionales que aparecen en la página principal. Cada banner se vincula a un producto real del catálogo.
+              Administra las piezas visuales de la Home y del menú público desde un solo lugar.
             </p>
           </div>
           <button
@@ -324,8 +353,9 @@ export default function PersonalizationPage() {
 
         <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
           <b>Home:</b> móvil <b>1080 × 2160 px</b> (1:2) y PC <b>1920 × 1080 px</b> (16:9). ·
-          <b> Logo:</b> 600 × 180 px · <b>Banners:</b> 1200 × 625 px y 1200 × 310 px.
-          Las imágenes del Home y los banners se recortan al centro; el logo se ajusta completo sin deformarse.
+          <b> Menú:</b> portada superior <b>1920 × 730 px</b> (2.63:1). ·
+          <b> Logo:</b> 600 × 180 px · <b>Promoción secundaria:</b> 1200 × 310 px.
+          Las imágenes se preparan al tamaño indicado; el logo se ajusta completo sin deformarse.
         </div>
 
 
@@ -499,7 +529,66 @@ export default function PersonalizationPage() {
           </div>
         </section>
 
-        {(Object.keys(FORMATS) as BannerKey[]).map((key) => {
+        <section className="alento-card rounded-[28px] p-5 md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Menú público</p>
+              <h2 className="mt-1 text-xl font-black">Portada superior del menú</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Es la imagen grande que aparece en la parte superior de <b>/menu</b>, justo antes de las categorías.
+              </p>
+              <p className="mt-2 text-xs font-bold text-neutral-400">
+                Diseño recomendado: 1920 × 730 px · 2.63:1
+              </p>
+            </div>
+
+            <span className={`rounded-xl px-4 py-2.5 text-xs font-black ${settings.menuHero.active && settings.menuHero.imageUrl ? "bg-emerald-500 text-white" : "bg-neutral-200 text-neutral-500"}`}>
+              {settings.menuHero.active && settings.menuHero.imageUrl ? "Activo" : "Usando imagen actual"}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <div className="overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f5f3ef]" style={{ aspectRatio: "1920 / 730" }}>
+              {settings.menuHero.imageUrl ? (
+                <img src={settings.menuHero.imageUrl} alt="Portada superior del menú" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center px-5 text-center text-neutral-400">
+                  <span className="text-3xl">▧</span>
+                  <b className="mt-2 text-sm text-neutral-500">Usando la portada actual del menú</b>
+                  <span className="mt-1 text-xs">Carga aquí una nueva pieza de 1920 × 730 px para reemplazarla.</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="cursor-pointer rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-black text-white">
+                {processing === "menuHero" ? "Procesando..." : settings.menuHero.imageUrl ? "Cambiar imagen" : "Subir imagen"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={processing !== null}
+                  onChange={(event) => void onMenuHeroFile(event)}
+                  className="hidden"
+                />
+              </label>
+
+              {settings.menuHero.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => setSettings({
+                    ...settings,
+                    menuHero: { active: false, imageUrl: "" },
+                  })}
+                  className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-xs font-black text-red-600"
+                >
+                  Usar imagen actual
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {(["secondaryBanner"] as BannerKey[]).map((key) => {
           const banner = settings[key];
           const format = FORMATS[key];
 
