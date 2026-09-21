@@ -117,7 +117,13 @@ export default function NotificationsPage() {
     fetch("/api/notification-templates", { cache: "no-store" })
       .then(async (response) => {
         const data = await readJsonResponse(response);
-        if (!response.ok) throw new Error(data.error || "No fue posible cargar las notificaciones.");
+        if (!response.ok) {
+          throw new Error(
+            typeof data.error === "string"
+              ? data.error
+              : "No fue posible cargar las notificaciones.",
+          );
+        }
         const loaded = (data.templates ?? []) as TemplateConfig[];
         setTemplates(loaded);
       })
@@ -174,8 +180,14 @@ export default function NotificationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templates: nextTemplates }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible actualizar la notificación.");
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        throw new Error(
+          typeof data.error === "string"
+            ? data.error
+            : "No fue posible actualizar la notificación.",
+        );
+      }
 
       setTemplates((data.templates ?? nextTemplates) as TemplateConfig[]);
       setNotice(active ? "Notificación activada." : "Notificación desactivada.");
