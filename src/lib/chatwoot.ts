@@ -1,3 +1,5 @@
+import { createOrderTrackingToken } from "@/lib/orderTracking";
+
 type ChatwootContact = {
   id: number;
   name?: string;
@@ -155,6 +157,7 @@ function templateReplacements(input: OrderCreatedNotificationInput) {
     "{{total}}": money(input.total),
     "{{fulfillment_type}}": input.fulfillmentType,
     "{{phone}}": normalizePhone(input.phone),
+    "{{tracking_path}}": `seguimiento/${createOrderTrackingToken(input.orderId)}`,
   };
 }
 
