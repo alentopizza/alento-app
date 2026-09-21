@@ -17,8 +17,10 @@ type OrderStatusSelectorProps = {
   busy?: boolean;
   drivers?: Array<{ id: number; name: string; ready: boolean }>;
   assignedDriverId?: number | null;
+  selectedDriverId?: number | null;
   driverBusy?: boolean;
-  onAssignDriver?: (driverId: number) => void;
+  onDriverChange?: (driverId: number | null) => void;
+  onConfirmDriver?: () => void;
   onClose: () => void;
   onSelect: (status: OrderStatus) => void;
 };
@@ -49,8 +51,10 @@ export default function OrderStatusSelector({
   busy = false,
   drivers = [],
   assignedDriverId = null,
+  selectedDriverId = null,
   driverBusy = false,
-  onAssignDriver,
+  onDriverChange,
+  onConfirmDriver,
   onClose,
   onSelect,
 }: OrderStatusSelectorProps) {
@@ -100,22 +104,33 @@ export default function OrderStatusSelector({
           )}
 
           {fulfillmentType === "DELIVERY" && (
-            <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+            <div className="mt-4 rounded-[20px] border border-neutral-200 bg-[linear-gradient(180deg,#fff,#faf9f7)] p-4 shadow-[0_8px_24px_rgba(20,18,16,.04)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">Repartidor</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">Al asignarlo recibirá por WhatsApp el enlace operativo del domicilio.</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">
+                    Selecciona el repartidor y confirma abajo. Puedes cambiarlo y reasignar la orden cuando sea necesario.
+                  </p>
                 </div>
-                {assignedDriverId && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-700">ASIGNADO</span>}
+                {assignedDriverId ? (
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-700 ring-1 ring-emerald-100">
+                    ASIGNADO
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-bold text-neutral-500">
+                    SIN ASIGNAR
+                  </span>
+                )}
               </div>
+
               <select
-                value={assignedDriverId ?? ""}
+                value={selectedDriverId ?? ""}
                 disabled={driverBusy || busy}
                 onChange={(event) => {
-                  const driverId = Number(event.target.value);
-                  if (driverId && onAssignDriver) onAssignDriver(driverId);
+                  const value = event.target.value;
+                  onDriverChange?.(value ? Number(value) : null);
                 }}
-                className="alento-input mt-3 h-11 w-full rounded-xl px-3 text-sm font-semibold"
+                className="alento-input mt-3 h-12 w-full rounded-xl px-3 text-sm font-semibold"
               >
                 <option value="">Seleccionar repartidor...</option>
                 {drivers.map((driver) => (
@@ -124,7 +139,30 @@ export default function OrderStatusSelector({
                   </option>
                 ))}
               </select>
-              {driverBusy && <p className="mt-2 text-[10px] font-semibold text-neutral-400">Asignando y enviando notificación...</p>}
+
+              {selectedDriverId && (
+                <button
+                  type="button"
+                  disabled={driverBusy || busy}
+                  onClick={() => onConfirmDriver?.()}
+                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black uppercase tracking-[0.05em] text-white shadow-[0_10px_22px_rgba(0,0,0,.14)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="text-base">↗</span>
+                  {driverBusy
+                    ? "Asignando y notificando..."
+                    : assignedDriverId && assignedDriverId !== selectedDriverId
+                      ? "Reasignar y notificar"
+                      : assignedDriverId === selectedDriverId
+                        ? "Notificar nuevamente"
+                        : "Asignar y notificar"}
+                </button>
+              )}
+
+              {!selectedDriverId && (
+                <p className="mt-2 text-[10px] font-semibold text-neutral-400">
+                  El botón de confirmación se habilitará cuando selecciones un repartidor.
+                </p>
+              )}
             </div>
           )}
 
