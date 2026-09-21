@@ -1,0 +1,213 @@
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+
+export const NOTIFICATION_TEMPLATES_KEY = "notification_templates";
+
+export type NotificationTemplateConfig = {
+  id: string;
+  title: string;
+  event: string;
+  audience: "CUSTOMER" | "DRIVER";
+  fulfillmentTypes: Array<"DELIVERY" | "PICKUP" | "STORE">;
+  templateName: string;
+  language: string;
+  category: string;
+  headerImageUrl: string;
+  active: boolean;
+  variables: Array<{ key: string; label: string; source: string }>;
+  button?: {
+    type: "tracking" | "driver_tracking" | "static";
+    label: string;
+    value?: string;
+  } | null;
+  delayMinutes?: number;
+};
+
+export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
+  {
+    id: "order_created",
+    title: "Pedido recibido",
+    event: "order.created",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["DELIVERY", "PICKUP", "STORE"],
+    templateName: "nuevo_pedido_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/arG6qTss0Dye7zuwPYrR.png",
+    active: true,
+    variables: [
+      { key: "1", label: "Nombre del cliente", source: "customerName" },
+      { key: "2", label: "Número de orden", source: "orderCode" },
+    ],
+    button: { type: "tracking", label: "Ver pedido" },
+  },
+  {
+    id: "order_ready_pickup_store",
+    title: "Pedido listo",
+    event: "order.status.READY",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["PICKUP", "STORE"],
+    templateName: "pedido_listo_local_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/z15fNkN8GbDLj06mUAQv.png",
+    active: true,
+    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
+    button: null,
+  },
+  {
+    id: "order_driver_assigned",
+    title: "Orden asignada al repartidor",
+    event: "order.driver_assigned",
+    audience: "DRIVER",
+    fulfillmentTypes: ["DELIVERY"],
+    templateName: "orden_asignada",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/y16AI3bZ5qOrDN72SQNG.png",
+    active: true,
+    variables: [
+      { key: "1", label: "Nombre del repartidor", source: "driverName" },
+      { key: "2", label: "Número de orden", source: "orderCode" },
+    ],
+    button: { type: "driver_tracking", label: "Ver domicilio" },
+  },
+  {
+    id: "order_out_for_delivery",
+    title: "Pedido en camino",
+    event: "order.status.OUT_FOR_DELIVERY",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["DELIVERY"],
+    templateName: "orden_en_camino",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "",
+    active: true,
+    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
+    button: { type: "tracking", label: "Ver seguimiento" },
+  },
+  {
+    id: "order_arrived",
+    title: "Pedido ha llegado",
+    event: "order.status.ARRIVED",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["DELIVERY"],
+    templateName: "orden_ha_llegado_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "",
+    active: true,
+    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
+    button: null,
+  },
+  {
+    id: "order_finalized_delivery",
+    title: "Pedido finalizado · Domicilio",
+    event: "order.status.DELIVERED",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["DELIVERY"],
+    templateName: "orden_finalizada_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/9gzlQrXLR29xbb9UzQCO.png",
+    active: true,
+    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
+    button: null,
+  },
+  {
+    id: "order_finalized_pickup_store",
+    title: "Pedido finalizado · Local / Recoger",
+    event: "order.status.COMPLETED",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["PICKUP", "STORE"],
+    templateName: "orden_finalizada_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/9gzlQrXLR29xbb9UzQCO.png",
+    active: true,
+    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
+    button: null,
+  },
+  {
+    id: "google_review",
+    title: "Reseña de Google",
+    event: "order.review",
+    audience: "CUSTOMER",
+    fulfillmentTypes: ["DELIVERY", "PICKUP", "STORE"],
+    templateName: "resea_google_v2",
+    language: "es",
+    category: "MARKETING",
+    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Kc89jOgPPucYlwsN4C6m.png",
+    active: true,
+    variables: [],
+    button: null,
+    delayMinutes: 60,
+  },
+];
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | undefined) {
+  if (!Array.isArray(value)) return DEFAULT_NOTIFICATION_TEMPLATES;
+  const saved = new Map(
+    value
+      .filter(isObject)
+      .map((item) => [String(item.id || ""), item] as const)
+      .filter(([id]) => id),
+  );
+
+  return DEFAULT_NOTIFICATION_TEMPLATES.map((fallback) => {
+    const current = saved.get(fallback.id);
+    if (!current) return fallback;
+    return {
+      ...fallback,
+      templateName: typeof current.templateName === "string" ? current.templateName.trim() || fallback.templateName : fallback.templateName,
+      language: typeof current.language === "string" ? current.language.trim() || fallback.language : fallback.language,
+      category: typeof current.category === "string" ? current.category.trim() || fallback.category : fallback.category,
+      headerImageUrl: typeof current.headerImageUrl === "string" ? current.headerImageUrl.trim() : fallback.headerImageUrl,
+      active: typeof current.active === "boolean" ? current.active : fallback.active,
+      delayMinutes: typeof current.delayMinutes === "number" && Number.isFinite(current.delayMinutes)
+        ? Math.max(0, Math.round(current.delayMinutes))
+        : fallback.delayMinutes,
+      button: isObject(current.button)
+        ? {
+            ...fallback.button,
+            type: (current.button.type === "tracking" || current.button.type === "driver_tracking" || current.button.type === "static")
+              ? current.button.type
+              : fallback.button?.type ?? "static",
+            label: typeof current.button.label === "string" ? current.button.label : fallback.button?.label ?? "",
+            value: typeof current.button.value === "string" ? current.button.value : fallback.button?.value,
+          }
+        : current.button === null ? null : fallback.button,
+    } satisfies NotificationTemplateConfig;
+  });
+}
+
+export async function getNotificationTemplates() {
+  const row = await prisma.appSetting.findUnique({ where: { key: NOTIFICATION_TEMPLATES_KEY } });
+  return normalizeNotificationTemplates(row?.value);
+}
+
+export async function saveNotificationTemplates(templates: NotificationTemplateConfig[]) {
+  await prisma.appSetting.upsert({
+    where: { key: NOTIFICATION_TEMPLATES_KEY },
+    create: { key: NOTIFICATION_TEMPLATES_KEY, value: templates as unknown as Prisma.InputJsonValue },
+    update: { value: templates as unknown as Prisma.InputJsonValue },
+  });
+  return templates;
+}
+
+export function findTemplateForEvent(
+  templates: NotificationTemplateConfig[],
+  event: string,
+  fulfillmentType: string,
+) {
+  return templates.find(
+    (template) =>
+      template.active &&
+      template.event === event &&
+      template.fulfillmentTypes.includes(fulfillmentType as "DELIVERY" | "PICKUP" | "STORE"),
+  ) ?? null;
+}
