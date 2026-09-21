@@ -45,6 +45,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/club" ||
     pathname.startsWith("/club/") ||
     pathname.startsWith("/integraciones/chatwoot") ||
+    pathname.startsWith("/seguimiento/") ||
     pathname.startsWith("/sin-acceso");
 
   useEffect(() => {
