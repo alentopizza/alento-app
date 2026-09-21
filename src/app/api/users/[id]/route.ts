@@ -29,6 +29,15 @@ function publicRoles(roles: UserRole[]) {
   return roles.map((role) => role === "DISPATCH" ? "DRIVER" : role);
 }
 
+function cleanPhone(value: unknown) {
+  return typeof value === "string" ? value.replace(/\D/g, "").slice(0, 15) : "";
+}
+
+function cleanCountryCode(value: unknown) {
+  const digits = typeof value === "string" ? value.replace(/\D/g, "").slice(0, 4) : "57";
+  return `+${digits || "57"}`;
+}
+
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let session;
   try {
@@ -49,10 +58,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const requestedPermissions = body.permissions === undefined ? existing.permissions : parsePermissions(body.permissions);
   const permissions = allowedPermissionsForRoles(roles, requestedPermissions);
   const active = typeof body.active === "boolean" ? body.active : existing.active;
+  const whatsappCountryCode = body.whatsappCountryCode === undefined ? existing.whatsappCountryCode : cleanCountryCode(body.whatsappCountryCode);
+  const whatsappPhone = body.whatsappPhone === undefined ? (existing.whatsappPhone ?? "") : cleanPhone(body.whatsappPhone);
   if (roles.length === 0) return NextResponse.json({ error: "El usuario debe conservar al menos un rol." }, { status: 400 });
 
   if (session.userId === userId && (!active || !roles.includes("ADMIN"))) {
     return NextResponse.json({ error: "No puedes quitarte tu propio acceso de administrador ni desactivarte." }, { status: 409 });
+  }
+
+  if (roles.includes("DRIVER") && whatsappPhone.length < 7) {
+    return NextResponse.json({ error: "El número de WhatsApp es obligatorio para los repartidores." }, { status: 400 });
   }
 
   const password = typeof body.password === "string" ? body.password : "";
@@ -66,12 +81,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       data: {
         ...(typeof body.name === "string" && body.name.trim() ? { name: body.name.trim() } : {}),
         ...(typeof body.email === "string" && body.email.trim() ? { email: normalizeEmail(body.email) } : {}),
+        whatsappCountryCode,
+        whatsappPhone: whatsappPhone || null,
         roles,
         permissions,
         active,
         ...(password ? { passwordHash: hashPassword(password) } : {}),
       },
-      select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
     });
     return NextResponse.json({ user: { ...user, roles: publicRoles(user.roles) } });
   } catch (error) {
