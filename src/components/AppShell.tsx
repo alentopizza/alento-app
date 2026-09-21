@@ -11,7 +11,7 @@ const items = [
   { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
   { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
-  { href: "/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
+  { href: "/interno/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
   { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%", roles: ["ADMIN"] },
   { href: "/caja", label: "Caja", icon: "$", roles: ["ADMIN", "CASHIER"] },
   { href: "/personalizacion", label: "Personalización", subtitle: "Portada pública", icon: "✦", roles: ["ADMIN"] },
@@ -40,6 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/cuenta") ||
     pathname === "/" ||
     pathname.startsWith("/app") ||
+    pathname.startsWith("/menu") ||
     pathname.startsWith("/pedir") ||
     pathname.startsWith("/sin-acceso");
 
