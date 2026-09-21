@@ -82,10 +82,10 @@ export async function GET() {
     "labels",
     "ip_address",
     "company_name",
-    "custom_attribute_1",
-    "custom_attribute_2",
-    "custom_attribute_3",
-    "custom_attribute_4",
+    "direccin",
+    "nota_de_entrega",
+    "id_alent_app",
+    "estado_cliente_app_alent",
   ];
 
   const rows = customers.map((customer) => {
