@@ -35,6 +35,7 @@ type PublicHomeSettings = {
 };
 
 const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/iGx5UryLNM8CNwnvSwEU.png";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -126,8 +127,6 @@ export default function App2MenuPage() {
     return (highlighted.length ? highlighted : allProducts).slice(0, 4);
   }, [allProducts]);
 
-  const heroProduct = featuredProducts[0] ?? allProducts[0] ?? null;
-
   function displayPrice(product: CatalogProduct) {
     const minSize = catalog?.sizes.length
       ? Math.min(...catalog.sizes.map((size) => size.basePrice))
@@ -183,61 +182,13 @@ export default function App2MenuPage() {
           </div>
         </header>
 
-        <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-[#090909]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_45%,rgba(215,25,32,.19),transparent_34%),radial-gradient(circle_at_20%_10%,rgba(255,255,255,.05),transparent_24%)]" />
-          <div className="relative mx-auto grid min-h-[560px] max-w-[1320px] grid-cols-[.92fr_1.08fr] items-center gap-10 px-8 py-12">
-            <div className="relative z-10 max-w-[560px]">
-              <p className="text-[31px] italic leading-none text-white/85" style={{ fontFamily: "cursive" }}>
-                ¿Antojo de algo
-              </p>
-              <p className="mt-2 text-[64px] font-black leading-[.92] tracking-[-0.055em] text-white">
-                DELICIOSO?
-              </p>
-              <h1 className="mt-1 text-[86px] font-black leading-[.82] tracking-[-0.065em] text-[#d71920]">
-                ALENTÓ
-              </h1>
-
-              <div className="mt-7 inline-flex items-center gap-3 rounded-full border border-white/20 px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-white/85">
-                <span>Caliente</span><span className="text-[#d71920]">•</span><span>Fresco</span><span className="text-[#d71920]">•</span><span>Irresistible</span>
-              </div>
-
-              <p className="mt-6 max-w-[430px] text-[14px] leading-6 text-white/58">
-                Masa madurada, ingredientes seleccionados y combinaciones pensadas para hacerte volver.
-              </p>
-
-              <div className="mt-7 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => document.getElementById("categorias-pedir")?.scrollIntoView({ behavior: "smooth" })}
-                  className="rounded-full bg-[#d71920] px-7 py-3.5 text-[12px] font-black uppercase tracking-[0.08em] text-white"
-                >
-                  Ver menú →
-                </button>
-                <Link
-                  href="/cuenta"
-                  className="rounded-full border border-white/20 px-6 py-3.5 text-[12px] font-black uppercase tracking-[0.08em] text-white/75"
-                >
-                  Mi cuenta
-                </Link>
-              </div>
-            </div>
-
-            <div className="relative flex min-h-[470px] items-center justify-center">
-              <div className="absolute h-[420px] w-[420px] rounded-full bg-[#d71920]/16 blur-3xl" />
-              {heroProduct?.imageUrl ? (
-                <img
-                  src={heroProduct.imageUrl}
-                  alt={heroProduct.name}
-                  className="relative z-10 max-h-[510px] w-full max-w-[650px] object-contain drop-shadow-[0_38px_28px_rgba(0,0,0,.58)]"
-                />
-              ) : (
-                <div className="relative z-10 text-[180px]">🍕</div>
-              )}
-              <div className="absolute bottom-10 right-10 rounded-full border border-white/20 bg-black/70 px-5 py-4 text-center shadow-2xl backdrop-blur">
-                <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-white/45">Desde</span>
-                <b className="mt-1 block text-[24px] font-black text-white">{heroProduct ? displayPrice(heroProduct) : "—"}</b>
-              </div>
-            </div>
+        <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
+          <div className="mx-auto w-full max-w-[1920px]">
+            <img
+              src={DESKTOP_HERO_IMAGE}
+              alt="Alentó Pizza"
+              className="block aspect-[1920/950] w-full object-cover object-center"
+            />
           </div>
         </section>
 
