@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import PublicMobileNav from "@/components/PublicMobileNav";
+import {
+  PUBLIC_PUBLIC_CART_STORAGE_KEY,
+  type PublicCartItem,
+} from "@/lib/publicCart";
 import type {
   OrderLineConfiguration,
   PizzaOrderConfiguration,
@@ -42,17 +47,7 @@ type PublicHomeSettings = {
   menuHero?: { active: boolean; imageUrl: string };
 };
 
-type CartItem = {
-  key: string;
-  productId: number;
-  name: string;
-  imageUrl: string | null;
-  detail?: string;
-  unitPrice: number;
-  quantity: number;
-  configuration?: OrderLineConfiguration;
-  notes?: string;
-};
+type CartItem = PublicCartItem;
 
 type PizzaConfig = {
   product: CatalogProduct;
@@ -63,8 +58,6 @@ type PizzaConfig = {
   modifierIds: number[];
   note: string;
 };
-
-const CART_STORAGE_KEY = "alento-cart-v1";
 
 const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png";
 const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
@@ -106,7 +99,6 @@ export default function PublicMenuPage() {
   const [homeLoaded, setHomeLoaded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
   const [cartReady, setCartReady] = useState(false);
   const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
   const [editingCartKey, setEditingCartKey] = useState<string | null>(null);
@@ -158,13 +150,13 @@ export default function PublicMenuPage() {
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(CART_STORAGE_KEY);
+      const saved = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) setCart(parsed);
       }
     } catch {
-      window.localStorage.removeItem(CART_STORAGE_KEY);
+      window.localStorage.removeItem(PUBLIC_CART_STORAGE_KEY);
     } finally {
       setCartReady(true);
     }
@@ -172,7 +164,7 @@ export default function PublicMenuPage() {
 
   useEffect(() => {
     if (!cartReady) return;
-    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart, cartReady]);
 
   const categories = useMemo(
@@ -293,7 +285,6 @@ export default function PublicMenuPage() {
     });
 
     setSelectedProduct(null);
-    setCartOpen(true);
   }
 
   function startPizzaConfiguration(product: CatalogProduct) {
@@ -515,7 +506,6 @@ export default function PublicMenuPage() {
     );
 
     closePizzaConfiguration();
-    setCartOpen(true);
   }
 
   function editCartPizza(item: CartItem) {
@@ -527,7 +517,6 @@ export default function PublicMenuPage() {
 
     if (!product) return;
 
-    setCartOpen(false);
     setEditingCartKey(item.key);
     setConfigError("");
     setPizzaConfig({
@@ -543,21 +532,7 @@ export default function PublicMenuPage() {
     });
   }
 
-  function changeCartQuantity(key: string, delta: number) {
-    setCart((current) =>
-      current
-        .map((item) =>
-          item.key === key
-            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-            : item,
-        )
-        .filter((item) => item.quantity > 0),
-    );
-  }
 
-  function removeCartItem(key: string) {
-    setCart((current) => current.filter((item) => item.key !== key));
-  }
 
   return (
     <main className="min-h-screen bg-[#090909] text-white">
@@ -601,9 +576,8 @@ export default function PublicMenuPage() {
               </nav>
 
               <div className="hidden items-center gap-3 md:flex">
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(true)}
+                <Link
+                  href="/cart"
                   className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70 transition hover:border-[#e21a22]/60 hover:text-white"
                   aria-label={`Carrito con ${cartCount} productos`}
                 >
@@ -617,7 +591,7 @@ export default function PublicMenuPage() {
                       {cartCount > 99 ? "99+" : cartCount}
                     </span>
                   )}
-                </button>
+                </Link>
 
               <Link
                 href="/login"
@@ -848,79 +822,7 @@ export default function PublicMenuPage() {
         </section>
       </section>
 
-      <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:hidden">
-        <div className="relative mx-auto h-[68px] max-w-[430px] rounded-[18px] border border-black/10 bg-white shadow-[0_18px_45px_rgba(0,0,0,.30)]">
-          <div className="grid h-full grid-cols-5 items-center">
-            <Link
-              href="/"
-              className="flex h-full items-center justify-center text-[#252525] transition active:scale-95"
-              aria-label="Home"
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m3 10 9-7 9 7" />
-                <path d="M5 9.5V21h14V9.5" />
-                <path d="M9 21v-7h6v7" />
-              </svg>
-            </Link>
-
-            <Link
-              href="/menu"
-              className="relative flex h-full items-center justify-center"
-              aria-label="Menú"
-            >
-              <span className="absolute -top-[24px] flex h-[62px] w-[62px] items-center justify-center rounded-full border-[6px] border-[#090909] bg-[#e21a22] text-white shadow-[0_10px_26px_rgba(226,26,34,.38)]">
-                <svg viewBox="0 0 64 64" className="h-8 w-8" aria-hidden="true">
-                  <path d="M10 46 31 11c2-3 6-4 9-2 8 5 13 13 14 23 .4 3-2 6-5 7L15 51c-4 1-7-2-5-5Z" fill="currentColor"/>
-                  <circle cx="37" cy="20" r="3.3" fill="#e21a22"/>
-                  <circle cx="45" cy="29" r="3.3" fill="#e21a22"/>
-                  <circle cx="29" cy="31" r="3.3" fill="#e21a22"/>
-                  <path d="M15 48c10-1 23-6 35-12" fill="none" stroke="#e21a22" strokeWidth="3" strokeLinecap="round"/>
-                </svg>
-              </span>
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className="relative flex h-full items-center justify-center text-[#8d8d8d]"
-              aria-label={`Carrito con ${cartCount} productos`}
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
-                <circle cx="10" cy="19" r="1.2" />
-                <circle cx="18" cy="19" r="1.2" />
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute left-1/2 top-2 ml-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[9px] font-black text-white shadow-sm">
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className="flex h-full items-center justify-center text-[#8d8d8d]"
-              aria-label="Club de la Pizza próximamente"
-              title="Club de la Pizza próximamente"
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m12 3 2.7 5.4 6 .9-4.35 4.2 1.03 5.95L12 16.65l-5.38 2.8 1.03-5.95L3.3 9.3l6-.9L12 3Z" />
-              </svg>
-            </button>
-
-            <Link
-              href="/cuenta"
-              className="flex h-full items-center justify-center text-[#8d8d8d] transition active:scale-95"
-              aria-label="Perfil"
-            >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="8" r="3.5" />
-                <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicMobileNav active="menu" cartCount={cartCount} />
 
       {showBackToTop && (
         <button
@@ -943,144 +845,6 @@ export default function PublicMenuPage() {
             <path d="m6 14 6-6 6 6" />
           </svg>
         </button>
-      )}
-
-      {cartOpen && (
-        <div
-          className="fixed inset-x-0 bottom-[88px] top-0 z-[70] flex items-stretch justify-center bg-[#0b0b0b] md:inset-0 md:z-[95] md:justify-end md:bg-black/70 md:backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setCartOpen(false);
-          }}
-        >
-          <aside className="flex h-full w-full flex-col overflow-hidden bg-[#111] text-white md:w-[430px] md:border-l md:border-white/10 md:shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#e21a22]">Tu pedido</p>
-                <h2 className="mt-1 text-[24px] font-semibold tracking-[-0.03em]">Carrito</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCartOpen(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70"
-                aria-label="Cerrar carrito"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              {cart.length === 0 ? (
-                <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.05] text-white/35">
-                    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
-                      <circle cx="10" cy="19" r="1.2" />
-                      <circle cx="18" cy="19" r="1.2" />
-                    </svg>
-                  </div>
-                  <b className="mt-4 text-[16px]">Tu carrito está vacío</b>
-                  <p className="mt-1 max-w-[260px] text-[11px] leading-5 text-white/38">
-                    Agrega productos desde el menú para comenzar las pruebas.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {cart.map((item) => (
-                    <div key={item.key} className="flex gap-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-3">
-                      <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[14px] bg-black">
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-3xl">🍕</div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <b className="line-clamp-2 text-[13px] font-semibold leading-4">{item.name}</b>
-                            {item.detail && (
-                              <span className="mt-1 line-clamp-2 block text-[10px] leading-4 text-white/38">{item.detail}</span>
-                            )}
-                            <span className="mt-1 block text-[12px] font-bold text-[#ff3439]">{money(item.unitPrice)}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeCartItem(item.key)}
-                            className="text-[18px] leading-none text-white/30 transition hover:text-white/70"
-                            aria-label={`Eliminar ${item.name}`}
-                          >
-                            ×
-                          </button>
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            {item.configuration?.kind === "PIZZA" && (
-                              <button
-                                type="button"
-                                onClick={() => editCartPizza(item)}
-                                className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[9px] font-semibold text-white/65"
-                              >
-                                Editar
-                              </button>
-                            )}
-                            <div className="flex items-center rounded-full border border-white/10 bg-black/30">
-                            <button
-                              type="button"
-                              onClick={() => changeCartQuantity(item.key, -1)}
-                              className="flex h-8 w-8 items-center justify-center text-white/70"
-                              aria-label="Disminuir cantidad"
-                            >
-                              −
-                            </button>
-                            <span className="min-w-7 text-center text-[12px] font-bold">{item.quantity}</span>
-                            <button
-                              type="button"
-                              onClick={() => changeCartQuantity(item.key, 1)}
-                              className="flex h-8 w-8 items-center justify-center text-white/70"
-                              aria-label="Aumentar cantidad"
-                            >
-                              +
-                            </button>
-                            </div>
-                          </div>
-                          <b className="text-[12px]">{money(item.unitPrice * item.quantity)}</b>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-white/10 bg-[#0c0c0c] px-5 pb-4 pt-4 md:pb-[max(18px,env(safe-area-inset-bottom))]">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-white/45">Subtotal</span>
-                <b className="text-[20px]">{money(cartSubtotal)}</b>
-              </div>
-              <p className="mt-1 text-[9px] text-white/28">Carrito de prueba · checkout aún no activo.</p>
-
-              <button
-                type="button"
-                disabled
-                className="mt-4 h-12 w-full rounded-full bg-[#e21a22] text-[12px] font-bold text-white opacity-55"
-              >
-                Continuar pedido · Próximamente
-              </button>
-
-              {cart.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setCart([])}
-                  className="mt-2 h-9 w-full text-[10px] font-medium text-white/35 transition hover:text-white/65"
-                >
-                  Vaciar carrito
-                </button>
-              )}
-            </div>
-          </aside>
-        </div>
       )}
 
       {pizzaConfig && catalog && (
