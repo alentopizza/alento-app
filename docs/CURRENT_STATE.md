@@ -468,3 +468,14 @@ La ruta oficial de autenticación unificada es `/login`.
 - `/cuenta/login` redirige a `/login`;
 - `Volver A Menu` navega a `/menu`;
 - al llegar desde `/menu`, el botón atrás del navegador vuelve naturalmente al menú.
+
+
+## Portada superior configurable de /menu
+
+La portada hero de escritorio en `/menu` ya no depende únicamente de una constante del código.
+
+- se administra desde `/personalizacion`;
+- tamaño oficial: `1920 × 730 px` (2.63:1);
+- se guarda como `public.home.menuHero`;
+- si no existe una imagen activa, `/menu` conserva la portada actual como fallback;
+- el antiguo `primaryBanner` queda guardado por compatibilidad, pero ya no es el controlador visual de esta portada.
