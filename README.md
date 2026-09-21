@@ -138,7 +138,7 @@ Incluye:
 
 El CTA de la Home lleva actualmente a `/menu`.
 
-La pantalla `/pedir` consume el catálogo real, pero su diseño de productos **todavía está en definición**. No debe considerarse visualmente cerrada hasta aprobación explícita.
+La pantalla `/menu` consume el catálogo real, pero su diseño de productos **todavía está en definición**. No debe considerarse visualmente cerrada hasta aprobación explícita.
 
 No debe existir un segundo sistema de pedidos. La experiencia pública debe compartir catálogo, configuradores, precios, promociones, cobertura, clientes, pedidos, pagos, configuración estructurada de `OrderItem` y consecutivo comercial global.
 
@@ -287,7 +287,7 @@ Durante la etapa temporal en `pos.alentopizza.com`:
 - `/menu`: versión pública anterior conservada temporalmente para comparación;
 - `/menu`: alias temporal de la versión pública anterior;
 - `/interno`: Punto de Venta protegido;
-- `/login` y `/cuenta/login`: acceso unificado para clientes y colaboradores.
+- `/login` y `/login`: acceso unificado para clientes y colaboradores.
 
 El acceso abre como cliente por teléfono + OTP y ofrece `Iniciar como colaborador` para cambiar a correo + contraseña. Cuando el producto esté listo, esta misma arquitectura pasará al dominio principal `alentopizza.com`.
 
@@ -311,4 +311,3 @@ Cada banner se asocia a un producto real del catálogo y reutiliza `AppSetting`,
 
 - `/menu`: menú público para clientes.
 - `/interno/menu`: administración interna del catálogo (ADMIN).
-- `/pedir`: redirección temporal de compatibilidad hacia `/menu`.
