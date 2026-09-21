@@ -183,7 +183,7 @@ export default function App2MenuPage() {
         </header>
 
         <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
-          <div className="mx-auto w-full max-w-[1920px]">
+          <div className="mx-auto w-full max-w-[1320px]">
             <img
               src={DESKTOP_HERO_IMAGE}
               alt="Alentó Pizza"
