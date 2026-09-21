@@ -396,9 +396,9 @@ export default function PersonalizationPage() {
         <section className="alento-card rounded-[28px] p-5 md:p-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Menú público</p>
-            <h2 className="mt-1 text-xl font-black">Logo del menú</h2>
+            <h2 className="mt-1 text-xl font-black">Logo público</h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Controla el logo que aparece en la cabecera superior de <b>/menu</b>.
+              Controla el logo centrado que aparece en la cabecera superior de <b>Menú, Carrito, Club y Perfil</b>.
             </p>
             <p className="mt-2 text-xs font-bold text-neutral-400">
               Recomendado: 600 × 180 px · 3.33:1 · fondo transparente preferiblemente
@@ -413,7 +413,7 @@ export default function PersonalizationPage() {
                 <div className="text-center text-neutral-400">
                   <div className="text-3xl">◇</div>
                   <b className="mt-2 block text-sm text-neutral-500">Usando el logo actual</b>
-                  <span className="mt-1 block text-xs">Carga un logo para reemplazar el que aparece en /menu.</span>
+                  <span className="mt-1 block text-xs">Carga un logo para usarlo en la cabecera de la experiencia pública.</span>
                 </div>
               )}
             </div>
@@ -421,7 +421,7 @@ export default function PersonalizationPage() {
             <div className="rounded-[22px] border bg-[#faf9f7] p-4">
               <b className="text-sm">Archivo del logo</b>
               <p className="mt-1 text-[11px] leading-5 text-neutral-500">
-                Alentó lo prepara a 600 × 180 px y /menu lo muestra completo, sin deformarlo.
+                Alentó lo prepara a 600 × 180 px y todas las pantallas públicas lo muestran completo, centrado y sin deformarlo.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
