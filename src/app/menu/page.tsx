@@ -65,6 +65,7 @@ export default function PublicMenuPage() {
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [homeLoaded, setHomeLoaded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function PublicMenuPage() {
           setHome(homeData?.settings ?? null);
         }
       } finally {
+        setHomeLoaded(true);
         setLoading(false);
       }
     }
@@ -163,11 +165,15 @@ export default function PublicMenuPage() {
 
           <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
             <Link href="/" className="group flex items-center">
-              <img
-                src={home?.brand?.logoUrl || FALLBACK_LOGO}
-                alt="Alentó Pizza"
-                className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
-              />
+              {homeLoaded ? (
+                <img
+                  src={home?.brand?.logoUrl || FALLBACK_LOGO}
+                  alt="Alentó Pizza"
+                  className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
+                />
+              ) : (
+                <span className="block h-[54px] w-[210px]" aria-hidden="true" />
+              )}
             </Link>
 
             <nav className="flex items-center gap-10">
@@ -218,11 +224,15 @@ export default function PublicMenuPage() {
 
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
-            <img
-              src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
-              alt="Alentó Pizza"
-              className="block aspect-[1920/730] w-full object-cover object-center"
-            />
+            {homeLoaded ? (
+              <img
+                src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
+                alt="Alentó Pizza"
+                className="block aspect-[1920/730] w-full object-cover object-center"
+              />
+            ) : (
+              <div className="aspect-[1920/730] w-full bg-black" aria-hidden="true" />
+            )}
           </div>
         </section>
 
@@ -507,29 +517,6 @@ export default function PublicMenuPage() {
         </div>
       </nav>
 
-      {showBackToTop && (
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-[92px] right-4 z-[80] flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white shadow-[0_12px_28px_rgba(0,0,0,.35)] transition hover:-translate-y-0.5 hover:bg-[#e21a22] lg:bottom-6 lg:right-6"
-          aria-label="Volver arriba"
-          title="Volver arriba"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m6 14 6-6 6 6" />
-          </svg>
-        </button>
-      )}
-
       {selectedProduct && (
         <div
           className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55"
@@ -567,6 +554,29 @@ export default function PublicMenuPage() {
         </div>
       )}
       </section>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-[92px] right-4 z-[80] flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-[#111] text-white shadow-[0_12px_30px_rgba(0,0,0,.42)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#e21a22] lg:bottom-7 lg:right-7 lg:h-13 lg:w-13"
+          aria-label="Volver arriba"
+          title="Volver arriba"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 14 6-6 6 6" />
+          </svg>
+        </button>
+      )}
     </main>
   );
 }
