@@ -2,22 +2,12 @@
 
 import Link from "next/link";
 
-type ActiveTab = "home" | "menu" | "cart" | "club" | "profile";
+type ActiveTab = "menu" | "cart" | "club" | "profile";
 
 type Props = {
   active: ActiveTab;
   cartCount?: number;
 };
-
-function HomeIcon({ className = "h-6 w-6" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 10 9-7 9 7" />
-      <path d="M5 9.5V21h14V9.5" />
-      <path d="M9 21v-7h6v7" />
-    </svg>
-  );
-}
 
 function PizzaIcon({ className = "h-7 w-7" }: { className?: string }) {
   return (
@@ -70,11 +60,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   return (
     <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:hidden">
       <div className="relative mx-auto h-[68px] max-w-[430px] rounded-[18px] border border-black/10 bg-white shadow-[0_18px_45px_rgba(0,0,0,.30)]">
-        <div className="grid h-full grid-cols-5 items-center">
-          <Link href="/" className="relative flex h-full items-center justify-center text-[#8d8d8d] transition active:scale-95" aria-label="Home">
-            {active === "home" ? <ActiveBubble><HomeIcon className="h-7 w-7" /></ActiveBubble> : <HomeIcon />}
-          </Link>
-
+        <div className="grid h-full grid-cols-4 items-center">
           <Link href="/menu" className="relative flex h-full items-center justify-center text-[#8d8d8d] transition active:scale-95" aria-label="Menú">
             {active === "menu" ? (
               <ActiveBubble>
