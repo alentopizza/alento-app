@@ -30,6 +30,7 @@ type CatalogResponse = {
 };
 type PublicHomeSettings = {
   brand: { logoUrl: string };
+  menuHero?: { active: boolean; imageUrl: string };
   primaryBanner: { active: boolean; imageUrl: string; productId: number | null };
   secondaryBanner: { active: boolean; imageUrl: string; productId: number | null };
 };
@@ -206,7 +207,7 @@ export default function App2MenuPage() {
         <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
             <img
-              src={DESKTOP_HERO_IMAGE}
+              src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
               alt="Alentó Pizza"
               className="block aspect-[1920/730] w-full object-cover object-center"
             />
