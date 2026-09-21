@@ -6,11 +6,7 @@ const CHATWOOT_BASE_URL = (process.env.CHATWOOT_BASE_URL || "").replace(/\/$/, "
 const CHATWOOT_ACCOUNT_ID = Number(process.env.CHATWOOT_ACCOUNT_ID || 0);
 const CHATWOOT_INBOX_ID = Number(process.env.CHATWOOT_WHATSAPP_INBOX_ID || 0);
 const CHATWOOT_TOKEN = process.env.CHATWOOT_API_ACCESS_TOKEN || "";
-const TEMPLATE_NAME = process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_NAME || "nuevo_pedido_v2";
-const TEMPLATE_LANGUAGE = process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_LANGUAGE || "es";
-const TEMPLATE_CATEGORY = process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_CATEGORY || "MARKETING";
-const TEMPLATE_HEADER_IMAGE =
-  process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL || "";
+const ALENTO_APP_BASE_URL = (process.env.ALENTO_APP_BASE_URL || "").replace(/\/$/, "");
 
 function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -23,6 +19,10 @@ function normalizePhone(value) {
   if (digits.startsWith("57") && digits.length >= 12) return `+${digits}`;
   if (digits.length === 10) return `+57${digits}`;
   return `+${digits}`;
+}
+
+function sourceIdForPhone(value) {
+  return normalizePhone(value).replace(/\D/g, "");
 }
 
 async function cw(path, init = {}) {
@@ -47,21 +47,48 @@ async function cw(path, init = {}) {
   return body;
 }
 
-async function findContact(customerId, phone) {
-  const identifier = `alento_customer_${customerId}`;
-  for (const q of [identifier, normalizePhone(phone)]) {
+function contactFromResponse(result) {
+  return result?.payload?.contact || result?.payload || result?.contact || result || null;
+}
+
+async function findContact(data) {
+  const identifier = data.recipientKind === "DRIVER"
+    ? `alento_driver_${data.recipientId}`
+    : `alento_customer_${data.recipientId}`;
+
+  for (const q of [identifier, normalizePhone(data.phone)]) {
+    if (!q) continue;
     const result = await cw(
       `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts/search?q=${encodeURIComponent(q)}`,
     );
     const contacts = result?.payload || [];
     const exact =
       contacts.find((item) => item.identifier === identifier) ||
-      contacts.find(
-        (item) => normalizePhone(item.phone_number) === normalizePhone(phone),
-      );
+      contacts.find((item) => normalizePhone(item.phone_number) === normalizePhone(data.phone));
     if (exact) return exact;
   }
   return null;
+}
+
+async function createContact(data) {
+  const identifier = data.recipientKind === "DRIVER"
+    ? `alento_driver_${data.recipientId}`
+    : `alento_customer_${data.recipientId}`;
+
+  const result = await cw(
+    `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        inbox_id: CHATWOOT_INBOX_ID,
+        name: data.recipientName || data.customerName || data.driverName || "Alentó",
+        phone_number: normalizePhone(data.phone),
+        identifier,
+      }),
+    },
+  );
+
+  return contactFromResponse(result);
 }
 
 async function findConversation(contactId) {
@@ -73,35 +100,74 @@ async function findConversation(contactId) {
     .sort((a, b) => Number(b.updated_at || 0) - Number(a.updated_at || 0))[0] || null;
 }
 
-async function sendOrderCreated(data) {
-  const contact = await findContact(data.customerId, data.phone);
-  if (!contact) throw new Error("No se encontró el cliente en Chatwoot.");
+async function createConversation(contactId, phone) {
+  const result = await cw(
+    `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        source_id: sourceIdForPhone(phone),
+        inbox_id: CHATWOOT_INBOX_ID,
+        contact_id: contactId,
+        status: "open",
+      }),
+    },
+  );
+  return result?.id ? result : result?.payload || result;
+}
 
-  const conversation = await findConversation(contact.id);
-  if (!conversation) {
-    throw new Error(
-      "El cliente existe en Chatwoot pero aún no tiene conversación en la bandeja de WhatsApp.",
-    );
+function processedParamsFor(data) {
+  const template = data.template || {};
+  const body = {};
+  for (const variable of template.variables || []) {
+    const value = data?.[variable.source];
+    body[String(variable.key)] = value == null ? "" : String(value);
   }
 
-  const processedParams = {
-    body: {
-      "1": data.customerName,
-      "2": data.orderCode,
-    },
-    buttons: [
-      {
-        type: "url",
-        parameter: data.trackingPath,
-      },
-    ],
-  };
+  const processed = {};
+  if (Object.keys(body).length) processed.body = body;
 
-  if (TEMPLATE_HEADER_IMAGE) {
-    processedParams.header = {
-      media_url: TEMPLATE_HEADER_IMAGE,
+  if (template.headerImageUrl) {
+    processed.header = {
+      media_url: template.headerImageUrl,
       media_type: "image",
     };
+  }
+
+  if (template.button?.type === "tracking" && data.trackingPath) {
+    processed.buttons = [{ type: "url", parameter: data.trackingPath }];
+  } else if (template.button?.type === "driver_tracking" && data.driverTrackingPath) {
+    processed.buttons = [{ type: "url", parameter: data.driverTrackingPath }];
+  } else if (template.button?.type === "static" && template.button?.value) {
+    processed.buttons = [{ type: "url", parameter: template.button.value }];
+  }
+
+  return processed;
+}
+
+async function sendTemplate(data) {
+  if (!data?.template?.templateName) throw new Error("Evento sin plantilla configurada.");
+  if (!data?.recipientId || !data?.phone) throw new Error("Evento sin destinatario válido.");
+
+  let contact = await findContact(data);
+  if (!contact) {
+    try {
+      contact = await createContact(data);
+    } catch (error) {
+      contact = await findContact(data);
+      if (!contact) throw error;
+    }
+  }
+
+  if (!contact?.id) throw new Error("No se pudo resolver el contacto en Chatwoot.");
+
+  let conversation = await findConversation(contact.id);
+  if (!conversation) {
+    conversation = await createConversation(contact.id, data.phone);
+  }
+
+  if (!conversation?.id) {
+    throw new Error("No se pudo crear o encontrar la conversación de WhatsApp.");
   }
 
   await cw(
@@ -109,20 +175,20 @@ async function sendOrderCreated(data) {
     {
       method: "POST",
       body: JSON.stringify({
-        content: `Pedido ${data.orderCode} recibido.`,
+        content: `${data.template.title || "Notificación Alentó"} · ${data.orderCode || ""}`.trim(),
         message_type: "outgoing",
         private: false,
         template_params: {
-          name: TEMPLATE_NAME,
-          category: TEMPLATE_CATEGORY,
-          language: TEMPLATE_LANGUAGE,
-          processed_params: processedParams,
+          name: data.template.templateName,
+          category: data.template.category || "MARKETING",
+          language: data.template.language || "es",
+          processed_params: processedParamsFor(data),
         },
       }),
     },
   );
 
-  return { contactId: contact.id, conversationId: conversation.id };
+  return { contactId: contact.id, conversationId: conversation.id, template: data.template.templateName };
 }
 
 async function readBody(req) {
@@ -131,9 +197,37 @@ async function readBody(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
+let polling = false;
+async function runScheduledJobs() {
+  if (!ALENTO_APP_BASE_URL || !SHARED_SECRET || polling) return;
+  polling = true;
+  try {
+    const response = await fetch(`${ALENTO_APP_BASE_URL}/api/internal/notification-jobs/run`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-alento-notifier-secret": SHARED_SECRET,
+      },
+      body: "{}",
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Scheduled notification poll failed", response.status, text);
+    }
+  } catch (error) {
+    console.error("Scheduled notification poll error", error);
+  } finally {
+    polling = false;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url === "/health") {
-    return json(res, 200, { ok: true, service: "alento-notifier" });
+    return json(res, 200, {
+      ok: true,
+      service: "alento-notifier",
+      scheduledJobs: Boolean(ALENTO_APP_BASE_URL),
+    });
   }
 
   if (req.method !== "POST" || req.url !== "/events") {
@@ -146,12 +240,12 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const payload = await readBody(req);
-    if (payload?.event !== "order.created") {
+    if (!payload?.event || !payload?.data?.template) {
       return json(res, 400, { error: "Unsupported event" });
     }
 
-    const result = await sendOrderCreated(payload.data || {});
-    return json(res, 200, { ok: true, result });
+    const result = await sendTemplate(payload.data);
+    return json(res, 200, { ok: true, event: payload.event, result });
   } catch (error) {
     console.error("Notifier error", error);
     return json(res, 500, {
@@ -163,4 +257,9 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Alento notifier listening on :${PORT}`);
+  if (ALENTO_APP_BASE_URL) {
+    console.log("Scheduled notification polling enabled");
+    setTimeout(() => void runScheduledJobs(), 15_000);
+    setInterval(() => void runScheduledJobs(), 60_000);
+  }
 });
