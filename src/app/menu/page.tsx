@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import {
-  PUBLIC_PUBLIC_CART_STORAGE_KEY,
+  PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
 import type {
