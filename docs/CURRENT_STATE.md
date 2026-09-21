@@ -496,3 +496,17 @@ El logo del header de escritorio en `/menu` usa `public.home.brand.logoUrl`.
 Temporalmente se ocultó el banner secundario del menú público y también su editor en `/personalizacion`.
 
 La estructura `secondaryBanner` se conserva en la configuración y APIs para poder reutilizarla o reemplazarla más adelante sin migración de datos.
+
+
+## Limpieza de arquitectura pública — 2026-09-20
+
+Se retiró código legado para que el repositorio represente la experiencia vigente:
+
+- eliminadas las rutas prototipo `/app` y `/app2`;
+- eliminados `primaryBanner` y `secondaryBanner` del modelo de personalización pública;
+- eliminada la consulta/validación de productos vinculados a banners;
+- eliminado cualquier render residual de banner secundario, incluido móvil;
+- `public.home` conserva únicamente `brand`, `landing` y `menuHero`;
+- la página pública oficial es `/menu`;
+- los identificadores internos de `/menu` dejaron de usar nombres heredados de `/pedir`;
+- el componente público se llama `PublicMenuPage`.
