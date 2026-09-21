@@ -557,12 +557,10 @@ export default function App2MenuPage() {
             </div>
           )}
         </section>
-      </div>
-
           </div>
         </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
         <div className="mx-auto grid max-w-[600px] grid-cols-4">
           <Link href="/" className="flex flex-col items-center gap-1 text-black/45">
             <span className="text-lg">⌂</span><span className="text-[9px] font-bold">Inicio</span>
