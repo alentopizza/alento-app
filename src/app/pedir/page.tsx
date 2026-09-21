@@ -35,7 +35,7 @@ type PublicHomeSettings = {
 };
 
 const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
-const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/iGx5UryLNM8CNwnvSwEU.png";
+const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -217,11 +217,11 @@ export default function App2MenuPage() {
         </header>
 
         <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
-          <div className="mx-auto h-[470px] w-full max-w-[1320px] overflow-hidden xl:h-[500px] 2xl:h-[520px]">
+          <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
             <img
               src={DESKTOP_HERO_IMAGE}
               alt="Alentó Pizza"
-              className="h-full w-full object-cover object-center"
+              className="block aspect-[1920/730] w-full object-cover object-center"
             />
           </div>
         </section>
