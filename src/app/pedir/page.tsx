@@ -214,7 +214,7 @@ export default function App2MenuPage() {
           </div>
         </section>
 
-        <section id="categorias-pedir" className="relative z-20 mx-auto -mt-6 max-w-[1180px] px-7">
+        <section id="categorias-pedir" className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-7">
           <div className="flex overflow-hidden rounded-[22px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)]">
             {categories.slice(0, 6).map((category, index) => {
               const active = activeCategory === category.slug;
@@ -271,9 +271,9 @@ export default function App2MenuPage() {
                 onClick={() => setSelectedProduct(product)}
                 className="group overflow-hidden rounded-[18px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70"
               >
-                <div className="relative aspect-[1.1/1] overflow-hidden bg-[radial-gradient(circle_at_50%_45%,rgba(255,255,255,.08),transparent_58%)]">
+                <div className="relative aspect-square overflow-hidden bg-[#101010]">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain p-4 transition duration-300 group-hover:scale-[1.03]" />
+                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-7xl">🍕</div>
                   )}
@@ -284,11 +284,10 @@ export default function App2MenuPage() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="text-[17px] font-black tracking-[-0.02em] text-white">{product.name}</h3>
-                  <p className="mt-1 line-clamp-2 min-h-[36px] text-[11px] leading-[18px] text-white/45">
-                    {product.description || "Una de las opciones favoritas de nuestros clientes."}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between">
+                  <h3 className="line-clamp-2 min-h-[42px] text-[17px] font-black leading-[21px] tracking-[-0.02em] text-white">
+                    {product.name}
+                  </h3>
+                  <div className="mt-3 flex items-center justify-between">
                     <b className="text-[17px] font-black text-[#ff3439]">{displayPrice(product)}</b>
                     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71920] text-xl font-black text-white">+</span>
                   </div>
