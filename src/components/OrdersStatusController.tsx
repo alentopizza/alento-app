@@ -81,6 +81,8 @@ export default function OrdersStatusController() {
   const [busy, setBusy] = useState(false);
   const [driverBusy, setDriverBusy] = useState(false);
   const [drivers, setDrivers] = useState<Array<{ id: number; name: string; ready: boolean }>>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [alert, setAlert] = useState<{ tone: "success" | "error"; title: string; message: string } | null>(null);
 
   const loadOrderForTrigger = useCallback(async (trigger: HTMLElement) => {
     const code = codeFromTrigger(trigger);
@@ -102,8 +104,13 @@ export default function OrdersStatusController() {
       if (order.status === "CANCELED") throw new Error("Los pedidos cancelados se gestionan fuera del selector de estados.");
 
       setSelectedOrder(order);
+      setSelectedDriverId(order.driverId ?? null);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "No fue posible abrir los estados del pedido.");
+      setAlert({
+        tone: "error",
+        title: "No fue posible abrir el pedido",
+        message: error instanceof Error ? error.message : "No fue posible abrir los estados del pedido.",
+      });
     }
   }, []);
 
@@ -150,14 +157,19 @@ export default function OrdersStatusController() {
         decorateStatusTriggers();
       }, 0);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "No fue posible actualizar el estado del pedido.");
+      setAlert({
+        tone: "error",
+        title: "No fue posible actualizar el estado",
+        message: error instanceof Error ? error.message : "No fue posible actualizar el estado del pedido.",
+      });
     } finally {
       setBusy(false);
     }
   }
 
-  async function assignDriver(driverId: number) {
-    if (!selectedOrder || driverBusy) return;
+  async function assignDriver() {
+    if (!selectedOrder || !selectedDriverId || driverBusy) return;
+    const driverId = selectedDriverId;
     setDriverBusy(true);
     try {
       const response = await fetch(`/api/orders/${selectedOrder.id}/driver`, {
@@ -168,11 +180,26 @@ export default function OrdersStatusController() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible asignar el repartidor.");
       setSelectedOrder((current) => current ? { ...current, driverId } : current);
-      window.alert(data.notification?.ok === false
-        ? `Repartidor asignado. La notificación no pudo enviarse: ${data.notification.reason}`
-        : "Repartidor asignado y notificado por WhatsApp.");
+      const driver = drivers.find((item) => item.id === driverId);
+      setAlert(
+        data.notification?.ok === false
+          ? {
+              tone: "error",
+              title: driver ? `${driver.name} quedó asignado` : "Repartidor asignado",
+              message: `La asignación se guardó, pero la notificación no pudo enviarse: ${data.notification.reason}`,
+            }
+          : {
+              tone: "success",
+              title: driver ? `${driver.name} quedó asignado` : "Repartidor asignado",
+              message: "La orden se guardó y la notificación de WhatsApp fue enviada correctamente.",
+            },
+      );
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "No fue posible asignar el repartidor.");
+      setAlert({
+        tone: "error",
+        title: "No fue posible asignar el repartidor",
+        message: error instanceof Error ? error.message : "No fue posible asignar el repartidor.",
+      });
     } finally {
       setDriverBusy(false);
     }
@@ -181,6 +208,7 @@ export default function OrdersStatusController() {
   if (!selectedOrder) return null;
 
   return (
+    <>
     <OrderStatusSelector
       orderCode={displayedCode(selectedOrder)}
       currentStatus={selectedOrder.status}
@@ -189,10 +217,44 @@ export default function OrdersStatusController() {
       busy={busy}
       drivers={drivers}
       assignedDriverId={selectedOrder.driverId ?? null}
+      selectedDriverId={selectedDriverId}
       driverBusy={driverBusy}
-      onAssignDriver={(driverId) => void assignDriver(driverId)}
+      onDriverChange={setSelectedDriverId}
+      onConfirmDriver={() => void assignDriver()}
       onClose={() => !busy && !driverBusy && setSelectedOrder(null)}
       onSelect={(status) => void selectStatus(status)}
     />
+
+    {alert && (
+      <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/55 p-4 backdrop-blur-[3px]" onClick={() => setAlert(null)}>
+        <div
+          className="w-full max-w-[430px] overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_30px_90px_rgba(0,0,0,.30)]"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <header className="bg-[radial-gradient(circle_at_88%_14%,rgba(229,28,17,.30),transparent_26%),linear-gradient(135deg,#09090a,#1b1516)] px-5 py-5 text-white">
+            <div className="flex items-start gap-3">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black ${alert.tone === "success" ? "bg-emerald-400/15 text-emerald-300" : "bg-red-400/15 text-red-300"}`}>
+                {alert.tone === "success" ? "✓" : "!"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">Alentó Pizza</p>
+                <h3 className="mt-1 text-xl font-black tracking-[-.025em]">{alert.title}</h3>
+              </div>
+            </div>
+          </header>
+          <div className="p-5">
+            <p className="text-sm leading-6 text-neutral-600">{alert.message}</p>
+            <button
+              type="button"
+              onClick={() => setAlert(null)}
+              className="mt-5 h-11 w-full rounded-xl bg-neutral-950 px-4 text-[11px] font-black uppercase tracking-[0.06em] text-white"
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
