@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicMobileNav from "@/components/PublicMobileNav";
+import PublicBrandHeader from "@/components/PublicBrandHeader";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -59,7 +60,6 @@ type PizzaConfig = {
   note: string;
 };
 
-const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png";
 const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
 
 function money(value: number) {
@@ -537,87 +537,7 @@ export default function PublicMenuPage() {
   return (
     <main className="min-h-screen bg-[#090909] text-white">
       <section className="min-h-screen bg-[#090909]">
-        <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_12px_34px_rgba(0,0,0,.34)] backdrop-blur-xl">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/45 to-transparent" />
-
-          <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
-            <div className="flex h-[68px] items-center justify-center md:h-[76px] md:justify-between lg:h-[86px]">
-              <Link href="/" className="group flex min-w-0 items-center">
-                {homeLoaded ? (
-                  <img
-                    src={home?.brand?.logoUrl || FALLBACK_LOGO}
-                    alt="Alentó Pizza"
-                    className="h-[42px] w-[150px] object-contain object-center transition duration-200 group-hover:opacity-90 md:h-[48px] md:w-[175px] md:object-left lg:h-[54px] lg:w-[210px]"
-                  />
-                ) : (
-                  <span className="block h-[42px] w-[150px] md:h-[48px] md:w-[175px] lg:h-[54px] lg:w-[210px]" aria-hidden="true" />
-                )}
-              </Link>
-
-              <nav className="hidden items-center gap-10 md:flex">
-                <Link
-                  href="/"
-                  className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/menu"
-                  className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
-                >
-                  Menú
-                </Link>
-                <span
-                  className="cursor-default py-3 text-[14px] font-medium tracking-[0.015em] text-white/72"
-                  aria-disabled="true"
-                >
-                  Club De La Pizza
-                </span>
-              </nav>
-
-              <div className="hidden items-center gap-3 md:flex">
-                <Link
-                  href="/cart"
-                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70 transition hover:border-[#e21a22]/60 hover:text-white"
-                  aria-label={`Carrito con ${cartCount} productos`}
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
-                    <circle cx="10" cy="19" r="1.2" />
-                    <circle cx="18" cy="19" r="1.2" />
-                  </svg>
-                  {cartCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[9px] font-black text-white">
-                      {cartCount > 99 ? "99+" : cartCount}
-                    </span>
-                  )}
-                </Link>
-
-              <Link
-                href="/login"
-                className="group relative hidden shrink-0 overflow-hidden rounded-full bg-[#e21a22] px-5 py-3 text-[13px] font-extrabold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] md:flex lg:px-7 lg:py-3.5 lg:text-[14px]"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-[17px] w-[17px] lg:h-[18px] lg:w-[18px]"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <circle cx="12" cy="8" r="3.5" />
-                    <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
-                  </svg>
-                  Mi Cuenta
-                </span>
-              </Link>
-              </div>
-            </div>
-          </div>
-        </header>
+        <PublicBrandHeader />
 
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
