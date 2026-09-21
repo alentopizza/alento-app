@@ -33,7 +33,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "nuevo_pedido_v2",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/arG6qTss0Dye7zuwPYrR.png",
+    headerImageUrl: "",
     active: true,
     variables: [
       { key: "1", label: "Nombre del cliente", source: "customerName" },
@@ -50,7 +50,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "pedido_listo_local_v2",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/z15fNkN8GbDLj06mUAQv.png",
+    headerImageUrl: "",
     active: true,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
@@ -64,7 +64,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "orden_asignada",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/y16AI3bZ5qOrDN72SQNG.png",
+    headerImageUrl: "",
     active: true,
     variables: [
       { key: "1", label: "Nombre del repartidor", source: "driverName" },
@@ -109,7 +109,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "orden_finalizada_v2",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/9gzlQrXLR29xbb9UzQCO.png",
+    headerImageUrl: "",
     active: true,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
@@ -123,7 +123,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "orden_finalizada_v2",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/9gzlQrXLR29xbb9UzQCO.png",
+    headerImageUrl: "",
     active: true,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
@@ -137,7 +137,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     templateName: "resea_google_v2",
     language: "es",
     category: "MARKETING",
-    headerImageUrl: "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Kc89jOgPPucYlwsN4C6m.png",
+    headerImageUrl: "",
     active: true,
     variables: [],
     button: null,
@@ -147,6 +147,18 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function managedImagePath(value: unknown) {
+  if (typeof value !== "string") return "";
+  const raw = value.trim();
+  if (!raw) return "";
+
+  const marker = "/api/notification-images/";
+  const index = raw.indexOf(marker);
+  if (index < 0) return "";
+
+  return raw.slice(index);
 }
 
 export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | undefined) {
@@ -166,7 +178,7 @@ export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | 
       templateName: typeof current.templateName === "string" ? current.templateName.trim() || fallback.templateName : fallback.templateName,
       language: typeof current.language === "string" ? current.language.trim() || fallback.language : fallback.language,
       category: typeof current.category === "string" ? current.category.trim() || fallback.category : fallback.category,
-      headerImageUrl: typeof current.headerImageUrl === "string" ? current.headerImageUrl.trim() : fallback.headerImageUrl,
+      headerImageUrl: managedImagePath(current.headerImageUrl),
       active: typeof current.active === "boolean" ? current.active : fallback.active,
       delayMinutes: typeof current.delayMinutes === "number" && Number.isFinite(current.delayMinutes)
         ? Math.max(0, Math.round(current.delayMinutes))
