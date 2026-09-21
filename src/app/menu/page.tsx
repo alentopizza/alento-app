@@ -31,11 +31,9 @@ type CatalogResponse = {
 type PublicHomeSettings = {
   brand: { logoUrl: string };
   menuHero?: { active: boolean; imageUrl: string };
-  primaryBanner: { active: boolean; imageUrl: string; productId: number | null };
-  secondaryBanner: { active: boolean; imageUrl: string; productId: number | null };
 };
 
-const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png";
 const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
 
 function money(value: number) {
@@ -60,7 +58,7 @@ function categoryEmoji(slug: string) {
   return "🍽️";
 }
 
-export default function App2MenuPage() {
+export default function PublicMenuPage() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [home, setHome] = useState<PublicHomeSettings | null>(null);
   const [activeCategory, setActiveCategory] = useState("");
@@ -158,7 +156,7 @@ export default function App2MenuPage() {
           <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
             <Link href="/" className="group flex items-center">
               <img
-                src={home?.brand?.logoUrl || "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png"}
+                src={home?.brand?.logoUrl || FALLBACK_LOGO}
                 alt="Alentó Pizza"
                 className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
               />
@@ -166,13 +164,13 @@ export default function App2MenuPage() {
 
             <nav className="flex items-center gap-10">
               <a
-                href="#inicio-pedir"
+                href="#inicio-menu"
                 className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
               >
                 Menú
               </a>
               <a
-                href="#populares-pedir"
+                href="#destacados-menu"
                 className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
               >
                 Destacados
@@ -204,7 +202,7 @@ export default function App2MenuPage() {
           </div>
         </header>
 
-        <section id="inicio-pedir" className="relative overflow-hidden border-b border-white/10 bg-black">
+        <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
             <img
               src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
@@ -214,7 +212,7 @@ export default function App2MenuPage() {
           </div>
         </section>
 
-        <section id="categorias-pedir" className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-7">
+        <section id="categorias-menu" className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-7">
           <div className="flex overflow-hidden rounded-[22px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)]">
             {categories.slice(0, 6).map((category) => {
               const active = activeCategory === category.slug;
@@ -226,7 +224,7 @@ export default function App2MenuPage() {
                   onClick={() => {
                     setActiveCategory(category.slug);
                     setQuery("");
-                    document.getElementById("catalogo-pedir")?.scrollIntoView({ behavior: "smooth" });
+                    document.getElementById("catalogo-menu")?.scrollIntoView({ behavior: "smooth" });
                   }}
                   className={`group relative flex min-h-[86px] min-w-0 flex-1 flex-col items-center justify-center gap-1.5 border-r border-neutral-200 px-3 text-center transition last:border-r-0 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
                 >
@@ -250,7 +248,7 @@ export default function App2MenuPage() {
 
         </section>
 
-        <section id="populares-pedir" className="mx-auto max-w-[1320px] px-8 pb-14 pt-5">
+        <section id="destacados-menu" className="mx-auto max-w-[1320px] px-8 pb-14 pt-5">
           <div className="text-center">
             <h2 className="text-[38px] font-extrabold uppercase leading-none tracking-[-0.035em] text-white">
               Nuestros <span className="text-[#e21a22]">más vendidos</span>
@@ -293,7 +291,7 @@ export default function App2MenuPage() {
           </div>
         </section>
 
-        <section id="catalogo-pedir" className="mx-auto max-w-[1320px] px-8 pb-20">
+        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-8 pb-20">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/35">Catálogo</p>
@@ -416,16 +414,6 @@ export default function App2MenuPage() {
             );
           })}
         </div>
-
-        {home?.secondaryBanner.active && home.secondaryBanner.imageUrl && !query && (
-          <div className="mt-5 overflow-hidden rounded-[22px] bg-white p-1.5 shadow-sm">
-            <img
-              src={home.secondaryBanner.imageUrl}
-              alt="Promoción Alentó Pizza"
-              className="aspect-[3.9/1] w-full rounded-[18px] object-cover"
-            />
-          </div>
-        )}
 
         <section className="pt-6">
           <div className="mb-4 flex items-end justify-between gap-4">
