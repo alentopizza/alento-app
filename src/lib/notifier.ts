@@ -4,7 +4,7 @@ export type NotificationDispatchResult =
   | { ok: true; status: "queued" | "sent" }
   | { ok: false; status: "skipped" | "failed"; reason: string };
 
-type OrderCreatedEvent = {
+type BaseOrderEvent = {
   orderId: number;
   customerId: number;
   customerName: string;
@@ -12,11 +12,21 @@ type OrderCreatedEvent = {
   orderCode: string;
   total: number;
   fulfillmentType: string;
+};
+
+type OrderCreatedEvent = BaseOrderEvent & {
   trackingPath: string;
 };
 
-export async function dispatchOrderCreatedNotification(
-  input: Omit<OrderCreatedEvent, "trackingPath">,
+type OrderStatusChangedEvent = BaseOrderEvent & {
+  status: string;
+  previousStatus: string;
+  trackingPath: string;
+};
+
+async function dispatchEvent(
+  event: "order.created" | "order.status_changed",
+  data: OrderCreatedEvent | OrderStatusChangedEvent,
 ): Promise<NotificationDispatchResult> {
   const webhookUrl = process.env.NOTIFIER_WEBHOOK_URL?.trim();
   const secret = process.env.NOTIFIER_SHARED_SECRET?.trim();
@@ -28,11 +38,6 @@ export async function dispatchOrderCreatedNotification(
       reason: "Microservicio de notificaciones no configurado.",
     };
   }
-
-  const payload: OrderCreatedEvent = {
-    ...input,
-    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
-  };
 
   try {
     const controller = new AbortController();
@@ -46,10 +51,7 @@ export async function dispatchOrderCreatedNotification(
           "Content-Type": "application/json",
           "x-alento-notifier-secret": secret,
         },
-        body: JSON.stringify({
-          event: "order.created",
-          data: payload,
-        }),
+        body: JSON.stringify({ event, data }),
       });
 
       const text = await response.text();
@@ -84,4 +86,22 @@ export async function dispatchOrderCreatedNotification(
           : "No fue posible contactar el microservicio de notificaciones.",
     };
   }
+}
+
+export async function dispatchOrderCreatedNotification(
+  input: BaseOrderEvent,
+): Promise<NotificationDispatchResult> {
+  return dispatchEvent("order.created", {
+    ...input,
+    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
+  });
+}
+
+export async function dispatchOrderStatusNotification(
+  input: BaseOrderEvent & { status: string; previousStatus: string },
+): Promise<NotificationDispatchResult> {
+  return dispatchEvent("order.status_changed", {
+    ...input,
+    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
+  });
 }
