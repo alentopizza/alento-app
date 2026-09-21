@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
-import { notifyOrderCreated } from "@/lib/chatwoot";
+import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
 
     const code = `POS-${String(order.sequenceNumber).padStart(4, "0")}`;
     let notification:
-      | Awaited<ReturnType<typeof notifyOrderCreated>>
+      | Awaited<ReturnType<typeof dispatchOrderCreatedNotification>>
       | { ok: false; status: "skipped"; reason: string } = {
       ok: false,
       status: "skipped",
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (customer?.id && customer.phone) {
-      notification = await notifyOrderCreated({
+      notification = await dispatchOrderCreatedNotification({
         orderId: order.id,
         customerId: customer.id,
         customerName: customer.name,
