@@ -168,12 +168,6 @@ export default function App2MenuPage() {
                 href="#inicio-pedir"
                 className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
               >
-                Inicio
-              </a>
-              <a
-                href="#categorias-pedir"
-                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
-              >
                 Menú
               </a>
               <a
@@ -378,52 +372,7 @@ export default function App2MenuPage() {
           )}
         </section>
 
-        <footer className="border-t border-white/10 bg-[#0b0b0b]">
-          <div className="mx-auto grid max-w-[1320px] grid-cols-[1.25fr_.8fr_.8fr_1fr] gap-10 px-8 py-12">
-            <div>
-              <div className="flex items-center gap-3">
-                <img src={home?.brand?.logoUrl || FALLBACK_LOGO} alt="Alentó Pizza" className="h-12 w-12 rounded-xl object-cover" />
-                <div>
-                  <b className="text-[18px] font-black">Alentó Pizza</b>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Sabor que te hace volver</p>
-                </div>
-              </div>
-              <p className="mt-4 max-w-[290px] text-[11px] leading-5 text-white/42">
-                Pizzas, combos y antojos preparados para disfrutar en casa, recoger o compartir.
-              </p>
-            </div>
 
-            <div>
-              <b className="text-[12px] font-black text-[#ff3439]">Enlaces</b>
-              <div className="mt-4 space-y-2 text-[11px] text-white/55">
-                <Link href="/">Inicio</Link>
-                <a href="#categorias-pedir" className="block">Menú</a>
-                <a href="#populares-pedir" className="block">Destacados</a>
-                <Link href="/cuenta" className="block">Mi cuenta</Link>
-              </div>
-            </div>
-
-            <div>
-              <b className="text-[12px] font-black text-[#ff3439]">Ayuda</b>
-              <div className="mt-4 space-y-2 text-[11px] text-white/55">
-                <p>Pedidos</p>
-                <p>Domicilios</p>
-                <p>Preguntas frecuentes</p>
-                <p>Términos</p>
-              </div>
-            </div>
-
-            <div>
-              <b className="text-[12px] font-black text-[#ff3439]">Alentó</b>
-              <p className="mt-4 text-[11px] leading-5 text-white/45">
-                Experiencia web instalable como PWA para pedir más rápido desde tu celular o computador.
-              </p>
-            </div>
-          </div>
-          <div className="border-t border-white/10 py-5 text-center text-[10px] text-white/25">
-            © 2026 Alentó Pizza
-          </div>
-        </footer>
       </section>
 
       <section className="lg:hidden">
