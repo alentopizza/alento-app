@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
 
     if (customer?.id && customer.phone) {
       notification = await notifyOrderCreated({
+        orderId: order.id,
         customerId: customer.id,
         customerName: customer.name,
         phone: `${customer.countryCode ?? "+57"}${customer.phone}`,
