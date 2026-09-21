@@ -54,7 +54,11 @@ export default async function ClubPage() {
     ? normalizeClubAlentoSettings(settingsRow.value)
     : DEFAULT_CLUB_ALENTO_SETTINGS;
   const customer = account.customer;
-  const points = customer.clubPoints.reduce((sum, movement) => sum + movement.points, 0);
+  const balance = await prisma.clubPointTransaction.aggregate({
+    where: { customerId: customer.id },
+    _sum: { points: true },
+  });
+  const points = balance._sum.points ?? 0;
 
   return (
     <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-10 md:pt-8">
