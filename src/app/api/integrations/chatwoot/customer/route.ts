@@ -33,6 +33,29 @@ function orderCode(source: string, sequenceNumber: number | null, id: number) {
   return `${source}-${String(number).padStart(4, "0")}`;
 }
 
+function daysBetween(a: Date, b: Date) {
+  return Math.max(0, Math.floor((a.getTime() - b.getTime()) / 86400000));
+}
+
+function commercialSignal(args: {
+  purchaseCount: number;
+  lastOrderAt: Date | null;
+  frequencyDays: number | null;
+}) {
+  const { purchaseCount, lastOrderAt, frequencyDays } = args;
+  if (purchaseCount === 0) return "SIN_COMPRAS";
+  if (purchaseCount === 1) return "NUEVO";
+
+  if (lastOrderAt) {
+    const daysSinceLastOrder = daysBetween(new Date(), lastOrderAt);
+    const recoveryThreshold = Math.max(21, Math.round((frequencyDays ?? 14) * 1.6));
+    if (daysSinceLastOrder > recoveryThreshold) return "POR_RECUPERAR";
+  }
+
+  if (purchaseCount >= 4) return "FRECUENTE";
+  return "ACTIVO";
+}
+
 export async function GET(request: NextRequest) {
   const configuredKey = process.env.CHATWOOT_DASHBOARD_KEY?.trim() ?? "";
   const receivedKey = request.headers.get("x-alento-chatwoot-key")?.trim() ?? "";
@@ -75,6 +98,7 @@ export async function GET(request: NextRequest) {
           countryCode: true,
           email: true,
           notes: true,
+          createdAt: true,
           addresses: {
             orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
             take: 1,
@@ -91,6 +115,7 @@ export async function GET(request: NextRequest) {
           countryCode: true,
           email: true,
           notes: true,
+          createdAt: true,
           addresses: {
             orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
             take: 1,
@@ -103,18 +128,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
   }
 
-  const [aggregate, orders] = await Promise.all([
-    prisma.order.aggregate({
-      where: { customerId: customer.id, status: { not: "CANCELED" } },
-      _count: { _all: true },
-      _sum: { total: true },
-      _avg: { total: true },
-      _max: { createdAt: true },
-    }),
+  const [orders, points] = await Promise.all([
     prisma.order.findMany({
       where: { customerId: customer.id, status: { not: "CANCELED" } },
       orderBy: { createdAt: "desc" },
-      take: 8,
       select: {
         id: true,
         sequenceNumber: true,
@@ -129,7 +146,31 @@ export async function GET(request: NextRequest) {
         },
       },
     }),
+    prisma.clubPointTransaction.aggregate({
+      where: { customerId: customer.id },
+      _sum: { points: true },
+    }),
   ]);
+
+  const purchaseCount = orders.length;
+  const totalSpent = orders.reduce((sum, order) => sum + Number(order.total), 0);
+  const averageTicket = purchaseCount ? totalSpent / purchaseCount : 0;
+  const chronological = [...orders].reverse();
+  const firstOrderAt = chronological[0]?.createdAt ?? null;
+  const lastOrderAt = orders[0]?.createdAt ?? null;
+  const frequencyDays =
+    purchaseCount > 1 && firstOrderAt && lastOrderAt
+      ? Math.max(
+          1,
+          Math.round(
+            (lastOrderAt.getTime() - firstOrderAt.getTime()) /
+              86400000 /
+              (purchaseCount - 1),
+          ),
+        )
+      : null;
+  const daysSinceLastOrder = lastOrderAt ? daysBetween(new Date(), lastOrderAt) : null;
+  const signal = commercialSignal({ purchaseCount, lastOrderAt, frequencyDays });
 
   const response = NextResponse.json({
     customer: {
@@ -139,15 +180,21 @@ export async function GET(request: NextRequest) {
       countryCode: customer.countryCode,
       email: customer.email,
       notes: customer.notes,
+      createdAt: customer.createdAt,
       defaultAddress: customer.addresses[0] ?? null,
     },
     metrics: {
-      purchaseCount: aggregate._count._all,
-      totalSpent: Number(aggregate._sum.total ?? 0),
-      averageTicket: Number(aggregate._avg.total ?? 0),
-      lastOrderAt: aggregate._max.createdAt,
+      purchaseCount,
+      totalSpent,
+      averageTicket,
+      firstOrderAt,
+      lastOrderAt,
+      frequencyDays,
+      daysSinceLastOrder,
+      commercialSignal: signal,
+      clubPoints: points._sum.points ?? 0,
     },
-    orders: orders.map((order) => ({
+    orders: orders.slice(0, 8).map((order) => ({
       id: order.id,
       code: orderCode(order.source, order.sequenceNumber, order.id),
       status: order.status,
