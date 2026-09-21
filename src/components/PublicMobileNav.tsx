@@ -148,22 +148,22 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
         <div className="absolute inset-x-0 bottom-0 h-[58px] rounded-[15px] border border-black/10 bg-[#f4f4f4] shadow-[0_18px_45px_rgba(0,0,0,.30)]" />
 
         <div
-          className="pointer-events-none absolute bottom-0 z-10 h-[82px] w-[92px] -translate-x-1/2 transition-[left] duration-[360ms] ease-[cubic-bezier(.22,.8,.24,1)]"
+          className="pointer-events-none absolute bottom-0 z-10 h-[84px] w-[100px] -translate-x-1/2 transition-[left] duration-[360ms] ease-[cubic-bezier(.22,.8,.24,1)]"
           style={{ left: activeLeft }}
           aria-hidden="true"
         >
           <svg
-            viewBox="0 0 92 50"
-            className="absolute left-0 top-[6px] h-[50px] w-[92px]"
+            viewBox="0 0 100 64"
+            className="absolute bottom-0 left-0 h-[64px] w-[100px]"
             preserveAspectRatio="none"
           >
             <path
-              d="M0 50V33h13c9.5 0 12-6.8 14-16C29.1 6.8 36.8 0 46 0s16.9 6.8 19 17c2 9.2 4.5 16 14 16h13v17H0Z"
+              d="M0 64V47h14c10 0 12.5-8 15-19C31.8 13.5 39.2 4 50 4s18.2 9.5 21 24c2.5 11 5 19 15 19h14v17H0Z"
               fill="#f4f4f4"
             />
           </svg>
 
-          <span className="absolute left-1/2 top-0 flex h-[56px] w-[56px] -translate-x-1/2 items-center justify-center rounded-full border-[5px] border-[#f4f4f4] bg-[#e21a22] text-white shadow-[0_7px_18px_rgba(226,26,34,.34)]">
+          <span className="absolute left-1/2 top-[4px] flex h-[52px] w-[52px] -translate-x-1/2 items-center justify-center rounded-full bg-[#e21a22] text-white shadow-[0_7px_18px_rgba(226,26,34,.34)]">
             <ActiveIcon tab={visualActive} />
           </span>
         </div>
@@ -172,7 +172,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
           <Link
             href="/menu"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${active === "menu" ? "text-transparent" : "text-[#343434]"}`}
+            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "menu" ? "text-transparent" : "text-[#343434]"}`}
             aria-label="Menú"
           >
             <PizzaIcon className="h-6 w-6" />
@@ -181,7 +181,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
           <Link
             href="/cart"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${active === "cart" ? "text-transparent" : "text-[#343434]"}`}
+            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "cart" ? "text-transparent" : "text-[#343434]"}`}
             aria-label={`Carrito con ${cartCount} productos`}
           >
             <CartIcon />
@@ -195,7 +195,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
 
           <button
             type="button"
-            className={`relative flex h-full items-center justify-center ${active === "club" ? "text-transparent" : "text-[#343434]"}`}
+            className={`relative flex h-full items-center justify-center ${visualActive === "club" ? "text-transparent" : "text-[#343434]"}`}
             aria-label="Club de la Pizza próximamente"
             title="Club de la Pizza próximamente"
           >
@@ -205,7 +205,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
           <Link
             href="/cuenta"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${active === "profile" ? "text-transparent" : "text-[#343434]"}`}
+            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "profile" ? "text-transparent" : "text-[#343434]"}`}
             aria-label="Perfil"
           >
             <ProfileIcon />
