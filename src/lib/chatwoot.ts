@@ -151,6 +151,13 @@ async function findWhatsappConversation(
 
 function templateReplacements(input: OrderCreatedNotificationInput) {
   return {
+    "__CUSTOMER_NAME__": input.customerName,
+    "__ORDER_ID__": String(input.orderId),
+    "__ORDER_CODE__": input.orderCode,
+    "__TOTAL__": money(input.total),
+    "__FULFILLMENT_TYPE__": input.fulfillmentType,
+    "__PHONE__": normalizePhone(input.phone),
+    "__TRACKING_PATH__": `seguimiento/${createOrderTrackingToken(input.orderId)}`,
     "{{customer_name}}": input.customerName,
     "{{order_id}}": String(input.orderId),
     "{{order_code}}": input.orderCode,
