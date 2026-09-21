@@ -8,7 +8,7 @@ function money(value: unknown) {
 
 export default async function CustomerAccountPage() {
   const session = await getCustomerSession();
-  if (!session) redirect("/cuenta/login");
+  if (!session) redirect("/login");
 
   const account = await prisma.customerAccount.findUnique({
     where: { id: session.accountId },
@@ -27,7 +27,7 @@ export default async function CustomerAccountPage() {
     },
   });
 
-  if (!account?.active) redirect("/cuenta/login");
+  if (!account?.active) redirect("/login");
   const customer = account.customer;
   const total = customer.orders.reduce((sum, order) => sum + Number(order.total), 0);
 
