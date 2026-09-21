@@ -565,3 +565,12 @@ La pantalla pública `/login` usa la barra inferior compartida.
 - conserva el contador del carrito local;
 - ningún campo del login usa `autoFocus`;
 - el teclado móvil solo se abre cuando el usuario toca un campo de entrada.
+
+
+## Ajuste de navegación móvil y categorías
+
+- La barra inferior móvil ya no incluye Home.
+- La navegación queda en cuatro posiciones: Menú, Carrito, Club y Perfil.
+- Se eliminó del componente compartido el estado/icono Home que ya no se usa.
+- El bloque de categorías de /menu se elevó un poco más sobre el hero.
+- En móvil se redujo la altura e iconos del bloque de categorías para ocupar menos espacio vertical.
