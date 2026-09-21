@@ -7,12 +7,14 @@ export type NotificationTemplateConfig = {
   id: string;
   title: string;
   event: string;
+  events?: string[];
   audience: "CUSTOMER" | "DRIVER";
   fulfillmentTypes: Array<"DELIVERY" | "PICKUP" | "STORE">;
   templateName: string;
   language: string;
   category: string;
   headerImageUrl: string;
+  requiresImage?: boolean;
   active: boolean;
   variables: Array<{ key: string; label: string; source: string }>;
   button?: {
@@ -82,6 +84,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
+    requiresImage: false,
     active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: { type: "tracking", label: "Ver seguimiento" },
@@ -96,30 +99,18 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     language: "es",
     category: "MARKETING",
     headerImageUrl: "",
+    requiresImage: false,
     active: false,
     variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
     button: null,
   },
   {
-    id: "order_finalized_delivery",
-    title: "Pedido finalizado · Domicilio",
+    id: "order_finalized",
+    title: "Pedido finalizado",
     event: "order.status.DELIVERED",
+    events: ["order.status.DELIVERED", "order.status.COMPLETED"],
     audience: "CUSTOMER",
-    fulfillmentTypes: ["DELIVERY"],
-    templateName: "orden_finalizada_v2",
-    language: "es",
-    category: "MARKETING",
-    headerImageUrl: "",
-    active: false,
-    variables: [{ key: "1", label: "Número de orden", source: "orderCode" }],
-    button: null,
-  },
-  {
-    id: "order_finalized_pickup_store",
-    title: "Pedido finalizado · Local / Recoger",
-    event: "order.status.COMPLETED",
-    audience: "CUSTOMER",
-    fulfillmentTypes: ["PICKUP", "STORE"],
+    fulfillmentTypes: ["DELIVERY", "PICKUP", "STORE"],
     templateName: "orden_finalizada_v2",
     language: "es",
     category: "MARKETING",
@@ -171,16 +162,30 @@ export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | 
   }
 
   return DEFAULT_NOTIFICATION_TEMPLATES.map((fallback) => {
-    const current = saved.get(fallback.id);
+    let current = saved.get(fallback.id);
+
+    // Migración transparente: antes "Pedido finalizado" estaba duplicado
+    // por modalidad. Conservamos la imagen/estado existente si ya se configuró.
+    if (!current && fallback.id === "order_finalized") {
+      const delivery = saved.get("order_finalized_delivery");
+      const pickupStore = saved.get("order_finalized_pickup_store");
+      const preferred = [delivery, pickupStore].find((item) => managedImagePath(item?.headerImageUrl));
+      current = preferred ?? delivery ?? pickupStore;
+    }
+
     if (!current) return fallback;
     const headerImageUrl = managedImagePath(current.headerImageUrl);
+    const requiresImage = fallback.requiresImage !== false;
     return {
       ...fallback,
       templateName: typeof current.templateName === "string" ? current.templateName.trim() || fallback.templateName : fallback.templateName,
       language: typeof current.language === "string" ? current.language.trim() || fallback.language : fallback.language,
       category: typeof current.category === "string" ? current.category.trim() || fallback.category : fallback.category,
       headerImageUrl,
-      active: headerImageUrl && typeof current.active === "boolean" ? current.active : false,
+      requiresImage,
+      active: (!requiresImage || Boolean(headerImageUrl)) && typeof current.active === "boolean"
+        ? current.active
+        : false,
       delayMinutes: typeof current.delayMinutes === "number" && Number.isFinite(current.delayMinutes)
         ? Math.max(0, Math.round(current.delayMinutes))
         : fallback.delayMinutes,
@@ -221,7 +226,7 @@ export function findTemplateForEvent(
   return templates.find(
     (template) =>
       template.active &&
-      template.event === event &&
+      (template.event === event || template.events?.includes(event)) &&
       template.fulfillmentTypes.includes(fulfillmentType as "DELIVERY" | "PICKUP" | "STORE"),
   ) ?? null;
 }
