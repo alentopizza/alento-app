@@ -33,6 +33,17 @@ type PublicHomeSettings = {
   menuHero?: { active: boolean; imageUrl: string };
 };
 
+type CartItem = {
+  key: string;
+  productId: number;
+  name: string;
+  imageUrl: string | null;
+  unitPrice: number;
+  quantity: number;
+};
+
+const CART_STORAGE_KEY = "alento-cart-v1";
+
 const FALLBACK_LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png";
 const DESKTOP_HERO_IMAGE = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
 
@@ -67,6 +78,9 @@ export default function PublicMenuPage() {
   const [loading, setLoading] = useState(true);
   const [homeLoaded, setHomeLoaded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartReady, setCartReady] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -112,6 +126,25 @@ export default function PublicMenuPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setCart(parsed);
+      }
+    } catch {
+      window.localStorage.removeItem(CART_STORAGE_KEY);
+    } finally {
+      setCartReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!cartReady) return;
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart, cartReady]);
+
   const categories = useMemo(
     () =>
       (catalog?.categories ?? []).filter(
@@ -155,7 +188,17 @@ export default function PublicMenuPage() {
     return (highlighted.length ? highlighted : allProducts).slice(0, 4);
   }, [allProducts]);
 
-  function displayPrice(product: CatalogProduct) {
+  const cartCount = useMemo(
+    () => cart.reduce((total, item) => total + item.quantity, 0),
+    [cart],
+  );
+
+  const cartSubtotal = useMemo(
+    () => cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0),
+    [cart],
+  );
+
+  function productPriceValue(product: CatalogProduct): number | null {
     const minSize = catalog?.sizes.length
       ? Math.min(...catalog.sizes.map((size) => size.basePrice))
       : 0;
@@ -163,21 +206,74 @@ export default function PublicMenuPage() {
     if (isTwoFlavorPizza(product)) {
       const flavorPrices =
         catalog?.pizzaFlavors.map((flavor) => flavor.basePrice ?? 0) ?? [];
-
-      return money(
-        minSize + (flavorPrices.length ? Math.min(...flavorPrices) : 0),
-      );
+      return minSize + (flavorPrices.length ? Math.min(...flavorPrices) : 0);
     }
 
     if (product.type === "PIZZA_SINGLE") {
-      return money(minSize + (product.basePrice ?? 0));
+      return minSize + (product.basePrice ?? 0);
     }
 
-    if (product.type === "COMBO") {
-      return product.basePrice != null ? money(product.basePrice) : "Configurable";
+    return product.basePrice;
+  }
+
+  function displayPrice(product: CatalogProduct) {
+    const value = productPriceValue(product);
+    if (value == null) {
+      return product.type === "COMBO" ? "Configurable" : "Consultar";
+    }
+    return money(value);
+  }
+
+  function addToCart(product: CatalogProduct) {
+    const unitPrice = productPriceValue(product);
+
+    if (unitPrice == null) {
+      setSelectedProduct(product);
+      return;
     }
 
-    return product.basePrice == null ? "Consultar" : money(product.basePrice);
+    const key = `product-${product.id}`;
+
+    setCart((current) => {
+      const existing = current.find((item) => item.key === key);
+
+      if (existing) {
+        return current.map((item) =>
+          item.key === key ? { ...item, quantity: item.quantity + 1 } : item,
+        );
+      }
+
+      return [
+        ...current,
+        {
+          key,
+          productId: product.id,
+          name: product.name,
+          imageUrl: product.imageUrl,
+          unitPrice,
+          quantity: 1,
+        },
+      ];
+    });
+
+    setSelectedProduct(null);
+    setCartOpen(true);
+  }
+
+  function changeCartQuantity(key: string, delta: number) {
+    setCart((current) =>
+      current
+        .map((item) =>
+          item.key === key
+            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
+    );
+  }
+
+  function removeCartItem(key: string) {
+    setCart((current) => current.filter((item) => item.key !== key));
   }
 
   return (
@@ -333,7 +429,23 @@ export default function PublicMenuPage() {
                     <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
                       {displayPrice(product)}
                     </span>
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        addToCart(product);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          addToCart(product);
+                        }
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
+                      aria-label={`Agregar ${product.name} al carrito`}
+                    >
                       +
                     </span>
                   </div>
@@ -401,9 +513,25 @@ export default function PublicMenuPage() {
                       <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
                         {displayPrice(product)}
                       </span>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]">
-                        +
-                      </span>
+                      <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        addToCart(product);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          addToCart(product);
+                        }
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
+                      aria-label={`Agregar ${product.name} al carrito`}
+                    >
+                      +
+                    </span>
                     </div>
                   </div>
                 </button>
@@ -450,15 +578,20 @@ export default function PublicMenuPage() {
 
             <button
               type="button"
-              className="flex h-full items-center justify-center text-[#8d8d8d]"
-              aria-label="Carrito próximamente"
-              title="Carrito próximamente"
+              onClick={() => setCartOpen(true)}
+              className="relative flex h-full items-center justify-center text-[#8d8d8d]"
+              aria-label={`Carrito con ${cartCount} productos`}
             >
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
                 <circle cx="10" cy="19" r="1.2" />
                 <circle cx="18" cy="19" r="1.2" />
               </svg>
+              {cartCount > 0 && (
+                <span className="absolute left-1/2 top-2 ml-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[9px] font-black text-white shadow-sm">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -551,9 +684,19 @@ export default function PublicMenuPage() {
 
               <div className={`flex items-center justify-between gap-3 ${selectedProduct.description ? "mt-4 border-t border-white/10 pt-4" : ""}`}>
                 <b className="text-[20px] text-[#ff3439]">{displayPrice(selectedProduct)}</b>
-                <span className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white">
-                  Configurador próximamente
-                </span>
+                {productPriceValue(selectedProduct) != null ? (
+                  <button
+                    type="button"
+                    onClick={() => addToCart(selectedProduct)}
+                    className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#ef1c25]"
+                  >
+                    Agregar al carrito
+                  </button>
+                ) : (
+                  <span className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2.5 text-[10px] font-bold text-white/45">
+                    Requiere configuración
+                  </span>
+                )}
               </div>
             </div>
           </div>
