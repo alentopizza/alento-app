@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
-import PublicDesktopSidebar from "@/components/PublicDesktopSidebar";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -536,9 +535,8 @@ export default function PublicMenuPage() {
 
 
   return (
-    <main className="min-h-screen bg-[#090909] text-white md:pl-[112px]">
+    <main className="min-h-screen bg-[#090909] pb-24 text-white">
       <section className="min-h-screen bg-[#090909]">
-        <PublicDesktopSidebar active="menu" cartCount={cartCount} contentMaxWidth={1320} />
         <PublicBrandHeader />
 
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
