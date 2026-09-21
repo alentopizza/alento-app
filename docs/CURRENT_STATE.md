@@ -455,3 +455,16 @@ Desde 2026-09-20:
 - `Menú` vuelve al inicio del hero de la página;
 - `Destacados` navega al bloque completo `Nuestros más vendidos / Favoritos de quienes siempre vuelven`;
 - el CTA rojo superior ahora es `Mi Cuenta` con icono de usuario y abre `/cuenta/login`, que contiene el acceso unificado cliente/colaborador.
+
+
+## Login público oficial
+
+La ruta oficial de autenticación unificada es `/login`.
+
+- reutiliza el fondo responsive configurado para la Home principal;
+- móvil usa `landing.mobileImageUrl`;
+- escritorio usa `landing.desktopImageUrl`;
+- el botón `Mi Cuenta` de `/menu` abre `/login`;
+- `/cuenta/login` redirige a `/login`;
+- `Volver A Menu` navega a `/menu`;
+- al llegar desde `/menu`, el botón atrás del navegador vuelve naturalmente al menú.
