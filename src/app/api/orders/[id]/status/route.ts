@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  CLUB_ALENTO_SETTING_KEY,
+  DEFAULT_CLUB_ALENTO_SETTINGS,
+  clubPointsForAmount,
+  normalizeClubAlentoSettings,
+} from "@/lib/clubAlento";
+import {
   workflowFor,
   type FulfillmentType,
   type OrderStatus,
@@ -18,6 +24,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       where: { id },
       select: {
         id: true,
+        customerId: true,
         status: true,
         fulfillmentType: true,
         total: true,
@@ -101,7 +108,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         }
       }
 
-      return tx.order.update({
+      const updatedOrder = await tx.order.update({
         where: { id },
         data: { status: requested },
         select: {
@@ -111,6 +118,34 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           updatedAt: true,
         },
       });
+
+      if (requested === "COMPLETED" && order.customerId) {
+        const savedClubSettings = await tx.appSetting.findUnique({
+          where: { key: CLUB_ALENTO_SETTING_KEY },
+        });
+        const clubSettings = savedClubSettings
+          ? normalizeClubAlentoSettings(savedClubSettings.value)
+          : DEFAULT_CLUB_ALENTO_SETTINGS;
+        const points = clubPointsForAmount(
+          Number(order.total),
+          clubSettings.pointsPerThousand,
+        );
+
+        await tx.clubPointTransaction.upsert({
+          where: { orderId: order.id },
+          update: {},
+          create: {
+            customerId: order.customerId,
+            orderId: order.id,
+            points,
+            ratePerThousand: clubSettings.pointsPerThousand,
+            amountBase: order.total,
+            reason: "PURCHASE",
+          },
+        });
+      }
+
+      return updatedOrder;
     });
 
     return NextResponse.json({ order: updated });
