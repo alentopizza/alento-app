@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicMobileNav from "@/components/PublicMobileNav";
+import PublicBrandHeader from "@/components/PublicBrandHeader";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
-
-const FALLBACK_LOGO =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -22,7 +20,6 @@ function money(value: number) {
 export default function CartPage() {
   const [cart, setCart] = useState<PublicCartItem[]>([]);
   const [ready, setReady] = useState(false);
-  const [logoUrl, setLogoUrl] = useState("");
 
   useEffect(() => {
     try {
@@ -36,11 +33,6 @@ export default function CartPage() {
     } finally {
       setReady(true);
     }
-
-    fetch("/api/public-home", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => setLogoUrl(data?.settings?.brand?.logoUrl ?? ""))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -76,24 +68,7 @@ export default function CartPage() {
 
   return (
     <main className="min-h-screen bg-[#090909] pb-28 text-white md:pb-0">
-      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-black/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[68px] max-w-[1180px] items-center justify-between px-4 sm:px-6 md:h-[82px]">
-          <Link href="/menu" className="flex items-center">
-            <img
-              src={logoUrl || FALLBACK_LOGO}
-              alt="Alentó Pizza"
-              className="h-[42px] w-[150px] object-contain object-left md:h-[50px] md:w-[190px]"
-            />
-          </Link>
-
-          <Link
-            href="/menu"
-            className="hidden rounded-full border border-white/12 bg-white/[0.05] px-5 py-2.5 text-[12px] font-semibold text-white/75 transition hover:border-white/25 hover:text-white md:inline-flex"
-          >
-            Seguir pidiendo
-          </Link>
-        </div>
-      </header>
+      <PublicBrandHeader />
 
       <section className="mx-auto w-full max-w-[980px] px-4 pb-6 pt-5 sm:px-6 md:pb-12 md:pt-8">
         <div className="flex items-end justify-between gap-4">
