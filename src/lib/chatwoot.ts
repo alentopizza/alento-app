@@ -16,6 +16,7 @@ type OrderCreatedNotificationInput = {
   customerId: number;
   customerName: string;
   phone: string;
+  orderId: number;
   orderCode: string;
   total: number;
   fulfillmentType: string;
@@ -146,6 +147,24 @@ async function findWhatsappConversation(
   return conversations[0] ?? null;
 }
 
+function templateReplacements(input: OrderCreatedNotificationInput) {
+  return {
+    "{{customer_name}}": input.customerName,
+    "{{order_id}}": String(input.orderId),
+    "{{order_code}}": input.orderCode,
+    "{{total}}": money(input.total),
+    "{{fulfillment_type}}": input.fulfillmentType,
+    "{{phone}}": normalizePhone(input.phone),
+  };
+}
+
+function renderTemplateValue(value: string, input: OrderCreatedNotificationInput) {
+  return Object.entries(templateReplacements(input)).reduce(
+    (result, [token, replacement]) => result.split(token).join(replacement),
+    value,
+  );
+}
+
 function templateBodyParams(input: OrderCreatedNotificationInput) {
   const raw = process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_BODY_PARAMS?.trim();
 
@@ -166,21 +185,10 @@ function templateBodyParams(input: OrderCreatedNotificationInput) {
     );
   }
 
-  const replacements: Record<string, string> = {
-    "{{customer_name}}": input.customerName,
-    "{{order_code}}": input.orderCode,
-    "{{total}}": money(input.total),
-    "{{fulfillment_type}}": input.fulfillmentType,
-    "{{phone}}": normalizePhone(input.phone),
-  };
-
   return Object.fromEntries(
     Object.entries(parsed).map(([key, value]) => [
       key,
-      Object.entries(replacements).reduce(
-        (result, [token, replacement]) => result.split(token).join(replacement),
-        String(value),
-      ),
+      renderTemplateValue(String(value), input),
     ]),
   );
 }
@@ -233,6 +241,38 @@ export async function notifyOrderCreated(
     }
 
     const bodyParams = templateBodyParams(input);
+    const headerImageUrl =
+      process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL?.trim();
+    const buttonParamTemplate =
+      process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_BUTTON_PARAM?.trim();
+    const buttonParameter = buttonParamTemplate
+      ? renderTemplateValue(buttonParamTemplate, input)
+      : "";
+
+    const processedParams: {
+      body: Record<string, string>;
+      header?: { media_url: string; media_type: "image" };
+      buttons?: Array<{ type: "url"; parameter: string }>;
+    } = {
+      body: bodyParams,
+    };
+
+    if (headerImageUrl) {
+      processedParams.header = {
+        media_url: headerImageUrl,
+        media_type: "image",
+      };
+    }
+
+    if (buttonParameter) {
+      processedParams.buttons = [
+        {
+          type: "url",
+          parameter: buttonParameter,
+        },
+      ];
+    }
+
     const transcript =
       process.env.CHATWOOT_ORDER_CREATED_TRANSCRIPT?.trim() ||
       `Pedido ${input.orderCode} recibido por ${money(input.total)}.`;
@@ -249,9 +289,7 @@ export async function notifyOrderCreated(
             name: templateName,
             category,
             language,
-            processed_params: {
-              body: bodyParams,
-            },
+            processed_params: processedParams,
           },
         }),
       },
