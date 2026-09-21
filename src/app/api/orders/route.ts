@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
+import { notifyOrderCreated } from "@/lib/chatwoot";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -212,11 +213,38 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    const code = `POS-${String(order.sequenceNumber).padStart(4, "0")}`;
+    let notification:
+      | Awaited<ReturnType<typeof notifyOrderCreated>>
+      | { ok: false; status: "skipped"; reason: string } = {
+      ok: false,
+      status: "skipped",
+      reason: "El pedido no tiene un cliente con teléfono.",
+    };
+
+    if (customer?.id && customer.phone) {
+      notification = await notifyOrderCreated({
+        customerId: customer.id,
+        customerName: customer.name,
+        phone: `${customer.countryCode ?? "+57"}${customer.phone}`,
+        orderCode: code,
+        total: Number(order.total),
+        fulfillmentType: order.fulfillmentType,
+      });
+
+      if (!notification.ok) {
+        console.warn("Chatwoot order notification", {
+          orderId: order.id,
+          reason: notification.reason,
+        });
+      }
+    }
+
     return NextResponse.json({
       order: {
         id: order.id,
         sequenceNumber: order.sequenceNumber,
-        code: `POS-${String(order.sequenceNumber).padStart(4, "0")}`,
+        code,
         status: order.status,
         fulfillmentType: order.fulfillmentType,
         subtotal: Number(order.subtotal),
@@ -225,6 +253,7 @@ export async function POST(request: NextRequest) {
         total: Number(order.total),
         createdAt: order.createdAt,
       },
+      notification,
     }, { status: 201 });
   } catch (error) {
     console.error("Order creation error", error);
