@@ -29,6 +29,15 @@ function publicRoles(roles: UserRole[]) {
   return roles.map((role) => role === "DISPATCH" ? "DRIVER" : role);
 }
 
+function cleanPhone(value: unknown) {
+  return typeof value === "string" ? value.replace(/\D/g, "").slice(0, 15) : "";
+}
+
+function cleanCountryCode(value: unknown) {
+  const digits = typeof value === "string" ? value.replace(/\D/g, "").slice(0, 4) : "57";
+  return `+${digits || "57"}`;
+}
+
 export async function GET() {
   try {
     await requireStaffSession(["ADMIN"]);
@@ -38,7 +47,7 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     orderBy: [{ active: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
+    select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
   });
   return NextResponse.json({
     users: users.map((user) => ({ ...user, roles: publicRoles(user.roles) })),
@@ -58,15 +67,21 @@ export async function POST(request: NextRequest) {
   const password = typeof body.password === "string" ? body.password : "";
   const roles = parseRoles(body.roles);
   const permissions = allowedPermissionsForRoles(roles, parsePermissions(body.permissions));
+  const whatsappCountryCode = cleanCountryCode(body.whatsappCountryCode);
+  const whatsappPhone = cleanPhone(body.whatsappPhone);
 
   if (!name || !email || password.length < 8 || roles.length === 0) {
     return NextResponse.json({ error: "Nombre, correo, contraseña de mínimo 8 caracteres y al menos un rol son obligatorios." }, { status: 400 });
   }
 
+  if (roles.includes("DRIVER") && whatsappPhone.length < 7) {
+    return NextResponse.json({ error: "El número de WhatsApp es obligatorio para los repartidores." }, { status: 400 });
+  }
+
   try {
     const user = await prisma.user.create({
-      data: { name, email, passwordHash: hashPassword(password), roles, permissions, active: true },
-      select: { id: true, name: true, email: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true },
+      data: { name, email, passwordHash: hashPassword(password), whatsappCountryCode, whatsappPhone: whatsappPhone || null, roles, permissions, active: true },
+      select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true },
     });
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
