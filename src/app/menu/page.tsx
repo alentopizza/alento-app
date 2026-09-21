@@ -65,6 +65,7 @@ export default function PublicMenuPage() {
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -93,6 +94,13 @@ export default function PublicMenuPage() {
     }
 
     void load();
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 520);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const categories = useMemo(
@@ -498,6 +506,29 @@ export default function PublicMenuPage() {
           </Link>
         </div>
       </nav>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-[92px] right-4 z-[80] flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-black text-white shadow-[0_12px_28px_rgba(0,0,0,.35)] transition hover:-translate-y-0.5 hover:bg-[#e21a22] lg:bottom-6 lg:right-6"
+          aria-label="Volver arriba"
+          title="Volver arriba"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 14 6-6 6 6" />
+          </svg>
+        </button>
+      )}
 
       {selectedProduct && (
         <div
