@@ -158,7 +158,7 @@ export default function App2MenuPage() {
           <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
             <Link href="/" className="group flex items-center">
               <img
-                src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png"
+                src={home?.brand?.logoUrl || "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png"}
                 alt="Alentó Pizza"
                 className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
               />
