@@ -622,20 +622,30 @@ export default function PublicMenuPage() {
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
             {homeLoaded ? (
-              <img
-                src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
-                alt="Alentó Pizza"
-                className="block aspect-[16/9] w-full object-cover object-center sm:aspect-[2/1] lg:aspect-[1920/730]"
-              />
+              <>
+                <img
+                  src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
+                  alt="Alentó Pizza"
+                  className="block h-auto w-full object-contain md:hidden"
+                />
+                <img
+                  src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
+                  alt="Alentó Pizza"
+                  className="hidden aspect-[2/1] w-full object-cover object-center md:block lg:aspect-[1920/730]"
+                />
+              </>
             ) : (
-              <div className="aspect-[16/9] w-full bg-black sm:aspect-[2/1] lg:aspect-[1920/730]" aria-hidden="true" />
+              <>
+                <div className="aspect-[1920/730] w-full bg-black md:hidden" aria-hidden="true" />
+                <div className="hidden aspect-[2/1] w-full bg-black md:block lg:aspect-[1920/730]" aria-hidden="true" />
+              </>
             )}
           </div>
         </section>
 
-        <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-3 sm:-mt-7 sm:px-5 lg:-mt-10 lg:px-7">
-          <div className="alento-scroll flex overflow-x-auto rounded-[18px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)] lg:overflow-hidden lg:rounded-[22px]">
-            {categories.slice(0, 6).map((category) => {
+        <section id="categorias-menu" className="relative z-20 mx-auto -mt-3 max-w-[1180px] px-2 sm:-mt-6 sm:px-4 lg:-mt-10 lg:px-7">
+          <div className="grid grid-cols-5 overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]">
+            {categories.slice(0, 5).map((category) => {
               const active = activeCategory === category.slug;
 
               return (
@@ -647,11 +657,11 @@ export default function PublicMenuPage() {
                     setQuery("");
                     document.getElementById("catalogo-menu")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className={`group relative flex min-h-[76px] min-w-[108px] flex-1 flex-col items-center justify-center gap-1 border-r border-neutral-200 px-2 text-center transition last:border-r-0 sm:min-w-[126px] lg:min-h-[86px] lg:min-w-0 lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
+                  className={`group relative flex min-h-[70px] min-w-0 flex-col items-center justify-center gap-1 border-r border-neutral-200 px-1 text-center transition last:border-r-0 sm:min-h-[78px] sm:px-2 lg:min-h-[86px] lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
                 >
                   {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
 
-                  <div className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full text-[20px] transition sm:h-10 sm:w-10 sm:text-[22px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
+                  <div className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[18px] transition sm:h-10 sm:w-10 sm:text-[22px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
                     {category.imageUrl ? (
                       <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -659,7 +669,7 @@ export default function PublicMenuPage() {
                     )}
                   </div>
 
-                  <span className={`max-w-[96px] truncate text-[9px] font-extrabold uppercase tracking-[0.01em] sm:text-[10px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
+                  <span className={`block w-full truncate text-[7px] font-extrabold uppercase leading-none tracking-[-0.01em] sm:text-[9px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
                     {category.name}
                   </span>
                 </button>
