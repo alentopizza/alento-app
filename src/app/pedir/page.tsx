@@ -251,21 +251,33 @@ export default function App2MenuPage() {
             })}
           </div>
 
-          <div className="mx-auto mt-3 flex w-fit items-center gap-2 text-[9px] font-medium uppercase tracking-[0.14em] text-white/35">
-            <span className="h-px w-8 bg-white/15" />
+          <div className="mx-auto mt-2 flex w-fit items-center gap-2 text-[8px] font-medium uppercase tracking-[0.18em] text-white/24">
+            <span className="h-px w-6 bg-white/10" />
             Sigue explorando
-            <span className="text-[#d71920]">↓</span>
-            <span className="h-px w-8 bg-white/15" />
+            <span className="text-[#d71920]/80">↓</span>
+            <span className="h-px w-6 bg-white/10" />
           </div>
         </section>
 
-        <section id="populares-pedir" className="mx-auto max-w-[1320px] px-8 pb-16 pt-10">
+        <section id="populares-pedir" className="mx-auto max-w-[1320px] px-8 pb-14 pt-5">
           <div className="text-center">
-            <p className="text-[25px] italic text-[#d71920]" style={{ fontFamily: "cursive" }}>Popular entre clientes</p>
-            <h2 className="mt-1 text-[46px] font-black uppercase tracking-[-0.04em]">Nuestros <span className="text-[#d71920]">más vendidos</span></h2>
+            <div className="mx-auto flex w-fit items-center gap-3">
+              <span className="h-px w-10 bg-[#d71920]/45" />
+              <p className="text-[18px] italic leading-none text-[#ef3036]" style={{ fontFamily: "cursive" }}>
+                Popular entre clientes
+              </p>
+              <span className="h-px w-10 bg-[#d71920]/45" />
+            </div>
+
+            <h2 className="mt-2 text-[38px] font-extrabold uppercase leading-none tracking-[-0.035em] text-white">
+              Nuestros <span className="text-[#e21a22]">más vendidos</span>
+            </h2>
+            <p className="mx-auto mt-2 max-w-[520px] text-[10px] font-medium uppercase tracking-[0.16em] text-white/28">
+              Favoritos de quienes siempre vuelven
+            </p>
           </div>
 
-          <div className="mt-9 grid grid-cols-4 gap-4">
+          <div className="mt-6 grid grid-cols-4 gap-4">
             {featuredProducts.map((product, index) => (
               <button
                 key={product.id}
