@@ -45,10 +45,6 @@ function UploadIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>;
 }
 
-function SaveIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M5 3h12l2 2v16H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg>;
-}
-
 function CloseIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="m6 6 12 12M18 6 6 18"/></svg>;
 }
@@ -83,13 +79,12 @@ function TemplateImage({ template }: { template: TemplateConfig }) {
 
 export default function NotificationsPage() {
   const [templates, setTemplates] = useState<TemplateConfig[]>([]);
-  const [baseline, setBaseline] = useState<TemplateConfig[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -101,7 +96,6 @@ export default function NotificationsPage() {
         if (!response.ok) throw new Error(data.error || "No fue posible cargar las notificaciones.");
         const loaded = (data.templates ?? []) as TemplateConfig[];
         setTemplates(loaded);
-        setBaseline(JSON.parse(JSON.stringify(loaded)) as TemplateConfig[]);
       })
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : "No fue posible cargar las notificaciones."))
       .finally(() => setLoading(false));
@@ -111,7 +105,6 @@ export default function NotificationsPage() {
     () => templates.find((item) => item.id === selectedId) ?? null,
     [templates, selectedId],
   );
-  const dirty = useMemo(() => JSON.stringify(templates) !== JSON.stringify(baseline), [templates, baseline]);
   const activeCount = useMemo(() => templates.filter((item) => item.active).length, [templates]);
   const customerCount = useMemo(() => templates.filter((item) => item.audience === "CUSTOMER").length, [templates]);
   const driverCount = useMemo(() => templates.filter((item) => item.audience === "DRIVER").length, [templates]);
@@ -134,37 +127,35 @@ export default function NotificationsPage() {
     });
   }, [templates, filter, query]);
 
-  function patch(id: string, changes: Partial<TemplateConfig>) {
-    setTemplates((current) => current.map((item) => item.id === id ? { ...item, ...changes } : item));
-    setNotice("");
-  }
-
-  function patchSelected(changes: Partial<TemplateConfig>) {
-    if (!selected) return;
-    patch(selected.id, changes);
-  }
-
-  async function save() {
-    if (!dirty) return;
-    setSaving(true);
+  async function setTemplateActive(templateId: string, active: boolean) {
+    if (togglingId) return;
+    setTogglingId(templateId);
     setError("");
     setNotice("");
+
+    const nextTemplates = templates.map((item) =>
+      item.id === templateId ? { ...item, active } : item,
+    );
+    setTemplates(nextTemplates);
+
     try {
       const response = await fetch("/api/notification-templates", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templates }),
+        body: JSON.stringify({ templates: nextTemplates }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible guardar los cambios.");
-      const saved = (data.templates ?? templates) as TemplateConfig[];
-      setTemplates(saved);
-      setBaseline(JSON.parse(JSON.stringify(saved)) as TemplateConfig[]);
-      setNotice("Cambios guardados correctamente.");
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "No fue posible guardar los cambios.");
+      if (!response.ok) throw new Error(data.error || "No fue posible actualizar la notificación.");
+
+      setTemplates((data.templates ?? nextTemplates) as TemplateConfig[]);
+      setNotice(active ? "Notificación activada." : "Notificación desactivada.");
+    } catch (toggleError) {
+      setTemplates((current) => current.map((item) =>
+        item.id === templateId ? { ...item, active: !active } : item,
+      ));
+      setError(toggleError instanceof Error ? toggleError.message : "No fue posible actualizar la notificación.");
     } finally {
-      setSaving(false);
+      setTogglingId(null);
     }
   }
 
@@ -183,9 +174,6 @@ export default function NotificationsPage() {
 
       const uploadedUrl = String(data.url || "");
       setTemplates((current) => current.map((item) =>
-        item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl } : item,
-      ));
-      setBaseline((current) => current.map((item) =>
         item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl } : item,
       ));
       setNotice("Imagen guardada y vinculada a la plantilla. Esta es ahora la imagen que usará WhatsApp.");
@@ -216,15 +204,10 @@ export default function NotificationsPage() {
               <p className="mt-1.5 text-[12px] text-white/55">Administra tus plantillas desde una galería simple. Abre solo la que quieras modificar.</p>
             </div>
             <div className="flex items-center gap-2">
-              {dirty && <span className="hidden rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-[10px] font-bold text-amber-100 sm:inline-flex">Cambios sin guardar</span>}
               <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2 text-center">
                 <span className="block text-[8px] font-bold uppercase tracking-[.12em] text-white/40">Activas</span>
                 <b className="mt-0.5 block text-xl leading-none">{activeCount}/{templates.length}</b>
               </div>
-              <button onClick={() => void save()} disabled={!dirty || saving}
-                className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[var(--brand-red)] px-4 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(229,28,17,.24)] disabled:opacity-40">
-                <SaveIcon /> {saving ? "Guardando..." : "Guardar cambios"}
-              </button>
             </div>
           </div>
         </header>
@@ -275,7 +258,7 @@ export default function NotificationsPage() {
                         <h3 className="truncate text-[15px] font-black tracking-[-.02em] text-neutral-950">{template.title}</h3>
                         <p className="mt-1 truncate text-[9px] font-semibold text-neutral-400">{template.event}</p>
                       </div>
-                      <Switch checked={template.active} onChange={(active) => patch(template.id, { active })} />
+                      <Switch checked={template.active} onChange={(active) => void setTemplateActive(template.id, active)} />
                     </div>
 
                     <div className="mt-3 flex min-h-[26px] flex-wrap gap-1.5">
@@ -359,35 +342,43 @@ export default function NotificationsPage() {
                     <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. Al cargarla se guarda automáticamente, reemplaza la URL anterior y pasa a ser la imagen usada por el notifier.</p>
                   </section>
 
-                  <section className="grid gap-4 border-t border-neutral-100 pt-5 sm:grid-cols-[minmax(0,1fr)_160px]">
-                    <label>
-                      <span className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Plantilla Meta</span>
-                      <input value={selected.templateName} onChange={(event) => patchSelected({ templateName: event.target.value })}
-                        className="alento-input mt-1.5 h-11 w-full rounded-xl px-3 text-sm font-semibold" />
-                      <span className="mt-1 block text-[9px] leading-4 text-neutral-400">Debe coincidir exactamente con el nombre aprobado en Meta.</span>
-                    </label>
-                    <label>
-                      <span className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Idioma</span>
-                      <input value={selected.language} onChange={(event) => patchSelected({ language: event.target.value })}
-                        className="alento-input mt-1.5 h-11 w-full rounded-xl px-3 text-sm font-semibold" />
-                    </label>
+                  <section className="border-t border-neutral-100 pt-5">
+                    <div className="mb-3">
+                      <p className="text-[11px] font-black text-neutral-950">Datos de Meta</p>
+                      <p className="mt-1 text-[9px] leading-4 text-neutral-400">Estos datos son informativos y corresponden a la plantilla aprobada en Meta.</p>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Plantilla</span>
+                        <p className="mt-2 break-words text-[13px] font-black text-neutral-900">{selected.templateName}</p>
+                      </div>
+                      <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Idioma</span>
+                        <p className="mt-2 text-[13px] font-black uppercase text-neutral-900">{selected.language}</p>
+                      </div>
+                      <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Categoría</span>
+                        <p className="mt-2 text-[13px] font-black text-neutral-900">{selected.category}</p>
+                      </div>
+                    </div>
                   </section>
 
                   {selected.button && (
                     <section className="border-t border-neutral-100 pt-5">
-                      <p className="text-[11px] font-black text-neutral-950">Botón de acción</p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <label>
-                          <span className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Texto visible</span>
-                          <input value={selected.button.label} maxLength={25}
-                            onChange={(event) => patchSelected({ button: { ...selected.button!, label: event.target.value } })}
-                            className="alento-input mt-1.5 h-11 w-full rounded-xl px-3 text-sm font-semibold" />
-                        </label>
-                        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                          <span className="text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Destino</span>
-                          <p className="mt-1 text-[10px] font-bold text-neutral-700">
+                      <div className="mb-3">
+                        <p className="text-[11px] font-black text-neutral-950">Botón aprobado</p>
+                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">El texto y el tipo de enlace vienen definidos por la plantilla de Meta.</p>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                        <div>
+                          <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Texto</span>
+                          <p className="mt-1 text-[12px] font-black text-neutral-900">{selected.button.label}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Destino</span>
+                          <p className="mt-1 text-[10px] font-bold text-neutral-600">
                             {selected.button.type === "tracking" && "Seguimiento del cliente"}
-                            {selected.button.type === "driver_tracking" && "Página privada del repartidor"}
+                            {selected.button.type === "driver_tracking" && "Orden del repartidor"}
                             {selected.button.type === "static" && "Enlace fijo"}
                           </p>
                         </div>
@@ -396,31 +387,56 @@ export default function NotificationsPage() {
                   )}
                 </div>
 
-                <aside className="space-y-5">
-                  <section className="rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black text-neutral-950">Automatización</p>
-                        <p className="mt-1 text-[9px] leading-4 text-neutral-500">{eventDescription[selected.event] ?? "Conectada al flujo operativo de Alentó."}</p>
+                <aside className="space-y-4">
+                  <section className="rounded-[24px] border border-neutral-200 bg-[linear-gradient(145deg,#fff,#faf9f7)] p-4 shadow-[0_10px_28px_rgba(20,18,16,.04)]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Estado de la notificación</p>
+                        <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
+                          {selected.active ? "Notificación activa" : "Notificación inactiva"}
+                        </h3>
+                        <p className="mt-1.5 text-[10px] leading-5 text-neutral-500">
+                          {selected.active
+                            ? "Alentó enviará esta plantilla cuando ocurra el evento correspondiente."
+                            : "La plantilla seguirá configurada, pero no se enviará automáticamente."}
+                        </p>
                       </div>
-                      <Switch checked={selected.active} onChange={(active) => patchSelected({ active })} />
+                      <Switch
+                        checked={selected.active}
+                        onChange={(active) => void setTemplateActive(selected.id, active)}
+                      />
                     </div>
+                    {togglingId === selected.id && (
+                      <p className="mt-3 text-[9px] font-bold text-neutral-400">Guardando estado...</p>
+                    )}
+                  </section>
+
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4">
+                    <p className="text-[10px] font-black text-neutral-950">Automatización</p>
+                    <p className="mt-1 text-[9px] leading-4 text-neutral-500">{eventDescription[selected.event] ?? "Conectada al flujo operativo de Alentó."}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5">
                       <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[8px] font-bold text-white">{selected.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
-                      {selected.fulfillmentTypes.map((type) => <span key={type} className="rounded-full bg-white px-2.5 py-1 text-[8px] font-bold text-neutral-500 ring-1 ring-neutral-200">{fulfillmentLabel[type] ?? type}</span>)}
+                      {selected.fulfillmentTypes.map((type) => (
+                        <span key={type} className="rounded-full bg-neutral-50 px-2.5 py-1 text-[8px] font-bold text-neutral-500 ring-1 ring-neutral-200">{fulfillmentLabel[type] ?? type}</span>
+                      ))}
                     </div>
                   </section>
 
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
-                    <p className="text-[10px] font-black text-neutral-950">Variables</p>
-                    <p className="mt-1 text-[9px] leading-4 text-neutral-400">Datos que el sistema reemplaza al momento del envío.</p>
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black text-neutral-950">Variables de Meta</p>
+                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">Solo informativas. Alentó las reemplaza al enviar.</p>
+                      </div>
+                      <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-black text-neutral-500">{selected.variables.length}</span>
+                    </div>
                     {selected.variables.length === 0 ? (
                       <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-3 text-[10px] font-semibold text-neutral-500">Esta plantilla no usa variables.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {selected.variables.map((variable) => (
-                          <div key={variable.key} className="grid grid-cols-[58px_1fr] items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2.5">
-                            <code className="rounded-lg bg-white px-2 py-1.5 text-center text-[11px] font-black text-[var(--brand-red)]">{`{{${variable.key}}}`}</code>
+                          <div key={variable.key} className="grid grid-cols-[58px_1fr] items-center gap-3 rounded-xl border border-neutral-100 bg-[#fafafa] px-3 py-3">
+                            <code className="rounded-lg bg-white px-2 py-1.5 text-center text-[11px] font-black text-[var(--brand-red)] shadow-sm">{`{{${variable.key}}}`}</code>
                             <div className="min-w-0">
                               <b className="block truncate text-[10px] text-neutral-800">{variable.label}</b>
                               <code className="mt-0.5 block truncate text-[8px] text-neutral-400">{variable.source}</code>
@@ -431,41 +447,23 @@ export default function NotificationsPage() {
                     )}
                   </section>
 
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
-                    <p className="text-[10px] font-black text-neutral-950">Configuración</p>
-                    <div className="mt-3 space-y-3">
-                      <label>
-                        <span className="text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Categoría Meta</span>
-                        <input value={selected.category} onChange={(event) => patchSelected({ category: event.target.value })}
-                          className="alento-input mt-1.5 h-10 w-full rounded-xl px-3 text-xs font-semibold" />
-                      </label>
-                      {selected.delayMinutes !== undefined && (
-                        <label>
-                          <span className="text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Enviar después de finalizar</span>
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <input type="number" min={0} value={selected.delayMinutes}
-                              onChange={(event) => patchSelected({ delayMinutes: Math.max(0, Number(event.target.value)) })}
-                              className="alento-input h-10 w-24 rounded-xl px-3 text-sm font-black" />
-                            <span className="text-[10px] font-semibold text-neutral-500">minutos</span>
-                          </div>
-                        </label>
-                      )}
-                    </div>
-                  </section>
+                  {selected.delayMinutes !== undefined && (
+                    <section className="rounded-[24px] border border-amber-100 bg-amber-50 p-4">
+                      <p className="text-[9px] font-black uppercase tracking-[.09em] text-amber-700">Programación</p>
+                      <p className="mt-1 text-[14px] font-black text-amber-950">{selected.delayMinutes} minutos después de finalizar</p>
+                      <p className="mt-1 text-[9px] leading-4 text-amber-700">Este tiempo pertenece al flujo definido para esta notificación.</p>
+                    </section>
+                  )}
                 </aside>
               </div>
             </div>
 
             <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 sm:px-6">
-              <p className="hidden text-[9px] text-neutral-400 sm:block">Los cambios se aplican al notifier después de guardar.</p>
-              <div className="ml-auto flex items-center gap-2">
-                <button type="button" onClick={() => setSelectedId(null)} disabled={uploading}
-                  className="h-11 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-600">Cerrar</button>
-                <button type="button" onClick={() => void save()} disabled={!dirty || saving || uploading}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white disabled:opacity-40">
-                  <SaveIcon /> {saving ? "Guardando..." : dirty ? "Guardar cambios" : "Guardado"}
-                </button>
-              </div>
+              <p className="hidden text-[9px] text-neutral-400 sm:block">La imagen y el estado se guardan automáticamente. Los datos de Meta son solo informativos.</p>
+              <button type="button" onClick={() => setSelectedId(null)} disabled={uploading}
+                className="ml-auto h-11 rounded-xl bg-neutral-950 px-5 text-[11px] font-black text-white">
+                Cerrar
+              </button>
             </footer>
           </div>
         </div>
