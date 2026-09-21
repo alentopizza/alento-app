@@ -162,16 +162,19 @@ export default function UnifiedLoginPage() {
       </picture>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
 
-      <div className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-[30px] border border-white/40 bg-white/95 shadow-[0_30px_80px_rgba(0,0,0,.32)] backdrop-blur-xl">
-        <div className="px-6 pb-2 pt-6 text-center">
-          <img src={LOGO} alt="Alentó Pizza" className="mx-auto h-16 w-16 rounded-2xl object-cover" />
-          <p className="mt-4 text-[9px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+      <div className="relative z-10 w-full max-w-[430px] overflow-hidden rounded-[30px] border border-white/10 bg-[#0d0d0e]/95 shadow-[0_32px_90px_rgba(0,0,0,.55)] backdrop-blur-xl">
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-[#e21a22] to-transparent" />
+        <div className="px-6 pb-2 pt-7 text-center">
+          <div className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-[22px] border border-white/10 bg-white/[0.04] shadow-[0_12px_30px_rgba(0,0,0,.35)]">
+            <img src={LOGO} alt="Alentó Pizza" className="h-[56px] w-[56px] rounded-2xl object-cover" />
+          </div>
+          <p className="mt-4 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#ef3a40]">
             {mode === "customer" ? "Tu cuenta Alentó" : "Acceso colaboradores"}
           </p>
-          <h1 className="mt-1 text-[25px] font-semibold tracking-[-0.025em] text-neutral-950">
+          <h1 className="mt-1 text-[27px] font-semibold tracking-[-0.03em] text-white">
             {mode === "customer" ? customerTitle : "Iniciar sesión"}
           </h1>
-          <p className="mx-auto mt-2 max-w-[330px] text-[12px] leading-5 text-neutral-500">
+          <p className="mx-auto mt-2 max-w-[330px] text-[12px] leading-5 text-white/48">
             {mode === "customer"
               ? step === "phone"
                 ? "Ingresa con tu celular. Te enviaremos un código por WhatsApp."
@@ -187,13 +190,13 @@ export default function UnifiedLoginPage() {
                 <input
                   value={countryCode}
                   onChange={(event) => setCountryCode(event.target.value)}
-                  className="alento-input h-12 w-20 rounded-xl px-3 text-center text-sm"
+                  className="h-12 w-20 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-center text-sm text-white outline-none transition focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 />
                 <input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
                   inputMode="tel"
-                  className="alento-input h-12 min-w-0 flex-1 rounded-xl px-4 text-sm"
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                   placeholder="300 000 0000"
                   autoFocus
                 />
@@ -204,15 +207,15 @@ export default function UnifiedLoginPage() {
                 onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                 inputMode="numeric"
                 maxLength={6}
-                className="alento-input h-14 w-full rounded-xl px-4 text-center text-[26px] font-semibold tracking-[0.28em]"
+                className="h-14 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-center text-[26px] font-semibold tracking-[0.28em] text-white outline-none transition placeholder:text-white/22 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 placeholder="000000"
                 autoFocus
               />
             )}
 
-            {error && <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] leading-4 text-red-700">{error}</p>}
+            {error && <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[11px] leading-4 text-red-300">{error}</p>}
 
-            <button disabled={busy} className="mt-4 h-12 w-full rounded-xl bg-[var(--brand-red)] text-[13px] font-semibold text-white disabled:opacity-50">
+            <button disabled={busy} className="mt-4 h-12 w-full rounded-xl bg-[#e21a22] text-[13px] font-bold text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition hover:bg-[#ef1c25] disabled:opacity-50">
               {busy ? "Procesando..." : step === "phone" ? "Enviar código por WhatsApp" : "Validar e ingresar"}
             </button>
 
@@ -224,61 +227,61 @@ export default function UnifiedLoginPage() {
                   setCode("");
                   setError("");
                 }}
-                className="mt-2 h-10 w-full text-[11px] font-semibold text-neutral-500"
+                className="mt-2 h-10 w-full text-[11px] font-semibold text-white/48 transition hover:text-white"
               >
                 Cambiar número
               </button>
             )}
 
             {step === "phone" && (
-              <div className="mt-5 border-t border-neutral-100 pt-5">
+              <div className="mt-5 border-t border-white/10 pt-5">
                 <button
                   type="button"
                   onClick={() => switchMode("staff")}
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700"
+                  className="h-11 w-full rounded-xl border border-white/12 bg-white/[0.05] text-[11px] font-semibold text-white/78 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                 >
                   Iniciar como colaborador
                 </button>
               </div>
             )}
 
-            <button type="button" onClick={() => router.push("/menu")} className="mt-2 h-10 w-full text-[11px] font-medium text-neutral-400 transition hover:text-neutral-700">
+            <button type="button" onClick={() => router.push("/menu")} className="mt-2 h-10 w-full text-[11px] font-medium text-white/38 transition hover:text-white/70">
               Volver A Menu
             </button>
           </form>
         ) : (
           <form onSubmit={loginStaff} className="p-6">
             <label className="block">
-              <span className="text-[12px] font-semibold text-neutral-700">Correo</span>
+              <span className="text-[12px] font-semibold text-white/70">Correo</span>
               <input
                 type="email"
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="alento-input mt-2 h-12 w-full rounded-xl px-4 text-sm"
+                className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 placeholder="colaborador@alento.com"
                 autoFocus
               />
             </label>
 
             <label className="mt-4 block">
-              <span className="text-[12px] font-semibold text-neutral-700">Contraseña</span>
+              <span className="text-[12px] font-semibold text-white/70">Contraseña</span>
               <input
                 type="password"
                 autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="alento-input mt-2 h-12 w-full rounded-xl px-4 text-sm"
+                className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 placeholder="••••••••"
               />
             </label>
 
-            {error && <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] text-red-700">{error}</p>}
+            {error && <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[11px] text-red-300">{error}</p>}
 
             <button
               type="submit"
               disabled={busy}
-              className="mt-5 h-12 w-full rounded-xl bg-neutral-950 text-[13px] font-semibold text-white disabled:opacity-50"
+              className="mt-5 h-12 w-full rounded-xl bg-[#e21a22] text-[13px] font-bold text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition hover:bg-[#ef1c25] disabled:opacity-50"
             >
               {busy ? "Ingresando..." : "Ingresar como colaborador"}
             </button>
@@ -287,7 +290,7 @@ export default function UnifiedLoginPage() {
               <button
                 type="button"
                 onClick={() => router.push("/setup/admin")}
-                className="mt-3 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[11px] font-semibold text-neutral-600"
+                className="mt-3 w-full rounded-xl border border-white/12 bg-white/[0.05] px-4 py-3 text-[11px] font-semibold text-white/65 transition hover:bg-white/[0.08] hover:text-white"
               >
                 Configurar primer administrador
               </button>
@@ -296,7 +299,7 @@ export default function UnifiedLoginPage() {
             <button
               type="button"
               onClick={() => switchMode("customer")}
-              className="mt-5 h-11 w-full rounded-xl border border-neutral-200 bg-white text-[11px] font-semibold text-neutral-700"
+              className="mt-5 h-11 w-full rounded-xl border border-white/12 bg-white/[0.05] text-[11px] font-semibold text-white/78 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
             >
               Volver al acceso de clientes
             </button>
@@ -304,7 +307,7 @@ export default function UnifiedLoginPage() {
             <button
               type="button"
               onClick={() => router.push("/menu")}
-              className="mt-2 h-10 w-full text-[11px] font-medium text-neutral-400 transition hover:text-neutral-700"
+              className="mt-2 h-10 w-full text-[11px] font-medium text-white/38 transition hover:text-white/70"
             >
               Volver A Menu
             </button>
