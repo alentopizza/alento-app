@@ -479,3 +479,13 @@ La portada hero de escritorio en `/menu` ya no depende únicamente de una consta
 - se guarda como `public.home.menuHero`;
 - si no existe una imagen activa, `/menu` conserva la portada actual como fallback;
 - el antiguo `primaryBanner` queda guardado por compatibilidad, pero ya no es el controlador visual de esta portada.
+
+
+## Logo configurable de /menu
+
+El logo del header de escritorio en `/menu` usa `public.home.brand.logoUrl`.
+
+- se administra desde `/personalizacion` en el bloque `Logo del menú`;
+- tamaño recomendado: `600 × 180 px`;
+- se muestra con `object-contain`, sin deformación;
+- si el campo queda vacío, se usa el logo oficial actual como fallback.
