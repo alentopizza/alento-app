@@ -12,7 +12,11 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json({ error: "Imagen no encontrada." }, { status: 404 });
   }
 
-  return new NextResponse(image.data, {
+  const bytes = new Uint8Array(image.data.byteLength);
+  bytes.set(image.data);
+  const body = new Blob([bytes.buffer], { type: image.contentType });
+
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "Content-Type": image.contentType,
