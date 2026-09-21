@@ -510,3 +510,14 @@ Se retiró código legado para que el repositorio represente la experiencia vige
 - la página pública oficial es `/menu`;
 - los identificadores internos de `/menu` dejaron de usar nombres heredados de `/pedir`;
 - el componente público se llama `PublicMenuPage`.
+
+
+## Rutas legacy eliminadas
+
+Se eliminaron definitivamente las rutas de compatibilidad `/pedir` y `/cuenta/login`.
+
+La superficie pública vigente queda reducida a:
+- `/`: Home pública;
+- `/menu`: catálogo público;
+- `/login`: autenticación unificada;
+- `/cuenta`: cuenta autenticada del cliente.
