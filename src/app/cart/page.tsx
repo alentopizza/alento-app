@@ -69,7 +69,7 @@ export default function CartPage() {
 
   return (
     <main className="min-h-screen bg-[#090909] pb-28 text-white md:pb-0 md:pl-[112px]">
-      <PublicDesktopSidebar active="cart" cartCount={cartCount} />
+      <PublicDesktopSidebar active="cart" cartCount={cartCount} contentMaxWidth={980} />
       <PublicBrandHeader />
 
       <section className="mx-auto w-full max-w-[980px] px-4 pb-6 pt-5 sm:px-6 md:pb-12 md:pt-8">
