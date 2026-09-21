@@ -12,31 +12,16 @@ type Props = {
 
 const TABS: ActiveTab[] = ["menu", "cart", "club", "profile"];
 
-function PizzaIcon({
-  className = "h-7 w-7",
-  active = false,
-}: {
-  className?: string;
-  active?: boolean;
-}) {
-  const dot = active ? "#e21a22" : "#8d8d8d";
-
+function PizzaIcon({ className = "h-6 w-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">
       <path
         d="M10 46 31 11c2-3 6-4 9-2 8 5 13 13 14 23 .4 3-2 6-5 7L15 51c-4 1-7-2-5-5Z"
         fill="currentColor"
       />
-      <circle cx="37" cy="20" r="3.3" fill={dot} />
-      <circle cx="45" cy="29" r="3.3" fill={dot} />
-      <circle cx="29" cy="31" r="3.3" fill={dot} />
-      <path
-        d="M15 48c10-1 23-6 35-12"
-        fill="none"
-        stroke={dot}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
+      <circle cx="37" cy="20" r="3.3" fill="currentColor" />
+      <circle cx="45" cy="29" r="3.3" fill="currentColor" />
+      <circle cx="29" cy="31" r="3.3" fill="currentColor" />
     </svg>
   );
 }
@@ -95,19 +80,64 @@ function ProfileIcon({ className = "h-6 w-6" }: { className?: string }) {
   );
 }
 
-function ActiveIcon({ tab }: { tab: ActiveTab }) {
-  if (tab === "menu") return <PizzaIcon className="h-8 w-8" active />;
-  if (tab === "cart") return <CartIcon className="h-7 w-7" />;
-  if (tab === "club") return <ClubIcon className="h-7 w-7" />;
-  return <ProfileIcon className="h-7 w-7" />;
+function TabIcon({ tab }: { tab: ActiveTab }) {
+  if (tab === "menu") return <PizzaIcon />;
+  if (tab === "cart") return <CartIcon />;
+  if (tab === "club") return <ClubIcon />;
+  return <ProfileIcon />;
+}
+
+function tabLabel(tab: ActiveTab) {
+  if (tab === "menu") return "Menú";
+  if (tab === "cart") return "Carrito";
+  if (tab === "club") return "Club";
+  return "Perfil";
 }
 
 function rememberOrigin(active: ActiveTab) {
   try {
     window.sessionStorage.setItem("alento-mobile-nav-from", active);
   } catch {
-    // La navegación nunca debe bloquearse por sessionStorage.
+    // La navegación no debe depender de sessionStorage.
   }
+}
+
+function ItemContent({
+  tab,
+  visualActive,
+  cartCount,
+}: {
+  tab: ActiveTab;
+  visualActive: ActiveTab;
+  cartCount: number;
+}) {
+  const selected = visualActive === tab;
+
+  return (
+    <span
+      className={`relative flex h-full w-full items-center justify-center gap-2 overflow-visible transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "text-[#e21a22]" : "text-[#c8cbd0]"}`}
+    >
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+        <TabIcon tab={tab} />
+
+        {tab === "cart" && cartCount > 0 && !selected && (
+          <span className="absolute -right-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[8px] font-black leading-none text-white">
+            {cartCount > 99 ? "99+" : cartCount}
+          </span>
+        )}
+      </span>
+
+      <span
+        className={`whitespace-nowrap text-[12px] font-semibold transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "max-w-[72px] translate-x-0 opacity-100" : "max-w-0 -translate-x-1 overflow-hidden opacity-0"}`}
+      >
+        {tabLabel(tab)}
+      </span>
+
+      <span
+        className={`absolute bottom-[9px] h-[2px] rounded-full bg-[#e21a22] transition-all duration-300 ${selected ? "w-5 opacity-100" : "w-0 opacity-0"}`}
+      />
+    </span>
+  );
 }
 
 export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
@@ -129,86 +159,60 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
     if (previous && previous !== active) {
       setVisualActive(previous);
 
-      const firstFrame = window.requestAnimationFrame(() => {
+      const frame = window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => setVisualActive(active));
       });
 
-      return () => window.cancelAnimationFrame(firstFrame);
+      return () => window.cancelAnimationFrame(frame);
     }
 
     setVisualActive(active);
   }, [active]);
 
-  const activeIndex = TABS.indexOf(visualActive);
-  const activeLeft = `${(activeIndex + 0.5) * 25}%`;
+  function itemClass(tab: ActiveTab) {
+    const selected = visualActive === tab;
+
+    return `relative h-full min-w-0 transition-[flex-grow] duration-300 ease-[cubic-bezier(.22,.8,.24,1)] active:scale-[.98] ${selected ? "grow-[1.75]" : "grow"}`;
+  }
 
   return (
     <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:hidden">
-      <div className="relative mx-auto h-[66px] max-w-[430px]">
-        <div className="absolute inset-x-0 bottom-0 h-[58px] rounded-[15px] border border-black/10 bg-[#f4f4f4] shadow-[0_18px_45px_rgba(0,0,0,.30)]" />
-
-        <div
-          className="pointer-events-none absolute bottom-0 z-10 h-[84px] w-[100px] -translate-x-1/2 transition-[left] duration-[360ms] ease-[cubic-bezier(.22,.8,.24,1)]"
-          style={{ left: activeLeft }}
-          aria-hidden="true"
-        >
-          <svg
-            viewBox="0 0 100 64"
-            className="absolute bottom-0 left-0 h-[64px] w-[100px]"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M0 64V47h14c10 0 12.5-8 15-19C31.8 13.5 39.2 4 50 4s18.2 9.5 21 24c2.5 11 5 19 15 19h14v17H0Z"
-              fill="#f4f4f4"
-            />
-          </svg>
-
-          <span className="absolute left-1/2 top-[4px] flex h-[52px] w-[52px] -translate-x-1/2 items-center justify-center rounded-full bg-[#e21a22] text-white shadow-[0_7px_18px_rgba(226,26,34,.34)]">
-            <ActiveIcon tab={visualActive} />
-          </span>
-        </div>
-
-        <div className="absolute inset-x-0 bottom-0 z-20 grid h-[58px] grid-cols-4 items-center">
+      <div className="mx-auto h-[66px] max-w-[430px] rounded-full border border-black/5 bg-white px-3 shadow-[0_16px_40px_rgba(0,0,0,.24)]">
+        <div className="flex h-full items-stretch">
           <Link
             href="/menu"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "menu" ? "text-transparent" : "text-[#343434]"}`}
+            className={itemClass("menu")}
             aria-label="Menú"
           >
-            <PizzaIcon className="h-6 w-6" />
+            <ItemContent tab="menu" visualActive={visualActive} cartCount={cartCount} />
           </Link>
 
           <Link
             href="/cart"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "cart" ? "text-transparent" : "text-[#343434]"}`}
+            className={itemClass("cart")}
             aria-label={`Carrito con ${cartCount} productos`}
           >
-            <CartIcon />
-
-            {cartCount > 0 && active !== "cart" && (
-              <span className="absolute left-1/2 top-1 ml-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[9px] font-black text-white shadow-sm">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
+            <ItemContent tab="cart" visualActive={visualActive} cartCount={cartCount} />
           </Link>
 
           <button
             type="button"
-            className={`relative flex h-full items-center justify-center ${visualActive === "club" ? "text-transparent" : "text-[#343434]"}`}
+            className={itemClass("club")}
             aria-label="Club de la Pizza próximamente"
             title="Club de la Pizza próximamente"
           >
-            <ClubIcon />
+            <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} />
           </button>
 
           <Link
             href="/cuenta"
             onClick={() => rememberOrigin(active)}
-            className={`relative flex h-full items-center justify-center transition active:scale-95 ${visualActive === "profile" ? "text-transparent" : "text-[#343434]"}`}
+            className={itemClass("profile")}
             aria-label="Perfil"
           >
-            <ProfileIcon />
+            <ItemContent tab="profile" visualActive={visualActive} cartCount={cartCount} />
           </Link>
         </div>
       </div>
