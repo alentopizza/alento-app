@@ -151,33 +151,67 @@ export default function App2MenuPage() {
   return (
     <main className="min-h-screen bg-[#090909] text-white">
       <section className="hidden min-h-screen bg-[#090909] lg:block">
-        <header className="border-b border-white/10 bg-black/95">
-          <div className="mx-auto flex h-[88px] max-w-[1320px] items-center justify-between px-8">
-            <Link href="/" className="flex items-center gap-3">
-              <img
-                src={home?.brand?.logoUrl || FALLBACK_LOGO}
-                alt="Alentó Pizza"
-                className="h-14 w-14 rounded-2xl object-cover"
-              />
-              <div>
-                <b className="block text-[22px] font-black tracking-[-0.03em]">Alentó Pizza</b>
-                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">Sabor que te hace volver</span>
+        <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-black/95 shadow-[0_12px_34px_rgba(0,0,0,.34)] backdrop-blur-xl">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/45 to-transparent" />
+
+          <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
+            <Link href="/" className="group flex items-center gap-3.5">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-[#d71920]/20 blur-xl transition group-hover:bg-[#d71920]/30" />
+                <img
+                  src={home?.brand?.logoUrl || FALLBACK_LOGO}
+                  alt="Alentó Pizza"
+                  className="relative h-[54px] w-[54px] rounded-full object-cover ring-1 ring-white/10"
+                />
+              </div>
+
+              <div className="leading-none">
+                <span className="block text-[21px] font-extrabold tracking-[-0.025em] text-white">
+                  Alentó Pizza
+                </span>
+                <span className="mt-2 block text-[8px] font-medium uppercase tracking-[0.22em] text-white/46">
+                  Sabor que te hace volver
+                </span>
               </div>
             </Link>
 
-            <nav className="flex items-center gap-9 text-[12px] font-black uppercase tracking-[0.08em]">
-              <a href="#inicio-pedir" className="border-b-2 border-[#d71920] pb-2 text-white">Inicio</a>
-              <a href="#categorias-pedir" className="text-white/68 transition hover:text-white">Menú</a>
-              <a href="#populares-pedir" className="text-white/68 transition hover:text-white">Destacados</a>
-              <Link href="/cuenta" className="text-white/68 transition hover:text-white">Mi cuenta</Link>
+            <nav className="flex items-center gap-10">
+              <a
+                href="#inicio-pedir"
+                className="relative py-3 text-[14px] font-medium tracking-[0.015em] text-white transition-colors after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-7 after:rounded-full after:bg-[#e21a22] after:content-['']"
+              >
+                Inicio
+              </a>
+              <a
+                href="#categorias-pedir"
+                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+              >
+                Menú
+              </a>
+              <a
+                href="#populares-pedir"
+                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+              >
+                Destacados
+              </a>
+              <Link
+                href="/cuenta"
+                className="py-3 text-[14px] font-medium tracking-[0.015em] text-white/72 transition-colors hover:text-white"
+              >
+                Mi cuenta
+              </Link>
             </nav>
 
             <button
               type="button"
               onClick={() => document.getElementById("categorias-pedir")?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-full bg-[#d71920] px-7 py-3.5 text-[12px] font-black uppercase tracking-[0.07em] text-white shadow-[0_10px_30px_rgba(215,25,32,.24)]"
+              className="group relative overflow-hidden rounded-full bg-[#e21a22] px-8 py-3.5 text-[14px] font-extrabold tracking-[0.035em] text-white shadow-[0_12px_30px_rgba(226,26,34,.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] hover:shadow-[0_16px_36px_rgba(226,26,34,.36)] active:translate-y-0"
             >
-              Pedir ahora ↗
+              <span className="relative z-10 flex items-center gap-2">
+                Pedir ahora
+                <span className="text-[16px] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5">↗</span>
+              </span>
+              <span className="absolute inset-y-0 -left-10 w-8 rotate-12 bg-white/18 blur-md transition-all duration-500 group-hover:left-[110%]" />
             </button>
           </div>
         </header>
