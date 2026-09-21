@@ -12,6 +12,7 @@ import {
   type OrderStatus,
 } from "@/lib/orderWorkflow";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
+import { findTemplateForEvent, getNotificationTemplates } from "@/lib/notificationTemplates";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -99,6 +100,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     const preparedIndex = flow.indexOf("PREPARED");
+    const reviewTemplate = requested === "COMPLETED"
+      ? findTemplateForEvent(await getNotificationTemplates(), "order.review", fulfillmentType)
+      : null;
 
     const updated = await prisma.$transaction(async (tx) => {
       if (requested === "PREPARING") {
@@ -152,6 +156,27 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             reason: "PURCHASE",
           },
         });
+
+        if (reviewTemplate) {
+          const delayMinutes = reviewTemplate.delayMinutes ?? 60;
+          await tx.notificationJob.upsert({
+            where: { kind_orderId: { kind: "GOOGLE_REVIEW", orderId: order.id } },
+            create: {
+              kind: "GOOGLE_REVIEW",
+              orderId: order.id,
+              runAt: new Date(Date.now() + delayMinutes * 60_000),
+              status: "PENDING",
+            },
+            update: {
+              runAt: new Date(Date.now() + delayMinutes * 60_000),
+              status: "PENDING",
+              attempts: 0,
+              lastError: null,
+              sentAt: null,
+              lockedAt: null,
+            },
+          });
+        }
       }
 
       return updatedOrder;
