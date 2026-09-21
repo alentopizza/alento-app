@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getCustomerSession } from "@/lib/auth";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
-import PublicDesktopSidebar from "@/components/PublicDesktopSidebar";
 
 function money(value: unknown) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
@@ -38,9 +37,8 @@ export default async function CustomerAccountPage() {
 
   return (
     <>
-      <PublicDesktopSidebar active="profile" contentMaxWidth={760} />
       <PublicBrandHeader />
-      <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 md:pl-[136px]">
+      <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28">
       <div className="mx-auto max-w-[760px] space-y-4">
         <header className="rounded-[28px] bg-[linear-gradient(135deg,#09090a,#281516)] p-6 text-white shadow-xl">
           <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Mi cuenta</p>
