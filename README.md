@@ -284,8 +284,8 @@ Durante la etapa temporal en `pos.alentopizza.com`:
 
 - `/`: Home pública principal aprobada;
 - `/menu`: experiencia pública de catálogo/productos;
-- `/app2`: versión pública anterior conservada temporalmente para comparación;
-- `/app`: alias temporal de la versión pública anterior;
+- `/menu`: versión pública anterior conservada temporalmente para comparación;
+- `/menu`: alias temporal de la versión pública anterior;
 - `/interno`: Punto de Venta protegido;
 - `/login` y `/cuenta/login`: acceso unificado para clientes y colaboradores.
 
