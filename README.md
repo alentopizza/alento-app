@@ -136,7 +136,7 @@ Incluye:
 - CTA deslizante con flecha para entrar al menú;
 - instalación PWA orientada al cliente.
 
-El CTA de la Home lleva actualmente a `/pedir`.
+El CTA de la Home lleva actualmente a `/menu`.
 
 La pantalla `/pedir` consume el catálogo real, pero su diseño de productos **todavía está en definición**. No debe considerarse visualmente cerrada hasta aprobación explícita.
 
@@ -283,7 +283,7 @@ Pendientes estratégicos conocidos:
 Durante la etapa temporal en `pos.alentopizza.com`:
 
 - `/`: Home pública principal aprobada;
-- `/pedir`: experiencia de catálogo/productos en definición;
+- `/menu`: experiencia pública de catálogo/productos;
 - `/app2`: versión pública anterior conservada temporalmente para comparación;
 - `/app`: alias temporal de la versión pública anterior;
 - `/interno`: Punto de Venta protegido;
@@ -305,3 +305,10 @@ Formatos oficiales:
 - banner secundario: `1200 × 310 px`.
 
 Cada banner se asocia a un producto real del catálogo y reutiliza `AppSetting`, por lo que no introduce una tabla ni un esquema comercial adicional.
+
+
+### Rutas de menú
+
+- `/menu`: menú público para clientes.
+- `/interno/menu`: administración interna del catálogo (ADMIN).
+- `/pedir`: redirección temporal de compatibilidad hacia `/menu`.
