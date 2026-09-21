@@ -442,3 +442,16 @@ La sección `/personalizacion` permite administrar dos imágenes independientes 
 La portada selecciona automáticamente la imagen de escritorio a partir de 900 px de ancho y usa la pieza móvil por debajo de ese punto.
 
 Si no existe una imagen configurada, se conserva la pieza histórica del Home como respaldo. La configuración se guarda en `AppSetting(public.home)`; no requiere cambios de Prisma.
+
+
+## Ruta pública de menú
+
+Desde 2026-09-20:
+
+- `/menu` es la ruta pública oficial del catálogo;
+- `/pedir` queda únicamente como redirección de compatibilidad hacia `/menu`;
+- el antiguo módulo administrativo `/menu` se movió a `/interno/menu`;
+- el menú superior público muestra solo `Menú` y `Destacados`;
+- `Menú` vuelve al inicio del hero de la página;
+- `Destacados` navega al bloque completo `Nuestros más vendidos / Favoritos de quienes siempre vuelven`;
+- el CTA rojo superior ahora es `Mi Cuenta` con icono de usuario y abre `/cuenta/login`, que contiene el acceso unificado cliente/colaborador.
