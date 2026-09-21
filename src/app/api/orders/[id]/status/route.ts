@@ -11,6 +11,7 @@ import {
   type FulfillmentType,
   type OrderStatus,
 } from "@/lib/orderWorkflow";
+import { dispatchOrderStatusNotification } from "@/lib/notifier";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -24,10 +25,18 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       where: { id },
       select: {
         id: true,
+        sequenceNumber: true,
         customerId: true,
         status: true,
         fulfillmentType: true,
         total: true,
+        customer: {
+          select: {
+            name: true,
+            countryCode: true,
+            phone: true,
+          },
+        },
         payments: {
           where: { status: "PAID" },
           select: { amount: true },
@@ -148,7 +157,39 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       return updatedOrder;
     });
 
-    return NextResponse.json({ order: updated });
+    let notification:
+      | Awaited<ReturnType<typeof dispatchOrderStatusNotification>>
+      | { ok: false; status: "skipped"; reason: string } = {
+      ok: false,
+      status: "skipped",
+      reason: "El pedido no tiene un cliente con teléfono.",
+    };
+
+    if (order.customerId && order.customer?.phone) {
+      const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+      notification = await dispatchOrderStatusNotification({
+        orderId: order.id,
+        customerId: order.customerId,
+        customerName: order.customer.name,
+        phone: `${order.customer.countryCode ?? "+57"}${order.customer.phone}`,
+        orderCode: code,
+        total: Number(order.total),
+        fulfillmentType: order.fulfillmentType,
+        previousStatus: current,
+        status: requested,
+      });
+
+      if (!notification.ok) {
+        console.warn("Notifier order status", {
+          orderId: order.id,
+          from: current,
+          to: requested,
+          reason: notification.reason,
+        });
+      }
+    }
+
+    return NextResponse.json({ order: updated, notification });
   } catch (error) {
     console.error("Order status update error", error);
     return NextResponse.json({ error: "No fue posible actualizar el estado del pedido." }, { status: 500 });
