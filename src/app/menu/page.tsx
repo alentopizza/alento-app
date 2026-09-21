@@ -643,7 +643,7 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section id="categorias-menu" className="relative z-20 mx-auto -mt-3 max-w-[1180px] px-2 sm:-mt-6 sm:px-4 lg:-mt-10 lg:px-7">
+        <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-2 sm:-mt-7 sm:px-4 lg:-mt-10 lg:px-7">
           <div className="grid grid-cols-5 overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]">
             {categories.slice(0, 5).map((category) => {
               const active = activeCategory === category.slug;
@@ -657,11 +657,11 @@ export default function PublicMenuPage() {
                     setQuery("");
                     document.getElementById("catalogo-menu")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className={`group relative flex min-h-[70px] min-w-0 flex-col items-center justify-center gap-1 border-r border-neutral-200 px-1 text-center transition last:border-r-0 sm:min-h-[78px] sm:px-2 lg:min-h-[86px] lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
+                  className={`group relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 border-r border-neutral-200 px-1 text-center transition last:border-r-0 sm:min-h-[68px] sm:px-2 lg:min-h-[82px] lg:gap-1 lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
                 >
                   {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
 
-                  <div className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-[18px] transition sm:h-10 sm:w-10 sm:text-[22px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
+                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[16px] transition sm:h-9 sm:w-9 sm:text-[20px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
                     {category.imageUrl ? (
                       <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
