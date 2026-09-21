@@ -434,6 +434,17 @@ model NotificationJob {
   @@index([status, runAt])
 }
 
+model NotificationImage {
+  id          String   @id @default(cuid())
+  filename    String
+  contentType String
+  data        Bytes
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model AppSetting {
   key       String   @id
   value     Json
