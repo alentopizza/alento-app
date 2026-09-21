@@ -15,6 +15,10 @@ type OrderStatusSelectorProps = {
   fulfillmentType: FulfillmentType;
   pendingBalance: number;
   busy?: boolean;
+  drivers?: Array<{ id: number; name: string; ready: boolean }>;
+  assignedDriverId?: number | null;
+  driverBusy?: boolean;
+  onAssignDriver?: (driverId: number) => void;
   onClose: () => void;
   onSelect: (status: OrderStatus) => void;
 };
@@ -43,6 +47,10 @@ export default function OrderStatusSelector({
   fulfillmentType,
   pendingBalance,
   busy = false,
+  drivers = [],
+  assignedDriverId = null,
+  driverBusy = false,
+  onAssignDriver,
   onClose,
   onSelect,
 }: OrderStatusSelectorProps) {
@@ -88,6 +96,35 @@ export default function OrderStatusSelector({
               <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-amber-700">Pago pendiente</span>
               <b className="mt-1 block text-lg font-bold text-amber-900">{money(pendingBalance)}</b>
               <p className="mt-1 text-[11px] leading-4 text-amber-700">Registra el saldo completo para habilitar Finalizado.</p>
+            </div>
+          )}
+
+          {fulfillmentType === "DELIVERY" && (
+            <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">Repartidor</p>
+                  <p className="mt-1 text-xs leading-5 text-neutral-500">Al asignarlo recibirá por WhatsApp el enlace operativo del domicilio.</p>
+                </div>
+                {assignedDriverId && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-700">ASIGNADO</span>}
+              </div>
+              <select
+                value={assignedDriverId ?? ""}
+                disabled={driverBusy || busy}
+                onChange={(event) => {
+                  const driverId = Number(event.target.value);
+                  if (driverId && onAssignDriver) onAssignDriver(driverId);
+                }}
+                className="alento-input mt-3 h-11 w-full rounded-xl px-3 text-sm font-semibold"
+              >
+                <option value="">Seleccionar repartidor...</option>
+                {drivers.map((driver) => (
+                  <option key={driver.id} value={driver.id} disabled={!driver.ready}>
+                    {driver.name}{driver.ready ? "" : " · sin WhatsApp"}
+                  </option>
+                ))}
+              </select>
+              {driverBusy && <p className="mt-2 text-[10px] font-semibold text-neutral-400">Asignando y enviando notificación...</p>}
             </div>
           )}
 
