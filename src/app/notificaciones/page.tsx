@@ -176,11 +176,19 @@ export default function NotificationsPage() {
     try {
       const form = new FormData();
       form.append("file", file);
+      form.append("templateId", selected.id);
       const response = await fetch("/api/notification-images", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cargar la imagen.");
-      patchSelected({ headerImageUrl: data.url });
-      setNotice("Imagen cargada. Guarda los cambios para asignarla a la plantilla.");
+
+      const uploadedUrl = String(data.url || "");
+      setTemplates((current) => current.map((item) =>
+        item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl } : item,
+      ));
+      setBaseline((current) => current.map((item) =>
+        item.id === selected.id ? { ...item, headerImageUrl: uploadedUrl } : item,
+      ));
+      setNotice("Imagen guardada y vinculada a la plantilla. Esta es ahora la imagen que usará WhatsApp.");
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "No fue posible cargar la imagen.");
     } finally {
@@ -306,6 +314,12 @@ export default function NotificationsPage() {
               </button>
             </header>
 
+            {(error || notice) && (
+              <div className={`mx-4 mt-4 rounded-xl border px-4 py-3 text-[10px] font-semibold sm:mx-5 lg:mx-6 ${error ? "border-red-100 bg-red-50 text-red-700" : "border-emerald-100 bg-emerald-50 text-emerald-700"}`}>
+                {error || notice}
+              </div>
+            )}
+
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
                 <div className="space-y-5">
@@ -338,11 +352,11 @@ export default function NotificationsPage() {
                         <UploadIcon /> {uploading ? "Cargando..." : selected.headerImageUrl ? "Cambiar imagen" : "Cargar imagen"}
                       </button>
                       <div className="min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2">
-                        <span className="block text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Enlace generado</span>
-                        <span className="mt-1 block truncate text-[10px] font-semibold text-neutral-600">{selected.headerImageUrl || "Se generará automáticamente al cargar el archivo."}</span>
+                        <span className="block text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Imagen activa del template</span>
+                        <span className="mt-1 block truncate text-[10px] font-semibold text-neutral-600">{selected.headerImageUrl || "Carga una imagen para generar el enlace administrado por Alentó."}</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. La imagen queda almacenada en Alentó y el sistema genera su URL pública.</p>
+                    <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. Al cargarla se guarda automáticamente, reemplaza la URL anterior y pasa a ser la imagen usada por el notifier.</p>
                   </section>
 
                   <section className="grid gap-4 border-t border-neutral-100 pt-5 sm:grid-cols-[minmax(0,1fr)_160px]">
@@ -449,7 +463,7 @@ export default function NotificationsPage() {
                   className="h-11 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-600">Cerrar</button>
                 <button type="button" onClick={() => void save()} disabled={!dirty || saving || uploading}
                   className="inline-flex h-11 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white disabled:opacity-40">
-                  <SaveIcon /> {saving ? "Guardando..." : "Guardar cambios"}
+                  <SaveIcon /> {saving ? "Guardando..." : dirty ? "Guardar cambios" : "Guardado"}
                 </button>
               </div>
             </footer>
