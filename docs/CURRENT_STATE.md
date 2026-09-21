@@ -555,3 +555,13 @@ El carrito público dejó de ser un drawer de `/menu` y ahora vive en `/cart`.
 - en `/cart` el elemento activo elevado es Carrito;
 - la persistencia se centraliza en `src/lib/publicCart.ts`;
 - `/cart` está marcado como superficie pública y parte de la PWA.
+
+
+## Navegación móvil en /login
+
+La pantalla pública `/login` usa la barra inferior compartida.
+
+- Perfil aparece como sección activa;
+- conserva el contador del carrito local;
+- ningún campo del login usa `autoFocus`;
+- el teclado móvil solo se abre cuando el usuario toca un campo de entrada.
