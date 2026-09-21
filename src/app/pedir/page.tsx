@@ -283,13 +283,17 @@ export default function App2MenuPage() {
                     </span>
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="line-clamp-2 min-h-[42px] text-[17px] font-black leading-[21px] tracking-[-0.02em] text-white">
+                <div className="px-4 pb-3.5 pt-3 antialiased">
+                  <h3 className="line-clamp-1 text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-white">
                     {product.name}
                   </h3>
-                  <div className="mt-3 flex items-center justify-between">
-                    <b className="text-[17px] font-black text-[#ff3439]">{displayPrice(product)}</b>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71920] text-xl font-black text-white">+</span>
+                  <div className="mt-2.5 flex items-center justify-between">
+                    <span className="text-[16px] font-bold leading-none tracking-[-0.005em] text-[#ff3439]">
+                      {displayPrice(product)}
+                    </span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e21a22] text-[18px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)]">
+                      +
+                    </span>
                   </div>
                 </div>
               </button>
