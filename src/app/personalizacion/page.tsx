@@ -2,20 +2,6 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 
-type ProductOption = {
-  id: number;
-  name: string;
-  type: string;
-  imageUrl: string | null;
-  basePrice: number | null;
-};
-
-type BannerSetting = {
-  active: boolean;
-  imageUrl: string;
-  productId: number | null;
-};
-
 type PublicHomeSettings = {
   brand: {
     logoUrl: string;
@@ -28,38 +14,12 @@ type PublicHomeSettings = {
     active: boolean;
     imageUrl: string;
   };
-  primaryBanner: BannerSetting;
-  secondaryBanner: BannerSetting;
 };
 
-type BannerKey = "primaryBanner" | "secondaryBanner";
 type LandingKey = "mobileImageUrl" | "desktopImageUrl";
-type ProcessingKey = BannerKey | "logo" | "landingMobile" | "landingDesktop" | "menuHero";
+type ProcessingKey = "logo" | "landingMobile" | "landingDesktop" | "menuHero";
 
-const FORMATS: Record<BannerKey, {
-  title: string;
-  description: string;
-  width: number;
-  height: number;
-  ratio: string;
-}> = {
-  primaryBanner: {
-    title: "Banner principal legado",
-    description: "Configuración anterior conservada por compatibilidad.",
-    width: 1200,
-    height: 625,
-    ratio: "1.92:1",
-  },
-  secondaryBanner: {
-    title: "Banner secundario",
-    description: "Aparece debajo de los productos populares como refuerzo promocional.",
-    width: 1200,
-    height: 310,
-    ratio: "3.9:1",
-  },
-};
-
-async function prepareBannerImage(file: File, width: number, height: number) {
+async function prepareImage(file: File, width: number, height: number) {
   if (!file.type.startsWith("image/")) {
     throw new Error("Selecciona una imagen JPG, PNG o WebP.");
   }
@@ -155,7 +115,6 @@ async function prepareLogoImage(file: File) {
 
 export default function PersonalizationPage() {
   const [settings, setSettings] = useState<PublicHomeSettings | null>(null);
-  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processing, setProcessing] = useState<ProcessingKey | null>(null);
@@ -169,7 +128,6 @@ export default function PersonalizationPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "No fue posible cargar la personalización.");
         setSettings(data.settings);
-        setProducts(data.products ?? []);
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "No fue posible cargar la personalización.");
       } finally {
@@ -179,40 +137,6 @@ export default function PersonalizationPage() {
 
     void load();
   }, []);
-
-  function updateBanner(key: BannerKey, patch: Partial<BannerSetting>) {
-    setSettings((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        [key]: {
-          ...current[key],
-          ...patch,
-        },
-      };
-    });
-  }
-
-  async function onFile(key: BannerKey, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    setProcessing(key);
-    setError("");
-    setMessage("");
-
-    try {
-      const format = FORMATS[key];
-      const imageUrl = await prepareBannerImage(file, format.width, format.height);
-      updateBanner(key, { imageUrl, active: true });
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "No fue posible preparar la imagen.");
-    } finally {
-      setProcessing(null);
-    }
-  }
-
 
   async function onMenuHeroFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -224,7 +148,7 @@ export default function PersonalizationPage() {
     setMessage("");
 
     try {
-      const imageUrl = await prepareBannerImage(file, 1920, 730);
+      const imageUrl = await prepareImage(file, 1920, 730);
       setSettings((current) => current ? {
         ...current,
         menuHero: {
@@ -250,7 +174,7 @@ export default function PersonalizationPage() {
     setMessage("");
 
     try {
-      const imageUrl = await prepareBannerImage(
+      const imageUrl = await prepareImage(
         file,
         isMobile ? 1080 : 1920,
         isMobile ? 2160 : 1080,
@@ -308,7 +232,7 @@ export default function PersonalizationPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible guardar la personalización.");
       setSettings(data.settings);
-      setMessage("Personalización guardada. La portada pública ya puede usar estos banners.");
+      setMessage("Personalización guardada. Los cambios ya están disponibles en la experiencia pública.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No fue posible guardar la personalización.");
     } finally {
@@ -354,7 +278,7 @@ export default function PersonalizationPage() {
         <div className="rounded-[24px] border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
           <b>Home:</b> móvil <b>1080 × 2160 px</b> (1:2) y PC <b>1920 × 1080 px</b> (16:9). ·
           <b> Menú:</b> portada superior <b>1920 × 730 px</b> (2.63:1). ·
-          <b> Logo:</b> 600 × 180 px · <b>Promoción secundaria:</b> 1200 × 310 px.
+          <b> Logo:</b> 600 × 180 px.
           Las imágenes se preparan al tamaño indicado; el logo se ajusta completo sin deformarse.
         </div>
 
