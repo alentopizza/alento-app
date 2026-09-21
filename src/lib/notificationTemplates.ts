@@ -151,12 +151,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function normalizeNotificationTemplates(value: Prisma.JsonValue | null | undefined) {
   if (!Array.isArray(value)) return DEFAULT_NOTIFICATION_TEMPLATES;
-  const saved = new Map(
-    value
-      .filter(isObject)
-      .map((item) => [String(item.id || ""), item] as const)
-      .filter(([id]) => id),
-  );
+  const saved = new Map<string, Record<string, unknown>>();
+  for (const item of value) {
+    if (!isObject(item)) continue;
+    const id = String(item.id ?? "").trim();
+    if (id) saved.set(id, item);
+  }
 
   return DEFAULT_NOTIFICATION_TEMPLATES.map((fallback) => {
     const current = saved.get(fallback.id);
