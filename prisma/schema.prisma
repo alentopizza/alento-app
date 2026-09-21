@@ -89,18 +89,22 @@ model Customer {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
-  name         String
-  email        String     @unique
-  passwordHash String
-  roles        UserRole[]       @default([])
-  permissions  UserPermission[] @default([])
-  active       Boolean          @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                  Int              @id @default(autoincrement())
+  name                String
+  email               String           @unique
+  passwordHash        String
+  whatsappCountryCode String           @default("+57")
+  whatsappPhone       String?
+  roles               UserRole[]       @default([])
+  permissions         UserPermission[] @default([])
+  active              Boolean          @default(true)
+  lastLoginAt         DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  assignedOrders      Order[]          @relation("OrderDriver")
 
   @@index([active])
+  @@index([whatsappPhone])
 }
 
 model CustomerAccount {
@@ -324,6 +328,7 @@ model Order {
   customerId       Int?
   addressId        Int?
   couponId         Int?
+  driverId         Int?
   couponName       String?
   deliveryZoneId   String?
   deliveryZoneName String?
@@ -336,18 +341,22 @@ model Order {
   discount         Decimal           @default(0) @db.Decimal(12, 2)
   total            Decimal           @default(0) @db.Decimal(12, 2)
   notes            String?
+  driverAssignedAt DateTime?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   address          CustomerAddress?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
   coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  driver           User?             @relation("OrderDriver", fields: [driverId], references: [id], onDelete: SetNull)
   items            OrderItem[]
   payments         Payment[]
   clubPoint        ClubPointTransaction?
+  notificationJobs NotificationJob[]
 
   @@index([customerId])
   @@index([addressId])
   @@index([couponId])
+  @@index([driverId])
   @@index([status])
   @@index([createdAt])
 }
@@ -405,6 +414,24 @@ model ClubPointTransaction {
   order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([customerId, createdAt])
+}
+
+model NotificationJob {
+  id             Int      @id @default(autoincrement())
+  kind           String
+  orderId        Int
+  runAt          DateTime
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  lastError      String?
+  sentAt         DateTime?
+  lockedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, orderId])
+  @@index([status, runAt])
 }
 
 model AppSetting {
