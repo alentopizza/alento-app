@@ -317,6 +317,25 @@ export default function PublicMenuPage() {
                 </span>
               </nav>
 
+              <div className="hidden items-center gap-3 md:flex">
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(true)}
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.05] text-white/70 transition hover:border-[#e21a22]/60 hover:text-white"
+                  aria-label={`Carrito con ${cartCount} productos`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+                    <circle cx="10" cy="19" r="1.2" />
+                    <circle cx="18" cy="19" r="1.2" />
+                  </svg>
+                  {cartCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#e21a22] px-1 text-[9px] font-black text-white">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </button>
+
               <Link
                 href="/login"
                 className="group relative hidden shrink-0 overflow-hidden rounded-full bg-[#e21a22] px-5 py-3 text-[13px] font-extrabold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] md:flex lg:px-7 lg:py-3.5 lg:text-[14px]"
@@ -338,6 +357,7 @@ export default function PublicMenuPage() {
                   Mi Cuenta
                 </span>
               </Link>
+              </div>
             </div>
           </div>
         </header>
@@ -640,6 +660,130 @@ export default function PublicMenuPage() {
             <path d="m6 14 6-6 6 6" />
           </svg>
         </button>
+      )}
+
+      {cartOpen && (
+        <div
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/70 backdrop-blur-sm md:items-stretch md:justify-end"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCartOpen(false);
+          }}
+        >
+          <aside className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111] text-white shadow-2xl md:h-full md:max-h-none md:w-[430px] md:rounded-none md:border-y-0 md:border-r-0">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#e21a22]">Tu pedido</p>
+                <h2 className="mt-1 text-[24px] font-semibold tracking-[-0.03em]">Carrito</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70"
+                aria-label="Cerrar carrito"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {cart.length === 0 ? (
+                <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.05] text-white/35">
+                    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+                      <circle cx="10" cy="19" r="1.2" />
+                      <circle cx="18" cy="19" r="1.2" />
+                    </svg>
+                  </div>
+                  <b className="mt-4 text-[16px]">Tu carrito está vacío</b>
+                  <p className="mt-1 max-w-[260px] text-[11px] leading-5 text-white/38">
+                    Agrega productos desde el menú para comenzar las pruebas.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item) => (
+                    <div key={item.key} className="flex gap-3 rounded-[18px] border border-white/10 bg-white/[0.04] p-3">
+                      <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[14px] bg-black">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-3xl">🍕</div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <b className="line-clamp-2 text-[13px] font-semibold leading-4">{item.name}</b>
+                            <span className="mt-1 block text-[12px] font-bold text-[#ff3439]">{money(item.unitPrice)}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeCartItem(item.key)}
+                            className="text-[18px] leading-none text-white/30 transition hover:text-white/70"
+                            aria-label={`Eliminar ${item.name}`}
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center rounded-full border border-white/10 bg-black/30">
+                            <button
+                              type="button"
+                              onClick={() => changeCartQuantity(item.key, -1)}
+                              className="flex h-8 w-8 items-center justify-center text-white/70"
+                              aria-label="Disminuir cantidad"
+                            >
+                              −
+                            </button>
+                            <span className="min-w-7 text-center text-[12px] font-bold">{item.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => changeCartQuantity(item.key, 1)}
+                              className="flex h-8 w-8 items-center justify-center text-white/70"
+                              aria-label="Aumentar cantidad"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <b className="text-[12px]">{money(item.unitPrice * item.quantity)}</b>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 bg-[#0c0c0c] px-5 pb-[max(18px,env(safe-area-inset-bottom))] pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-white/45">Subtotal</span>
+                <b className="text-[20px]">{money(cartSubtotal)}</b>
+              </div>
+              <p className="mt-1 text-[9px] text-white/28">Carrito de prueba · checkout aún no activo.</p>
+
+              <button
+                type="button"
+                disabled
+                className="mt-4 h-12 w-full rounded-full bg-[#e21a22] text-[12px] font-bold text-white opacity-55"
+              >
+                Continuar pedido · Próximamente
+              </button>
+
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCart([])}
+                  className="mt-2 h-9 w-full text-[10px] font-medium text-white/35 transition hover:text-white/65"
+                >
+                  Vaciar carrito
+                </button>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
 
       {selectedProduct && (
