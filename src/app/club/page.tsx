@@ -25,7 +25,7 @@ function GuestClub({
 }) {
   return (
     <>
-      <PublicDesktopSidebar active="club" />
+      <PublicDesktopSidebar active="club" contentMaxWidth={860} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-10 md:pl-[112px] md:pt-5">
       <div className="mx-auto max-w-[860px] space-y-4">
@@ -192,7 +192,7 @@ export default async function ClubPage() {
 
   return (
     <>
-      <PublicDesktopSidebar active="club" />
+      <PublicDesktopSidebar active="club" contentMaxWidth={860} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-10 md:pl-[112px] md:pt-5">
       <div className="mx-auto max-w-[860px] space-y-4">
