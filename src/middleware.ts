@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const STAFF_COOKIE = "alento_staff_session";
+const STAFF_SESSION_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
+const STAFF_SESSION_REFRESH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/usuarios", roles: ["ADMIN"] },
@@ -85,6 +87,9 @@ async function readStaffSession(request: NextRequest) {
 
     const payload = JSON.parse(new TextDecoder().decode(base64urlToBytes(encoded))) as {
       kind?: string;
+      userId?: number;
+      email?: string;
+      name?: string;
       exp?: number;
       roles?: string[];
     };
@@ -94,6 +99,51 @@ async function readStaffSession(request: NextRequest) {
   } catch {
     return null;
   }
+}
+
+async function refreshStaffSessionToken(session: {
+  kind?: string;
+  userId?: number;
+  email?: string;
+  name?: string;
+  exp?: number;
+  roles?: string[];
+}) {
+  const secret = process.env.AUTH_SESSION_SECRET;
+  if (!secret || session.kind !== "staff") return null;
+
+  const payload = {
+    kind: "staff",
+    userId: session.userId,
+    email: session.email,
+    name: session.name,
+    roles: session.roles ?? [],
+    exp: Date.now() + STAFF_SESSION_MAX_AGE_SECONDS * 1000,
+  };
+
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signatureBytes = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(encoded)),
+  );
+  let binary = "";
+  for (const byte of signatureBytes) binary += String.fromCharCode(byte);
+  const signature = btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+  return `${encoded}.${signature}`;
 }
 
 export async function middleware(request: NextRequest) {
@@ -125,7 +175,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/sin-acceso", request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // Renueva silenciosamente la sesión cuando se acerca al vencimiento.
+  // Así los despliegues no obligan a volver a iniciar sesión.
+  if (session.exp && session.exp - Date.now() <= STAFF_SESSION_REFRESH_WINDOW_MS) {
+    const refreshed = await refreshStaffSessionToken(session);
+    if (refreshed) {
+      response.cookies.set(STAFF_COOKIE, refreshed, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: STAFF_SESSION_MAX_AGE_SECONDS,
+      });
+    }
+  }
+
+  return response;
 }
 
 export const config = {
