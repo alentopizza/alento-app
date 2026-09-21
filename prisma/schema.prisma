@@ -85,6 +85,7 @@ model Customer {
   addresses   CustomerAddress[]
   orders      Order[]
   account     CustomerAccount?
+  clubPoints  ClubPointTransaction[]
 }
 
 model User {
@@ -342,6 +343,7 @@ model Order {
   coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items            OrderItem[]
   payments         Payment[]
+  clubPoint        ClubPointTransaction?
 
   @@index([customerId])
   @@index([addressId])
@@ -388,6 +390,21 @@ model Payment {
 
   @@index([orderId])
   @@index([status, paidAt])
+}
+
+model ClubPointTransaction {
+  id              Int      @id @default(autoincrement())
+  customerId      Int
+  orderId         Int?     @unique
+  points          Int
+  ratePerThousand Int?
+  amountBase      Decimal? @db.Decimal(12, 2)
+  reason          String   @default("PURCHASE")
+  createdAt       DateTime @default(now())
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
 }
 
 model AppSetting {
