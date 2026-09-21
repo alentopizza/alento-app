@@ -1,4 +1,10 @@
 import { createOrderTrackingToken } from "@/lib/orderTracking";
+import { createDriverOrderToken } from "@/lib/driverTracking";
+import {
+  findTemplateForEvent,
+  getNotificationTemplates,
+  type NotificationTemplateConfig,
+} from "@/lib/notificationTemplates";
 
 export type NotificationDispatchResult =
   | { ok: true; status: "queued" | "sent" }
@@ -14,22 +20,35 @@ type BaseOrderEvent = {
   fulfillmentType: string;
 };
 
-type OrderCreatedEvent = BaseOrderEvent & {
-  trackingPath: string;
-};
-
-type OrderStatusChangedEvent = BaseOrderEvent & {
-  status: string;
-  previousStatus: string;
-  trackingPath: string;
+type NotifierPayload = {
+  orderId: number;
+  orderCode: string;
+  total: number;
+  fulfillmentType: string;
+  recipientKind: "CUSTOMER" | "DRIVER";
+  recipientId: number;
+  recipientName: string;
+  phone: string;
+  customerName?: string;
+  driverName?: string;
+  status?: string;
+  previousStatus?: string;
+  trackingPath?: string;
+  driverTrackingPath?: string;
+  template: NotificationTemplateConfig;
 };
 
 async function dispatchEvent(
-  event: "order.created" | "order.status_changed",
-  data: OrderCreatedEvent | OrderStatusChangedEvent,
+  event: string,
+  data: Omit<NotifierPayload, "template">,
+  template: NotificationTemplateConfig | null,
 ): Promise<NotificationDispatchResult> {
   const webhookUrl = process.env.NOTIFIER_WEBHOOK_URL?.trim();
   const secret = process.env.NOTIFIER_SHARED_SECRET?.trim();
+
+  if (!template) {
+    return { ok: false, status: "skipped", reason: "No hay una plantilla activa para este evento y modalidad." };
+  }
 
   if (!webhookUrl || !secret) {
     return {
@@ -51,7 +70,7 @@ async function dispatchEvent(
           "Content-Type": "application/json",
           "x-alento-notifier-secret": secret,
         },
-        body: JSON.stringify({ event, data }),
+        body: JSON.stringify({ event, data: { ...data, template } }),
       });
 
       const text = await response.text();
@@ -88,20 +107,74 @@ async function dispatchEvent(
   }
 }
 
+async function templateFor(event: string, fulfillmentType: string) {
+  return findTemplateForEvent(await getNotificationTemplates(), event, fulfillmentType);
+}
+
+function customerPayload(input: BaseOrderEvent) {
+  return {
+    orderId: input.orderId,
+    orderCode: input.orderCode,
+    total: input.total,
+    fulfillmentType: input.fulfillmentType,
+    recipientKind: "CUSTOMER" as const,
+    recipientId: input.customerId,
+    recipientName: input.customerName,
+    customerName: input.customerName,
+    phone: input.phone,
+    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
+  };
+}
+
 export async function dispatchOrderCreatedNotification(
   input: BaseOrderEvent,
 ): Promise<NotificationDispatchResult> {
-  return dispatchEvent("order.created", {
-    ...input,
-    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
-  });
+  const event = "order.created";
+  return dispatchEvent(event, customerPayload(input), await templateFor(event, input.fulfillmentType));
 }
 
 export async function dispatchOrderStatusNotification(
   input: BaseOrderEvent & { status: string; previousStatus: string },
 ): Promise<NotificationDispatchResult> {
-  return dispatchEvent("order.status_changed", {
-    ...input,
-    trackingPath: `seguimiento/${createOrderTrackingToken(input.orderId)}`,
-  });
+  const event = `order.status.${input.status}`;
+  return dispatchEvent(
+    event,
+    { ...customerPayload(input), status: input.status, previousStatus: input.previousStatus },
+    await templateFor(event, input.fulfillmentType),
+  );
+}
+
+export async function dispatchDriverAssignedNotification(input: {
+  orderId: number;
+  orderCode: string;
+  total: number;
+  fulfillmentType: string;
+  driverId: number;
+  driverName: string;
+  driverPhone: string;
+}): Promise<NotificationDispatchResult> {
+  const event = "order.driver_assigned";
+  return dispatchEvent(
+    event,
+    {
+      orderId: input.orderId,
+      orderCode: input.orderCode,
+      total: input.total,
+      fulfillmentType: input.fulfillmentType,
+      recipientKind: "DRIVER",
+      recipientId: input.driverId,
+      recipientName: input.driverName,
+      driverName: input.driverName,
+      phone: input.driverPhone,
+      driverTrackingPath: `repartidor/pedido/${createDriverOrderToken(input.orderId, input.driverId)}`,
+    },
+    await templateFor(event, input.fulfillmentType),
+  );
+}
+
+export async function dispatchReviewNotification(
+  input: BaseOrderEvent,
+): Promise<NotificationDispatchResult> {
+  const event = "order.review";
+  return dispatchEvent(event, customerPayload(input), await templateFor(event, input.fulfillmentType));
 }
