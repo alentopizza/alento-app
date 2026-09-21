@@ -43,11 +43,7 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
 
-  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  const fallbackOrigin = new URL(request.url).origin;
-  const origin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : fallbackOrigin;
-  const url = `${origin}/api/notification-images/${record.id}`;
+  const url = `/api/notification-images/${record.id}`;
 
   const templates = await getNotificationTemplates();
   const current = templates.find((template) => template.id === templateId);
