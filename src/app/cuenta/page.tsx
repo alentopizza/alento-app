@@ -38,7 +38,7 @@ export default async function CustomerAccountPage() {
 
   return (
     <>
-      <PublicDesktopSidebar active="profile" />
+      <PublicDesktopSidebar active="profile" contentMaxWidth={760} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 md:pl-[136px]">
       <div className="mx-auto max-w-[760px] space-y-4">
