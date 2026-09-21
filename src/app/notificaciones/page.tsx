@@ -68,7 +68,7 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: (value: boo
 
 function TemplateImage({ template }: { template: TemplateConfig }) {
   return (
-    <div className="aspect-[4/3] overflow-hidden rounded-[18px] border border-neutral-200 bg-[#f5f4f1]">
+    <div className="aspect-video overflow-hidden rounded-[18px] border border-neutral-200 bg-[#f5f4f1]">
       {template.headerImageUrl ? (
         <img src={template.headerImageUrl} alt={template.title} className="h-full w-full object-contain" />
       ) : (
@@ -254,30 +254,30 @@ export default function NotificationsPage() {
           ) : visibleTemplates.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 py-16 text-center text-sm text-neutral-400">No hay plantillas con estos filtros.</div>
           ) : (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {visibleTemplates.map((template) => (
                 <article key={template.id}
                   onClick={() => setSelectedId(template.id)}
-                  className="group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white p-3 shadow-[0_10px_28px_rgba(20,18,16,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_38px_rgba(20,18,16,.08)]">
+                  className="group cursor-pointer overflow-hidden rounded-[24px] border border-neutral-200 bg-white p-3.5 shadow-[0_10px_28px_rgba(20,18,16,.045)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_18px_42px_rgba(20,18,16,.09)]">
                   <TemplateImage template={template} />
 
                   <div className="px-1 pb-1 pt-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-[14px] font-black text-neutral-950">{template.title}</h3>
-                        <p className="mt-0.5 truncate text-[9px] font-semibold text-neutral-400">{template.event}</p>
+                        <h3 className="truncate text-[15px] font-black tracking-[-.02em] text-neutral-950">{template.title}</h3>
+                        <p className="mt-1 truncate text-[9px] font-semibold text-neutral-400">{template.event}</p>
                       </div>
                       <Switch checked={template.active} onChange={(active) => patch(template.id, { active })} />
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-1">
+                    <div className="mt-3 flex min-h-[26px] flex-wrap gap-1.5">
                       <span className="rounded-full bg-neutral-950 px-2 py-1 text-[8px] font-bold text-white">{template.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
                       {template.fulfillmentTypes.map((type) => (
                         <span key={type} className="rounded-full bg-neutral-100 px-2 py-1 text-[8px] font-bold text-neutral-500">{fulfillmentLabel[type] ?? type}</span>
                       ))}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
+                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3.5">
                       <span className="truncate text-[9px] font-semibold text-neutral-500">{template.templateName}</span>
                       <span className="text-[10px] font-black text-[var(--brand-red)]">EDITAR →</span>
                     </div>
@@ -291,7 +291,7 @@ export default function NotificationsPage() {
 
       {selected && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[3px]" onClick={() => !uploading && setSelectedId(null)}>
-          <div className="flex max-h-[94dvh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.35)]" onClick={(event) => event.stopPropagation()}>
+          <div className="flex max-h-[94dvh] w-full max-w-[1180px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.35)]" onClick={(event) => event.stopPropagation()}>
             <header className="flex shrink-0 items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[linear-gradient(135deg,#09090a,#241719)] px-5 py-4 text-white sm:px-6">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -307,18 +307,18 @@ export default function NotificationsPage() {
             </header>
 
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)]">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
                 <div className="space-y-5">
                   <section>
                     <div className="flex items-end justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-black text-neutral-950">Imagen de la plantilla</p>
-                        <p className="mt-1 text-[10px] leading-4 text-neutral-500">El contenedor mantiene proporción 4:3 y nunca recorta la imagen cargada.</p>
+                        <p className="mt-1 text-[10px] leading-4 text-neutral-500">El contenedor mantiene proporción 16:9 y muestra la imagen completa sin recortarla.</p>
                       </div>
-                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-black text-neutral-500">4:3</span>
+                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-black text-neutral-500">16:9</span>
                     </div>
 
-                    <div className="mt-3 aspect-[4/3] overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f4f3ef]">
+                    <div className="mt-3 aspect-video overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f4f3ef]">
                       {selected.headerImageUrl ? (
                         <img src={selected.headerImageUrl} alt={selected.title} className="h-full w-full object-contain" />
                       ) : (
