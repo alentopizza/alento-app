@@ -1,7 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import PublicMobileNav from "@/components/PublicMobileNav";
+import {
+  PUBLIC_CART_STORAGE_KEY,
+  type PublicCartItem,
+} from "@/lib/publicCart";
 
 const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 const FALLBACK_HOME_IMAGE =
@@ -49,6 +54,7 @@ export default function UnifiedLoginPage() {
   const [error, setError] = useState("");
   const [needsBootstrap, setNeedsBootstrap] = useState(false);
   const [home, setHome] = useState<PublicHomeSettings | null>(null);
+  const [cart, setCart] = useState<PublicCartItem[]>([]);
 
   useEffect(() => {
     fetch("/api/auth/staff/bootstrap")
@@ -60,6 +66,16 @@ export default function UnifiedLoginPage() {
       .then((response) => response.json())
       .then((result) => setHome(result?.settings ?? null))
       .catch(() => {});
+
+    try {
+      const savedCart = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) setCart(parsed);
+      }
+    } catch {
+      // El login no debe bloquearse si el carrito local está corrupto.
+    }
   }, []);
 
   function switchMode(nextMode: Mode) {
@@ -142,6 +158,11 @@ export default function UnifiedLoginPage() {
     }
   }
 
+  const cartCount = useMemo(
+    () => cart.reduce((total, item) => total + item.quantity, 0),
+    [cart],
+  );
+
   const customerTitle = step === "phone" ? "Ingresa con tu celular" : "Revisa tu WhatsApp";
   const mobileBackground = home?.landing?.mobileImageUrl || FALLBACK_HOME_IMAGE;
   const desktopBackground =
@@ -150,7 +171,7 @@ export default function UnifiedLoginPage() {
     FALLBACK_HOME_IMAGE;
 
   return (
-    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-black p-5">
+    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-black px-5 pb-28 pt-5 md:p-5">
       <picture className="absolute inset-0">
         <source media="(min-width: 900px)" srcSet={desktopBackground} />
         <img
@@ -198,7 +219,6 @@ export default function UnifiedLoginPage() {
                   inputMode="tel"
                   className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none transition placeholder:text-white/28 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                   placeholder="300 000 0000"
-                  autoFocus
                 />
               </div>
             ) : (
@@ -209,7 +229,6 @@ export default function UnifiedLoginPage() {
                 maxLength={6}
                 className="h-14 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-center text-[26px] font-semibold tracking-[0.28em] text-white outline-none transition placeholder:text-white/22 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 placeholder="000000"
-                autoFocus
               />
             )}
 
@@ -260,7 +279,6 @@ export default function UnifiedLoginPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-[#e21a22] focus:ring-2 focus:ring-[#e21a22]/20"
                 placeholder="colaborador@alento.com"
-                autoFocus
               />
             </label>
 
@@ -314,6 +332,8 @@ export default function UnifiedLoginPage() {
           </form>
         )}
       </div>
+
+      <PublicMobileNav active="profile" cartCount={cartCount} />
     </main>
   );
 }
