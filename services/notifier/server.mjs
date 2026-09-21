@@ -25,6 +25,26 @@ function sourceIdForPhone(value) {
   return normalizePhone(value).replace(/\D/g, "");
 }
 
+function absoluteMediaUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  if (raw.startsWith("/")) {
+    if (!ALENTO_APP_BASE_URL) {
+      throw new Error(
+        "La plantilla usa una imagen administrada por Alentó, pero falta ALENTO_APP_BASE_URL en el notifier.",
+      );
+    }
+    return `${ALENTO_APP_BASE_URL}${raw}`;
+  }
+
+  throw new Error(
+    `URL de imagen inválida para plantilla: ${raw}. Debe ser una URL http/https o una ruta interna de Alentó.`,
+  );
+}
+
 async function cw(path, init = {}) {
   const response = await fetch(`${CHATWOOT_BASE_URL}${path}`, {
     ...init,
@@ -129,7 +149,7 @@ function processedParamsFor(data) {
 
   if (template.headerImageUrl) {
     processed.header = {
-      media_url: template.headerImageUrl,
+      media_url: absoluteMediaUrl(template.headerImageUrl),
       media_type: "image",
     };
   }
@@ -175,13 +195,17 @@ async function sendTemplate(data) {
     {
       method: "POST",
       body: JSON.stringify({
+        // Chatwoot muestra este contenido como transcripción interna de la conversación.
+        // El envío real a WhatsApp sigue siendo la plantilla indicada en template_params.
         content: `${data.template.title || "Notificación Alentó"} · ${data.orderCode || ""}`.trim(),
         message_type: "outgoing",
+        content_type: "text",
         private: false,
         template_params: {
           name: data.template.templateName,
           category: data.template.category || "MARKETING",
           language: data.template.language || "es",
+          content_mode: "rendered",
           processed_params: processedParamsFor(data),
         },
       }),
