@@ -25,8 +25,6 @@ const ALENTO_ICON =
 function isPublicAppPath(pathname: string) {
   return (
     pathname === "/" ||
-    pathname.startsWith("/app") ||
-    pathname.startsWith("/app2") ||
     pathname.startsWith("/menu") ||
     pathname.startsWith("/pedir")
   );
