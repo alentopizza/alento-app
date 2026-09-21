@@ -55,7 +55,7 @@ export default function PublicLandingPage() {
       setProgress(1);
       setLeaving(true);
       window.setTimeout(() => {
-        router.push("/pedir");
+        router.push("/menu");
       }, 180);
       return;
     }
@@ -136,7 +136,7 @@ export default function PublicLandingPage() {
                   event.preventDefault();
                   setProgress(1);
                   setLeaving(true);
-                  window.setTimeout(() => router.push("/pedir"), 180);
+                  window.setTimeout(() => router.push("/menu"), 180);
                 }
               }}
             >
