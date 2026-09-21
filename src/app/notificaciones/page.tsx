@@ -55,9 +55,21 @@ function ImageIcon() {
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
   return (
-    <button type="button" onClick={(event) => { event.stopPropagation(); onChange(!checked); }} aria-pressed={checked}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition ${checked ? "bg-[var(--brand-red)]" : "bg-neutral-300"}`}>
-      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${checked ? "left-6" : "left-1"}`} />
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onChange(!checked);
+      }}
+      aria-pressed={checked}
+      className={`relative h-8 w-14 shrink-0 rounded-full border transition-all duration-200 ${checked
+        ? "border-emerald-500 bg-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,.22)]"
+        : "border-neutral-300 bg-neutral-200"
+      }`}
+    >
+      <span
+        className={`absolute top-[3px] h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(0,0,0,.18)] transition-all duration-200 ${checked ? "left-[25px]" : "left-[3px]"}`}
+      />
     </button>
   );
 }
@@ -201,7 +213,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[.2em] text-white/40">Automatización</p>
               <h1 className="mt-1 text-[28px] font-black tracking-[-.04em]">Notificaciones WhatsApp</h1>
-              <p className="mt-1.5 text-[12px] text-white/55">Administra tus plantillas desde una galería simple. Abre solo la que quieras modificar.</p>
+              <p className="mt-1.5 text-[12px] text-white/55">Consulta la configuración aprobada en Meta, activa cada flujo y administra su imagen desde Alentó.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2 text-center">
@@ -249,7 +261,7 @@ export default function NotificationsPage() {
               {visibleTemplates.map((template) => (
                 <article key={template.id}
                   onClick={() => setSelectedId(template.id)}
-                  className="group cursor-pointer overflow-hidden rounded-[24px] border border-neutral-200 bg-white p-3.5 shadow-[0_10px_28px_rgba(20,18,16,.045)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_18px_42px_rgba(20,18,16,.09)]">
+                  className={`group cursor-pointer overflow-hidden rounded-[26px] border bg-white p-3.5 transition hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(20,18,16,.10)] ${template.active ? "border-emerald-200 shadow-[0_10px_28px_rgba(16,185,129,.07)]" : "border-neutral-200 shadow-[0_10px_28px_rgba(20,18,16,.045)]"}`}>
                   <TemplateImage template={template} />
 
                   <div className="px-1 pb-1 pt-3">
@@ -258,7 +270,12 @@ export default function NotificationsPage() {
                         <h3 className="truncate text-[15px] font-black tracking-[-.02em] text-neutral-950">{template.title}</h3>
                         <p className="mt-1 truncate text-[9px] font-semibold text-neutral-400">{template.event}</p>
                       </div>
-                      <Switch checked={template.active} onChange={(active) => void setTemplateActive(template.id, active)} />
+                      <div className="flex items-center gap-2">
+                        <span className={`hidden rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[.07em] sm:inline-flex ${template.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
+                          {template.active ? "Activa" : "Inactiva"}
+                        </span>
+                        <Switch checked={template.active} onChange={(active) => void setTemplateActive(template.id, active)} />
+                      </div>
                     </div>
 
                     <div className="mt-3 flex min-h-[26px] flex-wrap gap-1.5">
@@ -286,7 +303,7 @@ export default function NotificationsPage() {
             <header className="flex shrink-0 items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[linear-gradient(135deg,#09090a,#241719)] px-5 py-4 text-white sm:px-6">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/40">Editar notificación</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/40">Detalle notificación</p>
                   <span className={`rounded-full px-2 py-1 text-[8px] font-bold ${selected.active ? "bg-emerald-400/15 text-emerald-300" : "bg-white/10 text-white/50"}`}>{selected.active ? "ACTIVA" : "INACTIVA"}</span>
                 </div>
                 <h2 className="mt-1 text-[24px] font-black tracking-[-.035em]">{selected.title}</h2>
@@ -329,17 +346,30 @@ export default function NotificationsPage() {
                         if (file) void uploadImage(file);
                       }} />
 
-                    <div className="mt-3 grid gap-2 sm:grid-cols-[auto_1fr]">
-                      <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black text-white disabled:opacity-50">
-                        <UploadIcon /> {uploading ? "Cargando..." : selected.headerImageUrl ? "Cambiar imagen" : "Cargar imagen"}
-                      </button>
-                      <div className="min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2">
-                        <span className="block text-[8px] font-black uppercase tracking-[.08em] text-neutral-400">Imagen activa del template</span>
-                        <span className="mt-1 block truncate text-[10px] font-semibold text-neutral-600">{selected.headerImageUrl || "Carga una imagen para generar el enlace administrado por Alentó."}</span>
+                    <div className="mt-3 rounded-[18px] border border-dashed border-neutral-300 bg-[#faf9f7] p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black text-neutral-900">
+                            {selected.headerImageUrl ? "Imagen cargada en Alentó" : "Aún no hay una imagen cargada"}
+                          </p>
+                          <p className="mt-1 text-[9px] leading-4 text-neutral-500">
+                            {selected.headerImageUrl
+                              ? "Esta es la imagen que se enviará con la plantilla."
+                              : "Carga la imagen aprobada para que Alentó la use en el envío."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black text-white shadow-[0_8px_18px_rgba(0,0,0,.12)] disabled:opacity-50"
+                        >
+                          <UploadIcon />
+                          {uploading ? "Cargando..." : selected.headerImageUrl ? "Reemplazar imagen" : "Cargar imagen"}
+                        </button>
                       </div>
                     </div>
-                    <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. Al cargarla se guarda automáticamente, reemplaza la URL anterior y pasa a ser la imagen usada por el notifier.</p>
+                    <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. No se muestran ni gestionan URLs manuales.</p>
                   </section>
 
                   <section className="border-t border-neutral-100 pt-5">
@@ -348,7 +378,7 @@ export default function NotificationsPage() {
                       <p className="mt-1 text-[9px] leading-4 text-neutral-400">Estos datos son informativos y corresponden a la plantilla aprobada en Meta.</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                      <div className="rounded-2xl border border-neutral-200 bg-[linear-gradient(145deg,#fff,#faf9f7)] p-4 shadow-[0_6px_16px_rgba(20,18,16,.03)]">
                         <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Plantilla</span>
                         <p className="mt-2 break-words text-[13px] font-black text-neutral-900">{selected.templateName}</p>
                       </div>
@@ -388,31 +418,40 @@ export default function NotificationsPage() {
                 </div>
 
                 <aside className="space-y-4">
-                  <section className="rounded-[24px] border border-neutral-200 bg-[linear-gradient(145deg,#fff,#faf9f7)] p-4 shadow-[0_10px_28px_rgba(20,18,16,.04)]">
+                  <section className={`rounded-[24px] border p-4 transition-all ${selected.active
+                    ? "border-emerald-200 bg-[linear-gradient(145deg,#f8fffb,#ecfdf5)] shadow-[0_12px_32px_rgba(16,185,129,.08)]"
+                    : "border-neutral-200 bg-[linear-gradient(145deg,#fff,#f7f7f7)]"
+                  }`}>
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Estado de la notificación</p>
-                        <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
-                          {selected.active ? "Notificación activa" : "Notificación inactiva"}
-                        </h3>
-                        <p className="mt-1.5 text-[10px] leading-5 text-neutral-500">
-                          {selected.active
-                            ? "Alentó enviará esta plantilla cuando ocurra el evento correspondiente."
-                            : "La plantilla seguirá configurada, pero no se enviará automáticamente."}
-                        </p>
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black ${selected.active ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-500"}`}>
+                          {selected.active ? "•" : "○"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Notificación</p>
+                          <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
+                            {selected.active ? "Activa" : "Inactiva"}
+                          </h3>
+                          <p className="mt-1.5 text-[10px] leading-5 text-neutral-500">
+                            {selected.active ? "Disponible para operar automáticamente." : "No se enviará hasta volver a activarla."}
+                          </p>
+                        </div>
                       </div>
-                      <Switch
-                        checked={selected.active}
-                        onChange={(active) => void setTemplateActive(selected.id, active)}
-                      />
+                      <Switch checked={selected.active} onChange={(active) => void setTemplateActive(selected.id, active)} />
                     </div>
-                    {togglingId === selected.id && (
-                      <p className="mt-3 text-[9px] font-bold text-neutral-400">Guardando estado...</p>
-                    )}
+                    <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
+                      <span className={`rounded-full px-2.5 py-1 text-[8px] font-black ${selected.active ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
+                        {togglingId === selected.id ? "Guardando..." : selected.active ? "Activado" : "Desactivado"}
+                      </span>
+                      <span className="text-[8px] font-bold uppercase tracking-[.08em] text-neutral-400">Auto guardado</span>
+                    </div>
                   </section>
 
-                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4">
-                    <p className="text-[10px] font-black text-neutral-950">Automatización</p>
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-[var(--brand-red)]">→</span>
+                      <p className="text-[10px] font-black text-neutral-950">Automatización</p>
+                    </div>
                     <p className="mt-1 text-[9px] leading-4 text-neutral-500">{eventDescription[selected.event] ?? "Conectada al flujo operativo de Alentó."}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5">
                       <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[8px] font-bold text-white">{selected.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
@@ -422,7 +461,7 @@ export default function NotificationsPage() {
                     </div>
                   </section>
 
-                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4">
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-black text-neutral-950">Variables de Meta</p>
@@ -459,7 +498,7 @@ export default function NotificationsPage() {
             </div>
 
             <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 sm:px-6">
-              <p className="hidden text-[9px] text-neutral-400 sm:block">La imagen y el estado se guardan automáticamente. Los datos de Meta son solo informativos.</p>
+              <p className="hidden text-[9px] text-neutral-400 sm:block">Solo puedes activar la notificación o reemplazar su imagen. Los datos de Meta son informativos.</p>
               <button type="button" onClick={() => setSelectedId(null)} disabled={uploading}
                 className="ml-auto h-11 rounded-xl bg-neutral-950 px-5 text-[11px] font-black text-white">
                 Cerrar
