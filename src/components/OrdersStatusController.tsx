@@ -18,6 +18,7 @@ type OrderSummary = {
   fulfillmentType: FulfillmentType;
   total: number | string;
   payments: OrderPayment[];
+  driverId?: number | null;
 };
 
 const TRIGGER_SELECTOR = [
@@ -78,17 +79,24 @@ function decorateStatusTriggers() {
 export default function OrdersStatusController() {
   const [selectedOrder, setSelectedOrder] = useState<OrderSummary | null>(null);
   const [busy, setBusy] = useState(false);
+  const [driverBusy, setDriverBusy] = useState(false);
+  const [drivers, setDrivers] = useState<Array<{ id: number; name: string; ready: boolean }>>([]);
 
   const loadOrderForTrigger = useCallback(async (trigger: HTMLElement) => {
     const code = codeFromTrigger(trigger);
     if (!code) return;
 
     try {
-      const response = await fetch("/api/orders", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible cargar los pedidos.");
+      const [ordersResponse, driversResponse] = await Promise.all([
+        fetch("/api/orders", { cache: "no-store" }),
+        fetch("/api/drivers", { cache: "no-store" }),
+      ]);
+      const data = await ordersResponse.json();
+      const driverData = await driversResponse.json().catch(() => ({}));
+      if (!ordersResponse.ok) throw new Error(data.error || "No fue posible cargar los pedidos.");
 
       const orders = (data.orders ?? []) as OrderSummary[];
+      if (driversResponse.ok) setDrivers(driverData.drivers ?? []);
       const order = orders.find((item) => displayedCode(item) === code);
       if (!order) throw new Error("No fue posible identificar el pedido seleccionado.");
       if (order.status === "CANCELED") throw new Error("Los pedidos cancelados se gestionan fuera del selector de estados.");
@@ -148,6 +156,28 @@ export default function OrdersStatusController() {
     }
   }
 
+  async function assignDriver(driverId: number) {
+    if (!selectedOrder || driverBusy) return;
+    setDriverBusy(true);
+    try {
+      const response = await fetch(`/api/orders/${selectedOrder.id}/driver`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ driverId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible asignar el repartidor.");
+      setSelectedOrder((current) => current ? { ...current, driverId } : current);
+      window.alert(data.notification?.ok === false
+        ? `Repartidor asignado. La notificación no pudo enviarse: ${data.notification.reason}`
+        : "Repartidor asignado y notificado por WhatsApp.");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "No fue posible asignar el repartidor.");
+    } finally {
+      setDriverBusy(false);
+    }
+  }
+
   if (!selectedOrder) return null;
 
   return (
@@ -157,7 +187,11 @@ export default function OrdersStatusController() {
       fulfillmentType={selectedOrder.fulfillmentType}
       pendingBalance={pendingBalance(selectedOrder)}
       busy={busy}
-      onClose={() => !busy && setSelectedOrder(null)}
+      drivers={drivers}
+      assignedDriverId={selectedOrder.driverId ?? null}
+      driverBusy={driverBusy}
+      onAssignDriver={(driverId) => void assignDriver(driverId)}
+      onClose={() => !busy && !driverBusy && setSelectedOrder(null)}
       onSelect={(status) => void selectStatus(status)}
     />
   );
