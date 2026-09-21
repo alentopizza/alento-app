@@ -16,6 +16,7 @@ const items = [
   { href: "/caja", label: "Caja", icon: "$", roles: ["ADMIN", "CASHIER"] },
   { href: "/personalizacion", label: "Personalización", subtitle: "Portada pública", icon: "✦", roles: ["ADMIN"] },
   { href: "/club-alento", label: "Club Alentó", subtitle: "Puntos y recompensas", icon: "★", roles: ["ADMIN"] },
+  { href: "/notificaciones", label: "Notificaciones", subtitle: "WhatsApp y plantillas", icon: "✉", roles: ["ADMIN"] },
   { href: "/configuracion", label: "Configuración", icon: "⚙", roles: ["ADMIN"] },
   { href: "/usuarios", label: "Usuarios y Roles", icon: "♟", roles: ["ADMIN"] },
 ];
