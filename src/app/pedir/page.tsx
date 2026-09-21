@@ -216,7 +216,7 @@ export default function App2MenuPage() {
 
         <section id="categorias-pedir" className="relative z-20 mx-auto -mt-10 max-w-[1180px] px-7">
           <div className="flex overflow-hidden rounded-[22px] border border-black/10 bg-white text-[#111] shadow-[0_20px_54px_rgba(0,0,0,.25)]">
-            {categories.slice(0, 6).map((category, index) => {
+            {categories.slice(0, 6).map((category) => {
               const active = activeCategory === category.slug;
 
               return (
@@ -228,7 +228,7 @@ export default function App2MenuPage() {
                     setQuery("");
                     document.getElementById("catalogo-pedir")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className={`group relative flex min-h-[102px] min-w-0 flex-1 flex-col items-center justify-center gap-1.5 border-r border-neutral-200 px-3 text-center transition last:border-r-0 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
+                  className={`group relative flex min-h-[86px] min-w-0 flex-1 flex-col items-center justify-center gap-1.5 border-r border-neutral-200 px-3 text-center transition last:border-r-0 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
                 >
                   {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
 
@@ -242,9 +242,6 @@ export default function App2MenuPage() {
 
                   <span className={`truncate text-[11px] font-extrabold uppercase tracking-[0.015em] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
                     {category.name}
-                  </span>
-                  <span className="text-[8px] font-medium text-neutral-400">
-                    {index === 0 ? "Lo más pedido" : "Explorar"}
                   </span>
                 </button>
               );
@@ -264,7 +261,7 @@ export default function App2MenuPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-4 gap-4">
-            {featuredProducts.map((product, index) => (
+            {featuredProducts.map((product) => (
               <button
                 key={product.id}
                 type="button"
@@ -277,18 +274,13 @@ export default function App2MenuPage() {
                   ) : (
                     <div className="flex h-full items-center justify-center text-7xl">🍕</div>
                   )}
-                  {index === 0 && (
-                    <span className="absolute left-3 top-3 rounded-full bg-[#d71920] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-white">
-                      Bestseller
-                    </span>
-                  )}
                 </div>
-                <div className="px-4 pb-3.5 pt-3 antialiased">
-                  <h3 className="line-clamp-1 text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-white">
+                <div className="px-4 pb-3 pt-3 antialiased">
+                  <h3 className="line-clamp-1 text-[18px] font-semibold leading-[22px] tracking-[-0.012em] text-white">
                     {product.name}
                   </h3>
-                  <div className="mt-2.5 flex items-center justify-between">
-                    <span className="text-[16px] font-bold leading-none tracking-[-0.005em] text-[#ff3439]">
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[18px] font-bold leading-none tracking-[-0.008em] text-[#ff3439]">
                       {displayPrice(product)}
                     </span>
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e21a22] text-[18px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)]">
