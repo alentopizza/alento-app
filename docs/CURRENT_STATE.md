@@ -574,3 +574,17 @@ La pantalla pública `/login` usa la barra inferior compartida.
 - Se eliminó del componente compartido el estado/icono Home que ya no se usa.
 - El bloque de categorías de /menu se elevó un poco más sobre el hero.
 - En móvil se redujo la altura e iconos del bloque de categorías para ocupar menos espacio vertical.
+
+
+## Club Alentó
+
+Se incorporó la base del programa de fidelización.
+
+- Configuración administrativa en `/club-alento`.
+- Regla inicial: 10 puntos por cada $1.000 gastados.
+- Cada pedido con cliente acredita puntos una sola vez al pasar a `COMPLETED`.
+- La tasa aplicada queda registrada en cada movimiento, por lo que cambiar la regla no recalcula compras anteriores.
+- Los movimientos viven en `ClubPointTransaction`.
+- La ruta pública `/club` muestra el saldo del cliente autenticado.
+- El perfil `/cuenta` muestra los puntos y conserva la navegación inferior móvil.
+- Club queda enlazado desde la barra inferior.
