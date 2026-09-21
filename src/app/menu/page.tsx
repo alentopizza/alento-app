@@ -293,28 +293,6 @@ export default function App2MenuPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1320px] px-8 pb-16">
-          <div className="relative overflow-hidden rounded-[22px] bg-[#d71920] px-10 py-8">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_50%,rgba(255,255,255,.18),transparent_28%)]" />
-            {home?.secondaryBanner.active && home.secondaryBanner.imageUrl ? (
-              <img src={home.secondaryBanner.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-multiply" />
-            ) : null}
-            <div className="relative flex items-center justify-between gap-8">
-              <div>
-                <p className="text-[14px] font-black uppercase tracking-[0.12em] text-black/60">¿Tienes hambre?</p>
-                <h3 className="mt-1 text-[46px] font-black uppercase leading-none tracking-[-0.045em] text-white">Pide y nosotros<br/>hacemos el resto.</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => document.getElementById("catalogo-pedir")?.scrollIntoView({ behavior: "smooth" })}
-                className="rounded-full bg-black px-8 py-4 text-[12px] font-black uppercase tracking-[0.08em] text-white"
-              >
-                Elegir ahora →
-              </button>
-            </div>
-          </div>
-        </section>
-
         <section id="catalogo-pedir" className="mx-auto max-w-[1320px] px-8 pb-20">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
