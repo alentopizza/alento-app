@@ -9,6 +9,7 @@ type ActiveTab = "menu" | "cart" | "club" | "profile";
 type Props = {
   active: ActiveTab;
   cartCount?: number;
+  contentMaxWidth: number;
 };
 
 const TABS: ActiveTab[] = ["menu", "cart", "club", "profile"];
@@ -110,7 +111,7 @@ function rememberOrigin(active: ActiveTab) {
   }
 }
 
-export default function PublicDesktopSidebar({ active, cartCount }: Props) {
+export default function PublicDesktopSidebar({ active, cartCount, contentMaxWidth }: Props) {
   const [logoUrl, setLogoUrl] = useState("");
   const [resolvedCartCount, setResolvedCartCount] = useState(cartCount ?? 0);
   const [visualActive, setVisualActive] = useState<ActiveTab>(active);
@@ -183,24 +184,27 @@ export default function PublicDesktopSidebar({ active, cartCount }: Props) {
   }, [active]);
 
   return (
-    <aside className="fixed left-3 top-1/2 z-[70] hidden -translate-y-1/2 flex-col items-center gap-3 md:flex lg:left-4">
+    <aside
+      className="fixed top-1/2 z-[70] hidden -translate-y-1/2 flex-col items-center gap-2.5 md:flex"
+      style={{ left: `max(12px, calc(50vw - ${contentMaxWidth / 2}px - 40px))` }}
+    >
       <Link
         href="/menu"
-        className="flex h-[64px] w-[88px] items-center justify-center rounded-[24px] border border-white/[0.08] bg-black/90 px-2 shadow-[0_16px_38px_rgba(0,0,0,.28)] backdrop-blur-xl"
+        className="flex h-[58px] w-[72px] items-center justify-center rounded-[22px] border border-white/[0.08] bg-black/90 px-2 shadow-[0_16px_38px_rgba(0,0,0,.28)] backdrop-blur-xl"
         aria-label="Alentó Pizza"
       >
         {logoUrl ? (
           <img
             src={logoUrl}
             alt="Alentó Pizza"
-            className="h-[42px] w-[76px] object-contain object-center"
+            className="h-[36px] w-[62px] object-contain object-center"
           />
         ) : (
-          <span className="h-[42px] w-[76px]" aria-hidden="true" />
+          <span className="h-[36px] w-[62px]" aria-hidden="true" />
         )}
       </Link>
 
-      <nav className="flex w-[88px] flex-col items-stretch rounded-[30px] border border-black/[0.06] bg-white p-[7px] shadow-[0_20px_52px_rgba(0,0,0,.30)]">
+      <nav className="flex w-[72px] flex-col items-stretch rounded-[28px] border border-black/[0.06] bg-white p-[6px] shadow-[0_20px_52px_rgba(0,0,0,.30)]">
         {TABS.map((tab) => {
           const selected = visualActive === tab;
           const isDestination = active === tab;
@@ -212,7 +216,7 @@ export default function PublicDesktopSidebar({ active, cartCount }: Props) {
               onClick={() => rememberOrigin(active)}
               aria-current={isDestination ? "page" : undefined}
               aria-label={tabLabel(tab)}
-              className={`relative flex w-full flex-col items-center justify-center overflow-visible rounded-[22px] transition-[height,background-color,color,transform] duration-300 ease-[cubic-bezier(.22,.8,.24,1)] active:scale-[.97] ${selected ? "h-[78px] bg-[#fff7f7] text-[#e21a22]" : "h-[54px] text-[#c5c8ce] hover:bg-neutral-50 hover:text-neutral-600"}`}
+              className={`relative flex w-full flex-col items-center justify-center overflow-visible rounded-[20px] transition-[height,background-color,color,transform] duration-300 ease-[cubic-bezier(.22,.8,.24,1)] active:scale-[.97] ${selected ? "h-[90px] bg-[#fff7f7] text-[#e21a22]" : "h-[62px] text-[#c5c8ce] hover:bg-neutral-50 hover:text-neutral-600"}`}
             >
               <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                 <TabIcon tab={tab} />
@@ -225,13 +229,13 @@ export default function PublicDesktopSidebar({ active, cartCount }: Props) {
               </span>
 
               <span
-                className={`overflow-hidden whitespace-nowrap text-[10px] font-bold transition-all duration-300 ${selected ? "mt-1 max-h-4 translate-y-0 opacity-100" : "mt-0 max-h-0 -translate-y-1 opacity-0"}`}
+                className={`overflow-hidden whitespace-nowrap text-[10px] font-bold transition-all duration-300 ${selected ? "mt-1.5 max-h-4 translate-y-0 opacity-100" : "mt-0 max-h-0 -translate-y-1 opacity-0"}`}
               >
                 {tabLabel(tab)}
               </span>
 
               <span
-                className={`absolute bottom-[8px] h-[2px] rounded-full bg-[#e21a22] transition-all duration-300 ${selected ? "w-5 opacity-100" : "w-0 opacity-0"}`}
+                className={`absolute bottom-[10px] h-[2px] rounded-full bg-[#e21a22] transition-all duration-300 ${selected ? "w-5 opacity-100" : "w-0 opacity-0"}`}
               />
             </Link>
           );
