@@ -1,6 +1,8 @@
 # Alentó Notifier
 
-Microservicio de notificaciones de Alentó.
+Microservicio de notificaciones de Alentó. Recibe eventos de la app principal, resuelve/crea el contacto y la conversación de WhatsApp en Chatwoot, y envía la plantilla aprobada configurada desde el módulo **Notificaciones**.
+
+También consulta periódicamente la cola persistente de la app para enviar notificaciones programadas, como la solicitud de reseña 60 minutos después de finalizar el pedido.
 
 ## Endpoints
 
@@ -16,10 +18,11 @@ CHATWOOT_BASE_URL=https://chat.operadoranordecolombia.com
 CHATWOOT_ACCOUNT_ID=1
 CHATWOOT_WHATSAPP_INBOX_ID=13
 CHATWOOT_API_ACCESS_TOKEN=
-CHATWOOT_ORDER_CREATED_TEMPLATE_NAME=nuevo_pedido_v2
-CHATWOOT_ORDER_CREATED_TEMPLATE_LANGUAGE=es
-CHATWOOT_ORDER_CREATED_TEMPLATE_CATEGORY=MARKETING
-CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL=https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/arG6qTss0Dye7zuwPYrR.png
+ALENTO_APP_BASE_URL=https://pos.alentopizza.com
 ```
+
+Las plantillas, imágenes, variables y reglas ya no se configuran como variables de entorno del notifier. Se administran desde Alentó App.
+
+`ALENTO_APP_BASE_URL` permite al notifier consultar la cola de notificaciones programadas. Cuando el dominio oficial reemplace a `pos.alentopizza.com`, actualizar esta variable a `https://alentopizza.com`.
 
 No usa JSON ni placeholders en variables de entorno.
