@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { getNotificationTemplates, saveNotificationTemplates } from "@/lib/notificationTemplates";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -15,6 +16,11 @@ export async function POST(request: NextRequest) {
 
   const form = await request.formData();
   const file = form.get("file");
+  const templateId = String(form.get("templateId") ?? "").trim();
+
+  if (!templateId) {
+    return NextResponse.json({ error: "No se pudo identificar la plantilla." }, { status: 400 });
+  }
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Selecciona una imagen válida." }, { status: 400 });
@@ -37,8 +43,34 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
 
-  const origin = new URL(request.url).origin;
+  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const fallbackOrigin = new URL(request.url).origin;
+  const origin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : fallbackOrigin;
   const url = `${origin}/api/notification-images/${record.id}`;
 
-  return NextResponse.json({ ok: true, id: record.id, url }, { status: 201 });
+  const templates = await getNotificationTemplates();
+  const current = templates.find((template) => template.id === templateId);
+  if (!current) {
+    await prisma.notificationImage.delete({ where: { id: record.id } }).catch(() => undefined);
+    return NextResponse.json({ error: "Plantilla no encontrada." }, { status: 404 });
+  }
+
+  const previousUrl = current.headerImageUrl;
+  const updatedTemplates = templates.map((template) =>
+    template.id === templateId ? { ...template, headerImageUrl: url } : template,
+  );
+  await saveNotificationTemplates(updatedTemplates);
+
+  const oldInternalId = previousUrl.match(/\/api\/notification-images\/([^/?#]+)/)?.[1];
+  if (oldInternalId && oldInternalId !== record.id) {
+    await prisma.notificationImage.delete({ where: { id: oldInternalId } }).catch(() => undefined);
+  }
+
+  return NextResponse.json({
+    ok: true,
+    id: record.id,
+    url,
+    template: updatedTemplates.find((template) => template.id === templateId),
+  }, { status: 201 });
 }
