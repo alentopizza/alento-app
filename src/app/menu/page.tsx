@@ -187,16 +187,16 @@ export default function PublicMenuPage() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/45 to-transparent" />
 
           <div className="mx-auto max-w-[1320px] px-4 sm:px-6 lg:px-8">
-            <div className="flex h-[72px] items-center justify-between gap-3 lg:h-[86px]">
+            <div className="flex h-[68px] items-center justify-center md:h-[76px] md:justify-between lg:h-[86px]">
               <Link href="/" className="group flex min-w-0 items-center">
                 {homeLoaded ? (
                   <img
                     src={home?.brand?.logoUrl || FALLBACK_LOGO}
                     alt="Alentó Pizza"
-                    className="h-[42px] w-[145px] object-contain object-left transition duration-200 group-hover:opacity-90 sm:h-[48px] sm:w-[175px] lg:h-[54px] lg:w-[210px]"
+                    className="h-[42px] w-[150px] object-contain object-center transition duration-200 group-hover:opacity-90 md:h-[48px] md:w-[175px] md:object-left lg:h-[54px] lg:w-[210px]"
                   />
                 ) : (
-                  <span className="block h-[42px] w-[145px] sm:h-[48px] sm:w-[175px] lg:h-[54px] lg:w-[210px]" aria-hidden="true" />
+                  <span className="block h-[42px] w-[150px] md:h-[48px] md:w-[175px] lg:h-[54px] lg:w-[210px]" aria-hidden="true" />
                 )}
               </Link>
 
@@ -223,7 +223,7 @@ export default function PublicMenuPage() {
 
               <Link
                 href="/login"
-                className="group relative shrink-0 overflow-hidden rounded-full bg-[#e21a22] px-4 py-3 text-[12px] font-extrabold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] sm:px-5 sm:text-[13px] lg:px-7 lg:py-3.5 lg:text-[14px]"
+                className="group relative hidden shrink-0 overflow-hidden rounded-full bg-[#e21a22] px-5 py-3 text-[13px] font-extrabold tracking-[0.02em] text-white shadow-[0_10px_26px_rgba(226,26,34,.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] md:flex lg:px-7 lg:py-3.5 lg:text-[14px]"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <svg
@@ -239,24 +239,10 @@ export default function PublicMenuPage() {
                     <circle cx="12" cy="8" r="3.5" />
                     <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
                   </svg>
-                  <span className="hidden xs:inline sm:inline">Mi Cuenta</span>
-                  <span className="sm:hidden">Cuenta</span>
+                  Mi Cuenta
                 </span>
               </Link>
             </div>
-
-            <nav className="flex h-[44px] items-center justify-center gap-7 border-t border-white/[0.05] md:hidden">
-              <Link href="/" className="text-[12px] font-medium text-white/62">
-                Home
-              </Link>
-              <Link
-                href="/menu"
-                className="relative flex h-full items-center text-[12px] font-semibold text-white after:absolute after:inset-x-0 after:bottom-0 after:mx-auto after:h-[2px] after:w-6 after:bg-[#e21a22] after:content-['']"
-              >
-                Menú
-              </Link>
-              <span className="text-[12px] font-medium text-white/62">Club De La Pizza</span>
-            </nav>
           </div>
         </header>
 
@@ -357,7 +343,7 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-20 sm:px-5 lg:px-8">
+        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-20 lg:px-8">
           <div className="mb-5 flex flex-col gap-4 sm:mb-6 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35 lg:text-[10px]">Catálogo</p>
@@ -431,11 +417,65 @@ export default function PublicMenuPage() {
         </section>
       </section>
 
+      <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:hidden">
+        <div className="mx-auto grid max-w-[430px] grid-cols-4 rounded-[28px] border border-black/10 bg-white/95 p-1.5 text-[#8a8a8a] shadow-[0_18px_50px_rgba(0,0,0,.32)] backdrop-blur-xl">
+          <Link
+            href="/"
+            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m3 10 9-7 9 7" />
+              <path d="M5 9.5V21h14V9.5" />
+              <path d="M9 21v-7h6v7" />
+            </svg>
+            <span className="text-[10px] font-medium">Home</span>
+          </Link>
+
+          <Link
+            href="/menu"
+            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] bg-[#fff0f0] text-[#e21a22] transition active:scale-[.98]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 7.5v4.5l3 2" />
+              <path d="M8 4.5 6.5 2.8" />
+              <path d="m16 4.5 1.5-1.7" />
+            </svg>
+            <span className="text-[10px] font-semibold">Menú</span>
+          </Link>
+
+          <button
+            type="button"
+            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
+            aria-label="Carrito próximamente"
+            title="Carrito próximamente"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+              <circle cx="10" cy="19" r="1.2" />
+              <circle cx="18" cy="19" r="1.2" />
+            </svg>
+            <span className="text-[10px] font-medium">Carrito</span>
+          </button>
+
+          <Link
+            href="/cuenta"
+            className="flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-[22px] transition active:scale-[.98]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6" />
+            </svg>
+            <span className="text-[10px] font-medium">Perfil</span>
+          </Link>
+        </div>
+      </nav>
+
       {showBackToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-5 right-4 z-[80] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#111] text-white shadow-[0_12px_30px_rgba(0,0,0,.42)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#e21a22] sm:bottom-6 sm:right-5 lg:bottom-7 lg:right-7 lg:h-12 lg:w-12"
+          className="fixed bottom-[92px] right-4 z-[80] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#111] text-white shadow-[0_12px_30px_rgba(0,0,0,.42)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#e21a22] sm:bottom-6 sm:right-5 lg:bottom-7 lg:right-7 lg:h-12 lg:w-12"
           aria-label="Volver arriba"
           title="Volver arriba"
         >
