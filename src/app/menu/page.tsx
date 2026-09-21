@@ -179,7 +179,7 @@ export default function App2MenuPage() {
             </nav>
 
             <Link
-              href="/cuenta/login"
+              href="/login"
               className="group relative overflow-hidden rounded-full bg-[#e21a22] px-7 py-3.5 text-[14px] font-extrabold tracking-[0.025em] text-white shadow-[0_12px_30px_rgba(226,26,34,.28)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#ef1c25] hover:shadow-[0_16px_36px_rgba(226,26,34,.36)] active:translate-y-0"
             >
               <span className="relative z-10 flex items-center gap-2.5">
@@ -399,7 +399,7 @@ export default function App2MenuPage() {
           </div>
 
           <Link
-            href="/cuenta/login"
+            href="/login"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur"
             aria-label="Mi cuenta"
           >
@@ -520,7 +520,7 @@ export default function App2MenuPage() {
           <button type="button" className="flex flex-col items-center gap-1 text-black/45">
             <span className="text-lg">♡</span><span className="text-[9px] font-bold">Favoritos</span>
           </button>
-          <Link href="/cuenta/login" className="flex flex-col items-center gap-1 text-black/45">
+          <Link href="/login" className="flex flex-col items-center gap-1 text-black/45">
             <span className="text-lg">○</span><span className="text-[9px] font-bold">Cuenta</span>
           </Link>
         </div>
