@@ -155,24 +155,12 @@ export default function App2MenuPage() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d71920]/45 to-transparent" />
 
           <div className="mx-auto flex h-[86px] max-w-[1320px] items-center justify-between px-8">
-            <Link href="/" className="group flex items-center gap-3.5">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-[#d71920]/20 blur-xl transition group-hover:bg-[#d71920]/30" />
-                <img
-                  src={home?.brand?.logoUrl || FALLBACK_LOGO}
-                  alt="Alentó Pizza"
-                  className="relative h-[54px] w-[54px] rounded-full object-cover ring-1 ring-white/10"
-                />
-              </div>
-
-              <div className="leading-none">
-                <span className="block text-[21px] font-extrabold tracking-[-0.025em] text-white">
-                  Alentó Pizza
-                </span>
-                <span className="mt-2 block text-[8px] font-medium uppercase tracking-[0.22em] text-white/46">
-                  Sabor que te hace volver
-                </span>
-              </div>
+            <Link href="/" className="group flex items-center">
+              <img
+                src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/ifBQewvReilKLfOzcpy4.png"
+                alt="Alentó Pizza"
+                className="h-[54px] w-[210px] object-contain object-left transition duration-200 group-hover:opacity-90"
+              />
             </Link>
 
             <nav className="flex items-center gap-10">
