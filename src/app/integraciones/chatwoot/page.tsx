@@ -56,7 +56,12 @@ type CustomerPayload = {
     purchaseCount: number;
     totalSpent: number;
     averageTicket: number;
+    firstOrderAt: string | null;
     lastOrderAt: string | null;
+    frequencyDays: number | null;
+    daysSinceLastOrder: number | null;
+    commercialSignal: string;
+    clubPoints: number;
   };
   orders: OrderSummary[];
 };
@@ -75,6 +80,17 @@ function dateTime(value: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function signalLabel(value: string) {
+  const labels: Record<string, string> = {
+    SIN_COMPRAS: "Sin compras",
+    NUEVO: "Nuevo",
+    ACTIVO: "Activo",
+    FRECUENTE: "Frecuente",
+    POR_RECUPERAR: "Por recuperar",
+  };
+  return labels[value] ?? value;
 }
 
 function labelStatus(status: string) {
@@ -202,12 +218,20 @@ export default function ChatwootDashboardPage() {
   return (
     <main className="cw-panel">
       <section className="cw-head">
-        <div>
-          <p className="cw-eyebrow">ALENTÓ · CLIENTE</p>
-          <h1>{displayName}</h1>
-          <p className="cw-phone">{phone || "Sin teléfono"}</p>
+        <div className="cw-identity">
+          <div className="cw-avatar">{displayName.trim().charAt(0).toUpperCase()}</div>
+          <div>
+            <p className="cw-eyebrow">ALENTÓ · CLIENTE</p>
+            <h1>{displayName}</h1>
+            <p className="cw-phone">{phone || "Sin teléfono"}{data ? ` · Cliente #${data.customer.id}` : ""}</p>
+          </div>
         </div>
-        {data ? <span className="cw-pill">Cliente #{data.customer.id}</span> : null}
+        {data ? (
+          <div className="cw-tags">
+            <span className="cw-pill">{signalLabel(data.metrics.commercialSignal)}</span>
+            <span className="cw-points">★ {data.metrics.clubPoints} pts</span>
+          </div>
+        ) : null}
       </section>
 
       {loading ? <div className="cw-state">Consultando historial…</div> : null}
@@ -222,11 +246,15 @@ export default function ChatwootDashboardPage() {
             </article>
             <article>
               <strong>{money(data.metrics.averageTicket)}</strong>
-              <span>Ticket prom.</span>
+              <span>Ticket promedio</span>
             </article>
             <article>
               <strong>{money(data.metrics.totalSpent)}</strong>
-              <span>Histórico</span>
+              <span>Total comprado</span>
+            </article>
+            <article>
+              <strong>{data.metrics.daysSinceLastOrder ?? "—"}</strong>
+              <span>Días sin comprar</span>
             </article>
           </section>
 
@@ -234,6 +262,10 @@ export default function ChatwootDashboardPage() {
             <div className="cw-row">
               <span>Última compra</span>
               <strong>{dateTime(data.metrics.lastOrderAt)}</strong>
+            </div>
+            <div className="cw-row">
+              <span>Frecuencia</span>
+              <strong>{data.metrics.frequencyDays ? `Cada ${data.metrics.frequencyDays} días` : "Por definir"}</strong>
             </div>
             {data.customer.defaultAddress ? (
               <div className="cw-row">
@@ -294,7 +326,9 @@ export default function ChatwootDashboardPage() {
         :global(body) {
           margin: 0;
           min-height: 100%;
-          background: #f6f7f9;
+          background:
+            radial-gradient(circle at top right, rgba(183,28,28,.07), transparent 30%),
+            #f6f7f9;
           color: #171717;
           font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
@@ -307,10 +341,51 @@ export default function ChatwootDashboardPage() {
 
         .cw-head {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 14px;
           margin-bottom: 14px;
+          padding: 2px;
+        }
+
+        .cw-identity {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .cw-avatar {
+          display: grid;
+          place-items: center;
+          width: 46px;
+          height: 46px;
+          flex: 0 0 46px;
+          border-radius: 14px;
+          background: #111;
+          color: #fff;
+          font-size: 19px;
+          font-weight: 800;
+          box-shadow: 0 8px 22px rgba(0,0,0,.14);
+        }
+
+        .cw-tags {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .cw-points {
+          border: 1px solid #dedee3;
+          border-radius: 999px;
+          background: #fff;
+          padding: 6px 9px;
+          color: #444;
+          font-size: 11px;
+          font-weight: 700;
+          white-space: nowrap;
         }
 
         .cw-eyebrow {
@@ -348,8 +423,8 @@ export default function ChatwootDashboardPage() {
         .cw-order,
         .cw-metrics article {
           border: 1px solid #e4e4e7;
-          background: white;
-          border-radius: 12px;
+          background: rgba(255,255,255,.97);
+          border-radius: 14px;
         }
 
         .cw-state {
@@ -360,14 +435,15 @@ export default function ChatwootDashboardPage() {
 
         .cw-metrics {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 8px;
           margin-bottom: 10px;
         }
 
         .cw-metrics article {
           min-width: 0;
-          padding: 10px;
+          padding: 12px;
+          box-shadow: 0 5px 18px rgba(0,0,0,.025);
         }
 
         .cw-metrics strong,
@@ -377,7 +453,7 @@ export default function ChatwootDashboardPage() {
 
         .cw-metrics strong {
           overflow: hidden;
-          font-size: 15px;
+          font-size: 17px;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
