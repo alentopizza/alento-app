@@ -20,12 +20,20 @@ export default function PublicLandingPage() {
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [home, setHome] = useState<PublicHomeSettings | null>(null);
+  const [homeLoaded, setHomeLoaded] = useState(false);
 
   useEffect(() => {
-    fetch("/api/public-home", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data) => setHome(data?.settings ?? null))
-      .catch(() => {});
+    async function loadHome() {
+      try {
+        const response = await fetch("/api/public-home", { cache: "no-store" });
+        const data = await response.json();
+        if (response.ok) setHome(data?.settings ?? null);
+      } finally {
+        setHomeLoaded(true);
+      }
+    }
+
+    void loadHome();
   }, []);
 
   const mobileImage = home?.landing?.mobileImageUrl || FALLBACK_INTRO_IMAGE;
@@ -66,15 +74,19 @@ export default function PublicLandingPage() {
   return (
     <main className="min-h-[100dvh] bg-black">
       <div className="relative min-h-[100dvh] w-full overflow-hidden bg-white">
-        <picture>
-          <source media="(min-width: 900px)" srcSet={desktopImage} />
-          <img
-            src={mobileImage}
-            alt="Alentó Pizza"
-            className="absolute inset-0 h-full w-full object-cover object-center"
-            draggable={false}
-          />
-        </picture>
+        {homeLoaded ? (
+          <picture>
+            <source media="(min-width: 900px)" srcSet={desktopImage} />
+            <img
+              src={mobileImage}
+              alt="Alentó Pizza"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              draggable={false}
+            />
+          </picture>
+        ) : (
+          <div className="absolute inset-0 bg-black" aria-hidden="true" />
+        )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-black/30 via-black/5 to-transparent" />
 
