@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCustomerSession } from "@/lib/auth";
+import { getCustomerSession, getStaffSession } from "@/lib/auth";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 
@@ -8,7 +8,16 @@ function money(value: unknown) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
 }
 
+function staffHome(roles: string[]) {
+  if (roles.includes("ADMIN") || roles.includes("POS") || roles.includes("CASHIER")) return "/interno";
+  if (roles.includes("KITCHEN")) return "/cocina";
+  return "/sin-acceso";
+}
+
 export default async function CustomerAccountPage() {
+  const staffSession = await getStaffSession();
+  if (staffSession) redirect(staffHome(staffSession.roles));
+
   const session = await getCustomerSession();
   if (!session) redirect("/login");
 
