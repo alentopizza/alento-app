@@ -182,7 +182,6 @@ function templateBodyParams(input: OrderCreatedNotificationInput) {
     return {
       "1": input.customerName,
       "2": input.orderCode,
-      "3": money(input.total),
     };
   }
 
@@ -254,10 +253,9 @@ export async function notifyOrderCreated(
     const headerImageUrl =
       process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL?.trim();
     const buttonParamTemplate =
-      process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_BUTTON_PARAM?.trim();
-    const buttonParameter = buttonParamTemplate
-      ? renderTemplateValue(buttonParamTemplate, input)
-      : "";
+      process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_BUTTON_PARAM?.trim() ||
+      "__TRACKING_PATH__";
+    const buttonParameter = renderTemplateValue(buttonParamTemplate, input);
 
     const processedParams: {
       body: Record<string, string>;
