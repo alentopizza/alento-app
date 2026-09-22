@@ -215,6 +215,7 @@ export default function PublicCheckoutDelivery({
 }) {
   const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const mapInstanceRef = useRef<GoogleMapInstance | null>(null);
   const destinationMarkerRef = useRef<GoogleMarkerInstance | null>(null);
   const originMarkerRef = useRef<GoogleMarkerInstance | null>(null);
@@ -227,7 +228,7 @@ export default function PublicCheckoutDelivery({
   } | null>(null);
 
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>(
-    initialSelection?.fulfillmentType ?? "DELIVERY",
+    initialSelection?.fulfillmentType ?? "PICKUP",
   );
   const [quote, setQuote] = useState<DeliveryQuote | null>(
     initialSelection?.fulfillmentType === "DELIVERY"
@@ -258,6 +259,8 @@ export default function PublicCheckoutDelivery({
   const [locating, setLocating] = useState(false);
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState("");
+  const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
+  const [savedAddressChecked, setSavedAddressChecked] = useState(false);
 
   const drawMap = useCallback(async (
     destination?: {
@@ -417,7 +420,13 @@ export default function PublicCheckoutDelivery({
   }, []);
 
   useEffect(() => {
-    if (fulfillmentType !== "DELIVERY") return;
+    if (fulfillmentType !== "DELIVERY") {
+      mapInstanceRef.current = null;
+      destinationMarkerRef.current = null;
+      originMarkerRef.current = null;
+      routePolylineRef.current = null;
+      return;
+    }
 
     let cancelled = false;
     let autocomplete: PlaceAutocompleteElementInstance | null = null;
@@ -505,9 +514,60 @@ export default function PublicCheckoutDelivery({
   }, [fulfillmentType, requestQuote]);
 
   useEffect(() => {
-    if (fulfillmentType !== "DELIVERY" || !mapRef.current) return;
-    void drawMap(quote?.destination, quote?.encodedPolyline);
-  }, [drawMap, fulfillmentType, origin, quote?.destination, quote?.encodedPolyline]);
+    if (fulfillmentType !== "DELIVERY" || !mapReady || !mapRef.current) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      void drawMap(quote?.destination, quote?.encodedPolyline).catch((err) => {
+        setError(
+          err instanceof Error ? err.message : "No fue posible mostrar el mapa.",
+        );
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    drawMap,
+    fulfillmentType,
+    mapReady,
+    origin,
+    quote?.destination,
+    quote?.encodedPolyline,
+  ]);
+
+  const loadSavedCustomerAddress = useCallback(async () => {
+    if (savedAddressChecked || loadingSavedAddress) return;
+
+    setLoadingSavedAddress(true);
+    setSavedAddressChecked(true);
+
+    try {
+      const response = await fetch("/api/delivery/customer-default-address", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (
+        response.ok &&
+        data?.address &&
+        Number.isFinite(Number(data.address.latitude)) &&
+        Number.isFinite(Number(data.address.longitude))
+      ) {
+        await requestQuote({
+          latitude: Number(data.address.latitude),
+          longitude: Number(data.address.longitude),
+          formattedAddress: data.address.formattedAddress || "",
+          placeId: data.address.placeId || "",
+        });
+        return;
+      }
+
+      setEditingAddress(true);
+    } catch {
+      setEditingAddress(true);
+    } finally {
+      setLoadingSavedAddress(false);
+    }
+  }, [loadingSavedAddress, requestQuote, savedAddressChecked]);
 
   function useCurrentLocation() {
     setError("");
@@ -613,6 +673,10 @@ export default function PublicCheckoutDelivery({
               onClick={() => {
                 setFulfillmentType("DELIVERY");
                 setError("");
+                if (!quote?.destination) {
+                  setEditingAddress(true);
+                  void loadSavedCustomerAddress();
+                }
               }}
               className={
                 "rounded-[15px] border px-3 py-2.5 text-left transition sm:px-4 sm:py-3 " +
@@ -630,6 +694,8 @@ export default function PublicCheckoutDelivery({
               type="button"
               onClick={() => {
                 setFulfillmentType("PICKUP");
+                setQuote(null);
+                setEditingAddress(false);
                 setError("");
               }}
               className={
@@ -639,7 +705,7 @@ export default function PublicCheckoutDelivery({
                   : "border-white/10 bg-white/[0.035]")
               }
             >
-              <b className="block text-[12px] sm:text-[13px]">Recoger</b>
+              <b className="block text-[12px] sm:text-[13px]">Recoger en tienda</b>
               <span className="mt-0.5 block text-[9px] text-white/40 sm:mt-1 sm:text-[10px]">
                 Sin costo de domicilio
               </span>
@@ -711,7 +777,11 @@ export default function PublicCheckoutDelivery({
                   </div>
 
                   <div className="mt-2 min-h-[46px] rounded-[13px] border border-white/10 bg-white px-2 py-0.5 text-black">
-                    {loadingMaps ? (
+                    {loadingSavedAddress ? (
+                      <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500">
+                        Cargando tu dirección guardada...
+                      </div>
+                    ) : loadingMaps ? (
                       <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500">
                         Cargando Google Maps...
                       </div>
@@ -729,7 +799,13 @@ export default function PublicCheckoutDelivery({
               )}
 
               <section className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:max-h-[430px] sm:rounded-[22px]">
-                <div ref={mapRef} className="h-full w-full" />
+                <div
+                  ref={(element) => {
+                    mapRef.current = element;
+                    setMapReady(Boolean(element));
+                  }}
+                  className="h-full w-full"
+                />
                 <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
                   <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
                     {quote?.destination ? "Alentó → tu ubicación" : "Zona de entrega Alentó"}
@@ -814,7 +890,7 @@ export default function PublicCheckoutDelivery({
               ? !editingAddress && quote?.covered
                 ? "Confirmar domicilio"
                 : "Confirma una dirección"
-              : "Continuar con recogida"}
+              : "Continuar · recoger en tienda"}
           </button>
         </footer>
       </div>
