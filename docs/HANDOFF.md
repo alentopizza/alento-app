@@ -393,9 +393,16 @@ La creación pública ya existe mediante `/api/public-checkout` y genera pedidos
 
 ### Pedido activo del cliente
 
+Convención de estados visible desde 2026-09-22:
+
+- `PREPARING` = Preparando;
+- `PREPARED` = Horneando;
+- `READY` = Listo / Listo para recoger;
+- no crear un nuevo enum HORNEANDO salvo que una necesidad futura requiera distinguir técnicamente cocción de PREPARED.
+
 Clientes autenticados:
 
-- `GET /api/auth/customer/active-order` devuelve el pedido activo más reciente de la sesión;
+- `GET /api/auth/customer/active-order` devuelve hasta 5 pedidos activos de la sesión, ordenados del más antiguo al más nuevo;
 - `PublicActiveOrderBanner` se reutiliza en `/menu` y `/cart`;
 - usa 4 etapas según modalidad;
 - nunca debe buscar pedidos por un teléfono arbitrario cuando existe sesión;
