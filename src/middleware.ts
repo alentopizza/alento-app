@@ -152,7 +152,10 @@ export async function middleware(request: NextRequest) {
   // Cotización pública del checkout: no requiere sesión de colaborador.
   // La tarifa y la distancia se calculan server-side, por lo que no exponemos
   // permisos internos ni confiamos en valores enviados por el navegador.
-  if (pathname === "/api/delivery/quote" && request.method === "POST") {
+  if (
+    (pathname === "/api/delivery/quote" && request.method === "POST") ||
+    (pathname === "/api/delivery/origin" && request.method === "GET")
+  ) {
     return NextResponse.next();
   }
 
