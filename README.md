@@ -93,20 +93,22 @@ POS-0004
 
 Ver `docs/ORDER_NUMBERING.md`.
 
-## Bloque estratégico actual: checkout público y pedido WEB
+## Bloque estratégico actual: consolidar checkout público
 
-Autenticación y Roles ya tienen una primera versión operativa.
+Autenticación y Roles ya tienen una primera versión operativa y la app pública ya puede crear pedidos reales `WEB`.
 
-El bloque activo es completar la experiencia pública sin duplicar el motor comercial:
+El flujo público vigente incluye:
 
-1. validar el checkout de domicilio con Google Maps/Routes;
-2. enriquecer y persistir direcciones;
-3. completar cliente/invitado y medio de pago;
-4. recalcular el pedido en servidor;
-5. crear `Order.source=WEB` con el consecutivo global;
-6. conectar notificaciones, Club y seguimiento.
+1. modalidad Recoger/Domicilio;
+2. Google Places/Routes para domicilio;
+3. datos del cliente o invitado;
+4. recuperación segura de datos por OTP de WhatsApp;
+5. forma de pago;
+6. recálculo server-side;
+7. creación `Order.source=WEB`;
+8. seguimiento firmado.
 
-La creación pública final todavía no está implementada. `POST /api/orders` continúa siendo el flujo interno protegido del POS y crea `source=POS`.
+`POST /api/orders` continúa siendo el flujo interno protegido del POS y crea `source=POS`. La web usa `/api/public-checkout`.
 
 ## Experiencia pública
 
@@ -129,7 +131,7 @@ La experiencia pública está en desarrollo activo y ya incluye:
 
 No debe existir un segundo sistema de pedidos. Catálogo, configuradores, precios, cobertura, normalización, consecutivo y estados deben compartirse con el sistema interno.
 
-Las órdenes originadas por la experiencia pública usarán `Order.source=WEB` cuando se complete la fase final del checkout.
+Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y comparten el mismo consecutivo global con POS.
 
 ## Arquitectura técnica
 
