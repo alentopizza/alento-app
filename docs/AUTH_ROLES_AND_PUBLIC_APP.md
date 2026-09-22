@@ -2,7 +2,7 @@
 
 Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
-Última actualización: 2026-09-20.
+Última actualización: 2026-09-22.
 
 Este documento describe la autenticación vigente de Alentó App y la separación entre colaboradores internos y clientes.
 
@@ -28,9 +28,7 @@ Ruta unificada:
 
 `/login`
 
-También disponible desde:
-
-`/cuenta/login`
+La antigua ruta `/cuenta/login` fue retirada y no debe volver a usarse como ruta pública canónica.
 
 Las contraseñas se guardan como hash `scrypt` con salt aleatorio.
 
@@ -56,6 +54,7 @@ Roles actuales:
 - `KITCHEN`;
 - `CASHIER`;
 - `DRIVER`.
+- `DISPATCH` permanece en Prisma únicamente como valor legacy de compatibilidad.
 
 Un usuario puede tener varios roles.
 
@@ -102,7 +101,9 @@ Acceso total al sistema interno.
 
 ### DRIVER
 
-- Pedidos.
+- no recibe acceso al dashboard general de Pedidos;
+- opera mediante enlaces firmados de pedidos asignados;
+- puede verificar el pedido y avanzar las etapas autorizadas de reparto.
 
 La navegación se filtra por roles y las rutas sensibles también se validan en servidor/middleware.
 
@@ -112,19 +113,19 @@ Cookie:
 
 `alento_staff_session`
 
-Características:
+Características vigentes:
 
 - firmada con HMAC SHA-256;
 - `HttpOnly`;
 - `SameSite=Lax`;
 - `Secure` en producción;
-- duración actual: 12 horas.
+- duración máxima actual: 400 días;
+- el middleware renueva silenciosamente la sesión cuando faltan 30 días o menos para vencer;
+- cerrar sesión invalida la cookie explícitamente.
 
-El secreto proviene de:
+La sesión continúa siendo stateless; la persistencia larga no equivale a revocación inmediata centralizada.
 
-`AUTH_SESSION_SECRET`
-
-Debe tener mínimo 32 caracteres y ser aleatorio.
+El secreto proviene de `AUTH_SESSION_SECRET` y debe tener mínimo 32 caracteres aleatorios.
 
 ## Primer administrador
 
@@ -149,33 +150,30 @@ No reutilizar la bootstrap key como contraseña de usuario.
 
 ## Protección de rutas internas
 
-La primera versión protege:
+Rutas principales:
 
-- `/interno` POS;
-- `/pedidos`;
-- `/cocina`;
-- `/clientes`;
-- `/menu`;
-- `/cupones`;
-- `/caja`;
-- `/configuracion`;
-- `/usuarios`.
+- `/interno`: ADMIN, POS, CASHIER;
+- `/interno/menu`: ADMIN;
+- `/pedidos`: ADMIN, POS, CASHIER;
+- `/cocina`: ADMIN, KITCHEN;
+- `/clientes`: ADMIN, POS;
+- `/caja`: ADMIN, CASHIER;
+- `/configuracion`: ADMIN;
+- `/personalizacion`: ADMIN;
+- `/usuarios`: ADMIN;
+- `/cupones`: ADMIN.
 
-También protege las APIs internas correspondientes:
+Las APIs internas principales también se validan por rol en middleware y/o servidor.
 
-- `/api/users`;
-- `/api/menu-admin`;
-- `/api/settings`;
-- `/api/coupons`;
-- `/api/caja`;
-- `/api/customers`;
-- `/api/orders`;
-- `/api/delivery`;
-- `/api/discount`.
+Excepciones públicas del checkout de domicilio:
 
-`/api/catalog` permanece público porque será compartido con la futura app de clientes.
+- `POST /api/delivery/quote`;
+- `GET /api/delivery/origin`;
+- `GET /api/delivery/customer-default-address`.
 
-Las APIs de autenticación también permanecen públicas por definición.
+La tarifa y la distancia oficiales no se confían al navegador: se resuelven server-side.
+
+`GET /api/catalog` y las APIs de autenticación permanecen públicas por definición.
 
 ## Clientes
 
@@ -191,9 +189,9 @@ El login sirve para vincular la sesión con el `Customer` existente y habilitar 
 
 Ruta unificada de acceso:
 
-`/cuenta/login`
+`/login`
 
-El mismo formulario está disponible en `/login`.
+El formulario empieza en modo cliente y permite cambiar a colaborador sin mezclar sesiones.
 
 Ruta de perfil:
 
@@ -356,40 +354,31 @@ Es obligatorio antes de probar login.
 
 ## Limitaciones conocidas de esta primera versión
 
-- la app pública completa todavía no está construida;
-- `/` es la superficie pública principal y `/interno` contiene el POS protegido;
-- todavía no existe recuperación de contraseña por correo;
-- todavía no existe auditoría de cambios de usuarios;
-- la sesión interna es stateless firmada: cambios de roles/desactivación se reflejan plenamente al renovar/iniciar nuevamente la sesión; en una fase posterior puede añadirse revocación inmediata basada en sesiones persistidas;
+- recuperación de contraseña de colaboradores todavía no existe;
+- auditoría completa de cambios de usuarios todavía no existe;
+- la sesión interna es stateless y no tiene revocación inmediata centralizada;
 - no existe segundo factor para colaboradores;
-- WhatsApp depende de Meta, plantilla aprobada y credenciales válidas.
+- WhatsApp depende de Meta, plantilla aprobada y credenciales válidas;
+- la experiencia pública ya tiene menú, carrito, Club y selección de domicilio, pero todavía no crea el pedido final `source=WEB`;
+- la ubicación GPS en vivo del repartidor todavía no está implementada.
 
-## Futuro al construir la app pública
+## Regla pública vigente
 
-La experiencia pública debe permanecer navegable como invitado.
+La experiencia pública ya está construida parcialmente y debe permanecer navegable como invitado.
 
-Login será opcional y debe aparecer como:
+No bloquear por falta de login:
 
-`Ingresar / Mi cuenta`
-
-Nunca bloquear:
-
-- home;
-- catálogo;
+- Home;
+- menú;
 - búsqueda;
 - producto;
-- carrito inicial
+- carrito;
+- explicación de Club;
+- selección inicial de modalidad/dirección.
 
-solo por no haber iniciado sesión.
+Sí exigir sesión para operaciones privadas como historial, datos personales, direcciones persistidas y saldo/movimientos individuales del Club.
 
-Las operaciones privadas sí deben exigir sesión:
-
-- ver historial;
-- editar datos personales;
-- administrar direcciones privadas;
-- recompensas;
-- favoritos sincronizados;
-- seguimiento privado cuando corresponda.
+El checkout final podrá aceptar invitado o sesión según la decisión de producto, pero nunca debe conceder permisos internos ni reutilizar la sesión de colaborador.
 
 ## Regla de no regresión
 
@@ -424,24 +413,27 @@ Reglas:
 
 Esto evita que un cajero pueda cancelar o borrar pedidos solo por pertenecer al rol Caja.
 
-
 ## Rol Repartidor
 
-El rol operativo para domicilio es `DRIVER` y se muestra como **Repartidor**.
+El rol operativo es `DRIVER` y se muestra como Repartidor.
 
-No hereda acceso al dashboard general de Pedidos, Caja, POS ni permisos para cancelar/eliminar.
+No hereda acceso al dashboard general de Pedidos, Caja, POS ni permisos sensibles.
 
-Objetivo futuro:
+Ya existe:
 
-- pantalla propia de domicilios disponibles;
-- asignación de pedido a repartidor;
-- domicilios asignados;
-- datos necesarios para entrega;
-- transición de estados de reparto autorizados;
-- ubicación/tracking cuando se implemente;
-- información de seguimiento reutilizable por la app del cliente.
+- relación `Order.driverId` con `User`;
+- asignación desde operación;
+- WhatsApp del repartidor en `User`;
+- enlace firmado por pedido;
+- `/repartidor/pedido/[token]`;
+- checklist obligatorio de productos;
+- transición `READY → OUT_FOR_DELIVERY`;
+- transición `OUT_FOR_DELIVERY → ARRIVED`;
+- seguimiento del cliente con autoactualización.
 
-El valor histórico `DISPATCH` se conserva temporalmente únicamente en el enum de Prisma para evitar pérdida de datos en instalaciones existentes. La UI y las APIs de administración lo normalizan a `DRIVER`.
+GPS en vivo y mapa dinámico del repartidor siguen pendientes.
+
+`DISPATCH` se conserva únicamente como valor legacy en Prisma.
 
 ### Visibilidad de permisos sensibles
 
@@ -453,23 +445,23 @@ Los permisos `CANCEL_ORDERS` y `DELETE_ORDERS` solo son configurables cuando el 
 
 Un usuario únicamente `KITCHEN` o `DRIVER` no ve estos permisos y el backend limpia cualquier permiso sensible heredado cuando se guardan sus roles.
 
+## Superficie pública vigente
 
-## Superficie pública inicial
+Rutas canónicas:
 
-Ruta:
+- `/`: Home pública;
+- `/menu`: menú y configurador;
+- `/cart`: carrito;
+- `/club`: Club Alentó;
+- `/login`: acceso unificado;
+- `/cuenta`: perfil privado del cliente;
+- `/seguimiento/[token]`: seguimiento firmado.
 
-`/app`
+La autenticación del cliente es opcional para navegar.
 
-Es navegable sin iniciar sesión.
+La raíz `/` ya no es POS. El POS está en `/interno`.
 
-La autenticación del cliente es opcional y se accede desde Cuenta.
-
-`/app` consume el mismo `/api/catalog` que el resto del sistema, por lo que no existe un catálogo duplicado.
-
-La raíz `/` sigue siendo POS interno durante esta etapa.
-
-La próxima ampliación de la app pública debe conectar carrito y checkout reutilizando configuradores y estructuras del POS, no creando una segunda lógica comercial.
-
+El catálogo público consume `/api/catalog` y no existe un catálogo duplicado.
 
 ## Acceso unificado cliente / colaborador
 
