@@ -30,6 +30,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         customerId: true,
         status: true,
         fulfillmentType: true,
+        subtotal: true,
+        discount: true,
+        discountSource: true,
         total: true,
         customer: {
           select: {
@@ -42,7 +45,20 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           where: { status: "PAID" },
           select: { amount: true },
         },
-        items: { select: { id: true, quantity: true, preparedQuantity: true } },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            preparedQuantity: true,
+            lineTotal: true,
+            product: {
+              select: {
+                type: true,
+                couponEligible: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -139,9 +155,24 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         const clubSettings = savedClubSettings
           ? normalizeClubAlentoSettings(savedClubSettings.value)
           : DEFAULT_CLUB_ALENTO_SETTINGS;
+        const hasOrderDiscount = Number(order.discount) > 0;
+        const eligibleClubSubtotal = order.items.reduce((sum, item) => {
+          if (!item.product) return sum;
+
+          // Los combos ya incorporan descuento propio y nunca acumulan puntos.
+          if (item.product.type === "COMBO") return sum;
+
+          // Si el pedido recibió cupón/descuento manual, los productos elegibles
+          // para descuento quedan fuera de la acumulación. Los productos no
+          // descontables conservan su valor completo y sí pueden acumular.
+          if (hasOrderDiscount && item.product.couponEligible) return sum;
+
+          return sum + Number(item.lineTotal);
+        }, 0);
+
         const points = clubPointsForAmount(
-          Number(order.total),
-          clubSettings.pointsPerThousand,
+          eligibleClubSubtotal,
+          clubSettings.earnRatePercent,
         );
 
         await tx.clubPointTransaction.upsert({
@@ -151,8 +182,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             customerId: order.customerId,
             orderId: order.id,
             points,
-            ratePerThousand: clubSettings.pointsPerThousand,
-            amountBase: order.total,
+            ratePerThousand: Math.round(clubSettings.earnRatePercent * 10),
+            amountBase: eligibleClubSubtotal,
             reason: "PURCHASE",
           },
         });
