@@ -428,6 +428,8 @@ export default function PublicCheckoutDelivery({
       return;
     }
 
+    if (!editingAddress || loadingSavedAddress) return;
+
     let cancelled = false;
     let autocomplete: PlaceAutocompleteElementInstance | null = null;
     let onSelect: EventListener | null = null;
@@ -511,13 +513,25 @@ export default function PublicCheckoutDelivery({
         autocomplete.removeEventListener("gmp-select", onSelect);
       }
     };
-  }, [fulfillmentType, requestQuote]);
+  }, [
+    editingAddress,
+    fulfillmentType,
+    loadingSavedAddress,
+    requestQuote,
+  ]);
 
   useEffect(() => {
-    if (fulfillmentType !== "DELIVERY" || !mapReady || !mapRef.current) return;
+    if (
+      fulfillmentType !== "DELIVERY" ||
+      !quote?.destination ||
+      !mapReady ||
+      !mapRef.current
+    ) {
+      return;
+    }
 
     const frame = window.requestAnimationFrame(() => {
-      void drawMap(quote?.destination, quote?.encodedPolyline).catch((err) => {
+      void drawMap(quote.destination, quote.encodedPolyline).catch((err) => {
         setError(
           err instanceof Error ? err.message : "No fue posible mostrar el mapa.",
         );
@@ -674,6 +688,7 @@ export default function PublicCheckoutDelivery({
                 setFulfillmentType("DELIVERY");
                 setError("");
                 if (!quote?.destination) {
+                  setMapReady(false);
                   setEditingAddress(true);
                   void loadSavedCustomerAddress();
                 }
@@ -731,6 +746,11 @@ export default function PublicCheckoutDelivery({
                       type="button"
                       onClick={() => {
                         setQuote(null);
+                        setMapReady(false);
+                        mapInstanceRef.current = null;
+                        destinationMarkerRef.current = null;
+                        originMarkerRef.current = null;
+                        routePolylineRef.current = null;
                         setEditingAddress(true);
                         setError("");
                       }}
@@ -798,25 +818,27 @@ export default function PublicCheckoutDelivery({
                 </section>
               )}
 
-              <section className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:max-h-[430px] sm:rounded-[22px]">
-                <div
-                  ref={(element) => {
-                    mapRef.current = element;
-                    setMapReady(Boolean(element));
-                  }}
-                  className="h-full w-full"
-                />
-                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-                  <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
-                    {quote?.destination ? "Alentó → tu ubicación" : "Zona de entrega Alentó"}
-                  </div>
-                  {quoting && (
-                    <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[8px] font-bold text-white shadow-lg backdrop-blur sm:text-[9px]">
-                      Calculando...
+              {quote?.destination && (
+                <section className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:max-h-[430px] sm:rounded-[22px]">
+                  <div
+                    ref={(element) => {
+                      mapRef.current = element;
+                      setMapReady(Boolean(element));
+                    }}
+                    className="h-full w-full"
+                  />
+                  <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+                    <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
+                      Alentó → tu ubicación
                     </div>
-                  )}
-                </div>
-              </section>
+                    {quoting && (
+                      <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[8px] font-bold text-white shadow-lg backdrop-blur sm:text-[9px]">
+                        Calculando...
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
 
               {quote?.destination && !quoting && (
                 <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-2.5 sm:rounded-[20px] sm:p-3">
