@@ -378,7 +378,11 @@ Comportamiento vigente:
 - fuera de cobertura no se puede confirmar Domicilio;
 - el carrito muestra subtotal, domicilio y total provisional.
 
-La creación final de un pedido WEB todavía no está implementada. `POST /api/orders` continúa siendo el flujo interno del POS y crea `source=POS`. No reutilizarlo directamente desde el navegador público sin completar la fase de checkout seguro.
+La creación final de pedidos públicos ya está implementada mediante `/api/public-checkout`.
+
+El flujo actual crea `Order.source=WEB`, reutiliza el consecutivo global, vuelve a normalizar precios y configuraciones en servidor, recalcula domicilio con Google Routes cuando aplica, crea el pago inicial como `PENDING` y devuelve un enlace firmado de seguimiento.
+
+`POST /api/orders` continúa reservado para el flujo interno del POS y crea `source=POS`.
 
 Referencia: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
@@ -419,8 +423,8 @@ La ubicación GPS en vivo del repartidor y su representación sobre el mapa del 
 
 ## Pendientes inmediatos de la experiencia pública
 
-1. Validar en producción el checkout 3:4, Google Places, GPS opcional y Routes.
+1. Validar en producción el flujo completo: modalidad → datos → pago → creación WEB → seguimiento.
 2. Completar persistencia enriquecida de `CustomerAddress` con placeId y coordenadas.
-3. Completar identidad/cliente, pago, recálculo final y creación segura de pedidos `source=WEB`.
-4. Conectar el pedido WEB al seguimiento y notificaciones existentes.
+3. Mejorar la edición/selección de direcciones guardadas.
+4. Definir y conectar el canje real de Club Alentó dentro del checkout.
 5. Mantener la lógica comercial única: no duplicar catálogo, configuradores, tarifas ni normalización de pedidos.
