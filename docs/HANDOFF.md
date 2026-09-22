@@ -391,6 +391,29 @@ La creación pública ya existe mediante `/api/public-checkout` y genera pedidos
 - acreditación al quedar pagado y COMPLETED;
 - el canje transaccional completo sigue pendiente.
 
+### Pedido activo del cliente
+
+Clientes autenticados:
+
+- `GET /api/auth/customer/active-order` devuelve el pedido activo más reciente de la sesión;
+- `PublicActiveOrderBanner` se reutiliza en `/menu` y `/cart`;
+- usa 4 etapas según modalidad;
+- nunca debe buscar pedidos por un teléfono arbitrario cuando existe sesión;
+- el teléfono verificado queda bloqueado en checkout mientras la sesión esté activa.
+
+Invitados:
+
+- no reciben el banner interno;
+- el popup final explica que el seguimiento llegará por mensaje;
+- pueden abrir el enlace firmado inmediatamente;
+- se ofrece iniciar sesión para incorporar el seguimiento a la experiencia de la app.
+
+Efectivo:
+
+- `cashReceived` es opcional;
+- solo validar monto mínimo si el cliente decidió escribirlo;
+- no bloquear Confirmar compra por dejar ese campo vacío.
+
 ### Repartidor y seguimiento
 
 - `Order.driverId` y `driverAssignedAt` ya existen;
