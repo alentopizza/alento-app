@@ -233,7 +233,15 @@ Recoger/Local:
 PREPARING → PREPARED → READY → COMPLETED
 ```
 
-Cocina controla preparación hasta `READY`; Pedidos continúa después.
+Cocina controla únicamente la preparación hasta `PREPARED`.
+
+Convención operativa:
+
+- `PREPARING` = Preparando en Cocina;
+- `PREPARED` = Horneando y ya fuera del tablero de Cocina;
+- `READY` = salió del horno / listo.
+
+El hornero/operación realiza `PREPARED → READY`. No devolver esa acción a Cocina.
 
 ## Eliminaciones
 
@@ -397,7 +405,9 @@ Convención de estados visible desde 2026-09-22:
 
 - `PREPARING` = Preparando;
 - `PREPARED` = Horneando;
+- al entrar en `PREPARED`, el pedido desaparece de Cocina;
 - `READY` = Listo / Listo para recoger;
+- la transición `PREPARED → READY` la realiza el hornero/operación;
 - no crear un nuevo enum HORNEANDO salvo que una necesidad futura requiera distinguir técnicamente cocción de PREPARED.
 
 Clientes autenticados:
