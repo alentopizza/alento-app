@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import PublicCheckoutCustomer from "@/components/PublicCheckoutCustomer";
 import PublicCheckoutDelivery, {
   type PublicCheckoutSelection,
 } from "@/components/PublicCheckoutDelivery";
@@ -25,6 +26,18 @@ export default function CartPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutSelection, setCheckoutSelection] =
     useState<PublicCheckoutSelection | null>(null);
+  const [customerCheckoutOpen, setCustomerCheckoutOpen] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<{
+    id: number;
+    code: string;
+    status: string;
+    fulfillmentType: "DELIVERY" | "PICKUP";
+    subtotal: number;
+    deliveryFee: number;
+    total: number;
+    paymentMethod: string;
+    trackingPath?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -109,6 +122,8 @@ export default function CartPage() {
                 onClick={() => {
                   setCart([]);
                   setCheckoutSelection(null);
+                  setCustomerCheckoutOpen(false);
+                  setCreatedOrder(null);
                 }}
                 className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-semibold text-white/45 transition hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-200"
               >
@@ -235,13 +250,17 @@ export default function CartPage() {
 
               <button
                 type="button"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={() => {
+                  if (checkoutSelection) {
+                    setCustomerCheckoutOpen(true);
+                  } else {
+                    setCheckoutOpen(true);
+                  }
+                }}
                 className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#ef1c25] lg:mt-5 lg:h-12 lg:text-[12px]"
               >
                 {checkoutSelection
-                  ? checkoutSelection.fulfillmentType === "DELIVERY"
-                    ? "Revisar domicilio"
-                    : "Revisar recogida"
+                  ? "Continuar compra"
                   : "Continuar pedido"}
               </button>
 
@@ -264,8 +283,84 @@ export default function CartPage() {
           onConfirm={(selection) => {
             setCheckoutSelection(selection);
             setCheckoutOpen(false);
+            setCustomerCheckoutOpen(true);
           }}
         />
+      )}
+
+      {customerCheckoutOpen && checkoutSelection && !createdOrder && (
+        <PublicCheckoutCustomer
+          cart={cart}
+          selection={checkoutSelection}
+          onBack={() => {
+            setCustomerCheckoutOpen(false);
+            setCheckoutOpen(true);
+          }}
+          onComplete={(order) => {
+            setCreatedOrder(order);
+            setCustomerCheckoutOpen(false);
+            setCart([]);
+            setCheckoutSelection(null);
+          }}
+        />
+      )}
+
+      {createdOrder && (
+        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-[430px] overflow-hidden rounded-[30px] border border-white/10 bg-[#111] text-white shadow-[0_30px_90px_rgba(0,0,0,.6)]">
+            <div className="bg-[radial-gradient(circle_at_85%_15%,rgba(34,197,94,.18),transparent_28%),linear-gradient(145deg,#151515,#0c0c0c)] p-6">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-400/10 text-2xl text-emerald-300">
+                ✓
+              </div>
+              <p className="mt-5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                Pedido recibido
+              </p>
+              <h2 className="mt-1 text-[34px] font-black tracking-[-0.04em]">
+                {createdOrder.code}
+              </h2>
+              <p className="mt-2 text-[11px] leading-5 text-white/45">
+                Tu pedido ya entró a Alentó. Te iremos mostrando los cambios de estado.
+              </p>
+
+              <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04]">
+                <div className="p-3">
+                  <span className="text-[8px] uppercase tracking-[0.12em] text-white/30">
+                    Tipo
+                  </span>
+                  <b className="mt-1 block text-[11px]">
+                    {createdOrder.fulfillmentType === "DELIVERY"
+                      ? "Domicilio"
+                      : "Recoger"}
+                  </b>
+                </div>
+                <div className="border-l border-white/10 p-3 text-right">
+                  <span className="text-[8px] uppercase tracking-[0.12em] text-white/30">
+                    Total
+                  </span>
+                  <b className="mt-1 block text-[16px] text-[#ff454b]">
+                    {money(createdOrder.total)}
+                  </b>
+                </div>
+              </div>
+
+              {createdOrder.trackingPath && (
+                <Link
+                  href={createdOrder.trackingPath}
+                  className="mt-5 flex h-12 items-center justify-center rounded-full bg-[#e21a22] text-[11px] font-bold text-white"
+                >
+                  Ver seguimiento
+                </Link>
+              )}
+
+              <Link
+                href="/menu"
+                className="mt-2 flex h-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-semibold text-white/55"
+              >
+                Volver al menú
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
 
     </main>
