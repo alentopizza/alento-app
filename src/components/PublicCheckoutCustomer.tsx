@@ -429,7 +429,13 @@ export default function PublicCheckoutCustomer({
                       }
                       inputMode="tel"
                       autoComplete="tel"
-                      className="mt-1.5 h-11 w-full rounded-[13px] border border-white/10 bg-black/25 px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
+                      readOnly={signedIn}
+                      className={
+                        "mt-1.5 h-11 w-full rounded-[13px] border border-white/10 px-3.5 text-[12px] text-white outline-none " +
+                        (signedIn
+                          ? "cursor-not-allowed bg-white/[0.04] text-white/55"
+                          : "bg-black/25 focus:border-[#e21a22]")
+                      }
                       placeholder="300 000 0000"
                     />
                   </label>
