@@ -105,7 +105,6 @@ export default function PublicActiveOrderBanner({
   const stages =
     order.fulfillmentType === "DELIVERY" ? DELIVERY_STAGES : PICKUP_STAGES;
   const current = stageIndex(order);
-  const progress = stages.length > 1 ? (current / (stages.length - 1)) * 100 : 0;
 
   return (
     <section
@@ -135,11 +134,30 @@ export default function PublicActiveOrderBanner({
       </div>
 
       <div className="relative mt-4">
-        <div className="absolute left-[8%] right-[8%] top-[10px] h-[2px] bg-white/10" />
-        <div
-          className="absolute left-[8%] top-[10px] h-[2px] bg-[#e21a22] transition-all duration-500"
-          style={{ width: `${Math.max(0, Math.min(84, progress * 0.84))}%` }}
-        />
+        <div className="absolute left-[12.5%] right-[12.5%] top-[10px] grid grid-cols-3">
+          {stages.slice(0, -1).map((_, index) => {
+            const completed = index < current;
+            const activeSegment = index === current && current < stages.length - 1;
+
+            return (
+              <div
+                key={index}
+                className="relative h-[2px] overflow-hidden bg-white/10"
+              >
+                {completed && (
+                  <div className="absolute inset-0 bg-[#e21a22]" />
+                )}
+
+                {activeSegment && (
+                  <>
+                    <div className="absolute inset-0 bg-[#e21a22]/18" />
+                    <div className="alento-progress-runner absolute inset-y-0 left-0 w-full origin-left bg-[linear-gradient(90deg,rgba(226,26,34,.22),#ff3439_55%,#ff7a7e)] shadow-[0_0_10px_rgba(255,52,57,.55)]" />
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         <div className="relative grid grid-cols-4 gap-1">
           {stages.map((stage, index) => {
@@ -150,7 +168,7 @@ export default function PublicActiveOrderBanner({
               <div key={stage.label} className="min-w-0 text-center">
                 <div
                   className={
-                    "mx-auto flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-black transition " +
+                    "relative mx-auto flex h-5 w-5 items-center justify-center rounded-full border text-[9px] font-black transition " +
                     (completed
                       ? "border-[#e21a22] bg-[#e21a22] text-white"
                       : active
@@ -158,7 +176,10 @@ export default function PublicActiveOrderBanner({
                         : "border-white/20 bg-[#111] text-white/30")
                   }
                 >
-                  {completed ? "✓" : index + 1}
+                  {active && current < stages.length - 1 && (
+                    <span className="alento-progress-pulse absolute inset-[-5px] rounded-full border border-[#ff454b]/30" />
+                  )}
+                  <span className="relative z-10">{completed ? "✓" : index + 1}</span>
                 </div>
                 <span
                   className={
@@ -172,6 +193,59 @@ export default function PublicActiveOrderBanner({
             );
           })}
         </div>
+
+        <style jsx>{`
+          @keyframes alentoProgressRunner {
+            0% {
+              transform: scaleX(0.08);
+              opacity: 0.45;
+            }
+            68% {
+              transform: scaleX(0.82);
+              opacity: 1;
+            }
+            86% {
+              transform: scaleX(0.96);
+              opacity: 1;
+            }
+            100% {
+              transform: scaleX(0.96);
+              opacity: 0;
+            }
+          }
+
+          @keyframes alentoProgressPulse {
+            0%,
+            100% {
+              transform: scale(0.88);
+              opacity: 0.25;
+            }
+            50% {
+              transform: scale(1.2);
+              opacity: 0.8;
+            }
+          }
+
+          .alento-progress-runner {
+            animation: alentoProgressRunner 2.4s ease-in-out infinite;
+          }
+
+          .alento-progress-pulse {
+            animation: alentoProgressPulse 1.8s ease-in-out infinite;
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .alento-progress-runner,
+            .alento-progress-pulse {
+              animation: none;
+            }
+
+            .alento-progress-runner {
+              transform: scaleX(0.55);
+              opacity: 0.85;
+            }
+          }
+        `}</style>
       </div>
     </section>
   );
