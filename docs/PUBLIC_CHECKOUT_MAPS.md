@@ -1,6 +1,6 @@
 # Checkout público + Google Maps Platform
 
-Estado: **PLAN APROBADO / IMPLEMENTACIÓN PENDIENTE**
+Estado: **IMPLEMENTACIÓN EN CURSO — SEDE, PLACES Y ROUTES CONECTADOS**
 
 Este documento define cómo Alentó App resolverá dirección, geolocalización, cobertura y tarifa de domicilio en el checkout público.
 
@@ -168,11 +168,16 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 - PICKUP no consulta Routes ni agrega domicilio;
 - funciona en móvil, PWA, tablet y escritorio.
 
+## Avance implementado
+
+- Fase A: Google Cloud y claves configuradas por operación.
+- Fase B: sede validada con Google Geocoding y persistida en `pos_settings`.
+- Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
+- Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API y aplica las bandas activas del sistema.
+- El carrito ya habilita **Continuar pedido**, conserva la modalidad/domicilio seleccionado y muestra domicilio + total provisional.
+
 ## Próximo paso
 
-Comenzar por **Fase A — Google Cloud** y cargar en EasyPanel:
-
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-    GOOGLE_MAPS_SERVER_API_KEY
+Validar en producción el flujo real de dirección y tarifa. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago y creación final del pedido `WEB`).
 
 No pegar las claves en chats, commits ni capturas públicas.
