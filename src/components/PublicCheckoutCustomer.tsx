@@ -369,22 +369,10 @@ export default function PublicCheckoutCustomer({
                     </h3>
                   </div>
 
-                  {signedIn ? (
+                  {signedIn && (
                     <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[8px] font-bold text-emerald-300">
                       Cuenta identificada
                     </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setVerifyOpen(true);
-                        setVerifyStep("send");
-                        setVerifyNotice("");
-                      }}
-                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[8px] font-bold text-white/55"
-                    >
-                      Ya soy cliente
-                    </button>
                   )}
                 </div>
 
@@ -441,6 +429,30 @@ export default function PublicCheckoutCustomer({
                     />
                   </label>
                 </div>
+
+                {!signedIn && phoneDigits(customer.phone).length >= 7 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVerifyOpen(true);
+                      setVerifyStep("send");
+                      setVerifyNotice("");
+                    }}
+                    className="mt-2 flex w-full items-center justify-between rounded-[13px] border border-[#e21a22]/25 bg-[#e21a22]/10 px-3.5 py-2.5 text-left"
+                  >
+                    <span>
+                      <b className="block text-[10px] text-white/85">
+                        ¿Ya has comprado con este número?
+                      </b>
+                      <span className="mt-0.5 block text-[8px] text-white/35">
+                        Verifica tu WhatsApp y autocompletamos tus datos.
+                      </span>
+                    </span>
+                    <span className="text-[9px] font-bold text-[#ff454b]">
+                      Recuperar
+                    </span>
+                  </button>
+                )}
 
                 <label className="mt-3 block">
                   <span className="text-[9px] font-semibold text-white/45">
