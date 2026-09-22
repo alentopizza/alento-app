@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-20.
+Última actualización: 2026-09-22.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -325,266 +325,102 @@ Pendientes estratégicos conocidos:
 - sustitución de Glide;
 - integraciones externas como última fase.
 
+## Experiencia pública — estado vigente 2026-09-22
 
-## App pública de clientes — V1 iniciada
+La experiencia pública ya es una parte activa de Alentó App y comparte el mismo catálogo y las mismas estructuras comerciales del sistema interno.
 
-Ruta pública principal:
+Rutas públicas vigentes:
 
-`/`
+- `/`: Home publicitaria principal, aprobada, con slider hacia `/menu`.
+- `/menu`: catálogo público responsive.
+- `/cart`: carrito público.
+- `/club`: Club Alentó, navegable como invitado y con saldo/movimientos para clientes autenticados.
+- `/login`: acceso unificado; inicia en modo cliente por teléfono + OTP y permite cambiar a colaborador.
+- `/cuenta`: perfil privado del cliente autenticado.
+- `/seguimiento/[token]`: seguimiento del pedido mediante token firmado.
 
-Alias temporal compatible:
+Rutas internas relacionadas:
 
-`/app`
+- `/interno`: Punto de Venta.
+- `/interno/menu`: administración del catálogo, solo ADMIN.
+- `/personalizacion`: piezas visuales públicas, solo ADMIN.
 
-La primera versión ya consume `GET /api/catalog` y permite navegar sin autenticación.
+### Home, menú, configurador y carrito
 
-Incluye:
+La Home usa imágenes independientes para móvil y escritorio administradas desde `/personalizacion`:
 
-- identidad visual Alentó;
-- acceso opcional a Cuenta;
-- buscador público;
-- categorías reales;
-- orden real del catálogo;
-- destacados reales;
-- imágenes reales;
-- precios calculados desde los datos existentes;
-- tarjetas de producto;
-- modal de detalle;
-- navegación inferior;
-- acceso a Pedidos/Cuenta mediante la sesión de cliente existente.
+- móvil: `1080 × 2160 px`;
+- escritorio: `1920 × 1080 px`.
 
-La raíz `/` es ahora la experiencia pública principal. El POS interno se encuentra en `/interno` y permanece protegido por sesión y roles.
+El gesto de la Home entra a `/menu`.
 
-El carrito/configurador público todavía no está conectado. Debe reutilizar la misma estructura comercial del POS para pizzas, dos sabores y combos, evitando implementar precios o configuraciones paralelas.
+El menú público consume `GET /api/catalog`, reutiliza categorías, productos, precios y orden reales, y usa una sola experiencia responsive negro/rojo/blanco. El hero configurable usa `1920 × 730 px`.
 
+El configurador público ya soporta productos simples, pizzas de un sabor, pizzas de dos sabores, tamaños, bordes, extras cuando aplican y combos configurables. El carrito persiste en navegador.
 
-## Navegación principal y acceso unificado
+La navegación pública persistente usa cuatro accesos: Menú, Carrito, Club y Perfil, en la parte inferior también en tablet y escritorio.
 
-Desde 2026-09-20:
+### Checkout público de domicilio
 
-- `/` muestra la experiencia pública de Alentó;
-- `/app` se conserva como alias temporal de la misma experiencia;
-- `/interno` es la ruta protegida del Punto de Venta;
-- `/login` y `/cuenta/login` muestran el mismo acceso unificado;
-- el modo inicial es Cliente por teléfono + OTP;
-- el botón `Iniciar como colaborador` cambia al acceso por correo + contraseña;
-- después del login de colaborador, la navegación se resuelve por roles y permisos.
+El carrito ya abre el paso de modalidad y domicilio mediante `PublicCheckoutDelivery`.
 
+Comportamiento vigente:
 
-## Personalización de portada pública
+- inicia por defecto en Recoger en tienda;
+- Domicilio no reutiliza selecciones temporales de compras anteriores;
+- la dirección guardada solo se consulta para un cliente autenticado y nunca bloquea el campo manual;
+- si no hay sesión o la consulta falla, Google Places queda utilizable inmediatamente;
+- el cliente puede escribir una dirección o solicitar explícitamente Mi ubicación;
+- no se pinta ningún mapa hasta tener un destino validado;
+- `POST /api/delivery/quote` calcula la ruta real server-side con Google Routes y aplica las bandas activas;
+- el mapa dibuja la ruta sede → cliente y tiene formato `3:4`;
+- Ruta, Domicilio y Tiempo están integrados como cabecera flotante dentro del mapa;
+- fuera de cobertura no se puede confirmar Domicilio;
+- el carrito muestra subtotal, domicilio y total provisional.
 
-Ruta administrativa:
+La creación final de un pedido WEB todavía no está implementada. `POST /api/orders` continúa siendo el flujo interno del POS y crea `source=POS`. No reutilizarlo directamente desde el navegador público sin completar la fase de checkout seguro.
 
-`/personalizacion`
+Referencia: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
-Solo disponible para `ADMIN`.
+### Club Alentó
 
-Permite administrar dos piezas promocionales de la experiencia pública:
+Club Alentó ya tiene persistencia y superficie pública.
 
-- Banner principal: formato recomendado `1200 × 625 px` (~1.92:1).
-- Banner secundario: formato recomendado `1200 × 310 px` (~3.9:1).
+Reglas predeterminadas vigentes:
 
-Cada banner puede:
+- acumulación: 5% sobre subtotal elegible sin descuento;
+- el domicilio no genera puntos;
+- 1 punto equivale a $1 COP de valor de canje;
+- compra mínima predeterminada para canje: $14.900;
+- los puntos se acreditan cuando el pedido queda pagado y finalizado;
+- un pedido acredita una sola vez;
+- la tasa aplicada queda registrada en el movimiento.
 
-- activarse o desactivarse;
-- cargar una imagen JPG/PNG/WebP;
-- recortarse automáticamente al formato objetivo;
-- convertirse a WebP en el navegador;
-- vincularse a un producto activo y visible del catálogo;
-- abrir el producto vinculado al tocar el banner en la portada.
+Los movimientos viven en `ClubPointTransaction`. La UI de saldo e historial está implementada; el canje transaccional completo sigue pendiente.
 
-La configuración se persiste en `AppSetting` con clave `public.home`.
+### Repartidor y seguimiento
 
-No requiere cambios de Prisma ni `npx prisma db push`.
+Los pedidos DELIVERY ya tienen relación explícita con `User` mediante `driverId` y `driverAssignedAt`.
 
+Existe:
 
-### Logo de portada y composición visual
+- listado de repartidores activos;
+- asignación desde operación;
+- notificación al repartidor por WhatsApp;
+- enlace firmado de pedido;
+- `/repartidor/pedido/[token]`;
+- verificación obligatoria de productos antes de salir;
+- transición `READY → OUT_FOR_DELIVERY`;
+- transición `OUT_FOR_DELIVERY → ARRIVED`;
+- autoactualización de la página del repartidor;
+- seguimiento del cliente en `/seguimiento/[token]` con actualización automática.
 
-Personalización también permite cargar el logo usado en la cabecera de la experiencia pública.
+La ubicación GPS en vivo del repartidor y su representación sobre el mapa del cliente siguen siendo futuras.
 
-Formato recomendado:
+## Pendientes inmediatos de la experiencia pública
 
-- Logo de portada: `600 × 180 px` (3.33:1), preferiblemente con fondo transparente.
-- Banner principal: `1200 × 625 px` (~1.92:1).
-- Banner secundario: `1200 × 310 px` (~3.9:1).
-
-El logo se ajusta completo con `object-contain`, sin recorte ni deformación.
-
-La portada pública sigue esta jerarquía visual:
-
-`cabecera → buscador → banner principal → categorías → populares → banner secundario → menú completo`
-
-La navegación inferior usa cinco accesos visuales: Inicio, Menú, Pedir, Ofertas y Cuenta.
-
-La configuración ya guardada de banners sigue siendo compatible; agregar el logo no requiere recrear las piezas existentes.
-
-
-## Promoción de App 2 a experiencia principal
-
-Desde 2026-09-20 la variante aprobada como App 2 pasa a ser la experiencia pública principal:
-
-- `/`: nueva pantalla inicial publicitaria con imagen 1:2 y slider de acceso;
-- `/pedir`: segunda pantalla del nuevo diseño con catálogo, búsqueda y categorías;
-- `/app2`: conserva la versión pública anterior para comparación temporal;
-- `/app`: se mantiene temporalmente como alias de la versión anterior para no romper enlaces existentes;
-- la PWA instalada inicia en `/`.
-
-El POS interno continúa en `/interno`.
-
-
-## Imágenes responsivas del Home principal
-
-La sección `/personalizacion` permite administrar dos imágenes independientes para la pantalla inicial de `/`:
-
-- móvil: `1080 × 2160 px` (1:2);
-- escritorio/PC: `1920 × 1080 px` (16:9).
-
-La portada selecciona automáticamente la imagen de escritorio a partir de 900 px de ancho y usa la pieza móvil por debajo de ese punto.
-
-Si no existe una imagen configurada, se conserva la pieza histórica del Home como respaldo. La configuración se guarda en `AppSetting(public.home)`; no requiere cambios de Prisma.
-
-
-## Ruta pública de menú
-
-Desde 2026-09-20:
-
-- `/menu` es la ruta pública oficial del catálogo;
-- `/pedir` queda únicamente como redirección de compatibilidad hacia `/menu`;
-- el antiguo módulo administrativo `/menu` se movió a `/interno/menu`;
-- el menú superior público muestra solo `Menú` y `Destacados`;
-- `Menú` vuelve al inicio del hero de la página;
-- `Destacados` navega al bloque completo `Nuestros más vendidos / Favoritos de quienes siempre vuelven`;
-- el CTA rojo superior ahora es `Mi Cuenta` con icono de usuario y abre `/cuenta/login`, que contiene el acceso unificado cliente/colaborador.
-
-
-## Login público oficial
-
-La ruta oficial de autenticación unificada es `/login`.
-
-- reutiliza el fondo responsive configurado para la Home principal;
-- móvil usa `landing.mobileImageUrl`;
-- escritorio usa `landing.desktopImageUrl`;
-- el botón `Mi Cuenta` de `/menu` abre `/login`;
-- `/cuenta/login` redirige a `/login`;
-- `Volver A Menu` navega a `/menu`;
-- al llegar desde `/menu`, el botón atrás del navegador vuelve naturalmente al menú.
-
-
-## Portada superior configurable de /menu
-
-La portada hero de escritorio en `/menu` ya no depende únicamente de una constante del código.
-
-- se administra desde `/personalizacion`;
-- tamaño oficial: `1920 × 730 px` (2.63:1);
-- se guarda como `public.home.menuHero`;
-- si no existe una imagen activa, `/menu` conserva la portada actual como fallback;
-- el antiguo `primaryBanner` queda guardado por compatibilidad, pero ya no es el controlador visual de esta portada.
-
-
-## Logo configurable de /menu
-
-El logo del header de escritorio en `/menu` usa `public.home.brand.logoUrl`.
-
-- se administra desde `/personalizacion` en el bloque `Logo del menú`;
-- tamaño recomendado: `600 × 180 px`;
-- se muestra con `object-contain`, sin deformación;
-- si el campo queda vacío, se usa el logo oficial actual como fallback.
-
-
-## Banner secundario pausado
-
-Temporalmente se ocultó el banner secundario del menú público y también su editor en `/personalizacion`.
-
-La estructura `secondaryBanner` se conserva en la configuración y APIs para poder reutilizarla o reemplazarla más adelante sin migración de datos.
-
-
-## Limpieza de arquitectura pública — 2026-09-20
-
-Se retiró código legado para que el repositorio represente la experiencia vigente:
-
-- eliminadas las rutas prototipo `/app` y `/app2`;
-- eliminados `primaryBanner` y `secondaryBanner` del modelo de personalización pública;
-- eliminada la consulta/validación de productos vinculados a banners;
-- eliminado cualquier render residual de banner secundario, incluido móvil;
-- `public.home` conserva únicamente `brand`, `landing` y `menuHero`;
-- la página pública oficial es `/menu`;
-- los identificadores internos de `/menu` dejaron de usar nombres heredados de `/pedir`;
-- el componente público se llama `PublicMenuPage`.
-
-
-## Rutas legacy eliminadas
-
-Se eliminaron definitivamente las rutas de compatibilidad `/pedir` y `/cuenta/login`.
-
-La superficie pública vigente queda reducida a:
-- `/`: Home pública;
-- `/menu`: catálogo público;
-- `/login`: autenticación unificada;
-- `/cuenta`: cuenta autenticada del cliente.
-
-
-## Carga visual sin fallback legado
-
-La Home y el hero de `/menu` esperan a resolver `/api/public-home` antes de pintar una imagen.
-
-Esto evita que las piezas fallback antiguas aparezcan durante el primer render antes de cargar las imágenes configuradas desde `/personalizacion`.
-
-El botón flotante `Volver arriba` de `/menu` quedó fuera de los bloques responsive y funciona tanto en escritorio como en móvil.
-
-
-## /menu unificado responsive
-
-Se eliminó la interfaz móvil alternativa de color verde. `/menu` usa una sola experiencia visual negro/rojo/blanco para escritorio y móvil.
-
-- mismo header, hero, categorías, destacados y catálogo;
-- categorías horizontales en pantallas pequeñas;
-- destacados y catálogo usan 2 columnas en móvil y 4 en escritorio;
-- búsqueda y tipografía responden al ancho disponible;
-- el modal de producto también es único y responsive;
-- se eliminó la barra inferior móvil y el segundo árbol JSX de productos.
-
-
-## Carrito público como ruta dedicada
-
-El carrito público dejó de ser un drawer de `/menu` y ahora vive en `/cart`.
-
-- `/menu` conserva el carrito persistente y el agregado de productos;
-- los accesos al carrito navegan a `/cart`;
-- la barra móvil es compartida mediante `PublicMobileNav`;
-- en `/menu` el elemento activo elevado es Menú;
-- en `/cart` el elemento activo elevado es Carrito;
-- la persistencia se centraliza en `src/lib/publicCart.ts`;
-- `/cart` está marcado como superficie pública y parte de la PWA.
-
-
-## Navegación móvil en /login
-
-La pantalla pública `/login` usa la barra inferior compartida.
-
-- Perfil aparece como sección activa;
-- conserva el contador del carrito local;
-- ningún campo del login usa `autoFocus`;
-- el teclado móvil solo se abre cuando el usuario toca un campo de entrada.
-
-
-## Ajuste de navegación móvil y categorías
-
-- La barra inferior móvil ya no incluye Home.
-- La navegación queda en cuatro posiciones: Menú, Carrito, Club y Perfil.
-- Se eliminó del componente compartido el estado/icono Home que ya no se usa.
-- El bloque de categorías de /menu se elevó un poco más sobre el hero.
-- En móvil se redujo la altura e iconos del bloque de categorías para ocupar menos espacio vertical.
-
-
-## Club Alentó
-
-Se incorporó la base del programa de fidelización.
-
-- Configuración administrativa en `/club-alento`.
-- Regla inicial: 10 puntos por cada $1.000 gastados.
-- Cada pedido con cliente acredita puntos una sola vez al pasar a `COMPLETED`.
-- La tasa aplicada queda registrada en cada movimiento, por lo que cambiar la regla no recalcula compras anteriores.
-- Los movimientos viven en `ClubPointTransaction`.
-- La ruta pública `/club` muestra el saldo del cliente autenticado.
-- El perfil `/cuenta` muestra los puntos y conserva la navegación inferior móvil.
-- Club queda enlazado desde la barra inferior.
+1. Validar en producción el checkout 3:4, Google Places, GPS opcional y Routes.
+2. Completar persistencia enriquecida de `CustomerAddress` con placeId y coordenadas.
+3. Completar identidad/cliente, pago, recálculo final y creación segura de pedidos `source=WEB`.
+4. Conectar el pedido WEB al seguimiento y notificaciones existentes.
+5. Mantener la lógica comercial única: no duplicar catálogo, configuradores, tarifas ni normalización de pedidos.
