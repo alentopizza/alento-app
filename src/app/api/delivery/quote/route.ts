@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
       covered: Boolean(band),
       distanceMeters: route.distanceMeters,
       durationSeconds: route.durationSeconds,
+      encodedPolyline: route.encodedPolyline,
       deliveryFee: band ? band.fee : null,
       band: band ?? null,
       maxCoverageMeters: Math.max(
