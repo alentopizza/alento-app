@@ -105,6 +105,11 @@ type ComboStep =
       title: string;
     }
   | {
+      kind: "combo-note";
+      key: string;
+      title: string;
+    }
+  | {
       kind: "combo-review";
       key: string;
       title: string;
@@ -324,7 +329,17 @@ export default function PublicProductConfigurator({
       }
     }
 
-    if (steps.length === 0) {
+    const hasPizza = (product.comboPizzaRules ?? []).some(
+      (rule) => rule.quantity > 0,
+    );
+
+    if (hasPizza) {
+      steps.push({
+        kind: "combo-note",
+        key: "pizza-note",
+        title: "Nota para cocina",
+      });
+    } else if (steps.length === 0) {
       steps.push({
         kind: "combo-review",
         key: "ready",
@@ -705,7 +720,7 @@ export default function PublicProductConfigurator({
   function addComboToCart() {
     setError("");
 
-    for (let index = 0; index < comboSteps.length - 1; index += 1) {
+    for (let index = 0; index < comboSteps.length; index += 1) {
       if (!validateComboStep(comboSteps[index])) {
         setStep(index);
         return;
@@ -804,6 +819,10 @@ export default function PublicProductConfigurator({
       unitPrice: comboPrice,
       quantity: 1,
       configuration,
+      notes:
+        (product.comboPizzaRules ?? []).some((rule) => rule.quantity > 0)
+          ? note.trim().slice(0, 120) || undefined
+          : undefined,
     });
   }
 
@@ -1042,6 +1061,23 @@ export default function PublicProductConfigurator({
       );
     }
 
+    if (current.kind === "combo-note") {
+      return (
+        <div>
+          <textarea
+            value={note}
+            maxLength={120}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Ej. Pizza bien dorada"
+            className="h-24 w-full resize-none rounded-[16px] border border-white/10 bg-black/25 p-3 text-[13px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
+          />
+          <p className="mt-1.5 text-right text-[9px] font-semibold text-white/30">
+            {note.length}/120
+          </p>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 p-4">
         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
@@ -1055,7 +1091,7 @@ export default function PublicProductConfigurator({
   }
 
   const currentTitle = isCombo
-    ? activeComboStep?.title ?? "Configura tu combo"
+    ? activeComboStep?.title ?? "Compra Asistida"
     : pizzaSteps[step];
 
   const finalStep = step === totalSteps - 1;
@@ -1069,7 +1105,7 @@ export default function PublicProductConfigurator({
     : Boolean(sizeId);
 
   const finalReady = isCombo
-    ? comboSteps.slice(0, -1).every((current) => {
+    ? comboSteps.every((current) => {
         if (current.kind === "combo-size") {
           return Boolean(
             comboPizzaSelections[
@@ -1114,7 +1150,7 @@ export default function PublicProductConfigurator({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
-                {isCombo ? "Configura tu combo" : "Compra Asistida"}
+                Compra Asistida
               </p>
               <h2 className="mt-1 truncate text-[21px] font-bold tracking-[-0.01em]">
                 {product.name}
@@ -1139,7 +1175,7 @@ export default function PublicProductConfigurator({
           <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4 sm:p-5">
             <div className="mb-4">
               <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
-                {isCombo ? "Personaliza cada parte" : "Completa este paso"}
+                Te guiamos paso a paso
               </p>
               <h3 className="mt-1 text-[18px] font-bold">{currentTitle}</h3>
             </div>
