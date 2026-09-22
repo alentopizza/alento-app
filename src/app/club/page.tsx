@@ -17,9 +17,9 @@ function money(value: unknown) {
 }
 
 function GuestClub({
-  pointsPerThousand,
+  earnRatePercent,
 }: {
-  pointsPerThousand: number;
+  earnRatePercent: number;
 }) {
   return (
     <>
@@ -49,9 +49,7 @@ function GuestClub({
           <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="rounded-[18px] border border-white/10 bg-white/[0.05] px-4 py-3">
               <p className="text-[11px] leading-5 text-white/48">
-                Actualmente recibes{" "}
-                <b className="text-white">{pointsPerThousand} puntos</b> por cada
-                <b className="text-white"> $1.000</b> en compras completadas.
+                Actualmente recibes <b className="text-white">{earnRatePercent}% en puntos</b> sobre productos elegibles sin descuento.
               </p>
             </div>
 
@@ -91,7 +89,7 @@ function GuestClub({
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[
               ["01", "Compra", "Haz tus pedidos usando tu cuenta de Alentó."],
-              ["02", "Acumula", "Suma " + pointsPerThousand + " puntos por cada $1.000 gastados."],
+              ["02", "Acumula", "Recibe " + earnRatePercent + "% en puntos sobre productos elegibles sin descuento."],
               ["03", "Canjea", "Usa tus puntos en recompensas del Club Alentó."],
             ].map(([step, title, description]) => (
               <div
@@ -147,7 +145,7 @@ export default async function ClubPage() {
     : DEFAULT_CLUB_ALENTO_SETTINGS;
 
   if (!session) {
-    return <GuestClub pointsPerThousand={settings.pointsPerThousand} />;
+    return <GuestClub earnRatePercent={settings.earnRatePercent} />;
   }
 
   const account = await prisma.customerAccount.findUnique({
@@ -175,7 +173,7 @@ export default async function ClubPage() {
   });
 
   if (!account?.active) {
-    return <GuestClub pointsPerThousand={settings.pointsPerThousand} />;
+    return <GuestClub earnRatePercent={settings.earnRatePercent} />;
   }
 
   const customer = account.customer;
@@ -208,8 +206,7 @@ export default async function ClubPage() {
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Próximamente</p>
-            <h2 className="mt-1 text-[22px] font-semibold tracking-[-0.03em]">Canjea tus puntos</h2>
+            <h2 className="text-[22px] font-semibold tracking-[-0.03em]">Canjea tus puntos</h2>
             <p className="mt-2 text-[12px] leading-5 text-white/38">
               Aquí podrás cambiar puntos por productos, bordes e ingredientes extra.
             </p>
@@ -224,6 +221,30 @@ export default async function ClubPage() {
               <div key={label} className="rounded-[16px] border border-white/8 bg-white/[0.035] p-3 text-center">
                 <span className="text-xl">{icon}</span>
                 <b className="mt-2 block text-[10px] text-white/55">{label}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Reglas del Club</p>
+            <h2 className="mt-1 text-[20px] font-semibold">Cómo funcionan tus puntos</h2>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {[
+              ["5%", "Acumulas", "sobre productos sin descuento."],
+              ["Subtotal", "Base de puntos", "el domicilio no suma puntos."],
+              [money(settings.minimumRedemptionPurchase), "Compra mínima", "para poder usar puntos en una compra."],
+              ["1 punto = $1", "Valor de canje", "aplicable solo a recompensas habilitadas."],
+              ["Finalizado", "Acreditación", "los puntos se suman cuando el pedido queda pagado y finalizado."],
+              ["Sin doble beneficio", "Protección", "lo pagado con puntos no vuelve a generar puntos."],
+            ].map(([value, title, description]) => (
+              <div key={title} className="rounded-[17px] border border-white/[0.07] bg-white/[0.025] p-3.5">
+                <b className="text-[15px] text-white">{value}</b>
+                <span className="mt-1 block text-[10px] font-semibold text-white/55">{title}</span>
+                <p className="mt-1 text-[9px] leading-4 text-white/30">{description}</p>
               </div>
             ))}
           </div>
