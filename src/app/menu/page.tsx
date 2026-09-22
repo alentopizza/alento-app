@@ -901,7 +901,7 @@ export default function PublicMenuPage() {
                     onClick={() => startAdd(selectedProduct)}
                     className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#ef1c25]"
                   >
-                    {selectedProduct.type === "COMBO" ? "Configurar combo" : "Configurar pizza"}
+                    Agregar al carrito
                   </button>
                 ) : productPriceValue(selectedProduct) != null ? (
                   <button
