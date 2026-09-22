@@ -8,6 +8,7 @@ export type NotificationTemplateConfig = {
   title: string;
   event: string;
   events?: string[];
+  eventByFulfillment?: Partial<Record<"DELIVERY" | "PICKUP" | "STORE", string>>;
   audience: "CUSTOMER" | "DRIVER";
   fulfillmentTypes: Array<"DELIVERY" | "PICKUP" | "STORE">;
   templateName: string;
@@ -108,7 +109,11 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
     id: "order_finalized",
     title: "Pedido finalizado",
     event: "order.status.DELIVERED",
-    events: ["order.status.DELIVERED", "order.status.COMPLETED"],
+    eventByFulfillment: {
+      DELIVERY: "order.status.DELIVERED",
+      PICKUP: "order.status.COMPLETED",
+      STORE: "order.status.COMPLETED",
+    },
     audience: "CUSTOMER",
     fulfillmentTypes: ["DELIVERY", "PICKUP", "STORE"],
     templateName: "orden_finalizada_v2",
@@ -223,10 +228,14 @@ export function findTemplateForEvent(
   event: string,
   fulfillmentType: string,
 ) {
-  return templates.find(
-    (template) =>
-      template.active &&
-      (template.event === event || template.events?.includes(event)) &&
-      template.fulfillmentTypes.includes(fulfillmentType as "DELIVERY" | "PICKUP" | "STORE"),
-  ) ?? null;
+  const fulfillment = fulfillmentType as "DELIVERY" | "PICKUP" | "STORE";
+
+  return templates.find((template) => {
+    if (!template.active || !template.fulfillmentTypes.includes(fulfillment)) return false;
+
+    const mappedEvent = template.eventByFulfillment?.[fulfillment];
+    if (mappedEvent) return mappedEvent === event;
+
+    return template.event === event || template.events?.includes(event);
+  }) ?? null;
 }
