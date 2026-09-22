@@ -428,7 +428,7 @@ export default function PublicCheckoutDelivery({
       return;
     }
 
-    if (!editingAddress || loadingSavedAddress) return;
+    if (!editingAddress) return;
 
     let cancelled = false;
     let autocomplete: PlaceAutocompleteElementInstance | null = null;
@@ -513,12 +513,7 @@ export default function PublicCheckoutDelivery({
         autocomplete.removeEventListener("gmp-select", onSelect);
       }
     };
-  }, [
-    editingAddress,
-    fulfillmentType,
-    loadingSavedAddress,
-    requestQuote,
-  ]);
+  }, [editingAddress, fulfillmentType, requestQuote]);
 
   useEffect(() => {
     if (
@@ -554,9 +549,13 @@ export default function PublicCheckoutDelivery({
     setLoadingSavedAddress(true);
     setSavedAddressChecked(true);
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 3500);
+
     try {
       const response = await fetch("/api/delivery/customer-default-address", {
         cache: "no-store",
+        signal: controller.signal,
       });
       const data = await response.json();
 
@@ -572,13 +571,12 @@ export default function PublicCheckoutDelivery({
           formattedAddress: data.address.formattedAddress || "",
           placeId: data.address.placeId || "",
         });
-        return;
       }
-
-      setEditingAddress(true);
     } catch {
-      setEditingAddress(true);
+      // La dirección guardada es una mejora opcional. Si no está disponible,
+      // el cliente debe poder escribir inmediatamente sin bloquear el checkout.
     } finally {
+      window.clearTimeout(timeout);
       setLoadingSavedAddress(false);
     }
   }, [loadingSavedAddress, requestQuote, savedAddressChecked]);
@@ -797,24 +795,24 @@ export default function PublicCheckoutDelivery({
                   </div>
 
                   <div className="mt-2 min-h-[46px] rounded-[13px] border border-white/10 bg-white px-2 py-0.5 text-black">
-                    {loadingSavedAddress ? (
+                    <div ref={autocompleteHostRef} />
+                    {loadingMaps && (
                       <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500">
-                        Cargando tu dirección guardada...
+                        Cargando buscador de direcciones...
                       </div>
-                    ) : loadingMaps ? (
-                      <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500">
-                        Cargando Google Maps...
-                      </div>
-                    ) : (
-                      <div ref={autocompleteHostRef} />
                     )}
                   </div>
 
-                  {!quoting && (
-                    <p className="mt-1.5 text-[8px] leading-3.5 text-white/28">
+                  <div className="mt-1.5 flex min-h-[14px] items-center justify-between gap-2">
+                    <p className="text-[8px] leading-3.5 text-white/28">
                       Elige una sugerencia de Google para validar cobertura y tarifa.
                     </p>
-                  )}
+                    {loadingSavedAddress && (
+                      <span className="shrink-0 text-[8px] font-semibold text-white/30">
+                        Buscando dirección guardada…
+                      </span>
+                    )}
+                  </div>
                 </section>
               )}
 
