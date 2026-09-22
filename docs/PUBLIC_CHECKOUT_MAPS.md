@@ -83,6 +83,8 @@ La experiencia de domicilio usa un layout compacto orientado a móvil:
 
 - el checkout inicia por defecto en **Recoger en tienda**;
 - al elegir **Domicilio**, solo se precarga una dirección si pertenece al cliente autenticado y está guardada en su perfil;
+- la consulta de dirección guardada ocurre en segundo plano y nunca reemplaza ni bloquea el campo manual de Google Places;
+- si el cliente no está autenticado, no hay dirección guardada o la consulta tarda/falla, el buscador sigue disponible inmediatamente;
 - una dirección temporal de un checkout anterior no se reutiliza automáticamente;
 - antes de seleccionar dirección se muestra el buscador y el acceso **Mi ubicación**;
 - al cambiar desde **Recoger en tienda** hacia **Domicilio**, el autocompletado se inicializa únicamente cuando su contenedor editable ya está renderizado;
