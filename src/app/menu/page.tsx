@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import PublicProductConfigurator from "@/components/PublicProductConfigurator";
+import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -407,6 +408,10 @@ export default function PublicMenuPage() {
               </>
             )}
           </div>
+        </section>
+
+        <section className="mx-auto max-w-[1180px] px-3 pt-4 sm:px-4 lg:px-7">
+          <PublicActiveOrderBanner />
         </section>
 
         <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-2 sm:-mt-7 sm:px-4 lg:-mt-10 lg:px-7">
