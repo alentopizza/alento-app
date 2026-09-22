@@ -11,7 +11,7 @@ Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
 Caja avanzada         ⏳ PENDIENTE
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   🟡 CHECKOUT / DOMICILIO EN DESARROLLO
+Experiencia pública   🟡 MENÚ/CARRITO/CLUB + CHECKOUT DOMICILIO EN DESARROLLO
 Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
@@ -177,29 +177,36 @@ La documentación del repositorio debe tener prioridad sobre el historial de cha
 
 # Experiencia pública — V1
 
-Estado: **HOME APROBADA / PRODUCTOS EN DEFINICIÓN**
+Estado: **HOME APROBADA / MENÚ + CARRITO + CLUB IMPLEMENTADOS / CHECKOUT DE DOMICILIO EN DESARROLLO**.
 
-### Home
+### Implementado
 
-- `/` es la Home pública principal aprobada;
-- usa pieza publicitaria responsive administrable;
-- móvil: `1080 × 2160 px`;
-- escritorio: `1920 × 1080 px`;
-- CTA deslizante hacia `/pedir`;
-- configuración desde `/personalizacion`;
-- instalación PWA disponible;
-- PWA abre en `/`.
+- `/` Home pública aprobada;
+- `/menu` catálogo público oficial;
+- `/cart` carrito persistente;
+- configurador público para productos simples, pizzas, dos sabores y combos;
+- navegación persistente Menú / Carrito / Club / Perfil;
+- `/club` con reglas públicas y saldo/movimientos con sesión;
+- `/login` unificado;
+- Google Places y GPS opcional;
+- origen oficial de Alentó en `pos_settings`;
+- Google Routes calcula distancia, duración y geometría server-side;
+- cobertura y tarifa server-side;
+- checkout por defecto en Recoger en tienda;
+- precarga de dirección guardada solo para cliente autenticado y sin bloquear;
+- mapa 3:4 con cabecera integrada Ruta / Domicilio / Tiempo;
+- asignación de repartidor y seguimiento tokenizado para pedidos internos.
 
-### Productos
+### Pendiente para cerrar la fase pública
 
-- `/pedir` consume el mismo `GET /api/catalog` del sistema;
-- la lógica de catálogo es válida;
-- la visual de productos todavía no está cerrada;
-- definir diseño antes de avanzar con configurador/carrito;
-- `/app2` y `/app` conservan temporalmente la experiencia anterior para comparación.
-
-POS interno continúa en `/interno`.
-
-El menú, Compra Asistida y carrito público ya están implementados. El siguiente bloque es el checkout real con dirección validada, Google Maps Platform, cálculo server-side de ruta/cobertura y creación de pedidos WEB.
+1. Persistir `placeId`, `formattedAddress`, `latitude` y `longitude` en `CustomerAddress`.
+2. Completar datos del cliente/invitado y guardado de dirección.
+3. Completar medio de pago y recálculo final server-side.
+4. Crear el pedido público con `Order.source=WEB` y el mismo consecutivo global.
+5. Conectar creación WEB a notificaciones, Club y seguimiento.
+6. Validar producción en móvil, PWA, tablet y escritorio.
+7. Más adelante, GPS en vivo del repartidor y tracking cartográfico.
 
 Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
+
+No implementar un segundo motor comercial para la web.
