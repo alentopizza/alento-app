@@ -53,6 +53,7 @@ type Product = {
     flavors: Array<{
       id: number;
       name: string;
+      description?: string | null;
       basePrice: number;
       imageUrl: string | null;
     }>;
@@ -885,6 +886,23 @@ export default function PublicProductConfigurator({
             );
           })}
         </div>
+        {currentId && (() => {
+          const selectedFlavor = catalog.pizzaFlavors.find(
+            (flavor) => flavor.id === currentId,
+          );
+          if (!selectedFlavor?.description) return null;
+
+          return (
+            <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
+                {selectedFlavor.name}
+              </p>
+              <p className="mt-1.5 text-[11px] leading-5 text-white/58">
+                {selectedFlavor.description}
+              </p>
+            </div>
+          );
+        })()}
       );
     }
 
@@ -1022,6 +1040,23 @@ export default function PublicProductConfigurator({
             />
           ))}
         </div>
+        {selection?.flavorId && (() => {
+          const selectedFlavor = current.rule.flavors.find(
+            (flavor) => flavor.id === selection.flavorId,
+          );
+          if (!selectedFlavor?.description) return null;
+
+          return (
+            <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
+                {selectedFlavor.name}
+              </p>
+              <p className="mt-1.5 text-[11px] leading-5 text-white/58">
+                {selectedFlavor.description}
+              </p>
+            </div>
+          );
+        })()}
       );
     }
 
