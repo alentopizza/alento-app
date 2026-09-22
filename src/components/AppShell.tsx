@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import PublicMobileNav from "@/components/PublicMobileNav";
+import { PUBLIC_CART_STORAGE_KEY, type PublicCartItem } from "@/lib/publicCart";
 
 const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
@@ -35,6 +37,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [roles, setRoles] = useState<string[]>([]);
   const [userName, setUserName] = useState("");
+  const [publicCartCount, setPublicCartCount] = useState(0);
+
+  const publicNavActive = useMemo(() => {
+    if (pathname.startsWith("/menu")) return "menu" as const;
+    if (pathname.startsWith("/cart")) return "cart" as const;
+    if (pathname === "/club" || pathname.startsWith("/club/")) return "club" as const;
+    if (pathname.startsWith("/cuenta")) return "profile" as const;
+    return null;
+  }, [pathname]);
 
   const publicSurface =
     pathname.startsWith("/login") ||
@@ -49,6 +60,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/seguimiento/") ||
     pathname.startsWith("/repartidor/pedido/") ||
     pathname.startsWith("/sin-acceso");
+
+  useEffect(() => {
+    if (!publicNavActive) return;
+
+    const readCartCount = () => {
+      try {
+        const saved = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) as PublicCartItem[] : [];
+        const count = Array.isArray(parsed)
+          ? parsed.reduce((total, item) => total + Number(item?.quantity || 0), 0)
+          : 0;
+        setPublicCartCount(count);
+      } catch {
+        setPublicCartCount(0);
+      }
+    };
+
+    readCartCount();
+    window.addEventListener("storage", readCartCount);
+    window.addEventListener("alento-cart-updated", readCartCount);
+
+    return () => {
+      window.removeEventListener("storage", readCartCount);
+      window.removeEventListener("alento-cart-updated", readCartCount);
+    };
+  }, [publicNavActive]);
 
   useEffect(() => {
     if (publicSurface) return;
@@ -69,7 +106,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     router.refresh();
   }
 
-  if (publicSurface) return <>{children}</>;
+  if (publicSurface) {
+    if (publicNavActive) {
+      return (
+        <>
+          {children}
+          <PublicMobileNav active={publicNavActive} cartCount={publicCartCount} />
+        </>
+      );
+    }
+
+    return <>{children}</>;
+  }
 
   const visibleItems = roles.length ? items.filter((item) => item.roles.some((role) => roles.includes(role))) : [];
 
