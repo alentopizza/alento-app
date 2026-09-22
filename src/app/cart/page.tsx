@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import {
   PUBLIC_CART_STORAGE_KEY,
@@ -38,6 +37,7 @@ export default function CartPage() {
   useEffect(() => {
     if (!ready) return;
     window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new Event("alento-cart-updated"));
   }, [cart, ready]);
 
   const cartCount = useMemo(
@@ -206,7 +206,6 @@ export default function CartPage() {
         )}
       </section>
 
-      <PublicMobileNav active="cart" cartCount={cartCount} />
     </main>
   );
 }
