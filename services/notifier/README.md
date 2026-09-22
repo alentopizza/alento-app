@@ -18,11 +18,11 @@ CHATWOOT_BASE_URL=https://chat.operadoranordecolombia.com
 CHATWOOT_ACCOUNT_ID=1
 CHATWOOT_WHATSAPP_INBOX_ID=13
 CHATWOOT_API_ACCESS_TOKEN=
-ALENTO_APP_BASE_URL=https://pos.alentopizza.com
+ALENTO_APP_BASE_URL=https://alentopizza.com
 ```
 
 Las plantillas, imágenes, variables y reglas ya no se configuran como variables de entorno del notifier. Se administran desde Alentó App.
 
-`ALENTO_APP_BASE_URL` permite al notifier consultar la cola de notificaciones programadas. Cuando el dominio oficial reemplace a `pos.alentopizza.com`, actualizar esta variable a `https://alentopizza.com`.
+`ALENTO_APP_BASE_URL` debe apuntar al dominio oficial de producción: `https://alentopizza.com`. Se usa para consultar trabajos programados y convertir las imágenes administradas por Alentó en URLs públicas para WhatsApp.
 
 No usa JSON ni placeholders en variables de entorno.
