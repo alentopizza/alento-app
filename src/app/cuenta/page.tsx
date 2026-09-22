@@ -46,7 +46,7 @@ export default async function CustomerAccountPage() {
   return (
     <>
       <PublicBrandHeader />
-      <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28 md:pt-[74px]">
+      <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28">
       <div className="mx-auto max-w-[760px] space-y-4">
         <header className="rounded-[28px] bg-[linear-gradient(135deg,#09090a,#281516)] p-6 text-white shadow-xl">
           <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Mi cuenta</p>
