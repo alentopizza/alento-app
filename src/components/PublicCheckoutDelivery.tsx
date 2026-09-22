@@ -25,6 +25,7 @@ type DeliveryQuote = {
   covered: boolean;
   distanceMeters: number;
   durationSeconds?: number | null;
+  encodedPolyline?: string;
   deliveryFee: number | null;
   band?: {
     id: string;
@@ -62,10 +63,19 @@ function formatDuration(seconds?: number | null) {
 type GoogleMapInstance = {
   setCenter: (center: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
+  fitBounds: (bounds: unknown, padding?: number) => void;
 };
 
 type GoogleMarkerInstance = {
   setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GooglePolylineInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GoogleLatLngBoundsInstance = {
+  extend: (point: { lat: number; lng: number }) => void;
 };
 
 type GoogleMapsRuntime = {
@@ -76,6 +86,13 @@ type GoogleMapsRuntime = {
       options: Record<string, unknown>,
     ) => GoogleMapInstance;
     Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
+    Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
+    LatLngBounds: new () => GoogleLatLngBoundsInstance;
+    geometry?: {
+      encoding?: {
+        decodePath: (encoded: string) => Array<{ lat: () => number; lng: () => number }>;
+      };
+    };
   };
 };
 
@@ -198,7 +215,15 @@ export default function PublicCheckoutDelivery({
   const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<GoogleMapInstance | null>(null);
-  const markerRef = useRef<GoogleMarkerInstance | null>(null);
+  const destinationMarkerRef = useRef<GoogleMarkerInstance | null>(null);
+  const originMarkerRef = useRef<GoogleMarkerInstance | null>(null);
+  const routePolylineRef = useRef<GooglePolylineInstance | null>(null);
+  const [origin, setOrigin] = useState<{
+    formattedAddress: string;
+    placeId: string;
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>(
     initialSelection?.fulfillmentType ?? "DELIVERY",
@@ -226,10 +251,13 @@ export default function PublicCheckoutDelivery({
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState("");
 
-  const drawMap = useCallback(async (destination: {
-    latitude: number;
-    longitude: number;
-  }) => {
+  const drawMap = useCallback(async (
+    destination?: {
+      latitude: number;
+      longitude: number;
+    },
+    encodedPolyline?: string,
+  ) => {
     if (!mapRef.current) return;
 
     const google = await loadGoogleMaps();
@@ -237,36 +265,86 @@ export default function PublicCheckoutDelivery({
       throw new Error("Google Maps aún no está listo. Intenta nuevamente.");
     }
     await google.maps.importLibrary("maps");
+    await google.maps.importLibrary("geometry");
 
-    const center = {
-      lat: destination.latitude,
-      lng: destination.longitude,
-    };
+    const fallbackCenter = origin
+      ? { lat: origin.latitude, lng: origin.longitude }
+      : { lat: 4.621035, lng: -74.166095 };
+
+    const center = destination
+      ? { lat: destination.latitude, lng: destination.longitude }
+      : fallbackCenter;
 
     if (!mapInstanceRef.current) {
       mapInstanceRef.current = new google.maps.Map(mapRef.current, {
         center,
-        zoom: 17,
+        zoom: destination ? 15 : 14,
         mapId: ALENTO_DELIVERY_MAP_ID,
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "cooperative",
       });
+    }
+
+    if (originMarkerRef.current) originMarkerRef.current.setMap(null);
+    if (destinationMarkerRef.current) destinationMarkerRef.current.setMap(null);
+    if (routePolylineRef.current) routePolylineRef.current.setMap(null);
+
+    if (origin && mapInstanceRef.current) {
+      originMarkerRef.current = new google.maps.Marker({
+        map: mapInstanceRef.current,
+        position: { lat: origin.latitude, lng: origin.longitude },
+        title: "Alentó Pizza",
+        label: {
+          text: "A",
+          color: "#ffffff",
+          fontWeight: "700",
+        },
+      });
+    }
+
+    if (destination && mapInstanceRef.current) {
+      destinationMarkerRef.current = new google.maps.Marker({
+        map: mapInstanceRef.current,
+        position: center,
+        title: "Tu ubicación",
+      });
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    if (origin) {
+      bounds.extend({ lat: origin.latitude, lng: origin.longitude });
+    }
+    if (destination) {
+      bounds.extend(center);
+    }
+
+    if (
+      encodedPolyline &&
+      google.maps.geometry?.encoding?.decodePath &&
+      mapInstanceRef.current
+    ) {
+      const path = google.maps.geometry.encoding.decodePath(encodedPolyline);
+      routePolylineRef.current = new google.maps.Polyline({
+        map: mapInstanceRef.current,
+        path,
+        strokeColor: "#e21a22",
+        strokeOpacity: 0.95,
+        strokeWeight: 5,
+        geodesic: true,
+      });
+      for (const point of path) {
+        bounds.extend({ lat: point.lat(), lng: point.lng() });
+      }
+    }
+
+    if ((origin || destination) && mapInstanceRef.current) {
+      mapInstanceRef.current.fitBounds(bounds, 28);
     } else {
       mapInstanceRef.current.setCenter(center);
-      mapInstanceRef.current.setZoom(17);
+      mapInstanceRef.current.setZoom(destination ? 15 : 14);
     }
-
-    if (markerRef.current) {
-      markerRef.current.setMap(null);
-    }
-
-    markerRef.current = new google.maps.Marker({
-      map: mapInstanceRef.current,
-      position: center,
-      title: "Punto de entrega",
-    });
-  }, []);
+  }, [origin]);
 
   const requestQuote = useCallback(async (input: {
     latitude: number;
@@ -293,7 +371,7 @@ export default function PublicCheckoutDelivery({
       setQuote(nextQuote);
 
       if (nextQuote.destination) {
-        await drawMap(nextQuote.destination);
+        await drawMap(nextQuote.destination, nextQuote.encodedPolyline);
       }
     } catch (err) {
       setQuote(null);
@@ -304,6 +382,30 @@ export default function PublicCheckoutDelivery({
       setQuoting(false);
     }
   }, [drawMap]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadOrigin() {
+      try {
+        const response = await fetch("/api/delivery/origin", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No fue posible cargar Alentó.");
+        if (!cancelled) setOrigin(data.origin);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "No fue posible cargar la ubicación de Alentó.",
+          );
+        }
+      }
+    }
+
+    void loadOrigin();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (fulfillmentType !== "DELIVERY") return;
@@ -394,14 +496,9 @@ export default function PublicCheckoutDelivery({
   }, [fulfillmentType, requestQuote]);
 
   useEffect(() => {
-    if (
-      fulfillmentType === "DELIVERY" &&
-      quote?.destination &&
-      mapRef.current
-    ) {
-      void drawMap(quote.destination);
-    }
-  }, [drawMap, fulfillmentType, quote?.destination]);
+    if (fulfillmentType !== "DELIVERY" || !mapRef.current) return;
+    void drawMap(quote?.destination, quote?.encodedPolyline);
+  }, [drawMap, fulfillmentType, origin, quote?.destination, quote?.encodedPolyline]);
 
   function useCurrentLocation() {
     setError("");
@@ -543,6 +640,20 @@ export default function PublicCheckoutDelivery({
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
           {fulfillmentType === "DELIVERY" ? (
             <div className="space-y-3 sm:space-y-4">
+              <section className="relative overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:rounded-[22px]">
+                <div ref={mapRef} className="h-[180px] w-full sm:h-[230px]" />
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+                  <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[9px] font-bold text-neutral-800 shadow-lg backdrop-blur">
+                    {quote?.destination ? "Ruta Alentó → cliente" : "Zona de entrega Alentó"}
+                  </div>
+                  {quote?.covered && quote.deliveryFee != null && (
+                    <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[9px] font-bold text-white shadow-lg backdrop-blur">
+                      Domicilio {money(quote.deliveryFee)}
+                    </div>
+                  )}
+                </div>
+              </section>
+
               <section className="rounded-[20px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[22px] sm:p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -582,11 +693,6 @@ export default function PublicCheckoutDelivery({
 
               {(quoting || quote) && (
                 <section className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.035] sm:rounded-[22px]">
-                  <div
-                    ref={mapRef}
-                    className="h-[118px] w-full bg-[#171717] sm:h-[180px]"
-                  />
-
                   <div className="p-3 sm:p-4">
                     {quoting ? (
                       <div className="text-[12px] text-white/50">
@@ -601,7 +707,7 @@ export default function PublicCheckoutDelivery({
                           {quote.destination.formattedAddress}
                         </b>
 
-                        <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-3">
+                        <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-3">
                           <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
                             <span className="text-[8px] text-white/35 sm:text-[9px]">Ruta</span>
                             <b className="mt-0.5 block text-[12px] sm:mt-1 sm:text-[13px]">
@@ -620,11 +726,12 @@ export default function PublicCheckoutDelivery({
                           </div>
                         </div>
 
-                        {formatDuration(quote.durationSeconds) && (
-                          <p className="mt-1.5 text-[8px] text-white/30 sm:mt-2 sm:text-[9px]">
-                            {formatDuration(quote.durationSeconds)}
-                          </p>
-                        )}
+                        <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
+                          <span className="text-[8px] text-white/35 sm:text-[9px]">Tiempo</span>
+                          <b className="mt-0.5 block text-[12px] sm:mt-1 sm:text-[13px]">
+                            {formatDuration(quote.durationSeconds) || "—"}
+                          </b>
+                        </div>
 
                         {!quote.covered && (
                           <div className="mt-3 rounded-[14px] border border-amber-400/20 bg-amber-400/10 p-3 text-[10px] leading-4 text-amber-100">
