@@ -108,6 +108,7 @@ export async function GET() {
         flavors: rule.flavors.map((item) => ({
           id: item.product.id,
           name: item.product.name,
+          description: item.product.description,
           basePrice: item.product.basePrice == null ? 0 : Number(item.product.basePrice),
           imageUrl: item.product.imageUrl,
         })),
