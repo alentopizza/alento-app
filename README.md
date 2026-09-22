@@ -1,8 +1,8 @@
 # Alentó App
 
-Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración y la futura experiencia pública de pedidos.
+Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración y la experiencia pública de pedidos en desarrollo.
 
-El proyecto busca reemplazar gradualmente Glide y consolidar en una sola plataforma el sistema interno del restaurante y, más adelante, la app/web pública para clientes.
+El proyecto busca reemplazar gradualmente Glide y consolidar en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
 
 ## Visión de producto
 
@@ -93,56 +93,43 @@ POS-0004
 
 Ver `docs/ORDER_NUMBERING.md`.
 
-## Próximo bloque estratégico: autenticación y roles
+## Bloque estratégico actual: checkout público y pedido WEB
 
-El sistema interno todavía **no tiene login ni protección por roles**.
+Autenticación y Roles ya tienen una primera versión operativa.
 
-Con POS, Pedidos y Cocina cerrados para esta etapa, este es ahora el siguiente bloque estratégico aprobado.
+El bloque activo es completar la experiencia pública sin duplicar el motor comercial:
 
-Antes de exponer Alentó App como reemplazo definitivo de Glide se debe implementar:
+1. validar el checkout de domicilio con Google Maps/Routes;
+2. enriquecer y persistir direcciones;
+3. completar cliente/invitado y medio de pago;
+4. recalcular el pedido en servidor;
+5. crear `Order.source=WEB` con el consecutivo global;
+6. conectar notificaciones, Club y seguimiento.
 
-- modelo de usuarios internos;
-- roles y permisos;
-- contraseñas con hash seguro;
-- sesiones;
-- protección de páginas internas;
-- protección de APIs internas;
-- administración de usuarios;
-- separación clara entre empleados y clientes.
-
-Roles iniciales propuestos:
-
-- `ADMIN`;
-- `POS`;
-- `KITCHEN`;
-- `CASHIER`;
-- `DISPATCH`.
-
-La guía completa está en [`docs/AUTH_ROLES_AND_PUBLIC_APP.md`](docs/AUTH_ROLES_AND_PUBLIC_APP.md).
+La creación pública final todavía no está implementada. `POST /api/orders` continúa siendo el flujo interno protegido del POS y crea `source=POS`.
 
 ## Experiencia pública
 
-La experiencia pública ya está en desarrollo activo y reutiliza el mismo motor de negocio del sistema interno.
+La experiencia pública está en desarrollo activo y ya incluye:
 
-La **Home principal está aprobada** y vive en `/`.
+- Home principal aprobada en `/`;
+- slider de acceso hacia `/menu`;
+- Home móvil `1080 × 2160 px` y escritorio `1920 × 1080 px`;
+- personalización desde `/personalizacion`;
+- `/menu` con catálogo real y diseño responsive;
+- configurador para productos simples, pizzas, dos sabores y combos;
+- `/cart` con persistencia local;
+- navegación Menú / Carrito / Club / Perfil;
+- `/club` con reglas públicas, saldo e historial para clientes autenticados;
+- `/login` unificado;
+- selector de domicilio con Google Places;
+- GPS opcional solo por acción del usuario;
+- Google Routes y tarifa server-side;
+- mapa de domicilio 3:4 con ruta y cabecera Ruta / Domicilio / Tiempo.
 
-Incluye:
+No debe existir un segundo sistema de pedidos. Catálogo, configuradores, precios, cobertura, normalización, consecutivo y estados deben compartirse con el sistema interno.
 
-- pieza publicitaria a pantalla completa;
-- imagen independiente para móvil y escritorio;
-- administración desde `/personalizacion`;
-- formato móvil `1080 × 2160 px`;
-- formato escritorio `1920 × 1080 px`;
-- CTA deslizante con flecha para entrar al menú;
-- instalación PWA orientada al cliente.
-
-El CTA de la Home lleva actualmente a `/menu`.
-
-La pantalla `/menu` consume el catálogo real, pero su diseño de productos **todavía está en definición**. No debe considerarse visualmente cerrada hasta aprobación explícita.
-
-No debe existir un segundo sistema de pedidos. La experiencia pública debe compartir catálogo, configuradores, precios, promociones, cobertura, clientes, pedidos, pagos, configuración estructurada de `OrderItem` y consecutivo comercial global.
-
-Las órdenes originadas por esta experiencia usarán `Order.source = WEB`.
+Las órdenes originadas por la experiencia pública usarán `Order.source=WEB` cuando se complete la fase final del checkout.
 
 ## Arquitectura técnica
 
@@ -262,53 +249,65 @@ Actualmente la arquitectura corresponde a una instalación por negocio. No asumi
 
 ## Roadmap recomendado
 
-Los cinco módulos operativos principales ya cerrados son POS, Pedidos, Cocina, Clientes y Menú.
+Los cinco módulos operativos principales cerrados son POS, Pedidos, Cocina, Clientes y Menú administrativo.
 
-Pendientes estratégicos conocidos:
+Prioridades vigentes:
 
-1. Implementar usuarios internos, login y sesiones.
-2. Proteger páginas y APIs internas.
-3. Aplicar permisos por rol.
-4. Crear administración de usuarios y auditoría básica.
-5. Terminar Caja/conciliación y cierres operativos.
-6. Inventario, recetas y costos usando los IDs estructurados guardados en pedidos.
-7. Retomar mejoras estructurales de Menú cuando se aprueben: tipos de producto y modificadores.
-8. Construir experiencia pública de pedidos reutilizando el mismo motor comercial.
-9. Sustituir Glide y migrar `alentopizza.com` a Alentó App.
-10. Evaluar empaquetado/parametrización para replicar la solución en otros negocios.
-11. Implementaciones externas como Rappi/DiDi/Chatwoot se reservan para la última fase.
-
+1. terminar y validar checkout público de domicilio;
+2. persistir direcciones enriquecidas de Google;
+3. crear de forma segura pedidos WEB;
+4. conectar pago, Club, notificaciones y seguimiento al flujo WEB;
+5. cierre/conciliación avanzada de Caja;
+6. inventario, recetas, costos y rentabilidad;
+7. endurecimiento adicional de autenticación y auditoría;
+8. GPS en vivo del repartidor y tracking cartográfico;
+9. sustituir Glide y migrar `alentopizza.com`;
+10. parametrización/replicabilidad;
+11. integraciones externas al final.
 
 ## Rutas principales vigentes
 
-Durante la etapa temporal en `pos.alentopizza.com`:
+Superficie pública:
 
-- `/`: Home pública principal aprobada;
-- `/menu`: experiencia pública de catálogo/productos;
-- `/menu`: versión pública anterior conservada temporalmente para comparación;
-- `/menu`: alias temporal de la versión pública anterior;
-- `/interno`: Punto de Venta protegido;
-- `/login` y `/login`: acceso unificado para clientes y colaboradores.
+- `/`: Home;
+- `/menu`: catálogo y configurador;
+- `/cart`: carrito;
+- `/club`: Club Alentó;
+- `/login`: acceso unificado;
+- `/cuenta`: perfil privado;
+- `/seguimiento/[token]`: seguimiento firmado.
 
-El acceso abre como cliente por teléfono + OTP y ofrece `Iniciar como colaborador` para cambiar a correo + contraseña. Cuando el producto esté listo, esta misma arquitectura pasará al dominio principal `alentopizza.com`.
+Superficie interna:
 
+- `/interno`: POS;
+- `/interno/menu`: administración del catálogo;
+- `/pedidos`;
+- `/cocina`;
+- `/clientes`;
+- `/caja`;
+- `/cupones`;
+- `/configuracion`;
+- `/personalizacion`;
+- `/usuarios`.
 
-## Personalización de la portada
+Repartidor:
 
-Los banners promocionales de la experiencia pública se administran desde `/personalizacion` (ADMIN).
+- `/repartidor/pedido/[token]`: enlace firmado de una entrega asignada.
 
-Formatos oficiales:
+## Personalización pública
+
+La experiencia pública se administra desde `/personalizacion`, solo ADMIN.
+
+Piezas vigentes:
 
 - Home móvil: `1080 × 2160 px`;
 - Home escritorio: `1920 × 1080 px`;
-- logo: `600 × 180 px`;
-- banner principal: `1200 × 625 px`;
-- banner secundario: `1200 × 310 px`.
+- hero de `/menu`: `1920 × 730 px`;
+- logo del menú: `600 × 180 px`.
 
-Cada banner se asocia a un producto real del catálogo y reutiliza `AppSetting`, por lo que no introduce una tabla ni un esquema comercial adicional.
+La configuración vive en `AppSetting` bajo `public.home` y actualmente conserva `brand`, `landing` y `menuHero`.
 
+Rutas de menú:
 
-### Rutas de menú
-
-- `/menu`: menú público para clientes.
-- `/interno/menu`: administración interna del catálogo (ADMIN).
+- `/menu`: menú público para clientes;
+- `/interno/menu`: administración interna del catálogo.
