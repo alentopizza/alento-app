@@ -106,79 +106,80 @@ type PlacesLibrary = {
 declare global {
   interface Window {
     google?: GoogleMapsRuntime;
-    __alentoGoogleMapsPromise?: Promise<GoogleMapsRuntime>;
   }
 }
 
 function requireGoogleRuntime() {
-  if (!window.google) {
-    throw new Error("Google Maps no quedó disponible después de cargar el script.");
+  if (!window.google?.maps) {
+    throw new Error("Google Maps no quedó disponible después de iniciar el cargador.");
   }
   return window.google;
 }
 
-function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
+function installGoogleMapsBootstrap(key: string) {
+  if (window.google?.maps?.importLibrary) return;
+
+  const bootstrapId = "alento-google-maps-bootstrap";
+  if (!document.getElementById(bootstrapId)) {
+    const script = document.createElement("script");
+    script.id = bootstrapId;
+
+    // Bootstrap oficial de Google Maps Dynamic Library Import.
+    // Instala importLibrary de inmediato y evita la carrera que ocurría
+    // con el <script src=...> directo durante la primera apertura.
+    script.textContent = `
+      (g=>{
+        var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",
+          q="__ib__",m=document,b=window;
+        b=b[c]||(b[c]={});
+        var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,
+          u=()=>h||(h=new Promise(async(f,n)=>{
+            await (a=m.createElement("script"));
+            e.set("libraries",[...r]+"");
+            for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);
+            e.set("callback",c+".maps."+q);
+            a.src="https://maps."+c+"apis.com/maps/api/js?"+e;
+            d[q]=f;
+            a.onerror=()=>h=n(Error(p+" could not load."));
+            a.nonce=m.querySelector("script[nonce]")?.nonce||"";
+            m.head.append(a)
+          }));
+        d[l]
+          ? console.warn(p+" only loads once. Ignoring:",g)
+          : d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))
+      })({
+        key: "__ALENTO_MAPS_KEY__",
+        v: "weekly",
+        language: "es",
+        region: "CO"
+      });
+    `;
+
+    script.textContent = script.textContent.replace(
+      '"__ALENTO_MAPS_KEY__"',
+      JSON.stringify(key),
+    );
+
+    document.head.appendChild(script);
+  }
+
+  if (typeof window.google?.maps?.importLibrary !== "function") {
+    throw new Error("No fue posible iniciar Google Maps correctamente.");
+  }
+}
+
+async function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("Google Maps solo está disponible en el navegador."));
-  }
-
-  if (window.google?.maps?.importLibrary) {
-    return Promise.resolve(window.google);
-  }
-
-  if (window.__alentoGoogleMapsPromise) {
-    return window.__alentoGoogleMapsPromise;
+    throw new Error("Google Maps solo está disponible en el navegador.");
   }
 
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
   if (!key) {
-    return Promise.reject(
-      new Error("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no está configurada."),
-    );
+    throw new Error("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no está configurada.");
   }
 
-  window.__alentoGoogleMapsPromise = new Promise<GoogleMapsRuntime>(
-    (resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-alento-google-maps="true"]',
-    );
-
-    if (existing) {
-      existing.addEventListener("load", () => {
-        try {
-          resolve(requireGoogleRuntime());
-        } catch (error) {
-          reject(error);
-        }
-      });
-      existing.addEventListener("error", () =>
-        reject(new Error("No fue posible cargar Google Maps.")),
-      );
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src =
-      "https://maps.googleapis.com/maps/api/js?key=" +
-      encodeURIComponent(key) +
-      "&loading=async&libraries=places&language=es&region=CO";
-    script.async = true;
-    script.defer = true;
-    script.dataset.alentoGoogleMaps = "true";
-    script.onload = () => {
-      try {
-        resolve(requireGoogleRuntime());
-      } catch (error) {
-        reject(error);
-      }
-    };
-    script.onerror = () =>
-      reject(new Error("No fue posible cargar Google Maps."));
-    document.head.appendChild(script);
-    },
-  );
-
-  return window.__alentoGoogleMapsPromise;
+  installGoogleMapsBootstrap(key);
+  return requireGoogleRuntime();
 }
 
 export default function PublicCheckoutDelivery({
@@ -230,6 +231,9 @@ export default function PublicCheckoutDelivery({
     if (!mapRef.current) return;
 
     const google = await loadGoogleMaps();
+    if (typeof google.maps.importLibrary !== "function") {
+      throw new Error("Google Maps aún no está listo. Intenta nuevamente.");
+    }
     await google.maps.importLibrary("maps");
 
     const center = {
@@ -311,6 +315,9 @@ export default function PublicCheckoutDelivery({
 
       try {
         const google = await loadGoogleMaps();
+        if (typeof google.maps.importLibrary !== "function") {
+          throw new Error("Google Maps aún no está listo. Intenta nuevamente.");
+        }
         const { PlaceAutocompleteElement } =
           (await google.maps.importLibrary("places")) as PlacesLibrary;
 
