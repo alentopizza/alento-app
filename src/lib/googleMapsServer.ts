@@ -86,6 +86,9 @@ type GoogleRouteResponse = {
   routes?: Array<{
     distanceMeters?: number;
     duration?: string;
+    polyline?: {
+      encodedPolyline?: string;
+    };
   }>;
 };
 
@@ -177,7 +180,8 @@ export async function computeDrivingRoute(input: {
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": serverKey(),
-        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
+        "X-Goog-FieldMask":
+          "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
       },
       body: JSON.stringify({
         origin: {
@@ -235,5 +239,6 @@ export async function computeDrivingRoute(input: {
   return {
     distanceMeters: Math.round(distanceMeters),
     durationSeconds: parseDurationSeconds(route?.duration),
+    encodedPolyline: route?.polyline?.encodedPolyline?.trim() || "",
   };
 }
