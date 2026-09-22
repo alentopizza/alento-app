@@ -204,12 +204,6 @@ export default async function ClubPage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-[18px] border border-white/10 bg-white/[0.05] px-4 py-3">
-            <p className="text-[11px] leading-5 text-white/48">
-              Recibes <b className="text-white">{settings.pointsPerThousand} puntos</b> por cada
-              <b className="text-white"> $1.000</b> en compras completadas.
-            </p>
-          </div>
         </header>
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
@@ -236,12 +230,9 @@ export default async function ClubPage() {
         </section>
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/28">Actividad</p>
-              <h2 className="mt-1 text-[20px] font-semibold">Tus últimos puntos</h2>
-            </div>
-            <Link href="/menu" className="text-[10px] font-semibold text-[#ff3439]">Ir al menú</Link>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/28">Actividad</p>
+            <h2 className="mt-1 text-[20px] font-semibold">Tus últimos puntos</h2>
           </div>
 
           <div className="mt-4 space-y-2">
