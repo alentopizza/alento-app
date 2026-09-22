@@ -410,10 +410,6 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-[1180px] px-3 pt-4 sm:px-4 lg:px-7">
-          <PublicActiveOrderBanner />
-        </section>
-
         <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-2 sm:-mt-7 sm:px-4 lg:-mt-10 lg:px-7">
           <div
             className="grid overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]"
@@ -452,6 +448,10 @@ export default function PublicMenuPage() {
               );
             })}
           </div>
+        </section>
+
+        <section className="mx-auto max-w-[1180px] px-3 pt-4 sm:px-4 sm:pt-5 lg:px-7">
+          <PublicActiveOrderBanner />
         </section>
 
         <section id="destacados-menu" className="mx-auto max-w-[1320px] px-3 pb-10 pt-6 sm:px-5 sm:pb-12 lg:px-8 lg:pb-14 lg:pt-5">
