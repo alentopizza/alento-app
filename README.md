@@ -220,6 +220,7 @@ Documentos principales:
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura y responsabilidades.
 - [`docs/AUTH_ROLES_AND_PUBLIC_APP.md`](docs/AUTH_ROLES_AND_PUBLIC_APP.md): autenticación, permisos, dominio único y app pública.
+- [`docs/PUBLIC_CHECKOUT_MAPS.md`](docs/PUBLIC_CHECKOUT_MAPS.md): checkout público, direcciones, Google Maps, cobertura y tarifa de domicilio.
 - [`docs/ORDER_DATA_INTEGRITY.md`](docs/ORDER_DATA_INTEGRITY.md): integridad estructurada para inventario/costos.
 - [`docs/ORDER_NUMBERING.md`](docs/ORDER_NUMBERING.md): consecutivo comercial global.
 - [`docs/ORDERS.md`](docs/ORDERS.md): comportamiento operativo de pedidos.
