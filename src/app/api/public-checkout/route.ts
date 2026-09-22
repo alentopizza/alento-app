@@ -239,15 +239,21 @@ export async function POST(request: NextRequest) {
 
     const total = Math.max(0, subtotal + deliveryFee);
     const cashPayment = isCash(paymentMethod);
-    const cashReceivedRaw = Number(body?.cashReceived ?? 0);
-    const cashReceived = cashPayment ? money(cashReceivedRaw) : null;
+    const hasCashAmount =
+      body?.cashReceived !== null &&
+      body?.cashReceived !== undefined &&
+      String(body.cashReceived).trim() !== "";
+    const cashReceivedRaw = hasCashAmount ? Number(body.cashReceived) : null;
+    const cashReceived =
+      cashPayment && cashReceivedRaw != null ? money(cashReceivedRaw) : null;
 
     if (
       cashPayment &&
+      cashReceivedRaw != null &&
       (!Number.isFinite(cashReceivedRaw) || (cashReceived ?? 0) < total)
     ) {
       return NextResponse.json(
-        { error: `En efectivo, "Paga con" debe ser igual o mayor a ${total.toLocaleString("es-CO")}.` },
+        { error: `Si indicas "Paga con", el valor debe ser igual o mayor a ${total.toLocaleString("es-CO")}.` },
         { status: 400 },
       );
     }
@@ -445,6 +451,7 @@ export async function POST(request: NextRequest) {
           total: Number(order.total),
           paymentMethod: paymentMethod.name,
           trackingPath,
+          authenticatedCustomer: Boolean(session),
         },
         notification,
       },
