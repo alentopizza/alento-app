@@ -11,7 +11,13 @@ enum OrderStatus {
   DRAFT
   CONFIRMED
   PREPARING
+
+  // PREPARED es el nombre técnico persistido para la etapa visible "Horneando".
+  // Al entrar aquí, el pedido ya no pertenece al tablero de Cocina.
+  // El hornero/operación lo cambia luego a READY cuando sale del horno.
+  // No renombrar ni sustituir por HORNEANDO sin una migración deliberada.
   PREPARED
+
   READY
   OUT_FOR_DELIVERY
   ARRIVED
