@@ -402,6 +402,30 @@ Reglas predeterminadas vigentes:
 
 Los movimientos viven en `ClubPointTransaction`. La UI de saldo e historial está implementada; el canje transaccional completo sigue pendiente.
 
+### Seguimiento del cliente
+
+Para clientes autenticados existe un indicador reutilizable de pedido activo en `/menu` y `/cart`.
+
+Reglas vigentes:
+
+- solo aparece si la sesión pertenece al cliente del pedido;
+- muestra código, estado y una barra de 4 etapas adaptada a Domicilio o Recoger;
+- se actualiza automáticamente mientras el pedido siga activo;
+- enlaza a `/seguimiento/[token]`;
+- al completar/cancelar el pedido deja de mostrarse como pedido activo;
+- la página de seguimiento ofrece acciones para volver al menú y acceder a Cuenta/Login;
+- el código visible respeta el origen real, por ejemplo `WEB-0020` o `POS-0020`.
+
+Para invitados, el popup final recuerda que recibirán el enlace de seguimiento por mensaje y ofrece iniciar sesión para ver el pedido dentro de la app.
+
+### Forma de pago en efectivo
+
+El campo **¿Con cuánto pagas?** es opcional.
+
+- si queda vacío, el pedido puede crearse normalmente con pago `PENDING`;
+- si el cliente escribe un monto, debe ser igual o superior al total y se calculan las vueltas;
+- `Pago exacto` continúa disponible como ayuda rápida.
+
 ### Repartidor y seguimiento
 
 Los pedidos DELIVERY ya tienen relación explícita con `User` mediante `driverId` y `driverAssignedAt`.
