@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
+import LivePageRefresh from "@/components/LivePageRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,7 @@ export default async function TrackingPage({
 
   return (
     <main className="min-h-screen bg-[#f5f3ef] px-4 py-6 text-neutral-950 sm:px-6 lg:py-10">
+      <LivePageRefresh intervalMs={3000} />
       <div className="mx-auto max-w-[760px]">
         <header className="mb-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
