@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import PublicProductConfigurator from "@/components/PublicProductConfigurator";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -28,6 +29,34 @@ type CatalogProduct = {
   basePrice: number | null;
   featured: boolean;
   comboDiscount?: number;
+  comboPizzaRules?: Array<{
+    id: number;
+    quantity: number;
+    sizes: PizzaSize[];
+    flavors: Array<{
+      id: number;
+      name: string;
+      basePrice: number;
+      imageUrl: string | null;
+    }>;
+  }>;
+  comboGroups?: Array<{
+    id: number;
+    kind: string;
+    name: string;
+    minSelections: number;
+    maxSelections: number;
+    options: Array<{
+      id: number;
+      productId: number;
+      productName: string;
+      productType: ProductType;
+      basePrice: number;
+      imageUrl: string | null;
+      quantity: number;
+      priceDelta: number;
+    }>;
+  }>;
 };
 type CatalogCategory = {
   id: number;
@@ -95,6 +124,7 @@ export default function PublicMenuPage() {
   const [activeCategory, setActiveCategory] = useState("");
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
+  const [configurableProduct, setConfigurableProduct] = useState<CatalogProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [homeLoaded, setHomeLoaded] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -342,8 +372,13 @@ export default function PublicMenuPage() {
   }
 
   function startAdd(product: CatalogProduct) {
-    if (product.type === "PIZZA_SINGLE" || isTwoFlavorPizza(product)) {
-      startPizzaConfiguration(product);
+    if (
+      product.type === "PIZZA_SINGLE" ||
+      isTwoFlavorPizza(product) ||
+      product.type === "COMBO"
+    ) {
+      setSelectedProduct(null);
+      setConfigurableProduct(product);
       return;
     }
 
@@ -806,222 +841,16 @@ export default function PublicMenuPage() {
         </button>
       )}
 
-      {pizzaConfig && catalog && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/80 backdrop-blur-sm md:items-center md:p-5">
-          <div className="flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111] text-white shadow-2xl md:max-w-[760px] md:rounded-[28px]">
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-              <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#e21a22]">
-                  {editingCartKey ? "Editar pizza" : "Configura tu pizza"}
-                </p>
-                <h2 className="mt-1 truncate text-[22px] font-semibold tracking-[-0.03em]">
-                  {pizzaConfig.product.name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closePizzaConfiguration}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-              <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-[15px] font-semibold">Tamaño</h3>
-                    <p className="mt-0.5 text-[10px] text-white/35">Misma estructura y precios del POS</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {catalog.sizes.map((size) => {
-                    const selected = pizzaConfig.sizeId === size.id;
-                    return (
-                      <button
-                        key={size.id}
-                        type="button"
-                        onClick={() => updatePizzaSize(size.id)}
-                        className={`rounded-[14px] border p-3 text-left transition ${selected ? "border-[#e21a22] bg-[#e21a22] text-white" : "border-white/10 bg-black/25 text-white/70"}`}
-                      >
-                        <b className="block text-[13px]">{size.name}</b>
-                        <span className="mt-1 block text-[10px] opacity-65">{size.diameterCm} cm</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {isTwoFlavorPizza(pizzaConfig.product) && (
-                <>
-                  <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-3 text-[15px] font-semibold">Primer sabor</h3>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {catalog.pizzaFlavors.map((flavor) => {
-                        const selected = pizzaConfig.firstFlavorId === flavor.id;
-                        return (
-                          <button
-                            key={flavor.id}
-                            type="button"
-                            onClick={() =>
-                              setPizzaConfig({
-                                ...pizzaConfig,
-                                firstFlavorId: flavor.id,
-                                secondFlavorId:
-                                  pizzaConfig.secondFlavorId === flavor.id
-                                    ? null
-                                    : pizzaConfig.secondFlavorId,
-                              })
-                            }
-                            className={`rounded-[14px] border px-3 py-3 text-left text-[12px] transition ${selected ? "border-[#e21a22] bg-red-500/12 text-white" : "border-white/10 bg-black/25 text-white/65"}`}
-                          >
-                            {flavor.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                    <h3 className="mb-3 text-[15px] font-semibold">Segundo sabor</h3>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {catalog.pizzaFlavors.map((flavor) => {
-                        const disabled = pizzaConfig.firstFlavorId === flavor.id;
-                        const selected = pizzaConfig.secondFlavorId === flavor.id;
-                        return (
-                          <button
-                            key={flavor.id}
-                            type="button"
-                            disabled={disabled}
-                            onClick={() =>
-                              setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })
-                            }
-                            className={`rounded-[14px] border px-3 py-3 text-left text-[12px] transition ${selected ? "border-[#e21a22] bg-red-500/12 text-white" : disabled ? "border-white/5 bg-white/[0.02] text-white/15" : "border-white/10 bg-black/25 text-white/65"}`}
-                          >
-                            {flavor.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                </>
-              )}
-
-              <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                <div className="mb-3">
-                  <h3 className="text-[15px] font-semibold">Borde</h3>
-                  <p className="mt-0.5 text-[10px] text-white/35">
-                    Disponibilidad y precio según el tamaño seleccionado
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {catalog.crusts.map((crust) => {
-                    const price = crustPriceForSize(crust, pizzaConfig.sizeId);
-                    const selected = pizzaConfig.crustId === crust.id;
-                    const unavailable = price == null;
-                    return (
-                      <button
-                        key={crust.id}
-                        type="button"
-                        disabled={unavailable}
-                        onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })}
-                        className={`flex min-h-[58px] items-center justify-between rounded-[14px] border px-3 py-2.5 text-left transition ${selected ? "border-[#e21a22] bg-[#e21a22] text-white" : unavailable ? "border-white/5 bg-white/[0.02] text-white/15" : "border-white/10 bg-black/25 text-white/70"}`}
-                      >
-                        <div>
-                          <b className="block text-[12px]">{crust.name}</b>
-                          <span className="mt-1 block text-[10px] opacity-65">
-                            {unavailable ? "No disponible" : price === 0 ? "Incluido" : `+ ${money(price)}`}
-                          </span>
-                        </div>
-                        {selected && <span className="text-[12px]">✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {!isTwoFlavorPizza(pizzaConfig.product) && (
-                <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-[15px] font-semibold">Ingredientes extra</h3>
-                      <p className="mt-0.5 text-[10px] text-white/35">Opcional</p>
-                    </div>
-                    <span className="text-[10px] text-white/35">
-                      {pizzaConfig.modifierIds.length} seleccionados
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {catalog.modifiers.map((modifier) => {
-                      const selected = pizzaConfig.modifierIds.includes(modifier.id);
-                      return (
-                        <button
-                          key={modifier.id}
-                          type="button"
-                          onClick={() =>
-                            setPizzaConfig({
-                              ...pizzaConfig,
-                              modifierIds: selected
-                                ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id)
-                                : [...pizzaConfig.modifierIds, modifier.id],
-                            })
-                          }
-                          className={`flex min-h-[58px] items-center justify-between gap-2 rounded-[14px] border px-3 py-2.5 text-left transition ${selected ? "border-[#e21a22] bg-red-500/12 text-white" : "border-white/10 bg-black/25 text-white/65"}`}
-                        >
-                          <div className="min-w-0">
-                            <b className="block truncate text-[11px]">{modifier.name}</b>
-                            <span className="mt-1 block text-[10px] text-[#ff3439]">+ {money(modifier.basePrice)}</span>
-                          </div>
-                          <span>{selected ? "✓" : "+"}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
-              <section className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[15px] font-semibold">Nota para cocina</h3>
-                    <p className="mt-0.5 text-[10px] text-white/35">Opcional · máximo 120 caracteres</p>
-                  </div>
-                  <span className="text-[10px] text-white/30">{pizzaConfig.note.length}/120</span>
-                </div>
-                <input
-                  value={pizzaConfig.note}
-                  maxLength={120}
-                  onChange={(event) =>
-                    setPizzaConfig({ ...pizzaConfig, note: event.target.value })
-                  }
-                  placeholder="Ej. Ligera en salsa"
-                  className="mt-3 h-11 w-full rounded-[14px] border border-white/10 bg-black/30 px-4 text-[13px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
-                />
-              </section>
-
-              {configError && (
-                <p className="rounded-[14px] border border-red-500/20 bg-red-500/10 p-3 text-[11px] text-red-300">
-                  {configError}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#0c0c0c] p-4">
-              <div>
-                <span className="block text-[9px] uppercase tracking-[0.14em] text-white/35">Total</span>
-                <b className="text-[20px] text-[#ff3439]">{money(pizzaPrice(pizzaConfig))}</b>
-              </div>
-              <button
-                type="button"
-                onClick={confirmPizza}
-                className="rounded-full bg-[#e21a22] px-5 py-3 text-[11px] font-bold text-white"
-              >
-                {editingCartKey ? "Guardar cambios" : "Agregar al carrito"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {configurableProduct && catalog && (
+        <PublicProductConfigurator
+          product={configurableProduct}
+          catalog={catalog}
+          onClose={() => setConfigurableProduct(null)}
+          onAdd={(item) => {
+            setCart((current) => [...current, item]);
+            setConfigurableProduct(null);
+          }}
+        />
       )}
 
       {selectedProduct && (
@@ -1066,13 +895,13 @@ export default function PublicMenuPage() {
 
               <div className={`flex items-center justify-between gap-3 ${selectedProduct.description ? "mt-4 border-t border-white/10 pt-4" : ""}`}>
                 <b className="text-[20px] text-[#ff3439]">{displayPrice(selectedProduct)}</b>
-                {selectedProduct.type === "PIZZA_SINGLE" || isTwoFlavorPizza(selectedProduct) ? (
+                {selectedProduct.type === "PIZZA_SINGLE" || isTwoFlavorPizza(selectedProduct) || selectedProduct.type === "COMBO" ? (
                   <button
                     type="button"
                     onClick={() => startAdd(selectedProduct)}
                     className="rounded-full bg-[#e21a22] px-4 py-2.5 text-[10px] font-bold text-white transition hover:bg-[#ef1c25]"
                   >
-                    Configurar pizza
+                    {selectedProduct.type === "COMBO" ? "Configurar combo" : "Configurar pizza"}
                   </button>
                 ) : productPriceValue(selectedProduct) != null ? (
                   <button
