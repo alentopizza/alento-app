@@ -70,7 +70,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#090909] pb-28 text-white">
       <PublicBrandHeader />
 
-      <section className="mx-auto w-full max-w-[980px] px-4 pb-6 pt-5 sm:px-6 md:pb-12 md:pt-8">
+      <section className="mx-auto w-full max-w-[980px] px-4 pb-6 pt-5 sm:px-6 md:pb-12 md:pt-[104px]">
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#e21a22]">Tu pedido</p>
