@@ -35,7 +35,7 @@ export async function GET() {
       customerId: account.customerId,
       status: { in: [...ACTIVE_STATUSES] },
     },
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     take: 5,
     select: {
       id: true,
