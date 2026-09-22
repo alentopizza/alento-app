@@ -377,7 +377,9 @@ Estado actual:
 - Ruta, Domicilio y Tiempo integrados en la parte superior;
 - cobertura y tarifa provienen de bandas activas del sistema.
 
-Pendiente crítico: todavía no existe creación final del pedido público `source=WEB`. `POST /api/orders` sigue siendo el flujo interno protegido y crea `source=POS`.
+La creación pública ya existe mediante `/api/public-checkout` y genera pedidos `source=WEB`. El endpoint recalcula productos y domicilio en servidor, crea cliente invitado cuando corresponde, reutiliza clientes existentes por teléfono sin exponer datos privados y devuelve seguimiento firmado.
+
+`POST /api/orders` sigue siendo el flujo interno protegido y crea `source=POS`.
 
 ### Club Alentó
 
@@ -401,6 +403,16 @@ Pendiente crítico: todavía no existe creación final del pedido público `sour
 
 GPS en vivo del repartidor y el icono de la moto sobre el mapa siguen pendientes.
 
+### Datos del cliente en checkout
+
+- comprar como invitado no exige login;
+- nombre y teléfono son obligatorios para finalizar;
+- si existe sesión de cliente, nombre/teléfono/correo se autocompletan;
+- si el cliente escribe un teléfono y quiere recuperar datos previos, debe verificarlo por WhatsApp antes de mostrar información guardada;
+- la verificación crea/usa `CustomerAccount` y deja la sesión iniciada;
+- un invitado sin verificación puede completar la compra y queda asociado al `Customer` operativo por teléfono;
+- nunca exponer nombre, correo o direcciones solo por consultar un teléfono públicamente.
+
 ### Regla al continuar
 
-No crear una segunda lógica pública para precios, combos, rutas o pedidos. La fase WEB debe reutilizar `normalizeOrderLine`, configuración estructurada, bandas de domicilio, consecutivo global y estados existentes.
+No crear una segunda lógica pública para precios, combos, rutas o pedidos. El flujo WEB reutiliza `normalizeOrderLine`, configuración estructurada, bandas de domicilio, consecutivo global y estados existentes.
