@@ -18,7 +18,14 @@ type PaymentMethodSetting = {
 };
 
 type PosSettings = {
-  store: { address: string; mapsUrl: string };
+  store: {
+    address: string;
+    mapsUrl: string;
+    placeId: string;
+    latitude: number | null;
+    longitude: number | null;
+    formattedAddress: string;
+  };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
   customerManagement: {
@@ -34,6 +41,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [validatingStore, setValidatingStore] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -92,6 +100,42 @@ export default function SettingsPage() {
     setSettings((current) => current ? { ...current, paymentMethods: current.paymentMethods.filter((method) => method.id !== id) } : current);
   }
 
+  async function validateStoreLocation() {
+    if (!settings?.store.address.trim()) return;
+    setValidatingStore(true);
+    setMessage("");
+    setError("");
+    try {
+      const response = await fetch("/api/settings/store-geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: settings.store.address }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No fue posible validar la dirección.");
+
+      setSettings((current) =>
+        current
+          ? {
+              ...current,
+              store: {
+                ...current.store,
+                placeId: data.location.placeId,
+                latitude: data.location.latitude,
+                longitude: data.location.longitude,
+                formattedAddress: data.location.formattedAddress,
+              },
+            }
+          : current,
+      );
+      setMessage("Ubicación validada con Google Maps. Guarda la configuración para conservarla.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible validar la dirección.");
+    } finally {
+      setValidatingStore(false);
+    }
+  }
+
   async function save() {
     if (!settings) return;
     setSaving(true);
@@ -138,8 +182,60 @@ export default function SettingsPage() {
             <p className="mt-1 text-sm text-neutral-500">Se conserva como referencia para una futura integración con mapas.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <div><label className="mb-1.5 block text-xs font-black">Dirección del local</label><input value={settings.store.address} onChange={(event) => setSettings({ ...settings, store: { ...settings.store, address: event.target.value } })} className="alento-input w-full rounded-2xl px-4 py-3" /></div>
-            <div><label className="mb-1.5 block text-xs font-black">Enlace de Google Maps</label><input value={settings.store.mapsUrl} onChange={(event) => setSettings({ ...settings, store: { ...settings.store, mapsUrl: event.target.value } })} className="alento-input w-full rounded-2xl px-4 py-3" /></div>
+            <div>
+              <label className="mb-1.5 block text-xs font-black">Dirección del local</label>
+              <input
+                value={settings.store.address}
+                onChange={(event) =>
+                  setSettings({
+                    ...settings,
+                    store: {
+                      ...settings.store,
+                      address: event.target.value,
+                      placeId: "",
+                      latitude: null,
+                      longitude: null,
+                      formattedAddress: "",
+                    },
+                  })
+                }
+                className="alento-input w-full rounded-2xl px-4 py-3"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-black">Enlace de Google Maps</label>
+              <input value={settings.store.mapsUrl} onChange={(event) => setSettings({ ...settings, store: { ...settings.store, mapsUrl: event.target.value } })} className="alento-input w-full rounded-2xl px-4 py-3" />
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-2xl border bg-[#faf9f7] p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <b className="block text-sm">Origen oficial para domicilios</b>
+                <p className="mt-1 text-xs leading-5 text-neutral-500">
+                  Validamos la dirección con Google para guardar coordenadas exactas y usarla como origen de Routes API.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void validateStoreLocation()}
+                disabled={validatingStore}
+                className="shrink-0 rounded-2xl bg-black px-4 py-3 text-xs font-black text-white disabled:bg-neutral-300"
+              >
+                {validatingStore ? "Validando..." : "Validar con Google Maps"}
+              </button>
+            </div>
+
+            {settings.store.latitude != null && settings.store.longitude != null ? (
+              <div className="mt-3 grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 md:grid-cols-2">
+                <div><b>Dirección validada</b><p className="mt-1">{settings.store.formattedAddress || settings.store.address}</p></div>
+                <div><b>Coordenadas</b><p className="mt-1">{settings.store.latitude.toFixed(6)}, {settings.store.longitude.toFixed(6)}</p></div>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                Pendiente validar la ubicación oficial de la sede.
+              </div>
+            )}
           </div>
         </section>
 
