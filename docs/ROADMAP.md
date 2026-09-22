@@ -11,7 +11,7 @@ Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
 Caja avanzada         ⏳ PENDIENTE
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   🟡 MENÚ/CARRITO/CLUB + CHECKOUT DOMICILIO EN DESARROLLO
+Experiencia pública   🟡 PEDIDO WEB IMPLEMENTADO / VALIDACIÓN Y MEJORAS
 Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
@@ -197,15 +197,29 @@ Estado: **HOME APROBADA / MENÚ + CARRITO + CLUB IMPLEMENTADOS / CHECKOUT DE DOM
 - mapa 3:4 con cabecera integrada Ruta / Domicilio / Tiempo;
 - asignación de repartidor y seguimiento tokenizado para pedidos internos.
 
+### Implementado en cierre de compra
+
+- paso de datos del cliente después de Recoger/Domicilio;
+- compra como invitado sin login obligatorio;
+- autocompletado inmediato cuando existe sesión de cliente;
+- recuperación segura de datos mediante OTP de WhatsApp;
+- formas de pago públicas desde configuración;
+- efectivo con "Paga con" y cálculo de vueltas;
+- creación de pedido `Order.source=WEB`;
+- recálculo server-side de productos y domicilio;
+- creación/vinculación de `Customer` por teléfono;
+- pago inicial `PENDING`;
+- código comercial `WEB-xxxx`;
+- enlace firmado de seguimiento;
+- notificación de pedido creado cuando el notifier está configurado.
+
 ### Pendiente para cerrar la fase pública
 
 1. Persistir `placeId`, `formattedAddress`, `latitude` y `longitude` en `CustomerAddress`.
-2. Completar datos del cliente/invitado y guardado de dirección.
-3. Completar medio de pago y recálculo final server-side.
-4. Crear el pedido público con `Order.source=WEB` y el mismo consecutivo global.
-5. Conectar creación WEB a notificaciones, Club y seguimiento.
-6. Validar producción en móvil, PWA, tablet y escritorio.
-7. Más adelante, GPS en vivo del repartidor y tracking cartográfico.
+2. Mejorar selección/edición de direcciones del cliente.
+3. Validar producción en móvil, PWA, tablet y escritorio.
+4. Integrar canje real de Club Alentó al checkout.
+5. Más adelante, GPS en vivo del repartidor y tracking cartográfico.
 
 Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
