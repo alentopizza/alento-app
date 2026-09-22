@@ -15,7 +15,7 @@ Alentó App es la plataforma operativa y comercial de Alentó Pizza. Debe centra
 - Caja;
 - cupones;
 - configuración;
-- futura app pública;
+- experiencia pública;
 - futuras recetas, inventario, costos e integraciones.
 
 La plataforma debe poder adaptarse a otros restaurantes sin reescribir su núcleo.
@@ -105,59 +105,79 @@ La autorización debe validarse en servidor, no solo ocultando elementos de UI.
 
 ### `/`
 
-Actualmente funciona como POS durante la fase de construcción.
-
-A futuro, cuando se sustituya Glide, `/` será candidato natural para la experiencia pública y el POS podrá moverse bajo `/interno`.
-
-No realizar este movimiento masivamente hasta que autenticación y rutas internas estén preparadas.
-
-### `/pedidos`
-
-Dashboard operativo de pedidos, pagos, edición, impresión y acciones de estado.
-
-### `/cocina`
-
-Preparación por cantidades y transición `PREPARING → PREPARED → READY`.
-
-### `/caja`
-
-Debe representar dinero efectivamente recibido, no simplemente pedidos creados.
-
-### `/clientes`
-
-Gestión de clientes comerciales.
+Home pública principal. Si existe sesión de colaborador, redirige a la superficie interna permitida por sus roles.
 
 ### `/menu`
 
-Administración del catálogo.
+Catálogo público oficial y configurador.
 
-### `/cupones`
+### `/cart`
 
-Administración de descuentos reutilizables.
+Carrito público y entrada al selector de modalidad/domicilio.
 
-### `/configuracion`
+### `/club`
 
-Tarifas, medios de pago y configuración operativa.
-
-### `/usuarios`
-
-Administración de colaboradores y roles. Solo `ADMIN`.
+Club Alentó para invitados y clientes autenticados.
 
 ### `/login`
 
-Login de colaboradores con correo + contraseña.
-
-### `/cuenta/login`
-
-Login opcional de clientes con teléfono + OTP de WhatsApp.
+Acceso unificado cliente/colaborador.
 
 ### `/cuenta`
 
 Información privada del cliente autenticado.
 
+### `/seguimiento/[token]`
+
+Seguimiento público firmado de un pedido.
+
+### `/interno`
+
+Punto de Venta protegido para ADMIN, POS y CASHIER.
+
+### `/interno/menu`
+
+Administración interna del catálogo, solo ADMIN.
+
+### `/pedidos`
+
+Dashboard operativo de pedidos, pagos, edición, impresión y asignación de repartidor.
+
+### `/cocina`
+
+Preparación por cantidades y transición PREPARING → PREPARED → READY.
+
+### `/caja`
+
+Dinero efectivamente recibido.
+
+### `/clientes`
+
+Gestión comercial de clientes.
+
+### `/cupones`
+
+Administración de descuentos.
+
+### `/configuracion`
+
+Configuración operativa, tarifas, medios de pago y sede.
+
+### `/personalizacion`
+
+Configuración visual pública, solo ADMIN.
+
+### `/usuarios`
+
+Administración de colaboradores, roles y permisos, solo ADMIN.
+
+### `/repartidor/pedido/[token]`
+
+Superficie firmada del repartidor para verificar el pedido e informar salida/llegada.
+
 ### `/pedidos/[id]/imprimir`
 
-Comprobante operativo térmico 80 mm.
+Comprobante térmico 80 mm.
 
 ## Principio crítico: configuración estructurada
 
@@ -263,19 +283,15 @@ Eliminar borra físicamente el pedido y sus dependencias. El backend elimina pag
 
 Estas dos acciones no deben confundirse.
 
-## App pública futura
+## Experiencia pública
 
-La futura experiencia tipo app de delivery debe reutilizar el mismo motor de negocio.
+La experiencia pública ya existe y debe seguir reutilizando el mismo motor comercial.
 
-No crear un segundo sistema de catálogo/pedidos para la web.
+Actualmente están implementados Home, menú, configurador, carrito, Club y el paso de domicilio con Google Maps/Routes.
 
-Los pedidos públicos usarán:
+El checkout público todavía no crea la orden final. La fase pendiente debe crear `Order.source=WEB`, usar el consecutivo global y reutilizar normalización, precios, cobertura y configuración estructurada existentes.
 
-```text
-source = WEB
-```
-
-y consumirán el mismo consecutivo global que POS.
+No exponer `POST /api/orders` tal como está al navegador público: hoy es un endpoint interno protegido y fija `source=POS`. La creación WEB necesita un contrato público específico con recálculo y validaciones server-side.
 
 ## Integraciones
 
@@ -359,21 +375,27 @@ No usar `prisma migrate deploy` hasta realizar baseline.
 - `docs/DEPLOYMENT.md`
 - `docs/HANDOFF.md`
 
-
 ## Domicilios y rol Repartidor
 
-El rol `DRIVER` representa al repartidor.
+El rol operativo vigente es `DRIVER`. `DISPATCH` permanece únicamente como valor legacy de compatibilidad.
 
-No debe reutilizarse el dashboard general de Pedidos como interfaz final del repartidor. La arquitectura futura debe separar:
+La relación pedido–repartidor ya es explícita:
 
-```text
-Pedido DELIVERY
-→ disponible/asignable
-→ asignación a User con rol DRIVER
-→ seguimiento operativo del repartidor
-→ ubicación/tracking
-→ entrega
-→ información visible para el cliente
-```
+- `Order.driverId → User`;
+- `Order.driverAssignedAt`;
+- asignación a usuarios activos DRIVER/legacy DISPATCH;
+- notificación por WhatsApp al asignar;
+- enlace firmado de trabajo;
+- `/repartidor/pedido/[token]`;
+- verificación obligatoria de productos;
+- transiciones `READY → OUT_FOR_DELIVERY → ARRIVED`.
 
-La futura implementación deberá agregar una relación explícita entre el pedido de domicilio y el repartidor asignado, evitando guardar el nombre del repartidor como texto libre.
+El cliente dispone de `/seguimiento/[token]` con actualización automática.
+
+Pendiente futuro:
+
+- ubicación GPS en vivo del repartidor;
+- almacenamiento/expiración de coordenadas;
+- representación de la moto sobre el mapa;
+- ETA dinámico;
+- reglas de privacidad y frecuencia de actualización.
