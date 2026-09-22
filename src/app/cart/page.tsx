@@ -124,7 +124,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="space-y-3">
+            <div className="space-y-3 pb-[230px] lg:pb-0">
               {cart.map((item) => (
                 <article key={item.key} className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4">
                   <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
@@ -182,23 +182,27 @@ export default function CartPage() {
               ))}
             </div>
 
-            <aside className="h-fit rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.12),transparent_26%),linear-gradient(145deg,#161616,#0f0f0f)] p-5 shadow-[0_18px_46px_rgba(0,0,0,.20)] lg:sticky lg:top-6">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/32">Resumen</p>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-[12px] text-white/45">Subtotal</span>
-                <b className="text-[22px]">{money(subtotal)}</b>
+            <aside className="fixed inset-x-3 bottom-[92px] z-[70] mx-auto max-w-[470px] rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.14),transparent_30%),linear-gradient(145deg,#161616,#0f0f0f)] p-4 shadow-[0_20px_50px_rgba(0,0,0,.42)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-6 lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-[24px] lg:p-5 lg:shadow-[0_18px_46px_rgba(0,0,0,.20)]">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/32">Resumen</p>
+                  <span className="mt-1 block text-[11px] text-white/45">Subtotal</span>
+                </div>
+                <b className="text-[24px] tracking-[-0.03em] lg:text-[22px]">{money(subtotal)}</b>
               </div>
-              <p className="mt-2 text-[9px] leading-4 text-white/28">
-                El checkout todavía no está activo. Esta pantalla ya usa el carrito persistente para pruebas.
-              </p>
+
               <button
                 type="button"
                 disabled
-                className="mt-5 h-12 w-full rounded-full bg-[#e21a22] text-[12px] font-bold text-white opacity-55"
+                className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white opacity-55 lg:mt-5 lg:h-12 lg:text-[12px]"
               >
                 Continuar pedido · Próximamente
               </button>
-              <Link href="/menu" className="mt-2 flex h-10 w-full items-center justify-center text-[10px] font-semibold text-white/42">
+
+              <Link
+                href="/menu"
+                className="mt-1 flex h-8 w-full items-center justify-center text-[9px] font-semibold text-white/42 lg:mt-2 lg:h-10 lg:text-[10px]"
+              >
                 Agregar más productos
               </Link>
             </aside>
