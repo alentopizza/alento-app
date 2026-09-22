@@ -92,7 +92,7 @@ export default function MenuPage() {
   const [savingToggle, setSavingToggle] = useState<"active" | "visibleInPos" | "featured" | null>(null);
   const [draggingCategoryId, setDraggingCategoryId] = useState<number | null>(null);
   const [savingCategoryOrder, setSavingCategoryOrder] = useState(false);
-  const [categoryEditor, setCategoryEditor] = useState<{ id?: number; name: string } | null>(null);
+  const [categoryEditor, setCategoryEditor] = useState<{ id?: number; name: string; active: boolean } | null>(null);
   const [savingCategory, setSavingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState("");
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<Category | null>(null);
@@ -422,8 +422,17 @@ export default function MenuPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           editing
-            ? { action: "updateCategory", categoryId: categoryEditor.id, name: categoryEditor.name }
-            : { action: "createCategory", name: categoryEditor.name },
+            ? {
+                action: "updateCategory",
+                categoryId: categoryEditor.id,
+                name: categoryEditor.name,
+                active: categoryEditor.active,
+              }
+            : {
+                action: "createCategory",
+                name: categoryEditor.name,
+                active: categoryEditor.active,
+              },
         ),
       });
       const result = await response.json();
@@ -657,7 +666,7 @@ export default function MenuPage() {
                 type="button"
                 onClick={() => {
                   setCategoryError("");
-                  setCategoryEditor({ name: "" });
+                  setCategoryEditor({ name: "", active: true });
                 }}
                 className="h-9 rounded-xl bg-black px-3.5 text-[11px] font-semibold text-white"
               >
@@ -764,7 +773,7 @@ export default function MenuPage() {
                       type="button"
                       onClick={() => {
                         setCategoryError("");
-                        setCategoryEditor({ id: activeCategory.id, name: activeCategory.name });
+                        setCategoryEditor({ id: activeCategory.id, name: activeCategory.name, active: activeCategory.active });
                       }}
                       className="h-11 shrink-0 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-semibold text-neutral-700"
                     >
@@ -936,6 +945,56 @@ export default function MenuPage() {
                   placeholder="Ej. Postres"
                 />
               </label>
+
+              <div className={`mt-4 rounded-[22px] border p-4 transition-all ${categoryEditor.active
+                ? "border-emerald-200 bg-[linear-gradient(145deg,#f8fffb,#ecfdf5)]"
+                : "border-neutral-200 bg-[linear-gradient(145deg,#fff,#f7f7f7)]"
+              }`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg font-black ${categoryEditor.active
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-neutral-100 text-neutral-500"
+                    }`}>
+                      {categoryEditor.active ? "•" : "○"}
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Categoría pública</p>
+                      <h3 className="mt-1 text-[15px] font-black text-neutral-950">
+                        {categoryEditor.active ? "Activa" : "Desactivada"}
+                      </h3>
+                      <p className="mt-1 text-[10px] leading-5 text-neutral-500">
+                        {categoryEditor.active
+                          ? "La categoría aparece como pestaña en el menú público."
+                          : "La categoría desaparece del selector, pero sus productos conservan su estado y pueden seguir apareciendo en Destacados."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-pressed={categoryEditor.active}
+                    onClick={() => setCategoryEditor({ ...categoryEditor, active: !categoryEditor.active })}
+                    className={`relative h-8 w-14 shrink-0 rounded-full border transition-all duration-200 ${categoryEditor.active
+                      ? "border-emerald-500 bg-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,.22)]"
+                      : "border-neutral-300 bg-neutral-200"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-[3px] h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(0,0,0,.18)] transition-all duration-200 ${categoryEditor.active
+                        ? "left-[25px]"
+                        : "left-[3px]"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-3 border-t border-black/5 pt-3">
+                  <p className="text-[9px] leading-4 text-neutral-500">
+                    Desactivar la categoría no desactiva sus productos. Por ejemplo, puedes ocultar “Combos” del selector y mantener combos activos dentro de “Destacados”.
+                  </p>
+                </div>
+              </div>
 
               {categoryEditor.id && (
                 <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
