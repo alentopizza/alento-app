@@ -107,10 +107,12 @@ function ItemContent({
   tab,
   visualActive,
   cartCount,
+  cartPulse,
 }: {
   tab: ActiveTab;
   visualActive: ActiveTab;
   cartCount: number;
+  cartPulse: boolean;
 }) {
   const selected = visualActive === tab;
 
@@ -118,7 +120,7 @@ function ItemContent({
     <span
       className={`relative flex h-full w-full items-center justify-center gap-2 overflow-visible transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "text-[#e21a22]" : "text-[#c8cbd0]"}`}
     >
-      <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center md:h-6 md:w-6 ${item.key === "cart" && cartPulse ? "scale-125 text-[#e21a22] transition-transform duration-200" : "transition-transform duration-200"}`}>
+      <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center md:h-6 md:w-6 ${tab === "cart" && cartPulse ? "scale-125 text-[#e21a22] transition-transform duration-200" : "transition-transform duration-200"}`}>
         <TabIcon tab={tab} />
 
         {tab === "cart" && cartCount > 0 && !selected && (
@@ -216,7 +218,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
             className={itemClass("menu")}
             aria-label="Menú"
           >
-            <ItemContent tab="menu" visualActive={visualActive} cartCount={cartCount} />
+            <ItemContent tab="menu" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
           </Link>
 
           <Link
@@ -225,7 +227,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
             className={itemClass("cart")}
             aria-label={`Carrito con ${cartCount} productos`}
           >
-            <ItemContent tab="cart" visualActive={visualActive} cartCount={cartCount} />
+            <ItemContent tab="cart" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
           </Link>
 
           <Link
@@ -234,7 +236,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
             className={itemClass("club")}
             aria-label="Club Alentó"
           >
-            <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} />
+            <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
           </Link>
 
           <Link
@@ -243,7 +245,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
             className={itemClass("profile")}
             aria-label="Perfil"
           >
-            <ItemContent tab="profile" visualActive={visualActive} cartCount={cartCount} />
+            <ItemContent tab="profile" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
           </Link>
         </div>
       </div>
