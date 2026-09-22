@@ -25,13 +25,21 @@ La base de datos de producción existía antes de empezar a mantener un historia
 
 Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáticamente al arrancar la aplicación.
 
-El script `start` debe mantenerse como:
+### Estado real del arranque al 2026-09-22
+
+El `package.json` vigente ejecuta:
 
 ```bash
-next start -p 3000
+prisma db push && next start -p 3000
 ```
 
-Para sincronizar cambios de `prisma/schema.prisma` con la base existente, usar manualmente desde la consola del servicio:
+Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js.
+
+Esto difiere de la estrategia conservadora anterior de ejecutar `db push` manualmente. No modificar silenciosamente esta decisión desde documentación ni asumir que un cambio de schema es inocuo: antes de desplegar cualquier modificación de `prisma/schema.prisma` se debe revisar el impacto porque el próximo arranque puede aplicarla automáticamente.
+
+Sigue prohibido usar `prisma migrate deploy` hasta realizar un baseline formal.
+
+Para ejecutar la sincronización manualmente cuando sea necesario:
 
 ```bash
 npx prisma db push
@@ -43,7 +51,7 @@ o:
 npm run prisma:push
 ```
 
-Antes de usar `db push`, revisar siempre el cambio de schema y confirmar que no propone una operación destructiva no deseada.
+Antes de cualquier `db push`, revisar siempre el cambio de schema y confirmar que no propone una operación destructiva no deseada.
 
 ## AppSetting
 
