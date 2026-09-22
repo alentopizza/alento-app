@@ -31,13 +31,18 @@ Cocina no edita:
 
 ## Pedidos visibles
 
-Cocina trabaja con pedidos en estados operativos de preparación como:
+Cocina trabaja únicamente con pedidos en estados operativos de preparación:
 
 - `CONFIRMED` cuando existe compatibilidad histórica;
-- `PREPARING`;
-- `PREPARED`.
+- `PREPARING`.
 
-Una orden `READY` desaparece de Cocina.
+Cuando el pedido cambia a `PREPARED`, sale de Cocina inmediatamente.
+
+Convención importante:
+
+- `PREPARING` = Preparando en Cocina;
+- `PREPARED` = Horneando, fuera de Cocina;
+- `READY` = salió del horno / listo.
 
 ## Bebidas
 
@@ -218,48 +223,44 @@ Cuando:
 
 la línea se considera completa y los controles dejan de mostrarse.
 
-## Cambio automático a HORNEANDO (`PREPARED`)
+## Entrega de Cocina al horno
 
 El endpoint de preparación recalcula solo líneas que requieren Cocina.
 
-Cuando todas las líneas de Cocina cumplen:
+Cuando todas las líneas cumplen:
 
 `preparedQuantity >= quantity`
 
-el pedido pasa automáticamente al estado interno:
+el pedido pasa automáticamente al estado técnico:
 
 `PREPARED`
 
-En toda la interfaz este estado se presenta como **Horneando**.
+En la operación de Alentó, `PREPARED` significa **Horneando**.
 
-Flujo operativo visible:
+En ese mismo momento:
+
+- el pedido desaparece de `/cocina`;
+- Cocina ya no tiene acciones sobre ese pedido;
+- no existe en Cocina un botón “Salió del horno”;
+- el hornero/operación controla la siguiente transición.
+
+Flujo:
+
+`PREPARING → PREPARED → READY`
+
+Lectura visible:
 
 `Preparando → Horneando → Listo`
 
-Si una cantidad se revierte antes de marcar READY, el pedido puede volver a `PREPARING`.
-
-## Acción HORNEANDO (`PREPARED`) → READY
-
-Cuando el pedido está en Horneando (`PREPARED`), Cocina muestra la acción para indicar que salió del horno:
-
-`✓`
-
-Características:
-
-- verde;
-- cuadrado;
-- bordes redondeados;
-- pulso suave;
-- `aria-label` y `title`;
-- ubicado junto al cronómetro.
-
-No existe un footer adicional de `Marcar como listo`.
-
-Al pulsarlo:
+La transición:
 
 `PREPARED → READY`
 
-y el pedido sale de Cocina. Para Recoger/Local, READY se presenta al cliente como **Listo para recoger**; para Domicilio, como **Listo** antes de pasar a En camino.
+la realiza el hornero cuando el producto realmente sale del horno.
+
+Para Recoger/Local, `READY` se presenta al cliente como **Listo para recoger**. Para Domicilio, se presenta como **Listo** antes de pasar a En camino.
+
+Esta separación evita saturar el tablero de Cocina con pedidos que ya terminaron su fase de preparación.
 
 ## Ediciones provenientes de Pedidos
 
@@ -307,6 +308,8 @@ La interfaz está optimizada para lectura a distancia.
 
 - no volver a mostrar bebidas como preparación;
 - no bloquear PREPARED por una bebida;
+- no volver a mostrar pedidos PREPARED/Horneando en Cocina;
+- no reintroducir en Cocina la acción PREPARED → READY; esa acción corresponde al hornero/operación;
 - no ocultar notas de producto;
 - no mostrar información financiera en Cocina;
 - no reconstruir configuración desde texto si existe estructura;
