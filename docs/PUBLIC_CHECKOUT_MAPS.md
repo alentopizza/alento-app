@@ -169,7 +169,24 @@ Routes API → distanceMeters → bandas actuales → cobertura/tarifa.
 
 ### Fase F — Checkout
 
-Modalidad → dirección → cobertura → cliente → Club/cupón → pago → resumen → Order.source=WEB → seguimiento.
+Estado: **IMPLEMENTADA EN V1**.
+
+Flujo actual:
+
+Modalidad → dirección/cobertura → datos del cliente → pago → creación `Order.source=WEB` → seguimiento.
+
+Reglas actuales:
+
+- login opcional;
+- invitado permitido;
+- nombre y teléfono obligatorios;
+- sesión de cliente autocompleta datos;
+- recuperación de datos existentes requiere OTP por WhatsApp;
+- no se revelan datos privados por búsqueda pública de teléfono;
+- productos se vuelven a normalizar server-side;
+- domicilio se vuelve a calcular server-side;
+- pago inicial se crea como `PENDING`;
+- se usa el mismo consecutivo global que POS.
 
 ## Criterios de aceptación
 
@@ -199,6 +216,6 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 
 ## Próximo paso
 
-Validar en producción el layout 3:4, edición de dirección, GPS opcional, estilo cloud, cabecera integrada y ruta dibujada. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago, recálculo final y creación segura del pedido `WEB`).
+Validar en producción el flujo completo desde carrito hasta creación `WEB`, incluyendo invitado, recuperación por WhatsApp, efectivo y seguimiento. Después completar Fase C con persistencia enriquecida de `CustomerAddress` y mejorar selección/edición de direcciones.
 
 No pegar las claves en chats, commits ni capturas públicas.
