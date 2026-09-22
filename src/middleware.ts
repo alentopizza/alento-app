@@ -154,7 +154,9 @@ export async function middleware(request: NextRequest) {
   // permisos internos ni confiamos en valores enviados por el navegador.
   if (
     (pathname === "/api/delivery/quote" && request.method === "POST") ||
-    (pathname === "/api/delivery/origin" && request.method === "GET")
+    (pathname === "/api/delivery/origin" && request.method === "GET") ||
+    (pathname === "/api/delivery/customer-default-address" &&
+      request.method === "GET")
   ) {
     return NextResponse.next();
   }
