@@ -212,7 +212,6 @@ export default function KitchenPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
 
   async function loadOrders(silent = false) {
     if (!silent) setLoading(true);
@@ -237,7 +236,7 @@ export default function KitchenPage() {
 
   const kitchenOrders = useMemo(
     () => orders
-      .filter((order) => ["PREPARING", "PREPARED", "CONFIRMED"].includes(order.status))
+      .filter((order) => ["PREPARING", "CONFIRMED"].includes(order.status))
       .filter((order) => kitchenItemsFor(order).length > 0)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [orders],
@@ -260,25 +259,6 @@ export default function KitchenPage() {
       setError(actionError instanceof Error ? actionError.message : "No fue posible actualizar el producto.");
     } finally {
       setBusyKey(null);
-    }
-  }
-
-  async function markReady(order: KitchenOrder) {
-    setBusyOrderId(order.id);
-    setError("");
-    try {
-      const response = await fetch(`/api/orders/${order.id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "READY" }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible marcar el pedido como listo.");
-      await loadOrders(true);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "No fue posible actualizar el pedido.");
-    } finally {
-      setBusyOrderId(null);
     }
   }
 
@@ -313,9 +293,7 @@ export default function KitchenPage() {
           <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {kitchenOrders.map((order) => {
               const minutes = ageMinutes(order.createdAt);
-              const prepared = order.status === "PREPARED";
               const kitchenItems = kitchenItemsFor(order);
-              const orderBusy = busyOrderId === order.id;
 
               return (
                 <article key={order.id} className="self-start overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
@@ -324,8 +302,8 @@ export default function KitchenPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-violet-50 text-violet-700" : "bg-amber-50 text-amber-700"}`}>
-                          {prepared ? "Horneando" : statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
+                        <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-amber-700">
+                          {statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
                         </span>
                       </div>
                       {order.customer?.name && (
@@ -342,19 +320,6 @@ export default function KitchenPage() {
                         </svg>
                         <b className="text-[12px] font-semibold">{minutes}</b>
                       </div>
-
-                      {prepared && (
-                        <button
-                          type="button"
-                          onClick={() => void markReady(order)}
-                          disabled={orderBusy}
-                          aria-label="Marcar pedido como listo"
-                          title="Marcar pedido como listo"
-                          className="hidden"
-                        >
-                          <span>{orderBusy ? "…" : "✓"}</span>
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -363,40 +328,10 @@ export default function KitchenPage() {
                       <KitchenItem
                         key={item.id}
                         item={{ ...item, preparedQuantity: Number(item.preparedQuantity ?? 0) }}
-                        busy={busyKey === `${order.id}:${item.id}` || prepared}
+                        busy={busyKey === `${order.id}:${item.id}`}
                         onChangePrepared={(value) => void changePrepared(order, item, value)}
                       />
                     ))}
-
-                    {prepared && (
-                      <div className="mt-3 rounded-[18px] border border-violet-200 bg-violet-50/70 p-3.5">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-sm font-black text-white">2</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black uppercase tracking-[0.07em] text-violet-700">Horneando</p>
-                            <p className="mt-1 text-[11px] leading-4 text-violet-700/80">
-                              Cocina terminó el armado y el pedido ya está en el horno. Cuando termine la cocción, márcalo como listo.
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => void markReady(order)}
-                          disabled={orderBusy}
-                          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-[0.06em] text-white shadow-[0_8px_20px_rgba(5,150,105,.20)] transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
-                        >
-                          <span>{orderBusy ? "…" : "✓"}</span>
-                          {orderBusy ? "Marcando..." : "Salió del horno · Marcar listo"}
-                        </button>
-
-                        <p className="mt-2 text-center text-[9px] font-semibold text-violet-500">
-                          {order.fulfillmentType === "DELIVERY"
-                            ? "En domicilio este cambio es operativo y no notifica al cliente."
-                            : "En Local / Recoger, este cambio envía la notificación de Pedido listo."}
-                        </p>
-                      </div>
-                    )}
 
                   </div>
                 </article>
