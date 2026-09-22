@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Pedido recibido",
   CONFIRMED: "Pedido confirmado",
   PREPARING: "Estamos preparando tu pedido",
-  PREPARED: "Tu pedido está preparado",
+  PREPARED: "Tu pedido está horneándose",
   READY: "Tu pedido está listo",
   OUT_FOR_DELIVERY: "Tu pedido va en camino",
   ARRIVED: "Tu pedido llegó",
@@ -37,7 +37,7 @@ const STATUS_COPY: Record<string, string> = {
   DRAFT: "Recibimos la información de tu pedido.",
   CONFIRMED: "Tu pedido fue confirmado.",
   PREPARING: "Nuestro equipo ya está trabajando en tu pedido.",
-  PREPARED: "Terminamos la preparación y estamos coordinando la entrega.",
+  PREPARED: "Terminamos el armado y tu pedido está en el horno.",
   READY: "Todo está listo para el siguiente paso.",
   OUT_FOR_DELIVERY: "Tu pedido salió de Alentó y va hacia ti.",
   ARRIVED: "El repartidor ya llegó al punto de entrega.",
@@ -80,7 +80,8 @@ function progressFor(status: string) {
 
 function trackingStages(fulfillmentType: string, status: string) {
   const delivery = [
-    { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING", "PREPARED"] },
+    { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
+    { label: "Horneando", statuses: ["PREPARED"] },
     { label: "Listo", statuses: ["READY"] },
     { label: "En camino", statuses: ["OUT_FOR_DELIVERY"] },
     { label: "Entregado", statuses: ["ARRIVED", "DELIVERED", "COMPLETED"] },
@@ -88,7 +89,7 @@ function trackingStages(fulfillmentType: string, status: string) {
 
   const pickup = [
     { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
-    { label: "Preparado", statuses: ["PREPARED"] },
+    { label: "Horneando", statuses: ["PREPARED"] },
     { label: "Listo para recoger", statuses: ["READY"] },
     { label: "Finalizado", statuses: ["COMPLETED"] },
   ];
@@ -179,14 +180,24 @@ export default async function TrackingPage({
             </div>
 
             <div className="relative mt-5">
-              <div className="absolute left-[8%] right-[8%] top-[11px] h-[2px] bg-white/15" />
               <div
-                className="absolute left-[8%] top-[11px] h-[2px] bg-white transition-all"
+                className="absolute top-[11px] h-[2px] bg-white/15"
                 style={{
-                  width: `${Math.max(0, Math.min(84, (current / Math.max(1, stages.length - 1)) * 84))}%`,
+                  left: `${100 / (stages.length * 2)}%`,
+                  right: `${100 / (stages.length * 2)}%`,
                 }}
               />
-              <div className="relative grid grid-cols-4 gap-1">
+              <div
+                className="absolute top-[11px] h-[2px] bg-white transition-all"
+                style={{
+                  left: `${100 / (stages.length * 2)}%`,
+                  width: `${(current / Math.max(1, stages.length - 1)) * (100 - 100 / stages.length)}%`,
+                }}
+              />
+              <div
+                className="relative grid gap-1"
+                style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
+              >
                 {stages.map((stage, index) => {
                   const completed = index < current;
                   const active = index === current;
