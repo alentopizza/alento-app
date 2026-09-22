@@ -22,9 +22,16 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const settings = normalizeClubAlentoSettings(body?.settings);
 
-  if (settings.pointsPerThousand < 0) {
+  if (settings.earnRatePercent < 0 || settings.earnRatePercent > 100) {
     return NextResponse.json(
-      { error: "Los puntos por cada $1.000 no pueden ser negativos." },
+      { error: "El porcentaje de acumulación debe estar entre 0% y 100%." },
+      { status: 400 },
+    );
+  }
+
+  if (settings.minimumRedemptionPurchase < 0) {
+    return NextResponse.json(
+      { error: "La compra mínima de canje no puede ser negativa." },
       { status: 400 },
     );
   }
