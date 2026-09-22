@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 type ClubSettings = {
-  pointsPerThousand: number;
+  earnRatePercent: number;
+  minimumRedemptionPurchase: number;
+  pointValueCop: number;
 };
 
 function money(value: number) {
@@ -39,10 +41,10 @@ export default function ClubAlentoAdminPage() {
   }, []);
 
   const examples = useMemo(() => {
-    const rate = settings?.pointsPerThousand ?? 10;
-    return [10000, 39900, 69900].map((amount) => ({
+    const rate = settings?.earnRatePercent ?? 5;
+    return [14900, 39900, 69900].map((amount) => ({
       amount,
-      points: Math.floor(amount / 1000) * rate,
+      points: Math.floor(amount * (rate / 100)),
     }));
   }, [settings]);
 
@@ -98,7 +100,7 @@ export default function ClubAlentoAdminPage() {
             <p className="text-sm font-medium text-neutral-500">Fidelización</p>
             <h1 className="text-3xl font-black tracking-tight">Club Alentó</h1>
             <p className="mt-1 max-w-2xl text-sm text-neutral-500">
-              Define cuántos puntos recibe un cliente por cada $1.000 en compras completadas.
+              Configura la acumulación y las condiciones de redención del Club Alentó.
             </p>
           </div>
 
@@ -124,9 +126,9 @@ export default function ClubAlentoAdminPage() {
             <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
                 <h2 className="text-[28px] font-black tracking-[-0.04em] md:text-[36px]">
-                  {settings.pointsPerThousand} puntos
+                  {settings.earnRatePercent}% en puntos
                 </h2>
-                <p className="mt-1 text-sm text-white/55">por cada $1.000 gastados</p>
+                <p className="mt-1 text-sm text-white/55">sobre el subtotal elegible del pedido</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
                 <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Estado</span>
@@ -138,25 +140,44 @@ export default function ClubAlentoAdminPage() {
           <div className="grid gap-6 p-5 md:grid-cols-[1fr_1.1fr] md:p-7">
             <div>
               <label className="text-[11px] font-black uppercase tracking-[0.12em] text-neutral-500">
-                Puntos por cada $1.000
+                Porcentaje de acumulación
+              </label>
+              <div className="relative mt-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={settings.earnRatePercent}
+                  onChange={(event) =>
+                    setSettings({
+                      ...settings,
+                      earnRatePercent: Math.max(0, Math.min(100, Number(event.target.value) || 0)),
+                    })
+                  }
+                  className="alento-input w-full rounded-2xl px-4 py-4 pr-12 text-[22px] font-black"
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-black text-neutral-400">%</span>
+              </div>
+
+              <label className="mt-5 block text-[11px] font-black uppercase tracking-[0.12em] text-neutral-500">
+                Compra mínima para redimir
               </label>
               <input
                 type="number"
                 min={0}
-                max={10000}
-                step={1}
-                value={settings.pointsPerThousand}
+                step={100}
+                value={settings.minimumRedemptionPurchase}
                 onChange={(event) =>
                   setSettings({
                     ...settings,
-                    pointsPerThousand: Math.max(0, Math.floor(Number(event.target.value) || 0)),
+                    minimumRedemptionPurchase: Math.max(0, Math.round(Number(event.target.value) || 0)),
                   })
                 }
-                className="alento-input mt-2 w-full rounded-2xl px-4 py-4 text-[22px] font-black"
+                className="alento-input mt-2 w-full rounded-2xl px-4 py-4 text-[20px] font-black"
               />
               <p className="mt-2 text-xs leading-5 text-neutral-500">
-                Por ahora se contabilizan únicamente pedidos en estado <b>COMPLETED</b>.
-                Los miles incompletos no generan puntos.
+                Los puntos se calculan al finalizar el pedido sobre productos sin descuento y sin incluir domicilio.
               </p>
             </div>
 
@@ -175,12 +196,24 @@ export default function ClubAlentoAdminPage() {
         </section>
 
         <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Siguiente etapa</p>
-          <h2 className="mt-1 text-xl font-black">Catálogo de recompensas</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
-            Aquí agregaremos productos, bordes e ingredientes extra canjeables por puntos.
-            La estructura de acumulación ya queda separada para poder activar los canjes después.
-          </p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Reglas del Club</p>
+          <h2 className="mt-1 text-xl font-black">Acumulación y redención</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {[
+              ["01", "Solo productos sin descuento", "Los combos y productos afectados por cupón o descuento manual no generan puntos."],
+              ["02", "Sobre el subtotal elegible", "El domicilio y otros cargos externos a los productos no generan puntos."],
+              ["03", "Compra mínima para redimir", `Debes comprar mínimo ${money(settings.minimumRedemptionPurchase)} antes de aplicar cualquier canje.`],
+              ["04", "1 punto = $1 COP", "El saldo Club se usa como descuento en recompensas habilitadas; no se entrega en efectivo."],
+              ["05", "Solo pedidos finalizados", "Los puntos se acreditan cuando el pedido queda pagado y finalizado."],
+              ["06", "Sin puntos sobre puntos", "La parte pagada con puntos no debe volver a generar nuevos puntos cuando habilitemos la redención."],
+            ].map(([step, title, description]) => (
+              <div key={step} className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-4">
+                <span className="text-[10px] font-black text-[var(--brand-red)]">{step}</span>
+                <b className="mt-1 block text-sm">{title}</b>
+                <p className="mt-1 text-xs leading-5 text-neutral-500">{description}</p>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </main>
