@@ -118,7 +118,7 @@ function ItemContent({
     <span
       className={`relative flex h-full w-full items-center justify-center gap-2 overflow-visible transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "text-[#e21a22]" : "text-[#c8cbd0]"}`}
     >
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center md:h-6 md:w-6">
+      <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center md:h-6 md:w-6 ${item.key === "cart" && cartPulse ? "scale-125 text-[#e21a22] transition-transform duration-200" : "transition-transform duration-200"}`}>
         <TabIcon tab={tab} />
 
         {tab === "cart" && cartCount > 0 && !selected && (
@@ -144,6 +144,28 @@ function ItemContent({
 export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   const router = useRouter();
   const [visualActive, setVisualActive] = useState<ActiveTab>(active);
+  const [cartPulse, setCartPulse] = useState(false);
+
+  useEffect(() => {
+    let timer: number | null = null;
+
+    const onCartAdded = () => {
+      setCartPulse(false);
+      window.requestAnimationFrame(() => setCartPulse(true));
+
+      if (timer != null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        setCartPulse(false);
+        timer = null;
+      }, 650);
+    };
+
+    window.addEventListener("alento-cart-added", onCartAdded);
+    return () => {
+      window.removeEventListener("alento-cart-added", onCartAdded);
+      if (timer != null) window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     router.prefetch("/menu");
