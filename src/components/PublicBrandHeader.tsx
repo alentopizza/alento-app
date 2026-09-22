@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { readPublicCache, writePublicCache } from "@/lib/publicBrowserCache";
 
 export default function PublicBrandHeader() {
   const [logoUrl, setLogoUrl] = useState("");
@@ -10,12 +11,23 @@ export default function PublicBrandHeader() {
   useEffect(() => {
     let active = true;
 
-    fetch("/api/public-home", { cache: "no-store" })
+    const cached = readPublicCache<{ brand?: { logoUrl?: string } }>("home");
+    if (cached) {
+      setLogoUrl(
+        typeof cached.brand?.logoUrl === "string"
+          ? cached.brand.logoUrl.trim()
+          : "",
+      );
+      setLoaded(true);
+    }
+
+    fetch("/api/public-home")
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        if (!active) return;
+        if (!active || !data?.settings) return;
+        writePublicCache("home", data.settings);
         setLogoUrl(
-          typeof data?.settings?.brand?.logoUrl === "string"
+          typeof data.settings?.brand?.logoUrl === "string"
             ? data.settings.brand.logoUrl.trim()
             : "",
         );
