@@ -70,25 +70,35 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#090909] pb-28 text-white">
       <PublicBrandHeader />
 
-      <section className="mx-auto w-full max-w-[980px] px-4 pb-6 pt-5 sm:px-6 md:pb-12 md:pt-[104px]">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#e21a22]">Tu pedido</p>
-            <h1 className="mt-1 text-[30px] font-semibold tracking-[-0.045em] md:text-[40px]">Carrito</h1>
-            <p className="mt-1 text-[11px] text-white/38">
-              {cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Aún no has agregado productos"}
-            </p>
-          </div>
+      <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-[92px]">
+        <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_90%_10%,rgba(226,26,34,.16),transparent_28%),linear-gradient(135deg,#151515,#0d0d0d)] p-4 shadow-[0_16px_44px_rgba(0,0,0,.22)] sm:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e21a22] text-white shadow-[0_10px_24px_rgba(226,26,34,.24)]">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
+                  <circle cx="10" cy="19" r="1.2" />
+                  <circle cx="18" cy="19" r="1.2" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#e21a22]">Tu selección</p>
+                <p className="mt-1 text-[13px] font-semibold text-white/72">
+                  {cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"} en tu pedido` : "Tu carrito está listo para empezar"}
+                </p>
+              </div>
+            </div>
 
-          {cart.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setCart([])}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] font-semibold text-white/45"
-            >
-              Vaciar
-            </button>
-          )}
+            {cart.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCart([])}
+                className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-semibold text-white/45 transition hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-200"
+              >
+                Vaciar
+              </button>
+            )}
+          </div>
         </div>
 
         {!ready ? (
@@ -96,7 +106,7 @@ export default function CartPage() {
             Cargando carrito...
           </div>
         ) : cart.length === 0 ? (
-          <div className="mt-6 flex min-h-[360px] flex-col items-center justify-center rounded-[24px] border border-white/10 bg-[#111] px-6 text-center">
+          <div className="mt-5 flex min-h-[340px] flex-col items-center justify-center rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(226,26,34,.10),transparent_30%),linear-gradient(145deg,#141414,#0d0d0d)] px-6 text-center shadow-[0_20px_60px_rgba(0,0,0,.20)]">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/[0.05] text-white/30">
               <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L20 8H7" />
@@ -113,10 +123,10 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-3">
               {cart.map((item) => (
-                <article key={item.key} className="flex gap-3 rounded-[20px] border border-white/10 bg-[#141414] p-3.5 sm:p-4">
+                <article key={item.key} className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4">
                   <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
@@ -172,7 +182,7 @@ export default function CartPage() {
               ))}
             </div>
 
-            <aside className="h-fit rounded-[22px] border border-white/10 bg-[#111] p-5 lg:sticky lg:top-[106px]">
+            <aside className="h-fit rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.12),transparent_26%),linear-gradient(145deg,#161616,#0f0f0f)] p-5 shadow-[0_18px_46px_rgba(0,0,0,.20)] lg:sticky lg:top-[92px]">
               <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/32">Resumen</p>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-[12px] text-white/45">Subtotal</span>
