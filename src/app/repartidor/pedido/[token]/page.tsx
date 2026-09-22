@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import DriverOrderActions from "@/components/DriverOrderActions";
 import LivePageRefresh from "@/components/LivePageRefresh";
+import { statusLabel } from "@/lib/orderWorkflow";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,9 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               <p className="mt-0.5 text-[11px] text-white/55">{order.driver?.name ?? "Repartidor Alentó"}</p>
             </div>
           </div>
-          <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold">{order.status}</span>
+          <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold">
+            {statusLabel(order.status as Parameters<typeof statusLabel>[0])}
+          </span>
         </header>
 
         <section className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,.06)]">
@@ -102,18 +105,6 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
             <p className="mt-2 text-sm font-semibold leading-6">{order.notes}</p>
           </section>
         )}
-
-        <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
-          <span className="text-[9px] font-bold uppercase tracking-[.1em] text-neutral-400">Productos</span>
-          <div className="mt-2 divide-y divide-neutral-100">
-            {order.items.map((item, index) => (
-              <div key={index} className="flex items-center justify-between gap-3 py-2.5">
-                <span className="text-sm font-semibold">{item.productName}</span>
-                <b className="rounded-lg bg-neutral-100 px-2 py-1 text-xs">×{item.quantity}</b>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <DriverOrderActions
           token={token}
