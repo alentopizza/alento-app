@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type FulfillmentType = "DELIVERY" | "PICKUP";
 
+const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
+
 export type PublicCheckoutSelection = {
   fulfillmentType: FulfillmentType;
   deliveryFee: number;
@@ -245,6 +247,7 @@ export default function PublicCheckoutDelivery({
       mapInstanceRef.current = new google.maps.Map(mapRef.current, {
         center,
         zoom: 17,
+        mapId: ALENTO_DELIVERY_MAP_ID,
         disableDefaultUI: true,
         zoomControl: false,
         gestureHandling: "cooperative",
