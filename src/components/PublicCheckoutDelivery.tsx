@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type FulfillmentType = "DELIVERY" | "PICKUP";
 
@@ -57,14 +57,67 @@ function formatDuration(seconds?: number | null) {
   return `~${minutes} min de ruta`;
 }
 
+type GoogleMapInstance = {
+  setCenter: (center: { lat: number; lng: number }) => void;
+  setZoom: (zoom: number) => void;
+};
+
+type GoogleMarkerInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GoogleMapsRuntime = {
+  maps: {
+    importLibrary: (library: string) => Promise<unknown>;
+    Map: new (
+      element: HTMLElement,
+      options: Record<string, unknown>,
+    ) => GoogleMapInstance;
+    Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
+  };
+};
+
+type PlaceLocationValue = number | (() => number);
+
+type GooglePlace = {
+  id?: string;
+  formattedAddress?: string;
+  location?: {
+    lat?: PlaceLocationValue;
+    lng?: PlaceLocationValue;
+  };
+  fetchFields: (options: { fields: string[] }) => Promise<void>;
+};
+
+type PlaceSelectEvent = Event & {
+  placePrediction: {
+    toPlace: () => GooglePlace;
+  };
+};
+
+type PlaceAutocompleteElementInstance = HTMLElement & {
+  placeholder: string;
+};
+
+type PlacesLibrary = {
+  PlaceAutocompleteElement: new () => PlaceAutocompleteElementInstance;
+};
+
 declare global {
   interface Window {
-    google?: any;
-    __alentoGoogleMapsPromise?: Promise<any>;
+    google?: GoogleMapsRuntime;
+    __alentoGoogleMapsPromise?: Promise<GoogleMapsRuntime>;
   }
 }
 
-function loadGoogleMaps() {
+function requireGoogleRuntime() {
+  if (!window.google) {
+    throw new Error("Google Maps no quedó disponible después de cargar el script.");
+  }
+  return window.google;
+}
+
+function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Google Maps solo está disponible en el navegador."));
   }
@@ -84,13 +137,20 @@ function loadGoogleMaps() {
     );
   }
 
-  window.__alentoGoogleMapsPromise = new Promise((resolve, reject) => {
+  window.__alentoGoogleMapsPromise = new Promise<GoogleMapsRuntime>(
+    (resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(
       'script[data-alento-google-maps="true"]',
     );
 
     if (existing) {
-      existing.addEventListener("load", () => resolve(window.google));
+      existing.addEventListener("load", () => {
+        try {
+          resolve(requireGoogleRuntime());
+        } catch (error) {
+          reject(error);
+        }
+      });
       existing.addEventListener("error", () =>
         reject(new Error("No fue posible cargar Google Maps.")),
       );
@@ -105,11 +165,18 @@ function loadGoogleMaps() {
     script.async = true;
     script.defer = true;
     script.dataset.alentoGoogleMaps = "true";
-    script.onload = () => resolve(window.google);
+    script.onload = () => {
+      try {
+        resolve(requireGoogleRuntime());
+      } catch (error) {
+        reject(error);
+      }
+    };
     script.onerror = () =>
       reject(new Error("No fue posible cargar Google Maps."));
     document.head.appendChild(script);
-  });
+    },
+  );
 
   return window.__alentoGoogleMapsPromise;
 }
@@ -127,8 +194,8 @@ export default function PublicCheckoutDelivery({
 }) {
   const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<GoogleMapInstance | null>(null);
+  const markerRef = useRef<GoogleMarkerInstance | null>(null);
 
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>(
     initialSelection?.fulfillmentType ?? "DELIVERY",
@@ -156,10 +223,10 @@ export default function PublicCheckoutDelivery({
   const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState("");
 
-  async function drawMap(destination: {
+  const drawMap = useCallback(async (destination: {
     latitude: number;
     longitude: number;
-  }) {
+  }) => {
     if (!mapRef.current) return;
 
     const google = await loadGoogleMaps();
@@ -192,9 +259,9 @@ export default function PublicCheckoutDelivery({
       position: center,
       title: "Punto de entrega",
     });
-  }
+  }, []);
 
-  async function requestQuote(input: {
+  const requestQuote = useCallback(async (input: {
     latitude: number;
     longitude: number;
     formattedAddress?: string;
@@ -229,14 +296,14 @@ export default function PublicCheckoutDelivery({
     } finally {
       setQuoting(false);
     }
-  }
+  }, [drawMap]);
 
   useEffect(() => {
     if (fulfillmentType !== "DELIVERY") return;
 
     let cancelled = false;
-    let autocomplete: any = null;
-    let onSelect: ((event: any) => void) | null = null;
+    let autocomplete: PlaceAutocompleteElementInstance | null = null;
+    let onSelect: EventListener | null = null;
 
     async function setupAutocomplete() {
       setLoadingMaps(true);
@@ -245,7 +312,7 @@ export default function PublicCheckoutDelivery({
       try {
         const google = await loadGoogleMaps();
         const { PlaceAutocompleteElement } =
-          await google.maps.importLibrary("places");
+          (await google.maps.importLibrary("places")) as PlacesLibrary;
 
         if (cancelled || !autocompleteHostRef.current) return;
 
@@ -255,9 +322,11 @@ export default function PublicCheckoutDelivery({
         autocomplete.placeholder = "Escribe tu dirección de entrega";
         autocomplete.style.width = "100%";
 
-        onSelect = async (event: any) => {
-          try {
-            const place = event.placePrediction.toPlace();
+        onSelect = (event: Event) => {
+          void (async () => {
+            try {
+              const selectEvent = event as PlaceSelectEvent;
+              const place = selectEvent.placePrediction.toPlace();
             await place.fetchFields({
               fields: ["id", "formattedAddress", "location"],
             });
@@ -281,13 +350,14 @@ export default function PublicCheckoutDelivery({
               formattedAddress: place.formattedAddress || "",
               placeId: place.id || "",
             });
-          } catch (err) {
-            setError(
-              err instanceof Error
-                ? err.message
-                : "No fue posible usar esa dirección.",
-            );
-          }
+            } catch (err) {
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : "No fue posible usar esa dirección.",
+              );
+            }
+          })();
         };
 
         autocomplete.addEventListener("gmp-select", onSelect);
@@ -311,7 +381,7 @@ export default function PublicCheckoutDelivery({
         autocomplete.removeEventListener("gmp-select", onSelect);
       }
     };
-  }, [fulfillmentType]);
+  }, [fulfillmentType, requestQuote]);
 
   useEffect(() => {
     if (
@@ -321,7 +391,7 @@ export default function PublicCheckoutDelivery({
     ) {
       void drawMap(quote.destination);
     }
-  }, [fulfillmentType, quote?.destination?.latitude, quote?.destination?.longitude]);
+  }, [drawMap, fulfillmentType, quote?.destination]);
 
   function useCurrentLocation() {
     setError("");
