@@ -108,12 +108,7 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateConfig[] = [
   {
     id: "order_finalized",
     title: "Pedido finalizado",
-    event: "order.status.DELIVERED",
-    eventByFulfillment: {
-      DELIVERY: "order.status.DELIVERED",
-      PICKUP: "order.status.COMPLETED",
-      STORE: "order.status.COMPLETED",
-    },
+    event: "order.status.COMPLETED",
     audience: "CUSTOMER",
     fulfillmentTypes: ["DELIVERY", "PICKUP", "STORE"],
     templateName: "orden_finalizada_v2",
