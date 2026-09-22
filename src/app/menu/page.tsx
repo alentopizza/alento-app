@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import PublicProductConfigurator from "@/components/PublicProductConfigurator";
 import {
@@ -133,6 +133,8 @@ export default function PublicMenuPage() {
   const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
   const [editingCartKey, setEditingCartKey] = useState<string | null>(null);
   const [configError, setConfigError] = useState("");
+  const [cartFeedback, setCartFeedback] = useState("");
+  const cartFeedbackTimer = useRef<number | null>(null);
 
   useEffect(() => {
     function applyCatalog(catalogData: CatalogResponse) {
@@ -301,6 +303,61 @@ export default function PublicMenuPage() {
     return money(value);
   }
 
+  function triggerCartFeedback(productName: string) {
+    setCartFeedback(productName);
+
+    if (cartFeedbackTimer.current != null) {
+      window.clearTimeout(cartFeedbackTimer.current);
+    }
+
+    cartFeedbackTimer.current = window.setTimeout(() => {
+      setCartFeedback("");
+      cartFeedbackTimer.current = null;
+    }, 2200);
+
+    window.dispatchEvent(new Event("alento-cart-added"));
+
+    try {
+      navigator.vibrate?.(35);
+    } catch {}
+
+    try {
+      const AudioContextClass =
+        window.AudioContext ??
+        (window as typeof window & {
+          webkitAudioContext?: typeof AudioContext;
+        }).webkitAudioContext;
+
+      if (AudioContextClass) {
+        const audio = new AudioContextClass();
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        const now = audio.currentTime;
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(720, now);
+        oscillator.frequency.exponentialRampToValueAtTime(980, now + 0.08);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.055, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+
+        oscillator.connect(gain);
+        gain.connect(audio.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.12);
+        oscillator.addEventListener("ended", () => {
+          void audio.close();
+        });
+      }
+    } catch {}
+  }
+
+  function addItemToCart(item: CartItem) {
+    setCart((current) => [...current, item]);
+    triggerCartFeedback(item.name);
+  }
+
   function addSimpleProduct(product: CatalogProduct) {
     const unitPrice = product.basePrice;
     if (unitPrice == null) {
@@ -339,6 +396,7 @@ export default function PublicMenuPage() {
       ];
     });
 
+    triggerCartFeedback(product.name);
     setSelectedProduct(null);
   }
 
@@ -706,13 +764,13 @@ export default function PublicMenuPage() {
                       tabIndex={0}
                       onClick={(event) => {
                         event.stopPropagation();
-                        startAdd(product);
+                        setSelectedProduct(product);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           event.stopPropagation();
-                          startAdd(product);
+                          setSelectedProduct(product);
                         }
                       }}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
@@ -790,13 +848,13 @@ export default function PublicMenuPage() {
                       tabIndex={0}
                       onClick={(event) => {
                         event.stopPropagation();
-                        startAdd(product);
+                        setSelectedProduct(product);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           event.stopPropagation();
-                          startAdd(product);
+                          setSelectedProduct(product);
                         }
                       }}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
@@ -817,6 +875,24 @@ export default function PublicMenuPage() {
         </section>
       </section>
 
+
+      {cartFeedback && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-[92px] z-[130] flex justify-center px-4 sm:bottom-7">
+          <div className="flex max-w-[420px] items-center gap-3 rounded-full border border-emerald-400/20 bg-[#111]/96 px-4 py-3 text-white shadow-[0_18px_50px_rgba(0,0,0,.38)] backdrop-blur-xl">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-400 text-[15px] font-black text-black">
+              ✓
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-300">
+                Agregado al carrito
+              </p>
+              <p className="truncate text-[11px] font-semibold text-white/70">
+                {cartFeedback}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showBackToTop && (
         <button
@@ -847,7 +923,7 @@ export default function PublicMenuPage() {
           catalog={catalog}
           onClose={() => setConfigurableProduct(null)}
           onAdd={(item) => {
-            setCart((current) => [...current, item]);
+            addItemToCart(item);
             setConfigurableProduct(null);
           }}
         />
