@@ -25,7 +25,14 @@ import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 const ALENTO_ICON =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
+const ALENTO_APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://alentopizza.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(ALENTO_APP_URL),
+  alternates: {
+    canonical: "/",
+  },
   title: "Alentó Pizza",
   description: "Pide pizzas, combos y antojos de Alentó Pizza desde tu celular.",
   applicationName: "Alentó Pizza",
