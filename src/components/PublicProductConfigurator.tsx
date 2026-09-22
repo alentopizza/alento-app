@@ -210,7 +210,18 @@ export default function PublicProductConfigurator({
     twoFlavors ? null : product.type === "PIZZA_SINGLE" ? product.id : null,
   );
   const [secondFlavorId, setSecondFlavorId] = useState<number | null>(null);
-  const [crustId, setCrustId] = useState<number | null>(null);
+  const [crustId, setCrustId] = useState<number | null>(() => {
+    const traditional = catalog.crusts.find((crust) =>
+      crust.name
+        .trim()
+        .toLocaleLowerCase("es")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .includes("tradicional"),
+    );
+
+    return traditional?.id ?? null;
+  });
   const [modifierIds, setModifierIds] = useState<number[]>([]);
 
   const [comboPizzaSelections, setComboPizzaSelections] = useState<
@@ -252,8 +263,19 @@ export default function PublicProductConfigurator({
   });
 
   const pizzaSteps = twoFlavors
-    ? ["Tamaño", "Primer sabor", "Segundo sabor", "Borde", "Nota para cocina"]
-    : ["Tamaño", "Borde", "Ingredientes extra", "Nota para cocina"];
+    ? [
+        "Tamaño",
+        "Primer sabor",
+        "Segundo sabor",
+        "El Mundo De Los Bordes®",
+        "Nota para cocina",
+      ]
+    : [
+        "Tamaño",
+        "El Mundo De Los Bordes®",
+        "Ingredientes extra",
+        "Nota para cocina",
+      ];
 
   const comboSteps = useMemo<ComboStep[]>(() => {
     if (!isCombo) return [];
@@ -851,7 +873,7 @@ export default function PublicProductConfigurator({
       return (
         <div>
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
-            Elige el borde
+            El Mundo De Los Bordes®
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {catalog.crusts.map((crust) => {
@@ -1097,7 +1119,7 @@ export default function PublicProductConfigurator({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
-                {isCombo ? "Configura tu combo" : "Configura tu pizza"}
+                {isCombo ? "Configura tu combo" : "Compra Asistida"}
               </p>
               <h2 className="mt-1 truncate text-[21px] font-bold tracking-[-0.01em]">
                 {product.name}
