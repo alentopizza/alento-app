@@ -932,11 +932,6 @@ export default function PublicProductConfigurator({
 
     return (
       <div>
-        <div className="mb-3 rounded-[15px] border border-white/8 bg-black/20 px-3 py-2.5">
-          <p className="text-[10px] font-semibold leading-4 text-white/45">
-            Esta nota es opcional y va directamente a cocina.
-          </p>
-        </div>
         <textarea
           value={note}
           maxLength={120}
