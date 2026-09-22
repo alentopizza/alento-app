@@ -22,6 +22,10 @@ type PosSettings = {
   store: {
     address: string;
     mapsUrl: string;
+    placeId: string;
+    latitude: number | null;
+    longitude: number | null;
+    formattedAddress: string;
   };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
@@ -39,6 +43,10 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
   store: {
     address: "Av. Calle 43 Sur #79A-33, Bogotá",
     mapsUrl: "https://maps.app.goo.gl/po5MesvuTLifpwyz7",
+    placeId: "",
+    latitude: null,
+    longitude: null,
+    formattedAddress: "",
   },
   deliveryBands: [
     { id: "band-1", name: "Zona cercana", minMeters: 0, maxMeters: 200, fee: 0, active: true },
@@ -65,6 +73,10 @@ function normalizeSettings(value: unknown): PosSettings {
     ? {
         address: typeof raw.store.address === "string" ? raw.store.address : DEFAULT_POS_SETTINGS.store.address,
         mapsUrl: typeof raw.store.mapsUrl === "string" ? raw.store.mapsUrl : DEFAULT_POS_SETTINGS.store.mapsUrl,
+        placeId: typeof raw.store.placeId === "string" ? raw.store.placeId : "",
+        latitude: Number.isFinite(Number(raw.store.latitude)) ? Number(raw.store.latitude) : null,
+        longitude: Number.isFinite(Number(raw.store.longitude)) ? Number(raw.store.longitude) : null,
+        formattedAddress: typeof raw.store.formattedAddress === "string" ? raw.store.formattedAddress : "",
       }
     : DEFAULT_POS_SETTINGS.store;
 
