@@ -235,7 +235,10 @@ export async function PATCH(request: NextRequest) {
 
     const updated = await prisma.category.update({
       where: { id: categoryId },
-      data: { name },
+      data: {
+        name,
+        ...(typeof body.active === "boolean" ? { active: body.active } : {}),
+      },
     });
 
     return NextResponse.json({ category: updated });
@@ -366,7 +369,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         slug,
-        active: true,
+        active: typeof body.active === "boolean" ? body.active : true,
         visibleInPos: true,
         sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
       },
