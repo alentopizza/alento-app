@@ -81,10 +81,13 @@ Si rechaza el permiso, el flujo de búsqueda de dirección debe seguir funcionan
 
 La experiencia de domicilio usa un layout compacto orientado a móvil:
 
+- el checkout inicia por defecto en **Recoger en tienda**;
+- al elegir **Domicilio**, solo se precarga una dirección si pertenece al cliente autenticado y está guardada en su perfil;
+- una dirección temporal de un checkout anterior no se reutiliza automáticamente;
 - antes de seleccionar dirección se muestra el buscador y el acceso **Mi ubicación**;
 - cuando Google valida una dirección, el buscador se colapsa automáticamente;
 - la dirección confirmada queda en una tarjeta compacta con acción de lápiz para editarla;
-- el mapa pasa a ser el elemento visual principal en formato aproximado 4:3;
+- el mapa pasa a ser el elemento visual principal en formato aproximado 4:3 y se inicializa únicamente cuando su contenedor ya está montado;
 - la ruta Alentó → cliente se dibuja sobre el mapa;
 - distancia, domicilio y tiempo se muestran en una sola fila;
 - al entrar en modo edición se bloquea la confirmación hasta validar de nuevo la dirección.
@@ -183,6 +186,7 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 - Fase A: Google Cloud y claves configuradas por operación.
 - Fase B: sede validada con Google Geocoding y persistida en `pos_settings`.
 - Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
+- El checkout inicia en Recoger en tienda, no reutiliza direcciones temporales de compras anteriores y solo precarga la dirección guardada de un cliente autenticado.
 - El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 4:3 como elemento principal.
 - El Map ID `Alento Delivery Map` usa el estilo cloud `Alento Delivery Light`.
 - Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API, expone la geometría de la ruta y aplica las bandas activas del sistema.
