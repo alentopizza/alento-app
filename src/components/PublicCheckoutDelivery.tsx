@@ -266,7 +266,7 @@ export default function PublicCheckoutDelivery({
     longitude: number;
     formattedAddress?: string;
     placeId?: string;
-  }) {
+  }) => {
     setQuoting(true);
     setError("");
 
