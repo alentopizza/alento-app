@@ -242,7 +242,7 @@ export default function PublicCheckoutDelivery({
         center,
         zoom: 17,
         disableDefaultUI: true,
-        zoomControl: true,
+        zoomControl: false,
         gestureHandling: "cooperative",
       });
     } else {
@@ -469,28 +469,28 @@ export default function PublicCheckoutDelivery({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-w-[680px] sm:rounded-[30px]">
-        <header className="border-b border-white/10 px-5 py-4">
+      <div className="flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[26px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]">
+        <header className="border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#ff3439]">
                 Finaliza tu pedido
               </p>
-              <h2 className="mt-1 text-[22px] font-bold tracking-[-0.02em]">
+              <h2 className="mt-0.5 text-[20px] font-bold tracking-[-0.02em] sm:mt-1 sm:text-[22px]">
                 ¿Cómo quieres recibirlo?
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-xl text-white/55"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-lg text-white/55 sm:h-9 sm:w-9 sm:text-xl"
               aria-label="Cerrar"
             >
               ×
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4">
             <button
               type="button"
               onClick={() => {
@@ -498,14 +498,14 @@ export default function PublicCheckoutDelivery({
                 setError("");
               }}
               className={
-                "rounded-[16px] border px-4 py-3 text-left transition " +
+                "rounded-[15px] border px-3 py-2.5 text-left transition sm:px-4 sm:py-3 " +
                 (fulfillmentType === "DELIVERY"
                   ? "border-[#e21a22] bg-[#e21a22]/15"
                   : "border-white/10 bg-white/[0.035]")
               }
             >
-              <b className="block text-[13px]">Domicilio</b>
-              <span className="mt-1 block text-[10px] text-white/40">
+              <b className="block text-[12px] sm:text-[13px]">Domicilio</b>
+              <span className="mt-0.5 block text-[9px] text-white/40 sm:mt-1 sm:text-[10px]">
                 Calculamos tu cobertura
               </span>
             </button>
@@ -516,30 +516,30 @@ export default function PublicCheckoutDelivery({
                 setError("");
               }}
               className={
-                "rounded-[16px] border px-4 py-3 text-left transition " +
+                "rounded-[15px] border px-3 py-2.5 text-left transition sm:px-4 sm:py-3 " +
                 (fulfillmentType === "PICKUP"
                   ? "border-[#e21a22] bg-[#e21a22]/15"
                   : "border-white/10 bg-white/[0.035]")
               }
             >
-              <b className="block text-[13px]">Recoger</b>
-              <span className="mt-1 block text-[10px] text-white/40">
+              <b className="block text-[12px] sm:text-[13px]">Recoger</b>
+              <span className="mt-0.5 block text-[9px] text-white/40 sm:mt-1 sm:text-[10px]">
                 Sin costo de domicilio
               </span>
             </button>
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
           {fulfillmentType === "DELIVERY" ? (
-            <div className="space-y-4">
-              <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4">
-                <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3 sm:space-y-4">
+              <section className="rounded-[20px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[22px] sm:p-4">
+                <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
                       Dirección
                     </p>
-                    <h3 className="mt-1 text-[17px] font-bold">
+                    <h3 className="mt-0.5 text-[15px] font-bold sm:mt-1 sm:text-[17px]">
                       ¿Dónde entregamos?
                     </h3>
                   </div>
@@ -547,15 +547,15 @@ export default function PublicCheckoutDelivery({
                     type="button"
                     onClick={useCurrentLocation}
                     disabled={locating || quoting}
-                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[10px] font-semibold text-white/70 disabled:opacity-40"
+                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[9px] font-semibold text-white/70 disabled:opacity-40 sm:text-[10px]"
                   >
                     {locating ? "Ubicando..." : "⌖ Usar mi ubicación"}
                   </button>
                 </div>
 
-                <div className="mt-3 min-h-[54px] rounded-[15px] border border-white/10 bg-white px-2 py-1 text-black">
+                <div className="mt-2 min-h-[48px] rounded-[14px] border border-white/10 bg-white px-2 py-0.5 text-black sm:mt-3 sm:min-h-[54px] sm:rounded-[15px] sm:py-1">
                   {loadingMaps ? (
-                    <div className="flex h-[46px] items-center px-3 text-[11px] text-neutral-500">
+                    <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500 sm:h-[46px] sm:text-[11px]">
                       Cargando Google Maps...
                     </div>
                   ) : (
@@ -563,19 +563,21 @@ export default function PublicCheckoutDelivery({
                   )}
                 </div>
 
-                <p className="mt-2 text-[9px] leading-4 text-white/30">
-                  Selecciona una sugerencia de Google para calcular correctamente el domicilio.
-                </p>
+                {!quote && !quoting && (
+                  <p className="mt-1.5 text-[8px] leading-3.5 text-white/30 sm:mt-2 sm:text-[9px] sm:leading-4">
+                    Selecciona una sugerencia de Google para calcular correctamente el domicilio.
+                  </p>
+                )}
               </section>
 
               {(quoting || quote) && (
-                <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035]">
+                <section className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.035] sm:rounded-[22px]">
                   <div
                     ref={mapRef}
-                    className="h-[190px] w-full bg-[#171717]"
+                    className="h-[118px] w-full bg-[#171717] sm:h-[180px]"
                   />
 
-                  <div className="p-4">
+                  <div className="p-3 sm:p-4">
                     {quoting ? (
                       <div className="text-[12px] text-white/50">
                         Calculando ruta y cobertura...
@@ -585,22 +587,22 @@ export default function PublicCheckoutDelivery({
                         <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
                           Punto de entrega
                         </p>
-                        <b className="mt-1 block text-[13px] leading-5">
+                        <b className="mt-0.5 block text-[11px] leading-4 sm:mt-1 sm:text-[13px] sm:leading-5">
                           {quote.destination.formattedAddress}
                         </b>
 
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <div className="rounded-[14px] border border-white/8 bg-black/20 p-3">
-                            <span className="text-[9px] text-white/35">Ruta</span>
-                            <b className="mt-1 block text-[13px]">
+                        <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-3">
+                          <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
+                            <span className="text-[8px] text-white/35 sm:text-[9px]">Ruta</span>
+                            <b className="mt-0.5 block text-[12px] sm:mt-1 sm:text-[13px]">
                               {formatDistance(quote.distanceMeters)}
                             </b>
                           </div>
-                          <div className="rounded-[14px] border border-white/8 bg-black/20 p-3">
-                            <span className="text-[9px] text-white/35">
+                          <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
+                            <span className="text-[8px] text-white/35 sm:text-[9px]">
                               Domicilio
                             </span>
-                            <b className="mt-1 block text-[13px] text-[#ff454b]">
+                            <b className="mt-0.5 block text-[12px] text-[#ff454b] sm:mt-1 sm:text-[13px]">
                               {quote.covered && quote.deliveryFee != null
                                 ? money(quote.deliveryFee)
                                 : "Sin cobertura"}
@@ -609,7 +611,7 @@ export default function PublicCheckoutDelivery({
                         </div>
 
                         {formatDuration(quote.durationSeconds) && (
-                          <p className="mt-2 text-[9px] text-white/30">
+                          <p className="mt-1.5 text-[8px] text-white/30 sm:mt-2 sm:text-[9px]">
                             {formatDuration(quote.durationSeconds)}
                           </p>
                         )}
@@ -646,10 +648,10 @@ export default function PublicCheckoutDelivery({
           )}
         </div>
 
-        <footer className="border-t border-white/10 bg-[#0c0c0c] p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <footer className="border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4">
+          <div className="mb-2 flex items-center justify-between sm:mb-3">
             <span className="text-[10px] text-white/40">Total provisional</span>
-            <b className="text-[22px]">{money(total)}</b>
+            <b className="text-[20px] sm:text-[22px]">{money(total)}</b>
           </div>
           <button
             type="button"
@@ -659,7 +661,7 @@ export default function PublicCheckoutDelivery({
               (fulfillmentType === "DELIVERY" &&
                 (!quote?.covered || quote.deliveryFee == null))
             }
-            className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-bold uppercase tracking-[0.05em] text-white disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
+            className="h-11 w-full rounded-full bg-[#e21a22] text-[10px] font-bold uppercase tracking-[0.05em] text-white disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 sm:h-12 sm:text-[11px]"
           >
             {fulfillmentType === "DELIVERY"
               ? quote?.covered
