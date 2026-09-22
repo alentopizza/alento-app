@@ -282,6 +282,11 @@ export default function PublicProductConfigurator({
       return;
     }
 
+    if (!twoFlavors && step === 1 && !crustId) {
+      showError("Selecciona el borde antes de continuar.");
+      return;
+    }
+
     if (twoFlavors) {
       if (step === 1 && !firstFlavorId) {
         showError("Selecciona el primer sabor antes de continuar.");
@@ -1011,6 +1016,39 @@ export default function PublicProductConfigurator({
     : pizzaSteps[step];
 
   const finalStep = step === totalSteps - 1;
+  const finalReady = isCombo
+    ? comboSteps.slice(0, -1).every((current) => {
+        if (current.kind === "combo-size") {
+          return Boolean(
+            comboPizzaSelections[
+              comboSelectionKey(current.rule, current.unit)
+            ]?.sizeId,
+          );
+        }
+        if (current.kind === "combo-flavor") {
+          return Boolean(
+            comboPizzaSelections[
+              comboSelectionKey(current.rule, current.unit)
+            ]?.flavorId,
+          );
+        }
+        if (current.kind === "combo-group") {
+          const selected = comboGroupSelections[current.group.id] ?? [];
+          return (
+            selected.length >= current.group.minSelections &&
+            selected.length <= current.group.maxSelections
+          );
+        }
+        return true;
+      })
+    : Boolean(
+        sizeId &&
+          crustId &&
+          (!twoFlavors ||
+            (firstFlavorId &&
+              secondFlavorId &&
+              firstFlavorId !== secondFlavorId)),
+      );
 
   return (
     <div
@@ -1091,10 +1129,11 @@ export default function PublicProductConfigurator({
           {finalStep ? (
             <button
               type="button"
+              disabled={!finalReady}
               onClick={isCombo ? addComboToCart : addPizzaToCart}
-              className="h-12 w-full rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:bg-[#ef1c25]"
+              className="h-12 w-full rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:bg-[#ef1c25] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35 disabled:shadow-none"
             >
-              Agregar al carrito
+              {finalReady ? "Agregar al carrito" : "Completa lo que falta"}
             </button>
           ) : (
             <button
