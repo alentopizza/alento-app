@@ -91,9 +91,9 @@ La experiencia de domicilio usa un layout compacto orientado a móvil:
 - no se muestra ningún mapa hasta que exista un destino validado, evitando mapas de origen/fallback que puedan confundir al cliente;
 - cuando Google valida una dirección, el buscador se colapsa automáticamente;
 - la dirección confirmada queda en una tarjeta compacta con acción de lápiz para editarla;
-- el mapa pasa a ser el elemento visual principal en formato aproximado 4:3 y se inicializa únicamente cuando su contenedor ya está montado;
+- el mapa pasa a ser el elemento visual principal en formato 3:4 y se inicializa únicamente cuando su contenedor ya está montado;
 - la ruta Alentó → cliente se dibuja sobre el mapa;
-- distancia, domicilio y tiempo se muestran en una sola fila;
+- Ruta, Domicilio y Tiempo se integran como una cabecera flotante dentro de la parte superior del mapa;
 - al entrar en modo edición se bloquea la confirmación hasta validar de nuevo la dirección.
 
 Más adelante este bloque se complementará con barrio, apartamento/casa/local y nota de entrega antes de crear el pedido.
@@ -191,7 +191,7 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 - Fase B: sede validada con Google Geocoding y persistida en `pos_settings`.
 - Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
 - El checkout inicia en Recoger en tienda, no reutiliza direcciones temporales de compras anteriores y solo precarga la dirección guardada de un cliente autenticado.
-- El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 4:3 como elemento principal.
+- El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 3:4 como elemento principal, con Ruta / Domicilio / Tiempo integrados en la parte superior.
 - El Map ID `Alento Delivery Map` usa el estilo cloud `Alento Delivery Light`.
 - Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API, expone la geometría de la ruta y aplica las bandas activas del sistema.
 - El mapa dibuja la ruta Alentó → cliente y resume Ruta / Domicilio / Tiempo en una sola fila.
@@ -199,6 +199,6 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 
 ## Próximo paso
 
-Validar en producción el layout compacto, edición de dirección, GPS, estilo cloud y ruta dibujada. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago y creación final del pedido `WEB`).
+Validar en producción el layout 3:4, edición de dirección, GPS opcional, estilo cloud, cabecera integrada y ruta dibujada. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago, recálculo final y creación segura del pedido `WEB`).
 
 No pegar las claves en chats, commits ni capturas públicas.
