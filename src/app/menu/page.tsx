@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import {
   PUBLIC_CART_STORAGE_KEY,
@@ -165,6 +164,7 @@ export default function PublicMenuPage() {
   useEffect(() => {
     if (!cartReady) return;
     window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new Event("alento-cart-updated"));
   }, [cart, cartReady]);
 
   const categories = useMemo(
@@ -752,7 +752,6 @@ export default function PublicMenuPage() {
         </section>
       </section>
 
-      <PublicMobileNav active="menu" cartCount={cartCount} />
 
       {showBackToTop && (
         <button
