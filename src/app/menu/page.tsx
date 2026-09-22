@@ -7,6 +7,7 @@ import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
+import { readPublicCache, writePublicCache } from "@/lib/publicBrowserCache";
 import type {
   OrderLineConfiguration,
   PizzaOrderConfiguration,
@@ -104,32 +105,56 @@ export default function PublicMenuPage() {
   const [configError, setConfigError] = useState("");
 
   useEffect(() => {
-    async function load() {
+    function applyCatalog(catalogData: CatalogResponse) {
+      setCatalog(catalogData);
+      const first =
+        catalogData.categories?.find(
+          (category: CatalogCategory) =>
+            category.slug === "pizzas" && category.products.length > 0,
+        ) ??
+        catalogData.categories?.find(
+          (category: CatalogCategory) =>
+            category.slug.includes("pizza") && category.products.length > 0,
+        ) ??
+        catalogData.categories?.find(
+          (category: CatalogCategory) => category.products.length > 0,
+        );
+
+      if (first) {
+        setActiveCategory((current) => current || first.slug);
+      }
+    }
+
+    const cachedCatalog = readPublicCache<CatalogResponse>("catalog");
+    const cachedHome = readPublicCache<PublicHomeSettings>("home");
+
+    if (cachedCatalog) {
+      applyCatalog(cachedCatalog);
+      setLoading(false);
+    }
+    if (cachedHome) {
+      setHome(cachedHome);
+      setHomeLoaded(true);
+    }
+
+    async function loadFresh() {
       try {
         const [catalogResponse, homeResponse] = await Promise.all([
-          fetch("/api/catalog", { cache: "no-store" }),
-          fetch("/api/public-home", { cache: "no-store" }),
+          fetch("/api/catalog"),
+          fetch("/api/public-home"),
         ]);
 
-        const catalogData = await catalogResponse.json();
         if (catalogResponse.ok) {
-          setCatalog(catalogData);
-          const first =
-            catalogData.categories?.find(
-              (category: CatalogCategory) =>
-                category.slug === "pizzas" && category.products.length > 0,
-            ) ??
-            catalogData.categories?.find(
-              (category: CatalogCategory) =>
-                category.slug.includes("pizza") && category.products.length > 0,
-            ) ??
-            catalogData.categories?.find((category: CatalogCategory) => category.products.length > 0);
-          if (first) setActiveCategory(first.slug);
+          const catalogData = (await catalogResponse.json()) as CatalogResponse;
+          applyCatalog(catalogData);
+          writePublicCache("catalog", catalogData);
         }
 
         if (homeResponse.ok) {
           const homeData = await homeResponse.json();
-          setHome(homeData?.settings ?? null);
+          const settings = (homeData?.settings ?? null) as PublicHomeSettings | null;
+          setHome(settings);
+          if (settings) writePublicCache("home", settings);
         }
       } finally {
         setHomeLoaded(true);
@@ -137,7 +162,7 @@ export default function PublicMenuPage() {
       }
     }
 
-    void load();
+    void loadFresh();
   }, []);
 
   useEffect(() => {
