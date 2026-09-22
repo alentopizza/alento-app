@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ActiveOrder = {
   id: number;
@@ -65,54 +65,13 @@ function statusTitle(order: ActiveOrder) {
   return labels[order.status] ?? "Tu pedido está en proceso";
 }
 
-export default function PublicActiveOrderBanner({
-  className = "",
-}: {
-  className?: string;
-}) {
-  const [order, setOrder] = useState<ActiveOrder | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const response = await fetch("/api/auth/customer/active-order", {
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (!cancelled) {
-          setOrder(data?.authenticated ? data.order ?? null : null);
-        }
-      } catch {
-        // Este indicador no debe bloquear la navegación pública.
-      }
-    }
-
-    void load();
-    const timer = window.setInterval(() => void load(), 8000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, []);
-
-  if (!order) return null;
-
+function OrderCard({ order }: { order: ActiveOrder }) {
   const stages =
     order.fulfillmentType === "DELIVERY" ? DELIVERY_STAGES : PICKUP_STAGES;
   const current = stageIndex(order);
 
   return (
-    <section
-      className={
-        "overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#101010)] p-4 text-white shadow-[0_14px_38px_rgba(0,0,0,.24)] " +
-        className
-      }
-    >
+    <article className="min-w-full snap-center">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[#ff3439]">
@@ -144,9 +103,7 @@ export default function PublicActiveOrderBanner({
                 key={index}
                 className="relative h-[2px] overflow-hidden bg-white/10"
               >
-                {completed && (
-                  <div className="absolute inset-0 bg-[#e21a22]" />
-                )}
+                {completed && <div className="absolute inset-0 bg-[#e21a22]" />}
 
                 {activeSegment && (
                   <>
@@ -193,60 +150,202 @@ export default function PublicActiveOrderBanner({
             );
           })}
         </div>
-
-        <style jsx>{`
-          @keyframes alentoProgressRunner {
-            0% {
-              transform: scaleX(0.08);
-              opacity: 0.45;
-            }
-            68% {
-              transform: scaleX(0.82);
-              opacity: 1;
-            }
-            86% {
-              transform: scaleX(0.96);
-              opacity: 1;
-            }
-            100% {
-              transform: scaleX(0.96);
-              opacity: 0;
-            }
-          }
-
-          @keyframes alentoProgressPulse {
-            0%,
-            100% {
-              transform: scale(0.88);
-              opacity: 0.25;
-            }
-            50% {
-              transform: scale(1.2);
-              opacity: 0.8;
-            }
-          }
-
-          .alento-progress-runner {
-            animation: alentoProgressRunner 2.4s ease-in-out infinite;
-          }
-
-          .alento-progress-pulse {
-            animation: alentoProgressPulse 1.8s ease-in-out infinite;
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            .alento-progress-runner,
-            .alento-progress-pulse {
-              animation: none;
-            }
-
-            .alento-progress-runner {
-              transform: scaleX(0.55);
-              opacity: 0.85;
-            }
-          }
-        `}</style>
       </div>
+    </article>
+  );
+}
+
+export default function PublicActiveOrderBanner({
+  className = "",
+}: {
+  className?: string;
+}) {
+  const [orders, setOrders] = useState<ActiveOrder[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const railRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const response = await fetch("/api/auth/customer/active-order", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!cancelled) {
+          const nextOrders: ActiveOrder[] = data?.authenticated
+            ? Array.isArray(data.orders)
+              ? data.orders
+              : data.order
+                ? [data.order]
+                : []
+            : [];
+
+          setOrders(nextOrders);
+          setActiveIndex((current) =>
+            nextOrders.length ? Math.min(current, nextOrders.length - 1) : 0,
+          );
+        }
+      } catch {
+        // Este indicador no debe bloquear la navegación pública.
+      }
+    }
+
+    void load();
+    const timer = window.setInterval(() => void load(), 8000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  function goTo(index: number) {
+    const rail = railRef.current;
+    if (!rail || !orders.length) return;
+
+    const target = Math.max(0, Math.min(index, orders.length - 1));
+    rail.scrollTo({
+      left: rail.clientWidth * target,
+      behavior: "smooth",
+    });
+    setActiveIndex(target);
+  }
+
+  function handleScroll() {
+    const rail = railRef.current;
+    if (!rail || !rail.clientWidth) return;
+    const index = Math.round(rail.scrollLeft / rail.clientWidth);
+    setActiveIndex(Math.max(0, Math.min(index, orders.length - 1)));
+  }
+
+  if (!orders.length) return null;
+
+  return (
+    <section
+      className={
+        "overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#101010)] p-4 text-white shadow-[0_14px_38px_rgba(0,0,0,.24)] " +
+        className
+      }
+    >
+      {orders.length > 1 && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/35">
+              {orders.length} pedidos activos
+            </p>
+            <p className="mt-0.5 text-[8px] text-white/25">
+              Desliza para ver los demás
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => goTo(activeIndex - 1)}
+              disabled={activeIndex === 0}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[14px] text-white/60 disabled:opacity-20"
+              aria-label="Pedido anterior"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => goTo(activeIndex + 1)}
+              disabled={activeIndex === orders.length - 1}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[14px] text-white/60 disabled:opacity-20"
+              aria-label="Pedido siguiente"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={railRef}
+        onScroll={handleScroll}
+        className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {orders.map((order) => (
+          <OrderCard key={order.id} order={order} />
+        ))}
+      </div>
+
+      {orders.length > 1 && (
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          {orders.map((order, index) => (
+            <button
+              key={order.id}
+              type="button"
+              onClick={() => goTo(index)}
+              className={
+                "h-1.5 rounded-full transition-all " +
+                (index === activeIndex
+                  ? "w-5 bg-[#e21a22]"
+                  : "w-1.5 bg-white/20")
+              }
+              aria-label={`Ver ${order.code}`}
+            />
+          ))}
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes alentoProgressRunner {
+          0% {
+            transform: scaleX(0.08);
+            opacity: 0.45;
+          }
+          68% {
+            transform: scaleX(0.82);
+            opacity: 1;
+          }
+          86% {
+            transform: scaleX(0.96);
+            opacity: 1;
+          }
+          100% {
+            transform: scaleX(0.96);
+            opacity: 0;
+          }
+        }
+
+        @keyframes alentoProgressPulse {
+          0%,
+          100% {
+            transform: scale(0.88);
+            opacity: 0.25;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.8;
+          }
+        }
+
+        :global(.alento-progress-runner) {
+          animation: alentoProgressRunner 2.4s ease-in-out infinite;
+        }
+
+        :global(.alento-progress-pulse) {
+          animation: alentoProgressPulse 1.8s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          :global(.alento-progress-runner),
+          :global(.alento-progress-pulse) {
+            animation: none;
+          }
+
+          :global(.alento-progress-runner) {
+            transform: scaleX(0.55);
+            opacity: 0.85;
+          }
+        }
+      `}</style>
     </section>
   );
 }
