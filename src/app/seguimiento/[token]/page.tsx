@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
+import { getCustomerSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +78,28 @@ function progressFor(status: string) {
   return Math.round(((index + 1) / STATUS_FLOW.length) * 100);
 }
 
+function trackingStages(fulfillmentType: string, status: string) {
+  const delivery = [
+    { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING", "PREPARED"] },
+    { label: "Listo", statuses: ["READY"] },
+    { label: "En camino", statuses: ["OUT_FOR_DELIVERY"] },
+    { label: "Entregado", statuses: ["ARRIVED", "DELIVERED", "COMPLETED"] },
+  ];
+
+  const pickup = [
+    { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
+    { label: "Preparado", statuses: ["PREPARED"] },
+    { label: "Listo para recoger", statuses: ["READY"] },
+    { label: "Finalizado", statuses: ["COMPLETED"] },
+  ];
+
+  const stages = fulfillmentType === "DELIVERY" ? delivery : pickup;
+  let current = stages.findIndex((stage) => stage.statuses.includes(status));
+  if (current < 0) current = status === "CANCELED" ? 0 : stages.length - 1;
+
+  return { stages, current };
+}
+
 export default async function TrackingPage({
   params,
 }: {
@@ -90,6 +114,8 @@ export default async function TrackingPage({
     select: {
       id: true,
       sequenceNumber: true,
+      source: true,
+      customerId: true,
       status: true,
       fulfillmentType: true,
       total: true,
@@ -112,8 +138,11 @@ export default async function TrackingPage({
 
   if (!order) notFound();
 
-  const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+  const session = await getCustomerSession();
+  const ownOrder = Boolean(session && session.customerId === order.customerId);
+  const code = `${order.source}-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
   const progress = progressFor(order.status);
+  const { stages, current } = trackingStages(order.fulfillmentType, order.status);
   const activeLabel = STATUS_LABEL[order.status] ?? order.status;
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
 
@@ -147,6 +176,46 @@ export default async function TrackingPage({
                 className="h-full rounded-full bg-white transition-all"
                 style={{ width: `${progress}%` }}
               />
+            </div>
+
+            <div className="relative mt-5">
+              <div className="absolute left-[8%] right-[8%] top-[11px] h-[2px] bg-white/15" />
+              <div
+                className="absolute left-[8%] top-[11px] h-[2px] bg-white transition-all"
+                style={{
+                  width: `${Math.max(0, Math.min(84, (current / Math.max(1, stages.length - 1)) * 84))}%`,
+                }}
+              />
+              <div className="relative grid grid-cols-4 gap-1">
+                {stages.map((stage, index) => {
+                  const completed = index < current;
+                  const active = index === current;
+                  return (
+                    <div key={stage.label} className="text-center">
+                      <div
+                        className={
+                          "mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black " +
+                          (completed
+                            ? "border-white bg-white text-black"
+                            : active
+                              ? "border-white bg-white/15 text-white ring-4 ring-white/10"
+                              : "border-white/25 bg-[#111] text-white/35")
+                        }
+                      >
+                        {completed ? "✓" : index + 1}
+                      </div>
+                      <span
+                        className={
+                          "mt-2 block text-[8px] font-semibold leading-3 sm:text-[9px] " +
+                          (active ? "text-white" : completed ? "text-white/65" : "text-white/30")
+                        }
+                      >
+                        {stage.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -187,8 +256,23 @@ export default async function TrackingPage({
               <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-neutral-400">Cliente</p>
               <p className="mt-1.5 text-sm font-bold">{order.customer?.name ?? "Cliente Alentó"}</p>
               <p className="mt-1 text-xs leading-5 text-neutral-500">
-                Esta página se actualiza con el estado real de tu pedido.
+                Esta página se actualiza automáticamente con el estado real de tu pedido.
               </p>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/menu"
+                className="flex h-12 items-center justify-center rounded-full bg-[#111] px-5 text-[11px] font-bold text-white shadow-sm transition hover:bg-black"
+              >
+                Volver al menú
+              </Link>
+              <Link
+                href={ownOrder ? "/cuenta" : "/login"}
+                className="flex h-12 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-[11px] font-bold text-neutral-700 shadow-sm transition hover:bg-neutral-50"
+              >
+                {ownOrder ? "Ir a mi cuenta" : "Iniciar sesión"}
+              </Link>
             </div>
           </div>
         </section>
