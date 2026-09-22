@@ -11,8 +11,6 @@ import {
   type PublicCartItem,
 } from "@/lib/publicCart";
 
-const PUBLIC_CHECKOUT_STORAGE_KEY = "alento-public-checkout-v1";
-
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -36,19 +34,6 @@ export default function CartPage() {
         if (Array.isArray(parsed)) setCart(parsed);
       }
 
-      const savedCheckout = window.localStorage.getItem(
-        PUBLIC_CHECKOUT_STORAGE_KEY,
-      );
-      if (savedCheckout) {
-        const parsedCheckout = JSON.parse(savedCheckout);
-        if (
-          parsedCheckout &&
-          (parsedCheckout.fulfillmentType === "DELIVERY" ||
-            parsedCheckout.fulfillmentType === "PICKUP")
-        ) {
-          setCheckoutSelection(parsedCheckout);
-        }
-      }
     } catch {
       window.localStorage.removeItem(PUBLIC_CART_STORAGE_KEY);
     } finally {
@@ -61,19 +46,6 @@ export default function CartPage() {
     window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
     window.dispatchEvent(new Event("alento-cart-updated"));
   }, [cart, ready]);
-
-  useEffect(() => {
-    if (!ready) return;
-
-    if (checkoutSelection) {
-      window.localStorage.setItem(
-        PUBLIC_CHECKOUT_STORAGE_KEY,
-        JSON.stringify(checkoutSelection),
-      );
-    } else {
-      window.localStorage.removeItem(PUBLIC_CHECKOUT_STORAGE_KEY);
-    }
-  }, [checkoutSelection, ready]);
 
   const cartCount = useMemo(
     () => cart.reduce((total, item) => total + item.quantity, 0),
