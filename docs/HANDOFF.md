@@ -338,53 +338,69 @@ Registrar:
 
 La documentación del repositorio tiene prioridad sobre el historial de chats.
 
-
 ## Experiencia pública actual
 
-### Experiencia pública / Home
+Estado reconstruido al 2026-09-22.
 
-Ruta principal:
+### Home pública
 
-`/`
+- `/` es la Home principal aprobada.
+- Slider de acceso hacia `/menu`.
+- Imagen móvil administrable `1080 × 2160 px`.
+- Imagen de escritorio administrable `1920 × 1080 px`.
+- Configuración en `AppSetting(public.home)`.
+- La PWA inicia en `/`.
 
-Estado: **APROBADA COMO HOME PRINCIPAL**.
+Regla de no regresión: no rediseñar la Home principal sin solicitud explícita.
 
-Archivos principales:
+### Menú, configurador y carrito
 
-- `src/app/page.tsx`
-- `src/app/personalizacion/page.tsx`
-- `src/lib/publicHome.ts`
-- `src/components/PwaInstallPrompt.tsx`
-- `src/app/manifest.ts`
+- `/menu` es el catálogo público oficial.
+- `/interno/menu` es la administración interna.
+- `/menu` consume `GET /api/catalog`.
+- pizzas, dos sabores y combos conservan configuración estructurada;
+- `/cart` conserva el carrito público persistente;
+- navegación pública compartida: Menú, Carrito, Club y Perfil en la parte inferior para móvil, tablet y escritorio.
 
-Comportamiento vigente:
+### Checkout y Google Maps
 
-- pantalla publicitaria a pantalla completa;
-- slider con flecha hacia la derecha;
-- al completar el gesto navega a `/pedir`;
-- imagen móvil administrable: `1080 × 2160 px`;
-- imagen PC administrable: `1920 × 1080 px`;
-- las imágenes se guardan en `AppSetting` bajo `public.home`;
-- PWA orientada al cliente;
-- la PWA instalada abre en `/`.
+Documento canónico: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
-Regla de no regresión:
+Estado actual:
 
-**no rediseñar la Home principal sin solicitud explícita.** Se considera aprobada para continuar con el resto de la experiencia pública.
+- Recoger en tienda es la modalidad inicial;
+- Domicilio habilita Google Places y GPS solo por acción del usuario;
+- dirección guardada solo para cliente autenticado y de forma no bloqueante;
+- no se muestra mapa sin destino validado;
+- la ruta se calcula en servidor con Google Routes;
+- mapa `3:4` con ruta Alentó → cliente;
+- Ruta, Domicilio y Tiempo integrados en la parte superior;
+- cobertura y tarifa provienen de bandas activas del sistema.
 
-### Productos / catálogo público
+Pendiente crítico: todavía no existe creación final del pedido público `source=WEB`. `POST /api/orders` sigue siendo el flujo interno protegido y crea `source=POS`.
 
-Ruta actual:
+### Club Alentó
 
-`/pedir`
+- `/club` funciona como invitado y autenticado;
+- tasa predeterminada: 5% del subtotal elegible;
+- domicilio no suma;
+- 1 punto = $1 COP;
+- compra mínima predeterminada de canje: $14.900;
+- acreditación al quedar pagado y COMPLETED;
+- el canje transaccional completo sigue pendiente.
 
-Estado: **EN DEFINICIÓN VISUAL**.
+### Repartidor y seguimiento
 
-La ruta ya consume el catálogo real, pero su diseño no está cerrado. Antes de hacer cambios grandes se debe definir la experiencia de productos con el usuario.
+- `Order.driverId` y `driverAssignedAt` ya existen;
+- asignación a DRIVER o legacy DISPATCH;
+- enlace firmado para el repartidor;
+- `/repartidor/pedido/[token]`;
+- checklist obligatorio antes de salir;
+- `READY → OUT_FOR_DELIVERY → ARRIVED`;
+- `/seguimiento/[token]` se refresca automáticamente.
 
-La versión pública anterior se conserva temporalmente en:
+GPS en vivo del repartidor y el icono de la moto sobre el mapa siguen pendientes.
 
-- `/app2`;
-- `/app`.
+### Regla al continuar
 
-No reutilizar una segunda lógica comercial: catálogo, precios y futura configuración/checkout deben seguir saliendo del motor existente del POS.
+No crear una segunda lógica pública para precios, combos, rutas o pedidos. La fase WEB debe reutilizar `normalizeOrderLine`, configuración estructurada, bandas de domicilio, consecutivo global y estados existentes.
