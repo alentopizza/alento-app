@@ -185,7 +185,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:bottom-auto md:top-1.5 md:px-6 lg:top-1">
+    <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:bottom-auto md:top-4 md:px-6 lg:top-4">
       <div className="mx-auto h-[66px] max-w-[430px] rounded-full border border-black/5 bg-white px-3 shadow-[0_16px_40px_rgba(0,0,0,.24)] md:h-[50px] md:max-w-[700px] md:border-white/80 md:bg-white/95 md:px-4 md:shadow-[0_4px_0_rgba(0,0,0,.30),0_14px_34px_rgba(0,0,0,.24),inset_0_-1px_0_rgba(0,0,0,.08)] md:backdrop-blur-xl lg:h-[52px] lg:max-w-[780px]">
         <div className="flex h-full items-stretch">
           <Link
