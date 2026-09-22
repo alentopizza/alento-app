@@ -7,6 +7,8 @@ const CHATWOOT_ACCOUNT_ID = Number(process.env.CHATWOOT_ACCOUNT_ID || 0);
 const CHATWOOT_INBOX_ID = Number(process.env.CHATWOOT_WHATSAPP_INBOX_ID || 0);
 const CHATWOOT_TOKEN = process.env.CHATWOOT_API_ACCESS_TOKEN || "";
 const ALENTO_APP_BASE_URL = (process.env.ALENTO_APP_BASE_URL || "").replace(/\/$/, "");
+const templateDefinitionCache = new Map();
+const TEMPLATE_CACHE_MS = 5 * 60 * 1000;
 
 function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -136,6 +138,117 @@ async function createConversation(contactId, phone) {
   return result?.id ? result : result?.payload || result;
 }
 
+async function getTemplateDefinition(templateName, language) {
+  const key = `${templateName}::${String(language || "").toLowerCase()}`;
+  const cached = templateDefinitionCache.get(key);
+  if (cached && Date.now() - cached.at < TEMPLATE_CACHE_MS) return cached.value;
+
+  const result = await cw(
+    `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/inboxes/${CHATWOOT_INBOX_ID}/message_templates?name=${encodeURIComponent(templateName)}`,
+  );
+
+  const templates = Array.isArray(result?.payload) ? result.payload : [];
+  const exact = templates.find(
+    (item) =>
+      item?.name === templateName &&
+      String(item?.language || "").toLowerCase() === String(language || "").toLowerCase() &&
+      String(item?.status || "").toLowerCase() === "approved",
+  ) || templates.find(
+    (item) =>
+      item?.name === templateName &&
+      String(item?.language || "").toLowerCase() === String(language || "").toLowerCase(),
+  ) || templates[0] || null;
+
+  templateDefinitionCache.set(key, { at: Date.now(), value: exact });
+  return exact;
+}
+
+function placeholderCount(text) {
+  const matches = String(text || "").match(/{{\s*[^{}]+\s*}}/g) || [];
+  return new Set(matches.map((item) => item.replace(/\s+/g, ""))).size;
+}
+
+function expectedTemplateShape(definition) {
+  const components = Array.isArray(definition?.components) ? definition.components : [];
+  const body = components.find((component) => String(component?.type || "").toUpperCase() === "BODY");
+  const header = components.find((component) => String(component?.type || "").toUpperCase() === "HEADER");
+  const buttonsComponent = components.find((component) => String(component?.type || "").toUpperCase() === "BUTTONS");
+
+  const buttons = Array.isArray(buttonsComponent?.buttons) ? buttonsComponent.buttons : [];
+  const dynamicUrlButtons = buttons.filter(
+    (button) =>
+      String(button?.type || "").toUpperCase() === "URL" &&
+      placeholderCount(button?.url) > 0,
+  );
+
+  return {
+    bodyCount: placeholderCount(body?.text),
+    headerFormat: String(header?.format || "").toUpperCase(),
+    dynamicUrlButtonCount: dynamicUrlButtons.length,
+  };
+}
+
+async function alignProcessedParamsToApprovedTemplate(data, processed) {
+  const template = data.template || {};
+  const definition = await getTemplateDefinition(template.templateName, template.language || "es");
+
+  if (!definition) {
+    throw new Error(
+      `La plantilla ${template.templateName} no aparece sincronizada en Chatwoot para el idioma ${template.language || "es"}. Sincroniza las plantillas del inbox de WhatsApp.`,
+    );
+  }
+
+  const expected = expectedTemplateShape(definition);
+  const aligned = { ...processed };
+
+  const bodyEntries = Object.entries(aligned.body || {}).sort(
+    ([a], [b]) => Number(a) - Number(b),
+  );
+
+  if (expected.bodyCount === 0) {
+    delete aligned.body;
+  } else if (bodyEntries.length < expected.bodyCount) {
+    throw new Error(
+      `La plantilla ${template.templateName} espera ${expected.bodyCount} variable(s) en el cuerpo, pero Alentó tiene ${bodyEntries.length} configurada(s).`,
+    );
+  } else {
+    aligned.body = Object.fromEntries(bodyEntries.slice(0, expected.bodyCount));
+  }
+
+  const mediaFormats = new Set(["IMAGE", "VIDEO", "DOCUMENT"]);
+  if (!mediaFormats.has(expected.headerFormat)) {
+    delete aligned.header;
+  } else if (!aligned.header?.media_url) {
+    throw new Error(
+      `La plantilla ${template.templateName} exige un encabezado ${expected.headerFormat.toLowerCase()}, pero no tiene archivo cargado en Alentó.`,
+    );
+  }
+
+  const buttons = Array.isArray(aligned.buttons) ? aligned.buttons : [];
+  if (expected.dynamicUrlButtonCount === 0) {
+    delete aligned.buttons;
+  } else if (buttons.length < expected.dynamicUrlButtonCount) {
+    throw new Error(
+      `La plantilla ${template.templateName} espera ${expected.dynamicUrlButtonCount} parámetro(s) de botón URL y Alentó tiene ${buttons.length}.`,
+    );
+  } else {
+    aligned.buttons = buttons.slice(0, expected.dynamicUrlButtonCount);
+  }
+
+  console.log("Template shape verified", {
+    template: template.templateName,
+    language: template.language || "es",
+    expected,
+    sent: {
+      bodyCount: Object.keys(aligned.body || {}).length,
+      hasHeader: Boolean(aligned.header),
+      buttonCount: Array.isArray(aligned.buttons) ? aligned.buttons.length : 0,
+    },
+  });
+
+  return aligned;
+}
+
 function processedParamsFor(data) {
   const template = data.template || {};
   const body = {};
@@ -233,6 +346,11 @@ async function sendTemplate(data) {
     throw new Error("No se pudo crear o encontrar la conversación de WhatsApp.");
   }
 
+  const processedParams = await alignProcessedParamsToApprovedTemplate(
+    data,
+    processedParamsFor(data),
+  );
+
   const message = await cw(
     `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${conversation.id}/messages`,
     {
@@ -249,7 +367,7 @@ async function sendTemplate(data) {
           category: data.template.category || "MARKETING",
           language: data.template.language || "es",
           content_mode: "rendered",
-          processed_params: processedParamsFor(data),
+          processed_params: processedParams,
         },
       }),
     },
