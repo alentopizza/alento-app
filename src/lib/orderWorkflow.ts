@@ -33,7 +33,7 @@ export function statusLabel(status: OrderStatus) {
     DRAFT: "Borrador",
     CONFIRMED: "Confirmado",
     PREPARING: "En preparación",
-    PREPARED: "Preparado",
+    PREPARED: "Horneando",
     READY: "Listo",
     OUT_FOR_DELIVERY: "En camino",
     ARRIVED: "Ha llegado",
