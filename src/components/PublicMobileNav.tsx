@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type ActiveTab = "menu" | "cart" | "club" | "profile";
 
@@ -141,7 +142,15 @@ function ItemContent({
 }
 
 export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
+  const router = useRouter();
   const [visualActive, setVisualActive] = useState<ActiveTab>(active);
+
+  useEffect(() => {
+    router.prefetch("/menu");
+    router.prefetch("/cart");
+    router.prefetch("/club");
+    router.prefetch("/cuenta");
+  }, [router]);
 
   useEffect(() => {
     let previous: ActiveTab | null = null;
