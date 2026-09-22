@@ -589,8 +589,13 @@ export default function PublicMenuPage() {
         </section>
 
         <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-2 sm:-mt-7 sm:px-4 lg:-mt-10 lg:px-7">
-          <div className="grid grid-cols-5 overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]">
-            {categories.slice(0, 5).map((category) => {
+          <div
+            className="grid overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(1, categories.length)}, minmax(0, 1fr))`,
+            }}
+          >
+            {categories.map((category) => {
               const active = activeCategory === category.slug;
 
               return (
