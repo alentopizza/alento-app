@@ -11,6 +11,7 @@ export type PublicCheckoutSelection = {
   deliveryFee: number;
   distanceMeters?: number;
   durationSeconds?: number | null;
+  encodedPolyline?: string;
   deliveryZoneId?: string | null;
   deliveryZoneName?: string | null;
   destination?: {
@@ -57,7 +58,7 @@ function formatDistance(meters: number) {
 function formatDuration(seconds?: number | null) {
   if (!seconds || seconds < 60) return null;
   const minutes = Math.max(1, Math.round(seconds / 60));
-  return `~${minutes} min de ruta`;
+  return `${minutes} min`;
 }
 
 type GoogleMapInstance = {
@@ -234,6 +235,7 @@ export default function PublicCheckoutDelivery({
           covered: true,
           distanceMeters: initialSelection.distanceMeters ?? 0,
           durationSeconds: initialSelection.durationSeconds,
+          encodedPolyline: initialSelection.encodedPolyline,
           deliveryFee: initialSelection.deliveryFee,
           band: initialSelection.deliveryZoneId
             ? {
@@ -245,6 +247,12 @@ export default function PublicCheckoutDelivery({
           destination: initialSelection.destination ?? undefined,
         }
       : null,
+  );
+  const [editingAddress, setEditingAddress] = useState(
+    !(
+      initialSelection?.fulfillmentType === "DELIVERY" &&
+      initialSelection.destination
+    ),
   );
   const [loadingMaps, setLoadingMaps] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -369,6 +377,7 @@ export default function PublicCheckoutDelivery({
 
       const nextQuote = data as DeliveryQuote;
       setQuote(nextQuote);
+      setEditingAddress(false);
 
       if (nextQuote.destination) {
         await drawMap(nextQuote.destination, nextQuote.encodedPolyline);
@@ -557,6 +566,7 @@ export default function PublicCheckoutDelivery({
       deliveryFee: quote.deliveryFee,
       distanceMeters: quote.distanceMeters,
       durationSeconds: quote.durationSeconds,
+      encodedPolyline: quote.encodedPolyline,
       deliveryZoneId: quote.band?.id ?? null,
       deliveryZoneName: quote.band?.name ?? null,
       destination: quote.destination,
@@ -639,112 +649,132 @@ export default function PublicCheckoutDelivery({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
           {fulfillmentType === "DELIVERY" ? (
-            <div className="space-y-3 sm:space-y-4">
-              <section className="relative overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:rounded-[22px]">
-                <div ref={mapRef} className="h-[180px] w-full sm:h-[230px]" />
-                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-                  <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[9px] font-bold text-neutral-800 shadow-lg backdrop-blur">
-                    {quote?.destination ? "Ruta Alentó → cliente" : "Zona de entrega Alentó"}
-                  </div>
-                  {quote?.covered && quote.deliveryFee != null && (
-                    <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[9px] font-bold text-white shadow-lg backdrop-blur">
-                      Domicilio {money(quote.deliveryFee)}
+            <div className="space-y-2.5 sm:space-y-3">
+              {quote?.destination && !editingAddress ? (
+                <section className="rounded-[18px] border border-white/10 bg-white/[0.035] px-3 py-2.5 sm:rounded-[20px] sm:px-4 sm:py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/30">
+                        Punto de entrega
+                      </p>
+                      <b className="mt-0.5 block truncate text-[11px] leading-4 text-white/90 sm:text-[12px]">
+                        {quote.destination.formattedAddress}
+                      </b>
                     </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[20px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[22px] sm:p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
-                      Dirección
-                    </p>
-                    <h3 className="mt-0.5 text-[15px] font-bold sm:mt-1 sm:text-[17px]">
-                      ¿Dónde entregamos?
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={useCurrentLocation}
-                    disabled={locating || quoting}
-                    className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[9px] font-semibold text-white/70 disabled:opacity-40 sm:text-[10px]"
-                  >
-                    {locating ? "Ubicando..." : "⌖ Usar mi ubicación"}
-                  </button>
-                </div>
-
-                <div className="mt-2 min-h-[48px] rounded-[14px] border border-white/10 bg-white px-2 py-0.5 text-black sm:mt-3 sm:min-h-[54px] sm:rounded-[15px] sm:py-1">
-                  {loadingMaps ? (
-                    <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500 sm:h-[46px] sm:text-[11px]">
-                      Cargando Google Maps...
-                    </div>
-                  ) : (
-                    <div ref={autocompleteHostRef} />
-                  )}
-                </div>
-
-                {!quote && !quoting && (
-                  <p className="mt-1.5 text-[8px] leading-3.5 text-white/30 sm:mt-2 sm:text-[9px] sm:leading-4">
-                    Selecciona una sugerencia de Google para calcular correctamente el domicilio.
-                  </p>
-                )}
-              </section>
-
-              {(quoting || quote) && (
-                <section className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.035] sm:rounded-[22px]">
-                  <div className="p-3 sm:p-4">
-                    {quoting ? (
-                      <div className="text-[12px] text-white/50">
-                        Calculando ruta y cobertura...
-                      </div>
-                    ) : quote?.destination ? (
-                      <>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
-                          Punto de entrega
-                        </p>
-                        <b className="mt-0.5 block text-[11px] leading-4 sm:mt-1 sm:text-[13px] sm:leading-5">
-                          {quote.destination.formattedAddress}
-                        </b>
-
-                        <div className="mt-2 grid grid-cols-3 gap-2 sm:mt-3">
-                          <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
-                            <span className="text-[8px] text-white/35 sm:text-[9px]">Ruta</span>
-                            <b className="mt-0.5 block text-[12px] sm:mt-1 sm:text-[13px]">
-                              {formatDistance(quote.distanceMeters)}
-                            </b>
-                          </div>
-                          <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
-                            <span className="text-[8px] text-white/35 sm:text-[9px]">
-                              Domicilio
-                            </span>
-                            <b className="mt-0.5 block text-[12px] text-[#ff454b] sm:mt-1 sm:text-[13px]">
-                              {quote.covered && quote.deliveryFee != null
-                                ? money(quote.deliveryFee)
-                                : "Sin cobertura"}
-                            </b>
-                          </div>
-                        </div>
-
-                        <div className="rounded-[13px] border border-white/8 bg-black/20 p-2.5 sm:rounded-[14px] sm:p-3">
-                          <span className="text-[8px] text-white/35 sm:text-[9px]">Tiempo</span>
-                          <b className="mt-0.5 block text-[12px] sm:mt-1 sm:text-[13px]">
-                            {formatDuration(quote.durationSeconds) || "—"}
-                          </b>
-                        </div>
-
-                        {!quote.covered && (
-                          <div className="mt-3 rounded-[14px] border border-amber-400/20 bg-amber-400/10 p-3 text-[10px] leading-4 text-amber-100">
-                            Esta ubicación está fuera de nuestra cobertura actual. Puedes elegir otra dirección o recoger tu pedido.
-                          </div>
-                        )}
-                      </>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuote(null);
+                        setEditingAddress(true);
+                        setError("");
+                      }}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/65 transition hover:bg-white/[0.09] hover:text-white"
+                      aria-label="Editar dirección"
+                      title="Editar dirección"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                      </svg>
+                    </button>
                   </div>
                 </section>
+              ) : (
+                <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[20px]">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/30">
+                        Dirección
+                      </p>
+                      <h3 className="mt-0.5 text-[14px] font-bold sm:text-[15px]">
+                        ¿Dónde entregamos?
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={useCurrentLocation}
+                      disabled={locating || quoting}
+                      className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-2.5 text-[9px] font-semibold text-white/65 disabled:opacity-40"
+                    >
+                      <span aria-hidden="true" className="text-[12px]">⌖</span>
+                      {locating ? "Ubicando..." : "Mi ubicación"}
+                    </button>
+                  </div>
+
+                  <div className="mt-2 min-h-[46px] rounded-[13px] border border-white/10 bg-white px-2 py-0.5 text-black">
+                    {loadingMaps ? (
+                      <div className="flex h-[42px] items-center px-3 text-[10px] text-neutral-500">
+                        Cargando Google Maps...
+                      </div>
+                    ) : (
+                      <div ref={autocompleteHostRef} />
+                    )}
+                  </div>
+
+                  {!quoting && (
+                    <p className="mt-1.5 text-[8px] leading-3.5 text-white/28">
+                      Elige una sugerencia de Google para validar cobertura y tarifa.
+                    </p>
+                  )}
+                </section>
               )}
-            </div>
-          ) : (
+
+              <section className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:max-h-[430px] sm:rounded-[22px]">
+                <div ref={mapRef} className="h-full w-full" />
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
+                  <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
+                    {quote?.destination ? "Alentó → tu ubicación" : "Zona de entrega Alentó"}
+                  </div>
+                  {quoting && (
+                    <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[8px] font-bold text-white shadow-lg backdrop-blur sm:text-[9px]">
+                      Calculando...
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {quote?.destination && !quoting && (
+                <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-2.5 sm:rounded-[20px] sm:p-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
+                      <span className="text-[8px] text-white/35">Ruta</span>
+                      <b className="mt-0.5 block text-[12px] sm:text-[13px]">
+                        {formatDistance(quote.distanceMeters)}
+                      </b>
+                    </div>
+                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
+                      <span className="text-[8px] text-white/35">Domicilio</span>
+                      <b className="mt-0.5 block text-[12px] text-[#ff454b] sm:text-[13px]">
+                        {quote.covered && quote.deliveryFee != null
+                          ? money(quote.deliveryFee)
+                          : "Sin cobertura"}
+                      </b>
+                    </div>
+                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
+                      <span className="text-[8px] text-white/35">Tiempo</span>
+                      <b className="mt-0.5 block text-[12px] sm:text-[13px]">
+                        {formatDuration(quote.durationSeconds) || "—"}
+                      </b>
+                    </div>
+                  </div>
+
+                  {!quote.covered && (
+                    <div className="mt-2 rounded-[13px] border border-amber-400/20 bg-amber-400/10 p-2.5 text-[9px] leading-4 text-amber-100">
+                      Esta ubicación está fuera de nuestra cobertura. Elige otra dirección o selecciona Recoger.
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>          ) : (
             <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5">
               <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-emerald-300">
                 Recoger en Alentó
@@ -776,12 +806,12 @@ export default function PublicCheckoutDelivery({
             disabled={
               quoting ||
               (fulfillmentType === "DELIVERY" &&
-                (!quote?.covered || quote.deliveryFee == null))
+                (editingAddress || !quote?.covered || quote.deliveryFee == null))
             }
             className="h-11 w-full rounded-full bg-[#e21a22] text-[10px] font-bold uppercase tracking-[0.05em] text-white disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 sm:h-12 sm:text-[11px]"
           >
             {fulfillmentType === "DELIVERY"
-              ? quote?.covered
+              ? !editingAddress && quote?.covered
                 ? "Confirmar domicilio"
                 : "Confirma una dirección"
               : "Continuar con recogida"}
