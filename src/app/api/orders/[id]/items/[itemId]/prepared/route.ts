@@ -36,7 +36,7 @@ export async function PATCH(
         },
       });
       if (!order) throw new Error("ORDER_NOT_FOUND");
-      if (!["PREPARING", "PREPARED"].includes(order.status)) throw new Error("ORDER_NOT_IN_KITCHEN");
+      if (!["CONFIRMED", "PREPARING"].includes(order.status)) throw new Error("ORDER_NOT_IN_KITCHEN");
 
       const item = order.items.find((candidate) => candidate.id === itemId);
       if (!item) throw new Error("ITEM_NOT_FOUND");
@@ -52,15 +52,17 @@ export async function PATCH(
       );
       const kitchenItems = refreshedItems.filter((candidate) => candidate.product?.category?.slug !== "bebidas");
       const allPrepared = kitchenItems.length > 0 && kitchenItems.every((candidate) => candidate.preparedQuantity >= candidate.quantity);
-      const anyIncomplete = kitchenItems.some((candidate) => candidate.preparedQuantity < candidate.quantity);
-
       let status = order.status;
-      if (allPrepared && order.status === "PREPARING") {
+
+      // Convención operativa de Alentó:
+      // Cocina solo controla CONFIRMED/PREPARING y prepara las líneas del pedido.
+      // Al completar todas las líneas, el pedido cambia a PREPARED.
+      // PREPARED es el valor técnico persistido que significa "Horneando".
+      // Desde ese momento el pedido sale de /cocina.
+      // El hornero/operación realiza después PREPARED -> READY cuando sale del horno.
+      if (allPrepared && ["CONFIRMED", "PREPARING"].includes(order.status)) {
         status = "PREPARED";
         await tx.order.update({ where: { id: order.id }, data: { status: "PREPARED" } });
-      } else if (anyIncomplete && order.status === "PREPARED") {
-        status = "PREPARING";
-        await tx.order.update({ where: { id: order.id }, data: { status: "PREPARING" } });
       }
 
       return { preparedQuantity, status, allPrepared };
