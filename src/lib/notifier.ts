@@ -111,6 +111,18 @@ async function templateFor(event: string, fulfillmentType: string) {
   return findTemplateForEvent(await getNotificationTemplates(), event, fulfillmentType);
 }
 
+function customerStatusShouldNotify(fulfillmentType: string, status: string) {
+  if (fulfillmentType === "DELIVERY") {
+    return ["OUT_FOR_DELIVERY", "ARRIVED", "COMPLETED"].includes(status);
+  }
+
+  if (fulfillmentType === "PICKUP" || fulfillmentType === "STORE") {
+    return ["READY", "COMPLETED"].includes(status);
+  }
+
+  return false;
+}
+
 function customerPayload(input: BaseOrderEvent) {
   return {
     orderId: input.orderId,
@@ -136,6 +148,14 @@ export async function dispatchOrderCreatedNotification(
 export async function dispatchOrderStatusNotification(
   input: BaseOrderEvent & { status: string; previousStatus: string },
 ): Promise<NotificationDispatchResult> {
+  if (!customerStatusShouldNotify(input.fulfillmentType, input.status)) {
+    return {
+      ok: false,
+      status: "skipped",
+      reason: `El estado ${input.status} es operativo y no genera notificación para ${input.fulfillmentType}.`,
+    };
+  }
+
   const event = `order.status.${input.status}`;
   return dispatchEvent(
     event,
