@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import PublicCheckoutDelivery, {
+  type PublicCheckoutSelection,
+} from "@/components/PublicCheckoutDelivery";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
+
+const PUBLIC_CHECKOUT_STORAGE_KEY = "alento-public-checkout-v1";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -19,6 +24,9 @@ function money(value: number) {
 export default function CartPage() {
   const [cart, setCart] = useState<PublicCartItem[]>([]);
   const [ready, setReady] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutSelection, setCheckoutSelection] =
+    useState<PublicCheckoutSelection | null>(null);
 
   useEffect(() => {
     try {
@@ -26,6 +34,20 @@ export default function CartPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) setCart(parsed);
+      }
+
+      const savedCheckout = window.localStorage.getItem(
+        PUBLIC_CHECKOUT_STORAGE_KEY,
+      );
+      if (savedCheckout) {
+        const parsedCheckout = JSON.parse(savedCheckout);
+        if (
+          parsedCheckout &&
+          (parsedCheckout.fulfillmentType === "DELIVERY" ||
+            parsedCheckout.fulfillmentType === "PICKUP")
+        ) {
+          setCheckoutSelection(parsedCheckout);
+        }
       }
     } catch {
       window.localStorage.removeItem(PUBLIC_CART_STORAGE_KEY);
@@ -40,6 +62,19 @@ export default function CartPage() {
     window.dispatchEvent(new Event("alento-cart-updated"));
   }, [cart, ready]);
 
+  useEffect(() => {
+    if (!ready) return;
+
+    if (checkoutSelection) {
+      window.localStorage.setItem(
+        PUBLIC_CHECKOUT_STORAGE_KEY,
+        JSON.stringify(checkoutSelection),
+      );
+    } else {
+      window.localStorage.removeItem(PUBLIC_CHECKOUT_STORAGE_KEY);
+    }
+  }, [checkoutSelection, ready]);
+
   const cartCount = useMemo(
     () => cart.reduce((total, item) => total + item.quantity, 0),
     [cart],
@@ -49,6 +84,13 @@ export default function CartPage() {
     () => cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0),
     [cart],
   );
+
+  const deliveryFee =
+    checkoutSelection?.fulfillmentType === "DELIVERY"
+      ? checkoutSelection.deliveryFee
+      : 0;
+
+  const checkoutTotal = subtotal + deliveryFee;
 
   function changeQuantity(key: string, delta: number) {
     setCart((current) =>
@@ -92,7 +134,10 @@ export default function CartPage() {
             {cart.length > 0 && (
               <button
                 type="button"
-                onClick={() => setCart([])}
+                onClick={() => {
+                  setCart([]);
+                  setCheckoutSelection(null);
+                }}
                 className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-semibold text-white/45 transition hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-200"
               >
                 Vaciar
@@ -183,20 +228,49 @@ export default function CartPage() {
             </div>
 
             <aside className="fixed inset-x-3 bottom-[92px] z-[70] mx-auto max-w-[470px] rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.14),transparent_30%),linear-gradient(145deg,#161616,#0f0f0f)] p-4 shadow-[0_20px_50px_rgba(0,0,0,.42)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-6 lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-[24px] lg:p-5 lg:shadow-[0_18px_46px_rgba(0,0,0,.20)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/32">Resumen</p>
-                  <span className="mt-1 block text-[11px] text-white/45">Subtotal</span>
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/32">Resumen</p>
+
+                <div className="mt-2 flex items-center justify-between gap-4">
+                  <span className="text-[11px] text-white/45">Subtotal</span>
+                  <b className="text-[16px]">{money(subtotal)}</b>
                 </div>
-                <b className="text-[24px] tracking-[-0.03em] lg:text-[22px]">{money(subtotal)}</b>
+
+                {checkoutSelection && (
+                  <div className="mt-1.5 flex items-center justify-between gap-4">
+                    <span className="text-[10px] text-white/35">
+                      {checkoutSelection.fulfillmentType === "DELIVERY"
+                        ? "Domicilio"
+                        : "Recoger"}
+                    </span>
+                    <b className="text-[12px] text-white/65">
+                      {checkoutSelection.fulfillmentType === "DELIVERY"
+                        ? money(deliveryFee)
+                        : "$ 0"}
+                    </b>
+                  </div>
+                )}
+
+                <div className="mt-2 flex items-center justify-between gap-4 border-t border-white/[0.07] pt-2">
+                  <span className="text-[10px] font-semibold text-white/55">
+                    Total
+                  </span>
+                  <b className="text-[24px] tracking-[-0.03em] lg:text-[22px]">
+                    {money(checkoutTotal)}
+                  </b>
+                </div>
               </div>
 
               <button
                 type="button"
-                disabled
-                className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white opacity-55 lg:mt-5 lg:h-12 lg:text-[12px]"
+                onClick={() => setCheckoutOpen(true)}
+                className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#ef1c25] lg:mt-5 lg:h-12 lg:text-[12px]"
               >
-                Continuar pedido · Próximamente
+                {checkoutSelection
+                  ? checkoutSelection.fulfillmentType === "DELIVERY"
+                    ? "Revisar domicilio"
+                    : "Revisar recogida"
+                  : "Continuar pedido"}
               </button>
 
               <Link
@@ -209,6 +283,18 @@ export default function CartPage() {
           </div>
         )}
       </section>
+
+      {checkoutOpen && (
+        <PublicCheckoutDelivery
+          subtotal={subtotal}
+          initialSelection={checkoutSelection}
+          onClose={() => setCheckoutOpen(false)}
+          onConfirm={(selection) => {
+            setCheckoutSelection(selection);
+            setCheckoutOpen(false);
+          }}
+        />
+      )}
 
     </main>
   );
