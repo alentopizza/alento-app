@@ -18,6 +18,7 @@ type Stage = {
 
 const DELIVERY_STAGES: Stage[] = [
   { label: "Preparando" },
+  { label: "Horneando" },
   { label: "Listo" },
   { label: "En camino" },
   { label: "Entregado" },
@@ -25,19 +26,20 @@ const DELIVERY_STAGES: Stage[] = [
 
 const PICKUP_STAGES: Stage[] = [
   { label: "Preparando" },
-  { label: "Preparado" },
+  { label: "Horneando" },
   { label: "Listo para recoger" },
-  { label: "Finalizando" },
+  { label: "Finalizado" },
 ];
 
 function stageIndex(order: ActiveOrder) {
   const status = order.status;
 
   if (order.fulfillmentType === "DELIVERY") {
-    if (["DRAFT", "CONFIRMED", "PREPARING", "PREPARED"].includes(status)) return 0;
-    if (status === "READY") return 1;
-    if (status === "OUT_FOR_DELIVERY") return 2;
-    if (["ARRIVED", "DELIVERED"].includes(status)) return 3;
+    if (["DRAFT", "CONFIRMED", "PREPARING"].includes(status)) return 0;
+    if (status === "PREPARED") return 1;
+    if (status === "READY") return 2;
+    if (status === "OUT_FOR_DELIVERY") return 3;
+    if (["ARRIVED", "DELIVERED"].includes(status)) return 4;
     return 0;
   }
 
@@ -52,7 +54,7 @@ function statusTitle(order: ActiveOrder) {
     DRAFT: "Recibimos tu pedido",
     CONFIRMED: "Pedido confirmado",
     PREPARING: "Estamos preparando tu pedido",
-    PREPARED: "Tu pedido ya está preparado",
+    PREPARED: "Tu pedido está horneándose",
     READY:
       order.fulfillmentType === "DELIVERY"
         ? "Tu pedido está listo para salir"
@@ -93,7 +95,14 @@ function OrderCard({ order }: { order: ActiveOrder }) {
       </div>
 
       <div className="relative mt-4">
-        <div className="absolute left-[12.5%] right-[12.5%] top-[10px] grid grid-cols-3">
+        <div
+          className="absolute top-[10px] grid"
+          style={{
+            left: `${100 / (stages.length * 2)}%`,
+            right: `${100 / (stages.length * 2)}%`,
+            gridTemplateColumns: `repeat(${Math.max(1, stages.length - 1)}, minmax(0, 1fr))`,
+          }}
+        >
           {stages.slice(0, -1).map((_, index) => {
             const completed = index < current;
             const activeSegment = index === current && current < stages.length - 1;
@@ -116,7 +125,10 @@ function OrderCard({ order }: { order: ActiveOrder }) {
           })}
         </div>
 
-        <div className="relative grid grid-cols-4 gap-1">
+        <div
+          className="relative grid gap-1"
+          style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
+        >
           {stages.map((stage, index) => {
             const completed = index < current;
             const active = index === current;
