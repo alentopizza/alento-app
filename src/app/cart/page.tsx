@@ -70,7 +70,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#090909] pb-28 text-white">
       <PublicBrandHeader />
 
-      <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-[92px]">
+      <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-[72px]">
         <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_90%_10%,rgba(226,26,34,.16),transparent_28%),linear-gradient(135deg,#151515,#0d0d0d)] p-4 shadow-[0_16px_44px_rgba(0,0,0,.22)] sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ export default function CartPage() {
               ))}
             </div>
 
-            <aside className="h-fit rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.12),transparent_26%),linear-gradient(145deg,#161616,#0f0f0f)] p-5 shadow-[0_18px_46px_rgba(0,0,0,.20)] lg:sticky lg:top-[92px]">
+            <aside className="h-fit rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.12),transparent_26%),linear-gradient(145deg,#161616,#0f0f0f)] p-5 shadow-[0_18px_46px_rgba(0,0,0,.20)] lg:sticky lg:top-[70px]">
               <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/32">Resumen</p>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-[12px] text-white/45">Subtotal</span>
