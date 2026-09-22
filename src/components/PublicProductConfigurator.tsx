@@ -215,10 +215,41 @@ export default function PublicProductConfigurator({
 
   const [comboPizzaSelections, setComboPizzaSelections] = useState<
     Record<string, { sizeId: number | null; flavorId: number | null }>
-  >({});
+  >(() => {
+    const initial: Record<
+      string,
+      { sizeId: number | null; flavorId: number | null }
+    > = {};
+
+    for (const rule of product.comboPizzaRules ?? []) {
+      for (let unit = 0; unit < rule.quantity; unit += 1) {
+        const key = String(rule.id) + ":" + String(unit);
+        initial[key] = {
+          sizeId: rule.sizes.length === 1 ? rule.sizes[0].id : null,
+          flavorId: rule.flavors.length === 1 ? rule.flavors[0].id : null,
+        };
+      }
+    }
+
+    return initial;
+  });
   const [comboGroupSelections, setComboGroupSelections] = useState<
     Record<number, number[]>
-  >({});
+  >(() => {
+    const initial: Record<number, number[]> = {};
+
+    for (const group of product.comboGroups ?? []) {
+      if (
+        group.options.length === 1 &&
+        group.minSelections === 1 &&
+        group.maxSelections === 1
+      ) {
+        initial[group.id] = [group.options[0].productId];
+      }
+    }
+
+    return initial;
+  });
 
   const pizzaSteps = twoFlavors
     ? ["Tamaño", "Primer sabor", "Segundo sabor", "Borde y nota"]
@@ -232,37 +263,52 @@ export default function PublicProductConfigurator({
       for (let unit = 0; unit < rule.quantity; unit += 1) {
         const selectionKey = String(rule.id) + ":" + String(unit);
         const suffix = rule.quantity > 1 ? " " + String(unit + 1) : "";
-        steps.push({
-          kind: "combo-size",
-          key: "size:" + selectionKey,
-          rule,
-          unit,
-          title: "Tamaño pizza" + suffix,
-        });
-        steps.push({
-          kind: "combo-flavor",
-          key: "flavor:" + selectionKey,
-          rule,
-          unit,
-          title: "Sabor pizza" + suffix,
-        });
+
+        if (rule.sizes.length > 1) {
+          steps.push({
+            kind: "combo-size",
+            key: "size:" + selectionKey,
+            rule,
+            unit,
+            title: "Tamaño pizza" + suffix,
+          });
+        }
+
+        if (rule.flavors.length > 1) {
+          steps.push({
+            kind: "combo-flavor",
+            key: "flavor:" + selectionKey,
+            rule,
+            unit,
+            title: "Sabor pizza" + suffix,
+          });
+        }
       }
     }
 
     for (const group of product.comboGroups ?? []) {
-      steps.push({
-        kind: "combo-group",
-        key: "group:" + String(group.id),
-        group,
-        title: group.name,
-      });
+      const automaticallySelected =
+        group.options.length === 1 &&
+        group.minSelections === 1 &&
+        group.maxSelections === 1;
+
+      if (!automaticallySelected) {
+        steps.push({
+          kind: "combo-group",
+          key: "group:" + String(group.id),
+          group,
+          title: group.name,
+        });
+      }
     }
 
-    steps.push({
-      kind: "combo-review",
-      key: "review",
-      title: "Revisar combo",
-    });
+    if (steps.length === 0) {
+      steps.push({
+        kind: "combo-review",
+        key: "ready",
+        title: "Combo listo",
+      });
+    }
 
     return steps;
   }, [isCombo, product.comboGroups, product.comboPizzaRules]);
@@ -448,40 +494,60 @@ export default function PublicProductConfigurator({
     let regular = 0;
 
     for (const rule of product.comboPizzaRules ?? []) {
+      const flavorBase = rule.flavors.length
+        ? Math.min(...rule.flavors.map((flavor) => flavor.basePrice))
+        : 0;
+
       for (let unit = 0; unit < rule.quantity; unit += 1) {
-        const selected =
+        const selection =
           comboPizzaSelections[comboSelectionKey(rule, unit)] ?? null;
-        const size = rule.sizes.find((item) => item.id === selected?.sizeId);
-        const flavor = rule.flavors.find(
-          (item) => item.id === selected?.flavorId,
+        const selectedSize = rule.sizes.find(
+          (item) => item.id === selection?.sizeId,
         );
-        if (size && flavor) regular += size.basePrice + flavor.basePrice;
+        const sizeBase =
+          selectedSize?.basePrice ??
+          (rule.sizes.length
+            ? Math.min(...rule.sizes.map((item) => item.basePrice))
+            : 0);
+
+        regular += sizeBase + flavorBase;
       }
     }
 
     for (const group of product.comboGroups ?? []) {
-      const selectedIds = comboGroupSelections[group.id] ?? [];
-      for (const productId of selectedIds) {
-        const option = group.options.find(
-          (item) => item.productId === productId,
-        );
-        if (option) {
-          regular +=
+      const requiredCount = Math.max(0, group.minSelections);
+      const baseOptions = [...group.options]
+        .map(
+          (option) =>
             (option.basePrice + option.priceDelta) *
-            Math.max(1, option.quantity);
-        }
-      }
+            Math.max(1, option.quantity),
+        )
+        .sort((a, b) => a - b)
+        .slice(0, requiredCount);
+
+      regular += baseOptions.reduce((sum, value) => sum + value, 0);
     }
 
     return Math.max(0, regular - Number(product.comboDiscount ?? 0));
   }, [
-    comboGroupSelections,
     comboPizzaSelections,
     isCombo,
     product.comboDiscount,
     product.comboGroups,
     product.comboPizzaRules,
   ]);
+
+  const comboHasAllSizes = useMemo(
+    () =>
+      (product.comboPizzaRules ?? []).every((rule) =>
+        Array.from({ length: rule.quantity }).every((_, unit) =>
+          Boolean(
+            comboPizzaSelections[comboSelectionKey(rule, unit)]?.sizeId,
+          ),
+        ),
+      ),
+    [comboPizzaSelections, product.comboPizzaRules],
+  );
 
   function addPizzaToCart() {
     setError("");
@@ -713,7 +779,6 @@ export default function PublicProductConfigurator({
       unitPrice: comboPrice,
       quantity: 1,
       configuration,
-      notes: note.trim().slice(0, 120) || undefined,
     });
   }
 
@@ -726,7 +791,7 @@ export default function PublicProductConfigurator({
               key={size.id}
               selected={sizeId === size.id}
               title={size.name}
-              detail={String(size.diameterCm) + " cm · Base " + money(size.basePrice)}
+              detail={String(size.diameterCm) + " cm"}
               onClick={() => {
                 setError("");
                 setSizeId(size.id);
@@ -760,13 +825,7 @@ export default function PublicProductConfigurator({
                 disabled={disabled}
                 selected={currentId === flavor.id}
                 title={flavor.name}
-                detail={
-                  disabled
-                    ? "Ya elegido como primer sabor"
-                    : flavor.basePrice
-                      ? "+" + money(flavor.basePrice)
-                      : undefined
-                }
+                detail={disabled ? "Ya elegido como primer sabor" : undefined}
                 onClick={() => {
                   setError("");
                   if (first) {
@@ -898,7 +957,7 @@ export default function PublicProductConfigurator({
               key={size.id}
               selected={selection?.sizeId === size.id}
               title={size.name}
-              detail={String(size.diameterCm) + " cm · " + money(size.basePrice)}
+              detail={String(size.diameterCm) + " cm"}
               onClick={() => {
                 setError("");
                 setComboPizzaSelections((state) => ({
@@ -926,7 +985,7 @@ export default function PublicProductConfigurator({
               key={flavor.id}
               selected={selection?.flavorId === flavor.id}
               title={flavor.name}
-              detail={flavor.basePrice ? "+" + money(flavor.basePrice) : undefined}
+              detail={undefined}
               onClick={() => {
                 setError("");
                 setComboPizzaSelections((state) => ({
@@ -965,11 +1024,9 @@ export default function PublicProductConfigurator({
                 selected={selected.includes(option.productId)}
                 title={option.productName}
                 detail={
-                  option.priceDelta
-                    ? "+" + money(option.priceDelta)
-                    : option.quantity > 1
-                      ? "Incluye ×" + String(option.quantity)
-                      : "Incluido"
+                  option.quantity > 1
+                    ? "Incluye ×" + String(option.quantity)
+                    : "Incluido"
                 }
                 onClick={() =>
                   toggleComboGroupOption(current.group, option.productId)
@@ -982,31 +1039,13 @@ export default function PublicProductConfigurator({
     }
 
     return (
-      <div className="space-y-4">
-        <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-300">
-            Configuración completa
-          </p>
-          <p className="mt-1 text-[12px] leading-5 text-white/65">
-            Revisa el total y agrega el combo al carrito.
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
-            Nota para cocina · opcional
-          </p>
-          <textarea
-            value={note}
-            maxLength={120}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Ej. Bebida fría, pizza bien dorada"
-            className="min-h-24 w-full resize-none rounded-[16px] border border-white/10 bg-black/25 p-3 text-[12px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
-          />
-          <p className="mt-1 text-right text-[9px] text-white/25">
-            {note.length}/120
-          </p>
-        </div>
+      <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-300">
+          Listo para agregar
+        </p>
+        <p className="mt-1 text-[12px] leading-5 text-white/65">
+          Este combo ya tiene sus opciones incluidas seleccionadas.
+        </p>
       </div>
     );
   }
@@ -1016,6 +1055,15 @@ export default function PublicProductConfigurator({
     : pizzaSteps[step];
 
   const finalStep = step === totalSteps - 1;
+  const pizzaPriceVisible = twoFlavors
+    ? Boolean(
+        firstFlavorId &&
+          secondFlavorId &&
+          firstFlavorId !== secondFlavorId &&
+          sizeId,
+      )
+    : Boolean(sizeId);
+
   const finalReady = isCombo
     ? comboSteps.slice(0, -1).every((current) => {
         if (current.kind === "combo-size") {
@@ -1109,11 +1157,23 @@ export default function PublicProductConfigurator({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
-                Total actual
+                {isCombo
+                  ? comboHasAllSizes
+                    ? "Precio del combo"
+                    : "Desde"
+                  : pizzaPriceVisible
+                    ? "Precio de tu pizza"
+                    : "Precio"}
               </span>
-              <b className="mt-0.5 block text-[20px] text-[#ff3439]">
-                {money(isCombo ? comboPrice : pizzaPrice)}
-              </b>
+              {isCombo || pizzaPriceVisible ? (
+                <b className="mt-0.5 block text-[20px] text-[#ff3439]">
+                  {money(isCombo ? comboPrice : pizzaPrice)}
+                </b>
+              ) : (
+                <span className="mt-1 block text-[11px] font-semibold text-white/35">
+                  Completa los sabores para ver el valor
+                </span>
+              )}
             </div>
             {step > 0 && (
               <button
