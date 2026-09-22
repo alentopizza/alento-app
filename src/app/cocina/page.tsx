@@ -325,7 +325,7 @@ export default function KitchenPage() {
                         <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
                         <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-violet-50 text-violet-700" : "bg-amber-50 text-amber-700"}`}>
-                          {prepared ? "Preparado · en cocción" : statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
+                          {prepared ? "Horneando" : statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
                         </span>
                       </div>
                       {order.customer?.name && (
@@ -373,9 +373,9 @@ export default function KitchenPage() {
                         <div className="flex items-start gap-3">
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-sm font-black text-white">2</span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-black uppercase tracking-[0.07em] text-violet-700">Preparado · pendiente de cocción</p>
+                            <p className="text-[11px] font-black uppercase tracking-[0.07em] text-violet-700">Horneando</p>
                             <p className="mt-1 text-[11px] leading-4 text-violet-700/80">
-                              Cocina terminó el armado. El pedido todavía no está listo para el cliente; espera a que salga del horno.
+                              Cocina terminó el armado y el pedido ya está en el horno. Cuando termine la cocción, márcalo como listo.
                             </p>
                           </div>
                         </div>
