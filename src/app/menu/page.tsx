@@ -687,22 +687,22 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-20 lg:px-8">
-          <div className="mb-5 flex flex-col gap-4 sm:mb-6 md:flex-row md:items-end md:justify-between">
+        <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-16 lg:px-8">
+          <div className="mb-3 flex flex-col gap-2.5 sm:mb-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/35 lg:text-[10px]">Catálogo</p>
-              <h2 className="mt-1 text-[28px] font-black tracking-[-0.04em] text-white sm:text-[31px] lg:text-[34px]">
+              <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/35 lg:text-[9px]">Catálogo</p>
+              <h2 className="mt-0.5 text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[25px] lg:text-[27px]">
                 {categories.find((category) => category.slug === activeCategory)?.name || "Menú"}
               </h2>
             </div>
 
-            <div className="flex w-full items-center gap-3 rounded-full border border-white/12 bg-white/[0.05] px-4 py-3 md:w-[340px]">
+            <div className="flex h-10 w-full items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.05] px-3.5 md:w-[310px]">
               <span className="text-white/45">⌕</span>
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar en el menú..."
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-white outline-none placeholder:text-white/25"
+                className="min-w-0 flex-1 bg-transparent text-[11px] text-white outline-none placeholder:text-white/25"
               />
               {query && (
                 <button type="button" onClick={() => setQuery("")} className="text-white/40" aria-label="Limpiar búsqueda">
