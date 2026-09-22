@@ -118,7 +118,7 @@ function ItemContent({
     <span
       className={`relative flex h-full w-full items-center justify-center gap-2 overflow-visible transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "text-[#e21a22]" : "text-[#c8cbd0]"}`}
     >
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center md:h-6 md:w-6">
         <TabIcon tab={tab} />
 
         {tab === "cart" && cartCount > 0 && !selected && (
@@ -129,13 +129,13 @@ function ItemContent({
       </span>
 
       <span
-        className={`whitespace-nowrap text-[12px] font-semibold transition-all duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "max-w-[72px] translate-x-0 opacity-100" : "max-w-0 -translate-x-1 overflow-hidden opacity-0"}`}
+        className={`whitespace-nowrap text-[12px] font-semibold transition-all md:text-[11px] duration-300 ease-[cubic-bezier(.22,.8,.24,1)] ${selected ? "max-w-[72px] translate-x-0 opacity-100" : "max-w-0 -translate-x-1 overflow-hidden opacity-0"}`}
       >
         {tabLabel(tab)}
       </span>
 
       <span
-        className={`absolute bottom-[9px] h-[2px] rounded-full bg-[#e21a22] transition-all duration-300 ${selected ? "w-5 opacity-100" : "w-0 opacity-0"}`}
+        className={`absolute bottom-[9px] h-[2px] rounded-full md:bottom-[6px] bg-[#e21a22] transition-all duration-300 ${selected ? "w-5 opacity-100" : "w-0 opacity-0"}`}
       />
     </span>
   );
@@ -185,8 +185,8 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:bottom-auto md:top-2 md:px-6 lg:top-1">
-      <div className="mx-auto h-[66px] max-w-[430px] rounded-full border border-black/5 bg-white px-3 shadow-[0_16px_40px_rgba(0,0,0,.24)] md:h-[68px] md:max-w-[680px] md:border-white/80 md:bg-white/95 md:px-5 md:shadow-[0_5px_0_rgba(0,0,0,.32),0_20px_48px_rgba(0,0,0,.28),inset_0_-2px_0_rgba(0,0,0,.07)] md:backdrop-blur-xl lg:max-w-[760px]">
+    <nav className="fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:bottom-auto md:top-1.5 md:px-6 lg:top-1">
+      <div className="mx-auto h-[66px] max-w-[430px] rounded-full border border-black/5 bg-white px-3 shadow-[0_16px_40px_rgba(0,0,0,.24)] md:h-[50px] md:max-w-[700px] md:border-white/80 md:bg-white/95 md:px-4 md:shadow-[0_4px_0_rgba(0,0,0,.30),0_14px_34px_rgba(0,0,0,.24),inset_0_-1px_0_rgba(0,0,0,.08)] md:backdrop-blur-xl lg:h-[52px] lg:max-w-[780px]">
         <div className="flex h-full items-stretch">
           <Link
             href="/menu"
