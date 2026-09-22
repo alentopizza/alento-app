@@ -136,7 +136,7 @@ function Progress({ current, total }: { current: number; total: number }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 text-[9px] font-black uppercase tracking-[0.12em]">
+      <div className="flex items-center justify-between gap-3 text-[9px] font-bold uppercase tracking-[0.12em]">
         <span className="text-white/40">
           Paso {Math.min(current + 1, safeTotal)} de {safeTotal}
         </span>
@@ -252,8 +252,8 @@ export default function PublicProductConfigurator({
   });
 
   const pizzaSteps = twoFlavors
-    ? ["Tamaño", "Primer sabor", "Segundo sabor", "Borde y nota"]
-    : ["Tamaño", "Borde", "Extras y nota"];
+    ? ["Tamaño", "Primer sabor", "Segundo sabor", "Borde", "Nota para cocina"]
+    : ["Tamaño", "Borde", "Ingredientes extra", "Nota para cocina"];
 
   const comboSteps = useMemo<ComboStep[]>(() => {
     if (!isCombo) return [];
@@ -328,7 +328,10 @@ export default function PublicProductConfigurator({
       return;
     }
 
-    if (!twoFlavors && step === 1 && !crustId) {
+    if (
+      ((!twoFlavors && step === 1) || (twoFlavors && step === 3)) &&
+      !crustId
+    ) {
       showError("Selecciona el borde antes de continuar.");
       return;
     }
@@ -846,62 +849,42 @@ export default function PublicProductConfigurator({
 
     if ((!twoFlavors && step === 1) || (twoFlavors && step === 3)) {
       return (
-        <div className="space-y-4">
-          <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
-              Elige el borde
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {catalog.crusts.map((crust) => {
-                const price = crustPriceForSize(crust, sizeId);
-                return (
-                  <ChoiceButton
-                    key={crust.id}
-                    disabled={price == null}
-                    selected={crustId === crust.id}
-                    title={crust.name}
-                    detail={
-                      price == null
-                        ? "No disponible para este tamaño"
-                        : price > 0
-                          ? "+" + money(price)
-                          : "Incluido"
-                    }
-                    onClick={() => {
-                      setError("");
-                      setCrustId(crust.id);
-                    }}
-                  />
-                );
-              })}
-            </div>
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
+            Elige el borde
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {catalog.crusts.map((crust) => {
+              const price = crustPriceForSize(crust, sizeId);
+              return (
+                <ChoiceButton
+                  key={crust.id}
+                  disabled={price == null}
+                  selected={crustId === crust.id}
+                  title={crust.name}
+                  detail={
+                    price == null
+                      ? "No disponible para este tamaño"
+                      : price > 0
+                        ? "+" + money(price)
+                        : "Incluido"
+                  }
+                  onClick={() => {
+                    setError("");
+                    setCrustId(crust.id);
+                  }}
+                />
+              );
+            })}
           </div>
-
-          {twoFlavors && (
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
-                Nota para cocina · opcional
-              </p>
-              <textarea
-                value={note}
-                maxLength={120}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Ej. Ligera en salsa"
-                className="min-h-24 w-full resize-none rounded-[16px] border border-white/10 bg-black/25 p-3 text-[12px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
-              />
-              <p className="mt-1 text-right text-[9px] text-white/25">
-                {note.length}/120
-              </p>
-            </div>
-          )}
         </div>
       );
     }
 
-    return (
-      <div className="space-y-4">
+    if (!twoFlavors && step === 2) {
+      return (
         <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
             Ingredientes extra · opcional
           </p>
           {catalog.modifiers.length ? (
@@ -917,27 +900,31 @@ export default function PublicProductConfigurator({
               ))}
             </div>
           ) : (
-            <div className="rounded-[15px] border border-white/10 bg-black/20 p-3 text-[11px] text-white/35">
+            <div className="rounded-[15px] border border-white/10 bg-black/20 p-3 text-[11px] text-white/40">
               No hay ingredientes extra disponibles.
             </div>
           )}
         </div>
+      );
+    }
 
-        <div>
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">
-            Nota para cocina · opcional
-          </p>
-          <textarea
-            value={note}
-            maxLength={120}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="Ej. Ligera en salsa"
-            className="min-h-24 w-full resize-none rounded-[16px] border border-white/10 bg-black/25 p-3 text-[12px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
-          />
-          <p className="mt-1 text-right text-[9px] text-white/25">
-            {note.length}/120
+    return (
+      <div>
+        <div className="mb-3 rounded-[15px] border border-white/8 bg-black/20 px-3 py-2.5">
+          <p className="text-[10px] font-semibold leading-4 text-white/45">
+            Esta nota es opcional y va directamente a cocina.
           </p>
         </div>
+        <textarea
+          value={note}
+          maxLength={120}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Ej. Ligera en salsa"
+          className="h-24 w-full resize-none rounded-[16px] border border-white/10 bg-black/25 p-3 text-[13px] text-white outline-none placeholder:text-white/25 focus:border-[#e21a22]"
+        />
+        <p className="mt-1.5 text-right text-[9px] font-semibold text-white/30">
+          {note.length}/120
+        </p>
       </div>
     );
   }
@@ -1040,7 +1027,7 @@ export default function PublicProductConfigurator({
 
     return (
       <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-300">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
           Listo para agregar
         </p>
         <p className="mt-1 text-[12px] leading-5 text-white/65">
@@ -1105,14 +1092,14 @@ export default function PublicProductConfigurator({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111] text-white shadow-2xl md:max-w-[700px] md:rounded-[28px]">
+      <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111] font-sans text-white shadow-[0_28px_80px_rgba(0,0,0,.52)] md:max-w-[700px] md:rounded-[28px]">
         <header className="border-b border-white/10 px-5 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#e21a22]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
                 {isCombo ? "Configura tu combo" : "Configura tu pizza"}
               </p>
-              <h2 className="mt-1 truncate text-[21px] font-black tracking-[-0.03em]">
+              <h2 className="mt-1 truncate text-[21px] font-bold tracking-[-0.01em]">
                 {product.name}
               </h2>
             </div>
@@ -1131,13 +1118,13 @@ export default function PublicProductConfigurator({
           </div>
         </header>
 
-        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          <section className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:overflow-y-visible">
+          <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4 sm:p-5">
             <div className="mb-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-white/30">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
                 {isCombo ? "Personaliza cada parte" : "Completa este paso"}
               </p>
-              <h3 className="mt-1 text-[18px] font-black">{currentTitle}</h3>
+              <h3 className="mt-1 text-[18px] font-bold">{currentTitle}</h3>
             </div>
 
             {isCombo ? renderComboStep() : renderPizzaStep()}
@@ -1156,7 +1143,7 @@ export default function PublicProductConfigurator({
         <footer className="border-t border-white/10 bg-[#0c0c0c] p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
+              <span className="block text-[8px] font-bold uppercase tracking-[0.13em] text-white/30">
                 {isCombo
                   ? comboHasAllSizes
                     ? "Precio del combo"
@@ -1191,7 +1178,7 @@ export default function PublicProductConfigurator({
               type="button"
               disabled={!finalReady}
               onClick={isCombo ? addComboToCart : addPizzaToCart}
-              className="h-12 w-full rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:bg-[#ef1c25] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35 disabled:shadow-none"
+              className="h-12 w-full rounded-full bg-[#e21a22] px-5 text-[11px] font-bold uppercase tracking-[0.06em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:bg-[#ef1c25] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35 disabled:shadow-none"
             >
               {finalReady ? "Agregar al carrito" : "Completa lo que falta"}
             </button>
@@ -1199,7 +1186,7 @@ export default function PublicProductConfigurator({
             <button
               type="button"
               onClick={isCombo ? nextCombo : nextPizza}
-              className="h-12 w-full rounded-full bg-white px-5 text-[11px] font-black uppercase tracking-[0.06em] text-black transition hover:bg-neutral-100"
+              className="h-12 w-full rounded-full bg-white px-5 text-[11px] font-bold uppercase tracking-[0.06em] text-black transition hover:bg-neutral-100"
             >
               Siguiente →
             </button>
