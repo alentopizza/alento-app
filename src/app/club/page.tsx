@@ -212,21 +212,6 @@ export default async function ClubPage() {
           </div>
         </header>
 
-        <section className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-[20px] border border-white/10 bg-[#131313] p-4">
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">Saldo</span>
-            <b className="mt-2 block text-[22px] text-[#ff3439]">{points.toLocaleString("es-CO")} pts</b>
-          </div>
-          <div className="rounded-[20px] border border-white/10 bg-[#131313] p-4">
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">Regla actual</span>
-            <b className="mt-2 block text-[18px]">{settings.pointsPerThousand} pts / $1.000</b>
-          </div>
-          <div className="rounded-[20px] border border-white/10 bg-[#131313] p-4">
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">Socio</span>
-            <b className="mt-2 block truncate text-[18px]">{customer.name}</b>
-          </div>
-        </section>
-
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Próximamente</p>
