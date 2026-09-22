@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
 import PublicCheckoutCustomer from "@/components/PublicCheckoutCustomer";
 import PublicCheckoutDelivery, {
   type PublicCheckoutSelection,
@@ -37,6 +38,7 @@ export default function CartPage() {
     total: number;
     paymentMethod: string;
     trackingPath?: string | null;
+    authenticatedCustomer?: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -98,6 +100,8 @@ export default function CartPage() {
       <PublicBrandHeader />
 
       <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-6">
+        <PublicActiveOrderBanner className="mb-4" />
+
         <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_90%_10%,rgba(226,26,34,.16),transparent_28%),linear-gradient(135deg,#151515,#0d0d0d)] p-4 shadow-[0_16px_44px_rgba(0,0,0,.22)] sm:p-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -319,7 +323,9 @@ export default function CartPage() {
                 {createdOrder.code}
               </h2>
               <p className="mt-2 text-[11px] leading-5 text-white/45">
-                Tu pedido ya entró a Alentó. Te iremos mostrando los cambios de estado.
+                {createdOrder.authenticatedCustomer
+                  ? "Tu pedido ya entró a Alentó. Puedes seguir su estado desde la app mientras esté en proceso."
+                  : "Tu pedido ya entró a Alentó. Te enviaremos un mensaje con el enlace para seguirlo. Si inicias sesión con este número, también podrás verlo dentro de la app."}
               </p>
 
               <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04]">
@@ -349,6 +355,15 @@ export default function CartPage() {
                   className="mt-5 flex h-12 items-center justify-center rounded-full bg-[#e21a22] text-[11px] font-bold text-white"
                 >
                   Ver seguimiento
+                </Link>
+              )}
+
+              {!createdOrder.authenticatedCustomer && (
+                <Link
+                  href="/login"
+                  className="mt-2 flex h-11 items-center justify-center rounded-full border border-[#e21a22]/25 bg-[#e21a22]/10 text-[10px] font-semibold text-[#ff666b]"
+                >
+                  Iniciar sesión para verlo en la app
                 </Link>
               )}
 
