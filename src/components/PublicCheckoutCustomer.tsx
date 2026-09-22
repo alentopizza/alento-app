@@ -89,9 +89,14 @@ export default function PublicCheckoutCustomer({
   const selectedPayment =
     paymentMethods.find((method) => method.id === paymentMethodId) ?? null;
   const cashPayment = isCash(selectedPayment);
+  const hasCashAmount = cashReceived.trim().length > 0;
   const cashValue = Number(cashReceived || 0);
-  const cashValid = !cashPayment || (Number.isFinite(cashValue) && cashValue >= total);
-  const change = cashPayment && cashValid ? cashValue - total : 0;
+  const cashValid =
+    !cashPayment ||
+    !hasCashAmount ||
+    (Number.isFinite(cashValue) && cashValue >= total);
+  const change =
+    cashPayment && hasCashAmount && cashValid ? cashValue - total : 0;
 
   async function loadAuthenticatedCustomer() {
     const response = await fetch("/api/auth/customer/me", { cache: "no-store" });
@@ -245,8 +250,8 @@ export default function PublicCheckoutCustomer({
       setError("Selecciona una forma de pago.");
       return;
     }
-    if (!cashValid) {
-      setError(`En efectivo, "Paga con" debe ser igual o mayor a ${money(total)}.`);
+    if (cashPayment && hasCashAmount && !cashValid) {
+      setError(`Si indicas "Paga con", el valor debe ser igual o mayor a ${money(total)}.`);
       return;
     }
 
@@ -269,7 +274,7 @@ export default function PublicCheckoutCustomer({
               ? selection.destination
               : null,
           paymentMethodId,
-          cashReceived: cashPayment ? cashValue : null,
+          cashReceived: cashPayment && hasCashAmount ? cashValue : null,
           items: cart.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -521,7 +526,7 @@ export default function PublicCheckoutCustomer({
                   <div className="mt-3 rounded-[16px] border border-white/10 bg-black/20 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] text-white/40">
-                        ¿Con cuánto pagas?
+                        ¿Con cuánto pagas? <span className="text-white/25">(opcional)</span>
                       </span>
                       <button
                         type="button"
@@ -540,7 +545,7 @@ export default function PublicCheckoutCustomer({
                       className="mt-2 h-11 w-full rounded-[13px] border border-white/10 bg-white px-3.5 text-[14px] font-bold text-black outline-none"
                       placeholder="0"
                     />
-                    {cashReceived && (
+                    {hasCashAmount && (
                       <div className="mt-2 flex items-center justify-between text-[9px]">
                         <span className="text-white/35">
                           {cashValid ? "Vueltas" : "Falta"}
