@@ -218,7 +218,7 @@ Cuando:
 
 la línea se considera completa y los controles dejan de mostrarse.
 
-## Cambio automático a PREPARED
+## Cambio automático a HORNEANDO (`PREPARED`)
 
 El endpoint de preparación recalcula solo líneas que requieren Cocina.
 
@@ -226,15 +226,21 @@ Cuando todas las líneas de Cocina cumplen:
 
 `preparedQuantity >= quantity`
 
-el pedido pasa automáticamente a:
+el pedido pasa automáticamente al estado interno:
 
 `PREPARED`
 
+En toda la interfaz este estado se presenta como **Horneando**.
+
+Flujo operativo visible:
+
+`Preparando → Horneando → Listo`
+
 Si una cantidad se revierte antes de marcar READY, el pedido puede volver a `PREPARING`.
 
-## Acción PREPARED → READY
+## Acción HORNEANDO (`PREPARED`) → READY
 
-Cuando el pedido está `PREPARED`, el header muestra un botón:
+Cuando el pedido está en Horneando (`PREPARED`), Cocina muestra la acción para indicar que salió del horno:
 
 `✓`
 
@@ -253,7 +259,7 @@ Al pulsarlo:
 
 `PREPARED → READY`
 
-y el pedido sale de Cocina.
+y el pedido sale de Cocina. Para Recoger/Local, READY se presenta al cliente como **Listo para recoger**; para Domicilio, como **Listo** antes de pasar a En camino.
 
 ## Ediciones provenientes de Pedidos
 
