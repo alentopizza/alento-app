@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCustomerSession, getStaffSession } from "@/lib/auth";
-import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 
 function money(value: unknown) {
@@ -88,7 +87,6 @@ export default async function CustomerAccountPage() {
         </form>
       </div>
 
-      <PublicMobileNav active="profile" />
     </main>
     </>
   );
