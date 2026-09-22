@@ -43,7 +43,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       },
       items: {
         orderBy: { id: "asc" },
-        select: { productName: true, quantity: true },
+        select: { id: true, productName: true, quantity: true },
       },
     },
   });
@@ -115,7 +115,15 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
           </div>
         </section>
 
-        <DriverOrderActions token={token} initialStatus={order.status} />
+        <DriverOrderActions
+          token={token}
+          initialStatus={order.status}
+          items={order.items.map((item) => ({
+            id: item.id,
+            productName: item.productName,
+            quantity: item.quantity,
+          }))}
+        />
       </div>
     </main>
   );
