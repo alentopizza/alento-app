@@ -76,7 +76,7 @@ export default function SettingsPage() {
           id: `band-${Date.now()}`,
           name: `Zona ${index + 1}`,
           minMeters: highest + 1,
-          maxMeters: highest + 500,
+          maxMeters: highest + 1000,
           fee: 0,
           active: true,
         }],
@@ -244,14 +244,14 @@ export default function SettingsPage() {
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Domicilios</p>
               <h2 className="mt-1 text-xl font-black">Zonas y tarifas</h2>
-              <p className="mt-1 text-sm text-neutral-500">Estas son las opciones que el operador verá al cerrar un pedido a domicilio.</p>
+              <p className="mt-1 text-sm text-neutral-500">Google Routes calcula la distancia real y Alentó aplica automáticamente la tarifa cuyo rango corresponda.</p>
             </div>
             <button onClick={addBand} className="rounded-2xl border bg-white px-4 py-2.5 text-sm font-black">+ Agregar tarifa</button>
           </div>
 
           <div className="space-y-2">
             {settings.deliveryBands.map((band) => (
-              <div key={band.id} className="grid gap-3 rounded-2xl border bg-[#faf9f7] p-3 md:grid-cols-[90px_1fr_180px_auto] md:items-end">
+              <div key={band.id} className="grid gap-3 rounded-2xl border bg-[#faf9f7] p-3 md:grid-cols-[88px_minmax(150px,1fr)_105px_105px_150px_auto] md:items-end">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-black uppercase text-neutral-400">Estado</label>
                   <button onClick={() => updateBand(band.id, { active: !band.active })} className={`w-full rounded-xl px-3 py-3 text-xs font-black ${band.active ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>{band.active ? "Activa" : "Inactiva"}</button>
@@ -259,6 +259,28 @@ export default function SettingsPage() {
                 <div>
                   <label className="mb-1.5 block text-xs font-black">Nombre de la zona</label>
                   <input value={band.name} onChange={(event) => updateBand(band.id, { name: event.target.value })} className="alento-input w-full rounded-xl px-3 py-3" placeholder="Ej. Zona cercana" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Desde (km)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={Number((band.minMeters / 1000).toFixed(2))}
+                    onChange={(event) => updateBand(band.id, { minMeters: Math.max(0, Math.round(Number(event.target.value) * 1000)) })}
+                    className="alento-input w-full rounded-xl px-3 py-3"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-black">Hasta (km)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={Number((band.maxMeters / 1000).toFixed(2))}
+                    onChange={(event) => updateBand(band.id, { maxMeters: Math.max(0, Math.round(Number(event.target.value) * 1000)) })}
+                    className="alento-input w-full rounded-xl px-3 py-3"
+                  />
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-black">Costo domicilio</label>
@@ -271,7 +293,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
-            <b>Funcionamiento actual:</b> el operador selecciona manualmente la zona/tarifa adecuada. Internamente conservamos los rangos históricos para poder automatizar esta selección con Google Maps en el futuro sin rehacer la estructura.
+            <b>Automático con Google Maps:</b> la distancia usada es la ruta real en vehículo desde Alentó hasta el cliente. Si ninguna zona activa contiene esa distancia, el checkout mostrará que está fuera de cobertura.
           </div>
         </section>
 
