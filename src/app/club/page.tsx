@@ -25,7 +25,7 @@ function GuestClub({
   return (
     <>
       <PublicBrandHeader />
-      <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-5">
+      <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-[104px]">
       <div className="mx-auto max-w-[860px] space-y-4">
         <header className="overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.28),transparent_35%),linear-gradient(135deg,#180708,#090909_62%)] p-6 shadow-2xl sm:p-8">
           <div className="flex items-start justify-between gap-4">
@@ -191,7 +191,7 @@ export default async function ClubPage() {
   return (
     <>
       <PublicBrandHeader />
-      <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-5">
+      <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-[104px]">
       <div className="mx-auto max-w-[860px] space-y-4">
         <header className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,#180708,#090909_60%)] p-6 shadow-2xl sm:p-8">
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#e21a22]">Club Alentó</p>
