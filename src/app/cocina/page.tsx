@@ -324,7 +324,9 @@ export default function KitchenPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}</span>
+                        <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] ${prepared ? "bg-violet-50 text-violet-700" : "bg-amber-50 text-amber-700"}`}>
+                          {prepared ? "Preparado · en cocción" : statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
+                        </span>
                       </div>
                       {order.customer?.name && (
                         <p className="mt-1 truncate text-[11px] font-medium leading-4 tracking-[-0.005em] text-neutral-500 [font-synthesis:none]">
@@ -348,10 +350,9 @@ export default function KitchenPage() {
                           disabled={orderBusy}
                           aria-label="Marcar pedido como listo"
                           title="Marcar pedido como listo"
-                          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-sm font-black text-white shadow-[0_4px_12px_rgba(5,150,105,.28)] transition hover:-translate-y-[1px] hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                          className="hidden"
                         >
-                          {!orderBusy && <span className="absolute inset-0 rounded-lg bg-emerald-400/40 animate-ping" aria-hidden="true" />}
-                          <span className="relative z-10" aria-hidden="true">{orderBusy ? "…" : "✓"}</span>
+                          <span>{orderBusy ? "…" : "✓"}</span>
                         </button>
                       )}
                     </div>
@@ -366,6 +367,36 @@ export default function KitchenPage() {
                         onChangePrepared={(value) => void changePrepared(order, item, value)}
                       />
                     ))}
+
+                    {prepared && (
+                      <div className="mt-3 rounded-[18px] border border-violet-200 bg-violet-50/70 p-3.5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-sm font-black text-white">2</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-black uppercase tracking-[0.07em] text-violet-700">Preparado · pendiente de cocción</p>
+                            <p className="mt-1 text-[11px] leading-4 text-violet-700/80">
+                              Cocina terminó el armado. El pedido todavía no está listo para el cliente; espera a que salga del horno.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => void markReady(order)}
+                          disabled={orderBusy}
+                          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black uppercase tracking-[0.06em] text-white shadow-[0_8px_20px_rgba(5,150,105,.20)] transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                        >
+                          <span>{orderBusy ? "…" : "✓"}</span>
+                          {orderBusy ? "Marcando..." : "Salió del horno · Marcar listo"}
+                        </button>
+
+                        <p className="mt-2 text-center text-[9px] font-semibold text-violet-500">
+                          {order.fulfillmentType === "DELIVERY"
+                            ? "En domicilio este cambio es operativo y no notifica al cliente."
+                            : "En Local / Recoger, este cambio envía la notificación de Pedido listo."}
+                        </p>
+                      </div>
+                    )}
 
                   </div>
                 </article>
