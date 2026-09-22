@@ -861,48 +861,51 @@ export default function PublicProductConfigurator({
       const currentId = first ? firstFlavorId : secondFlavorId;
 
       return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {catalog.pizzaFlavors.map((flavor) => {
-            const disabled = !first && firstFlavorId === flavor.id;
-            return (
-              <ChoiceButton
-                key={flavor.id}
-                disabled={disabled}
-                selected={currentId === flavor.id}
-                title={flavor.name}
-                detail={disabled ? "Ya elegido como primer sabor" : undefined}
-                onClick={() => {
-                  setError("");
-                  if (first) {
-                    setFirstFlavorId(flavor.id);
-                    if (secondFlavorId === flavor.id) {
-                      setSecondFlavorId(null);
+        <>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {catalog.pizzaFlavors.map((flavor) => {
+              const disabled = !first && firstFlavorId === flavor.id;
+              return (
+                <ChoiceButton
+                  key={flavor.id}
+                  disabled={disabled}
+                  selected={currentId === flavor.id}
+                  title={flavor.name}
+                  detail={disabled ? "Ya elegido como primer sabor" : undefined}
+                  onClick={() => {
+                    setError("");
+                    if (first) {
+                      setFirstFlavorId(flavor.id);
+                      if (secondFlavorId === flavor.id) {
+                        setSecondFlavorId(null);
+                      }
+                    } else {
+                      setSecondFlavorId(flavor.id);
                     }
-                  } else {
-                    setSecondFlavorId(flavor.id);
-                  }
-                }}
-              />
-            );
-          })}
-        </div>
-        {currentId && (() => {
-          const selectedFlavor = catalog.pizzaFlavors.find(
-            (flavor) => flavor.id === currentId,
-          );
-          if (!selectedFlavor?.description) return null;
+                  }}
+                />
+              );
+            })}
+          </div>
 
-          return (
-            <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
-                {selectedFlavor.name}
-              </p>
-              <p className="mt-1.5 text-[11px] leading-5 text-white/58">
-                {selectedFlavor.description}
-              </p>
-            </div>
-          );
-        })()}
+          {currentId && (() => {
+            const selectedFlavor = catalog.pizzaFlavors.find(
+              (flavor) => flavor.id === currentId,
+            );
+            if (!selectedFlavor?.description) return null;
+
+            return (
+              <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
+                  {selectedFlavor.name}
+                </p>
+                <p className="mt-1.5 text-[11px] leading-5 text-white/58">
+                  {selectedFlavor.description}
+                </p>
+              </div>
+            );
+          })()}
+        </>
       );
     }
 
@@ -1020,43 +1023,46 @@ export default function PublicProductConfigurator({
       const selection = comboPizzaSelections[key];
 
       return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {current.rule.flavors.map((flavor) => (
-            <ChoiceButton
-              key={flavor.id}
-              selected={selection?.flavorId === flavor.id}
-              title={flavor.name}
-              detail={undefined}
-              onClick={() => {
-                setError("");
-                setComboPizzaSelections((state) => ({
-                  ...state,
-                  [key]: {
-                    sizeId: state[key]?.sizeId ?? null,
-                    flavorId: flavor.id,
-                  },
-                }));
-              }}
-            />
-          ))}
-        </div>
-        {selection?.flavorId && (() => {
-          const selectedFlavor = current.rule.flavors.find(
-            (flavor) => flavor.id === selection.flavorId,
-          );
-          if (!selectedFlavor?.description) return null;
+        <>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {current.rule.flavors.map((flavor) => (
+              <ChoiceButton
+                key={flavor.id}
+                selected={selection?.flavorId === flavor.id}
+                title={flavor.name}
+                detail={undefined}
+                onClick={() => {
+                  setError("");
+                  setComboPizzaSelections((state) => ({
+                    ...state,
+                    [key]: {
+                      sizeId: state[key]?.sizeId ?? null,
+                      flavorId: flavor.id,
+                    },
+                  }));
+                }}
+              />
+            ))}
+          </div>
 
-          return (
-            <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
-              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
-                {selectedFlavor.name}
-              </p>
-              <p className="mt-1.5 text-[11px] leading-5 text-white/58">
-                {selectedFlavor.description}
-              </p>
-            </div>
-          );
-        })()}
+          {selection?.flavorId && (() => {
+            const selectedFlavor = current.rule.flavors.find(
+              (flavor) => flavor.id === selection.flavorId,
+            );
+            if (!selectedFlavor?.description) return null;
+
+            return (
+              <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
+                  {selectedFlavor.name}
+                </p>
+                <p className="mt-1.5 text-[11px] leading-5 text-white/58">
+                  {selectedFlavor.description}
+                </p>
+              </div>
+            );
+          })()}
+        </>
       );
     }
 
