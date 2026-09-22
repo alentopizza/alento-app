@@ -209,9 +209,18 @@ export async function computeDrivingRoute(input: {
   if (!response.ok) {
     let message = `Google Routes respondió HTTP ${response.status}.`;
     try {
-      const parsed = JSON.parse(text) as { error?: { message?: string } };
+      const parsed = JSON.parse(text) as {
+        error?: { message?: string; status?: string };
+      };
       if (parsed.error?.message) message = parsed.error.message;
     } catch {}
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        "Routes API no autorizada para la clave Alento Maps Server. Verifica que Routes API esté habilitada y permitida en esa clave.",
+      );
+    }
+
     throw new Error(message);
   }
 
