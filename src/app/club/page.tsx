@@ -1,5 +1,4 @@
 import Link from "next/link";
-import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import { getCustomerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -131,8 +130,6 @@ function GuestClub({
           </div>
         </section>
       </div>
-
-      <PublicMobileNav active="club" />
     </main>
     </>
   );
@@ -287,8 +284,6 @@ export default async function ClubPage() {
           </div>
         </section>
       </div>
-
-      <PublicMobileNav active="club" />
     </main>
     </>
   );
