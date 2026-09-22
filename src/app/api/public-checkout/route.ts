@@ -262,19 +262,28 @@ export async function POST(request: NextRequest) {
       cashPayment && cashReceived != null ? cashReceived - total : null;
 
     const session = await getCustomerSession();
-    const existingCustomer = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { phone },
-          { phone: `${digits(countryCode)}${phone}` },
-        ],
-      },
-      include: {
-        addresses: {
-          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-        },
-      },
-    });
+    const existingCustomer = session
+      ? await prisma.customer.findUnique({
+          where: { id: session.customerId },
+          include: {
+            addresses: {
+              orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            },
+          },
+        })
+      : await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { phone },
+              { phone: `${digits(countryCode)}${phone}` },
+            ],
+          },
+          include: {
+            addresses: {
+              orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            },
+          },
+        });
 
     const sessionOwnsCustomer =
       Boolean(session) && session?.customerId === existingCustomer?.id;
