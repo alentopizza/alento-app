@@ -85,6 +85,8 @@ La experiencia de domicilio usa un layout compacto orientado a móvil:
 - al elegir **Domicilio**, solo se precarga una dirección si pertenece al cliente autenticado y está guardada en su perfil;
 - una dirección temporal de un checkout anterior no se reutiliza automáticamente;
 - antes de seleccionar dirección se muestra el buscador y el acceso **Mi ubicación**;
+- al cambiar desde **Recoger en tienda** hacia **Domicilio**, el autocompletado se inicializa únicamente cuando su contenedor editable ya está renderizado;
+- no se muestra ningún mapa hasta que exista un destino validado, evitando mapas de origen/fallback que puedan confundir al cliente;
 - cuando Google valida una dirección, el buscador se colapsa automáticamente;
 - la dirección confirmada queda en una tarjeta compacta con acción de lápiz para editarla;
 - el mapa pasa a ser el elemento visual principal en formato aproximado 4:3 y se inicializa únicamente cuando su contenedor ya está montado;
