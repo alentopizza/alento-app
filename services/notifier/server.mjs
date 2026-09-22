@@ -165,6 +165,49 @@ function processedParamsFor(data) {
   return processed;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function findMessageInConversation(conversationId, messageId) {
+  const result = await cw(
+    `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${conversationId}/messages?before=`,
+  );
+  return (result?.payload || []).find((item) => Number(item.id) === Number(messageId)) || null;
+}
+
+async function waitForMessageDeliveryState(conversationId, messageId) {
+  const waits = [250, 750, 1500];
+
+  for (const delay of waits) {
+    await sleep(delay);
+    const message = await findMessageInConversation(conversationId, messageId);
+    if (!message) continue;
+
+    if (message.status === "failed" || Number(message.status) === 3) {
+      const externalError =
+        message?.content_attributes?.external_error ||
+        message?.external_error ||
+        "Chatwoot marcó el mensaje como fallido.";
+      throw new Error(`Chatwoot no pudo enviar la plantilla: ${externalError}`);
+    }
+
+    if (message.source_id) {
+      return {
+        confirmed: true,
+        status: message.status ?? null,
+        sourceId: message.source_id,
+      };
+    }
+  }
+
+  return {
+    confirmed: false,
+    status: null,
+    sourceId: null,
+  };
+}
+
 async function sendTemplate(data) {
   if (!data?.template?.templateName) throw new Error("Evento sin plantilla configurada.");
   if (!data?.recipientId || !data?.phone) throw new Error("Evento sin destinatario válido.");
@@ -212,30 +255,27 @@ async function sendTemplate(data) {
     },
   );
 
-  const templateMetadata =
-    message?.additional_attributes?.template_params ||
-    message?.template_params ||
-    null;
-
-  if (!templateMetadata) {
-    throw new Error(
-      `Chatwoot creó el mensaje ${message?.id ?? ""}, pero no conservó template_params. El mensaje no debe tratarse como texto normal.`,
-    );
-  }
+  const delivery = message?.id
+    ? await waitForMessageDeliveryState(conversation.id, message.id)
+    : { confirmed: false, status: null, sourceId: null };
 
   console.log("WhatsApp template queued", {
     messageId: message?.id ?? null,
     conversationId: conversation.id,
     template: data.template.templateName,
     recipient: normalizePhone(data.phone),
-    status: message?.status ?? null,
+    status: delivery.status ?? message?.status ?? null,
+    sourceId: delivery.sourceId,
+    confirmed: delivery.confirmed,
   });
 
   return {
     contactId: contact.id,
     conversationId: conversation.id,
     messageId: message?.id ?? null,
-    messageStatus: message?.status ?? null,
+    messageStatus: delivery.status ?? message?.status ?? null,
+    sourceId: delivery.sourceId,
+    confirmed: delivery.confirmed,
     template: data.template.templateName,
   };
 }
