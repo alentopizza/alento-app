@@ -79,7 +79,17 @@ Si rechaza el permiso, el flujo de búsqueda de dirección debe seguir funcionan
 
 ### Confirmar punto
 
-Mostrar dirección, mapa compacto, pin, barrio, apartamento/casa/local y nota de entrega.
+La experiencia de domicilio usa un layout compacto orientado a móvil:
+
+- antes de seleccionar dirección se muestra el buscador y el acceso **Mi ubicación**;
+- cuando Google valida una dirección, el buscador se colapsa automáticamente;
+- la dirección confirmada queda en una tarjeta compacta con acción de lápiz para editarla;
+- el mapa pasa a ser el elemento visual principal en formato aproximado 4:3;
+- la ruta Alentó → cliente se dibuja sobre el mapa;
+- distancia, domicilio y tiempo se muestran en una sola fila;
+- al entrar en modo edición se bloquea la confirmación hasta validar de nuevo la dirección.
+
+Más adelante este bloque se complementará con barrio, apartamento/casa/local y nota de entrega antes de crear el pedido.
 
 ## Cotización segura
 
@@ -173,11 +183,14 @@ Modalidad → dirección → cobertura → cliente → Club/cupón → pago → 
 - Fase A: Google Cloud y claves configuradas por operación.
 - Fase B: sede validada con Google Geocoding y persistida en `pos_settings`.
 - Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
-- Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API y aplica las bandas activas del sistema.
+- El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 4:3 como elemento principal.
+- El Map ID `Alento Delivery Map` usa el estilo cloud `Alento Delivery Light`.
+- Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API, expone la geometría de la ruta y aplica las bandas activas del sistema.
+- El mapa dibuja la ruta Alentó → cliente y resume Ruta / Domicilio / Tiempo en una sola fila.
 - El carrito ya habilita **Continuar pedido**, conserva la modalidad/domicilio seleccionado y muestra domicilio + total provisional.
 
 ## Próximo paso
 
-Validar en producción el flujo real de dirección y tarifa. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago y creación final del pedido `WEB`).
+Validar en producción el layout compacto, edición de dirección, GPS, estilo cloud y ruta dibujada. Después completar Fase C (persistencia enriquecida de `CustomerAddress`) y Fase F (cliente, pago y creación final del pedido `WEB`).
 
 No pegar las claves en chats, commits ni capturas públicas.
