@@ -350,7 +350,7 @@ export default function PublicCheckoutDelivery({
     }
 
     if ((origin || destination) && mapInstanceRef.current) {
-      mapInstanceRef.current.fitBounds(bounds, 28);
+      mapInstanceRef.current.fitBounds(bounds, 56);
     } else {
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(destination ? 15 : 14);
@@ -817,58 +817,63 @@ export default function PublicCheckoutDelivery({
               )}
 
               {quote?.destination && (
-                <section className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-white/10 bg-[#171717] sm:max-h-[430px] sm:rounded-[22px]">
-                  <div
-                    ref={(element) => {
-                      mapRef.current = element;
-                      setMapReady(Boolean(element));
-                    }}
-                    className="h-full w-full"
-                  />
-                  <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between gap-2">
-                    <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
-                      Alentó → tu ubicación
-                    </div>
-                    {quoting && (
-                      <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[8px] font-bold text-white shadow-lg backdrop-blur sm:text-[9px]">
-                        Calculando...
+                <>
+                  <section className="relative mx-auto aspect-[3/4] w-full max-w-[480px] overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] shadow-[0_18px_50px_rgba(0,0,0,.28)] sm:rounded-[26px]">
+                    <div
+                      ref={(element) => {
+                        mapRef.current = element;
+                        setMapReady(Boolean(element));
+                      }}
+                      className="h-full w-full"
+                    />
+
+                    <div className="pointer-events-none absolute inset-x-3 top-3 z-10 grid grid-cols-3 overflow-hidden rounded-[18px] border border-white/15 bg-[#111]/88 shadow-[0_12px_30px_rgba(0,0,0,.30)] backdrop-blur-xl sm:inset-x-4 sm:top-4">
+                      <div className="px-2.5 py-2.5 sm:px-3 sm:py-3">
+                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                          Ruta
+                        </span>
+                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-white sm:text-[13px]">
+                          {formatDistance(quote.distanceMeters)}
+                        </b>
                       </div>
-                    )}
-                  </div>
-                </section>
-              )}
+                      <div className="border-l border-white/10 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                          Domicilio
+                        </span>
+                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-[#ff454b] sm:text-[13px]">
+                          {quote.covered && quote.deliveryFee != null
+                            ? money(quote.deliveryFee)
+                            : "Sin cobertura"}
+                        </b>
+                      </div>
+                      <div className="border-l border-white/10 px-2.5 py-2.5 sm:px-3 sm:py-3">
+                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                          Tiempo
+                        </span>
+                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-white sm:text-[13px]">
+                          {formatDuration(quote.durationSeconds) || "—"}
+                        </b>
+                      </div>
+                    </div>
 
-              {quote?.destination && !quoting && (
-                <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-2.5 sm:rounded-[20px] sm:p-3">
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
-                      <span className="text-[8px] text-white/35">Ruta</span>
-                      <b className="mt-0.5 block text-[12px] sm:text-[13px]">
-                        {formatDistance(quote.distanceMeters)}
-                      </b>
+                    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2 sm:inset-x-4 sm:bottom-4">
+                      <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
+                        Alentó → tu ubicación
+                      </div>
+                      {quoting && (
+                        <div className="rounded-full bg-[#111]/92 px-3 py-2 text-[8px] font-bold text-white shadow-lg backdrop-blur sm:text-[9px]">
+                          Calculando...
+                        </div>
+                      )}
                     </div>
-                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
-                      <span className="text-[8px] text-white/35">Domicilio</span>
-                      <b className="mt-0.5 block text-[12px] text-[#ff454b] sm:text-[13px]">
-                        {quote.covered && quote.deliveryFee != null
-                          ? money(quote.deliveryFee)
-                          : "Sin cobertura"}
-                      </b>
-                    </div>
-                    <div className="rounded-[13px] border border-white/[0.07] bg-black/20 p-2.5">
-                      <span className="text-[8px] text-white/35">Tiempo</span>
-                      <b className="mt-0.5 block text-[12px] sm:text-[13px]">
-                        {formatDuration(quote.durationSeconds) || "—"}
-                      </b>
-                    </div>
-                  </div>
+                  </section>
 
-                  {!quote.covered && (
-                    <div className="mt-2 rounded-[13px] border border-amber-400/20 bg-amber-400/10 p-2.5 text-[9px] leading-4 text-amber-100">
+                  {!quoting && !quote.covered && (
+                    <div className="rounded-[13px] border border-amber-400/20 bg-amber-400/10 p-2.5 text-[9px] leading-4 text-amber-100">
                       Esta ubicación está fuera de nuestra cobertura. Elige otra dirección o selecciona Recoger.
                     </div>
                   )}
-                </section>
+                </>
               )}
             </div>          ) : (
             <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/10 p-5">
