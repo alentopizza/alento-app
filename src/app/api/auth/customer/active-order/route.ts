@@ -30,12 +30,13 @@ export async function GET() {
     return NextResponse.json({ authenticated: false, order: null });
   }
 
-  const order = await prisma.order.findFirst({
+  const orders = await prisma.order.findMany({
     where: {
       customerId: account.customerId,
       status: { in: [...ACTIVE_STATUSES] },
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 5,
     select: {
       id: true,
       sequenceNumber: true,
@@ -48,20 +49,15 @@ export async function GET() {
     },
   });
 
-  if (!order) {
-    return NextResponse.json({ authenticated: true, order: null });
-  }
+  const serializedOrders = orders.map((order) => {
+    let trackingPath: string | null = null;
+    try {
+      trackingPath = `/seguimiento/${createOrderTrackingToken(order.id)}`;
+    } catch {
+      trackingPath = null;
+    }
 
-  let trackingPath: string | null = null;
-  try {
-    trackingPath = `/seguimiento/${createOrderTrackingToken(order.id)}`;
-  } catch {
-    trackingPath = null;
-  }
-
-  return NextResponse.json({
-    authenticated: true,
-    order: {
+    return {
       id: order.id,
       code: `${order.source}-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`,
       status: order.status,
@@ -70,6 +66,12 @@ export async function GET() {
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       trackingPath,
-    },
+    };
+  });
+
+  return NextResponse.json({
+    authenticated: true,
+    orders: serializedOrders,
+    order: serializedOrders[0] ?? null,
   });
 }
