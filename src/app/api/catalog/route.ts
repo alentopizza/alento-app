@@ -157,7 +157,7 @@ export async function GET() {
       ).values(),
     ];
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       categories: normalizedCategories,
       pizzaFlavors,
       sizes: sizes.map((size) => ({
@@ -179,6 +179,12 @@ export async function GET() {
         basePrice: product.basePrice == null ? 0 : Number(product.basePrice),
       })),
     });
+
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=30, s-maxage=120, stale-while-revalidate=300",
+    );
+    return response;
   } catch (error) {
     console.error("Catalog API error", error);
     return NextResponse.json({ error: "No fue posible cargar el catálogo." }, { status: 500 });
