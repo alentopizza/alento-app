@@ -11,7 +11,7 @@ Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
 Caja avanzada         ⏳ PENDIENTE
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   🟡 V1 IMPLEMENTADA
+Experiencia pública   🟡 CHECKOUT / DOMICILIO EN DESARROLLO
 Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
 ```
 
@@ -200,4 +200,6 @@ Estado: **HOME APROBADA / PRODUCTOS EN DEFINICIÓN**
 
 POS interno continúa en `/interno`.
 
-Carrito, configurador y checkout público siguen pendientes y deben reutilizar la estructura comercial existente.
+El menú, Compra Asistida y carrito público ya están implementados. El siguiente bloque es el checkout real con dirección validada, Google Maps Platform, cálculo server-side de ruta/cobertura y creación de pedidos WEB.
+
+Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
