@@ -1,5 +1,18 @@
 export type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 
+/**
+ * Convención operativa de Alentó:
+ *
+ * PREPARED es el identificador técnico/histórico del estado visible "Horneando".
+ *
+ * Flujo operativo:
+ * PREPARING = Preparando en Cocina
+ * PREPARED  = Horneando (ya salió del tablero de Cocina)
+ * READY     = Salió del horno / Listo
+ *
+ * No crear un enum HORNEANDO ni renombrar PREPARED sin una migración deliberada,
+ * porque PREPARED ya está persistido y es usado por Prisma, APIs y datos históricos.
+ */
 export type OrderStatus =
   | "DRAFT"
   | "CONFIRMED"
