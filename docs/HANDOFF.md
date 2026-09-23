@@ -518,10 +518,14 @@ Efectivo:
 - enlace firmado para el repartidor;
 - `/repartidor/pedido/[token]`;
 - checklist obligatorio antes de salir;
+- **Compartir ubicación en tiempo real** es obligatorio antes de `READY → OUT_FOR_DELIVERY`;
+- el cliente usa `navigator.geolocation.watchPosition()` y mantiene una lectura GPS activa;
+- el endpoint de estado exige checklist completo + lectura GPS válida de máximo 60 segundos para aceptar `OUT_FOR_DELIVERY`;
+- por ahora la lectura GPS se usa como precondición operativa y **no se persiste todavía en Prisma**;
 - `READY → OUT_FOR_DELIVERY → ARRIVED`;
 - `/seguimiento/[token]` se refresca automáticamente.
 
-GPS en vivo del repartidor y el icono de la moto sobre el mapa siguen pendientes.
+Persistencia/streaming de GPS en vivo y el icono de la moto sobre el mapa siguen pendientes. La implementación actual deja el `watchPosition` preparado para esa siguiente fase.
 
 ### Datos del cliente en checkout
 
