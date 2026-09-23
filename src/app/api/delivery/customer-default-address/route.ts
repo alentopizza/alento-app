@@ -3,6 +3,69 @@ import { prisma } from "@/lib/prisma";
 import { getCustomerSession } from "@/lib/auth";
 import { geocodeAddress } from "@/lib/googleMapsServer";
 
+type StoredAddress = {
+  id: number;
+  label: string | null;
+  address: string;
+  formattedAddress: string | null;
+  placeId: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  neighborhood: string | null;
+  city: string | null;
+  notes: string | null;
+  isDefault: boolean;
+};
+
+async function resolveStoredAddress(address: StoredAddress) {
+  if (
+    Number.isFinite(Number(address.latitude)) &&
+    Number.isFinite(Number(address.longitude))
+  ) {
+    return {
+      formattedAddress: address.formattedAddress || address.address,
+      placeId: address.placeId || "",
+      latitude: Number(address.latitude),
+      longitude: Number(address.longitude),
+    };
+  }
+
+  const candidates = [
+    [address.address, address.neighborhood, address.city || "Bogotá", "Colombia"],
+    [address.address, address.city || "Bogotá", "Colombia"],
+    [address.address, "Bogotá", "Colombia"],
+    [address.address, "Colombia"],
+  ]
+    .map((parts) => parts.filter(Boolean).join(", "))
+    .filter((value, index, list) => value && list.indexOf(value) === index);
+
+  let lastError: unknown = null;
+
+  for (const candidate of candidates) {
+    try {
+      const location = await geocodeAddress(candidate);
+
+      await prisma.customerAddress.update({
+        where: { id: address.id },
+        data: {
+          formattedAddress: location.formattedAddress,
+          placeId: location.placeId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+      });
+
+      return location;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No fue posible ubicar esta dirección guardada.");
+}
+
 export async function GET() {
   try {
     const session = await getCustomerSession();
@@ -17,6 +80,10 @@ export async function GET() {
         id: true,
         label: true,
         address: true,
+        formattedAddress: true,
+        placeId: true,
+        latitude: true,
+        longitude: true,
         neighborhood: true,
         city: true,
         notes: true,
@@ -36,16 +103,7 @@ export async function GET() {
     let resolvedPrimary = null;
 
     if (primary?.address?.trim()) {
-      const query = [
-        primary.address.trim(),
-        primary.neighborhood?.trim(),
-        primary.city?.trim() || "Bogotá",
-        "Colombia",
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      const location = await geocodeAddress(query);
+      const location = await resolveStoredAddress(primary);
       resolvedPrimary = {
         id: primary.id,
         label: primary.label,
@@ -100,6 +158,10 @@ export async function POST(request: Request) {
         id: true,
         label: true,
         address: true,
+        formattedAddress: true,
+        placeId: true,
+        latitude: true,
+        longitude: true,
         neighborhood: true,
         city: true,
         notes: true,
@@ -111,16 +173,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dirección no encontrada." }, { status: 404 });
     }
 
-    const query = [
-      address.address.trim(),
-      address.neighborhood?.trim(),
-      address.city?.trim() || "Bogotá",
-      "Colombia",
-    ]
-      .filter(Boolean)
-      .join(", ");
-
-    const location = await geocodeAddress(query);
+    const location = await resolveStoredAddress(address);
 
     return NextResponse.json({
       authenticated: true,
