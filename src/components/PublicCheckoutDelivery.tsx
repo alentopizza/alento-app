@@ -401,10 +401,28 @@ export default function PublicCheckoutDelivery({
         await drawMap(nextQuote.destination, nextQuote.encodedPolyline);
       }
     } catch (err) {
-      setQuote(null);
+      setQuote({
+        covered: false,
+        distanceMeters: 0,
+        deliveryFee: null,
+        destination: {
+          formattedAddress: input.formattedAddress || "Ubicación seleccionada",
+          placeId: input.placeId || "",
+          latitude: input.latitude,
+          longitude: input.longitude,
+        },
+      });
+      setEditingAddress(false);
       setError(
         err instanceof Error ? err.message : "No fue posible calcular el domicilio.",
       );
+      await drawMap(
+        {
+          latitude: input.latitude,
+          longitude: input.longitude,
+        },
+        undefined,
+      ).catch(() => undefined);
     } finally {
       setQuoting(false);
     }
@@ -560,8 +578,6 @@ export default function PublicCheckoutDelivery({
 
   const resolveSavedAddress = useCallback(
     async (addressId: number) => {
-      const previousAddressId = selectedSavedAddressId;
-
       // Cambio optimista: la tarjeta responde inmediatamente al toque.
       setSelectedSavedAddressId(addressId);
       setResolvingSavedAddressId(addressId);
@@ -594,7 +610,6 @@ export default function PublicCheckoutDelivery({
           placeId: data.address.placeId || "",
         });
       } catch (err) {
-        setSelectedSavedAddressId(previousAddressId);
         setError(
           err instanceof Error
             ? err.message
@@ -605,7 +620,7 @@ export default function PublicCheckoutDelivery({
         setLoadingSavedAddress(false);
       }
     },
-    [requestQuote, selectedSavedAddressId],
+    [requestQuote],
   );
 
   const loadSavedCustomerAddress = useCallback(async () => {
@@ -912,37 +927,7 @@ export default function PublicCheckoutDelivery({
                         {quote.destination.formattedAddress}
                       </b>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuote(null);
-                        setSelectedSavedAddressId(null);
-                        setMapReady(false);
-                        mapInstanceRef.current = null;
-                        destinationMarkerRef.current = null;
-                        originMarkerRef.current = null;
-                        routePolylineRef.current = null;
-                        setEditingAddress(true);
-                        setError("");
-                      }}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/65 transition hover:bg-white/[0.09] hover:text-white"
-                      aria-label="Editar dirección"
-                      title="Editar dirección"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                        className="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                      </svg>
-                    </button>
+
                   </div>
                 </section>
               ) : (
@@ -1035,6 +1020,25 @@ export default function PublicCheckoutDelivery({
                         </b>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMapReady(false);
+                        mapInstanceRef.current = null;
+                        destinationMarkerRef.current = null;
+                        originMarkerRef.current = null;
+                        routePolylineRef.current = null;
+                        setEditingAddress(true);
+                        setError("");
+                      }}
+                      className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/10 bg-white/95 px-4 py-2.5 text-[11px] font-bold text-neutral-900 shadow-[0_10px_28px_rgba(0,0,0,.22)] backdrop-blur transition hover:bg-white sm:bottom-20 sm:px-5 sm:py-3 sm:text-[12px]"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-900">
+                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+                      </span>
+                      Ajustar punto de entrega
+                    </button>
 
                     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2 sm:inset-x-4 sm:bottom-4">
                       <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
