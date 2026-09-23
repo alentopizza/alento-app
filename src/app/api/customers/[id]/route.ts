@@ -36,7 +36,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         },
       },
       orders: {
-        where: { status: { not: "CANCELED" } },
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
@@ -67,12 +66,18 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
   }
 
-  const purchaseCount = customer.orders.length;
-  const totalSpent = customer.orders.reduce((sum, order) => sum + Number(order.total), 0);
+  const validOrders = customer.orders.filter((order) => order.status !== "CANCELED");
+  const canceledCount = customer.orders.length - validOrders.length;
+  const purchaseCount = validOrders.length;
+  const totalSpent = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
   const averageTicket = purchaseCount > 0 ? totalSpent / purchaseCount : 0;
-  const chronological = [...customer.orders].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const chronological = [...validOrders].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const firstOrderAt = chronological[0]?.createdAt ?? null;
   const lastOrderAt = chronological.at(-1)?.createdAt ?? null;
+  const cancellationRate =
+    customer.orders.length > 0
+      ? Math.round((canceledCount / customer.orders.length) * 100)
+      : 0;
   const frequencyDays = purchaseCount > 1 && firstOrderAt && lastOrderAt
     ? Math.max(1, Math.round((lastOrderAt.getTime() - firstOrderAt.getTime()) / 86400000 / (purchaseCount - 1)))
     : null;
@@ -87,6 +92,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         firstOrderAt,
         lastOrderAt,
         frequencyDays,
+        canceledCount,
+        cancellationRate,
       },
     },
   });
