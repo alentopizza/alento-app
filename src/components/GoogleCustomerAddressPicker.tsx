@@ -104,14 +104,12 @@ type DeliveryQuote = {
   };
 };
 
-declare global {
-  interface Window {
-    google?: GoogleMapsRuntime;
-  }
+function getGoogleWindow() {
+  return window as typeof window & { google?: GoogleMapsRuntime };
 }
 
 function installGoogleMapsBootstrap(key: string) {
-  if (window.google?.maps?.importLibrary) return;
+  if (getGoogleWindow().google?.maps?.importLibrary) return;
 
   const bootstrapId = "alento-google-maps-bootstrap";
   if (!document.getElementById(bootstrapId)) {
@@ -161,11 +159,11 @@ async function loadGoogleMaps() {
 
   installGoogleMapsBootstrap(key);
 
-  if (!window.google?.maps?.importLibrary) {
+  if (!getGoogleWindow().google?.maps?.importLibrary) {
     throw new Error("No fue posible iniciar Google Maps.");
   }
 
-  return window.google;
+  return getGoogleWindow().google;
 }
 
 function componentValue(
