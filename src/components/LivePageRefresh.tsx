@@ -2,8 +2,18 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  subscribeLiveDataChange,
+  type LiveDataScope,
+} from "@/lib/liveDataEvents";
 
-export default function LivePageRefresh({ intervalMs = 3000 }: { intervalMs?: number }) {
+export default function LivePageRefresh({
+  intervalMs = 3000,
+  scopes,
+}: {
+  intervalMs?: number;
+  scopes?: readonly LiveDataScope[];
+}) {
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +29,7 @@ export default function LivePageRefresh({ intervalMs = 3000 }: { intervalMs?: nu
     };
 
     const timer = window.setInterval(refresh, intervalMs);
+    const unsubscribe = subscribeLiveDataChange(scopes, () => refresh());
     const onFocus = () => refresh();
     const onVisibility = () => {
       if (document.visibilityState === "visible") refresh();
@@ -29,10 +40,11 @@ export default function LivePageRefresh({ intervalMs = 3000 }: { intervalMs?: nu
 
     return () => {
       window.clearInterval(timer);
+      unsubscribe();
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [intervalMs, router]);
+  }, [intervalMs, router, scopes]);
 
   return null;
 }
