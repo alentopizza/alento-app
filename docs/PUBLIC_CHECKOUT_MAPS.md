@@ -214,6 +214,20 @@ Reglas actuales:
 - El mapa dibuja la ruta Alentó → cliente y resume Ruta / Domicilio / Tiempo en una sola fila.
 - El carrito ya habilita **Continuar pedido**, conserva la modalidad/domicilio seleccionado y muestra domicilio + total provisional.
 
+## Selección de direcciones guardadas
+
+Cuando un cliente autenticado tiene varias `CustomerAddress`:
+
+- el checkout carga todas las direcciones;
+- la dirección `isDefault=true` se selecciona inicialmente;
+- la principal no es obligatoria para ese pedido;
+- el cliente puede cambiar entre Casa, Trabajo u otra dirección guardada;
+- al seleccionar otra dirección se resuelve con Google, se recalculan ruta, cobertura, tarifa y tiempo, y se actualiza el mapa;
+- **+ Nueva** abre el buscador de Google para una ubicación distinta;
+- el botón de editar sigue permitiendo reemplazar la selección actual con una dirección buscada en Google.
+
+No volver a implementar el checkout usando exclusivamente la primera dirección guardada.
+
 ## Próximo paso
 
 Validar en producción el flujo completo desde carrito hasta creación `WEB`, incluyendo invitado, recuperación por WhatsApp, efectivo y seguimiento. Después completar Fase C con persistencia enriquecida de `CustomerAddress` y mejorar selección/edición de direcciones.
