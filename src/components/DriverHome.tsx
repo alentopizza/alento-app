@@ -1049,86 +1049,52 @@ export default function DriverHome({
 
             <div className="flex snap-x gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {orders.length ? (
-                orders.map((order) => {
-                  const own = Boolean(order.assignment?.own);
-                  const assignedOther =
-                    Boolean(order.assignment) && !order.assignment?.own;
-
-                  return (
-                    <article
-                      key={order.id}
-                      onClick={() => setSelectedId(order.id)}
-                      className={
-                        "min-w-[286px] snap-start overflow-hidden rounded-[20px] border bg-[#111]/96 text-white shadow-[0_16px_42px_rgba(0,0,0,.28)] backdrop-blur-xl sm:min-w-[310px] " +
-                        (selectedId === order.id
-                          ? "border-[#e21a22]/60"
-                          : "border-white/10")
+                orders.map((order) => (
+                  <article
+                    key={order.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(order.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedId(order.id);
                       }
-                    >
-                      <div className="p-3.5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <b className="text-[12px] font-black">{order.code}</b>
-                              <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[8px] font-black uppercase text-white/55">
-                                {statusLabel(order.status)}
-                              </span>
-                            </div>
-                            <p className="mt-1 truncate text-[10px] font-semibold text-white/70">
-                              {order.customerName}
-                            </p>
+                    }}
+                    className={
+                      "min-w-[286px] cursor-pointer snap-start overflow-hidden rounded-[20px] border bg-[#111]/96 text-white shadow-[0_16px_42px_rgba(0,0,0,.28)] backdrop-blur-xl transition active:scale-[.99] sm:min-w-[310px] " +
+                      (selectedId === order.id
+                        ? "border-[#e21a22]/60"
+                        : "border-white/10")
+                    }
+                  >
+                    <div className="p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <b className="text-[12px] font-black">{order.code}</b>
+                            <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[8px] font-black uppercase text-white/55">
+                              {statusLabel(order.status)}
+                            </span>
                           </div>
-                          <b className="shrink-0 text-[12px] text-[#ff454b]">
-                            {money(order.total)}
-                          </b>
+                          <p className="mt-1 truncate text-[10px] font-semibold text-white/70">
+                            {order.customerName}
+                          </p>
                         </div>
+                        <b className="shrink-0 text-[12px] text-[#ff454b]">
+                          {money(order.total)}
+                        </b>
+                      </div>
 
-                        <p className="mt-2 line-clamp-2 text-[9px] leading-4 text-white/42">
+                      <div className="mt-2 flex items-end justify-between gap-3">
+                        <p className="line-clamp-2 min-w-0 text-[9px] leading-4 text-white/42">
                           {order.address?.address || "Dirección pendiente"}
                         </p>
-
-                        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
-                          <span className="text-[9px] font-semibold text-white/40">
-                            {order.itemCount} producto{order.itemCount === 1 ? "" : "s"}
-                          </span>
-
-                          {own && order.href ? (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                router.push(order.href!);
-                              }}
-                              className="h-9 rounded-xl bg-white px-3 text-[10px] font-black text-black"
-                            >
-                              Abrir pedido
-                            </button>
-                          ) : order.claimable ? (
-                            <button
-                              type="button"
-                              disabled={!driver.driverAvailable || claimingId != null}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void claim(order);
-                              }}
-                              className="h-9 rounded-xl bg-[#e21a22] px-3 text-[10px] font-black text-white disabled:bg-white/10 disabled:text-white/30"
-                            >
-                              {claimingId === order.id
-                                ? "Tomando..."
-                                : driver.driverAvailable
-                                  ? "Autoasignarme"
-                                  : "Actívate para tomar"}
-                            </button>
-                          ) : assignedOther ? (
-                            <span className="max-w-[130px] truncate text-right text-[9px] font-semibold text-white/35">
-                              {order.assignment?.driverName}
-                            </span>
-                          ) : null}
-                        </div>
+                        <span className="shrink-0 text-lg leading-none text-white/28">›</span>
                       </div>
-                    </article>
-                  );
-                })
+                    </div>
+                  </article>
+                ))
               ) : (
                 <div className="w-full rounded-[20px] border border-white/10 bg-[#111]/94 px-4 py-5 text-center text-[10px] font-semibold text-white/45 backdrop-blur-xl">
                   No hay domicilios en proceso.
@@ -1136,6 +1102,228 @@ export default function DriverHome({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {selectedOrder && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end justify-center bg-black/72 backdrop-blur-[4px] sm:items-center sm:p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedId(null);
+          }}
+        >
+          <section className="flex max-h-[92dvh] w-full max-w-[620px] flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#0e0e0e] text-white shadow-[0_30px_100px_rgba(0,0,0,.55)] sm:rounded-[28px]">
+            <header className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-5">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#ff454b]">
+                  Solicitud de domicilio
+                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <h2 className="text-[20px] font-black tracking-[-0.03em]">
+                    {selectedOrder.code}
+                  </h2>
+                  <span className="rounded-full bg-white/[0.07] px-2.5 py-1 text-[8px] font-black uppercase text-white/55">
+                    {statusLabel(selectedOrder.status)}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                aria-label="Cerrar solicitud"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl text-white/65"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto">
+              <div className="border-b border-white/10 p-4 sm:p-5">
+                <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
+                  Entrega
+                </p>
+
+                <div className="mt-3 grid gap-2">
+                  <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.04] px-3.5 py-3">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-white/32">
+                      Cliente
+                    </span>
+                    <b className="mt-1 block text-[13px]">
+                      {selectedOrder.customerName}
+                    </b>
+                    {selectedOrder.customerPhone && (
+                      <span className="mt-0.5 block text-[10px] text-white/45">
+                        {selectedOrder.customerPhone}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.04] px-3.5 py-3">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-white/32">
+                      Dirección
+                    </span>
+                    <b className="mt-1 block text-[11px] leading-5 text-white/82">
+                      {selectedOrder.address?.address || "Dirección pendiente"}
+                    </b>
+                    {selectedOrder.address?.neighborhood && (
+                      <span className="mt-0.5 block text-[9px] text-white/38">
+                        {selectedOrder.address.neighborhood}
+                      </span>
+                    )}
+                    {selectedOrder.address?.notes && (
+                      <p className="mt-2 rounded-xl border border-[#e21a22]/15 bg-[#e21a22]/[0.07] px-3 py-2 text-[9px] leading-4 text-white/65">
+                        {selectedOrder.address.notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-b border-white/10 p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
+                    Productos
+                  </p>
+                  <span className="text-[9px] font-semibold text-white/35">
+                    {selectedOrder.items.reduce(
+                      (total, item) => total + item.quantity,
+                      0,
+                    )}{" "}
+                    unidad(es)
+                  </span>
+                </div>
+
+                <div className="mt-3 divide-y divide-white/10 overflow-hidden rounded-[18px] border border-white/[0.08] bg-white/[0.035]">
+                  {selectedOrder.items.map((item) => {
+                    const details = orderItemDetails(item.configuration);
+
+                    return (
+                      <article key={item.id} className="p-3.5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl bg-[#e21a22] px-2 text-[10px] font-black text-white">
+                            {item.quantity}×
+                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <b className="block text-[12px] leading-5">
+                                  {item.productName}
+                                </b>
+                                {item.variantName && (
+                                  <span className="block text-[9px] text-white/38">
+                                    {item.variantName}
+                                  </span>
+                                )}
+                              </div>
+                              <b className="shrink-0 text-[11px]">
+                                {money(item.lineTotal)}
+                              </b>
+                            </div>
+
+                            {details.length > 0 && (
+                              <div className="mt-1.5 space-y-0.5">
+                                {details.map((detail) => (
+                                  <p
+                                    key={detail}
+                                    className="text-[9px] leading-4 text-white/42"
+                                  >
+                                    {detail}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
+                            {item.notes && (
+                              <p className="mt-2 text-[9px] leading-4 text-[#ff8b8f]">
+                                Nota: {item.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-5">
+                <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
+                  Cobro
+                </p>
+
+                <div className="mt-3 space-y-2 text-[10px]">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/42">Subtotal</span>
+                    <b>{money(selectedOrder.subtotal)}</b>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/42">Domicilio</span>
+                    <b className="text-[#ff454b]">
+                      {money(selectedOrder.deliveryFee)}
+                    </b>
+                  </div>
+                  {selectedOrder.discount > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-white/42">Descuento</span>
+                      <b className="text-[#ff8b8f]">
+                        − {money(selectedOrder.discount)}
+                      </b>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-2">
+                    <span className="text-white/42">Pago</span>
+                    <div className="flex items-center gap-2">
+                      <b>{selectedOrder.payment?.method || "Sin información"}</b>
+                      {selectedOrder.payment?.status && (
+                        <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[8px] font-black uppercase text-white/40">
+                          {selectedOrder.payment.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between gap-3 border-t border-white/10 pt-3">
+                    <span className="text-[9px] font-black uppercase tracking-[0.08em] text-white/45">
+                      Total
+                    </span>
+                    <b className="text-[22px] font-black tracking-[-0.03em]">
+                      {money(selectedOrder.total)}
+                    </b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer className="border-t border-white/10 bg-[#0b0b0b] p-3 sm:p-4">
+              {selectedOrder.assignment?.own && selectedOrder.href ? (
+                <button
+                  type="button"
+                  onClick={() => router.push(selectedOrder.href!)}
+                  className="h-12 w-full rounded-full bg-white text-[11px] font-black text-black"
+                >
+                  Abrir mi pedido
+                </button>
+              ) : selectedOrder.claimable ? (
+                <button
+                  type="button"
+                  disabled={!driver.driverAvailable || claimingId != null}
+                  onClick={() => void claim(selectedOrder)}
+                  className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-black text-white shadow-[0_10px_28px_rgba(226,26,34,.20)] disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none"
+                >
+                  {claimingId === selectedOrder.id
+                    ? "Autoasignando..."
+                    : driver.driverAvailable
+                      ? "Autoasignarme este domicilio"
+                      : "Ponte Activo para autoasignarte"}
+                </button>
+              ) : selectedOrder.assignment ? (
+                <div className="flex h-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 text-center text-[10px] font-semibold text-white/42">
+                  Asignado a {selectedOrder.assignment.driverName}
+                </div>
+              ) : null}
+            </footer>
+          </section>
         </div>
       )}
 
