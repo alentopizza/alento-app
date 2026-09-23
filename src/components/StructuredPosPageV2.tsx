@@ -786,7 +786,7 @@ export default function StructuredPosPageV2() {
 
       {showCustomerModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4">
-          <div className="alento-card flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-[30px] bg-white">
+          <div className="alento-card flex max-h-[94dvh] w-[min(96vw,980px)] max-w-none flex-col overflow-hidden rounded-[30px] bg-white">
             <div className="flex items-start justify-between border-b px-6 py-5">
               <div>
                 <p className="alento-ui-label uppercase text-neutral-400">Cliente</p>
@@ -805,22 +805,27 @@ export default function StructuredPosPageV2() {
 
             <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
               <div className="alento-scroll min-h-0 flex-1 overflow-y-auto bg-[#f7f6f3] p-4 sm:p-5 lg:p-6">
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)] lg:gap-5">
+                <div className="space-y-4">
                   <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
-                    <div className="mb-4 border-b border-neutral-100 pb-3">
-                      <p className="alento-ui-label uppercase text-neutral-400">
-                        Información personal
-                      </p>
-                      <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">
-                        Datos del cliente
-                      </h3>
-                      <p className="mt-1 text-[11px] leading-4 text-neutral-400">
-                        Información básica para identificarlo y contactarlo.
-                      </p>
+                    <div className="mb-5 flex items-start gap-3 border-b border-neutral-100 pb-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-[12px] font-bold text-white">
+                        01
+                      </div>
+                      <div>
+                        <p className="alento-ui-label uppercase text-neutral-400">
+                          Información personal
+                        </p>
+                        <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
+                          Datos del cliente
+                        </h3>
+                        <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                          Información básica para identificarlo y contactarlo.
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="block">
+                    <div className="grid gap-3 md:grid-cols-12">
+                      <label className="block md:col-span-5">
                         <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                           Nombre
                         </span>
@@ -832,7 +837,7 @@ export default function StructuredPosPageV2() {
                         />
                       </label>
 
-                      <div className="grid grid-cols-[110px_1fr] gap-3">
+                      <div className="grid grid-cols-[110px_1fr] gap-3 md:col-span-7">
                         <label className="block">
                           <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                             Indicativo
@@ -860,7 +865,7 @@ export default function StructuredPosPageV2() {
                         </label>
                       </div>
 
-                      <label className="block">
+                      <label className="block md:col-span-6">
                         <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                           Correo <span className="font-medium text-neutral-400">(opcional)</span>
                         </span>
@@ -872,14 +877,14 @@ export default function StructuredPosPageV2() {
                         />
                       </label>
 
-                      <label className="block">
+                      <label className="block md:col-span-6">
                         <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                           Nota del cliente <span className="font-medium text-neutral-400">(opcional)</span>
                         </span>
                         <textarea
                           value={notes}
                           onChange={(event) => setNotes(event.target.value)}
-                          className="alento-input min-h-[96px] w-full resize-none rounded-2xl px-4 py-3"
+                          className="alento-input min-h-[48px] w-full resize-none rounded-2xl px-4 py-3 md:h-12 md:min-h-12"
                           placeholder="Información útil para futuras compras"
                         />
                       </label>
@@ -887,17 +892,22 @@ export default function StructuredPosPageV2() {
                   </section>
 
                   <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
-                    <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
-                      <div>
-                        <p className="alento-ui-label uppercase text-neutral-400">
-                          Direcciones
-                        </p>
-                        <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">
-                          Direcciones de entrega
-                        </h3>
-                        <p className="mt-1 text-[11px] leading-4 text-neutral-400">
-                          Guarda varias ubicaciones y define una como principal.
-                        </p>
+                    <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-red)] text-[12px] font-bold text-white">
+                          02
+                        </div>
+                        <div>
+                          <p className="alento-ui-label uppercase text-neutral-400">
+                            Direcciones
+                          </p>
+                          <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
+                            Direcciones de entrega
+                          </h3>
+                          <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                            Busca con Google, guarda varias ubicaciones y define una como principal.
+                          </p>
+                        </div>
                       </div>
 
                       {editingCustomer && !addressEditor && (
@@ -994,41 +1004,46 @@ export default function StructuredPosPageV2() {
                     )}
 
                     {(!editingCustomer || addressEditor) && addressEditor && (
-                      <div className="mt-4 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5 sm:p-4">
-                        <label className="block">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Etiqueta
-                          </span>
-                          <input
-                            value={addressEditor.label}
-                            onChange={(event) =>
-                              setAddressEditor({ ...addressEditor, label: event.target.value })
-                            }
-                            className="alento-input h-11 w-full rounded-xl px-3"
-                            placeholder="Casa, Trabajo..."
-                          />
-                        </label>
+                      <div className="mt-4 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4 sm:p-5">
+                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+                          <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Etiqueta
+                            </span>
+                            <input
+                              value={addressEditor.label}
+                              onChange={(event) =>
+                                setAddressEditor({ ...addressEditor, label: event.target.value })
+                              }
+                              className="alento-input h-12 w-full rounded-xl px-3"
+                              placeholder="Casa, Trabajo..."
+                            />
+                          </label>
 
-                        <div className="mt-3">
-                          <GoogleCustomerAddressPicker
-                            currentAddress={addressEditor.id ? addressEditor.address : undefined}
-                            onSelect={(selection) =>
-                              setAddressEditor((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      address: selection.formattedAddress,
-                                      neighborhood:
-                                        selection.neighborhood || current.neighborhood,
-                                      city: selection.city || current.city,
-                                    }
-                                  : current,
-                              )
-                            }
-                          />
+                          <div>
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Ubicación
+                            </span>
+                            <GoogleCustomerAddressPicker
+                              currentAddress={addressEditor.id ? addressEditor.address : undefined}
+                              onSelect={(selection) =>
+                                setAddressEditor((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        address: selection.formattedAddress,
+                                        neighborhood:
+                                          selection.neighborhood || current.neighborhood,
+                                        city: selection.city || current.city,
+                                      }
+                                    : current,
+                                )
+                              }
+                            />
+                          </div>
                         </div>
 
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
                           <label className="block">
                             <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                               Barrio
