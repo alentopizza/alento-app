@@ -209,10 +209,15 @@ export default function GoogleCustomerAddressPicker({
   const destinationMarkerRef = useRef<GoogleMarkerInstance | null>(null);
   const routePolylineRef = useRef<GooglePolylineInstance | null>(null);
 
+  const onSelectRef = useRef(onSelect);
   const [editing, setEditing] = useState(!currentAddress);
   const [loading, setLoading] = useState(false);
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
 
   const drawMap = useCallback(async (nextQuote: DeliveryQuote) => {
     if (!mapRef.current || !nextQuote.destination) return;
@@ -340,7 +345,7 @@ export default function GoogleCustomerAddressPicker({
       setQuote(data);
       setEditing(false);
 
-      onSelect({
+      onSelectRef.current({
         formattedAddress: data.destination.formattedAddress,
         placeId: data.destination.placeId,
         latitude: data.destination.latitude,
@@ -358,7 +363,7 @@ export default function GoogleCustomerAddressPicker({
         void drawMap(data);
       });
     },
-    [drawMap, onSelect],
+    [drawMap],
   );
 
   useEffect(() => {
