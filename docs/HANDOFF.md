@@ -402,6 +402,18 @@ Reglas de no regresión:
 - un pedido finalizado borrado desaparece también de historial, métricas y puntos del cliente;
 - esta acción es de mantenimiento y no sustituye Cancelar.
 
+### Checkout público en página completa
+
+El cierre del pedido dentro de `/cart` usa pasos de página:
+
+- `cart`;
+- `delivery`;
+- `customer`.
+
+`PublicCheckoutDelivery` y `PublicCheckoutCustomer` aceptan `fullPage`.
+
+No volver a convertir estos pasos en modales centrados, porque direcciones múltiples, Google Maps, ruta y pago requieren más espacio.
+
 ### Direcciones múltiples de clientes
 
 Captura vigente:
