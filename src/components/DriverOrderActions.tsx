@@ -12,6 +12,7 @@ type ChecklistItem = {
   lineTotal: number;
   details: PresentedDetail[];
   notes: string | null;
+  verified: boolean;
 };
 
 type DriverLocationSnapshot = {
@@ -55,7 +56,6 @@ export default function DriverOrderActions({
     useState<DriverLocationSnapshot | null>(null);
   const [locationError, setLocationError] = useState("");
 
-  const storageKey = `alento-driver-checklist:${token}`;
   const locationStorageKey = `alento-driver-location-sharing:${token}`;
 
   useEffect(() => {
@@ -65,24 +65,11 @@ export default function DriverOrderActions({
   useEffect(() => {
     if (status !== "READY") {
       setCheckedIds([]);
-      window.localStorage.removeItem(storageKey);
       return;
     }
 
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
-      if (Array.isArray(saved)) {
-        const validIds = items.map((item) => item.id);
-        setCheckedIds(
-          saved
-            .map(Number)
-            .filter((id) => Number.isInteger(id) && validIds.includes(id)),
-        );
-      }
-    } catch {
-      setCheckedIds([]);
-    }
-  }, [status, storageKey, items]);
+    setCheckedIds(items.filter((item) => item.verified).map((item) => item.id));
+  }, [status, items]);
 
   useEffect(() => {
     return () => {
@@ -162,17 +149,47 @@ export default function DriverOrderActions({
     [items, checkedIds],
   );
 
-  function toggleItem(itemId: number) {
+  async function toggleItem(itemId: number) {
     if (busy || status !== "READY") return;
 
-    setCheckedIds((current) => {
-      const next = current.includes(itemId)
-        ? current.filter((id) => id !== itemId)
-        : [...current, itemId];
+    const checked = checkedIds.includes(itemId);
+    const optimistic = checked
+      ? checkedIds.filter((id) => id !== itemId)
+      : [...checkedIds, itemId];
 
-      window.localStorage.setItem(storageKey, JSON.stringify(next));
-      return next;
-    });
+    setCheckedIds(optimistic);
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `/api/repartidor/pedido/${encodeURIComponent(token)}/checklist`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemId,
+            checked: !checked,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible actualizar la verificación.",
+        );
+      }
+
+      router.refresh();
+    } catch (error) {
+      setCheckedIds(checkedIds);
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "No fue posible actualizar la verificación.",
+      );
+    }
   }
 
   function stopLocationSharing() {
@@ -278,8 +295,6 @@ export default function DriverOrderActions({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: next,
-            checklistItemIds:
-              next === "OUT_FOR_DELIVERY" ? checkedIds : undefined,
             location:
               next === "OUT_FOR_DELIVERY" ? locationSnapshot : undefined,
           }),
@@ -294,7 +309,6 @@ export default function DriverOrderActions({
       setStatus(data.order.status);
 
       if (next === "OUT_FOR_DELIVERY") {
-        window.localStorage.removeItem(storageKey);
         setCheckedIds([]);
       }
 
