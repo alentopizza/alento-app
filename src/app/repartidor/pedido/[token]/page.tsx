@@ -95,6 +95,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               token={token}
               phone={phone}
               customerName={order.customer?.name ?? "Cliente"}
+              currentStatus={order.status}
             />
 
             <div className="mt-3 rounded-xl bg-[#111] px-3 py-3 text-white">
