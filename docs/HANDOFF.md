@@ -404,6 +404,16 @@ Reglas de no regresión:
 
 ### Direcciones múltiples de clientes
 
+Captura vigente:
+
+- POS y `/clientes` usan `GoogleCustomerAddressPicker`;
+- las direcciones nuevas se seleccionan desde Google Places;
+- el punto se muestra en mapa y se valida con Routes/cobertura;
+- evitar reintroducir un input libre como captura principal de dirección;
+- barrio e indicaciones son datos complementarios editables manualmente.
+
+### Direcciones múltiples de clientes
+
 `CustomerAddress` es una colección y no debe volver a reducirse a un único campo `address`.
 
 Reglas vigentes:
