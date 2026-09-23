@@ -460,6 +460,10 @@ export default function CustomersPage() {
             city: item.city ?? "Bogotá",
             notes: item.notes ?? "",
             isDefault: item.isDefault,
+            formattedAddress: item.formattedAddress ?? item.address,
+            placeId: item.placeId ?? "",
+            latitude: item.latitude ?? null,
+            longitude: item.longitude ?? null,
           }
         : {
             id: null,
