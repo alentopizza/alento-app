@@ -25,10 +25,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       createdAt: true,
       addresses: {
         orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+        take: 1,
         select: {
           id: true,
           label: true,
           address: true,
+          formattedAddress: true,
+          placeId: true,
+          latitude: true,
+          longitude: true,
           neighborhood: true,
           city: true,
           notes: true,
