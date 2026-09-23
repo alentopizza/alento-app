@@ -128,6 +128,7 @@ export default function PreparationPage() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const totalBalls = useMemo(
@@ -208,6 +209,40 @@ export default function PreparationPage() {
       setError(err instanceof Error ? err.message : "No fue posible guardar la preparación.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deletePreparation(preparation: DoughPreparation) {
+    const confirmed = window.confirm(
+      `¿Eliminar la preparación #${String(preparation.id).padStart(4, "0")}? Esta acción no se puede deshacer.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(preparation.id);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/dough-preparations?id=${preparation.id}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible eliminar la preparación.");
+      }
+
+      setPreparations((current) =>
+        current.filter((item) => item.id !== preparation.id),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible eliminar la preparación.",
+      );
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -326,9 +361,19 @@ export default function PreparationPage() {
                           </p>
                         </div>
 
-                        <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-red-100">
-                          {preparation.totalBalls} bolas
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-red-100">
+                            {preparation.totalBalls} bolas
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void deletePreparation(preparation)}
+                            disabled={deletingId === preparation.id}
+                            className="rounded-full border border-white/15 bg-white/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] text-white/70 transition hover:border-red-300/30 hover:bg-red-500/20 hover:text-red-100 disabled:cursor-wait disabled:opacity-50"
+                          >
+                            {deletingId === preparation.id ? "Eliminando..." : "Eliminar"}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap gap-2">

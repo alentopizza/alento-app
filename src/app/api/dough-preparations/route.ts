@@ -185,3 +185,46 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requireStaffSession(["ADMIN", "KITCHEN"]);
+
+    const id = Number(request.nextUrl.searchParams.get("id"));
+    if (!Number.isInteger(id) || id <= 0) {
+      return NextResponse.json(
+        { error: "Preparación inválida." },
+        { status: 400 },
+      );
+    }
+
+    await prisma.doughPreparation.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ ok: true, id });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+    }
+    if (message === "FORBIDDEN") {
+      return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
+    }
+
+    const prismaError = error as { code?: string };
+    if (prismaError.code === "P2025") {
+      return NextResponse.json(
+        { error: "La preparación ya no existe." },
+        { status: 404 },
+      );
+    }
+
+    console.error("Error deleting dough preparation", error);
+    return NextResponse.json(
+      { error: "No fue posible eliminar la preparación." },
+      { status: 500 },
+    );
+  }
+}
