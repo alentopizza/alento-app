@@ -802,3 +802,10 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
     animation: none !important;
   }
 }
+
+
+/* Checkout público a pantalla completa: ocultar la navegación inferior
+   para liberar espacio durante Entrega y Datos/Pago. */
+.alento-checkout-flow .alento-public-mobile-nav {
+  display: none !important;
+}
