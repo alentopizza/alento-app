@@ -29,7 +29,7 @@ function GuestClub({
         <header className="overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.28),transparent_35%),linear-gradient(135deg,#180708,#090909_62%)] p-6 shadow-2xl sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#e21a22]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#e21a22]">
                 Club Alentó
               </p>
               <h1 className="mt-3 max-w-[560px] text-[34px] font-black leading-[.98] tracking-[-0.05em] sm:text-[48px]">
@@ -82,7 +82,7 @@ function GuestClub({
         </section>
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5 sm:p-6">
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
             ¿Cómo funciona?
           </p>
 
@@ -96,7 +96,7 @@ function GuestClub({
                 key={step}
                 className="rounded-[18px] border border-white/[0.07] bg-white/[0.025] p-4"
               >
-                <span className="text-[10px] font-black text-[#e21a22]">{step}</span>
+                <span className="text-[10px] font-bold text-[#e21a22]">{step}</span>
                 <b className="mt-2 block text-[14px]">{title}</b>
                 <p className="mt-1 text-[10px] leading-5 text-white/35">{description}</p>
               </div>
@@ -192,7 +192,7 @@ export default async function ClubPage() {
       <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-5">
       <div className="mx-auto max-w-[860px] space-y-4">
         <header className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,#180708,#090909_60%)] p-6 shadow-2xl sm:p-8">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#e21a22]">Club Alentó</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#e21a22]">Club Alentó</p>
           <div className="mt-3 flex items-end justify-between gap-4">
             <div>
               <h1 className="text-[42px] font-black leading-none tracking-[-0.055em] sm:text-[56px]">
@@ -231,7 +231,7 @@ export default async function ClubPage() {
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Reglas del Club</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Reglas del Club</p>
             <h2 className="mt-1 text-[20px] font-semibold">Cómo funcionan tus puntos</h2>
           </div>
 
@@ -247,7 +247,7 @@ export default async function ClubPage() {
               <div key={title} className="rounded-[17px] border border-white/[0.07] bg-white/[0.025] p-3.5">
                 <b className="text-[15px] text-white">{value}</b>
                 <span className="mt-1 block text-[10px] font-semibold text-white/55">{title}</span>
-                <p className="mt-1 text-[9px] leading-4 text-white/30">{description}</p>
+                <p className="mt-1 text-[11px] leading-4 text-white/30">{description}</p>
               </div>
             ))}
           </div>
@@ -255,7 +255,7 @@ export default async function ClubPage() {
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/28">Actividad</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/28">Actividad</p>
             <h2 className="mt-1 text-[20px] font-semibold">Tus últimos puntos</h2>
           </div>
 
