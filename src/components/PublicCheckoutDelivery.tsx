@@ -725,7 +725,7 @@ export default function PublicCheckoutDelivery({
     <div
       className={
         fullPage
-          ? "fixed inset-0 z-[140] overflow-y-auto bg-[#090909]"
+          ? "w-full bg-[#090909]"
           : "fixed inset-0 z-[140] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-5"
       }
       onMouseDown={(event) => {
@@ -735,7 +735,7 @@ export default function PublicCheckoutDelivery({
       <div
         className={
           fullPage
-            ? "mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col bg-[#111] text-white"
+            ? "mx-auto flex min-h-[calc(100dvh-72px)] w-full max-w-[1180px] flex-col bg-[#111] text-white"
             : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[26px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
         }
       >
