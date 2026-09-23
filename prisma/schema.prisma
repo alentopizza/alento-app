@@ -381,8 +381,10 @@ model OrderItem {
   variantName      String?
   unitPrice        Decimal         @db.Decimal(12, 2)
   quantity         Int             @default(1)
-  preparedQuantity Int             @default(0)
-  lineTotal        Decimal         @db.Decimal(12, 2)
+  preparedQuantity       Int             @default(0)
+  driverVerifiedAt      DateTime?
+  driverVerifiedDriverId Int?
+  lineTotal              Decimal         @db.Decimal(12, 2)
   configuration    Json?
   notes            String?
   createdAt        DateTime        @default(now())
