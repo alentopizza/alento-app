@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
@@ -99,7 +100,18 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     <main className="min-h-screen bg-[#080808] px-4 pb-32 pt-5 text-white">
       <LivePageRefresh intervalMs={2500} />
       <div className="mx-auto max-w-[640px] space-y-4">
-        <DriverOrderStatus status={order.status} />
+        <div className="relative">
+          <Link
+            href="/repartidor"
+            aria-label="Cerrar detalle y volver"
+            title="Cerrar"
+            className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/45 text-[22px] font-medium leading-none text-white/75 shadow-[0_8px_22px_rgba(0,0,0,.28)] backdrop-blur-md transition hover:bg-black/60 hover:text-white active:scale-95"
+          >
+            ×
+          </Link>
+
+          <DriverOrderStatus status={order.status} />
+        </div>
 
         <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
           <div className="relative border-b border-neutral-200 px-4 py-4 sm:px-5">
