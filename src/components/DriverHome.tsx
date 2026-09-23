@@ -18,22 +18,47 @@ type DriverState = {
   driverLocationUpdatedAt: string | null;
 };
 
+type DriverRequestItem = {
+  id: number;
+  productName: string;
+  variantName: string | null;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+  configuration: unknown;
+  notes: string | null;
+};
+
+type DriverStore = {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
 type DriverRequest = {
   id: number;
   code: string;
   status: string;
   subtotal: number;
   deliveryFee: number;
+  discount: number;
   total: number;
   createdAt: string;
   customerName: string;
+  customerPhone: string | null;
+  payment: {
+    method: string;
+    status: string;
+  } | null;
   address: {
     address: string;
     neighborhood: string | null;
+    notes: string | null;
     latitude: number | null;
     longitude: number | null;
   } | null;
-  itemCount: number;
+  items: DriverRequestItem[];
   assignment: {
     driverId: number;
     driverName: string;
@@ -152,6 +177,111 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function orderItemDetails(configuration: unknown) {
+  if (!isRecord(configuration)) return [];
+
+  const kind = textValue(configuration.kind)?.toUpperCase();
+  const details: string[] = [];
+
+  if (kind === "PIZZA") {
+    const size = isRecord(configuration.size) ? configuration.size : null;
+    const sizeName = textValue(size?.name);
+    const diameter = Number(size?.diameterCm);
+
+    if (sizeName) {
+      details.push(
+        Number.isFinite(diameter) && diameter > 0
+          ? `${sizeName} · ${diameter} cm`
+          : sizeName,
+      );
+    }
+
+    const flavors = Array.isArray(configuration.flavors)
+      ? configuration.flavors
+          .map((item) => (isRecord(item) ? textValue(item.name) : null))
+          .filter((value): value is string => Boolean(value))
+      : [];
+
+    if (flavors.length) {
+      details.push(
+        `${flavors.length > 1 ? "Sabores" : "Sabor"}: ${flavors.join(" + ")}`,
+      );
+    }
+
+    const crust = isRecord(configuration.crust) ? configuration.crust : null;
+    const crustName = textValue(crust?.name);
+    if (crustName) details.push(`Borde: ${crustName}`);
+
+    const modifiers = Array.isArray(configuration.modifiers)
+      ? configuration.modifiers
+          .map((item) => {
+            if (!isRecord(item)) return null;
+            const name = textValue(item.name);
+            if (!name) return null;
+            const quantity = Number(item.quantity);
+            return Number.isFinite(quantity) && quantity > 1
+              ? `${quantity}× ${name}`
+              : name;
+          })
+          .filter((value): value is string => Boolean(value))
+      : [];
+
+    if (modifiers.length) details.push(`Extras: ${modifiers.join(", ")}`);
+  }
+
+  if (kind === "COMBO") {
+    const pizzas = Array.isArray(configuration.pizzas)
+      ? configuration.pizzas
+      : [];
+
+    pizzas.forEach((item, index) => {
+      if (!isRecord(item)) return;
+      const size = isRecord(item.size) ? item.size : null;
+      const flavor = isRecord(item.flavor) ? item.flavor : null;
+      const parts = [textValue(size?.name), textValue(flavor?.name)].filter(
+        Boolean,
+      );
+      if (parts.length) details.push(`Pizza ${index + 1}: ${parts.join(" · ")}`);
+    });
+
+    const groups = Array.isArray(configuration.groups)
+      ? configuration.groups
+      : [];
+
+    groups.forEach((group) => {
+      if (!isRecord(group)) return;
+      const groupName = textValue(group.name) || "Incluye";
+      const selections = Array.isArray(group.selections)
+        ? group.selections
+            .map((item) => {
+              if (!isRecord(item)) return null;
+              const name = textValue(item.name);
+              if (!name) return null;
+              const quantity = Number(item.quantity);
+              return Number.isFinite(quantity) && quantity > 1
+                ? `${quantity}× ${name}`
+                : name;
+            })
+            .filter((value): value is string => Boolean(value))
+        : [];
+
+      if (selections.length) {
+        details.push(`${groupName}: ${selections.join(", ")}`);
+      }
+    });
+  }
+
+  return details;
+}
+
 export default function DriverHome({
   initialDriver,
 }: {
@@ -161,13 +291,17 @@ export default function DriverHome({
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const driverMarkerRef = useRef<GoogleMarker | null>(null);
+  const storeMarkerRef = useRef<GoogleMarker | null>(null);
   const requestMarkerRefs = useRef<Map<number, GoogleMarker>>(new Map());
+  const knownRequestIdsRef = useRef<Set<number> | null>(null);
+  const fitForNewRequestRef = useRef(false);
   const initialMapFitDoneRef = useRef(false);
   const lastFocusedRequestRef = useRef<number | null>(null);
   const watchRef = useRef<number | null>(null);
   const lastGpsSyncRef = useRef(0);
 
   const [driver, setDriver] = useState(initialDriver);
+  const [store, setStore] = useState<DriverStore | null>(null);
   const [orders, setOrders] = useState<DriverRequest[]>([]);
   const [tab, setTab] = useState<DriverTab>("requests");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -295,7 +429,20 @@ export default function DriverHome({
     const data = await response.json();
 
     if (!response.ok) return;
+
     const next = (data.orders ?? []) as DriverRequest[];
+    const nextIds = new Set(next.map((order) => order.id));
+    const known = knownRequestIdsRef.current;
+
+    if (
+      known &&
+      next.some((order) => !known.has(order.id))
+    ) {
+      fitForNewRequestRef.current = true;
+    }
+
+    knownRequestIdsRef.current = nextIds;
+    setStore((data.store ?? null) as DriverStore | null);
     setOrders(next);
     setSelectedId((current) =>
       current && !next.some((order) => order.id === current)
@@ -313,7 +460,7 @@ export default function DriverHome({
 
     const ordersTimer = window.setInterval(() => {
       void refreshOrders();
-    }, 5000);
+    }, 2500);
 
     if (
       initialDriver.driverAvailable &&
@@ -418,6 +565,14 @@ export default function DriverHome({
       points += 1;
     }
 
+    if (store) {
+      bounds.extend({
+        lat: store.latitude,
+        lng: store.longitude,
+      });
+      points += 1;
+    }
+
     orders.forEach((order) => {
       if (
         order.address?.latitude == null ||
@@ -472,6 +627,7 @@ export default function DriverHome({
     driver.driverLatitude,
     driver.driverLongitude,
     orders,
+    store,
   ]);
 
   const zoomMap = useCallback((delta: number) => {
@@ -506,13 +662,18 @@ export default function DriverHome({
                 lat: driver.driverLatitude,
                 lng: driver.driverLongitude,
               }
-            : requestWithLocation[0]?.address?.latitude != null &&
-                requestWithLocation[0]?.address?.longitude != null
+            : store
               ? {
-                  lat: requestWithLocation[0].address.latitude,
-                  lng: requestWithLocation[0].address.longitude,
+                  lat: store.latitude,
+                  lng: store.longitude,
                 }
-              : { lat: 4.6097, lng: -74.0817 };
+              : requestWithLocation[0]?.address?.latitude != null &&
+                  requestWithLocation[0]?.address?.longitude != null
+                ? {
+                    lat: requestWithLocation[0].address.latitude,
+                    lng: requestWithLocation[0].address.longitude,
+                  }
+                : { lat: 4.6097, lng: -74.0817 };
 
         if (!mapRef.current) {
           mapRef.current = new google.maps.Map(mapHostRef.current, {
@@ -557,6 +718,34 @@ export default function DriverHome({
         } else if (driverMarkerRef.current) {
           driverMarkerRef.current.setMap(null);
           driverMarkerRef.current = null;
+        }
+
+        if (store) {
+          const storePoint = {
+            lat: store.latitude,
+            lng: store.longitude,
+          };
+
+          if (!storeMarkerRef.current) {
+            storeMarkerRef.current = new google.maps.Marker({
+              map: mapRef.current,
+              position: storePoint,
+              title: "Alentó Pizza",
+              label: {
+                text: "🏠",
+                fontSize: "18px",
+              },
+              zIndex: 45,
+            });
+          } else {
+            storeMarkerRef.current.setPosition(storePoint);
+          }
+
+          bounds.extend(storePoint);
+          points += 1;
+        } else if (storeMarkerRef.current) {
+          storeMarkerRef.current.setMap(null);
+          storeMarkerRef.current = null;
         }
 
         const visibleRequestIds = new Set<number>();
@@ -606,7 +795,10 @@ export default function DriverHome({
           }
         });
 
-        if (!initialMapFitDoneRef.current && points > 0) {
+        const shouldFit =
+          !initialMapFitDoneRef.current || fitForNewRequestRef.current;
+
+        if (shouldFit && points > 0) {
           if (points > 1) {
             mapRef.current.fitBounds(bounds, {
               top: 120,
@@ -620,6 +812,7 @@ export default function DriverHome({
           }
 
           initialMapFitDoneRef.current = true;
+          fitForNewRequestRef.current = false;
         }
       } catch (err) {
         if (!disposed) {
@@ -642,6 +835,7 @@ export default function DriverHome({
     driver.driverLongitude,
     driver.name,
     orders,
+    store,
     tab,
   ]);
 
@@ -668,6 +862,9 @@ export default function DriverHome({
 
     driverMarkerRef.current?.setMap(null);
     driverMarkerRef.current = null;
+
+    storeMarkerRef.current?.setMap(null);
+    storeMarkerRef.current = null;
 
     requestMarkerRefs.current.forEach((marker) => marker.setMap(null));
     requestMarkerRefs.current.clear();
