@@ -379,7 +379,7 @@ export default function DriverOrderActions({
           <div className="border-b border-white/10 p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                1 · Productos
+                Productos
               </p>
 
               <span
@@ -488,7 +488,7 @@ export default function DriverOrderActions({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                  2 · Ubicación
+                  Ubicación
                 </p>
               </div>
 
