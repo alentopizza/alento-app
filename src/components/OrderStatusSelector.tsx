@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   fulfillmentLabel,
   statusLabel,
@@ -43,6 +43,19 @@ function statusTone(status: OrderStatus) {
   return "border-neutral-200 bg-white text-neutral-800";
 }
 
+function shortStatusLabel(status: OrderStatus) {
+  const labels: Partial<Record<OrderStatus, string>> = {
+    PREPARING: "Preparando",
+    PREPARED: "Horneando",
+    READY: "Listo",
+    OUT_FOR_DELIVERY: "En camino",
+    ARRIVED: "Llegó",
+    DELIVERED: "Entregado",
+    COMPLETED: "Finalizado",
+  };
+  return labels[status] ?? statusLabel(status);
+}
+
 export default function OrderStatusSelector({
   orderCode,
   currentStatus,
@@ -58,30 +71,54 @@ export default function OrderStatusSelector({
   onClose,
   onSelect,
 }: OrderStatusSelectorProps) {
+  const [showMoreStatuses, setShowMoreStatuses] = useState(false);
+
   const statuses = useMemo(() => workflowFor(fulfillmentType), [fulfillmentType]);
   const currentIndex = statuses.indexOf(currentStatus);
   const hasPendingPayment = pendingBalance > 0;
 
+  const nextStatus =
+    currentIndex >= 0 && currentIndex < statuses.length - 1
+      ? statuses[currentIndex + 1]
+      : null;
+
+  const nextBlocked =
+    nextStatus === "COMPLETED" && hasPendingPayment;
+
+  const futureStatuses = statuses.filter((status, index) => {
+    if (index <= currentIndex + 1) return false;
+    if (status === "COMPLETED" && hasPendingPayment) return false;
+    return true;
+  });
+
   return (
     <div
-      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-[3px]"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-3 backdrop-blur-[3px] sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.30)]"
+        className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.30)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.22),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-5 text-white">
+        <header className="shrink-0 bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.22),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-4 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Estado del pedido</p>
-              <h3 className="mt-1 text-2xl font-black tracking-[-0.035em]">{orderCode}</h3>
-              <p className="mt-1 text-xs text-white/60">{fulfillmentLabel(fulfillmentType)}</p>
+              <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/45">
+                Estado del pedido
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <h3 className="text-[22px] font-black tracking-[-0.035em]">
+                  {orderCode}
+                </h3>
+                <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.05em] text-white/65">
+                  {fulfillmentLabel(fulfillmentType)}
+                </span>
+              </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-xl text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] text-lg text-white"
               aria-label="Cerrar selector de estados"
             >
               ×
@@ -89,136 +126,241 @@ export default function OrderStatusSelector({
           </div>
         </header>
 
-        <div className="p-5">
-          <p className="text-sm font-semibold text-neutral-700">Selecciona el siguiente estado operativo</p>
-          <p className="mt-1 text-xs leading-5 text-neutral-500">
-            Los estados ya superados quedan bloqueados para evitar retrocesos. Puedes saltar a cualquier etapa posterior, pero Finalizado solo se habilita cuando el pedido está pagado en su totalidad.
-          </p>
-
-          {hasPendingPayment && currentStatus !== "COMPLETED" && (
-            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-amber-700">Pago pendiente</span>
-              <b className="mt-1 block text-lg font-bold text-amber-900">{money(pendingBalance)}</b>
-              <p className="mt-1 text-[11px] leading-4 text-amber-700">Registra el saldo completo para habilitar Finalizado.</p>
-            </div>
-          )}
-
-          {fulfillmentType === "DELIVERY" && (
-            <div className="mt-4 rounded-[20px] border border-neutral-200 bg-[linear-gradient(180deg,#fff,#faf9f7)] p-4 shadow-[0_8px_24px_rgba(20,18,16,.04)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">Repartidor</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-500">
-                    Selecciona el repartidor y confirma abajo. Puedes cambiarlo y reasignar la orden cuando sea necesario.
-                  </p>
-                </div>
-                {assignedDriverId ? (
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[9px] font-bold text-emerald-700 ring-1 ring-emerald-100">
-                    ASIGNADO
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-bold text-neutral-500">
-                    SIN ASIGNAR
-                  </span>
-                )}
-              </div>
-
-              <select
-                value={selectedDriverId ?? ""}
-                disabled={driverBusy || busy}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  onDriverChange?.(value ? Number(value) : null);
-                }}
-                className="alento-input mt-3 h-12 w-full rounded-xl px-3 text-sm font-semibold"
-              >
-                <option value="">Seleccionar repartidor...</option>
-                {drivers.map((driver) => (
-                  <option key={driver.id} value={driver.id} disabled={!driver.ready}>
-                    {driver.name}{driver.ready ? "" : " · sin WhatsApp"}
-                  </option>
-                ))}
-              </select>
-
-              {selectedDriverId && (
-                <button
-                  type="button"
-                  disabled={driverBusy || busy}
-                  onClick={() => onConfirmDriver?.()}
-                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black uppercase tracking-[0.05em] text-white shadow-[0_10px_22px_rgba(0,0,0,.14)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="text-base">↗</span>
-                  {driverBusy
-                    ? "Asignando y notificando..."
-                    : assignedDriverId && assignedDriverId !== selectedDriverId
-                      ? "Reasignar y notificar"
-                      : assignedDriverId === selectedDriverId
-                        ? "Notificar nuevamente"
-                        : "Asignar y notificar"}
-                </button>
-              )}
-
-              {!selectedDriverId && (
-                <p className="mt-2 text-[10px] font-semibold text-neutral-400">
-                  El botón de confirmación se habilitará cuando selecciones un repartidor.
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <section>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.09em] text-neutral-400">
+                  Flujo operativo
                 </p>
-              )}
+                <p className="mt-0.5 text-xs font-semibold text-neutral-700">
+                  {shortStatusLabel(currentStatus)}
+                </p>
+              </div>
+              <span className="rounded-full bg-black px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.06em] text-white">
+                Estado actual
+              </span>
             </div>
-          )}
 
-          <div className="mt-4 space-y-2">
-            {statuses.map((status, index) => {
-              const current = status === currentStatus;
-              const previous = currentIndex >= 0 && index < currentIndex;
-              const paymentBlocked = status === "COMPLETED" && hasPendingPayment;
-              const disabled = busy || current || previous || paymentBlocked;
+            <div className="mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div
+                className="relative grid min-w-[440px] gap-0"
+                style={{
+                  gridTemplateColumns: `repeat(${statuses.length}, minmax(0, 1fr))`,
+                }}
+              >
+                <div
+                  className="absolute top-[11px] h-[2px] bg-neutral-200"
+                  style={{
+                    left: `${100 / (statuses.length * 2)}%`,
+                    right: `${100 / (statuses.length * 2)}%`,
+                  }}
+                />
+                <div
+                  className="absolute top-[11px] h-[2px] bg-black transition-all"
+                  style={{
+                    left: `${100 / (statuses.length * 2)}%`,
+                    width:
+                      currentIndex <= 0
+                        ? "0%"
+                        : `${(currentIndex / Math.max(1, statuses.length - 1)) * (100 - 100 / statuses.length)}%`,
+                  }}
+                />
 
-              return (
-                <button
-                  key={status}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelect(status)}
-                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
-                    current
-                      ? "border-black bg-black text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
-                      : previous || paymentBlocked
-                        ? "border-neutral-200 bg-neutral-100 text-neutral-400 opacity-65"
-                        : `${statusTone(status)} hover:-translate-y-0.5 hover:shadow-sm`
-                  } disabled:cursor-not-allowed`}
-                >
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${
-                    current
-                      ? "bg-white/15 text-white"
-                      : previous || paymentBlocked
-                        ? "bg-neutral-200 text-neutral-400"
-                        : "bg-white/80 text-neutral-500"
-                  }`}>
-                    {index + 1}
+                {statuses.map((status, index) => {
+                  const current = status === currentStatus;
+                  const complete = currentIndex >= 0 && index < currentIndex;
+
+                  return (
+                    <div key={status} className="relative min-w-0 text-center">
+                      <div
+                        className={
+                          "relative z-10 mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[9px] font-black " +
+                          (current
+                            ? "border-black bg-black text-white ring-4 ring-black/10"
+                            : complete
+                              ? "border-black bg-black text-white"
+                              : "border-neutral-200 bg-white text-neutral-400")
+                        }
+                      >
+                        {complete ? "✓" : index + 1}
+                      </div>
+                      <span
+                        className={
+                          "mt-2 block px-0.5 text-[7px] font-bold leading-[10px] " +
+                          (current
+                            ? "text-neutral-950"
+                            : complete
+                              ? "text-neutral-500"
+                              : "text-neutral-300")
+                        }
+                      >
+                        {shortStatusLabel(status)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {hasPendingPayment && currentStatus !== "COMPLETED" && (
+              <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3.5 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-amber-700">
+                      Pago pendiente
+                    </span>
+                    <b className="mt-0.5 block text-[16px] font-black text-amber-900">
+                      {money(pendingBalance)}
+                    </b>
+                  </div>
+                  <span className="rounded-full bg-white px-2 py-1 text-[8px] font-bold text-amber-700 ring-1 ring-amber-200">
+                    Finalizado bloqueado
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-sm font-bold">{statusLabel(status)}</b>
-                    {current && (
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55">
-                        Estado actual
-                      </span>
-                    )}
-                    {previous && (
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                        Etapa superada
-                      </span>
-                    )}
-                    {paymentBlocked && !current && (
-                      <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-600">
-                        Requiere pago total
-                      </span>
-                    )}
-                  </span>
-                  {!current && !previous && !paymentBlocked && <span className="text-lg opacity-45">›</span>}
-                </button>
-              );
-            })}
+                </div>
+              </div>
+            )}
+
+            {fulfillmentType === "DELIVERY" && (
+              <div
+                className={
+                  "rounded-[16px] border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 " +
+                  (!hasPendingPayment ? "sm:col-span-2" : "")
+                }
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-neutral-400">
+                      Repartidor
+                    </span>
+                    <b className="mt-0.5 block text-[11px] text-neutral-700">
+                      {assignedDriverId ? "Asignado" : "Sin asignar"}
+                    </b>
+                  </div>
+                  {assignedDriverId && (
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold text-emerald-700 ring-1 ring-emerald-100">
+                      ACTIVO
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 flex gap-2">
+                  <select
+                    value={selectedDriverId ?? ""}
+                    disabled={driverBusy || busy}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      onDriverChange?.(value ? Number(value) : null);
+                    }}
+                    className="alento-input h-10 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold"
+                  >
+                    <option value="">Seleccionar repartidor...</option>
+                    {drivers.map((driver) => (
+                      <option key={driver.id} value={driver.id} disabled={!driver.ready}>
+                        {driver.name}{driver.ready ? "" : " · sin WhatsApp"}
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedDriverId && (
+                    <button
+                      type="button"
+                      disabled={driverBusy || busy}
+                      onClick={() => onConfirmDriver?.()}
+                      className="h-10 shrink-0 rounded-xl bg-neutral-950 px-3 text-[9px] font-black uppercase tracking-[0.04em] text-white disabled:opacity-50"
+                    >
+                      {driverBusy
+                        ? "..."
+                        : assignedDriverId === selectedDriverId
+                          ? "Notificar"
+                          : assignedDriverId
+                            ? "Reasignar"
+                            : "Asignar"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          <section className="mt-4 rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+            <p className="text-[8px] font-black uppercase tracking-[0.09em] text-neutral-400">
+              Siguiente paso
+            </p>
+
+            {nextStatus ? (
+              <button
+                type="button"
+                disabled={busy || nextBlocked}
+                onClick={() => onSelect(nextStatus)}
+                className={
+                  "mt-2 flex w-full items-center justify-between gap-3 rounded-[16px] border px-4 py-3.5 text-left transition disabled:cursor-not-allowed " +
+                  (nextBlocked
+                    ? "border-neutral-200 bg-neutral-100 text-neutral-400"
+                    : `${statusTone(nextStatus)} hover:-translate-y-0.5 hover:shadow-sm`)
+                }
+              >
+                <span>
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.06em] opacity-55">
+                    Cambiar a
+                  </span>
+                  <b className="mt-0.5 block text-[15px] font-black">
+                    {statusLabel(nextStatus)}
+                  </b>
+                  {nextBlocked && (
+                    <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.05em] text-amber-600">
+                      Requiere pago total
+                    </span>
+                  )}
+                </span>
+                {!nextBlocked && (
+                  <span className="text-2xl opacity-40">›</span>
+                )}
+              </button>
+            ) : (
+              <div className="mt-2 rounded-[16px] bg-neutral-100 px-4 py-3 text-xs font-semibold text-neutral-500">
+                Este pedido ya está en la última etapa operativa.
+              </div>
+            )}
+
+            {futureStatuses.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowMoreStatuses((value) => !value)}
+                  className="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-xl text-[9px] font-bold uppercase tracking-[0.06em] text-neutral-400 hover:bg-neutral-50"
+                >
+                  {showMoreStatuses ? "Ocultar estados" : "Más estados"}
+                  <span className="text-sm">{showMoreStatuses ? "⌃" : "⌄"}</span>
+                </button>
+
+                {showMoreStatuses && (
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {futureStatuses.map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onSelect(status)}
+                        className={`flex min-h-11 items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold transition ${statusTone(status)} hover:-translate-y-0.5 disabled:opacity-50`}
+                      >
+                        <span>{statusLabel(status)}</span>
+                        <span className="opacity-35">›</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {hasPendingPayment && currentStatus !== "COMPLETED" && (
+              <p className="mt-2 text-center text-[8px] font-semibold leading-4 text-neutral-400">
+                Finalizado se habilita automáticamente cuando el saldo quede en $0.
+              </p>
+            )}
+          </section>
         </div>
       </div>
     </div>
