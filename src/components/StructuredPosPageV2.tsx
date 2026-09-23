@@ -192,6 +192,10 @@ export default function StructuredPosPageV2() {
       city: "Bogotá",
       notes: "",
       isDefault: true,
+      formattedAddress: "",
+      placeId: "",
+      latitude: null,
+      longitude: null,
     });
     setShowCustomerModal(true);
   }
