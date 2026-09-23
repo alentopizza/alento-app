@@ -6,6 +6,7 @@ import { orderCode } from "@/lib/orderCode";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange, subscribeLiveDataChange } from "@/lib/liveDataEvents";
+import GoogleCustomerAddressPicker from "@/components/GoogleCustomerAddressPicker";
 
 type CustomerAddress = {
   id: number;
@@ -1624,32 +1625,49 @@ export default function CustomersPage() {
                             placeholder="Barrio (opcional)"
                           />
                         </div>
-                        <input
-                          value={addressEditor.address}
-                          onChange={(event) =>
-                            setAddressEditor({ ...addressEditor, address: event.target.value })
+                      <div className="mt-2">
+                        <GoogleCustomerAddressPicker
+                          currentAddress={addressEditor.id ? addressEditor.address : undefined}
+                          onSelect={(selection) =>
+                            setAddressEditor((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    address: selection.formattedAddress,
+                                    neighborhood:
+                                      selection.neighborhood || current.neighborhood,
+                                    city: selection.city || current.city,
+                                  }
+                                : current,
+                            )
                           }
-                          className="alento-input mt-2 w-full rounded-xl px-3 py-2.5"
-                          placeholder="Dirección *"
                         />
-                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                          <input
-                            value={addressEditor.city}
-                            onChange={(event) =>
-                              setAddressEditor({ ...addressEditor, city: event.target.value })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Ciudad"
-                          />
-                          <input
-                            value={addressEditor.notes}
-                            onChange={(event) =>
-                              setAddressEditor({ ...addressEditor, notes: event.target.value })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Indicaciones (opcional)"
-                          />
-                        </div>
+                      </div>
+
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <input
+                          value={addressEditor.neighborhood}
+                          onChange={(event) =>
+                            setAddressEditor({
+                              ...addressEditor,
+                              neighborhood: event.target.value,
+                            })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Barrio (si deseas ajustarlo)"
+                        />
+                        <input
+                          value={addressEditor.notes}
+                          onChange={(event) =>
+                            setAddressEditor({
+                              ...addressEditor,
+                              notes: event.target.value,
+                            })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Indicaciones (opcional)"
+                        />
+                      </div>
 
                         <div className="mt-3 flex justify-end gap-2">
                           <button
