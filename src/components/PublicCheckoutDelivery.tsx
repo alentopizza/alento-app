@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type FulfillmentType = "DELIVERY" | "PICKUP";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
+const ALENTO_WEB_ICON =
+  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 export type PublicCheckoutSelection = {
   fulfillmentType: FulfillmentType;
@@ -87,6 +89,7 @@ type GoogleMapsRuntime = {
       options: Record<string, unknown>,
     ) => GoogleMapInstance;
     Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
+    Size: new (width: number, height: number) => unknown;
     Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
     LatLngBounds: new () => GoogleLatLngBoundsInstance;
     geometry?: {
@@ -309,11 +312,11 @@ export default function PublicCheckoutDelivery({
         map: mapInstanceRef.current,
         position: { lat: origin.latitude, lng: origin.longitude },
         title: "Alentó Pizza",
-        label: {
-          text: "A",
-          color: "#ffffff",
-          fontWeight: "700",
+        icon: {
+          url: ALENTO_WEB_ICON,
+          scaledSize: new google.maps.Size(46, 46),
         },
+        zIndex: 20,
       });
     }
 
@@ -912,24 +915,7 @@ export default function PublicCheckoutDelivery({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMapReady(false);
-                        mapInstanceRef.current = null;
-                        destinationMarkerRef.current = null;
-                        originMarkerRef.current = null;
-                        routePolylineRef.current = null;
-                        setEditingAddress(true);
-                        setError("");
-                      }}
-                      className="absolute bottom-16 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-black/10 bg-white/95 px-4 py-2.5 text-[11px] font-bold text-neutral-900 shadow-[0_10px_28px_rgba(0,0,0,.22)] backdrop-blur transition hover:bg-white sm:bottom-20 sm:px-5 sm:py-3 sm:text-[12px]"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-neutral-900">
-                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
-                      </span>
-                      Ajustar punto de entrega
-                    </button>
+
 
                     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2 sm:inset-x-4 sm:bottom-4">
                       <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
