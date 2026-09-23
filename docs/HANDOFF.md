@@ -389,6 +389,19 @@ La creación pública ya existe mediante `/api/public-checkout` y genera pedidos
 
 `POST /api/orders` sigue siendo el flujo interno protegido y crea `source=POS`.
 
+### Eliminación definitiva de pedidos
+
+El módulo Pedidos permite eliminar definitivamente órdenes `CANCELED` y `COMPLETED` cuando el usuario tiene permiso `DELETE_ORDERS`.
+
+Reglas de no regresión:
+
+- no habilitar borrado para estados activos;
+- eliminar explícitamente `ClubPointTransaction` antes de borrar un pedido finalizado;
+- pagos e items se eliminan junto con la orden;
+- notificaciones relacionadas usan cascada;
+- un pedido finalizado borrado desaparece también de historial, métricas y puntos del cliente;
+- esta acción es de mantenimiento y no sustituye Cancelar.
+
 ### Regla de pedidos cancelados
 
 - un pedido cancelado sigue visible tanto para el cliente como en su ficha interna;
