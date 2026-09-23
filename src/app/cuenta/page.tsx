@@ -62,16 +62,16 @@ export default async function CustomerAccountPage() {
       <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28">
       <div className="mx-auto max-w-[760px] space-y-4">
         <header className="rounded-[28px] bg-[linear-gradient(135deg,#09090a,#281516)] p-6 text-white shadow-xl">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-white/45">Mi cuenta</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Mi cuenta</p>
           <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em]">{customer.name}</h1>
           <p className="mt-1 text-[12px] text-white/55">{customer.countryCode} {customer.phone}</p>
         </header>
 
         <section className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Pedidos</span><b className="mt-2 block text-[22px] font-semibold">{validOrders.length}</b></div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Comprado</span><b className="mt-2 block text-[18px] font-semibold">{money(total)}</b></div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Direcciones</span><b className="mt-2 block text-[22px] font-semibold">{customer.addresses.length}</b></div>
-          <div className="rounded-2xl border border-red-100 bg-[#fff7f7] p-4"><span className="text-[9px] font-semibold uppercase text-red-400">Club Alentó</span><b className="mt-2 block text-[22px] font-semibold text-[#e21a22]">{clubPoints.toLocaleString("es-CO")} pts</b></div>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Pedidos</span><b className="mt-2 block text-[22px] font-semibold">{validOrders.length}</b></div>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Comprado</span><b className="mt-2 block text-[18px] font-semibold">{money(total)}</b></div>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Direcciones</span><b className="mt-2 block text-[22px] font-semibold">{customer.addresses.length}</b></div>
+          <div className="rounded-2xl border border-red-100 bg-[#fff7f7] p-4"><span className="text-[11px] font-semibold uppercase text-red-400">Club Alentó</span><b className="mt-2 block text-[22px] font-semibold text-[#e21a22]">{clubPoints.toLocaleString("es-CO")} pts</b></div>
         </section>
 
         <section className="rounded-[24px] border border-neutral-200 bg-white p-5">
@@ -103,7 +103,7 @@ export default async function CustomerAccountPage() {
                         Pedido #{order.sequenceNumber ?? order.id}
                       </b>
                       {order.status === "CANCELED" && (
-                        <span className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-red-600">
+                        <span className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-red-600">
                           Cancelado
                         </span>
                       )}
@@ -131,7 +131,7 @@ export default async function CustomerAccountPage() {
                   </b>
                 </div>
                 {order.status === "CANCELED" && (
-                  <p className="mt-2 text-[9px] font-semibold text-red-500/80">
+                  <p className="mt-2 text-[11px] font-semibold text-red-500/80">
                     Este pedido no cuenta como compra ni genera puntos del Club Alentó.
                   </p>
                 )}
