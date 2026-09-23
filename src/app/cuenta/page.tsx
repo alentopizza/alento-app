@@ -28,7 +28,6 @@ export default async function CustomerAccountPage() {
           addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
           clubPoints: { orderBy: { createdAt: "desc" } },
           orders: {
-            where: { status: { not: "CANCELED" } },
             orderBy: { createdAt: "desc" },
             take: 10,
             include: { items: true },
@@ -40,7 +39,8 @@ export default async function CustomerAccountPage() {
 
   if (!account?.active) redirect("/login");
   const customer = account.customer;
-  const total = customer.orders.reduce((sum, order) => sum + Number(order.total), 0);
+  const validOrders = customer.orders.filter((order) => order.status !== "CANCELED");
+  const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
   const clubPoints = customer.clubPoints.reduce((sum, movement) => sum + movement.points, 0);
 
   return (
@@ -55,7 +55,7 @@ export default async function CustomerAccountPage() {
         </header>
 
         <section className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Pedidos</span><b className="mt-2 block text-[22px] font-semibold">{customer.orders.length}</b></div>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Pedidos</span><b className="mt-2 block text-[22px] font-semibold">{validOrders.length}</b></div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Comprado</span><b className="mt-2 block text-[18px] font-semibold">{money(total)}</b></div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[9px] font-semibold uppercase text-neutral-400">Direcciones</span><b className="mt-2 block text-[22px] font-semibold">{customer.addresses.length}</b></div>
           <div className="rounded-2xl border border-red-100 bg-[#fff7f7] p-4"><span className="text-[9px] font-semibold uppercase text-red-400">Club Alentó</span><b className="mt-2 block text-[22px] font-semibold text-[#e21a22]">{clubPoints.toLocaleString("es-CO")} pts</b></div>
@@ -74,9 +74,54 @@ export default async function CustomerAccountPage() {
           <h2 className="text-[18px] font-semibold">Pedidos recientes</h2>
           <div className="mt-3 space-y-2">
             {customer.orders.length ? customer.orders.map((order) => (
-              <div key={order.id} className="rounded-xl border border-neutral-100 bg-[#faf9f7] px-4 py-3">
-                <div className="flex items-center justify-between gap-3"><b className="text-[12px] font-semibold">Pedido #{order.sequenceNumber ?? order.id}</b><b className="text-[12px] font-semibold">{money(order.total)}</b></div>
-                <p className="mt-1 text-[10px] text-neutral-500">{order.items.map((item) => `${item.quantity}× ${item.productName}`).join(" · ")}</p>
+              <div
+                key={order.id}
+                className={
+                  "rounded-xl border px-4 py-3 " +
+                  (order.status === "CANCELED"
+                    ? "border-red-100 bg-red-50/55"
+                    : "border-neutral-100 bg-[#faf9f7]")
+                }
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <b className="text-[12px] font-semibold">
+                        Pedido #{order.sequenceNumber ?? order.id}
+                      </b>
+                      {order.status === "CANCELED" && (
+                        <span className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-red-600">
+                          Cancelado
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={
+                        "mt-1 text-[10px] " +
+                        (order.status === "CANCELED"
+                          ? "text-red-400/80"
+                          : "text-neutral-500")
+                      }
+                    >
+                      {order.items.map((item) => `${item.quantity}× ${item.productName}`).join(" · ")}
+                    </p>
+                  </div>
+                  <b
+                    className={
+                      "shrink-0 text-[12px] font-semibold " +
+                      (order.status === "CANCELED"
+                        ? "text-neutral-400 line-through"
+                        : "")
+                    }
+                  >
+                    {money(order.total)}
+                  </b>
+                </div>
+                {order.status === "CANCELED" && (
+                  <p className="mt-2 text-[9px] font-semibold text-red-500/80">
+                    Este pedido no cuenta como compra ni genera puntos del Club Alentó.
+                  </p>
+                )}
               </div>
             )) : <p className="text-[12px] text-neutral-400">Todavía no tienes pedidos registrados.</p>}
           </div>
