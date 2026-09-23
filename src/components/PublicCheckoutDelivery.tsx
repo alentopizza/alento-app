@@ -936,8 +936,8 @@ export default function PublicCheckoutDelivery({
                     className={
                       "relative mx-auto w-full overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] shadow-[0_18px_50px_rgba(0,0,0,.28)] sm:rounded-[26px] " +
                       (fullPage
-                        ? "aspect-[3/4] max-w-[680px]"
-                        : "aspect-[3/4] max-w-[480px]")
+                        ? "aspect-square max-w-[680px]"
+                        : "aspect-square max-w-[480px]")
                     }
                   >
                     <div
