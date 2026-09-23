@@ -208,6 +208,39 @@ export default function StructuredPosPageV2() {
     setEmail(customer.email || "");
     setNotes(customer.notes || "");
     setCustomerError("");
+
+    const savedAddress = customer.addresses?.[0] ?? null;
+    setAddressEditor(
+      savedAddress
+        ? {
+            id: savedAddress.id,
+            label: savedAddress.label ?? "Casa",
+            address: savedAddress.address,
+            neighborhood: savedAddress.neighborhood ?? "",
+            city: savedAddress.city ?? "Bogotá",
+            notes: savedAddress.notes ?? "",
+            isDefault: true,
+            formattedAddress:
+              savedAddress.formattedAddress ?? savedAddress.address,
+            placeId: savedAddress.placeId ?? "",
+            latitude: savedAddress.latitude ?? null,
+            longitude: savedAddress.longitude ?? null,
+          }
+        : {
+            id: null,
+            label: "Casa",
+            address: "",
+            neighborhood: "",
+            city: "Bogotá",
+            notes: "",
+            isDefault: true,
+            formattedAddress: "",
+            placeId: "",
+            latitude: null,
+            longitude: null,
+          },
+    );
+
     setShowCustomerModal(true);
   }
 
@@ -218,11 +251,15 @@ export default function StructuredPosPageV2() {
     }
 
     if (
-      !editingCustomer &&
       fulfillmentType === "DELIVERY" &&
-      !addressEditor?.address.trim()
+      (!addressEditor?.formattedAddress.trim() ||
+        !addressEditor.placeId.trim() ||
+        addressEditor.latitude == null ||
+        addressEditor.longitude == null)
     ) {
-      return setCustomerError("Agrega una dirección para el domicilio.");
+      return setCustomerError(
+        "Valida la dirección del cliente con Google Maps antes de continuar.",
+      );
     }
 
     setSavingCustomer(true);
@@ -240,9 +277,6 @@ export default function StructuredPosPageV2() {
             phone,
             email,
             notes,
-            ...(!editingCustomer && addressEditor?.address.trim()
-              ? { address: addressEditor.address.trim() }
-              : {}),
           }),
         },
       );
@@ -253,29 +287,33 @@ export default function StructuredPosPageV2() {
 
       let savedCustomer = data.customer as Customer;
 
-      // Para cliente nuevo, enriquecer la primera dirección con etiqueta/barrio/notas.
       if (
-        !editingCustomer &&
-        addressEditor?.address.trim() &&
-        savedCustomer.addresses?.[0]?.id
+        addressEditor?.formattedAddress.trim() &&
+        addressEditor.placeId.trim() &&
+        addressEditor.latitude != null &&
+        addressEditor.longitude != null
       ) {
         const addressResponse = await fetch(
-          `/api/customers/${savedCustomer.id}/addresses/${savedCustomer.addresses[0].id}`,
+          `/api/customers/${savedCustomer.id}/addresses`,
           {
-            method: "PATCH",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              label: addressEditor.label,
-              address: addressEditor.address,
-              neighborhood: addressEditor.neighborhood,
-              city: addressEditor.city,
-              notes: addressEditor.notes,
+              ...addressEditor,
+              address: addressEditor.formattedAddress,
               isDefault: true,
             }),
           },
         );
         const addressData = await addressResponse.json();
-        if (addressResponse.ok && addressData.customer) {
+
+        if (!addressResponse.ok) {
+          throw new Error(
+            addressData.error || "No fue posible guardar la dirección.",
+          );
+        }
+
+        if (addressData.customer) {
           savedCustomer = addressData.customer;
         }
       }
@@ -291,135 +329,6 @@ export default function StructuredPosPageV2() {
       );
     } finally {
       setSavingCustomer(false);
-    }
-  }
-
-  function openAddressEditor(address?: CustomerAddress) {
-    setAddressEditor(
-      address
-        ? {
-            id: address.id,
-            label: address.label ?? "",
-            address: address.address,
-            neighborhood: address.neighborhood ?? "",
-            city: address.city ?? "Bogotá",
-            notes: address.notes ?? "",
-            isDefault: address.isDefault,
-            formattedAddress: address.formattedAddress ?? address.address,
-            placeId: address.placeId ?? "",
-            latitude: address.latitude ?? null,
-            longitude: address.longitude ?? null,
-          }
-        : {
-            id: null,
-            label: "Casa",
-            address: "",
-            neighborhood: "",
-            city: "Bogotá",
-            notes: "",
-            isDefault: (editingCustomer?.addresses?.length ?? 0) === 0,
-            formattedAddress: "",
-            placeId: "",
-            latitude: null,
-            longitude: null,
-          },
-    );
-    setCustomerError("");
-  }
-
-  async function saveAddress() {
-    if (!editingCustomer || !addressEditor?.address.trim()) {
-      setCustomerError("Escribe una dirección.");
-      return;
-    }
-
-    setAddressBusy(true);
-    setCustomerError("");
-
-    try {
-      const endpoint = addressEditor.id
-        ? `/api/customers/${editingCustomer.id}/addresses/${addressEditor.id}`
-        : `/api/customers/${editingCustomer.id}/addresses`;
-
-      const response = await fetch(endpoint, {
-        method: addressEditor.id ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(addressEditor),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible guardar la dirección.");
-      }
-
-      const updated = data.customer as Customer;
-      setEditingCustomer(updated);
-      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
-      setAddressEditor(null);
-      emitLiveDataChange(["customers", "account"]);
-    } catch (error) {
-      setCustomerError(
-        error instanceof Error ? error.message : "No fue posible guardar la dirección.",
-      );
-    } finally {
-      setAddressBusy(false);
-    }
-  }
-
-  async function makeDefaultAddress(address: CustomerAddress) {
-    if (!editingCustomer || address.isDefault) return;
-
-    setAddressBusy(true);
-    try {
-      const response = await fetch(
-        `/api/customers/${editingCustomer.id}/addresses/${address.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isDefault: true }),
-        },
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible cambiar la dirección principal.");
-      }
-
-      const updated = data.customer as Customer;
-      setEditingCustomer(updated);
-      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
-      emitLiveDataChange(["customers", "account"]);
-    } catch (error) {
-      setCustomerError(
-        error instanceof Error ? error.message : "No fue posible cambiar la dirección principal.",
-      );
-    } finally {
-      setAddressBusy(false);
-    }
-  }
-
-  async function deleteAddress(address: CustomerAddress) {
-    if (!editingCustomer) return;
-
-    setAddressBusy(true);
-    try {
-      const response = await fetch(
-        `/api/customers/${editingCustomer.id}/addresses/${address.id}`,
-        { method: "DELETE" },
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible eliminar la dirección.");
-      }
-
-      const updated = data.customer as Customer;
-      setEditingCustomer(updated);
-      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
-      emitLiveDataChange(["customers", "account"]);
-    } catch (error) {
-      setCustomerError(
-        error instanceof Error ? error.message : "No fue posible eliminar la dirección.",
-      );
-    } finally {
-      setAddressBusy(false);
     }
   }
 
@@ -908,155 +817,77 @@ export default function StructuredPosPageV2() {
                   </section>
 
                   <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
-                    <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-red)] text-[12px] font-bold text-white">
-                          02
-                        </div>
-                        <div>
-                          <p className="alento-ui-label uppercase text-neutral-400">
-                            Direcciones
-                          </p>
-                          <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
-                            Direcciones de entrega
-                          </h3>
-                          <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                            Busca con Google, guarda varias ubicaciones y define una como principal.
-                          </p>
-                        </div>
+                    <div className="flex items-start gap-3 border-b border-neutral-100 pb-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-red)] text-[12px] font-bold text-white">
+                        02
                       </div>
-
-                      {editingCustomer && !addressEditor && (
-                        <button
-                          type="button"
-                          onClick={() => openAddressEditor()}
-                          className="shrink-0 rounded-xl bg-black px-3.5 py-2.5 text-[11px] font-bold text-white"
-                        >
-                          + Agregar
-                        </button>
-                      )}
+                      <div>
+                        <p className="alento-ui-label uppercase text-neutral-400">
+                          Dirección
+                        </p>
+                        <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
+                          Dirección de entrega
+                        </h3>
+                        <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                          Cada cliente conserva una sola dirección. Debe quedar validada con Google Maps.
+                        </p>
+                      </div>
                     </div>
 
-                    {editingCustomer && !addressEditor && (
-                      <div className="mt-4 space-y-2.5">
-                        {editingCustomer.addresses.length ? (
-                          editingCustomer.addresses.map((item) => (
-                            <div
-                              key={item.id}
-                              className={
-                                "rounded-2xl border p-3.5 " +
-                                (item.isDefault
-                                  ? "border-emerald-200 bg-emerald-50/60"
-                                  : "border-neutral-200 bg-[#faf9f7]")
-                              }
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <b className="text-[13px] font-bold text-neutral-900">
-                                      {item.label || "Dirección"}
-                                    </b>
-                                    {item.isDefault && (
-                                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
-                                        Principal
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="mt-1 text-[12px] leading-5 text-neutral-700">
-                                    {item.address}
-                                  </p>
-                                  {(item.neighborhood || item.city) && (
-                                    <p className="mt-0.5 text-[10px] text-neutral-400">
-                                      {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => openAddressEditor(item)}
-                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                  >
-                                    Editar
-                                  </button>
-                                  {!item.isDefault && (
-                                    <button
-                                      type="button"
-                                      disabled={addressBusy}
-                                      onClick={() => void makeDefaultAddress(item)}
-                                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                    >
-                                      Principal
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    disabled={addressBusy}
-                                    onClick={() => void deleteAddress(item)}
-                                    className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openAddressEditor()}
-                            className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
-                          >
-                            <b className="block text-[13px] text-amber-900">
-                              Sin dirección registrada
-                            </b>
-                            <span className="mt-1 block text-[11px] text-amber-700">
-                              Agrega una para pedidos a domicilio.
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {(!editingCustomer || addressEditor) && addressEditor && (
+                    {addressEditor && (
                       <div className="mt-4 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4 sm:p-5">
-                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
-                          <label className="block">
-                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                              Etiqueta
-                            </span>
-                            <input
-                              value={addressEditor.label}
-                              onChange={(event) =>
-                                setAddressEditor({ ...addressEditor, label: event.target.value })
-                              }
-                              className="alento-input h-12 w-full rounded-xl px-3"
-                              placeholder="Casa, Trabajo..."
-                            />
-                          </label>
-
+                        <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                              Ubicación
+                            <span className="text-[11px] font-bold text-neutral-600">
+                              Estado
                             </span>
-                            <GoogleCustomerAddressPicker
-                              currentAddress={addressEditor.id ? addressEditor.address : undefined}
-                              onSelect={(selection) =>
-                                setAddressEditor((current) =>
-                                  current
-                                    ? {
-                                        ...current,
-                                        address: selection.formattedAddress,
-                                        neighborhood:
-                                          selection.neighborhood || current.neighborhood,
-                                        city: selection.city || current.city,
-                                      }
-                                    : current,
-                                )
-                              }
-                            />
+                            <div className="mt-1">
+                              {addressEditor.placeId &&
+                              addressEditor.latitude != null &&
+                              addressEditor.longitude != null ? (
+                                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                                  Validada con Google
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-700">
+                                  Requiere actualización
+                                </span>
+                              )}
+                            </div>
                           </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <GoogleCustomerAddressPicker
+                            currentAddress={
+                              addressEditor.placeId &&
+                              addressEditor.latitude != null &&
+                              addressEditor.longitude != null
+                                ? addressEditor.formattedAddress ||
+                                  addressEditor.address
+                                : undefined
+                            }
+                            onSelect={(selection) =>
+                              setAddressEditor((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      address: selection.formattedAddress,
+                                      formattedAddress:
+                                        selection.formattedAddress,
+                                      placeId: selection.placeId,
+                                      latitude: selection.latitude,
+                                      longitude: selection.longitude,
+                                      neighborhood:
+                                        selection.neighborhood ||
+                                        current.neighborhood,
+                                      city: selection.city || current.city,
+                                      isDefault: true,
+                                    }
+                                  : current,
+                              )
+                            }
+                          />
                         </div>
 
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1076,7 +907,6 @@ export default function StructuredPosPageV2() {
                               placeholder="Opcional"
                             />
                           </label>
-
                           <label className="block">
                             <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
                               Indicaciones
@@ -1094,26 +924,6 @@ export default function StructuredPosPageV2() {
                             />
                           </label>
                         </div>
-
-                        {editingCustomer && (
-                          <div className="mt-4 flex justify-end gap-2 border-t border-neutral-200 pt-3">
-                            <button
-                              type="button"
-                              onClick={() => setAddressEditor(null)}
-                              className="rounded-xl border bg-white px-3.5 py-2.5 text-[11px] font-semibold"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              type="button"
-                              disabled={addressBusy}
-                              onClick={() => void saveAddress()}
-                              className="rounded-xl bg-black px-4 py-2.5 text-[11px] font-bold text-white disabled:opacity-50"
-                            >
-                              {addressBusy ? "Guardando..." : "Guardar dirección"}
-                            </button>
-                          </div>
-                        )}
                       </div>
                     )}
                   </section>
