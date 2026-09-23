@@ -69,3 +69,20 @@ Products excluded from coupons continue to show a `No acumula cupón` badge.
 ## Deployment
 
 No Prisma or database changes are required. A normal application redeploy is sufficient.
+
+
+## Domicilio automático en POS
+
+El cierre del pedido POS ya no permite seleccionar manualmente una tarifa de domicilio.
+
+Para pedidos `DELIVERY`:
+
+- se usa la dirección Google validada del cliente;
+- el modal consulta `POST /api/delivery/quote` y muestra el domicilio calculado automáticamente en el resumen;
+- el operador no ve opciones como `Sin costo / Zona 2 / Zona 3`;
+- la creación de `POST /api/orders` vuelve a calcular la ruta con Google Routes usando las coordenadas guardadas del cliente y el origen oficial de Alentó;
+- el backend decide la banda/costo aplicable y conserva `deliveryZoneId / deliveryZoneName` solo como metadata interna del pedido;
+- una dirección sin coordenadas Google o fuera de cobertura bloquea la creación del domicilio;
+- la sección visible de **Zonas y tarifas** fue retirada de Configuración. Las bandas existentes permanecen como regla interna del cálculo automático para mantener compatibilidad con el checkout web y Routes API.
+
+No reintroducir selección manual de tarifa en el POS.
