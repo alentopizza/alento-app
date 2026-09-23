@@ -54,11 +54,13 @@ export default function PublicCheckoutCustomer({
   selection,
   onBack,
   onComplete,
+  fullPage = false,
 }: {
   cart: PublicCartItem[];
   selection: PublicCheckoutSelection;
   onBack: () => void;
   onComplete: (order: CreatedOrder) => void;
+  fullPage?: boolean;
 }) {
   const [customer, setCustomer] = useState<CustomerData>({
     name: "",
@@ -302,9 +304,26 @@ export default function PublicCheckoutCustomer({
   }
 
   return (
-    <div className="fixed inset-0 z-[145] flex items-end justify-center bg-black/82 backdrop-blur-sm sm:items-center sm:p-5">
-      <div className="flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101010] text-white shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]">
-        <header className="border-b border-white/10 px-4 py-4 sm:px-5">
+    <div
+      className={
+        fullPage
+          ? "w-full bg-[#090909]"
+          : "fixed inset-0 z-[145] flex items-end justify-center bg-black/82 backdrop-blur-sm sm:items-center sm:p-5"
+      }
+    >
+      <div
+        className={
+          fullPage
+            ? "mx-auto flex min-h-[calc(100dvh-72px)] w-full max-w-[1080px] flex-col bg-[#101010] text-white"
+            : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101010] text-white shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
+        }
+      >
+        <header
+          className={
+            "border-b border-white/10 px-4 py-4 sm:px-5 " +
+            (fullPage ? "sticky top-0 z-20 bg-[#101010]/95 backdrop-blur-xl" : "")
+          }
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#ff3439]">
@@ -356,7 +375,12 @@ export default function PublicCheckoutCustomer({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+        <div
+          className={
+            "min-h-0 flex-1 p-4 sm:p-5 " +
+            (fullPage ? "mx-auto w-full max-w-[900px] overflow-visible py-6 sm:py-8" : "overflow-y-auto")
+          }
+        >
           {loading ? (
             <div className="rounded-[20px] border border-white/10 bg-white/[0.035] p-6 text-center text-[11px] text-white/40">
               Preparando el cierre del pedido...
@@ -588,7 +612,12 @@ export default function PublicCheckoutCustomer({
           )}
         </div>
 
-        <footer className="border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4">
+        <footer
+          className={
+            "border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4 " +
+            (fullPage ? "sticky bottom-0 z-20 mt-auto" : "")
+          }
+        >
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] text-white/40">Total del pedido</span>
             <b className="text-[22px]">{money(total)}</b>
