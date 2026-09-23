@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCustomerSession, getStaffSession } from "@/lib/auth";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import LivePageRefresh from "@/components/LivePageRefresh";
 
 function money(value: unknown) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
@@ -58,6 +59,7 @@ export default async function CustomerAccountPage() {
 
   return (
     <>
+      <LivePageRefresh intervalMs={8000} scopes={["orders", "customers", "club", "account"]} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28">
       <div className="mx-auto max-w-[760px] space-y-4">
