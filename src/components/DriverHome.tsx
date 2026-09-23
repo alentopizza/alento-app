@@ -1089,7 +1089,7 @@ export default function DriverHome({
               className={
                 "h-10 flex-1 rounded-full text-[11px] font-black transition " +
                 (!driver.driverAvailable
-                  ? "bg-[#111] text-white shadow-sm"
+                  ? "bg-[#e21a22] text-white shadow-[0_6px_18px_rgba(226,26,34,.24)]"
                   : "text-neutral-400")
               }
             >
@@ -1102,7 +1102,7 @@ export default function DriverHome({
               className={
                 "h-10 flex-1 rounded-full text-[11px] font-black transition " +
                 (driver.driverAvailable
-                  ? "bg-[#e21a22] text-white shadow-[0_6px_18px_rgba(226,26,34,.25)]"
+                  ? "bg-emerald-500 text-white shadow-[0_6px_18px_rgba(16,185,129,.26)]"
                   : "text-neutral-400")
               }
             >
@@ -1110,27 +1110,19 @@ export default function DriverHome({
             </button>
           </div>
 
-          <div className="relative shrink-0">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)]">
-              <span
-                className={
-                  "h-2.5 w-2.5 rounded-full " +
-                  (driver.driverAvailable
-                    ? "bg-[#e21a22] shadow-[0_0_12px_rgba(226,26,34,.65)]"
-                    : "bg-neutral-300")
-                }
-              />
-            </div>
-
-            {tab === "requests" && (
-              <div className="absolute right-0 top-[56px] flex h-8 min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-[#111]/94 px-3 text-white shadow-[0_10px_28px_rgba(0,0,0,.22)] backdrop-blur-xl">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#e21a22]" />
-                <b className="text-[10px] font-black">{availableCount}</b>
-                <span className="text-[9px] font-semibold text-white/55">
-                  {availableCount === 1 ? "disponible" : "disponibles"}
-                </span>
-              </div>
-            )}
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)]">
+            <span
+              className={
+                "flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black text-white transition " +
+                (driver.driverAvailable
+                  ? "bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,.55)]"
+                  : "bg-[#e21a22] shadow-[0_0_14px_rgba(226,26,34,.45)]")
+              }
+              aria-label={`${availableCount} pedidos disponibles`}
+              title={`${availableCount} pedidos disponibles`}
+            >
+              {availableCount}
+            </span>
           </div>
         </div>
       </div>
@@ -1608,11 +1600,16 @@ export default function DriverHome({
                 className={
                   "h-2 w-2 rounded-full " +
                   (driver.driverAvailable
-                    ? "bg-[#e21a22] shadow-[0_0_10px_rgba(226,26,34,.65)]"
-                    : "bg-white/25")
+                    ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,.62)]"
+                    : "bg-[#e21a22] shadow-[0_0_10px_rgba(226,26,34,.55)]")
                 }
               />
-              <b className="text-[10px] text-white/62">
+              <b
+                className={
+                  "text-[10px] " +
+                  (driver.driverAvailable ? "text-emerald-300" : "text-[#ff6267]")
+                }
+              >
                 {driver.driverAvailable ? "Activo" : "Inactivo"}
               </b>
             </div>
