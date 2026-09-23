@@ -208,9 +208,20 @@ El POS permite:
 - seleccionar cliente;
 - crear cliente;
 - editar cliente;
-- utilizar dirección registrada.
+- administrar múltiples direcciones;
+- agregar nuevas direcciones;
+- editar una dirección existente;
+- marcar una dirección como principal;
+- eliminar direcciones;
+- elegir en el checkout cuál dirección guardada usar para el domicilio.
 
-El cliente comercial (`Customer`) es independiente del futuro usuario interno (`User`).
+`CustomerAddress` se trata como una colección. La dirección marcada `isDefault=true` solo es la selección inicial/preferida; no sustituye ni elimina las demás direcciones del cliente.
+
+Un cliente nuevo puede guardar una primera dirección durante su creación. Una vez creado, las demás direcciones se administran con los endpoints específicos de direcciones.
+
+En Domicilio, el checkout selecciona por defecto la dirección principal y, si existen varias, permite escoger otra antes de crear la orden.
+
+El cliente comercial (`Customer`) es independiente del usuario interno (`User`).
 
 ## Precios y seguridad comercial
 
