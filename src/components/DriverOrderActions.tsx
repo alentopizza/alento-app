@@ -124,14 +124,18 @@ export default function DriverOrderActions({
       ? "OUT_FOR_DELIVERY"
       : status === "OUT_FOR_DELIVERY"
         ? "ARRIVED"
-        : null;
+        : status === "ARRIVED"
+          ? "DELIVERED"
+          : null;
 
   const label =
     target === "OUT_FOR_DELIVERY"
       ? "Desliza para iniciar entrega"
       : target === "ARRIVED"
         ? "Desliza cuando hayas llegado"
-        : null;
+        : target === "DELIVERED"
+          ? "Desliza para entregar"
+          : null;
 
   const allChecked = useMemo(
     () => items.length > 0 && items.every((item) => checkedIds.includes(item.id)),
@@ -330,6 +334,13 @@ export default function DriverOrderActions({
 
       if (next === "OUT_FOR_DELIVERY") {
         setCheckedIds([]);
+      }
+
+      if (next === "DELIVERED") {
+        window.localStorage.removeItem(locationStorageKey);
+        router.replace("/repartidor");
+        router.refresh();
+        return;
       }
 
       setNotice(
