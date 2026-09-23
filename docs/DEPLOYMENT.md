@@ -19,6 +19,23 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 5. Revisar los logs de build y runtime.
 6. Validar el cambio en producción.
 
+## Cambio de dirección Google 2026-09-23
+
+`CustomerAddress` incorpora:
+
+- `formattedAddress`;
+- `placeId`;
+- `latitude`;
+- `longitude`.
+
+Antes de probar este cambio en un despliegue existente ejecutar:
+
+```bash
+npx prisma db push
+```
+
+La lógica de aplicación utiliza una sola dirección operativa por cliente. Los registros múltiples históricos se depuran cuando el cliente actualiza/valida su dirección o genera un nuevo domicilio.
+
 ## Prisma: decisión actual
 
 La base de datos de producción existía antes de empezar a mantener un historial formal de migraciones de Prisma. Por ello, ejecutar `prisma migrate deploy` contra esta base genera el error `P3005: The database schema is not empty`.
