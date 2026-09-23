@@ -51,6 +51,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
           lineTotal: true,
           configuration: true,
           notes: true,
+          driverVerifiedAt: true,
+          driverVerifiedDriverId: true,
         },
       },
     },
@@ -176,6 +178,9 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
             lineTotal: Number(item.lineTotal),
             details: presentOrderItemConfiguration(item.configuration),
             notes: item.notes,
+            verified:
+              item.driverVerifiedAt != null &&
+              item.driverVerifiedDriverId === parsed.driverId,
           }))}
         />
       </div>
