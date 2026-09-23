@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { getCustomerSession } from "@/lib/auth";
+import { isRecord } from "@/lib/orderConfiguration";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,106 @@ function fulfillmentLabel(value: string) {
   return labels[value] ?? value;
 }
 
+function textValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function orderItemDetails(configuration: unknown) {
+  if (!isRecord(configuration)) return [];
+
+  const kind = textValue(configuration.kind)?.toUpperCase();
+  const details: string[] = [];
+
+  if (kind === "PIZZA") {
+    const size = isRecord(configuration.size) ? configuration.size : null;
+    const sizeName = textValue(size?.name);
+    const diameter = Number(size?.diameterCm);
+
+    if (sizeName) {
+      details.push(
+        Number.isFinite(diameter) && diameter > 0
+          ? `${sizeName} · ${diameter} cm`
+          : sizeName,
+      );
+    }
+
+    const flavors = Array.isArray(configuration.flavors)
+      ? configuration.flavors
+          .map((item) => (isRecord(item) ? textValue(item.name) : null))
+          .filter((value): value is string => Boolean(value))
+      : [];
+    if (flavors.length) {
+      details.push(
+        `${flavors.length > 1 ? "Sabores" : "Sabor"}: ${flavors.join(" + ")}`,
+      );
+    }
+
+    const crust = isRecord(configuration.crust) ? configuration.crust : null;
+    const crustName = textValue(crust?.name);
+    if (crustName) details.push(`Borde: ${crustName}`);
+
+    const modifiers = Array.isArray(configuration.modifiers)
+      ? configuration.modifiers
+          .map((item) => {
+            if (!isRecord(item)) return null;
+            const name = textValue(item.name);
+            if (!name) return null;
+            const quantity = Number(item.quantity);
+            return Number.isFinite(quantity) && quantity > 1
+              ? `${quantity}× ${name}`
+              : name;
+          })
+          .filter((value): value is string => Boolean(value))
+      : [];
+    if (modifiers.length) details.push(`Extras: ${modifiers.join(", ")}`);
+  }
+
+  if (kind === "COMBO") {
+    const pizzas = Array.isArray(configuration.pizzas)
+      ? configuration.pizzas
+      : [];
+
+    pizzas.forEach((item, index) => {
+      if (!isRecord(item)) return;
+      const size = isRecord(item.size) ? item.size : null;
+      const flavor = isRecord(item.flavor) ? item.flavor : null;
+      const sizeName = textValue(size?.name);
+      const flavorName = textValue(flavor?.name);
+
+      const parts = [sizeName, flavorName].filter(Boolean);
+      if (parts.length) details.push(`Pizza ${index + 1}: ${parts.join(" · ")}`);
+    });
+
+    const groups = Array.isArray(configuration.groups)
+      ? configuration.groups
+      : [];
+
+    groups.forEach((group) => {
+      if (!isRecord(group)) return;
+      const groupName = textValue(group.name) || "Incluye";
+      const selections = Array.isArray(group.selections)
+        ? group.selections
+            .map((item) => {
+              if (!isRecord(item)) return null;
+              const name = textValue(item.name);
+              if (!name) return null;
+              const quantity = Number(item.quantity);
+              return Number.isFinite(quantity) && quantity > 1
+                ? `${quantity}× ${name}`
+                : name;
+            })
+            .filter((value): value is string => Boolean(value))
+        : [];
+
+      if (selections.length) {
+        details.push(`${groupName}: ${selections.join(", ")}`);
+      }
+    });
+  }
+
+  return details;
+}
+
 function trackingStages(fulfillmentType: string, status: string) {
   const delivery = [
     { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
@@ -98,19 +199,22 @@ export default async function TrackingPage({
       customerId: true,
       status: true,
       fulfillmentType: true,
+      subtotal: true,
+      deliveryFee: true,
+      discount: true,
       total: true,
       createdAt: true,
       updatedAt: true,
-      customer: {
-        select: {
-          name: true,
-        },
-      },
       items: {
         orderBy: { id: "asc" },
         select: {
           productName: true,
+          variantName: true,
+          unitPrice: true,
           quantity: true,
+          lineTotal: true,
+          configuration: true,
+          notes: true,
         },
       },
     },
@@ -218,38 +322,133 @@ export default async function TrackingPage({
             </div>
           </div>
 
-          <div className="grid gap-3 border-b border-neutral-100 p-5 sm:grid-cols-3 sm:p-7">
+          <div className="grid gap-3 border-b border-neutral-100 p-5 sm:grid-cols-2 sm:p-7">
             <div className="rounded-2xl bg-[#f7f6f3] p-4">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">Pedido</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">
+                Pedido
+              </span>
               <strong className="mt-1.5 block text-lg">{code}</strong>
             </div>
             <div className="rounded-2xl bg-[#f7f6f3] p-4">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">Modalidad</span>
-              <strong className="mt-1.5 block text-sm">{fulfillmentLabel(order.fulfillmentType)}</strong>
-            </div>
-            <div className="rounded-2xl bg-[#f7f6f3] p-4">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">Total</span>
-              <strong className="mt-1.5 block text-lg">{money(Number(order.total))}</strong>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">
+                Modalidad
+              </span>
+              <strong className="mt-1.5 block text-sm">
+                {fulfillmentLabel(order.fulfillmentType)}
+              </strong>
             </div>
           </div>
 
           <div className="p-5 sm:p-7">
-            <div className="mb-4 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#a5191f]">Tu compra</p>
-                <h3 className="mt-1 text-base font-black">Detalle del pedido</h3>
-              </div>
-              <span className="text-[11px] text-neutral-400">{dateTime(order.createdAt)}</span>
-            </div>
-
-            <div className="divide-y divide-neutral-100 rounded-2xl border border-neutral-100">
-              {order.items.map((item, index) => (
-                <div key={`${item.productName}-${index}`} className="flex items-center justify-between gap-4 px-4 py-3.5">
-                  <span className="text-sm font-semibold text-neutral-800">{item.productName}</span>
-                  <span className="rounded-lg bg-neutral-100 px-2 py-1 text-[11px] font-black text-neutral-600">×{item.quantity}</span>
+            <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,.035)]">
+              <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-4 py-4 sm:px-5">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#a5191f]">
+                    Tu compra
+                  </p>
+                  <h3 className="mt-1 text-base font-black">Detalle del pedido</h3>
                 </div>
-              ))}
-            </div>
+                <span className="text-right text-[10px] text-neutral-400 sm:text-[11px]">
+                  {dateTime(order.createdAt)}
+                </span>
+              </div>
+
+              <div className="divide-y divide-neutral-100">
+                {order.items.map((item, index) => {
+                  const details = orderItemDetails(item.configuration);
+                  const unitPrice = Number(item.unitPrice);
+                  const lineTotal = Number(item.lineTotal);
+
+                  return (
+                    <article
+                      key={`${item.productName}-${index}`}
+                      className="px-4 py-4 sm:px-5"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-950 px-2 text-[10px] font-black text-white">
+                          {item.quantity}×
+                        </span>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <h4 className="text-[13px] font-black leading-5 text-neutral-900 sm:text-sm">
+                                {item.productName}
+                              </h4>
+                              {item.variantName && (
+                                <p className="mt-0.5 text-[10px] font-semibold text-neutral-500">
+                                  {item.variantName}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="shrink-0 text-right">
+                              <b className="block text-[13px] text-neutral-900 sm:text-sm">
+                                {money(lineTotal)}
+                              </b>
+                              {item.quantity > 1 && (
+                                <span className="mt-0.5 block text-[9px] text-neutral-400">
+                                  {money(unitPrice)} c/u
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {details.length > 0 && (
+                            <div className="mt-2 space-y-0.5">
+                              {details.map((detail) => (
+                                <p
+                                  key={detail}
+                                  className="text-[10px] leading-4 text-neutral-500"
+                                >
+                                  {detail}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+
+                          {item.notes && (
+                            <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[9px] leading-4 text-amber-800">
+                              Nota: {item.notes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-neutral-200 bg-[#faf9f7] px-4 py-4 sm:px-5">
+                <div className="flex items-center justify-between gap-4 text-[11px]">
+                  <span className="text-neutral-500">Subtotal</span>
+                  <b className="text-neutral-800">{money(Number(order.subtotal))}</b>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between gap-4 text-[11px]">
+                  <span className="text-neutral-500">Domicilio</span>
+                  <b className="text-neutral-800">{money(Number(order.deliveryFee))}</b>
+                </div>
+
+                {Number(order.discount) > 0 && (
+                  <div className="mt-2 flex items-center justify-between gap-4 text-[11px]">
+                    <span className="text-emerald-700">Descuento</span>
+                    <b className="text-emerald-700">
+                      − {money(Number(order.discount))}
+                    </b>
+                  </div>
+                )}
+
+                <div className="mt-3 flex items-end justify-between gap-4 border-t border-neutral-200 pt-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.08em] text-neutral-500">
+                    Total
+                  </span>
+                  <strong className="text-xl font-black tracking-[-0.03em] text-neutral-950">
+                    {money(Number(order.total))}
+                  </strong>
+                </div>
+              </div>
+            </section>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <Link
