@@ -123,37 +123,37 @@ export default function OrderStatusSelector({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          <section>
-            <div className="flex items-center justify-between gap-3">
+          <section className="rounded-[20px] border border-neutral-200 bg-[#fbfaf8] px-4 py-4 sm:px-5 sm:py-5">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.09em] text-neutral-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-500">
                   Flujo operativo
                 </p>
-                <p className="mt-0.5 text-xs font-semibold text-neutral-700">
+                <p className="mt-1 text-[15px] font-bold leading-none text-neutral-900">
                   {shortStatusLabel(currentStatus)}
                 </p>
               </div>
-              <span className="rounded-full bg-black px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.06em] text-white">
+              <span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.04em] text-white">
                 Estado actual
               </span>
             </div>
 
-            <div className="mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mt-5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div
-                className="relative grid min-w-[560px] gap-0 sm:min-w-0"
+                className="relative grid min-w-[700px] gap-0 sm:min-w-0"
                 style={{
                   gridTemplateColumns: `repeat(${statuses.length}, minmax(0, 1fr))`,
                 }}
               >
                 <div
-                  className="absolute top-[11px] h-[2px] bg-neutral-200"
+                  className="absolute top-[17px] h-[3px] rounded-full bg-neutral-200"
                   style={{
                     left: `${100 / (statuses.length * 2)}%`,
                     right: `${100 / (statuses.length * 2)}%`,
                   }}
                 />
                 <div
-                  className="absolute top-[11px] h-[2px] bg-black transition-all"
+                  className="absolute top-[17px] h-[3px] rounded-full bg-black transition-all"
                   style={{
                     left: `${100 / (statuses.length * 2)}%`,
                     width:
@@ -168,27 +168,27 @@ export default function OrderStatusSelector({
                   const complete = currentIndex >= 0 && index < currentIndex;
 
                   return (
-                    <div key={status} className="relative min-w-0 text-center">
+                    <div key={status} className="relative min-w-0 px-1 text-center">
                       <div
                         className={
-                          "relative z-10 mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[9px] font-black " +
+                          "relative z-10 mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-[12px] font-bold leading-none " +
                           (current
-                            ? "border-black bg-black text-white ring-4 ring-black/10"
+                            ? "border-black bg-black text-white ring-[5px] ring-black/10"
                             : complete
                               ? "border-black bg-black text-white"
-                              : "border-neutral-200 bg-white text-neutral-400")
+                              : "border-neutral-300 bg-white text-neutral-500")
                         }
                       >
                         {complete ? "✓" : index + 1}
                       </div>
                       <span
                         className={
-                          "mt-2 block px-0.5 text-[7px] font-bold leading-[10px] " +
+                          "mt-3 block px-1 text-[10px] font-bold leading-[13px] tracking-[-0.01em] " +
                           (current
                             ? "text-neutral-950"
                             : complete
-                              ? "text-neutral-500"
-                              : "text-neutral-300")
+                              ? "text-neutral-700"
+                              : "text-neutral-500")
                         }
                       >
                         {shortStatusLabel(status)}
