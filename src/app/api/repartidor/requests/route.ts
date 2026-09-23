@@ -12,7 +12,7 @@ const PROCESS_STATUSES = [
   "ARRIVED",
 ] as const;
 
-const CLAIMABLE_STATUSES = new Set([
+const CLAIMABLE_STATUSES = new Set<string>([
   "CONFIRMED",
   "PREPARING",
   "PREPARED",
