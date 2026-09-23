@@ -292,11 +292,12 @@ export default function DriverHome({
     if (!response.ok) return;
     const next = (data.orders ?? []) as DriverRequest[];
     setOrders(next);
-
-    if (selectedId && !next.some((order) => order.id === selectedId)) {
-      setSelectedId(null);
-    }
-  }, [selectedId]);
+    setSelectedId((current) =>
+      current && !next.some((order) => order.id === current)
+        ? null
+        : current,
+    );
+  }, []);
 
   useEffect(() => {
     void refreshOrders();
