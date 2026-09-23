@@ -323,6 +323,30 @@ Recordatorio técnico:
 - `PREPARED` es el estado interno mostrado como **Horneando**;
 - `PREPARED → READY` corresponde al hornero/operación, no a Cocina.
 
+## Eliminación definitiva de pedidos cerrados
+
+La eliminación definitiva está permitida únicamente para:
+
+- `CANCELED`;
+- `COMPLETED`.
+
+Requisitos:
+
+- usuario ADMIN o permiso `DELETE_ORDERS`;
+- los pedidos activos no se pueden eliminar;
+- la acción exige confirmación explícita.
+
+Al eliminar un pedido finalizado:
+
+- se elimina la orden;
+- se eliminan sus líneas;
+- se eliminan sus pagos;
+- se eliminan sus `ClubPointTransaction`;
+- los `NotificationJob` relacionados caen por cascada;
+- el pedido deja de existir en historial y métricas del cliente.
+
+Esta acción debe usarse como limpieza/mantenimiento y es irreversible.
+
 ## Estados
 
 Flujo Domicilio:
