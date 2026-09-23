@@ -251,15 +251,7 @@ export default async function TrackingPage({
               ))}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-neutral-100 bg-[#fbfaf8] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-neutral-400">Cliente</p>
-              <p className="mt-1.5 text-sm font-bold">{order.customer?.name ?? "Cliente Alentó"}</p>
-              <p className="mt-1 text-xs leading-5 text-neutral-500">
-                Esta página se actualiza automáticamente con el estado real de tu pedido.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <Link
                 href="/menu"
                 className="flex h-12 items-center justify-center rounded-full bg-[#111] px-5 text-[11px] font-bold text-white shadow-sm transition hover:bg-black"
