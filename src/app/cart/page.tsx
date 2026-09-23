@@ -82,13 +82,6 @@ export default function CartPage() {
     [cart],
   );
 
-  const deliveryFee =
-    checkoutSelection?.fulfillmentType === "DELIVERY"
-      ? checkoutSelection.deliveryFee
-      : 0;
-
-  const checkoutTotal = subtotal + deliveryFee;
-
   function changeQuantity(key: string, delta: number) {
     setCart((current) =>
       current
@@ -236,34 +229,16 @@ export default function CartPage() {
 
             <aside className="fixed inset-x-3 bottom-[92px] z-[70] mx-auto max-w-[470px] rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.14),transparent_30%),linear-gradient(145deg,#161616,#0f0f0f)] p-4 shadow-[0_20px_50px_rgba(0,0,0,.42)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-6 lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-[24px] lg:p-5 lg:shadow-[0_18px_46px_rgba(0,0,0,.20)]">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/32">Resumen</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/32">
+                  Resumen
+                </p>
 
-                <div className="mt-2 flex items-center justify-between gap-4">
-                  <span className="text-[11px] text-white/45">Subtotal</span>
-                  <b className="text-[16px]">{money(subtotal)}</b>
-                </div>
-
-                {checkoutSelection && (
-                  <div className="mt-1.5 flex items-center justify-between gap-4">
-                    <span className="text-[10px] text-white/35">
-                      {checkoutSelection.fulfillmentType === "DELIVERY"
-                        ? "Domicilio"
-                        : "Recoger"}
-                    </span>
-                    <b className="text-[12px] text-white/65">
-                      {checkoutSelection.fulfillmentType === "DELIVERY"
-                        ? money(deliveryFee)
-                        : "$ 0"}
-                    </b>
-                  </div>
-                )}
-
-                <div className="mt-2 flex items-center justify-between gap-4 border-t border-white/[0.07] pt-2">
-                  <span className="text-[10px] font-semibold text-white/55">
-                    Total
+                <div className="mt-3 flex items-end justify-between gap-4">
+                  <span className="text-[11px] font-semibold text-white/48">
+                    Subtotal
                   </span>
-                  <b className="text-[24px] tracking-[-0.03em] lg:text-[22px]">
-                    {money(checkoutTotal)}
+                  <b className="text-[24px] tracking-[-0.03em] text-white lg:text-[22px]">
+                    {money(subtotal)}
                   </b>
                 </div>
               </div>
@@ -271,13 +246,11 @@ export default function CartPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setCheckoutStep(checkoutSelection ? "customer" : "delivery");
+                  setCheckoutStep("delivery");
                 }}
                 className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#ef1c25] lg:mt-5 lg:h-12 lg:text-[12px]"
               >
-                {checkoutSelection
-                  ? "Continuar compra"
-                  : "Continuar pedido"}
+                Continuar pedido
               </button>
 
             </aside>
