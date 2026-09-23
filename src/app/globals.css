@@ -108,13 +108,11 @@ button:active:not(:disabled) {
    Esto garantiza que componentes antiguos respeten la escala operativa sin
    depender de migrar inmediatamente cada archivo. La impresión térmica queda
    excluida porque tiene requisitos físicos distintos. */
-body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *),
-body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *) * {
+body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *) {
   font-size: var(--ui-text-micro) !important;
 }
 
-body :where([class*="text-[9px]"]):not(.thermal-page *),
-body :where([class*="text-[9px]"]):not(.thermal-page *) * {
+body :where([class*="text-[9px]"]):not(.thermal-page *) {
   font-size: var(--ui-text-label) !important;
 }
 
