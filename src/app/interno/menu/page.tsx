@@ -638,13 +638,13 @@ export default function MenuPage() {
         <header className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Menú</h1>
               <p className="mt-1.5 text-[13px] font-normal leading-5 text-white/65">Organiza categorías, productos y disponibilidad desde un solo lugar.</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
               <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{totalProducts}</b>
             </div>
           </div>
@@ -740,7 +740,7 @@ export default function MenuPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-[20px] font-black tracking-[-0.02em] text-neutral-950">{activeCategory?.name ?? "Productos"}</h2>
-                    <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[9px] font-bold text-neutral-500">
+                    <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-bold text-neutral-500">
                       {activeCategory?.products.length ?? 0}
                     </span>
                   </div>
@@ -795,7 +795,7 @@ export default function MenuPage() {
                     <button
                       type="button"
                       onClick={() => startCombo()}
-                      className="h-11 shrink-0 rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-black text-white"
+                      className="h-11 shrink-0 rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-bold text-white"
                     >
                       + Combo
                     </button>
@@ -918,7 +918,7 @@ export default function MenuPage() {
           >
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                   {categoryEditor.id ? "Editar categoría" : "Nueva categoría"}
                 </p>
                 <h2 className="mt-1 text-[25px] font-semibold tracking-[-0.02em] text-white">
@@ -959,7 +959,7 @@ export default function MenuPage() {
                       {categoryEditor.active ? "•" : "○"}
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Categoría pública</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[.11em] text-neutral-400">Categoría pública</p>
                       <h3 className="mt-1 text-[15px] font-black text-neutral-950">
                         {categoryEditor.active ? "Activa" : "Desactivada"}
                       </h3>
@@ -990,7 +990,7 @@ export default function MenuPage() {
                 </div>
 
                 <div className="mt-3 border-t border-black/5 pt-3">
-                  <p className="text-[9px] leading-4 text-neutral-500">
+                  <p className="text-[11px] leading-4 text-neutral-500">
                     Desactivar la categoría no desactiva sus productos. Por ejemplo, puedes ocultar “Combos” del selector y mantener combos activos dentro de “Destacados”.
                   </p>
                 </div>
@@ -1087,11 +1087,11 @@ export default function MenuPage() {
           <div className="w-full max-w-[1040px] overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">Administrar producto</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Administrar producto</p>
                 <h2 className="mt-1 text-[26px] font-semibold tracking-[-0.025em] text-white">{selectedProduct.name}</h2>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-white/80">{selectedProduct.type}</span>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold text-white/70">
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-white/80">{selectedProduct.type}</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/70">
                     {data?.categories.find((category) => category.id === selectedProduct.categoryId)?.name ?? "Producto"}
                   </span>
                 </div>
@@ -1152,7 +1152,7 @@ export default function MenuPage() {
               <div className="min-w-0">
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Control del producto</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">Control del producto</p>
                     <h3 className="mt-1 text-[21px] font-semibold tracking-[-0.02em] text-neutral-950">Estado y visibilidad</h3>
                     <p className="mt-1 text-[11px] leading-4 text-neutral-500">Los cambios se guardan al instante sin cerrar esta ventana.</p>
                   </div>
@@ -1219,7 +1219,7 @@ export default function MenuPage() {
 
                         <b className="mt-4 block text-[13px] font-semibold text-neutral-950">{option.label}</b>
                         <p className="mt-1 min-h-8 text-[10px] leading-4 text-neutral-500">{option.description}</p>
-                        <span className={`mt-3 inline-flex rounded-full px-2 py-1 text-[9px] font-semibold ${option.enabled && !option.disabled ? "bg-white/80 text-neutral-700 shadow-sm" : "bg-neutral-200/70 text-neutral-500"}`}>
+                        <span className={`mt-3 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold ${option.enabled && !option.disabled ? "bg-white/80 text-neutral-700 shadow-sm" : "bg-neutral-200/70 text-neutral-500"}`}>
                           {option.disabled ? "No disponible" : option.enabled ? "Activado" : "Desactivado"}
                         </span>
                       </div>
@@ -1283,9 +1283,9 @@ export default function MenuPage() {
           >
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/45">Editar producto</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Editar producto</p>
                 <h2 className="mt-1 text-[26px] font-semibold tracking-[-0.025em] text-white">{editor.name}</h2>
-                <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-semibold uppercase text-white/75">
+                <span className="mt-2 inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase text-white/75">
                   {editor.type}
                 </span>
               </div>
@@ -1315,7 +1315,7 @@ export default function MenuPage() {
                       )}
                     </div>
                     <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-4 text-white">
-                      <span className="text-[9px] font-medium uppercase tracking-[0.09em] text-white/45">Vista principal</span>
+                      <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-white/45">Vista principal</span>
                       <h3 className="mt-1 truncate text-[16px] font-medium leading-6">{editor.name || "Producto"}</h3>
                       <b className="mt-2 block text-[20px] font-semibold leading-6 tracking-[-0.02em]">
                         {formatCOP(Number(editor.basePrice) || 0)}
@@ -1326,7 +1326,7 @@ export default function MenuPage() {
                   <div className="rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-neutral-400">Imagen secundaria</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-neutral-400">Imagen secundaria</p>
                         <p className="mt-0.5 text-[10px] text-neutral-500">Vista alternativa del producto.</p>
                       </div>
                       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-[#faf9f7]">
@@ -1343,7 +1343,7 @@ export default function MenuPage() {
                 <div className="min-w-0 space-y-4">
                   <section className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-sm">
                     <div className="mb-4">
-                      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
                       <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.015em] text-neutral-950">Datos que verá el cliente</h3>
                     </div>
 
@@ -1398,10 +1398,10 @@ export default function MenuPage() {
                   <section className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Recursos visuales</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Recursos visuales</p>
                         <h3 className="mt-1 text-[16px] font-semibold text-neutral-950">Imágenes del producto</h3>
                       </div>
-                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-medium text-neutral-500">URLs</span>
+                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500">URLs</span>
                     </div>
 
                     <div className="mt-4 grid gap-3">
@@ -1466,7 +1466,7 @@ export default function MenuPage() {
           >
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Nuevo producto</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Nuevo producto</p>
                 <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">Crear en {activeCategory?.name}</h2>
                 <p className="mt-1 text-[11px] text-white/55">Completa la información básica para agregarlo al catálogo.</p>
               </div>
@@ -1482,7 +1482,7 @@ export default function MenuPage() {
 
             <div className="overflow-y-auto p-5 md:p-6">
               <section className="rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">Información principal</p>
                 <div className="mt-3 grid gap-4 md:grid-cols-2">
                   <label className="space-y-1.5 md:col-span-2">
                     <span className="text-[12px] font-bold text-neutral-800">Nombre *</span>
@@ -1497,7 +1497,7 @@ export default function MenuPage() {
                     <input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} />
                   </label>
                   <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                    <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Comportamiento</span>
+                    <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Comportamiento</span>
                     <p className="mt-1 text-[10.5px] leading-4 text-neutral-600">
                       {createState.categorySlug === "pizzas"
                         ? "En el POS se sumará el tamaño Personal (" + formatCOP(minPizzaSizePrice) + ")."
@@ -1510,7 +1510,7 @@ export default function MenuPage() {
               </section>
 
               <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4">
-                <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
                 <div className="mt-3 grid gap-3">
                   <label className="space-y-1.5">
                     <span className="text-[12px] font-bold text-neutral-800">Imagen principal · URL</span>
@@ -1565,7 +1565,7 @@ export default function MenuPage() {
           <form onSubmit={saveCombo} className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
             <div className="flex items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[radial-gradient(circle_at_92%_10%,rgba(229,28,17,.22),transparent_32%),linear-gradient(135deg,#09090a,#191617)] px-6 py-4.5 text-white">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Constructor de combo</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">Constructor de combo</p>
                 <h2 className="mt-1 text-[26px] font-black tracking-[-0.03em] text-white">{comboState.id ? `Configurar ${comboState.name}` : "Crear combo"}</h2>
                 <p className="mt-1 text-[11px] text-white/55">Define productos, cantidades, tamaños, sabores y descuento.</p>
               </div>
