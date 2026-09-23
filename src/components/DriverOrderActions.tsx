@@ -331,7 +331,11 @@ export default function DriverOrderActions({
       {target === "OUT_FOR_DELIVERY" && (
         <>
           <div className="border-b border-white/10 p-4 sm:p-5">
-            <div className="mb-3 flex justify-end">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
+                1 · Productos
+              </p>
+
               <span
                 className={
                   "rounded-full px-3 py-1.5 text-[10px] font-black " +
@@ -436,7 +440,7 @@ export default function DriverOrderActions({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                  1 · Ubicación
+                  2 · Ubicación
                 </p>
                 <h3 className="mt-2 text-xl font-black">
                   Compartir ubicación en tiempo real
@@ -537,7 +541,7 @@ export default function DriverOrderActions({
       <div className="p-5">
         <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
           {target === "OUT_FOR_DELIVERY"
-            ? "2 · Acción del repartidor"
+            ? "3 · Acción del repartidor"
             : "Acción del repartidor"}
         </p>
         <h3 className="mt-2 text-xl font-black">
