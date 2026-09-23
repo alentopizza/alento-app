@@ -12,6 +12,10 @@ type CustomerAddress = {
   id: number;
   label?: string | null;
   address: string;
+  formattedAddress?: string | null;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   neighborhood: string | null;
   city: string | null;
   notes: string | null;
@@ -236,6 +240,10 @@ export default function CustomersPage() {
     city: string;
     notes: string;
     isDefault: boolean;
+    formattedAddress: string;
+    placeId: string;
+    latitude: number | null;
+    longitude: number | null;
   } | null>(null);
   const [addressBusy, setAddressBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -461,6 +469,10 @@ export default function CustomersPage() {
             city: "Bogotá",
             notes: "",
             isDefault: (editing?.addresses.length ?? 0) === 0,
+            formattedAddress: "",
+            placeId: "",
+            latitude: null,
+            longitude: null,
           },
     );
     setMessage("");
@@ -1634,6 +1646,10 @@ export default function CustomersPage() {
                                 ? {
                                     ...current,
                                     address: selection.formattedAddress,
+                                    formattedAddress: selection.formattedAddress,
+                                    placeId: selection.placeId,
+                                    latitude: selection.latitude,
+                                    longitude: selection.longitude,
                                     neighborhood:
                                       selection.neighborhood || current.neighborhood,
                                     city: selection.city || current.city,
