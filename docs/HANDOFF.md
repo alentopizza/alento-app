@@ -41,6 +41,36 @@ Orden de prioridad:
 
 Si documentación y código discrepan, verificar el comportamiento real y actualizar la documentación en el mismo bloque.
 
+## Protocolo de cambio seguro
+
+Antes de modificar cualquier módulo:
+
+1. leer el documento canónico del módulo;
+2. revisar los archivos de UI, API, tipos y helpers directamente relacionados;
+3. revisar `prisma/schema.prisma` si el cambio toca persistencia;
+4. buscar referencias del tipo, campo, estado o función que se va a cambiar;
+5. revisar los commits recientes del área para detectar decisiones todavía en transición.
+
+Durante la implementación:
+
+- preferir una solución de sistema sobre parches aislados;
+- si existe una forma más simple, mantenible o coherente con la arquitectura, explicarla y usarla salvo que contradiga una decisión explícita;
+- mantener una única fuente de verdad para tipos y reglas compartidas cuando sea posible;
+- no duplicar helpers, tipos globales o lógica de Google Maps/autenticación si ya existe un módulo compartido;
+- si una decisión afecta varias superficies, actualizar todas en el mismo bloque: UI, API, persistencia, documentación y estados derivados.
+
+Antes de considerar terminado un cambio:
+
+- buscar referencias antiguas que hayan quedado obsoletas;
+- revisar inicializadores, ramas alternativas y estados vacíos;
+- comprobar implicaciones para POS, WEB, Clientes, Club, Caja, Cocina o Pedidos cuando compartan datos;
+- verificar si el cambio de schema requiere sincronización de Prisma y revisar `package.json`/`docs/DEPLOYMENT.md` antes de indicar pasos manuales;
+- revisar TypeScript de los componentes relacionados para evitar cadenas de errores de build;
+- actualizar documentación canónica y `HANDOFF.md` si cambia una regla de negocio.
+
+En el despliegue actual, `npm run start` ejecuta `prisma db push && next start -p 3000`. Por tanto, los cambios de `prisma/schema.prisma` pueden aplicarse automáticamente al arrancar después del build. No indicar `db push` como paso manual obligatorio sin revisar primero el comportamiento vigente de despliegue y el impacto del schema.
+
+Este protocolo existe para evitar iteraciones donde un cambio funcional correcto genere regresiones por tipos, imports, estados derivados o contratos desalineados entre módulos.
 ## Módulos cerrados
 
 Están cerrados para la etapa operativa actual:
