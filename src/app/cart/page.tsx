@@ -61,6 +61,17 @@ export default function CartPage() {
     window.dispatchEvent(new Event("alento-cart-updated"));
   }, [cart, ready]);
 
+  useEffect(() => {
+    document.body.classList.toggle(
+      "alento-checkout-flow",
+      checkoutStep !== "cart",
+    );
+
+    return () => {
+      document.body.classList.remove("alento-checkout-flow");
+    };
+  }, [checkoutStep]);
+
   const cartCount = useMemo(
     () => cart.reduce((total, item) => total + item.quantity, 0),
     [cart],
@@ -95,7 +106,12 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#090909] pb-28 text-white">
+    <main
+      className={
+        "min-h-screen bg-[#090909] text-white " +
+        (checkoutStep === "cart" ? "pb-28" : "pb-0")
+      }
+    >
       <PublicBrandHeader />
 
       {checkoutStep === "cart" && (
