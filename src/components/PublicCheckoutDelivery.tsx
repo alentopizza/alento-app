@@ -39,6 +39,8 @@ type DeliveryQuote = {
     latitude: number;
     longitude: number;
   };
+  maxCoverageMeters?: number;
+};
 
 type SavedCustomerAddress = {
   id: number;
@@ -48,8 +50,6 @@ type SavedCustomerAddress = {
   city: string | null;
   notes: string | null;
   isDefault: boolean;
-};
-  maxCoverageMeters?: number;
 };
 
 function money(value: number) {
