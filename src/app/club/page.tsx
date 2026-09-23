@@ -163,6 +163,7 @@ export default async function ClubPage() {
                   sequenceNumber: true,
                   total: true,
                   createdAt: true,
+                  status: true,
                 },
               },
             },
@@ -177,11 +178,13 @@ export default async function ClubPage() {
   }
 
   const customer = account.customer;
-  const balance = await prisma.clubPointTransaction.aggregate({
-    where: { customerId: customer.id },
-    _sum: { points: true },
-  });
-  const points = balance._sum.points ?? 0;
+  const validMovements = customer.clubPoints.filter(
+    (movement) => !movement.order || movement.order.status !== "CANCELED",
+  );
+  const points = validMovements.reduce(
+    (sum, movement) => sum + movement.points,
+    0,
+  );
 
   return (
     <>
@@ -257,8 +260,8 @@ export default async function ClubPage() {
           </div>
 
           <div className="mt-4 space-y-2">
-            {customer.clubPoints.length ? (
-              customer.clubPoints.map((movement) => (
+            {validMovements.length ? (
+              validMovements.map((movement) => (
                 <div key={movement.id} className="flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.07] bg-white/[0.025] px-4 py-3">
                   <div className="min-w-0">
                     <b className="block text-[12px]">
