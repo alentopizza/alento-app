@@ -172,6 +172,9 @@ export async function POST(request: NextRequest) {
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
     let resolvedDeliveryAddress: string | null = null;
+    let resolvedDeliveryPlaceId: string | null = null;
+    let resolvedDeliveryLatitude: number | null = null;
+    let resolvedDeliveryLongitude: number | null = null;
 
     if (fulfillmentType === "DELIVERY") {
       const destination = body?.destination ?? {};
@@ -231,9 +234,14 @@ export async function POST(request: NextRequest) {
       deliveryZoneName = band.name?.trim() || "Domicilio";
 
       resolvedDeliveryAddress = text(destination.formattedAddress);
+      resolvedDeliveryPlaceId = text(destination.placeId) || null;
+      resolvedDeliveryLatitude = latitude;
+      resolvedDeliveryLongitude = longitude;
+
       if (!resolvedDeliveryAddress) {
         const geocoded = await reverseGeocode(latitude, longitude);
         resolvedDeliveryAddress = geocoded.formattedAddress;
+        resolvedDeliveryPlaceId = resolvedDeliveryPlaceId || geocoded.placeId || null;
       }
     }
 
@@ -333,25 +341,50 @@ export async function POST(request: NextRequest) {
       }
 
       let addressId: number | null = null;
-      if (fulfillmentType === "DELIVERY" && resolvedDeliveryAddress) {
-        const sameAddress = customer.addresses.find(
-          (item) =>
-            item.address.trim().toLocaleLowerCase("es") ===
-            resolvedDeliveryAddress!.trim().toLocaleLowerCase("es"),
-        );
+      if (
+        fulfillmentType === "DELIVERY" &&
+        resolvedDeliveryAddress &&
+        resolvedDeliveryLatitude != null &&
+        resolvedDeliveryLongitude != null
+      ) {
+        const existingAddress = customer.addresses[0] ?? null;
 
-        if (sameAddress) {
-          addressId = sameAddress.id;
-        } else {
-          const address = await tx.customerAddress.create({
+        if (existingAddress) {
+          const updatedAddress = await tx.customerAddress.update({
+            where: { id: existingAddress.id },
             data: {
-              customerId: customer.id,
               address: resolvedDeliveryAddress,
-              city: "Bogotá",
-              isDefault: customer.addresses.length === 0,
+              formattedAddress: resolvedDeliveryAddress,
+              placeId: resolvedDeliveryPlaceId,
+              latitude: resolvedDeliveryLatitude,
+              longitude: resolvedDeliveryLongitude,
+              city: existingAddress.city || "Bogotá",
+              isDefault: true,
             },
           });
-          addressId = address.id;
+          addressId = updatedAddress.id;
+
+          await tx.customerAddress.deleteMany({
+            where: {
+              customerId: customer.id,
+              id: { not: existingAddress.id },
+            },
+          });
+        } else {
+          const createdAddress = await tx.customerAddress.create({
+            data: {
+              customerId: customer.id,
+              label: "Casa",
+              address: resolvedDeliveryAddress,
+              formattedAddress: resolvedDeliveryAddress,
+              placeId: resolvedDeliveryPlaceId,
+              latitude: resolvedDeliveryLatitude,
+              longitude: resolvedDeliveryLongitude,
+              city: "Bogotá",
+              isDefault: true,
+            },
+          });
+          addressId = createdAddress.id;
         }
       }
 
