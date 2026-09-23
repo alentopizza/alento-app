@@ -130,11 +130,16 @@ function getGoogleWindow() {
   return window as typeof window & { google?: GoogleMapsRuntime };
 }
 
-function requireGoogleRuntime() {
-  if (!getGoogleWindow().google?.maps) {
-    throw new Error("Google Maps no quedó disponible después de iniciar el cargador.");
+function requireGoogleRuntime(): GoogleMapsRuntime {
+  const runtime = getGoogleWindow().google;
+
+  if (!runtime?.maps) {
+    throw new Error(
+      "Google Maps no quedó disponible después de iniciar el cargador.",
+    );
   }
-  return getGoogleWindow().google;
+
+  return runtime;
 }
 
 function installGoogleMapsBootstrap(key: string) {
