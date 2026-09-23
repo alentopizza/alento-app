@@ -314,10 +314,12 @@ export default function DriverDestinationActions({
       }
 
       map.fitBounds(bounds, {
-        top: 110,
-        right: 42,
-        bottom: 60,
-        left: 42,
+        // Zona segura amplia para que moto, cliente y Alentó nunca queden
+        // debajo del panel flotante de Distancia / Tiempo.
+        top: 160,
+        right: 68,
+        bottom: 96,
+        left: 68,
       });
     },
     [customerName],
