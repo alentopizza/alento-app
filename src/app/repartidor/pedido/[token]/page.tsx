@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import DriverOrderActions from "@/components/DriverOrderActions";
+import DriverOrderStatus from "@/components/DriverOrderStatus";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 
@@ -65,6 +66,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     <main className="min-h-screen bg-[#080808] px-4 pb-32 pt-5 text-white">
       <LivePageRefresh intervalMs={2500} />
       <div className="mx-auto max-w-[640px] space-y-4">
+        <DriverOrderStatus status={order.status} />
+
         <section className="overflow-hidden rounded-[24px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <div className="relative p-5">
             <div className="flex items-start justify-between gap-4 pr-12">
