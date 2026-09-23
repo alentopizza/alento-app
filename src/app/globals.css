@@ -104,6 +104,24 @@ button:active:not(:disabled) {
   letter-spacing: -0.02em;
 }
 
+/* Compatibilidad global con microtipografía heredada.
+   Esto garantiza que componentes antiguos respeten la escala operativa sin
+   depender de migrar inmediatamente cada archivo. La impresión térmica queda
+   excluida porque tiene requisitos físicos distintos. */
+body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *),
+body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *) * {
+  font-size: var(--ui-text-micro) !important;
+}
+
+body :where([class*="text-[9px]"]):not(.thermal-page *),
+body :where([class*="text-[9px]"]):not(.thermal-page *) * {
+  font-size: var(--ui-text-label) !important;
+}
+
+body :where(.font-black[class*="text-[7px]"], .font-black[class*="text-[8px]"], .font-black[class*="text-[9px]"], .font-black[class*="text-[10px]"], .font-black[class*="text-[11px]"]):not(.thermal-page *) {
+  font-weight: 700 !important;
+}
+
 .alento-card {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid var(--border);
