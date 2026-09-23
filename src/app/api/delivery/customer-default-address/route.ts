@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getCustomerSession } from "@/lib/customerAuth";
+import { getCustomerSession } from "@/lib/auth";
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
