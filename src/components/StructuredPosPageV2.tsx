@@ -4,8 +4,9 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
 import type { ComboOrderConfiguration, OrderLineConfiguration, PizzaOrderConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
+import { emitLiveDataChange } from "@/lib/liveDataEvents";
 
-type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
+type CustomerAddress = { id: number; label: string | null; address: string; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
@@ -65,11 +66,20 @@ export default function StructuredPosPageV2() {
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("+57");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [customerError, setCustomerError] = useState("");
+  const [addressEditor, setAddressEditor] = useState<{
+    id: number | null;
+    label: string;
+    address: string;
+    neighborhood: string;
+    city: string;
+    notes: string;
+    isDefault: boolean;
+  } | null>(null);
+  const [addressBusy, setAddressBusy] = useState(false);
 
   useEffect(() => {
     async function loadCatalog() {
@@ -106,7 +116,9 @@ export default function StructuredPosPageV2() {
   }, [catalog, selectedCategory, productQuery]);
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
-  const selectedAddress = selectedCustomer?.addresses?.[0];
+  const selectedAddress =
+    selectedCustomer?.addresses?.find((item) => item.isDefault) ??
+    selectedCustomer?.addresses?.[0];
   const requiresCustomer = fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP";
   const hasDeliveryAddress = Boolean(selectedAddress?.address?.trim());
   const canContinue = Boolean(cart.length && fulfillmentType && (!requiresCustomer || selectedCustomer) && (fulfillmentType !== "DELIVERY" || hasDeliveryAddress));
@@ -155,12 +167,27 @@ export default function StructuredPosPageV2() {
   }
 
   function resetCustomerForm() {
-    setName(""); setCountryCode("+57"); setPhone(""); setAddress(""); setEmail(""); setNotes(""); setCustomerError("");
+    setName("");
+    setCountryCode("+57");
+    setPhone("");
+    setEmail("");
+    setNotes("");
+    setCustomerError("");
+    setAddressEditor(null);
   }
 
   function openNewCustomer() {
     setEditingCustomer(null);
     resetCustomerForm();
+    setAddressEditor({
+      id: null,
+      label: "Casa",
+      address: "",
+      neighborhood: "",
+      city: "Bogotá",
+      notes: "",
+      isDefault: true,
+    });
     setShowCustomerModal(true);
   }
 
@@ -169,7 +196,6 @@ export default function StructuredPosPageV2() {
     setName(customer.name);
     setCountryCode(customer.countryCode || "+57");
     setPhone(customer.phone || "");
-    setAddress(customer.addresses?.[0]?.address || "");
     setEmail(customer.email || "");
     setNotes(customer.notes || "");
     setCustomerError("");
@@ -178,25 +204,205 @@ export default function StructuredPosPageV2() {
 
   async function saveCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim() || !phone.trim()) return setCustomerError("Nombre y teléfono son obligatorios.");
-    if (fulfillmentType === "DELIVERY" && !address.trim()) return setCustomerError("La dirección es obligatoria para domicilio.");
+    if (!name.trim() || !phone.trim()) {
+      return setCustomerError("Nombre y teléfono son obligatorios.");
+    }
+
+    if (
+      !editingCustomer &&
+      fulfillmentType === "DELIVERY" &&
+      !addressEditor?.address.trim()
+    ) {
+      return setCustomerError("Agrega una dirección para el domicilio.");
+    }
+
     setSavingCustomer(true);
+    setCustomerError("");
+
     try {
-      const response = await fetch(editingCustomer ? `/api/customers/${editingCustomer.id}` : "/api/customers", {
-        method: editingCustomer ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, countryCode, phone, address, email, notes }),
-      });
+      const response = await fetch(
+        editingCustomer ? `/api/customers/${editingCustomer.id}` : "/api/customers",
+        {
+          method: editingCustomer ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            countryCode,
+            phone,
+            email,
+            notes,
+            ...(!editingCustomer && addressEditor?.address.trim()
+              ? { address: addressEditor.address.trim() }
+              : {}),
+          }),
+        },
+      );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible guardar el cliente.");
-      chooseCustomer(data.customer);
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible guardar el cliente.");
+      }
+
+      let savedCustomer = data.customer as Customer;
+
+      // Para cliente nuevo, enriquecer la primera dirección con etiqueta/barrio/notas.
+      if (
+        !editingCustomer &&
+        addressEditor?.address.trim() &&
+        savedCustomer.addresses?.[0]?.id
+      ) {
+        const addressResponse = await fetch(
+          `/api/customers/${savedCustomer.id}/addresses/${savedCustomer.addresses[0].id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              label: addressEditor.label,
+              address: addressEditor.address,
+              neighborhood: addressEditor.neighborhood,
+              city: addressEditor.city,
+              notes: addressEditor.notes,
+              isDefault: true,
+            }),
+          },
+        );
+        const addressData = await addressResponse.json();
+        if (addressResponse.ok && addressData.customer) {
+          savedCustomer = addressData.customer;
+        }
+      }
+
+      chooseCustomer(savedCustomer);
+      emitLiveDataChange(["customers", "account"]);
       setShowCustomerModal(false);
       setEditingCustomer(null);
       resetCustomerForm();
     } catch (error) {
-      setCustomerError(error instanceof Error ? error.message : "No fue posible guardar el cliente.");
+      setCustomerError(
+        error instanceof Error ? error.message : "No fue posible guardar el cliente.",
+      );
     } finally {
       setSavingCustomer(false);
+    }
+  }
+
+  function openAddressEditor(address?: CustomerAddress) {
+    setAddressEditor(
+      address
+        ? {
+            id: address.id,
+            label: address.label ?? "",
+            address: address.address,
+            neighborhood: address.neighborhood ?? "",
+            city: address.city ?? "Bogotá",
+            notes: address.notes ?? "",
+            isDefault: address.isDefault,
+          }
+        : {
+            id: null,
+            label: "Casa",
+            address: "",
+            neighborhood: "",
+            city: "Bogotá",
+            notes: "",
+            isDefault: (editingCustomer?.addresses?.length ?? 0) === 0,
+          },
+    );
+    setCustomerError("");
+  }
+
+  async function saveAddress() {
+    if (!editingCustomer || !addressEditor?.address.trim()) {
+      setCustomerError("Escribe una dirección.");
+      return;
+    }
+
+    setAddressBusy(true);
+    setCustomerError("");
+
+    try {
+      const endpoint = addressEditor.id
+        ? `/api/customers/${editingCustomer.id}/addresses/${addressEditor.id}`
+        : `/api/customers/${editingCustomer.id}/addresses`;
+
+      const response = await fetch(endpoint, {
+        method: addressEditor.id ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressEditor),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible guardar la dirección.");
+      }
+
+      const updated = data.customer as Customer;
+      setEditingCustomer(updated);
+      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
+      setAddressEditor(null);
+      emitLiveDataChange(["customers", "account"]);
+    } catch (error) {
+      setCustomerError(
+        error instanceof Error ? error.message : "No fue posible guardar la dirección.",
+      );
+    } finally {
+      setAddressBusy(false);
+    }
+  }
+
+  async function makeDefaultAddress(address: CustomerAddress) {
+    if (!editingCustomer || address.isDefault) return;
+
+    setAddressBusy(true);
+    try {
+      const response = await fetch(
+        `/api/customers/${editingCustomer.id}/addresses/${address.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isDefault: true }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible cambiar la dirección principal.");
+      }
+
+      const updated = data.customer as Customer;
+      setEditingCustomer(updated);
+      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
+      emitLiveDataChange(["customers", "account"]);
+    } catch (error) {
+      setCustomerError(
+        error instanceof Error ? error.message : "No fue posible cambiar la dirección principal.",
+      );
+    } finally {
+      setAddressBusy(false);
+    }
+  }
+
+  async function deleteAddress(address: CustomerAddress) {
+    if (!editingCustomer) return;
+
+    setAddressBusy(true);
+    try {
+      const response = await fetch(
+        `/api/customers/${editingCustomer.id}/addresses/${address.id}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible eliminar la dirección.");
+      }
+
+      const updated = data.customer as Customer;
+      setEditingCustomer(updated);
+      if (selectedCustomer?.id === updated.id) chooseCustomer(updated);
+      emitLiveDataChange(["customers", "account"]);
+    } catch (error) {
+      setCustomerError(
+        error instanceof Error ? error.message : "No fue posible eliminar la dirección.",
+      );
+    } finally {
+      setAddressBusy(false);
     }
   }
 
@@ -577,7 +783,274 @@ export default function StructuredPosPageV2() {
 
       <OrderCheckoutModal open={checkoutOpen} fulfillmentType={fulfillmentType} customer={selectedCustomer} cart={cart} subtotal={subtotal} onClose={() => setCheckoutOpen(false)} />
 
-      {showCustomerModal && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4"><div className="alento-card w-full max-w-xl rounded-[28px]"><div className="flex items-start justify-between border-b px-6 py-5"><div><p className="text-[10px] font-black uppercase text-neutral-400">Cliente</p><h2 className="text-2xl font-black">{editingCustomer ? "Editar cliente" : "Nuevo cliente"}</h2></div><button onClick={() => setShowCustomerModal(false)} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><form onSubmit={saveCustomer}><div className="space-y-4 p-6"><input value={name} onChange={(event) => setName(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre *"/><div className="grid grid-cols-[100px_1fr] gap-3"><select value={countryCode} onChange={(event) => setCountryCode(event.target.value)} className="alento-input rounded-2xl px-3"><option>+57</option><option>+1</option></select><input value={phone} onChange={(event) => setPhone(event.target.value)} className="alento-input rounded-2xl px-4 py-3" placeholder="Teléfono *"/></div><input value={address} onChange={(event) => setAddress(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder={fulfillmentType === "DELIVERY" ? "Dirección *" : "Dirección (opcional)"}/><input value={email} onChange={(event) => setEmail(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Correo (opcional)"/><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" rows={3} placeholder="Notas"/>{customerError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{customerError}</p>}</div><div className="flex justify-end gap-2 border-t p-4"><button type="button" onClick={() => setShowCustomerModal(false)} className="rounded-2xl border px-5 py-3 text-sm font-black">Cancelar</button><button disabled={savingCustomer} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white">{savingCustomer ? "Guardando..." : "Guardar"}</button></div></form></div></div>}
+      {showCustomerModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4">
+          <div className="alento-card flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px]">
+            <div className="flex items-start justify-between border-b px-6 py-5">
+              <div>
+                <p className="alento-ui-label uppercase text-neutral-400">Cliente</p>
+                <h2 className="alento-ui-title mt-1">
+                  {editingCustomer ? "Editar cliente" : "Nuevo cliente"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomerModal(false)}
+                className="rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
+              <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="alento-input w-full rounded-2xl px-4 py-3"
+                  placeholder="Nombre *"
+                />
+
+                <div className="grid grid-cols-[100px_1fr] gap-3">
+                  <select
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    className="alento-input rounded-2xl px-3"
+                  >
+                    <option>+57</option>
+                    <option>+1</option>
+                  </select>
+                  <input
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    className="alento-input rounded-2xl px-4 py-3"
+                    placeholder="Teléfono *"
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="alento-input w-full rounded-2xl px-4 py-3"
+                    placeholder="Correo (opcional)"
+                  />
+                  <input
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    className="alento-input w-full rounded-2xl px-4 py-3"
+                    placeholder="Nota del cliente (opcional)"
+                  />
+                </div>
+
+                <section className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase text-neutral-400">Direcciones</p>
+                      <h3 className="mt-1 text-[16px] font-bold text-neutral-900">
+                        {editingCustomer
+                          ? `${editingCustomer.addresses.length} guardada${editingCustomer.addresses.length === 1 ? "" : "s"}`
+                          : "Primera dirección"}
+                      </h3>
+                    </div>
+
+                    {editingCustomer && !addressEditor && (
+                      <button
+                        type="button"
+                        onClick={() => openAddressEditor()}
+                        className="rounded-xl bg-black px-3 py-2 text-[11px] font-bold text-white"
+                      >
+                        + Agregar
+                      </button>
+                    )}
+                  </div>
+
+                  {editingCustomer && !addressEditor && (
+                    <div className="mt-3 space-y-2">
+                      {editingCustomer.addresses.length ? (
+                        editingCustomer.addresses.map((item) => (
+                          <div
+                            key={item.id}
+                            className={
+                              "rounded-2xl border p-3 " +
+                              (item.isDefault
+                                ? "border-emerald-200 bg-emerald-50/60"
+                                : "border-neutral-200 bg-white")
+                            }
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <b className="text-[13px] font-bold text-neutral-900">
+                                    {item.label || "Dirección"}
+                                  </b>
+                                  {item.isDefault && (
+                                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                                      Principal
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-[12px] leading-5 text-neutral-700">
+                                  {item.address}
+                                </p>
+                                {(item.neighborhood || item.city) && (
+                                  <p className="mt-0.5 text-[10px] text-neutral-400">
+                                    {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex shrink-0 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openAddressEditor(item)}
+                                  className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                >
+                                  Editar
+                                </button>
+                                {!item.isDefault && (
+                                  <button
+                                    type="button"
+                                    disabled={addressBusy}
+                                    onClick={() => void makeDefaultAddress(item)}
+                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                  >
+                                    Principal
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={addressBusy}
+                                  onClick={() => void deleteAddress(item)}
+                                  className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => openAddressEditor()}
+                          className="mt-2 w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
+                        >
+                          <b className="block text-[13px] text-amber-900">
+                            Sin dirección registrada
+                          </b>
+                          <span className="mt-1 block text-[11px] text-amber-700">
+                            Agrega una para pedidos a domicilio.
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {(!editingCustomer || addressEditor) && addressEditor && (
+                    <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <input
+                          value={addressEditor.label}
+                          onChange={(event) =>
+                            setAddressEditor({ ...addressEditor, label: event.target.value })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Etiqueta: Casa, Trabajo..."
+                        />
+                        <input
+                          value={addressEditor.neighborhood}
+                          onChange={(event) =>
+                            setAddressEditor({ ...addressEditor, neighborhood: event.target.value })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Barrio (opcional)"
+                        />
+                      </div>
+                      <input
+                        value={addressEditor.address}
+                        onChange={(event) =>
+                          setAddressEditor({ ...addressEditor, address: event.target.value })
+                        }
+                        className="alento-input mt-2 w-full rounded-xl px-3 py-2.5"
+                        placeholder={
+                          fulfillmentType === "DELIVERY"
+                            ? "Dirección *"
+                            : "Dirección"
+                        }
+                      />
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <input
+                          value={addressEditor.city}
+                          onChange={(event) =>
+                            setAddressEditor({ ...addressEditor, city: event.target.value })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Ciudad"
+                        />
+                        <input
+                          value={addressEditor.notes}
+                          onChange={(event) =>
+                            setAddressEditor({ ...addressEditor, notes: event.target.value })
+                          }
+                          className="alento-input rounded-xl px-3 py-2.5"
+                          placeholder="Indicaciones (opcional)"
+                        />
+                      </div>
+
+                      {editingCustomer && (
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAddressEditor(null)}
+                            className="rounded-xl border px-3 py-2 text-[11px] font-semibold"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={addressBusy}
+                            onClick={() => void saveAddress()}
+                            className="rounded-xl bg-black px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+                          >
+                            {addressBusy ? "Guardando..." : "Guardar dirección"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                {customerError && (
+                  <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                    {customerError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t bg-white p-4">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomerModal(false)}
+                  className="rounded-2xl border px-5 py-3 text-sm font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={savingCustomer}
+                  className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {savingCustomer
+                    ? "Guardando..."
+                    : editingCustomer
+                      ? "Guardar cliente"
+                      : "Crear cliente"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">{editingCartKey ? "Editar pizza" : "Configurar pizza"}</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2></div><button onClick={closePizzaConfig} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5"><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between"><h3 className="font-black">Tamaño</h3><span className="text-[11px] text-neutral-400">Define precio base y borde</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.sizes.map((size) => <button key={size.id} onClick={() => updatePizzaSize(size.id)} className={`rounded-xl border p-3 text-left ${pizzaConfig.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}><b>{size.name}</b><span className="block text-xs opacity-70">{size.diameterCm} cm</span></button>)}</div></section>{isTwoFlavorPizza(pizzaConfig.product) && <><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 1</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, firstFlavorId: flavor.id, secondFlavorId: pizzaConfig.secondFlavorId === flavor.id ? null : pizzaConfig.secondFlavorId })} className={`rounded-xl border p-3 text-left ${pizzaConfig.firstFlavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 2</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} disabled={pizzaConfig.firstFlavorId === flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.secondFlavorId === flavor.id ? "bg-black text-white" : pizzaConfig.firstFlavorId === flavor.id ? "bg-neutral-100 text-neutral-300" : "bg-white"}`}>{flavor.name}</button>)}</div></section></>}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Borde</h3><span className="text-[11px] font-semibold text-neutral-400">Precio para {catalog.sizes.find((size) => size.id === pizzaConfig.sizeId)?.name ?? "tamaño seleccionado"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.crusts.map((crust) => { const price = crustPriceForSize(crust, pizzaConfig.sizeId); const selected = pizzaConfig.crustId === crust.id; const unavailable = price == null; return <button key={crust.id} disabled={unavailable} onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })} className={`flex min-h-[58px] items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : unavailable ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-300" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-sm">{crust.name}</b><span className={`mt-0.5 block text-xs ${selected ? "text-white/65" : unavailable ? "text-neutral-300" : "text-neutral-500"}`}>{unavailable ? "No disponible" : price === 0 ? "Incluido" : `+ ${formatCOP(price)}`}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${selected ? "border-white/30 bg-white text-black" : "border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span></button>; })}</div></section>{!isTwoFlavorPizza(pizzaConfig.product) && (<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Ingredientes extra</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{pizzaConfig.modifierIds.length ? `${pizzaConfig.modifierIds.length} seleccionado${pizzaConfig.modifierIds.length === 1 ? "" : "s"}` : "Opcional"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.modifiers.map((modifier) => { const selected = pizzaConfig.modifierIds.includes(modifier.id); return <button key={modifier.id} onClick={() => setPizzaConfig({ ...pizzaConfig, modifierIds: selected ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id) : [...pizzaConfig.modifierIds, modifier.id] })} className={`flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_4px_12px_rgba(229,28,17,0.08)]" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-[13px]">{modifier.name}</b><span className={`mt-0.5 block text-[11px] ${selected ? "font-semibold text-[var(--brand-red)]" : "text-neutral-500"}`}>+ {formatCOP(modifier.basePrice)}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${selected ? "bg-[var(--brand-red)] text-white" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : "+"}</span></button>; })}</div></section>)}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="flex items-center justify-between gap-3"><div><h3 className="font-black">Nota para cocina</h3><p className="mt-0.5 text-[11px] text-neutral-400">Opcional · instrucción corta para esta pizza</p></div><span className="text-[10px] font-semibold text-neutral-400">{pizzaConfig.note.length}/120</span></div><input value={pizzaConfig.note} maxLength={120} onChange={(event) => setPizzaConfig({ ...pizzaConfig, note: event.target.value })} className="alento-input mt-2 w-full rounded-xl bg-white px-3.5 py-3 text-sm" placeholder="Ej. Ligera en salsa" /></section>{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><b className="text-2xl text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</b><button onClick={confirmPizza} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">{editingCartKey ? "Guardar cambios" : "Agregar al pedido"}</button></div></div></div>}
 
