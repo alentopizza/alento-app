@@ -45,6 +45,7 @@ function dateTime(value: Date) {
   return new Intl.DateTimeFormat("es-CO", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "America/Bogota",
   }).format(value);
 }
 
@@ -318,35 +319,40 @@ export default async function TrackingPage({
             </div>
           </div>
 
-          <div className="grid gap-3 border-b border-neutral-100 p-5 sm:grid-cols-2 sm:p-7">
-            <div className="rounded-2xl bg-[#f7f6f3] p-4">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">
-                Pedido
-              </span>
-              <strong className="mt-1.5 block text-lg">{code}</strong>
-            </div>
-            <div className="rounded-2xl bg-[#f7f6f3] p-4">
-              <span className="block text-[9px] font-bold uppercase tracking-[0.09em] text-neutral-400">
-                Modalidad
-              </span>
-              <strong className="mt-1.5 block text-sm">
-                {fulfillmentLabel(order.fulfillmentType)}
-              </strong>
-            </div>
-          </div>
-
           <div className="p-5 sm:p-7">
             <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,.035)]">
-              <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-4 py-4 sm:px-5">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#a5191f]">
-                    Tu compra
-                  </p>
-                  <h3 className="mt-1 text-base font-black">Detalle del pedido</h3>
+              <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#a5191f]">
+                      Tu compra
+                    </p>
+                    <h3 className="mt-1 text-base font-black">Detalle del pedido</h3>
+                  </div>
+                  <span className="text-right text-[10px] text-neutral-400 sm:text-[11px]">
+                    {dateTime(order.createdAt)}
+                  </span>
                 </div>
-                <span className="text-right text-[10px] text-neutral-400 sm:text-[11px]">
-                  {dateTime(order.createdAt)}
-                </span>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-[#f7f6f3] px-3 py-2.5">
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                      Pedido
+                    </span>
+                    <strong className="mt-1 block text-[12px] text-neutral-900">
+                      {code}
+                    </strong>
+                  </div>
+
+                  <div className="rounded-xl bg-[#f7f6f3] px-3 py-2.5">
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                      Modalidad
+                    </span>
+                    <strong className="mt-1 block text-[12px] text-neutral-900">
+                      {fulfillmentLabel(order.fulfillmentType)}
+                    </strong>
+                  </div>
+                </div>
               </div>
 
               <div className="divide-y divide-neutral-100">
