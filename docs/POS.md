@@ -223,6 +223,26 @@ En Domicilio, el checkout selecciona por defecto la dirección principal y, si e
 
 El cliente comercial (`Customer`) es independiente del usuario interno (`User`).
 
+
+### Captura de direcciones con Google Maps
+
+La captura de direcciones en POS reutiliza la misma experiencia de Google Maps del checkout público.
+
+Flujo:
+
+`Etiqueta → Buscar en Google → Seleccionar sugerencia → Confirmar en mapa → Ajustar barrio/indicaciones → Guardar`
+
+Reglas:
+
+- no pedir al operador que escriba una dirección libre como mecanismo principal;
+- la dirección formateada proviene de Google Places;
+- se valida ruta y cobertura con `/api/delivery/quote`;
+- el mapa confirma visualmente el punto seleccionado;
+- etiqueta (`Casa`, `Trabajo`, etc.), barrio e indicaciones siguen siendo editables;
+- una dirección existente puede mantenerse sin volver a buscarla o reemplazarse mediante **Cambiar con Google**;
+- el mismo componente `GoogleCustomerAddressPicker` se usa en POS y `/clientes`.
+
+
 ## Precios y seguridad comercial
 
 El navegador muestra precios como vista previa, pero **no es la fuente final**.
