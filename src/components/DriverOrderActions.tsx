@@ -347,21 +347,7 @@ export default function DriverOrderActions({
   }
 
   if (!target || !label) {
-    return (
-      <section className="rounded-[24px] border border-white/10 bg-[#101011] p-5 text-center text-white shadow-xl">
-        <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-          Estado operativo
-        </p>
-        <h3 className="mt-2 text-xl font-black">
-          {status === "ARRIVED"
-            ? "Llegada registrada"
-            : "Sin acciones pendientes"}
-        </h3>
-        <p className="mt-2 text-xs leading-5 text-white/55">
-          La operación continuará desde Alentó.
-        </p>
-      </section>
-    );
+    return null;
   }
 
   return (
