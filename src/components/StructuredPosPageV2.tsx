@@ -7,7 +7,7 @@ import type { ComboOrderConfiguration, OrderLineConfiguration, PizzaOrderConfigu
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
 import GoogleCustomerAddressPicker from "@/components/GoogleCustomerAddressPicker";
 
-type CustomerAddress = { id: number; label: string | null; address: string; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
+type CustomerAddress = { id: number; label: string | null; address: string; formattedAddress?: string | null; placeId?: string | null; latitude?: number | null; longitude?: number | null; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
@@ -79,6 +79,10 @@ export default function StructuredPosPageV2() {
     city: string;
     notes: string;
     isDefault: boolean;
+    formattedAddress: string;
+    placeId: string;
+    latitude: number | null;
+    longitude: number | null;
   } | null>(null);
   const [addressBusy, setAddressBusy] = useState(false);
 
@@ -297,6 +301,10 @@ export default function StructuredPosPageV2() {
             city: address.city ?? "Bogotá",
             notes: address.notes ?? "",
             isDefault: address.isDefault,
+            formattedAddress: address.formattedAddress ?? address.address,
+            placeId: address.placeId ?? "",
+            latitude: address.latitude ?? null,
+            longitude: address.longitude ?? null,
           }
         : {
             id: null,
@@ -306,6 +314,10 @@ export default function StructuredPosPageV2() {
             city: "Bogotá",
             notes: "",
             isDefault: (editingCustomer?.addresses?.length ?? 0) === 0,
+            formattedAddress: "",
+            placeId: "",
+            latitude: null,
+            longitude: null,
           },
     );
     setCustomerError("");
