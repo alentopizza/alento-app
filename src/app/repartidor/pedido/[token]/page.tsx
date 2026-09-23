@@ -4,6 +4,7 @@ import { readDriverOrderToken } from "@/lib/driverTracking";
 import DriverOrderActions from "@/components/DriverOrderActions";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { statusLabel } from "@/lib/orderWorkflow";
+import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       id: true,
       sequenceNumber: true,
       status: true,
+      subtotal: true,
+      deliveryFee: true,
       total: true,
       notes: true,
       deliveryZoneName: true,
@@ -44,7 +47,15 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       },
       items: {
         orderBy: { id: "asc" },
-        select: { id: true, productName: true, quantity: true },
+        select: {
+          id: true,
+          productName: true,
+          variantName: true,
+          quantity: true,
+          lineTotal: true,
+          configuration: true,
+          notes: true,
+        },
       },
     },
   });
@@ -57,50 +68,80 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     : null;
 
   return (
-    <main className="min-h-screen bg-[#f4f2ee] px-4 py-5 text-neutral-950">
+    <main className="min-h-screen bg-[#080808] px-4 py-5 text-white">
       <LivePageRefresh intervalMs={2500} />
       <div className="mx-auto max-w-[640px] space-y-4">
-        <header className="flex items-center justify-between rounded-[24px] bg-[#0c0c0d] px-5 py-4 text-white shadow-lg">
+        <header className="flex items-center justify-between rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.16),transparent_34%),linear-gradient(145deg,#171717,#090909_72%)] px-5 py-4 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)]">
           <div className="flex items-center gap-3">
             <img src={LOGO_URL} alt="Alentó Pizza" className="h-12 w-12 rounded-2xl object-cover" />
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/45">Entrega asignada</p>
+              <p className="text-[9px] font-black uppercase tracking-[.16em] text-[#ff454b]">Entrega asignada</p>
               <h1 className="mt-0.5 text-xl font-black">{code}</h1>
               <p className="mt-0.5 text-[11px] text-white/55">{order.driver?.name ?? "Repartidor Alentó"}</p>
             </div>
           </div>
-          <span className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold">
+          <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-[10px] font-black text-white">
             {statusLabel(order.status as Parameters<typeof statusLabel>[0])}
           </span>
         </header>
 
-        <section className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,.06)]">
-          <p className="text-[9px] font-black uppercase tracking-[.12em] text-[var(--brand-red)]">Destino</p>
+        <section className="rounded-[24px] border border-white/10 bg-white p-5 text-neutral-950 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
+          <p className="text-[9px] font-black uppercase tracking-[.12em] text-[#e21a22]">Destino</p>
           <h2 className="mt-2 text-lg font-black">{order.customer?.name ?? "Cliente"}</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-neutral-800">{order.address?.address ?? "Dirección no disponible"}</p>
           {order.address?.neighborhood && <p className="text-xs text-neutral-500">{order.address.neighborhood}</p>}
-          {order.address?.notes && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">{order.address.notes}</p>}
+          {order.address?.notes && (
+            <p className="mt-2 rounded-xl border border-[#e21a22]/15 bg-[#e21a22]/[0.05] px-3 py-2 text-xs font-semibold text-neutral-700">
+              {order.address.notes}
+            </p>
+          )}
           {phone && (
-            <a href={`tel:${phone}`} className="mt-4 flex h-11 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-sm font-black text-neutral-800">
+            <a href={`tel:${phone}`} className="mt-4 flex h-11 items-center justify-center rounded-xl bg-[#111] text-sm font-black text-white transition hover:bg-black">
               Llamar al cliente · {phone}
             </a>
           )}
         </section>
 
         <section className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[22px] border border-neutral-200 bg-white p-4">
-            <span className="text-[9px] font-bold uppercase tracking-[.1em] text-neutral-400">Total pedido</span>
-            <b className="mt-1 block text-xl">{money(Number(order.total))}</b>
+          <div className="rounded-[22px] border border-white/10 bg-white p-4 text-neutral-950 shadow-[0_12px_30px_rgba(0,0,0,.18)]">
+            <span className="text-[9px] font-black uppercase tracking-[.1em] text-[#e21a22]">
+              Cobro del pedido
+            </span>
+            <div className="mt-3 space-y-2 text-[11px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-neutral-500">Subtotal</span>
+                <b>{money(Number(order.subtotal))}</b>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-neutral-500">Domicilio</span>
+                <b className="text-[#e21a22]">
+                  {money(Number(order.deliveryFee))}
+                </b>
+              </div>
+              <div className="flex items-end justify-between gap-3 border-t border-neutral-200 pt-2">
+                <span className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-500">
+                  Total
+                </span>
+                <b className="text-xl">{money(Number(order.total))}</b>
+              </div>
+            </div>
           </div>
-          <div className="rounded-[22px] border border-neutral-200 bg-white p-4">
-            <span className="text-[9px] font-bold uppercase tracking-[.1em] text-neutral-400">Pago</span>
-            <b className="mt-1 block text-sm">{order.payments[0]?.method ?? "Sin información"}</b>
-            <span className="text-[10px] text-neutral-400">{order.payments[0]?.status ?? ""}</span>
+
+          <div className="rounded-[22px] border border-white/10 bg-[#111] p-4 text-white shadow-[0_12px_30px_rgba(0,0,0,.18)]">
+            <span className="text-[9px] font-black uppercase tracking-[.1em] text-[#ff454b]">
+              Pago
+            </span>
+            <b className="mt-2 block text-base">
+              {order.payments[0]?.method ?? "Sin información"}
+            </b>
+            <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[.06em] text-white/45">
+              {order.payments[0]?.status ?? ""}
+            </span>
           </div>
         </section>
 
         {order.notes && (
-          <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+          <section className="rounded-[22px] border border-white/10 bg-white p-4 text-neutral-950">
             <span className="text-[9px] font-bold uppercase tracking-[.1em] text-neutral-400">Nota del pedido</span>
             <p className="mt-2 text-sm font-semibold leading-6">{order.notes}</p>
           </section>
@@ -112,7 +153,11 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
           items={order.items.map((item) => ({
             id: item.id,
             productName: item.productName,
+            variantName: item.variantName,
             quantity: item.quantity,
+            lineTotal: Number(item.lineTotal),
+            details: presentOrderItemConfiguration(item.configuration),
+            notes: item.notes,
           }))}
         />
       </div>
