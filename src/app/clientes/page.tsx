@@ -203,7 +203,7 @@ function Metric({
 }) {
   return (
     <div className="min-w-0 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 [font-synthesis:none]">
-      <span className="block text-[9px] font-semibold uppercase tracking-[0.085em] text-neutral-400">{label}</span>
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.085em] text-neutral-400">{label}</span>
       <b className="mt-1.5 block truncate text-[17px] font-bold leading-none tracking-[-0.015em] text-neutral-950">{value}</b>
       {hint && <span className="mt-1.5 block truncate text-[10px] text-neutral-400">{hint}</span>}
     </div>
@@ -565,7 +565,7 @@ export default function CustomersPage() {
         <section className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Relación con clientes</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Relación con clientes</p>
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Clientes</h1>
               <p className="mt-1 text-sm text-white/65">Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.</p>
             </div>
@@ -585,7 +585,7 @@ export default function CustomersPage() {
                 Exportar
               </button>
               <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-                <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
                 <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
               </div>
             </div>
@@ -625,7 +625,7 @@ export default function CustomersPage() {
                   className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.025em] transition ${tone.button}`}
                 >
                   <span>{label}</span>
-                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-[3px] text-[9px] font-bold leading-none tabular-nums ${tone.count}`}>
+                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-[3px] text-[11px] font-bold leading-none tabular-nums ${tone.count}`}>
                     {count}
                   </span>
                 </button>
@@ -699,7 +699,7 @@ export default function CustomersPage() {
                   <div className="p-5 [font-synthesis:none]">
                     <div className={`relative w-full rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4 shadow-[0_6px_18px_rgba(28,23,20,.035)] ${bulkMode ? "pr-44" : "pr-36"}`}>
                       <div className="absolute right-3 top-3 flex items-center gap-1.5">
-                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>
+                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>
                           {signal.label}
                         </span>
                         {bulkMode && (
@@ -823,7 +823,7 @@ export default function CustomersPage() {
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="rounded-xl border border-sky-100 bg-white p-3">
-                      <span className="block text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Obligatorios</span>
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Obligatorios</span>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {["Nombre", "Indicativo", "Teléfono"].map((label) => (
                           <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-700">{label}</span>
@@ -831,7 +831,7 @@ export default function CustomersPage() {
                       </div>
                     </div>
                     <div className="rounded-xl border border-sky-100 bg-white p-3">
-                      <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">Opcionales</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">Opcionales</span>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {["Correo", "Dirección", "Complemento", "GPS", "Notas"].map((label) => (
                           <span key={label} className="rounded-lg bg-neutral-100 px-2 py-1 text-[10px] font-semibold text-neutral-600">{label}</span>
@@ -846,7 +846,7 @@ export default function CustomersPage() {
                     <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--brand-red)]" />
                     <div>
                       <b className="block text-[11px] text-neutral-800">{importStage === "import" ? "Importando clientes..." : "Analizando archivo..."}</b>
-                      <span className="text-[9px] text-neutral-500">{importStage === "import" ? "Guardando los clientes validados en Alentó." : "Validando formato, teléfonos y duplicados."}</span>
+                      <span className="text-[11px] text-neutral-500">{importStage === "import" ? "Guardando los clientes validados en Alentó." : "Validando formato, teléfonos y duplicados."}</span>
                     </div>
                   </div>
                 )}
@@ -888,9 +888,9 @@ export default function CustomersPage() {
                         <div className="flex items-center justify-between gap-3 border-b border-rose-100 px-4 py-3">
                           <div>
                             <b className="block text-xs text-rose-950">Contactos que no se importarán</b>
-                            <span className="mt-0.5 block text-[9px] text-rose-700">Revisa el motivo indicado en cada registro.</span>
+                            <span className="mt-0.5 block text-[11px] text-rose-700">Revisa el motivo indicado en cada registro.</span>
                           </div>
-                          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[9px] font-bold tabular-nums text-rose-700">{importPreview.issues.length}</span>
+                          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-bold tabular-nums text-rose-700">{importPreview.issues.length}</span>
                         </div>
                         <div className="max-h-60 divide-y divide-rose-100 overflow-y-auto">
                           {importPreview.issues.map((issue, index) => (
@@ -898,11 +898,11 @@ export default function CustomersPage() {
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <b className="truncate text-[11px] text-neutral-900">{issue.name || "Sin nombre"}</b>
-                                  {issue.phone && <span className="rounded-md bg-white px-2 py-0.5 text-[9px] font-medium text-neutral-500">{issue.phone}</span>}
+                                  {issue.phone && <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-medium text-neutral-500">{issue.phone}</span>}
                                 </div>
                                 <p className="mt-1 text-[10px] font-medium leading-4 text-rose-700">{issue.reason}</p>
                               </div>
-                              <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[9px] font-semibold text-neutral-400">Fila {issue.rowNumber}</span>
+                              <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[11px] font-semibold text-neutral-400">Fila {issue.rowNumber}</span>
                             </div>
                           ))}
                         </div>
@@ -964,7 +964,7 @@ export default function CustomersPage() {
               <header className="alento-dark rounded-none px-5 py-5 md:px-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/45">Perfil del cliente</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/45">Perfil del cliente</p>
                     <h2 className="mt-1 truncate text-2xl font-black tracking-[-0.03em]">{selected.name}</h2>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-white/60">
                       <span>{selected.countryCode} {selected.phone || "Sin teléfono"}</span>
@@ -1020,7 +1020,7 @@ export default function CustomersPage() {
                         {value}
                       </b>
                       {hint && (
-                        <span className="mt-1.5 block truncate text-[9px] text-neutral-400">
+                        <span className="mt-1.5 block truncate text-[11px] text-neutral-400">
                           {hint}
                         </span>
                       )}
@@ -1043,15 +1043,15 @@ export default function CustomersPage() {
 
                   <div className="grid gap-2 p-4 sm:grid-cols-3">
                     <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Primera compra</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Primera compra</span>
                       <b className="mt-1.5 block text-[13px] text-neutral-800">{shortDate(selected.metrics.firstOrderAt)}</b>
                     </div>
                     <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Última compra</span>
                       <b className="mt-1.5 block text-[13px] text-neutral-800">{shortDate(selected.metrics.lastOrderAt)}</b>
                     </div>
                     <div className="rounded-xl border border-neutral-100 bg-[#faf9f7] p-3.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">Sin comprar</span>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Sin comprar</span>
                       <b className="mt-1.5 block text-[13px] text-neutral-800">
                         {daysSince(selected.metrics.lastOrderAt) === null ? "—" : `${daysSince(selected.metrics.lastOrderAt)} días`}
                       </b>
@@ -1062,7 +1062,7 @@ export default function CustomersPage() {
                 <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_12px_28px_rgba(28,23,20,.06)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-neutral-400">Datos del cliente</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-neutral-400">Datos del cliente</p>
                       <h3 className="mt-1 text-base font-bold">Contacto y entrega</h3>
                     </div>
                     <div className="flex gap-2">
@@ -1080,11 +1080,11 @@ export default function CustomersPage() {
 
                   <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     <div className="rounded-xl bg-[#faf9f7] p-3 text-[11px] text-neutral-600">
-                      <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Teléfono</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Teléfono</span>
                       <b className="mt-1 block text-[12px] text-neutral-850">{selected.countryCode} {selected.phone || "Sin teléfono"}</b>
                     </div>
                     <div className="rounded-xl bg-[#faf9f7] p-3 text-[11px] text-neutral-600">
-                      <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Correo</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Correo</span>
                       <b className="mt-1 block truncate text-[12px] text-neutral-850">{selected.email || "Sin correo"}</b>
                     </div>
                   </div>
@@ -1094,7 +1094,7 @@ export default function CustomersPage() {
                       <div key={item.id} className="rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
                         <div className="flex items-center gap-2">
                           <b className="text-[11px] text-neutral-850">{item.address}</b>
-                          {item.isDefault && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[7px] font-bold uppercase text-neutral-500">Principal</span>}
+                          {item.isDefault && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase text-neutral-500">Principal</span>}
                         </div>
                         {(item.neighborhood || item.city) && <p className="mt-1 text-[10px] text-neutral-500">{[item.neighborhood, item.city].filter(Boolean).join(" · ")}</p>}
                       </div>
@@ -1105,7 +1105,7 @@ export default function CustomersPage() {
 
                   {selected.notes && (
                     <div className="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5">
-                      <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-amber-600">Nota</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-600">Nota</span>
                       <p className="mt-1 text-[11px] leading-4 text-amber-900">{selected.notes}</p>
                     </div>
                   )}
@@ -1154,10 +1154,10 @@ export default function CustomersPage() {
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <b className="text-[14px] font-bold text-neutral-950">{orderCode(order.sequenceNumber ?? order.id, order.source)}</b>
-                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-bold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
+                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-bold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
                                 <span
                                   className={
-                                    "rounded-full border px-2 py-1 text-[9px] font-bold uppercase " +
+                                    "rounded-full border px-2 py-1 text-[11px] font-bold uppercase " +
                                     (order.status === "CANCELED"
                                       ? "border-red-200 bg-white text-red-600"
                                       : "border-neutral-200 bg-neutral-50 text-neutral-600")
@@ -1196,7 +1196,7 @@ export default function CustomersPage() {
                           </div>
 
                           {order.status === "CANCELED" && (
-                            <div className="border-b border-red-100 bg-white/60 px-4 py-2 text-[9px] font-semibold text-red-600">
+                            <div className="border-b border-red-100 bg-white/60 px-4 py-2 text-[11px] font-semibold text-red-600">
                               Pedido realizado y posteriormente cancelado. Se conserva en el historial comercial y no cuenta como compra válida.
                             </div>
                           )}
@@ -1220,8 +1220,8 @@ export default function CustomersPage() {
                                       <b className="block text-[13px] font-bold text-neutral-900">{item.quantity}× {item.productName}</b>
                                       {(size || crust) && (
                                         <div className="mt-2 flex flex-wrap gap-1.5">
-                                          {size && <span className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[9px] font-bold uppercase text-sky-800">{size.value}</span>}
-                                          {crust && <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-700">{crust.value}</span>}
+                                          {size && <span className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-bold uppercase text-sky-800">{size.value}</span>}
+                                          {crust && <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-bold uppercase text-neutral-700">{crust.value}</span>}
                                         </div>
                                       )}
                                     </div>
@@ -1232,8 +1232,8 @@ export default function CustomersPage() {
                                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                       {flavors.map((detail, index) => (
                                         <span key={`${detail.label}-${index}`} className="contents">
-                                          <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase text-neutral-900">{cleanDetailValue(detail.value)}</span>
-                                          {index < flavors.length - 1 && <span className="text-[9px] font-bold text-neutral-300">−</span>}
+                                          <span className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-bold uppercase text-neutral-900">{cleanDetailValue(detail.value)}</span>
+                                          {index < flavors.length - 1 && <span className="text-[11px] font-bold text-neutral-300">−</span>}
                                         </span>
                                       ))}
                                     </div>
@@ -1242,7 +1242,7 @@ export default function CustomersPage() {
                                   {extras.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-1.5">
                                       {extras.map((detail, index) => (
-                                        <span key={`${detail.value}-${index}`} className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase text-red-700">+ {detail.value}</span>
+                                        <span key={`${detail.value}-${index}`} className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-red-700">+ {detail.value}</span>
                                       ))}
                                     </div>
                                   )}
@@ -1259,7 +1259,7 @@ export default function CustomersPage() {
 
                                   {item.notes && (
                                     <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2">
-                                      <span className="text-[9px] font-bold uppercase tracking-[0.05em] text-amber-800">{item.notes}</span>
+                                      <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-amber-800">{item.notes}</span>
                                     </div>
                                   )}
                                 </div>
