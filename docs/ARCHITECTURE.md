@@ -313,7 +313,10 @@ Reglas:
 - preferir `font-semibold` / `font-bold` para controles y etiquetas;
 - `font-synthesis: none` está activo globalmente para evitar negrillas sintéticas borrosas;
 - usar las clases `alento-ui-micro`, `alento-ui-label`, `alento-ui-control`, `alento-ui-body`, `alento-ui-status` y `alento-ui-title` antes de inventar nuevos tamaños;
-- si un texto es funcional o necesario para operar, debe priorizar legibilidad sobre densidad.
+- si un texto es funcional o necesario para operar, debe priorizar legibilidad sobre densidad;
+- `globals.css` contiene una capa de compatibilidad para clases heredadas: `text-[7px]` y `text-[8px]` se elevan a 10 px, `text-[9px]` a 11 px y negrillas pequeñas `font-black` se normalizan a peso 700;
+- la impresión térmica queda excluida de esa compatibilidad porque tiene requisitos físicos distintos;
+- al modificar un componente heredado, preferir migrarlo gradualmente a las clases semánticas en lugar de seguir agregando tamaños arbitrarios.
 
 ## Integraciones
 
