@@ -314,20 +314,39 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
 
     const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
-    if (order.status !== "CANCELED") {
-      return NextResponse.json({ error: "Primero debes cancelar el pedido antes de eliminarlo definitivamente." }, { status: 409 });
+    if (!["CANCELED", "COMPLETED"].includes(order.status)) {
+      return NextResponse.json(
+        { error: "Solo puedes eliminar pedidos cancelados o finalizados." },
+        { status: 409 },
+      );
     }
 
     const deleted = await prisma.$transaction(async (tx) => {
+      // ClubPointTransaction usa onDelete: SetNull para preservar historial.
+      // En una eliminación definitiva solicitada desde Pedidos sí debemos retirar
+      // cualquier punto generado por esta orden para que no sobreviva sin pedido.
+      const clubPoints = await tx.clubPointTransaction.deleteMany({
+        where: { orderId: id },
+      });
+
+      // Se eliminan explícitamente para poder devolver un resumen de la limpieza.
+      // NotificationJob se elimina por cascada al borrar Order.
       const payments = await tx.payment.deleteMany({ where: { orderId: id } });
       const items = await tx.orderItem.deleteMany({ where: { orderId: id } });
+
       await tx.order.delete({ where: { id } });
-      return { payments: payments.count, items: items.count };
+
+      return {
+        clubPoints: clubPoints.count,
+        payments: payments.count,
+        items: items.count,
+      };
     });
 
     return NextResponse.json({
       ok: true,
       deletedOrderId: id,
+      deletedClubPointTransactions: deleted.clubPoints,
       deletedPayments: deleted.payments,
       deletedItems: deleted.items,
     });
