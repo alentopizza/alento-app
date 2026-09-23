@@ -299,6 +299,30 @@ Efectos:
 
 Esto no equivale a una devolución real.
 
+## Selector compacto de estados
+
+El modal operativo de estados está optimizado para no saturar la pantalla, especialmente en pedidos de Domicilio.
+
+Comportamiento vigente:
+
+- muestra un stepper horizontal compacto con todo el flujo;
+- el estado actual se identifica de forma visible;
+- solo la **siguiente transición recomendada** aparece como acción principal;
+- los saltos a etapas posteriores siguen permitidos dentro de **Más estados**;
+- los estados ya superados no se muestran como botones grandes;
+- el pago pendiente se resume en una tarjeta compacta;
+- la asignación de repartidor se mantiene dentro del mismo modal, pero en formato reducido;
+- Finalizado continúa bloqueado mientras exista saldo pendiente.
+
+Para Domicilio, el flujo visible respeta:
+
+`Preparando → Horneando → Listo → En camino → Ha llegado → Entregado → Finalizado`
+
+Recordatorio técnico:
+
+- `PREPARED` es el estado interno mostrado como **Horneando**;
+- `PREPARED → READY` corresponde al hornero/operación, no a Cocina.
+
 ## Estados
 
 Flujo Domicilio:
