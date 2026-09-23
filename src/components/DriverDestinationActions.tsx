@@ -201,6 +201,13 @@ export default function DriverDestinationActions({
   const [arrivalDragging, setArrivalDragging] = useState(false);
   const [arrivalBusy, setArrivalBusy] = useState(false);
 
+  const navigationDisabled = [
+    "ARRIVED",
+    "DELIVERED",
+    "COMPLETED",
+    "CANCELED",
+  ].includes(currentStatus);
+
   const resetMap = useCallback(() => {
     markerRefs.current.forEach((marker) => {
       if ("setMap" in marker) marker.setMap(null);
@@ -354,7 +361,13 @@ export default function DriverDestinationActions({
   );
 
   useEffect(() => {
-    if (!open) return;
+    if (navigationDisabled && open) {
+      setOpen(false);
+    }
+  }, [navigationDisabled, open]);
+
+  useEffect(() => {
+    if (!open || navigationDisabled) return;
 
     let disposed = false;
 
@@ -450,7 +463,7 @@ export default function DriverDestinationActions({
       lastRouteAtRef.current = 0;
       resetMap();
     };
-  }, [drawMap, open, requestNavigation, resetMap, token]);
+  }, [drawMap, navigationDisabled, open, requestNavigation, resetMap, token]);
 
   function updateArrivalFromPointer(clientX: number) {
     const track = arrivalTrackRef.current;
@@ -487,6 +500,9 @@ export default function DriverDestinationActions({
         throw new Error(data.error || "No fue posible registrar la llegada.");
       }
 
+      window.localStorage.removeItem(
+        `alento-driver-location-sharing:${token}`,
+      );
       setOpen(false);
       router.refresh();
       window.setTimeout(() => router.refresh(), 700);
@@ -553,10 +569,26 @@ export default function DriverDestinationActions({
 
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Abrir navegación"
-          title="Navegar al cliente"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e21a22] text-white shadow-[0_7px_16px_rgba(226,26,34,.22)] transition hover:bg-[#c9151c] active:scale-[.97]"
+          disabled={navigationDisabled}
+          onClick={() => {
+            if (!navigationDisabled) setOpen(true);
+          }}
+          aria-label={
+            navigationDisabled
+              ? "Navegación finalizada"
+              : "Abrir navegación"
+          }
+          title={
+            navigationDisabled
+              ? "Ya llegaste al destino"
+              : "Navegar al cliente"
+          }
+          className={
+            "flex h-10 w-10 items-center justify-center rounded-full transition " +
+            (navigationDisabled
+              ? "cursor-not-allowed bg-neutral-200 text-neutral-400 shadow-none"
+              : "bg-[#e21a22] text-white shadow-[0_7px_16px_rgba(226,26,34,.22)] hover:bg-[#c9151c] active:scale-[.97]")
+          }
         >
           <svg
             viewBox="0 0 24 24"
