@@ -25,7 +25,7 @@ type Mode = "customer" | "staff";
 function defaultRouteForRoles(roles: StaffRole[]) {
   if (roles.includes("ADMIN") || roles.includes("POS") || roles.includes("CASHIER")) return "/interno";
   if (roles.includes("KITCHEN")) return "/cocina";
-  if (roles.includes("DRIVER") || roles.includes("DISPATCH")) return "/sin-acceso";
+  if (roles.includes("DRIVER") || roles.includes("DISPATCH")) return "/repartidor";
   return "/sin-acceso";
 }
 
@@ -38,6 +38,7 @@ function canAccessRoute(pathname: string, roles: StaffRole[]) {
   if (pathname === "/caja" || pathname.startsWith("/caja/")) return roles.includes("CASHIER");
   if (pathname === "/clientes" || pathname.startsWith("/clientes/")) return roles.includes("POS");
   if (pathname === "/pedidos" || pathname.startsWith("/pedidos/")) return roles.includes("POS") || roles.includes("CASHIER");
+  if (pathname === "/repartidor") return roles.includes("DRIVER") || roles.includes("DISPATCH");
   return false;
 }
 
