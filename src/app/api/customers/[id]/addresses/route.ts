@@ -17,6 +17,10 @@ async function customerWithAddresses(customerId: number) {
           id: true,
           label: true,
           address: true,
+          formattedAddress: true,
+          placeId: true,
+          latitude: true,
+          longitude: true,
           neighborhood: true,
           city: true,
           notes: true,
@@ -44,6 +48,10 @@ export async function POST(
 
   const body = await request.json();
   const address = clean(body.address);
+  const formattedAddress = clean(body.formattedAddress);
+  const placeId = clean(body.placeId);
+  const latitude = Number(body.latitude);
+  const longitude = Number(body.longitude);
   const label = clean(body.label);
   const neighborhood = clean(body.neighborhood);
   const city = clean(body.city) || "Bogotá";
@@ -86,6 +94,10 @@ export async function POST(
           customerId,
           label: label || null,
           address,
+          formattedAddress: formattedAddress || null,
+          placeId: placeId || null,
+          latitude: Number.isFinite(latitude) ? latitude : null,
+          longitude: Number.isFinite(longitude) ? longitude : null,
           neighborhood: neighborhood || null,
           city: city || null,
           notes: notes || null,
@@ -108,6 +120,10 @@ export async function POST(
               id: true,
               label: true,
               address: true,
+              formattedAddress: true,
+              placeId: true,
+              latitude: true,
+              longitude: true,
               neighborhood: true,
               city: true,
               notes: true,
