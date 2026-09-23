@@ -104,8 +104,8 @@ function TemplateImage({ template }: { template: TemplateConfig }) {
         </div>
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#fafafa,#f3f3f3)] text-neutral-500">
-          <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[.08em] shadow-sm ring-1 ring-neutral-200">Solo texto</span>
-          <span className="text-[9px] font-semibold text-neutral-400">No requiere encabezado multimedia</span>
+          <span className="rounded-full bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.08em] shadow-sm ring-1 ring-neutral-200">Solo texto</span>
+          <span className="text-[11px] font-semibold text-neutral-400">No requiere encabezado multimedia</span>
         </div>
       )}
     </div>
@@ -254,13 +254,13 @@ export default function NotificationsPage() {
         <header className="rounded-[26px] bg-[radial-gradient(circle_at_88%_14%,rgba(229,28,17,.30),transparent_24%),linear-gradient(135deg,#09090a,#171719)] px-6 py-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.18)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[.2em] text-white/40">Automatización</p>
+              <p className="text-[11px] font-bold uppercase tracking-[.2em] text-white/40">Automatización</p>
               <h1 className="mt-1 text-[28px] font-black tracking-[-.04em]">Notificaciones WhatsApp</h1>
               <p className="mt-1.5 text-[12px] text-white/55">Consulta la configuración aprobada en Meta, activa cada flujo y administra su imagen desde Alentó.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2 text-center">
-                <span className="block text-[8px] font-bold uppercase tracking-[.12em] text-white/40">Activas</span>
+                <span className="block text-[10px] font-bold uppercase tracking-[.12em] text-white/40">Activas</span>
                 <b className="mt-0.5 block text-xl leading-none">{activeCount}/{templates.length}</b>
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function NotificationsPage() {
         <section className="alento-card rounded-[26px] p-4 lg:p-5">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[.13em] text-neutral-400">Galería</p>
+              <p className="text-[11px] font-bold uppercase tracking-[.13em] text-neutral-400">Galería</p>
               <h2 className="mt-1 text-xl font-black tracking-[-.03em] text-neutral-950">Plantillas configuradas</h2>
               <p className="mt-1 text-[11px] text-neutral-500">Cada tarjeta representa una automatización. Haz clic para editarla.</p>
             </div>
@@ -281,7 +281,7 @@ export default function NotificationsPage() {
               <div className="flex flex-wrap gap-1.5">
                 {filters.map((item) => (
                   <button key={item.id} type="button" onClick={() => setFilter(item.id)}
-                    className={`rounded-full border px-3 py-2 text-[9px] font-bold ${filter === item.id ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-500"}`}>
+                    className={`rounded-full border px-3 py-2 text-[11px] font-bold ${filter === item.id ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-500"}`}>
                     {item.label} <span className="ml-1 opacity-60">{item.count}</span>
                   </button>
                 ))}
@@ -311,10 +311,10 @@ export default function NotificationsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate text-[15px] font-black tracking-[-.02em] text-neutral-950">{template.title}</h3>
-                        <p className="mt-1 truncate text-[9px] font-semibold text-neutral-400">{template.event}</p>
+                        <p className="mt-1 truncate text-[11px] font-semibold text-neutral-400">{template.event}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`hidden rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[.07em] sm:inline-flex ${template.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
+                        <span className={`hidden rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.07em] sm:inline-flex ${template.active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
                           {template.active
                             ? "Activa"
                             : !needsImage(template)
@@ -332,15 +332,15 @@ export default function NotificationsPage() {
                     </div>
 
                     <div className="mt-3 flex min-h-[26px] flex-wrap gap-1.5">
-                      <span className="rounded-full bg-neutral-950 px-2 py-1 text-[8px] font-bold text-white">{template.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
+                      <span className="rounded-full bg-neutral-950 px-2 py-1 text-[10px] font-bold text-white">{template.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
                       {template.fulfillmentTypes.map((type) => (
-                        <span key={type} className="rounded-full bg-neutral-100 px-2 py-1 text-[8px] font-bold text-neutral-500">{fulfillmentLabel[type] ?? type}</span>
+                        <span key={type} className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-bold text-neutral-500">{fulfillmentLabel[type] ?? type}</span>
                       ))}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3.5">
-                      <span className="truncate text-[9px] font-semibold text-neutral-500">{template.templateName}</span>
-                      <span className="text-[10px] font-black text-[var(--brand-red)]">EDITAR →</span>
+                      <span className="truncate text-[11px] font-semibold text-neutral-500">{template.templateName}</span>
+                      <span className="text-[10px] font-bold text-[var(--brand-red)]">EDITAR →</span>
                     </div>
                   </div>
                 </article>
@@ -356,8 +356,8 @@ export default function NotificationsPage() {
             <header className="flex shrink-0 items-start justify-between gap-4 border-b-[3px] border-[var(--brand-red)] bg-[linear-gradient(135deg,#09090a,#241719)] px-5 py-4 text-white sm:px-6">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[9px] font-bold uppercase tracking-[.16em] text-white/40">Detalle notificación</p>
-                  <span className={`rounded-full px-2 py-1 text-[8px] font-bold ${selected.active ? "bg-emerald-400/15 text-emerald-300" : "bg-white/10 text-white/50"}`}>{selected.active ? "ACTIVA" : "INACTIVA"}</span>
+                  <p className="text-[11px] font-bold uppercase tracking-[.16em] text-white/40">Detalle notificación</p>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${selected.active ? "bg-emerald-400/15 text-emerald-300" : "bg-white/10 text-white/50"}`}>{selected.active ? "ACTIVA" : "INACTIVA"}</span>
                 </div>
                 <h2 className="mt-1 text-[24px] font-black tracking-[-.035em]">{selected.title}</h2>
                 <p className="mt-1 text-[10px] text-white/45">{selected.event}</p>
@@ -380,10 +380,10 @@ export default function NotificationsPage() {
                     <section>
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-black text-neutral-950">Imagen de la plantilla</p>
+                        <p className="text-[11px] font-bold text-neutral-950">Imagen de la plantilla</p>
                         <p className="mt-1 text-[10px] leading-4 text-neutral-500">El contenedor mantiene proporción 16:9 y muestra la imagen completa sin recortarla.</p>
                       </div>
-                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-black text-neutral-500">16:9</span>
+                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-bold text-neutral-500">16:9</span>
                     </div>
 
                     <div className="mt-3 aspect-video overflow-hidden rounded-[22px] border border-neutral-200 bg-[#f4f3ef]">
@@ -403,10 +403,10 @@ export default function NotificationsPage() {
                     <div className="mt-3 rounded-[18px] border border-dashed border-neutral-300 bg-[#faf9f7] p-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black text-neutral-900">
+                          <p className="text-[10px] font-bold text-neutral-900">
                             {selected.headerImageUrl ? "Imagen cargada en Alentó" : "Aún no hay una imagen cargada"}
                           </p>
-                          <p className="mt-1 text-[9px] leading-4 text-neutral-500">
+                          <p className="mt-1 text-[11px] leading-4 text-neutral-500">
                             {selected.headerImageUrl
                               ? "Esta es la imagen que se enviará con la plantilla."
                               : "Carga la imagen aprobada para que Alentó la use en el envío."}
@@ -416,21 +416,21 @@ export default function NotificationsPage() {
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
-                          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black text-white shadow-[0_8px_18px_rgba(0,0,0,.12)] disabled:opacity-50"
+                          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(0,0,0,.12)] disabled:opacity-50"
                         >
                           <UploadIcon />
                           {uploading ? "Cargando..." : selected.headerImageUrl ? "Reemplazar imagen" : "Cargar imagen"}
                         </button>
                       </div>
                     </div>
-                    <p className="mt-2 text-[9px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. No se muestran ni gestionan URLs manuales.</p>
+                    <p className="mt-2 text-[11px] leading-4 text-neutral-400">JPG, PNG o WebP · máximo 8 MB. No se muestran ni gestionan URLs manuales.</p>
                     </section>
                   ) : (
                     <section className="rounded-[22px] border border-neutral-200 bg-[linear-gradient(145deg,#fff,#fafafa)] p-5">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-[15px] font-black text-white">T</div>
                         <div>
-                          <p className="text-[11px] font-black text-neutral-950">Plantilla de solo texto</p>
+                          <p className="text-[11px] font-bold text-neutral-950">Plantilla de solo texto</p>
                           <p className="mt-1 text-[10px] leading-5 text-neutral-500">Esta notificación no usa imagen de encabezado en Meta. Puede activarse directamente.</p>
                         </div>
                       </div>
@@ -439,20 +439,20 @@ export default function NotificationsPage() {
 
                   <section className="border-t border-neutral-100 pt-5">
                     <div className="mb-3">
-                      <p className="text-[11px] font-black text-neutral-950">Datos de Meta</p>
-                      <p className="mt-1 text-[9px] leading-4 text-neutral-400">Estos datos son informativos y corresponden a la plantilla aprobada en Meta.</p>
+                      <p className="text-[11px] font-bold text-neutral-950">Datos de Meta</p>
+                      <p className="mt-1 text-[11px] leading-4 text-neutral-400">Estos datos son informativos y corresponden a la plantilla aprobada en Meta.</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <div className="rounded-2xl border border-neutral-200 bg-[linear-gradient(145deg,#fff,#faf9f7)] p-4 shadow-[0_6px_16px_rgba(20,18,16,.03)]">
-                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Plantilla</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[.09em] text-neutral-400">Plantilla</span>
                         <p className="mt-2 break-words text-[13px] font-black text-neutral-900">{selected.templateName}</p>
                       </div>
                       <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
-                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Idioma</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[.09em] text-neutral-400">Idioma</span>
                         <p className="mt-2 text-[13px] font-black uppercase text-neutral-900">{selected.language}</p>
                       </div>
                       <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
-                        <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Categoría</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[.09em] text-neutral-400">Categoría</span>
                         <p className="mt-2 text-[13px] font-black text-neutral-900">{selected.category}</p>
                       </div>
                     </div>
@@ -461,16 +461,16 @@ export default function NotificationsPage() {
                   {selected.button && (
                     <section className="border-t border-neutral-100 pt-5">
                       <div className="mb-3">
-                        <p className="text-[11px] font-black text-neutral-950">Botón aprobado</p>
-                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">El texto y el tipo de enlace vienen definidos por la plantilla de Meta.</p>
+                        <p className="text-[11px] font-bold text-neutral-950">Botón aprobado</p>
+                        <p className="mt-1 text-[11px] leading-4 text-neutral-400">El texto y el tipo de enlace vienen definidos por la plantilla de Meta.</p>
                       </div>
                       <div className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
                         <div>
-                          <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Texto</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[.09em] text-neutral-400">Texto</span>
                           <p className="mt-1 text-[12px] font-black text-neutral-900">{selected.button.label}</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-[8px] font-black uppercase tracking-[.09em] text-neutral-400">Destino</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[.09em] text-neutral-400">Destino</span>
                           <p className="mt-1 text-[10px] font-bold text-neutral-600">
                             {selected.button.type === "tracking" && "Seguimiento del cliente"}
                             {selected.button.type === "driver_tracking" && "Orden del repartidor"}
@@ -493,7 +493,7 @@ export default function NotificationsPage() {
                           {selected.active ? "•" : "○"}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-black uppercase tracking-[.11em] text-neutral-400">Notificación</p>
+                          <p className="text-[11px] font-bold uppercase tracking-[.11em] text-neutral-400">Notificación</p>
                           <h3 className="mt-1 text-[16px] font-black tracking-[-.02em] text-neutral-950">
                             {selected.active
                             ? "Activa"
@@ -521,7 +521,7 @@ export default function NotificationsPage() {
                       />
                     </div>
                     <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-3">
-                      <span className={`rounded-full px-2.5 py-1 text-[8px] font-black ${selected.active ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${selected.active ? "bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100" : "bg-neutral-100 text-neutral-500"}`}>
                         {togglingId === selected.id
                           ? "Guardando..."
                           : selected.active
@@ -532,20 +532,20 @@ export default function NotificationsPage() {
                                 ? "Desactivado"
                                 : "Falta imagen"}
                       </span>
-                      <span className="text-[8px] font-bold uppercase tracking-[.08em] text-neutral-400">Auto guardado</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[.08em] text-neutral-400">Auto guardado</span>
                     </div>
                   </section>
 
                   <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
                     <div className="flex items-center gap-2">
                       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 text-[var(--brand-red)]">→</span>
-                      <p className="text-[10px] font-black text-neutral-950">Automatización</p>
+                      <p className="text-[10px] font-bold text-neutral-950">Automatización</p>
                     </div>
-                    <p className="mt-1 text-[9px] leading-4 text-neutral-500">{eventDescription[selected.event] ?? "Conectada al flujo operativo de Alentó."}</p>
+                    <p className="mt-1 text-[11px] leading-4 text-neutral-500">{eventDescription[selected.event] ?? "Conectada al flujo operativo de Alentó."}</p>
                     <div className="mt-4 flex flex-wrap gap-1.5">
-                      <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[8px] font-bold text-white">{selected.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
+                      <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[10px] font-bold text-white">{selected.audience === "DRIVER" ? "Repartidor" : "Cliente"}</span>
                       {selected.fulfillmentTypes.map((type) => (
-                        <span key={type} className="rounded-full bg-neutral-50 px-2.5 py-1 text-[8px] font-bold text-neutral-500 ring-1 ring-neutral-200">{fulfillmentLabel[type] ?? type}</span>
+                        <span key={type} className="rounded-full bg-neutral-50 px-2.5 py-1 text-[10px] font-bold text-neutral-500 ring-1 ring-neutral-200">{fulfillmentLabel[type] ?? type}</span>
                       ))}
                     </div>
                   </section>
@@ -553,10 +553,10 @@ export default function NotificationsPage() {
                   <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black text-neutral-950">Variables de Meta</p>
-                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">Solo informativas. Alentó las reemplaza al enviar.</p>
+                        <p className="text-[10px] font-bold text-neutral-950">Variables de Meta</p>
+                        <p className="mt-1 text-[11px] leading-4 text-neutral-400">Solo informativas. Alentó las reemplaza al enviar.</p>
                       </div>
-                      <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-black text-neutral-500">{selected.variables.length}</span>
+                      <span className="rounded-full bg-neutral-100 px-2 py-1 text-[11px] font-bold text-neutral-500">{selected.variables.length}</span>
                     </div>
                     {selected.variables.length === 0 ? (
                       <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-3 text-[10px] font-semibold text-neutral-500">Esta plantilla no usa variables.</p>
@@ -564,10 +564,10 @@ export default function NotificationsPage() {
                       <div className="mt-3 space-y-2">
                         {selected.variables.map((variable) => (
                           <div key={variable.key} className="grid grid-cols-[58px_1fr] items-center gap-3 rounded-xl border border-neutral-100 bg-[#fafafa] px-3 py-3">
-                            <code className="rounded-lg bg-white px-2 py-1.5 text-center text-[11px] font-black text-[var(--brand-red)] shadow-sm">{`{{${variable.key}}}`}</code>
+                            <code className="rounded-lg bg-white px-2 py-1.5 text-center text-[11px] font-bold text-[var(--brand-red)] shadow-sm">{`{{${variable.key}}}`}</code>
                             <div className="min-w-0">
                               <b className="block truncate text-[10px] text-neutral-800">{variable.label}</b>
-                              <code className="mt-0.5 block truncate text-[8px] text-neutral-400">{variable.source}</code>
+                              <code className="mt-0.5 block truncate text-[10px] text-neutral-400">{variable.source}</code>
                             </div>
                           </div>
                         ))}
@@ -577,9 +577,9 @@ export default function NotificationsPage() {
 
                   {selected.delayMinutes !== undefined && (
                     <section className="rounded-[24px] border border-amber-100 bg-amber-50 p-4">
-                      <p className="text-[9px] font-black uppercase tracking-[.09em] text-amber-700">Programación</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[.09em] text-amber-700">Programación</p>
                       <p className="mt-1 text-[14px] font-black text-amber-950">{selected.delayMinutes} minutos después de finalizar</p>
-                      <p className="mt-1 text-[9px] leading-4 text-amber-700">Este tiempo pertenece al flujo definido para esta notificación.</p>
+                      <p className="mt-1 text-[11px] leading-4 text-amber-700">Este tiempo pertenece al flujo definido para esta notificación.</p>
                     </section>
                   )}
                 </aside>
@@ -587,9 +587,9 @@ export default function NotificationsPage() {
             </div>
 
             <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4 sm:px-6">
-              <p className="hidden text-[9px] text-neutral-400 sm:block">Puedes activar/desactivar la notificación. Las plantillas multimedia permiten además cargar su imagen desde Alentó.</p>
+              <p className="hidden text-[11px] text-neutral-400 sm:block">Puedes activar/desactivar la notificación. Las plantillas multimedia permiten además cargar su imagen desde Alentó.</p>
               <button type="button" onClick={() => setSelectedId(null)} disabled={uploading}
-                className="ml-auto h-11 rounded-xl bg-neutral-950 px-5 text-[11px] font-black text-white">
+                className="ml-auto h-11 rounded-xl bg-neutral-950 px-5 text-[11px] font-bold text-white">
                 Cerrar
               </button>
             </footer>
