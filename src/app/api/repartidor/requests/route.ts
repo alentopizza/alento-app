@@ -85,6 +85,7 @@ export async function GET() {
             select: {
               address: true,
               formattedAddress: true,
+              placeId: true,
               neighborhood: true,
               notes: true,
               latitude: true,
@@ -150,6 +151,7 @@ export async function GET() {
                 address:
                   order.address.formattedAddress ||
                   order.address.address,
+                placeId: order.address.placeId,
                 neighborhood: order.address.neighborhood,
                 notes: order.address.notes,
                 latitude: order.address.latitude,

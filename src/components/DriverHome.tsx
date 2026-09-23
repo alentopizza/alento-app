@@ -53,6 +53,7 @@ type DriverRequest = {
   } | null;
   address: {
     address: string;
+    placeId: string | null;
     neighborhood: string | null;
     notes: string | null;
     latitude: number | null;
@@ -66,6 +67,11 @@ type DriverRequest = {
   } | null;
   claimable: boolean;
   href: string | null;
+};
+
+type DriverRouteSummary = {
+  distanceMeters: number;
+  durationSeconds: number | null;
 };
 
 type DriverTab = "requests" | "performance" | "wallet";
@@ -163,6 +169,21 @@ function money(value: number) {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function routeDistance(value: number) {
+  if (value < 1000) return `${Math.round(value)} m`;
+  const kilometers = value / 1000;
+  return `${kilometers < 10 ? kilometers.toFixed(1) : Math.round(kilometers)} km`;
+}
+
+function routeDuration(value: number | null) {
+  if (value == null) return "—";
+  const minutes = Math.max(1, Math.round(value / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }
 
 function statusLabel(status: string) {
@@ -294,6 +315,8 @@ export default function DriverHome({
   const storeMarkerRef = useRef<GoogleMarker | null>(null);
   const requestMarkerRefs = useRef<Map<number, GoogleMarker>>(new Map());
   const knownRequestIdsRef = useRef<Set<number> | null>(null);
+  const routeSummaryCacheRef = useRef<Map<string, DriverRouteSummary>>(new Map());
+  const pendingRouteSummaryRef = useRef<Set<string>>(new Set());
   const fitForNewRequestRef = useRef(false);
   const initialMapFitDoneRef = useRef(false);
   const lastFocusedRequestRef = useRef<number | null>(null);
@@ -303,6 +326,8 @@ export default function DriverHome({
   const [driver, setDriver] = useState(initialDriver);
   const [store, setStore] = useState<DriverStore | null>(null);
   const [orders, setOrders] = useState<DriverRequest[]>([]);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [routeSummaries, setRouteSummaries] = useState<Record<number, DriverRouteSummary>>({});
   const [tab, setTab] = useState<DriverTab>("requests");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busyAvailability, setBusyAvailability] = useState(false);
@@ -444,6 +469,7 @@ export default function DriverHome({
     knownRequestIdsRef.current = nextIds;
     setStore((data.store ?? null) as DriverStore | null);
     setOrders(next);
+    setOrdersLoaded(true);
     setSelectedId((current) =>
       current && !next.some((order) => order.id === current)
         ? null
@@ -475,6 +501,79 @@ export default function DriverHome({
       stopGps(false);
     };
   }, [initialDriver.driverAvailable, refreshOrders, refreshState, startGps, stopGps]);
+
+  useEffect(() => {
+    if (tab !== "requests" || !store) return;
+
+    orders.forEach((order) => {
+      const latitude = order.address?.latitude;
+      const longitude = order.address?.longitude;
+      if (latitude == null || longitude == null) return;
+
+      const key = [
+        order.id,
+        store.latitude,
+        store.longitude,
+        latitude,
+        longitude,
+      ].join(":");
+
+      const cached = routeSummaryCacheRef.current.get(key);
+      if (cached) {
+        setRouteSummaries((current) =>
+          current[order.id] === cached
+            ? current
+            : { ...current, [order.id]: cached },
+        );
+        return;
+      }
+
+      if (pendingRouteSummaryRef.current.has(key)) return;
+      pendingRouteSummaryRef.current.add(key);
+
+      void fetch("/api/delivery/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude,
+          longitude,
+          formattedAddress: order.address?.address || "",
+          placeId: order.address?.placeId || "",
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) return null;
+
+          const distanceMeters = Number(data.distanceMeters);
+          const durationValue =
+            data.durationSeconds == null ? null : Number(data.durationSeconds);
+          const durationSeconds =
+            durationValue != null && Number.isFinite(durationValue)
+              ? durationValue
+              : null;
+
+          if (!Number.isFinite(distanceMeters)) return null;
+
+          return {
+            distanceMeters,
+            durationSeconds,
+          } satisfies DriverRouteSummary;
+        })
+        .then((summary) => {
+          if (!summary) return;
+          routeSummaryCacheRef.current.set(key, summary);
+          setRouteSummaries((current) => ({
+            ...current,
+            [order.id]: summary,
+          }));
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          pendingRouteSummaryRef.current.delete(key);
+        });
+    });
+  }, [orders, store, tab]);
 
   async function changeAvailability(active: boolean) {
     if (busyAvailability || active === driver.driverAvailable) return;
@@ -796,7 +895,8 @@ export default function DriverHome({
         });
 
         const shouldFit =
-          !initialMapFitDoneRef.current || fitForNewRequestRef.current;
+          ordersLoaded &&
+          (!initialMapFitDoneRef.current || fitForNewRequestRef.current);
 
         if (shouldFit && points > 0) {
           if (points > 1) {
@@ -835,6 +935,7 @@ export default function DriverHome({
     driver.driverLongitude,
     driver.name,
     orders,
+    ordersLoaded,
     store,
     tab,
   ]);
@@ -1081,9 +1182,38 @@ export default function DriverHome({
                             {order.customerName}
                           </p>
                         </div>
-                        <b className="shrink-0 text-[12px] text-[#ff454b]">
-                          {money(order.total)}
-                        </b>
+                        <div className="shrink-0 text-right">
+                          <span className="block text-[7px] font-black uppercase tracking-[0.09em] text-white/32">
+                            Domicilio
+                          </span>
+                          <b className="mt-0.5 block text-[13px] text-[#ff454b]">
+                            {money(order.deliveryFee)}
+                          </b>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {routeSummaries[order.id] ? (
+                          <>
+                            <span className="inline-flex h-6 items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.055] px-2 text-[8px] font-bold text-white/62">
+                              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <path d="M5 19 19 5M10 5h9v9" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              {routeDistance(routeSummaries[order.id].distanceMeters)}
+                            </span>
+                            <span className="inline-flex h-6 items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.055] px-2 text-[8px] font-bold text-white/62">
+                              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <circle cx="12" cy="12" r="8" />
+                                <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              {routeDuration(routeSummaries[order.id].durationSeconds)}
+                            </span>
+                          </>
+                        ) : order.address?.latitude != null && order.address?.longitude != null ? (
+                          <span className="h-6 rounded-full bg-white/[0.04] px-2 text-[8px] font-semibold leading-6 text-white/28">
+                            Calculando ruta…
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="mt-2 flex items-end justify-between gap-3">
