@@ -24,21 +24,26 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       total: true,
       customerId: true,
       customer: { select: { name: true, countryCode: true, phone: true } },
-      items: { select: { id: true } },
+      items: {
+        select: {
+          id: true,
+          driverVerifiedAt: true,
+          driverVerifiedDriverId: true,
+        },
+      },
     },
   });
 
   if (!order) return NextResponse.json({ error: "La orden ya no está asignada a este repartidor." }, { status: 404 });
 
   if (requested === "OUT_FOR_DELIVERY") {
-    const checklistItemIds = Array.isArray(body?.checklistItemIds)
-      ? body.checklistItemIds.map(Number).filter(Number.isInteger)
-      : [];
-    const requiredItemIds = order.items.map((item) => item.id);
-    const uniqueChecked = new Set(checklistItemIds);
     const complete =
-      requiredItemIds.length > 0 &&
-      requiredItemIds.every((itemId) => uniqueChecked.has(itemId));
+      order.items.length > 0 &&
+      order.items.every(
+        (item) =>
+          item.driverVerifiedAt != null &&
+          item.driverVerifiedDriverId === parsed.driverId,
+      );
 
     if (!complete) {
       return NextResponse.json(
