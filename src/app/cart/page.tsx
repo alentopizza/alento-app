@@ -24,10 +24,9 @@ function money(value: number) {
 export default function CartPage() {
   const [cart, setCart] = useState<PublicCartItem[]>([]);
   const [ready, setReady] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"cart" | "delivery" | "customer">("cart");
   const [checkoutSelection, setCheckoutSelection] =
     useState<PublicCheckoutSelection | null>(null);
-  const [customerCheckoutOpen, setCustomerCheckoutOpen] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<{
     id: number;
     code: string;
@@ -99,6 +98,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#090909] pb-28 text-white">
       <PublicBrandHeader />
 
+      {checkoutStep === "cart" && (
       <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-6">
         <PublicActiveOrderBanner className="mb-4" />
 
@@ -126,7 +126,7 @@ export default function CartPage() {
                 onClick={() => {
                   setCart([]);
                   setCheckoutSelection(null);
-                  setCustomerCheckoutOpen(false);
+                  setCheckoutStep("cart");
                   setCreatedOrder(null);
                 }}
                 className="rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-[10px] font-semibold text-white/45 transition hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-200"
@@ -255,11 +255,7 @@ export default function CartPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (checkoutSelection) {
-                    setCustomerCheckoutOpen(true);
-                  } else {
-                    setCheckoutOpen(true);
-                  }
+                  setCheckoutStep(checkoutSelection ? "customer" : "delivery");
                 }}
                 className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#ef1c25] lg:mt-5 lg:h-12 lg:text-[12px]"
               >
@@ -278,31 +274,29 @@ export default function CartPage() {
           </div>
         )}
       </section>
+      )}
 
-      {checkoutOpen && (
+      {checkoutStep === "delivery" && (
         <PublicCheckoutDelivery
           subtotal={subtotal}
           initialSelection={checkoutSelection}
-          onClose={() => setCheckoutOpen(false)}
+          fullPage
+          onClose={() => setCheckoutStep("cart")}
           onConfirm={(selection) => {
             setCheckoutSelection(selection);
-            setCheckoutOpen(false);
-            setCustomerCheckoutOpen(true);
+            setCheckoutStep("customer");
           }}
         />
       )}
 
-      {customerCheckoutOpen && checkoutSelection && !createdOrder && (
+      {checkoutStep === "customer" && checkoutSelection && !createdOrder && (
         <PublicCheckoutCustomer
           cart={cart}
           selection={checkoutSelection}
-          onBack={() => {
-            setCustomerCheckoutOpen(false);
-            setCheckoutOpen(true);
-          }}
+          onBack={() => setCheckoutStep("delivery")}
           onComplete={(order) => {
             setCreatedOrder(order);
-            setCustomerCheckoutOpen(false);
+            setCheckoutStep("cart");
             setCart([]);
             setCheckoutSelection(null);
           }}
