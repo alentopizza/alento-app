@@ -525,7 +525,15 @@ Efectivo:
 - el cliente usa `navigator.geolocation.watchPosition()` y mantiene una lectura GPS activa;
 - el endpoint de estado exige checklist completo + lectura GPS válida de máximo 60 segundos para aceptar `OUT_FOR_DELIVERY`;
 - la ubicación del repartidor se persiste en `Order.driverLatitude / driverLongitude / driverLocationAccuracy / driverLocationUpdatedAt`;
-- `READY → OUT_FOR_DELIVERY → ARRIVED`;
+- flujo del pedido para driver: `READY → OUT_FOR_DELIVERY → ARRIVED → DELIVERED`;
+- al confirmar `DELIVERED`, la ficha se cierra y el repartidor vuelve a `/repartidor`; cualquier segundo dispositivo abierto en esa orden también termina redirigido al refrescar;
+- `/repartidor` es la home exclusiva del DRIVER/DISPATCH autenticado;
+- disponibilidad del repartidor: `User.driverAvailable` + última ubicación general en `User.driverLatitude / driverLongitude / driverLocationAccuracy / driverLocationUpdatedAt`;
+- **Activo** habilita GPS general y autoasignación; **Inactivo** apaga el watch local y limpia la ubicación general del servidor;
+- la home muestra todos los domicilios en proceso; los no asignados en estados `CONFIRMED / PREPARING / PREPARED / READY` se pueden autoasignar;
+- la autoasignación usa una actualización atómica con `driverId: null` para evitar que dos repartidores tomen el mismo pedido;
+- pedidos ya asignados a otro repartidor siguen visibles pero no se pueden reclamar; los propios permiten abrir directamente su ficha;
+- navegación inferior exclusiva del repartidor: **Solicitudes / Desempeño / Cartera**; las dos últimas quedan como shell visual para completar luego;
 - `/seguimiento/[token]` se refresca automáticamente;
 - durante `OUT_FOR_DELIVERY`, el seguimiento del cliente muestra nombre del repartidor, distancia restante, ETA y mapa en vivo con la moto;
 - el endpoint firmado `/api/seguimiento/[token]/delivery-live` expone únicamente la ubicación de esa orden y puede recalcular ruta con Routes API;
