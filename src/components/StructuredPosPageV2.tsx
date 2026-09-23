@@ -20,6 +20,12 @@ type CatalogProduct = { id: number; name: string; description: string | null; im
 type CatalogCategory = { id: number; name: string; slug: string; imageUrl: string | null; products: CatalogProduct[] };
 type CatalogResponse = { categories: CatalogCategory[]; pizzaFlavors: CatalogProduct[]; sizes: PizzaSize[]; crusts: Crust[]; modifiers: Modifier[] };
 type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration: OrderLineConfiguration; notes?: string };
+type DeliveryQuote = {
+  covered: boolean;
+  distanceMeters: number;
+  durationSeconds?: number | null;
+  deliveryFee: number | null;
+};
 type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavorId: number | null; secondFlavorId: number | null; crustId: number | null; modifierIds: number[]; note: string };
 type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
@@ -61,6 +67,9 @@ export default function StructuredPosPageV2() {
   const [editingCartKey, setEditingCartKey] = useState<string | null>(null);
   const [configError, setConfigError] = useState("");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState("");
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -126,7 +135,107 @@ export default function StructuredPosPageV2() {
     selectedCustomer?.addresses?.[0];
   const requiresCustomer = fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP";
   const hasDeliveryAddress = Boolean(selectedAddress?.address?.trim());
-  const canContinue = Boolean(cart.length && fulfillmentType && (!requiresCustomer || selectedCustomer) && (fulfillmentType !== "DELIVERY" || hasDeliveryAddress));
+
+  useEffect(() => {
+    if (fulfillmentType !== "DELIVERY") {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError("");
+      setDeliveryQuoteLoading(false);
+      return;
+    }
+
+    const latitude = Number(selectedAddress?.latitude);
+    const longitude = Number(selectedAddress?.longitude);
+
+    if (
+      !selectedAddress ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(
+        selectedCustomer
+          ? "Valida la dirección del cliente con Google Maps para calcular el domicilio."
+          : "",
+      );
+      setDeliveryQuoteLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setDeliveryQuoteLoading(true);
+    setDeliveryQuoteError("");
+
+    void fetch("/api/delivery/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        formattedAddress:
+          selectedAddress.formattedAddress || selectedAddress.address,
+        placeId: selectedAddress.placeId || "",
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.error || "No fue posible calcular el domicilio.",
+          );
+        }
+        if (!data.covered || data.deliveryFee == null) {
+          throw new Error("La dirección está fuera de cobertura.");
+        }
+        if (!cancelled) setDeliveryQuote(data as DeliveryQuote);
+      })
+      .catch((quoteError) => {
+        if (cancelled) return;
+        setDeliveryQuote(null);
+        setDeliveryQuoteError(
+          quoteError instanceof Error
+            ? quoteError.message
+            : "No fue posible calcular el domicilio.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setDeliveryQuoteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    fulfillmentType,
+    selectedAddress?.address,
+    selectedAddress?.formattedAddress,
+    selectedAddress?.id,
+    selectedAddress?.latitude,
+    selectedAddress?.longitude,
+    selectedAddress?.placeId,
+    selectedCustomer,
+  ]);
+
+  const deliveryFee =
+    fulfillmentType === "DELIVERY"
+      ? Number(deliveryQuote?.deliveryFee ?? 0)
+      : 0;
+  const orderTotal = subtotal + deliveryFee;
+  const validDeliveryQuote =
+    fulfillmentType !== "DELIVERY" ||
+    Boolean(
+      deliveryQuote?.covered &&
+        deliveryQuote.deliveryFee != null &&
+        !deliveryQuoteError &&
+        !deliveryQuoteLoading,
+    );
+  const canContinue = Boolean(
+    cart.length &&
+      fulfillmentType &&
+      (!requiresCustomer || selectedCustomer) &&
+      (fulfillmentType !== "DELIVERY" || hasDeliveryAddress) &&
+      validDeliveryQuote,
+  );
 
   function allProducts() {
     return catalog?.categories.flatMap((category) => category.products) ?? [];
@@ -702,7 +811,47 @@ export default function StructuredPosPageV2() {
 
             {cart.length ? <div className="alento-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">{cart.map((item) => <PosCartLine key={item.key} item={item} editable={item.configuration.kind === "PIZZA" || item.configuration.kind === "COMBO"} onEdit={() => editCartItem(item)} onChangeQty={(delta) => changeQty(item.key, delta)} />)}</div> : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
 
-            <div className="mt-3 border-t pt-3"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{formatCOP(subtotal)}</b></div><div className="mt-3 flex items-end justify-between border-t border-dashed pt-3"><b>Total productos</b><b className="text-2xl text-[var(--brand-red)]">{formatCOP(subtotal)}</b></div><button onClick={() => setCheckoutOpen(true)} disabled={!canContinue} className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400">Continuar pedido</button></div>
+            <div className="mt-3 border-t pt-3">
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Subtotal</span>
+                <b>{formatCOP(subtotal)}</b>
+              </div>
+
+              {fulfillmentType === "DELIVERY" && (
+                <div className="mt-2 flex justify-between">
+                  <span className="text-neutral-500">Domicilio</span>
+                  <b className="text-[var(--brand-red)]">
+                    {deliveryQuoteLoading
+                      ? "Calculando..."
+                      : deliveryQuote?.covered &&
+                          deliveryQuote.deliveryFee != null
+                        ? formatCOP(deliveryFee)
+                        : "Pendiente"}
+                  </b>
+                </div>
+              )}
+
+              {fulfillmentType === "DELIVERY" && deliveryQuoteError && (
+                <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-semibold leading-4 text-red-600">
+                  {deliveryQuoteError}
+                </p>
+              )}
+
+              <div className="mt-3 flex items-end justify-between border-t border-dashed pt-3">
+                <b>Total</b>
+                <b className="text-2xl text-[var(--brand-red)]">
+                  {formatCOP(orderTotal)}
+                </b>
+              </div>
+
+              <button
+                onClick={() => setCheckoutOpen(true)}
+                disabled={!canContinue}
+                className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400"
+              >
+                Continuar pedido
+              </button>
+            </div>
           </aside>
         </section>
       </div>
