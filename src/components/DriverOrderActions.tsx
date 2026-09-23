@@ -365,7 +365,14 @@ export default function DriverOrderActions({
   }
 
   return (
-    <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]">
+    <section
+      className={
+        target === "OUT_FOR_DELIVERY" &&
+        (pendingItems.length > 0 || !locationActive)
+          ? "overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]"
+          : "contents"
+      }
+    >
       {target === "OUT_FOR_DELIVERY" && (
         <>
           {pendingItems.length > 0 && (
@@ -574,16 +581,17 @@ export default function DriverOrderActions({
         </>
       )}
 
-      <div className="sticky bottom-0 z-20 border-t border-white/10 bg-[#101011]/96 p-4 backdrop-blur-xl sm:p-5">
-        <div
-          ref={trackRef}
-          className={
-            "relative h-[62px] w-full overflow-hidden rounded-full border shadow-inner backdrop-blur-sm " +
-            (target === "OUT_FOR_DELIVERY" && !canStartDelivery
-              ? "border-white/10 bg-white/[0.035] opacity-45"
-              : "border-white/15 bg-white/[0.08]")
-          }
-        >
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
+        <div className="mx-auto max-w-[640px]">
+          <div
+            ref={trackRef}
+            className={
+              "relative h-[62px] w-full overflow-hidden rounded-full border backdrop-blur-md " +
+              (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+                ? "border-white/20 bg-white/70 shadow-[0_12px_30px_rgba(0,0,0,.22)]"
+                : "landing-menu-slider border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)]")
+            }
+          >
           <div
             className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#e21a22]"
             style={{
@@ -601,7 +609,14 @@ export default function DriverOrderActions({
               transition: dragging ? "none" : "opacity 180ms ease",
             }}
           >
-            <span className="truncate text-[10px] font-black uppercase tracking-[0.11em] text-white/72">
+            <span
+              className={
+                "truncate text-[10px] font-black uppercase tracking-[0.11em] " +
+                (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+                  ? "text-black/45"
+                  : "landing-menu-slider-text text-black/75")
+              }
+            >
               {busy
                 ? "Actualizando..."
                 : target === "OUT_FOR_DELIVERY" && !allChecked
@@ -618,7 +633,15 @@ export default function DriverOrderActions({
             disabled={
               busy || (target === "OUT_FOR_DELIVERY" && !canStartDelivery)
             }
-            className="absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
+            className={
+              "absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed " +
+              (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+                ? "opacity-55 shadow-[0_8px_18px_rgba(0,0,0,.24)]"
+                : "landing-menu-slider-knob " +
+                  (!dragging && progress === 0
+                    ? "landing-menu-slider-knob-idle"
+                    : ""))
+            }
             style={{
               left: `calc(4px + (100% - 62px) * ${progress})`,
               transition: dragging
@@ -665,7 +688,12 @@ export default function DriverOrderActions({
             ) : (
               <svg
                 viewBox="0 0 24 24"
-                className="h-[22px] w-[22px]"
+                className={
+                  "h-[22px] w-[22px] " +
+                  (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+                    ? ""
+                    : "landing-menu-slider-arrow")
+                }
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.9"
@@ -679,11 +707,12 @@ export default function DriverOrderActions({
           </button>
         </div>
 
-        {notice && (
-          <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs font-semibold text-white/80">
-            {notice}
-          </p>
-        )}
+          {notice && (
+            <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs font-semibold text-white/80">
+              {notice}
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );
