@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import StoreOriginMapPicker, {
+  type StoreOriginLocation,
+} from "@/components/StoreOriginMapPicker";
 
 type DeliveryBand = {
   id: string;
@@ -44,6 +47,7 @@ export default function SettingsPage() {
   const [validatingStore, setValidatingStore] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [storePinAdjusted, setStorePinAdjusted] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -136,6 +140,31 @@ export default function SettingsPage() {
     }
   }
 
+  const handleStoreOriginChange = useCallback(
+    (location: StoreOriginLocation) => {
+      setSettings((current) =>
+        current
+          ? {
+              ...current,
+              store: {
+                ...current.store,
+                formattedAddress: location.formattedAddress,
+                placeId: location.placeId,
+                latitude: location.latitude,
+                longitude: location.longitude,
+              },
+            }
+          : current,
+      );
+      setStorePinAdjusted(true);
+      setMessage(
+        "Origen ajustado manualmente en el mapa. Guarda la configuración para conservarlo.",
+      );
+      setError("");
+    },
+    [],
+  );
+
   async function save() {
     if (!settings) return;
     setSaving(true);
@@ -150,6 +179,7 @@ export default function SettingsPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible guardar la configuración.");
       setSettings(data.settings);
+      setStorePinAdjusted(false);
       setMessage("Configuración guardada correctamente.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible guardar la configuración.");
@@ -227,10 +257,39 @@ export default function SettingsPage() {
             </div>
 
             {settings.store.latitude != null && settings.store.longitude != null ? (
-              <div className="mt-3 grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 md:grid-cols-2">
-                <div><b>Dirección validada</b><p className="mt-1">{settings.store.formattedAddress || settings.store.address}</p></div>
-                <div><b>Coordenadas</b><p className="mt-1">{settings.store.latitude.toFixed(6)}, {settings.store.longitude.toFixed(6)}</p></div>
-              </div>
+              <>
+                <div className="mt-3 grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 md:grid-cols-2">
+                  <div>
+                    <b>Dirección validada</b>
+                    <p className="mt-1">
+                      {settings.store.formattedAddress || settings.store.address}
+                    </p>
+                  </div>
+                  <div>
+                    <b>Coordenadas</b>
+                    <p className="mt-1">
+                      {settings.store.latitude.toFixed(6)},{" "}
+                      {settings.store.longitude.toFixed(6)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <StoreOriginMapPicker
+                    latitude={settings.store.latitude}
+                    longitude={settings.store.longitude}
+                    onChange={handleStoreOriginChange}
+                  />
+                </div>
+
+                {storePinAdjusted && (
+                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-[11px] font-semibold text-blue-800">
+                    Ubicación ajustada manualmente. Estas coordenadas serán el
+                    origen exacto usado por Google Routes cuando guardes la
+                    configuración.
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
                 Pendiente validar la ubicación oficial de la sede.
