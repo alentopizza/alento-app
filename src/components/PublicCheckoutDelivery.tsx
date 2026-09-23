@@ -42,16 +42,6 @@ type DeliveryQuote = {
   maxCoverageMeters?: number;
 };
 
-type SavedCustomerAddress = {
-  id: number;
-  label: string | null;
-  address: string;
-  neighborhood: string | null;
-  city: string | null;
-  notes: string | null;
-  isDefault: boolean;
-};
-
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -273,9 +263,7 @@ export default function PublicCheckoutDelivery({
   const [error, setError] = useState("");
   const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
   const [savedAddressChecked, setSavedAddressChecked] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedCustomerAddress[]>([]);
-  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<number | null>(null);
-  const [resolvingSavedAddressId, setResolvingSavedAddressId] = useState<number | null>(null);
+  const [savedAddressRequiresValidation, setSavedAddressRequiresValidation] = useState(false);
 
   const drawMap = useCallback(async (
     destination?: {
@@ -428,6 +416,24 @@ export default function PublicCheckoutDelivery({
     }
   }, [drawMap]);
 
+  const saveValidatedCustomerAddress = useCallback(async (input: {
+    formattedAddress: string;
+    placeId: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    try {
+      await fetch("/api/delivery/customer-default-address", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+    } catch {
+      // Guardar la dirección mejora compras futuras, pero no debe bloquear
+      // la cotización actual si el cliente es invitado o la sesión expiró.
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -509,12 +515,14 @@ export default function PublicCheckoutDelivery({
               throw new Error("Google no devolvió coordenadas para esa dirección.");
             }
 
-            await requestQuote({
+            const selectedLocation = {
               latitude: lat,
               longitude: lng,
               formattedAddress: place.formattedAddress || "",
               placeId: place.id || "",
-            });
+            };
+            await requestQuote(selectedLocation);
+            await saveValidatedCustomerAddress(selectedLocation);
             } catch (err) {
               setError(
                 err instanceof Error
@@ -546,7 +554,7 @@ export default function PublicCheckoutDelivery({
         autocomplete.removeEventListener("gmp-select", onSelect);
       }
     };
-  }, [editingAddress, fulfillmentType, requestQuote]);
+  }, [editingAddress, fulfillmentType, requestQuote, saveValidatedCustomerAddress]);
 
   useEffect(() => {
     if (
@@ -576,58 +584,12 @@ export default function PublicCheckoutDelivery({
     quote?.encodedPolyline,
   ]);
 
-  const resolveSavedAddress = useCallback(
-    async (addressId: number) => {
-      // Cambio optimista: la tarjeta responde inmediatamente al toque.
-      setSelectedSavedAddressId(addressId);
-      setResolvingSavedAddressId(addressId);
-      setLoadingSavedAddress(true);
-      setError("");
-
-      try {
-        const response = await fetch("/api/delivery/customer-default-address", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ addressId }),
-        });
-        const data = await response.json();
-
-        if (!response.ok || !data?.address) {
-          throw new Error(data.error || "No fue posible cargar esa dirección.");
-        }
-
-        const latitude = Number(data.address.latitude);
-        const longitude = Number(data.address.longitude);
-
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-          throw new Error("La dirección guardada no tiene una ubicación válida.");
-        }
-
-        await requestQuote({
-          latitude,
-          longitude,
-          formattedAddress: data.address.formattedAddress || "",
-          placeId: data.address.placeId || "",
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "No fue posible usar esa dirección guardada.",
-        );
-      } finally {
-        setResolvingSavedAddressId(null);
-        setLoadingSavedAddress(false);
-      }
-    },
-    [requestQuote],
-  );
-
   const loadSavedCustomerAddress = useCallback(async () => {
     if (savedAddressChecked || loadingSavedAddress) return;
 
     setLoadingSavedAddress(true);
     setSavedAddressChecked(true);
+    setSavedAddressRequiresValidation(false);
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 3500);
@@ -639,27 +601,31 @@ export default function PublicCheckoutDelivery({
       });
       const data = await response.json();
 
-      if (response.ok && Array.isArray(data?.addresses)) {
-        setSavedAddresses(data.addresses);
+      if (!response.ok) return;
+
+      if (data?.requiresValidation) {
+        setSavedAddressRequiresValidation(true);
+        setQuote(null);
+        setEditingAddress(true);
+        return;
       }
 
       if (
-        response.ok &&
-        data?.address &&
+        data?.address?.validated &&
         Number.isFinite(Number(data.address.latitude)) &&
-        Number.isFinite(Number(data.address.longitude))
+        Number.isFinite(Number(data.address.longitude)) &&
+        data.address.placeId
       ) {
-        setSelectedSavedAddressId(data.address.id ?? null);
         await requestQuote({
           latitude: Number(data.address.latitude),
           longitude: Number(data.address.longitude),
-          formattedAddress: data.address.formattedAddress || "",
-          placeId: data.address.placeId || "",
+          formattedAddress:
+            data.address.formattedAddress || data.address.address || "",
+          placeId: data.address.placeId,
         });
       }
     } catch {
-      // Las direcciones guardadas son una mejora opcional. Si no están disponibles,
-      // el cliente puede escribir una dirección nueva inmediatamente.
+      // Sin sesión o sin dirección válida: el buscador de Google queda disponible.
     } finally {
       window.clearTimeout(timeout);
       setLoadingSavedAddress(false);
@@ -834,86 +800,11 @@ export default function PublicCheckoutDelivery({
         >
           {fulfillmentType === "DELIVERY" ? (
             <div className="space-y-2.5 sm:space-y-3">
-              {savedAddresses.length > 1 && !editingAddress && (
-                <section
-                  className={
-                    "rounded-[18px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[20px] " +
-                    (fullPage ? "sm:p-5" : "")
-                  }
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/35">
-                        Tus direcciones
-                      </p>
-                      <h3 className="mt-1 text-[14px] font-bold text-white">
-                        ¿Dónde entregamos?
-                      </h3>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuote(null);
-                        setMapReady(false);
-                        setEditingAddress(true);
-                        setError("");
-                      }}
-                      className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-[10px] font-bold text-white/60"
-                    >
-                      + Nueva
-                    </button>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {savedAddresses.map((item) => {
-                      const selected = item.id === selectedSavedAddressId;
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          disabled={resolvingSavedAddressId === item.id}
-                          onClick={() => void resolveSavedAddress(item.id)}
-                          className={
-                            "rounded-[14px] border p-3 text-left transition disabled:opacity-50 " +
-                            (selected
-                              ? "border-[#e21a22] bg-[#e21a22]/14 ring-1 ring-[#e21a22]/50"
-                              : "border-white/10 bg-black/15 hover:bg-white/[0.05]")
-                          }
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <b className="text-[11px] font-bold text-white">
-                                {item.label || "Dirección"}
-                              </b>
-                              {item.isDefault && (
-                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase text-white/45">
-                                  Principal
-                                </span>
-                              )}
-                            </div>
-                            {resolvingSavedAddressId === item.id ? (
-                              <span className="text-[10px] font-bold text-[#ff777b]">
-                                Calculando...
-                              </span>
-                            ) : selected ? (
-                              <span className="text-[13px] font-bold text-[#ff454b]">✓</span>
-                            ) : null}
-                          </div>
-
-                          <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/55">
-                            {item.address}
-                          </p>
-                          {item.neighborhood && (
-                            <p className="mt-1 text-[9px] text-white/30">
-                              {item.neighborhood}
-                            </p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+              {savedAddressRequiresValidation && editingAddress && (
+                <div className="rounded-[16px] border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-[11px] leading-5 text-amber-100">
+                  <b className="block text-[12px]">Actualiza tu dirección</b>
+                  La dirección guardada todavía no fue validada con Google Maps. Selecciónala nuevamente para poder usar domicilio.
+                </div>
               )}
 
               {quote?.destination && !editingAddress ? (
@@ -921,7 +812,7 @@ export default function PublicCheckoutDelivery({
                   <div className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-white/30">
-                        Punto de entrega
+                        Dirección de entrega
                       </p>
                       <b className="mt-0.5 block truncate text-[11px] leading-4 text-white/90 sm:text-[12px]">
                         {quote.destination.formattedAddress}
