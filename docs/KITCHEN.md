@@ -176,6 +176,36 @@ Dos sabores:
 
 En Cocina se elimina visualmente el prefijo `½`; la proporción estructurada sigue existiendo en `OrderItem.configuration`.
 
+## Combos con pizza
+
+Los combos que contienen pizza deben conservar una lectura visual similar a una pizza individual.
+
+Regla de presentación en Cocina:
+
+- el nombre del combo permanece como título principal;
+- cada pizza del combo se muestra en un subbloque propio;
+- el tamaño se presenta con el mismo estilo de chip usado por pizzas;
+- el sabor se presenta como chip destacado;
+- si el combo contiene más de una pizza, se identifican como `Pizza 1`, `Pizza 2`, etc.;
+- antojos y otros acompañantes se muestran debajo como bloques secundarios con el nombre real del grupo;
+- bebidas/gaseosas no se muestran en Cocina;
+- no reconstruir bordes ni extras que el `ComboOrderConfiguration` actual no persista;
+- evitar volver al formato de texto corrido tipo `Pizza 1: ... Antojo: ...`.
+
+Ejemplo conceptual:
+
+```text
+1× Combo Inseparable
+
+PIZZA
+[MEDIANA · 27 CM] [HAWAIANA CLÁSICA]
+
+ANTOJO
+[PALITOS CON QUESO]
+```
+
+La prioridad es que Cocina pueda identificar de un vistazo qué pizza debe preparar dentro del combo.
+
 ## Ingredientes extra
 
 Los extras aparecen después de los sabores, en una misma zona visual:
