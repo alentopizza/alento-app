@@ -321,10 +321,10 @@ export default function OrdersCardsDashboardV3() {
     }
   }
 
-  async function removeTest(order: Order) {
+  async function deleteOrder(order: Order) {
     setBusy(order.id);
     try {
-      const response = await fetch(`/api/orders/${order.id}?test=1`, { method: "DELETE" });
+      const response = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible eliminar el pedido.");
       if (selected?.id === order.id) setSelected(null);
@@ -355,7 +355,7 @@ export default function OrdersCardsDashboardV3() {
     const action = confirmAction;
     try {
       if (action.kind === "cancel-order") await cancelOrder(action.order);
-      if (action.kind === "delete-order") await removeTest(action.order);
+      if (action.kind === "delete-order") await deleteOrder(action.order);
       if (action.kind === "delete-payment") await voidPayment(action.order, action.payment);
     } finally {
       setConfirmAction(null);
@@ -634,7 +634,7 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
-                {order.status === "CANCELED" ? (
+                {["CANCELED", "COMPLETED"].includes(order.status) ? (
                   canDeleteOrders ? (
                     <button
                       onClick={() => setConfirmAction({ kind: "delete-order", order })}
@@ -644,7 +644,7 @@ export default function OrdersCardsDashboardV3() {
                       aria-label="Eliminar pedido definitivamente"
                     ><Icon name="trash" /></button>
                   ) : null
-                ) : order.status !== "COMPLETED" && canCancelOrders ? (
+                ) : canCancelOrders ? (
                   <button
                     onClick={() => setConfirmAction({ kind: "cancel-order", order })}
                     disabled={busyOrder}
@@ -704,7 +704,9 @@ export default function OrdersCardsDashboardV3() {
         confirmAction.kind === "cancel-order"
           ? "El pedido, sus productos y pagos se conservarán para mantener trazabilidad, pero quedarán fuera de la operación activa."
           : confirmAction.kind === "delete-order"
-            ? "Se borrarán definitivamente el pedido, sus productos y pagos relacionados. Esta acción no se puede deshacer."
+            ? confirmAction.order.status === "COMPLETED"
+              ? "Se borrarán definitivamente el pedido finalizado, sus productos, pagos, puntos Club y registros asociados. También dejará de aparecer en métricas e historial. Esta acción no se puede deshacer."
+              : "Se borrarán definitivamente el pedido cancelado, sus productos, pagos y registros asociados. Esta acción no se puede deshacer."
             : confirmAction.payment.status === "PAID"
               ? "El ingreso desaparecerá de Caja y el saldo pendiente del pedido aumentará."
               : "Solo se eliminará esta referencia de pago prevista."
