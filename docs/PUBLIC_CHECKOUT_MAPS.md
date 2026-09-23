@@ -231,19 +231,22 @@ Reglas:
 - mapa y selector de direcciones aprovechan el ancho disponible;
 - no reintroducir contenedores centrados de 680px para este flujo salvo una necesidad puntual.
 
-## Selección de direcciones guardadas
+## Dirección única del cliente
 
-Cuando un cliente autenticado tiene varias `CustomerAddress`:
+La experiencia pública usa **una sola dirección operativa por cliente**.
 
-- el checkout carga todas las direcciones;
-- la dirección `isDefault=true` se selecciona inicialmente;
-- la principal no es obligatoria para ese pedido;
-- el cliente puede cambiar entre Casa, Trabajo u otra dirección guardada;
-- al seleccionar otra dirección se resuelve con Google, se recalculan ruta, cobertura, tarifa y tiempo, y se actualiza el mapa;
-- **+ Nueva** abre el buscador de Google para una ubicación distinta;
-- el botón de editar sigue permitiendo reemplazar la selección actual con una dirección buscada en Google.
+Reglas:
 
-No volver a implementar el checkout usando exclusivamente la primera dirección guardada.
+- si el cliente autenticado tiene una dirección con `formattedAddress`, `placeId`, `latitude` y `longitude`, se usa automáticamente;
+- no se muestra selector entre varias direcciones;
+- una dirección antigua que solo tenga texto se considera **no validada**;
+- si la dirección no está validada, el checkout muestra **Actualizar dirección** y obliga a seleccionarla nuevamente con Google Maps;
+- al seleccionar una dirección válida de Google, se guarda como la única dirección del cliente autenticado;
+- cualquier dirección adicional heredada se elimina cuando la dirección única se actualiza;
+- invitados pueden cotizar domicilio sin guardar dirección permanente;
+- el botón **Ajustar punto de entrega** permite volver a seleccionar la ubicación.
+
+No reintroducir lógica de Casa/Trabajo/múltiples direcciones en el checkout público.
 
 ## Próximo paso
 
