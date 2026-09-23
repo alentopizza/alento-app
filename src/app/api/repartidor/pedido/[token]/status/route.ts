@@ -42,7 +42,37 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
     if (!complete) {
       return NextResponse.json(
-        { error: "Debes verificar todos los productos del pedido antes de iniciar el domicilio." },
+        {
+          error:
+            "Debes verificar todos los productos del pedido antes de iniciar el domicilio.",
+        },
+        { status: 409 },
+      );
+    }
+
+    const latitude = Number(body?.location?.latitude);
+    const longitude = Number(body?.location?.longitude);
+    const accuracy = Number(body?.location?.accuracy);
+    const timestamp = Number(body?.location?.timestamp);
+    const freshLocation =
+      Number.isFinite(latitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      Number.isFinite(longitude) &&
+      longitude >= -180 &&
+      longitude <= 180 &&
+      Number.isFinite(accuracy) &&
+      accuracy >= 0 &&
+      accuracy <= 5000 &&
+      Number.isFinite(timestamp) &&
+      Math.abs(Date.now() - timestamp) <= 60_000;
+
+    if (!freshLocation) {
+      return NextResponse.json(
+        {
+          error:
+            "Debes activar Compartir ubicación en tiempo real y obtener una lectura GPS reciente antes de salir.",
+        },
         { status: 409 },
       );
     }
