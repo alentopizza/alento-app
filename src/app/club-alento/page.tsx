@@ -131,7 +131,7 @@ export default function ClubAlentoAdminPage() {
                 <p className="mt-1 text-sm text-white/55">sobre el subtotal elegible del pedido</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3">
-                <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Estado</span>
+                <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-white/35">Estado</span>
                 <b className="mt-1 block text-sm text-emerald-300">Activo</b>
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function ClubAlentoAdminPage() {
 
           <div className="grid gap-6 p-5 md:grid-cols-[1fr_1.1fr] md:p-7">
             <div>
-              <label className="text-[11px] font-black uppercase tracking-[0.12em] text-neutral-500">
+              <label className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-500">
                 Porcentaje de acumulación
               </label>
               <div className="relative mt-2">
@@ -160,7 +160,7 @@ export default function ClubAlentoAdminPage() {
                 <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-black text-neutral-400">%</span>
               </div>
 
-              <label className="mt-5 block text-[11px] font-black uppercase tracking-[0.12em] text-neutral-500">
+              <label className="mt-5 block text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-500">
                 Compra mínima para redimir
               </label>
               <input
@@ -182,7 +182,7 @@ export default function ClubAlentoAdminPage() {
             </div>
 
             <div className="rounded-[22px] border bg-[#faf9f7] p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-neutral-400">Ejemplos con la regla actual</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">Ejemplos con la regla actual</p>
               <div className="mt-3 space-y-2">
                 {examples.map((example) => (
                   <div key={example.amount} className="flex items-center justify-between rounded-xl bg-white px-4 py-3">
@@ -208,7 +208,7 @@ export default function ClubAlentoAdminPage() {
               ["06", "Sin puntos sobre puntos", "La parte pagada con puntos no debe volver a generar nuevos puntos cuando habilitemos la redención."],
             ].map(([step, title, description]) => (
               <div key={step} className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-4">
-                <span className="text-[10px] font-black text-[var(--brand-red)]">{step}</span>
+                <span className="text-[10px] font-bold text-[var(--brand-red)]">{step}</span>
                 <b className="mt-1 block text-sm">{title}</b>
                 <p className="mt-1 text-xs leading-5 text-neutral-500">{description}</p>
               </div>
