@@ -11,12 +11,30 @@ type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
 type CouponType = "FIXED" | "PERCENTAGE";
 
-type CustomerAddress = { id: number; label?: string | null; address: string; neighborhood: string | null; city: string | null; notes: string | null; isDefault?: boolean };
+type CustomerAddress = {
+  id: number;
+  label?: string | null;
+  address: string;
+  formattedAddress?: string | null;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  neighborhood: string | null;
+  city: string | null;
+  notes: string | null;
+  isDefault?: boolean;
+};
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown; notes?: string };
-type DeliveryBand = { id: string; name: string; minMeters: number; maxMeters: number; fee: number; active: boolean };
 type PaymentMethodSetting = { id: string; name: string; active: boolean };
-type PosSettings = { store: { address: string; mapsUrl: string }; deliveryBands: DeliveryBand[]; paymentMethods: PaymentMethodSetting[] };
+type PosSettings = { paymentMethods: PaymentMethodSetting[] };
+type DeliveryQuote = {
+  covered: boolean;
+  distanceMeters: number;
+  durationSeconds?: number | null;
+  deliveryFee: number | null;
+  band?: { id: string; name?: string } | null;
+};
 type Coupon = { id: number; name: string; type: CouponType; value: number; active: boolean };
 type Eligibility = { eligibleSubtotal: number; excludedSubtotal: number; eligibleProductIds: number[]; excludedProductIds: number[] };
 
@@ -182,7 +200,9 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const [eligibility, setEligibility] = useState<Eligibility>({ eligibleSubtotal: 0, excludedSubtotal: 0, eligibleProductIds: [], excludedProductIds: [] });
   const [loadingSettings, setLoadingSettings] = useState(false);
   const [settingsError, setSettingsError] = useState("");
-  const [deliveryZoneId, setDeliveryZoneId] = useState("");
+  const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
+  const [loadingDeliveryQuote, setLoadingDeliveryQuote] = useState(false);
+  const [deliveryQuoteError, setDeliveryQuoteError] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [discountMode, setDiscountMode] = useState<DiscountMode>("NONE");
   const [couponId, setCouponId] = useState<number | null>(null);
@@ -196,7 +216,8 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   useEffect(() => {
     if (!open) return;
     setError("");
-    setDeliveryZoneId("");
+    setDeliveryQuote(null);
+    setDeliveryQuoteError("");
     setPaymentMethodId("");
     setDiscountMode("NONE");
     setCouponId(null);
@@ -248,12 +269,13 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     void loadCheckoutData();
   }, [open, cart, customer]);
 
-  const activeDeliveryZones = useMemo(() => settings?.deliveryBands.filter((zone) => zone.active) ?? [], [settings]);
   const activePaymentMethods = useMemo(() => settings?.paymentMethods.filter((method) => method.active) ?? [], [settings]);
-  const selectedDeliveryZone = activeDeliveryZones.find((zone) => zone.id === deliveryZoneId) ?? null;
   const selectedCoupon = coupons.find((coupon) => coupon.id === couponId) ?? null;
   const selectedPaymentMethod = activePaymentMethods.find((method) => method.id === paymentMethodId);
-  const deliveryFee = fulfillmentType === "DELIVERY" ? Number(selectedDeliveryZone?.fee ?? 0) : 0;
+  const deliveryFee =
+    fulfillmentType === "DELIVERY"
+      ? Number(deliveryQuote?.deliveryFee ?? 0)
+      : 0;
   const eligibleSubtotal = eligibility.eligibleSubtotal;
 
   const manualRaw = Number(discountInput || 0);
@@ -270,7 +292,90 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     customer?.addresses?.find((item) => item.isDefault) ??
     customer?.addresses?.[0] ??
     null;
-  const address = selectedAddress?.address ?? "";
+  const address =
+    selectedAddress?.formattedAddress ||
+    selectedAddress?.address ||
+    "";
+
+  useEffect(() => {
+    if (!open || fulfillmentType !== "DELIVERY") {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError("");
+      setLoadingDeliveryQuote(false);
+      return;
+    }
+
+    const latitude = Number(selectedAddress?.latitude);
+    const longitude = Number(selectedAddress?.longitude);
+
+    if (
+      !selectedAddress ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      setDeliveryQuote(null);
+      setDeliveryQuoteError(
+        "La dirección del cliente debe estar validada con Google Maps para calcular el domicilio.",
+      );
+      setLoadingDeliveryQuote(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingDeliveryQuote(true);
+    setDeliveryQuoteError("");
+
+    void fetch("/api/delivery/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude,
+        longitude,
+        formattedAddress:
+          selectedAddress.formattedAddress || selectedAddress.address,
+        placeId: selectedAddress.placeId || "",
+      }),
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.error || "No fue posible calcular el domicilio.",
+          );
+        }
+        if (!data.covered || data.deliveryFee == null) {
+          throw new Error("La dirección está fuera de la cobertura de domicilio.");
+        }
+        if (!cancelled) setDeliveryQuote(data as DeliveryQuote);
+      })
+      .catch((quoteError) => {
+        if (!cancelled) {
+          setDeliveryQuote(null);
+          setDeliveryQuoteError(
+            quoteError instanceof Error
+              ? quoteError.message
+              : "No fue posible calcular el domicilio.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDeliveryQuote(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    fulfillmentType,
+    open,
+    selectedAddress?.address,
+    selectedAddress?.formattedAddress,
+    selectedAddress?.id,
+    selectedAddress?.latitude,
+    selectedAddress?.longitude,
+    selectedAddress?.placeId,
+  ]);
+
   const cashPayment = isCashMethod(selectedPaymentMethod);
   const cashReceived = Number(cashReceivedInput || 0);
   const validCashReceived = Number.isFinite(cashReceived) && cashReceived >= total;
@@ -294,8 +399,14 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     setError("");
     if (!fulfillmentType) return setError("Falta definir el tipo de pedido.");
     if (fulfillmentType === "DELIVERY") {
-      if (!customer || !address) return setError("El domicilio necesita un cliente con dirección registrada.");
-      if (!selectedDeliveryZone) return setError("Selecciona una tarifa de domicilio.");
+      if (!customer || !address)
+        return setError("El domicilio necesita un cliente con dirección registrada.");
+      if (loadingDeliveryQuote)
+        return setError("Espera mientras calculamos el domicilio.");
+      if (deliveryQuoteError || !deliveryQuote?.covered || deliveryQuote.deliveryFee == null)
+        return setError(
+          deliveryQuoteError || "No fue posible calcular el domicilio para esta dirección.",
+        );
     }
     if (discountMode === "COUPON" && !selectedCoupon) return setError("Selecciona un cupón.");
     if ((discountMode === "COUPON" || discountMode === "MANUAL") && eligibleSubtotal <= 0) return setError("Este pedido no tiene productos elegibles para descuento.");
@@ -313,7 +424,6 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
           fulfillmentType,
           customerId: customer?.id ?? null,
           addressId: fulfillmentType === "DELIVERY" ? selectedAddress?.id ?? null : null,
-          deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
           discountMode,
           couponId: discountMode === "COUPON" ? selectedCoupon?.id ?? null : null,
           manualDiscount: discountMode === "MANUAL" ? manualDiscount : 0,
@@ -394,7 +504,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     );
   }
 
-  const sectionNumber = (base: number) => fulfillmentType === "DELIVERY" ? base : base - 1;
+  const sectionNumber = (base: number) => base - 1;
 
   return (
     <div className="checkout-overlay">
@@ -402,7 +512,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
         <header className="checkout-header">
           <div>
             <div className="checkout-eyebrow"><span>Cierre del pedido</span><em>{fulfillmentLabel(fulfillmentType)}</em></div>
-            <h2>{fulfillmentType === "DELIVERY" ? "Domicilio, descuento y pago" : "Descuento y forma de pago"}</h2>
+            <h2>Descuento y forma de pago</h2>
             <p>Revisa los datos comerciales antes de crear definitivamente la orden.</p>
           </div>
           <button onClick={onClose} disabled={creatingOrder}>Cerrar</button>
@@ -416,68 +526,6 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
           ) : (
             <div className="checkout-layout">
               <div className="checkout-left">
-                {fulfillmentType === "DELIVERY" && (
-                  <section className="checkout-panel">
-                    <div className="checkout-panel-head">
-                      <div><span>1. Domicilio</span><h3>Dirección y tarifa</h3></div>
-                      <p>{address || "Sin dirección"}</p>
-                    </div>
-
-                    {customer && customer.addresses.length > 1 && (
-                      <div className="mb-3 grid gap-2 sm:grid-cols-2">
-                        {customer.addresses.map((item) => {
-                          const selected = item.id === selectedAddress?.id;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedAddressId(item.id);
-                                setError("");
-                              }}
-                              className={
-                                "rounded-xl border p-3 text-left transition " +
-                                (selected
-                                  ? "border-[var(--brand-red)] bg-red-50 ring-1 ring-[var(--brand-red)]"
-                                  : "border-neutral-200 bg-white hover:border-neutral-300")
-                              }
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <b className="text-[12px] font-bold text-neutral-900">
-                                  {item.label || (item.isDefault ? "Principal" : "Dirección")}
-                                </b>
-                                {selected && (
-                                  <span className="text-[11px] font-bold text-[var(--brand-red)]">✓</span>
-                                )}
-                              </div>
-                              <p className="mt-1 text-[11px] leading-4 text-neutral-600">
-                                {item.address}
-                              </p>
-                              {item.isDefault && (
-                                <span className="mt-1.5 inline-flex rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-bold uppercase text-neutral-500">
-                                  Principal
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <div className="checkout-choice-grid checkout-delivery-grid">
-                      {activeDeliveryZones.map((zone) => {
-                        const selected = deliveryZoneId === zone.id;
-                        return (
-                          <button key={zone.id} onClick={() => { setDeliveryZoneId(zone.id); setError(""); }} className={selected ? "selected" : ""}>
-                            <div><b>{zone.name}</b><span>{formatCOP(zone.fee)}</span></div>
-                            <i>{selected ? "✓" : ""}</i>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-
                 <section className="checkout-panel">
                   <div className="checkout-panel-head">
                     <div><span>{sectionNumber(2)}. Descuento</span><h3>¿Aplica descuento?</h3></div>
@@ -555,14 +603,30 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
 
                 <div className="checkout-totals">
                   <div><span>Subtotal</span><b>{formatCOP(subtotal)}</b></div>
-                  {fulfillmentType === "DELIVERY" && <div><span>Domicilio</span><b>{selectedDeliveryZone ? formatCOP(deliveryFee) : "Pendiente"}</b></div>}
+                  {fulfillmentType === "DELIVERY" && (
+                    <div>
+                      <span>Domicilio</span>
+                      <b>
+                        {loadingDeliveryQuote
+                          ? "Calculando..."
+                          : deliveryQuote?.covered &&
+                              deliveryQuote.deliveryFee != null
+                            ? formatCOP(deliveryFee)
+                            : "Pendiente"}
+                      </b>
+                    </div>
+                  )}
                   {discount > 0 && <div className="discount"><span>{discountMode === "COUPON" ? `Cupón · ${selectedCoupon?.name}` : "Descuento manual"}</span><b>− {formatCOP(discount)}</b></div>}
                   <div className="checkout-grand-total"><span>Total</span><b>{formatCOP(total)}</b></div>
                 </div>
               </aside>
             </div>
           )}
-          {error && <div className="checkout-error checkout-inline-error">{error}</div>}
+          {(error || deliveryQuoteError) && (
+            <div className="checkout-error checkout-inline-error">
+              {error || deliveryQuoteError}
+            </div>
+          )}
         </div>
 
         <footer className="checkout-footer">
