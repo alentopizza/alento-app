@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
+import CustomerDeliveryLiveMap from "@/components/CustomerDeliveryLiveMap";
 import { isRecord } from "@/lib/orderConfiguration";
 
 export const dynamic = "force-dynamic";
@@ -320,6 +321,11 @@ export default async function TrackingPage({
           </div>
 
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
+            {order.fulfillmentType === "DELIVERY" &&
+              order.status === "OUT_FOR_DELIVERY" && (
+                <CustomerDeliveryLiveMap token={token} />
+              )}
+
             <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
               <div className="border-b border-neutral-200 px-4 py-4 sm:px-5">
                 <div className="flex items-end justify-between gap-4">
