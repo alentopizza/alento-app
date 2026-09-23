@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
 
 type FulfillmentType = "DELIVERY" | "PICKUP";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
-const ALENTO_WEB_ICON =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 export type PublicCheckoutSelection = {
   fulfillmentType: FulfillmentType;
@@ -73,6 +72,20 @@ type GoogleMarkerInstance = {
   setMap: (map: GoogleMapInstance | null) => void;
 };
 
+type GoogleAdvancedMarkerInstance = {
+  map: GoogleMapInstance | null;
+};
+
+type GoogleMarkerLibrary = {
+  AdvancedMarkerElement: new (options: {
+    map: GoogleMapInstance;
+    position: { lat: number; lng: number };
+    title?: string;
+    content?: Node;
+    zIndex?: number;
+  }) => GoogleAdvancedMarkerInstance;
+};
+
 type GooglePolylineInstance = {
   setMap: (map: GoogleMapInstance | null) => void;
 };
@@ -89,7 +102,6 @@ type GoogleMapsRuntime = {
       options: Record<string, unknown>,
     ) => GoogleMapInstance;
     Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
-    Size: new (width: number, height: number) => unknown;
     Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
     LatLngBounds: new () => GoogleLatLngBoundsInstance;
     geometry?: {
@@ -286,6 +298,8 @@ export default function PublicCheckoutDelivery({
     }
     await google.maps.importLibrary("maps");
     await google.maps.importLibrary("geometry");
+    const { AdvancedMarkerElement } =
+      (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
 
     const fallbackCenter = origin
       ? { lat: origin.latitude, lng: origin.longitude }
@@ -311,16 +325,19 @@ export default function PublicCheckoutDelivery({
     if (routePolylineRef.current) routePolylineRef.current.setMap(null);
 
     if (origin && mapInstanceRef.current) {
-      originMarkerRef.current = new google.maps.Marker({
+      const brandedMarker = new AdvancedMarkerElement({
         map: mapInstanceRef.current,
         position: { lat: origin.latitude, lng: origin.longitude },
         title: "Alentó Pizza",
-        icon: {
-          url: ALENTO_WEB_ICON,
-          scaledSize: new google.maps.Size(46, 46),
-        },
+        content: createAlentoMapPinElement(),
         zIndex: 20,
       });
+
+      originMarkerRef.current = {
+        setMap: (map) => {
+          brandedMarker.map = map;
+        },
+      };
     }
 
     if (destination && mapInstanceRef.current) {
@@ -722,7 +739,7 @@ export default function PublicCheckoutDelivery({
       <div
         className={
           fullPage
-            ? "mx-auto flex min-h-[calc(100dvh-72px)] w-full max-w-[1180px] flex-col bg-[#111] text-white"
+            ? "mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col bg-[#111] text-white"
             : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[26px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
         }
       >
@@ -825,6 +842,30 @@ export default function PublicCheckoutDelivery({
                       </b>
                     </div>
 
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAddress(true);
+                        setError("");
+                      }}
+                      className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 text-[9px] font-bold text-white/65 transition hover:border-white/20 hover:bg-white/[0.10] hover:text-white sm:h-10 sm:px-3.5 sm:text-[10px]"
+                      aria-label="Editar dirección de entrega"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                      </svg>
+                      Editar
+                    </button>
                   </div>
                 </section>
               ) : (
