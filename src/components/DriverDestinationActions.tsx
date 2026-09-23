@@ -367,7 +367,7 @@ export default function DriverDestinationActions({
 
             const now = Date.now();
             const shouldRoute =
-              !navigation || now - lastRouteAtRef.current >= 8000;
+              now - lastRouteAtRef.current >= 8000;
 
             if (!shouldRoute) return;
 
@@ -427,7 +427,7 @@ export default function DriverDestinationActions({
       watchRef.current = null;
       lastRouteAtRef.current = 0;
     };
-  }, [drawMap, navigation, open, requestNavigation, token]);
+  }, [drawMap, open, requestNavigation, token]);
 
   const googleMapsUrl = navigation
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
