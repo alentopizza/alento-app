@@ -318,6 +318,35 @@ Reglas:
 - la impresión térmica queda excluida de esa compatibilidad porque tiene requisitos físicos distintos;
 - al modificar un componente heredado, preferir migrarlo gradualmente a las clases semánticas en lugar de seguir agregando tamaños arbitrarios.
 
+## Sincronización reactiva entre módulos
+
+Los cambios de datos compartidos no deben depender de F5.
+
+Desde 2026-09-22 existe `src/lib/liveDataEvents.ts` como señal ligera entre superficies abiertas:
+
+- `CustomEvent` actualiza componentes en la misma pestaña;
+- `localStorage/storage` propaga el cambio a otras pestañas o ventanas;
+- polling silencioso periódico funciona como respaldo para cambios originados en procesos que todavía no emiten el evento;
+- foco y regreso de visibilidad fuerzan una comprobación inmediata.
+
+Scopes vigentes:
+
+- `orders`;
+- `customers`;
+- `club`;
+- `account`.
+
+Ejemplo: eliminar, cancelar, editar o registrar un pago en Pedidos emite una señal para Pedidos/Clientes/Club/Perfil. Clientes vuelve a consultar su listado y, si hay una ficha abierta, vuelve a cargar ese cliente sin mostrar una pantalla de carga.
+
+`LivePageRefresh` acepta `scopes` y debe usarse en páginas server que dependan de datos mutables.
+
+Regla de implementación:
+
+- después de una mutación exitosa, actualizar primero la superficie local y luego llamar `emitLiveDataChange(...)`;
+- no usar recarga completa del navegador;
+- conservar polling moderado como respaldo, no como único mecanismo;
+- los refrescos silenciosos no deben provocar parpadeos de loading.
+
 ## Integraciones
 
 Chatwoot debe actuar como canal de atención, no como un segundo motor de pedidos.
