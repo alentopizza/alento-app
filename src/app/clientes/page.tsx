@@ -413,7 +413,38 @@ export default function CustomersPage() {
     setEmail(customer.email || "");
     setNotes(customer.notes || "");
     setMessage("");
-    setAddressEditor(null);
+
+    const savedAddress = customer.addresses?.[0] ?? null;
+    setAddressEditor(
+      savedAddress
+        ? {
+            id: savedAddress.id,
+            label: savedAddress.label ?? "Casa",
+            address: savedAddress.address,
+            neighborhood: savedAddress.neighborhood ?? "",
+            city: savedAddress.city ?? "Bogotá",
+            notes: savedAddress.notes ?? "",
+            isDefault: true,
+            formattedAddress:
+              savedAddress.formattedAddress ?? savedAddress.address,
+            placeId: savedAddress.placeId ?? "",
+            latitude: savedAddress.latitude ?? null,
+            longitude: savedAddress.longitude ?? null,
+          }
+        : {
+            id: null,
+            label: "Casa",
+            address: "",
+            neighborhood: "",
+            city: "Bogotá",
+            notes: "",
+            isDefault: true,
+            formattedAddress: "",
+            placeId: "",
+            latitude: null,
+            longitude: null,
+          },
+    );
   }
 
   function closeEdit() {
@@ -449,39 +480,6 @@ export default function CustomersPage() {
     }
   }
 
-  function openAddressEditor(item?: CustomerAddress) {
-    setAddressEditor(
-      item
-        ? {
-            id: item.id,
-            label: item.label ?? "",
-            address: item.address,
-            neighborhood: item.neighborhood ?? "",
-            city: item.city ?? "Bogotá",
-            notes: item.notes ?? "",
-            isDefault: item.isDefault,
-            formattedAddress: item.formattedAddress ?? item.address,
-            placeId: item.placeId ?? "",
-            latitude: item.latitude ?? null,
-            longitude: item.longitude ?? null,
-          }
-        : {
-            id: null,
-            label: "Casa",
-            address: "",
-            neighborhood: "",
-            city: "Bogotá",
-            notes: "",
-            isDefault: (editing?.addresses.length ?? 0) === 0,
-            formattedAddress: "",
-            placeId: "",
-            latitude: null,
-            longitude: null,
-          },
-    );
-    setMessage("");
-  }
-
   function mergeEditedCustomerAddresses(customer: {
     addresses: CustomerAddress[];
   }) {
@@ -494,8 +492,14 @@ export default function CustomersPage() {
   }
 
   async function saveCustomerAddress() {
-    if (!editing || !addressEditor?.address.trim()) {
-      setMessage("Escribe una dirección.");
+    if (
+      !editing ||
+      !addressEditor?.formattedAddress.trim() ||
+      !addressEditor.placeId.trim() ||
+      addressEditor.latitude == null ||
+      addressEditor.longitude == null
+    ) {
+      setMessage("Selecciona y valida la dirección con Google Maps.");
       return;
     }
 
@@ -503,51 +507,24 @@ export default function CustomersPage() {
     setMessage("");
 
     try {
-      const endpoint = addressEditor.id
-        ? `/api/customers/${editing.id}/addresses/${addressEditor.id}`
-        : `/api/customers/${editing.id}/addresses`;
-
-      const response = await fetch(endpoint, {
-        method: addressEditor.id ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(addressEditor),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible guardar la dirección.");
-      }
-
-      mergeEditedCustomerAddresses(data.customer);
-      setAddressEditor(null);
-      emitLiveDataChange(["customers", "account"]);
-      await loadCustomers(true);
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "No fue posible guardar la dirección.",
-      );
-    } finally {
-      setAddressBusy(false);
-    }
-  }
-
-  async function setDefaultCustomerAddress(item: CustomerAddress) {
-    if (!editing || item.isDefault) return;
-
-    setAddressBusy(true);
-    setMessage("");
-
-    try {
       const response = await fetch(
-        `/api/customers/${editing.id}/addresses/${item.id}`,
+        `/api/customers/${editing.id}/addresses`,
         {
-          method: "PATCH",
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isDefault: true }),
+          body: JSON.stringify({
+            ...addressEditor,
+            address: addressEditor.formattedAddress,
+            isDefault: true,
+          }),
         },
       );
       const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(data.error || "No fue posible cambiar la dirección principal.");
+        throw new Error(
+          data.error || "No fue posible guardar la dirección.",
+        );
       }
 
       mergeEditedCustomerAddresses(data.customer);
@@ -557,35 +534,7 @@ export default function CustomersPage() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "No fue posible cambiar la dirección principal.",
-      );
-    } finally {
-      setAddressBusy(false);
-    }
-  }
-
-  async function removeCustomerAddress(item: CustomerAddress) {
-    if (!editing) return;
-
-    setAddressBusy(true);
-    setMessage("");
-
-    try {
-      const response = await fetch(
-        `/api/customers/${editing.id}/addresses/${item.id}`,
-        { method: "DELETE" },
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible eliminar la dirección.");
-      }
-
-      mergeEditedCustomerAddresses(data.customer);
-      emitLiveDataChange(["customers", "account"]);
-      await loadCustomers(true);
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "No fue posible eliminar la dirección.",
+          : "No fue posible guardar la dirección.",
       );
     } finally {
       setAddressBusy(false);
@@ -1301,17 +1250,42 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  <div className="mt-2 space-y-2">
-                    {selected.addresses.length > 0 ? selected.addresses.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <b className="text-[11px] text-neutral-850">{item.address}</b>
-                          {item.isDefault && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase text-neutral-500">Principal</span>}
+                  <div className="mt-2">
+                    {selected.addresses[0] ? (
+                      <div className="rounded-xl border border-neutral-100 bg-[#fcfbf9] px-3 py-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <b className="text-[11px] text-neutral-850">
+                            {selected.addresses[0].formattedAddress ||
+                              selected.addresses[0].address}
+                          </b>
+                          {selected.addresses[0].placeId &&
+                          selected.addresses[0].latitude != null &&
+                          selected.addresses[0].longitude != null ? (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+                              Google
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                              Actualizar
+                            </span>
+                          )}
                         </div>
-                        {(item.neighborhood || item.city) && <p className="mt-1 text-[10px] text-neutral-500">{[item.neighborhood, item.city].filter(Boolean).join(" · ")}</p>}
+                        {(selected.addresses[0].neighborhood ||
+                          selected.addresses[0].city) && (
+                          <p className="mt-1 text-[10px] text-neutral-500">
+                            {[
+                              selected.addresses[0].neighborhood,
+                              selected.addresses[0].city,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        )}
                       </div>
-                    )) : (
-                      <div className="rounded-xl border border-dashed border-neutral-200 px-3 py-3 text-[11px] text-neutral-400">Sin dirección registrada.</div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-neutral-200 px-3 py-3 text-[11px] text-neutral-400">
+                        Sin dirección registrada.
+                      </div>
                     )}
                   </div>
 
@@ -1520,183 +1494,91 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
-                    <div className="flex items-center justify-between gap-3">
+                                    <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="alento-ui-label uppercase text-neutral-400">Direcciones</p>
+                        <p className="alento-ui-label uppercase text-neutral-400">
+                          Dirección
+                        </p>
                         <h3 className="mt-1 text-[16px] font-bold text-neutral-900">
-                          {editing.addresses.length} guardada{editing.addresses.length === 1 ? "" : "s"}
+                          Dirección de entrega
                         </h3>
+                        <p className="mt-1 text-[11px] leading-4 text-neutral-500">
+                          El cliente conserva una sola dirección y debe quedar validada con Google Maps.
+                        </p>
                       </div>
-                      {!addressEditor && (
-                        <button
-                          type="button"
-                          onClick={() => openAddressEditor()}
-                          className="rounded-xl bg-black px-3 py-2 text-[11px] font-bold text-white"
-                        >
-                          + Agregar
-                        </button>
+                      {addressEditor?.placeId &&
+                      addressEditor.latitude != null &&
+                      addressEditor.longitude != null ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                          Validada
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-700">
+                          Actualizar
+                        </span>
                       )}
                     </div>
 
-                    {!addressEditor && (
-                      <div className="mt-3 space-y-2">
-                        {editing.addresses.length ? (
-                          editing.addresses.map((item) => (
-                            <div
-                              key={item.id}
-                              className={
-                                "rounded-2xl border p-3 " +
-                                (item.isDefault
-                                  ? "border-emerald-200 bg-emerald-50/60"
-                                  : "border-neutral-200 bg-white")
-                              }
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <b className="text-[13px] font-bold text-neutral-900">
-                                      {item.label || "Dirección"}
-                                    </b>
-                                    {item.isDefault && (
-                                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
-                                        Principal
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="mt-1 text-[12px] leading-5 text-neutral-700">
-                                    {item.address}
-                                  </p>
-                                  {(item.neighborhood || item.city) && (
-                                    <p className="mt-0.5 text-[10px] text-neutral-400">
-                                      {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => openAddressEditor(item)}
-                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                  >
-                                    Editar
-                                  </button>
-                                  {!item.isDefault && (
-                                    <button
-                                      type="button"
-                                      disabled={addressBusy}
-                                      onClick={() => void setDefaultCustomerAddress(item)}
-                                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                    >
-                                      Principal
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    disabled={addressBusy}
-                                    onClick={() => void removeCustomerAddress(item)}
-                                    className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openAddressEditor()}
-                            className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
-                          >
-                            <b className="block text-[13px] text-amber-900">
-                              Sin dirección registrada
-                            </b>
-                            <span className="mt-1 block text-[11px] text-amber-700">
-                              Agrega una dirección para futuros domicilios.
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
                     {addressEditor && (
                       <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <input
-                            value={addressEditor.label}
-                            onChange={(event) =>
-                              setAddressEditor({ ...addressEditor, label: event.target.value })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Etiqueta: Casa, Trabajo..."
-                          />
-                          <input
-                            value={addressEditor.neighborhood}
-                            onChange={(event) =>
-                              setAddressEditor({ ...addressEditor, neighborhood: event.target.value })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Barrio (opcional)"
-                          />
-                        </div>
-                      <div className="mt-2">
                         <GoogleCustomerAddressPicker
-                          currentAddress={addressEditor.id ? addressEditor.address : undefined}
+                          currentAddress={
+                            addressEditor.placeId &&
+                            addressEditor.latitude != null &&
+                            addressEditor.longitude != null
+                              ? addressEditor.formattedAddress ||
+                                addressEditor.address
+                              : undefined
+                          }
                           onSelect={(selection) =>
                             setAddressEditor((current) =>
                               current
                                 ? {
                                     ...current,
                                     address: selection.formattedAddress,
-                                    formattedAddress: selection.formattedAddress,
+                                    formattedAddress:
+                                      selection.formattedAddress,
                                     placeId: selection.placeId,
                                     latitude: selection.latitude,
                                     longitude: selection.longitude,
                                     neighborhood:
-                                      selection.neighborhood || current.neighborhood,
+                                      selection.neighborhood ||
+                                      current.neighborhood,
                                     city: selection.city || current.city,
+                                    isDefault: true,
                                   }
                                 : current,
                             )
                           }
                         />
-                      </div>
 
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        <input
-                          value={addressEditor.neighborhood}
-                          onChange={(event) =>
-                            setAddressEditor({
-                              ...addressEditor,
-                              neighborhood: event.target.value,
-                            })
-                          }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Barrio (si deseas ajustarlo)"
-                        />
-                        <input
-                          value={addressEditor.notes}
-                          onChange={(event) =>
-                            setAddressEditor({
-                              ...addressEditor,
-                              notes: event.target.value,
-                            })
-                          }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Indicaciones (opcional)"
-                        />
-                      </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <input
+                            value={addressEditor.neighborhood}
+                            onChange={(event) =>
+                              setAddressEditor({
+                                ...addressEditor,
+                                neighborhood: event.target.value,
+                              })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Barrio (opcional)"
+                          />
+                          <input
+                            value={addressEditor.notes}
+                            onChange={(event) =>
+                              setAddressEditor({
+                                ...addressEditor,
+                                notes: event.target.value,
+                              })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Indicaciones (opcional)"
+                          />
+                        </div>
 
-                        <div className="mt-3 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setAddressEditor(null)}
-                            className="rounded-xl border px-3 py-2 text-[11px] font-semibold"
-                          >
-                            Cancelar
-                          </button>
+                        <div className="mt-3 flex justify-end">
                           <button
                             type="button"
                             disabled={addressBusy}
