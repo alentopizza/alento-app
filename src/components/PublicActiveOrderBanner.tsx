@@ -306,58 +306,7 @@ export default function PublicActiveOrderBanner({
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes alentoProgressRunner {
-          0% {
-            transform: scaleX(0.08);
-            opacity: 0.45;
-          }
-          68% {
-            transform: scaleX(0.82);
-            opacity: 1;
-          }
-          86% {
-            transform: scaleX(0.96);
-            opacity: 1;
-          }
-          100% {
-            transform: scaleX(0.96);
-            opacity: 0;
-          }
-        }
 
-        @keyframes alentoProgressPulse {
-          0%,
-          100% {
-            transform: scale(0.88);
-            opacity: 0.25;
-          }
-          50% {
-            transform: scale(1.2);
-            opacity: 0.8;
-          }
-        }
-
-        :global(.alento-progress-runner) {
-          animation: alentoProgressRunner 2.4s ease-in-out infinite;
-        }
-
-        :global(.alento-progress-pulse) {
-          animation: alentoProgressPulse 1.8s ease-in-out infinite;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          :global(.alento-progress-runner),
-          :global(.alento-progress-pulse) {
-            animation: none;
-          }
-
-          :global(.alento-progress-runner) {
-            transform: scaleX(0.55);
-            opacity: 0.85;
-          }
-        }
-      `}</style>
     </section>
   );
 }
