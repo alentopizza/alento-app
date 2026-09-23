@@ -70,25 +70,15 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       <div className="mx-auto max-w-[640px] space-y-4">
         <DriverOrderStatus status={order.status} />
 
-        <section className="overflow-hidden rounded-[24px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
-          <div className="relative p-5">
-            <div className="flex items-start justify-between gap-4 pr-12">
-              <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[.12em] text-[#e21a22]">
-                  Destino
-                </p>
-                <h2 className="mt-2 text-lg font-black">
-                  {order.customer?.name ?? "Cliente"}
-                </h2>
-                <p className="mt-2 text-sm font-semibold leading-6 text-neutral-800">
-                  {order.address?.address ?? "Dirección no disponible"}
-                </p>
-                {order.address?.neighborhood && (
-                  <p className="text-xs text-neutral-500">
-                    {order.address.neighborhood}
-                  </p>
-                )}
-              </div>
+        <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
+          <div className="relative border-b border-neutral-200 px-4 py-4 sm:px-5">
+            <div className="pr-14">
+              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[#e21a22]">
+                Destino
+              </p>
+              <h2 className="mt-1 text-base font-black">
+                {order.customer?.name ?? "Cliente"}
+              </h2>
             </div>
 
             {phone && (
@@ -96,12 +86,12 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 href={`tel:${phone}`}
                 aria-label={`Llamar a ${order.customer?.name ?? "cliente"}`}
                 title={`Llamar · ${phone}`}
-                className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#111] text-white shadow-[0_8px_18px_rgba(0,0,0,.18)] transition hover:bg-black active:scale-[.97]"
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#111] text-white shadow-[0_7px_16px_rgba(0,0,0,.18)] transition hover:bg-black active:scale-[.97] sm:right-5"
               >
                 <svg
                   viewBox="0 0 24 24"
                   aria-hidden="true"
-                  className="h-[18px] w-[18px]"
+                  className="h-[17px] w-[17px]"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.9"
@@ -113,49 +103,65 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               </a>
             )}
 
+            <div className="mt-3 rounded-xl bg-[#111] px-3 py-3 text-white">
+              <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
+                Dirección de entrega
+              </span>
+              <strong className="mt-1 block text-[12px] leading-5 text-white">
+                {order.address?.address ?? "Dirección no disponible"}
+              </strong>
+              {order.address?.neighborhood && (
+                <span className="mt-0.5 block text-[9px] text-white/45">
+                  {order.address.neighborhood}
+                </span>
+              )}
+            </div>
+
             {order.address?.notes && (
-              <p className="mt-3 rounded-xl border border-[#e21a22]/15 bg-[#e21a22]/[0.05] px-3 py-2 text-xs font-semibold text-neutral-700">
+              <p className="mt-2 rounded-lg border border-[#e21a22]/15 bg-[#e21a22]/[0.06] px-2.5 py-2 text-[10px] font-semibold leading-4 text-neutral-700">
                 {order.address.notes}
               </p>
             )}
           </div>
 
-          <div className="border-t border-neutral-200 px-5 py-4">
-            <span className="text-[9px] font-black uppercase tracking-[.1em] text-[#e21a22]">
+          <div className="border-t border-neutral-900 bg-[#111] px-4 py-4 text-white sm:px-5">
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-[#ff454b]">
               Cobro del pedido
-            </span>
+            </p>
 
-            <div className="mt-3 space-y-2 text-[11px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-neutral-500">Subtotal</span>
-                <b>{money(Number(order.subtotal))}</b>
-              </div>
+            <div className="mt-3 flex items-center justify-between gap-4 text-[11px]">
+              <span className="text-white/48">Subtotal</span>
+              <b className="text-white">{money(Number(order.subtotal))}</b>
+            </div>
 
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-neutral-500">Domicilio</span>
-                <b className="text-[#e21a22]">
-                  {money(Number(order.deliveryFee))}
+            <div className="mt-2 flex items-center justify-between gap-4 text-[11px]">
+              <span className="text-white/48">Domicilio</span>
+              <b className="text-[#ff454b]">
+                {money(Number(order.deliveryFee))}
+              </b>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-[11px]">
+              <span className="text-white/48">Medio de pago</span>
+              <div className="flex items-center gap-2">
+                <b className="text-white">
+                  {order.payments[0]?.method ?? "Sin información"}
                 </b>
+                {order.payments[0]?.status && (
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[.06em] text-white/55">
+                    {order.payments[0].status}
+                  </span>
+                )}
               </div>
+            </div>
 
-              <div className="flex items-center justify-between gap-3 border-t border-neutral-200 pt-2">
-                <span className="text-neutral-500">Medio de pago</span>
-                <div className="flex items-center gap-2">
-                  <b>{order.payments[0]?.method ?? "Sin información"}</b>
-                  {order.payments[0]?.status && (
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-[.06em] text-neutral-500">
-                      {order.payments[0].status}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-end justify-between gap-3 border-t border-neutral-200 pt-2">
-                <span className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-500">
-                  Total
-                </span>
-                <b className="text-xl">{money(Number(order.total))}</b>
-              </div>
+            <div className="mt-3 flex items-end justify-between gap-4 border-t border-white/10 pt-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.08em] text-white/55">
+                Total
+              </span>
+              <strong className="text-xl font-black tracking-[-0.03em] text-white">
+                {money(Number(order.total))}
+              </strong>
             </div>
           </div>
         </section>
