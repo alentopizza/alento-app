@@ -388,7 +388,17 @@ Referencia: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
 ### Pedidos cancelados en la experiencia del cliente
 
-Los pedidos `CANCELED` permanecen visibles en `/cuenta` dentro de Pedidos recientes para conservar trazabilidad.
+Los pedidos `CANCELED` permanecen visibles tanto en `/cuenta` como en la ficha interna de `/clientes` para conservar trazabilidad y comportamiento histórico.
+
+En la ficha interna del cliente:
+
+- el historial incluye compras válidas y cancelaciones;
+- los cancelados se resaltan visualmente;
+- existe una métrica separada de cantidad y porcentaje de cancelaciones;
+- esa métrica sirve para detectar clientes con patrones repetidos de cancelación;
+- ticket promedio, total comprado, frecuencia y estado comercial se calculan solo con pedidos válidos, no cancelados.
+
+En la experiencia pública del cliente:
 
 Reglas vigentes:
 
