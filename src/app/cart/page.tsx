@@ -293,6 +293,7 @@ export default function CartPage() {
         <PublicCheckoutCustomer
           cart={cart}
           selection={checkoutSelection}
+          fullPage
           onBack={() => setCheckoutStep("delivery")}
           onComplete={(order) => {
             setCreatedOrder(order);
