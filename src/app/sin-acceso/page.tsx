@@ -1,9 +1,34 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AccessDeniedPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetch("/api/auth/staff/me", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((result) => {
+        if (cancelled || !result?.authenticated) return;
+
+        const roles = Array.isArray(result.user?.roles)
+          ? result.user.roles
+          : [];
+
+        if (roles.includes("DRIVER") || roles.includes("DISPATCH")) {
+          router.replace("/repartidor");
+          router.refresh();
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function logout() {
     await fetch("/api/auth/staff/logout", { method: "POST" });
