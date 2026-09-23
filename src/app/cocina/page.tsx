@@ -245,7 +245,7 @@ function KitchenItem({
                   key={`combo-pizza-${index}`}
                   className="rounded-xl border border-neutral-200 bg-white/80 p-2.5"
                 >
-                  <p className="text-[9px] font-black uppercase tracking-[0.07em] text-neutral-400">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.07em] text-neutral-400">
                     {comboPresentation.pizzas.length > 1
                       ? `Pizza ${index + 1}`
                       : "Pizza"}
@@ -271,7 +271,7 @@ function KitchenItem({
                   key={`${group.label}-${index}`}
                   className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/55 px-2.5 py-2"
                 >
-                  <span className="text-[9px] font-black uppercase tracking-[0.06em] text-amber-700/65">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-amber-700/65">
                     {group.label}
                   </span>
                   {group.values.map((value, valueIndex) => (
@@ -336,7 +336,7 @@ function KitchenItem({
             <div className="mt-2">
               <div className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-[0_2px_8px_rgba(180,120,0,.06)]">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-black text-white">!</span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-amber-500 text-[11px] font-bold text-white">!</span>
                   <b className="min-w-0 text-[12px] uppercase leading-4 tracking-[0.02em] text-amber-950">{item.notes}</b>
                 </div>
               </div>
@@ -409,12 +409,12 @@ export default function KitchenPage() {
         <section className="rounded-[28px] bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.24),transparent_28%),linear-gradient(135deg,#09090a,#181516)] px-6 py-5 text-white shadow-[0_20px_55px_rgba(20,16,14,.12)] md:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Producción</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Producción</p>
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Cocina</h1>
               <p className="mt-0.5 text-sm text-white/65">Lo que entra, lo que se prepara y lo que ya puede salir.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Cocina</span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Cocina</span>
               <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
             </div>
           </div>
@@ -442,8 +442,8 @@ export default function KitchenPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
-                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
-                        <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.02em] text-amber-700">
+                        <span className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
+                        <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-amber-700">
                           {statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
                         </span>
                       </div>
