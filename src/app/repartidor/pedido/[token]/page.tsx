@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import DriverOrderActions from "@/components/DriverOrderActions";
@@ -69,6 +69,10 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
   });
 
   if (!order) notFound();
+
+  if (order.status === "DELIVERED" || order.status === "COMPLETED") {
+    redirect("/repartidor");
+  }
 
   const phone = order.customer?.phone
     ? `${order.customer.countryCode || "+57"}${order.customer.phone}`
