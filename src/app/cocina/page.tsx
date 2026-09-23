@@ -61,6 +61,91 @@ function kitchenItemsFor(order: KitchenOrder) {
     .sort((a, b) => kitchenPriority(a) - kitchenPriority(b) || a.id - b.id);
 }
 
+type KitchenComboPizza = {
+  size: string;
+  flavor: string;
+};
+
+type KitchenComboGroup = {
+  label: string;
+  values: string[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function comboKitchenPresentation(configuration: unknown): {
+  pizzas: KitchenComboPizza[];
+  groups: KitchenComboGroup[];
+} | null {
+  if (!isRecord(configuration) || stringValue(configuration.kind).toUpperCase() !== "COMBO") {
+    return null;
+  }
+
+  const pizzas: KitchenComboPizza[] = [];
+  if (Array.isArray(configuration.pizzas)) {
+    configuration.pizzas.forEach((pizza) => {
+      if (!isRecord(pizza)) return;
+
+      const size = isRecord(pizza.size)
+        ? [
+            stringValue(pizza.size.name),
+            Number(pizza.size.diameterCm) > 0
+              ? `${Number(pizza.size.diameterCm)} cm`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : "";
+
+      const flavor = isRecord(pizza.flavor)
+        ? stringValue(pizza.flavor.name)
+        : "";
+
+      if (size || flavor) pizzas.push({ size, flavor });
+    });
+  }
+
+  const groups: KitchenComboGroup[] = [];
+  if (Array.isArray(configuration.groups)) {
+    configuration.groups.forEach((group) => {
+      if (!isRecord(group)) return;
+
+      const label = stringValue(group.name) || "Acompañante";
+      const kind = stringValue(group.kind).toLocaleLowerCase("es");
+      const normalizedLabel = label.toLocaleLowerCase("es");
+
+      if (
+        kind.includes("bebida") ||
+        kind.includes("beverage") ||
+        normalizedLabel.includes("bebida") ||
+        normalizedLabel.includes("gaseosa")
+      ) {
+        return;
+      }
+
+      const values = Array.isArray(group.selections)
+        ? group.selections.flatMap((selection) => {
+            if (!isRecord(selection)) return [];
+            const name = stringValue(selection.name);
+            if (!name) return [];
+            const quantity = Math.max(1, Number(selection.quantity) || 1);
+            return [quantity > 1 ? `${quantity} × ${name}` : name];
+          })
+        : [];
+
+      if (values.length) groups.push({ label, values });
+    });
+  }
+
+  return pizzas.length || groups.length ? { pizzas, groups } : null;
+}
+
 function kitchenSpecChipClass(base: string) {
   return `inline-flex min-h-7 items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] shadow-[0_2px_8px_rgba(28,23,20,.04)] ${base}`;
 }
@@ -96,10 +181,17 @@ function KitchenItem({
   busy: boolean;
   onChangePrepared: (value: number) => void;
 }) {
-  const details = presentOrderItemConfiguration(item.configuration).filter((detail) => {
-    const label = detail.label.trim().toLowerCase();
-    return !label.includes("bebida") && !label.includes("gaseosa");
-  });
+  const comboPresentation =
+    item.product?.type === "COMBO"
+      ? comboKitchenPresentation(item.configuration)
+      : null;
+
+  const details = comboPresentation
+    ? []
+    : presentOrderItemConfiguration(item.configuration).filter((detail) => {
+        const label = detail.label.trim().toLowerCase();
+        return !label.includes("bebida") && !label.includes("gaseosa");
+      });
   const flavorDetails = details.filter((detail) => detail.label.trim().toLowerCase().startsWith("sabor"));
   const extraDetails = details.filter((detail) => detail.label.trim().toLowerCase() === "extra");
   const sizeDetail = details.find((detail) => detail.label.trim().toLowerCase() === "tamaño");
@@ -145,6 +237,55 @@ function KitchenItem({
               </div>
             )}
           </div>
+
+          {comboPresentation && (
+            <div className="mt-2 space-y-2">
+              {comboPresentation.pizzas.map((pizza, index) => (
+                <div
+                  key={`combo-pizza-${index}`}
+                  className="rounded-xl border border-neutral-200 bg-white/80 p-2.5"
+                >
+                  <p className="text-[9px] font-black uppercase tracking-[0.07em] text-neutral-400">
+                    {comboPresentation.pizzas.length > 1
+                      ? `Pizza ${index + 1}`
+                      : "Pizza"}
+                  </p>
+
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    {pizza.size && (
+                      <span className={sizeChipClass(pizza.size)}>
+                        {pizza.size}
+                      </span>
+                    )}
+                    {pizza.flavor && (
+                      <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
+                        {pizza.flavor}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {comboPresentation.groups.map((group, index) => (
+                <div
+                  key={`${group.label}-${index}`}
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/55 px-2.5 py-2"
+                >
+                  <span className="text-[9px] font-black uppercase tracking-[0.06em] text-amber-700/65">
+                    {group.label}
+                  </span>
+                  {group.values.map((value, valueIndex) => (
+                    <span
+                      key={`${value}-${valueIndex}`}
+                      className="inline-flex min-h-6 items-center rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.02em] text-amber-900"
+                    >
+                      {value}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
 
           {(sizeDetail || crustDetail) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
