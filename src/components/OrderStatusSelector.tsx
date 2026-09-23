@@ -85,11 +85,7 @@ export default function OrderStatusSelector({
   const nextBlocked =
     nextStatus === "COMPLETED" && hasPendingPayment;
 
-  const futureStatuses = statuses.filter((status, index) => {
-    if (index <= currentIndex + 1) return false;
-    if (status === "COMPLETED" && hasPendingPayment) return false;
-    return true;
-  });
+  const remainingStatuses = statuses.filter((_, index) => index > currentIndex);
 
   return (
     <div
@@ -97,7 +93,7 @@ export default function OrderStatusSelector({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[94dvh] w-full max-w-[520px] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.30)]"
+        className="flex max-h-[94dvh] w-full max-w-[720px] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_28px_90px_rgba(0,0,0,.30)]"
         onClick={(event) => event.stopPropagation()}
       >
         <header className="shrink-0 bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.22),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-4 text-white">
@@ -144,7 +140,7 @@ export default function OrderStatusSelector({
 
             <div className="mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div
-                className="relative grid min-w-[440px] gap-0"
+                className="relative grid min-w-[560px] gap-0 sm:min-w-0"
                 style={{
                   gridTemplateColumns: `repeat(${statuses.length}, minmax(0, 1fr))`,
                 }}
@@ -325,7 +321,7 @@ export default function OrderStatusSelector({
               </div>
             )}
 
-            {futureStatuses.length > 0 && (
+            {remainingStatuses.length > 0 && (
               <>
                 <button
                   type="button"
@@ -338,18 +334,41 @@ export default function OrderStatusSelector({
 
                 {showMoreStatuses && (
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {futureStatuses.map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => onSelect(status)}
-                        className={`flex min-h-11 items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold transition ${statusTone(status)} hover:-translate-y-0.5 disabled:opacity-50`}
-                      >
-                        <span>{statusLabel(status)}</span>
-                        <span className="opacity-35">›</span>
-                      </button>
-                    ))}
+                    {remainingStatuses.map((status, index) => {
+                      const paymentBlocked =
+                        status === "COMPLETED" && hasPendingPayment;
+                      const isNext = index === 0;
+
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          disabled={busy || paymentBlocked}
+                          onClick={() => onSelect(status)}
+                          className={
+                            "flex min-h-12 items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold transition disabled:cursor-not-allowed " +
+                            (paymentBlocked
+                              ? "border-neutral-200 bg-neutral-100 text-neutral-400"
+                              : `${statusTone(status)} hover:-translate-y-0.5 disabled:opacity-50`)
+                          }
+                        >
+                          <span>
+                            <span className="block">{statusLabel(status)}</span>
+                            {isNext && (
+                              <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.06em] opacity-50">
+                                Siguiente
+                              </span>
+                            )}
+                            {paymentBlocked && (
+                              <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.06em] text-amber-600">
+                                Requiere pago total
+                              </span>
+                            )}
+                          </span>
+                          {!paymentBlocked && <span className="opacity-35">›</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </>
