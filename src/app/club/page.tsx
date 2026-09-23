@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
+import LivePageRefresh from "@/components/LivePageRefresh";
 import { getCustomerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -23,6 +24,7 @@ function GuestClub({
 }) {
   return (
     <>
+      <LivePageRefresh intervalMs={8000} scopes={["club", "orders", "account"]} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-5">
       <div className="mx-auto max-w-[860px] space-y-4">
@@ -188,6 +190,7 @@ export default async function ClubPage() {
 
   return (
     <>
+      <LivePageRefresh intervalMs={8000} scopes={["club", "orders", "account"]} />
       <PublicBrandHeader />
       <main className="min-h-screen bg-[#090909] px-4 pb-28 pt-5 text-white sm:px-6 md:pb-28 md:pt-5">
       <div className="mx-auto max-w-[860px] space-y-4">
