@@ -786,7 +786,7 @@ export default function StructuredPosPageV2() {
 
       {showCustomerModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4">
-          <div className="alento-card flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px]">
+          <div className="alento-card flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-[30px] bg-white">
             <div className="flex items-start justify-between border-b px-6 py-5">
               <div>
                 <p className="alento-ui-label uppercase text-neutral-400">Cliente</p>
@@ -804,235 +804,297 @@ export default function StructuredPosPageV2() {
             </div>
 
             <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
-              <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  className="alento-input w-full rounded-2xl px-4 py-3"
-                  placeholder="Nombre *"
-                />
-
-                <div className="grid grid-cols-[100px_1fr] gap-3">
-                  <select
-                    value={countryCode}
-                    onChange={(event) => setCountryCode(event.target.value)}
-                    className="alento-input rounded-2xl px-3"
-                  >
-                    <option>+57</option>
-                    <option>+1</option>
-                  </select>
-                  <input
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    className="alento-input rounded-2xl px-4 py-3"
-                    placeholder="Teléfono *"
-                  />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="alento-input w-full rounded-2xl px-4 py-3"
-                    placeholder="Correo (opcional)"
-                  />
-                  <input
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    className="alento-input w-full rounded-2xl px-4 py-3"
-                    placeholder="Nota del cliente (opcional)"
-                  />
-                </div>
-
-                <section className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="alento-ui-label uppercase text-neutral-400">Direcciones</p>
-                      <h3 className="mt-1 text-[16px] font-bold text-neutral-900">
-                        {editingCustomer
-                          ? `${editingCustomer.addresses.length} guardada${editingCustomer.addresses.length === 1 ? "" : "s"}`
-                          : "Primera dirección"}
+              <div className="alento-scroll min-h-0 flex-1 overflow-y-auto bg-[#f7f6f3] p-4 sm:p-5 lg:p-6">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)] lg:gap-5">
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
+                    <div className="mb-4 border-b border-neutral-100 pb-3">
+                      <p className="alento-ui-label uppercase text-neutral-400">
+                        Información personal
+                      </p>
+                      <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">
+                        Datos del cliente
                       </h3>
+                      <p className="mt-1 text-[11px] leading-4 text-neutral-400">
+                        Información básica para identificarlo y contactarlo.
+                      </p>
                     </div>
 
-                    {editingCustomer && !addressEditor && (
-                      <button
-                        type="button"
-                        onClick={() => openAddressEditor()}
-                        className="rounded-xl bg-black px-3 py-2 text-[11px] font-bold text-white"
-                      >
-                        + Agregar
-                      </button>
-                    )}
-                  </div>
+                    <div className="space-y-3">
+                      <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                          Nombre
+                        </span>
+                        <input
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          className="alento-input h-12 w-full rounded-2xl px-4"
+                          placeholder="Nombre del cliente"
+                        />
+                      </label>
 
-                  {editingCustomer && !addressEditor && (
-                    <div className="mt-3 space-y-2">
-                      {editingCustomer.addresses.length ? (
-                        editingCustomer.addresses.map((item) => (
-                          <div
-                            key={item.id}
-                            className={
-                              "rounded-2xl border p-3 " +
-                              (item.isDefault
-                                ? "border-emerald-200 bg-emerald-50/60"
-                                : "border-neutral-200 bg-white")
-                            }
+                      <div className="grid grid-cols-[110px_1fr] gap-3">
+                        <label className="block">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Indicativo
+                          </span>
+                          <select
+                            value={countryCode}
+                            onChange={(event) => setCountryCode(event.target.value)}
+                            className="alento-input h-12 w-full rounded-2xl px-3"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <b className="text-[13px] font-bold text-neutral-900">
-                                    {item.label || "Dirección"}
-                                  </b>
-                                  {item.isDefault && (
-                                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
-                                      Principal
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-1 text-[12px] leading-5 text-neutral-700">
-                                  {item.address}
-                                </p>
-                                {(item.neighborhood || item.city) && (
-                                  <p className="mt-0.5 text-[10px] text-neutral-400">
-                                    {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
-                                  </p>
-                                )}
-                              </div>
+                            <option>+57</option>
+                            <option>+1</option>
+                          </select>
+                        </label>
 
-                              <div className="flex shrink-0 gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => openAddressEditor(item)}
-                                  className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                >
-                                  Editar
-                                </button>
-                                {!item.isDefault && (
-                                  <button
-                                    type="button"
-                                    disabled={addressBusy}
-                                    onClick={() => void makeDefaultAddress(item)}
-                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
-                                  >
-                                    Principal
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  disabled={addressBusy}
-                                  onClick={() => void deleteAddress(item)}
-                                  className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
-                                >
-                                  Eliminar
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
+                        <label className="block">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Teléfono
+                          </span>
+                          <input
+                            value={phone}
+                            onChange={(event) => setPhone(event.target.value)}
+                            className="alento-input h-12 w-full rounded-2xl px-4"
+                            placeholder="Número de teléfono"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                          Correo <span className="font-medium text-neutral-400">(opcional)</span>
+                        </span>
+                        <input
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          className="alento-input h-12 w-full rounded-2xl px-4"
+                          placeholder="correo@ejemplo.com"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                          Nota del cliente <span className="font-medium text-neutral-400">(opcional)</span>
+                        </span>
+                        <textarea
+                          value={notes}
+                          onChange={(event) => setNotes(event.target.value)}
+                          className="alento-input min-h-[96px] w-full resize-none rounded-2xl px-4 py-3"
+                          placeholder="Información útil para futuras compras"
+                        />
+                      </label>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
+                    <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
+                      <div>
+                        <p className="alento-ui-label uppercase text-neutral-400">
+                          Direcciones
+                        </p>
+                        <h3 className="mt-1 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">
+                          Direcciones de entrega
+                        </h3>
+                        <p className="mt-1 text-[11px] leading-4 text-neutral-400">
+                          Guarda varias ubicaciones y define una como principal.
+                        </p>
+                      </div>
+
+                      {editingCustomer && !addressEditor && (
                         <button
                           type="button"
                           onClick={() => openAddressEditor()}
-                          className="mt-2 w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
+                          className="shrink-0 rounded-xl bg-black px-3.5 py-2.5 text-[11px] font-bold text-white"
                         >
-                          <b className="block text-[13px] text-amber-900">
-                            Sin dirección registrada
-                          </b>
-                          <span className="mt-1 block text-[11px] text-amber-700">
-                            Agrega una para pedidos a domicilio.
-                          </span>
+                          + Agregar
                         </button>
                       )}
                     </div>
-                  )}
 
-                  {(!editingCustomer || addressEditor) && addressEditor && (
-                    <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
-                      <input
-                        value={addressEditor.label}
-                        onChange={(event) =>
-                          setAddressEditor({ ...addressEditor, label: event.target.value })
-                        }
-                        className="alento-input w-full rounded-xl px-3 py-2.5"
-                        placeholder="Etiqueta: Casa, Trabajo..."
-                      />
-                      <div className="mt-2">
-                        <GoogleCustomerAddressPicker
-                          currentAddress={addressEditor.id ? addressEditor.address : undefined}
-                          onSelect={(selection) =>
-                            setAddressEditor((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    address: selection.formattedAddress,
-                                    neighborhood:
-                                      selection.neighborhood || current.neighborhood,
-                                    city: selection.city || current.city,
-                                  }
-                                : current,
-                            )
-                          }
-                        />
-                      </div>
+                    {editingCustomer && !addressEditor && (
+                      <div className="mt-4 space-y-2.5">
+                        {editingCustomer.addresses.length ? (
+                          editingCustomer.addresses.map((item) => (
+                            <div
+                              key={item.id}
+                              className={
+                                "rounded-2xl border p-3.5 " +
+                                (item.isDefault
+                                  ? "border-emerald-200 bg-emerald-50/60"
+                                  : "border-neutral-200 bg-[#faf9f7]")
+                              }
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <b className="text-[13px] font-bold text-neutral-900">
+                                      {item.label || "Dirección"}
+                                    </b>
+                                    {item.isDefault && (
+                                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                                        Principal
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-[12px] leading-5 text-neutral-700">
+                                    {item.address}
+                                  </p>
+                                  {(item.neighborhood || item.city) && (
+                                    <p className="mt-0.5 text-[10px] text-neutral-400">
+                                      {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
+                                    </p>
+                                  )}
+                                </div>
 
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        <input
-                          value={addressEditor.neighborhood}
-                          onChange={(event) =>
-                            setAddressEditor({
-                              ...addressEditor,
-                              neighborhood: event.target.value,
-                            })
-                          }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Barrio (si deseas ajustarlo)"
-                        />
-                        <input
-                          value={addressEditor.notes}
-                          onChange={(event) =>
-                            setAddressEditor({
-                              ...addressEditor,
-                              notes: event.target.value,
-                            })
-                          }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Indicaciones (opcional)"
-                        />
-                      </div>
-
-                      {editingCustomer && (
-                        <div className="mt-3 flex justify-end gap-2">
+                                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openAddressEditor(item)}
+                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                  >
+                                    Editar
+                                  </button>
+                                  {!item.isDefault && (
+                                    <button
+                                      type="button"
+                                      disabled={addressBusy}
+                                      onClick={() => void makeDefaultAddress(item)}
+                                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                    >
+                                      Principal
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={addressBusy}
+                                    onClick={() => void deleteAddress(item)}
+                                    className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => setAddressEditor(null)}
-                            className="rounded-xl border px-3 py-2 text-[11px] font-semibold"
+                            onClick={() => openAddressEditor()}
+                            className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
                           >
-                            Cancelar
+                            <b className="block text-[13px] text-amber-900">
+                              Sin dirección registrada
+                            </b>
+                            <span className="mt-1 block text-[11px] text-amber-700">
+                              Agrega una para pedidos a domicilio.
+                            </span>
                           </button>
-                          <button
-                            type="button"
-                            disabled={addressBusy}
-                            onClick={() => void saveAddress()}
-                            className="rounded-xl bg-black px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
-                          >
-                            {addressBusy ? "Guardando..." : "Guardar dirección"}
-                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {(!editingCustomer || addressEditor) && addressEditor && (
+                      <div className="mt-4 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5 sm:p-4">
+                        <label className="block">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Etiqueta
+                          </span>
+                          <input
+                            value={addressEditor.label}
+                            onChange={(event) =>
+                              setAddressEditor({ ...addressEditor, label: event.target.value })
+                            }
+                            className="alento-input h-11 w-full rounded-xl px-3"
+                            placeholder="Casa, Trabajo..."
+                          />
+                        </label>
+
+                        <div className="mt-3">
+                          <GoogleCustomerAddressPicker
+                            currentAddress={addressEditor.id ? addressEditor.address : undefined}
+                            onSelect={(selection) =>
+                              setAddressEditor((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      address: selection.formattedAddress,
+                                      neighborhood:
+                                        selection.neighborhood || current.neighborhood,
+                                      city: selection.city || current.city,
+                                    }
+                                  : current,
+                              )
+                            }
+                          />
                         </div>
-                      )}
-                    </div>
-                  )}
-                </section>
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Barrio
+                            </span>
+                            <input
+                              value={addressEditor.neighborhood}
+                              onChange={(event) =>
+                                setAddressEditor({
+                                  ...addressEditor,
+                                  neighborhood: event.target.value,
+                                })
+                              }
+                              className="alento-input h-11 w-full rounded-xl px-3"
+                              placeholder="Opcional"
+                            />
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Indicaciones
+                            </span>
+                            <input
+                              value={addressEditor.notes}
+                              onChange={(event) =>
+                                setAddressEditor({
+                                  ...addressEditor,
+                                  notes: event.target.value,
+                                })
+                              }
+                              className="alento-input h-11 w-full rounded-xl px-3"
+                              placeholder="Torre, apto, portería..."
+                            />
+                          </label>
+                        </div>
+
+                        {editingCustomer && (
+                          <div className="mt-4 flex justify-end gap-2 border-t border-neutral-200 pt-3">
+                            <button
+                              type="button"
+                              onClick={() => setAddressEditor(null)}
+                              className="rounded-xl border bg-white px-3.5 py-2.5 text-[11px] font-semibold"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={addressBusy}
+                              onClick={() => void saveAddress()}
+                              className="rounded-xl bg-black px-4 py-2.5 text-[11px] font-bold text-white disabled:opacity-50"
+                            >
+                              {addressBusy ? "Guardando..." : "Guardar dirección"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+                </div>
 
                 {customerError && (
-                  <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                  <p className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
                     {customerError}
                   </p>
                 )}
               </div>
-
-              <div className="flex justify-end gap-2 border-t bg-white p-4">
+              <div className="flex justify-end gap-2 border-t bg-white px-5 py-4 sm:px-6">
                 <button
                   type="button"
                   onClick={() => setShowCustomerModal(false)}
