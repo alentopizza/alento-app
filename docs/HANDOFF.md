@@ -531,6 +531,10 @@ Efectivo:
 - disponibilidad del repartidor: `User.driverAvailable` + última ubicación general en `User.driverLatitude / driverLongitude / driverLocationAccuracy / driverLocationUpdatedAt`;
 - **Activo** habilita GPS general y autoasignación; **Inactivo** apaga el watch local y limpia la ubicación general del servidor;
 - la home muestra todos los domicilios en proceso; los no asignados en estados `CONFIRMED / PREPARING / PREPARED / READY` se pueden autoasignar;
+- Solicitudes consulta cambios cada 2.5 s; cuando aparece un domicilio nuevo el mapa se reencuadra una sola vez para incluir el nuevo pin sin volver a bloquear la navegación libre del repartidor;
+- el mapa muestra también el origen oficial **🏠 Alentó Pizza** usando las coordenadas guardadas en `pos_settings.store`;
+- las tarjetas del carrusel son solo de acceso: al tocar tarjeta o pin se abre el detalle completo (cliente, dirección, productos, pago y totales);
+- **Autoasignarme** vive únicamente dentro del detalle de la solicitud; no reintroducir la acción directa en la tarjeta;
 - la autoasignación usa una actualización atómica con `driverId: null` para evitar que dos repartidores tomen el mismo pedido;
 - pedidos ya asignados a otro repartidor siguen visibles pero no se pueden reclamar; los propios permiten abrir directamente su ficha;
 - navegación inferior exclusiva del repartidor: **Solicitudes / Desempeño / Cartera**; las dos últimas quedan como shell visual para completar luego;
