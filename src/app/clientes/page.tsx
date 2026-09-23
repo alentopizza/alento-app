@@ -5,6 +5,7 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { orderCode } from "@/lib/orderCode";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
+import { subscribeLiveDataChange } from "@/lib/liveDataEvents";
 
 type CustomerAddress = {
   id: number;
@@ -242,15 +243,15 @@ export default function CustomersPage() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | CustomerDetail | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  async function loadCustomers() {
-    setLoading(true);
+  async function loadCustomers(silent = false) {
+    if (!silent) setLoading(true);
     try {
       const response = await fetch("/api/customers?all=1", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cargar los clientes.");
       setCustomers(data.customers ?? []);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -270,6 +271,55 @@ export default function CustomersPage() {
 
     void loadCustomerSettings();
   }, []);
+
+  useEffect(() => {
+    let running = false;
+
+    async function refreshCustomerSurface() {
+      if (running || document.visibilityState !== "visible") return;
+      running = true;
+
+      try {
+        await loadCustomers(true);
+
+        if (selected?.id) {
+          const response = await fetch(`/api/customers/${selected.id}`, {
+            cache: "no-store",
+          });
+          const data = await response.json();
+          if (response.ok) {
+            setSelected(data.customer);
+          } else if (response.status === 404) {
+            setSelected(null);
+          }
+        }
+      } finally {
+        running = false;
+      }
+    }
+
+    const unsubscribe = subscribeLiveDataChange(
+      ["customers", "orders", "club"],
+      () => void refreshCustomerSurface(),
+    );
+    const timer = window.setInterval(() => void refreshCustomerSurface(), 8000);
+    const onFocus = () => void refreshCustomerSurface();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshCustomerSurface();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      unsubscribe();
+      window.clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [selected?.id]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<Exclude<CustomerStatusFilter, "ALL">, number> = {
