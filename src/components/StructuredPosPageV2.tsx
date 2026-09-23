@@ -5,6 +5,7 @@ import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
 import type { ComboOrderConfiguration, OrderLineConfiguration, PizzaOrderConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
+import GoogleCustomerAddressPicker from "@/components/GoogleCustomerAddressPicker";
 
 type CustomerAddress = { id: number; label: string | null; address: string; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
@@ -949,49 +950,52 @@ export default function StructuredPosPageV2() {
 
                   {(!editingCustomer || addressEditor) && addressEditor && (
                     <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <input
-                          value={addressEditor.label}
-                          onChange={(event) =>
-                            setAddressEditor({ ...addressEditor, label: event.target.value })
+                      <input
+                        value={addressEditor.label}
+                        onChange={(event) =>
+                          setAddressEditor({ ...addressEditor, label: event.target.value })
+                        }
+                        className="alento-input w-full rounded-xl px-3 py-2.5"
+                        placeholder="Etiqueta: Casa, Trabajo..."
+                      />
+                      <div className="mt-2">
+                        <GoogleCustomerAddressPicker
+                          currentAddress={addressEditor.id ? addressEditor.address : undefined}
+                          onSelect={(selection) =>
+                            setAddressEditor((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    address: selection.formattedAddress,
+                                    neighborhood:
+                                      selection.neighborhood || current.neighborhood,
+                                    city: selection.city || current.city,
+                                  }
+                                : current,
+                            )
                           }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Etiqueta: Casa, Trabajo..."
                         />
+                      </div>
+
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
                         <input
                           value={addressEditor.neighborhood}
                           onChange={(event) =>
-                            setAddressEditor({ ...addressEditor, neighborhood: event.target.value })
+                            setAddressEditor({
+                              ...addressEditor,
+                              neighborhood: event.target.value,
+                            })
                           }
                           className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Barrio (opcional)"
-                        />
-                      </div>
-                      <input
-                        value={addressEditor.address}
-                        onChange={(event) =>
-                          setAddressEditor({ ...addressEditor, address: event.target.value })
-                        }
-                        className="alento-input mt-2 w-full rounded-xl px-3 py-2.5"
-                        placeholder={
-                          fulfillmentType === "DELIVERY"
-                            ? "Dirección *"
-                            : "Dirección"
-                        }
-                      />
-                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        <input
-                          value={addressEditor.city}
-                          onChange={(event) =>
-                            setAddressEditor({ ...addressEditor, city: event.target.value })
-                          }
-                          className="alento-input rounded-xl px-3 py-2.5"
-                          placeholder="Ciudad"
+                          placeholder="Barrio (si deseas ajustarlo)"
                         />
                         <input
                           value={addressEditor.notes}
                           onChange={(event) =>
-                            setAddressEditor({ ...addressEditor, notes: event.target.value })
+                            setAddressEditor({
+                              ...addressEditor,
+                              notes: event.target.value,
+                            })
                           }
                           className="alento-input rounded-xl px-3 py-2.5"
                           placeholder="Indicaciones (opcional)"
