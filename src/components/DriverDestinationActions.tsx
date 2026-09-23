@@ -106,7 +106,7 @@ function installGoogleMapsBootstrap(key: string) {
           await (a=m.createElement("script"));
           e.set("libraries",[...r]+"");
           for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);
-          e.set("callback",c+"."+q);
+          e.set("callback",c+".maps."+q);
           a.src="https://maps."+c+"apis.com/maps/api/js?"+e;
           d[q]=f;
           a.onerror=()=>h=n(Error(p+" could not load."));
@@ -326,10 +326,9 @@ export default function DriverDestinationActions({
 
       const next = data as NavigationData;
       setNavigation(next);
-      await drawMap(next, origin);
       return next;
     },
-    [drawMap, origin, token],
+    [token],
   );
 
   useEffect(() => {
@@ -486,7 +485,7 @@ export default function DriverDestinationActions({
 
       {open && (
         <div className="fixed inset-0 z-[180] bg-black/78 backdrop-blur-[5px]">
-          <div className="mx-auto flex h-full w-full max-w-[760px] flex-col bg-[#080808] text-white sm:h-[calc(100%-32px)] sm:my-4 sm:overflow-hidden sm:rounded-[28px] sm:border sm:border-white/10">
+          <div className="mx-auto flex h-full w-full max-w-[760px] flex-col bg-[#080808] text-white sm:h-[calc(100%-2rem)] sm:my-4 sm:overflow-hidden sm:rounded-[28px] sm:border sm:border-white/10">
             <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-5">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[.14em] text-[#ff454b]">
