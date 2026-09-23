@@ -12,6 +12,7 @@ const items = [
   { href: "/interno", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER"] },
   { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
+  { href: "/masa", label: "Preparar masa", subtitle: "Fórmula y pesaje", icon: "◒", roles: ["ADMIN", "KITCHEN"] },
   { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
   { href: "/interno/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
   { href: "/cupones", label: "Cupones", subtitle: "Descuentos del POS", icon: "%", roles: ["ADMIN"] },
