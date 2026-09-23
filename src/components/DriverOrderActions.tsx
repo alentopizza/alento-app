@@ -32,10 +32,14 @@ function money(value: number) {
 
 export default function DriverOrderActions({
   token,
+  claimOrderId,
+  initiallyAssigned,
   initialStatus,
   items,
 }: {
   token: string;
+  claimOrderId: number;
+  initiallyAssigned: boolean;
   initialStatus: string;
   items: ChecklistItem[];
 }) {
@@ -45,23 +49,21 @@ export default function DriverOrderActions({
   const lastLocationSyncRef = useRef(0);
 
   const [status, setStatus] = useState(initialStatus);
+  const [isAssigned, setIsAssigned] = useState(initiallyAssigned);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
-  const [locationState, setLocationState] = useState<
-    "idle" | "requesting" | "active" | "error"
-  >("idle");
   const [locationSnapshot, setLocationSnapshot] =
     useState<DriverLocationSnapshot | null>(null);
-  const [locationError, setLocationError] = useState("");
 
   const locationStorageKey = `alento-driver-location-sharing:${token}`;
 
   useEffect(() => {
     setStatus(initialStatus);
-  }, [initialStatus]);
+    setIsAssigned(initiallyAssigned);
+  }, [initialStatus, initiallyAssigned]);
 
   useEffect(() => {
     if (status !== "READY") {
@@ -84,70 +86,47 @@ export default function DriverOrderActions({
     if (status === "ARRIVED" && locationWatchRef.current != null) {
       navigator.geolocation.clearWatch(locationWatchRef.current);
       locationWatchRef.current = null;
-      setLocationState("idle");
       setLocationSnapshot(null);
       window.localStorage.removeItem(locationStorageKey);
     }
   }, [status, locationStorageKey]);
 
   useEffect(() => {
+    if (!isAssigned) return;
     if (status !== "READY" && status !== "OUT_FOR_DELIVERY") return;
     if (locationWatchRef.current != null) return;
 
-    const shouldResume =
-      window.localStorage.getItem(locationStorageKey) === "1";
-
-    if (!shouldResume) return;
-
-    if (navigator.permissions?.query) {
-      void navigator.permissions
-        .query({ name: "geolocation" as PermissionName })
-        .then((permission) => {
-          if (
-            permission.state === "granted" &&
-            locationWatchRef.current == null
-          ) {
-            startLocationSharing();
-          }
-        })
-        .catch(() => {
-          startLocationSharing();
-        });
-      return;
-    }
-
     startLocationSharing();
-  }, [status, locationStorageKey]);
+  }, [isAssigned, status]);
 
   const target =
-    status === "READY"
-      ? "OUT_FOR_DELIVERY"
-      : status === "OUT_FOR_DELIVERY"
-        ? "ARRIVED"
-        : status === "ARRIVED"
-          ? "DELIVERED"
-          : null;
+    !isAssigned
+      ? "CLAIM"
+      : status === "READY"
+        ? "OUT_FOR_DELIVERY"
+        : status === "OUT_FOR_DELIVERY"
+          ? "ARRIVED"
+          : status === "ARRIVED"
+            ? "DELIVERED"
+            : null;
 
   const label =
-    target === "OUT_FOR_DELIVERY"
-      ? "Desliza para iniciar entrega"
-      : target === "ARRIVED"
-        ? "Desliza cuando hayas llegado"
-        : target === "DELIVERED"
-          ? "Desliza para entregar"
-          : null;
+    target === "CLAIM"
+      ? "ASIGNARME DOMICILIO"
+      : target === "OUT_FOR_DELIVERY"
+        ? "Desliza para iniciar entrega"
+        : target === "ARRIVED"
+          ? "Desliza cuando hayas llegado"
+          : target === "DELIVERED"
+            ? "Desliza para entregar"
+            : null;
 
   const allChecked = useMemo(
     () => items.length > 0 && items.every((item) => checkedIds.includes(item.id)),
     [items, checkedIds],
   );
 
-  const locationActive =
-    locationState === "active" &&
-    locationSnapshot != null &&
-    Date.now() - locationSnapshot.timestamp < 60_000;
-
-  const canStartDelivery = allChecked && locationActive;
+  const canStartDelivery = allChecked;
 
   const pendingItems = useMemo(
     () => items.filter((item) => !checkedIds.includes(item.id)),
@@ -197,30 +176,13 @@ export default function DriverOrderActions({
     }
   }
 
-  function stopLocationSharing() {
-    if (locationWatchRef.current != null && navigator.geolocation) {
-      navigator.geolocation.clearWatch(locationWatchRef.current);
-    }
-    locationWatchRef.current = null;
-    setLocationState("idle");
-    setLocationSnapshot(null);
-    setLocationError("");
-    window.localStorage.removeItem(locationStorageKey);
-  }
-
   function startLocationSharing() {
     if (!navigator.geolocation) {
-      setLocationState("error");
-      setLocationError(
-        "Este dispositivo o navegador no permite compartir ubicación.",
-      );
+      setNotice("No fue posible iniciar el GPS automático en este dispositivo.");
       return;
     }
 
     if (locationWatchRef.current != null) return;
-
-    setLocationState("requesting");
-    setLocationError("");
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -230,8 +192,6 @@ export default function DriverOrderActions({
           accuracy: position.coords.accuracy,
           timestamp: Date.now(),
         });
-        setLocationState("active");
-        setLocationError("");
         window.localStorage.setItem(locationStorageKey, "1");
 
         const now = Date.now();
@@ -255,18 +215,13 @@ export default function DriverOrderActions({
       },
       (error) => {
         locationWatchRef.current = null;
-        setLocationState("error");
 
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationError(
-            "Debes permitir el acceso a la ubicación para iniciar el domicilio.",
-          );
+          setNotice("El GPS automático no tiene permiso de ubicación.");
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setLocationError("No fue posible obtener tu ubicación actual.");
+          setNotice("No fue posible actualizar tu ubicación automáticamente.");
         } else {
-          setLocationError(
-            "La ubicación tardó demasiado. Intenta activarla nuevamente.",
-          );
+          setNotice("La lectura del GPS tardó demasiado. Se intentará nuevamente.");
         }
       },
       {
@@ -300,18 +255,31 @@ export default function DriverOrderActions({
       return;
     }
 
-    if (next === "OUT_FOR_DELIVERY" && !locationActive) {
-      setNotice(
-        "Activa Compartir ubicación en tiempo real antes de iniciar el domicilio.",
-      );
-      setProgress(0);
-      return;
-    }
-
     setBusy(true);
     setNotice("");
 
     try {
+      if (next === "CLAIM") {
+        const response = await fetch(
+          `/api/repartidor/requests/${claimOrderId}/claim`,
+          { method: "POST" },
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "No fue posible asignarte el domicilio.");
+        }
+
+        setIsAssigned(true);
+        setNotice("Domicilio asignado. Ya puedes continuar desde esta pantalla.");
+
+        if (data.href) {
+          router.replace(data.href);
+        }
+        router.refresh();
+        return;
+      }
+
       const response = await fetch(
         `/api/repartidor/pedido/${encodeURIComponent(token)}/status`,
         {
@@ -374,11 +342,7 @@ export default function DriverOrderActions({
 
     if (target === "OUT_FOR_DELIVERY" && !canStartDelivery) {
       setProgress(0);
-      setNotice(
-        !allChecked
-          ? "Completa la verificación del pedido antes de salir."
-          : "Activa Compartir ubicación en tiempo real antes de salir.",
-      );
+      setNotice("Completa la verificación del pedido antes de salir.");
       return;
     }
 
@@ -398,8 +362,7 @@ export default function DriverOrderActions({
   return (
     <section
       className={
-        target === "OUT_FOR_DELIVERY" &&
-        (pendingItems.length > 0 || !locationActive)
+        target === "OUT_FOR_DELIVERY" && pendingItems.length > 0
           ? "overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]"
           : "contents"
       }
@@ -514,101 +477,6 @@ export default function DriverOrderActions({
           </div>
           )}
 
-          {!locationActive && (
-          <div className="border-b border-white/10 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                  Ubicación
-                </p>
-              </div>
-
-              <span
-                className={
-                  "shrink-0 rounded-full px-3 py-1.5 text-[9px] font-black uppercase " +
-                  (locationActive
-                    ? "bg-[#e21a22] text-white"
-                    : locationState === "requesting"
-                      ? "bg-white/10 text-white/65"
-                      : "bg-white/[0.06] text-white/40")
-                }
-              >
-                {locationActive
-                  ? "Activa"
-                  : locationState === "requesting"
-                    ? "Activando"
-                    : "Inactiva"}
-              </span>
-            </div>
-
-            <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.045] p-3.5">
-              <div className="flex items-center gap-3">
-                <div
-                  className={
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full " +
-                    (locationActive
-                      ? "bg-[#e21a22] text-white"
-                      : "bg-white/10 text-white/55")
-                  }
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                    <circle cx="12" cy="12" r="8" />
-                  </svg>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <b className="block text-[11px] text-white">
-                    {locationActive
-                      ? "Ubicación compartiéndose"
-                      : "Ubicación requerida para salir"}
-                  </b>
-                  <p className="mt-0.5 text-[9px] leading-4 text-white/42">
-                    {locationActive && locationSnapshot
-                      ? `Precisión aproximada: ±${Math.round(locationSnapshot.accuracy)} m`
-                      : "El navegador solicitará permiso para acceder a tu GPS."}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={busy || locationState === "requesting"}
-                  onClick={
-                    locationActive ? stopLocationSharing : startLocationSharing
-                  }
-                  className={
-                    "h-10 shrink-0 rounded-xl px-3 text-[10px] font-black transition disabled:opacity-50 " +
-                    (locationActive
-                      ? "border border-white/10 bg-white/[0.06] text-white/65 hover:text-white"
-                      : "bg-[#e21a22] text-white hover:bg-[#c9151c]")
-                  }
-                >
-                  {locationState === "requesting"
-                    ? "Activando..."
-                    : locationActive
-                      ? "Detener"
-                      : "Activar"}
-                </button>
-              </div>
-
-              {locationError && (
-                <p className="mt-3 rounded-xl border border-[#e21a22]/25 bg-[#e21a22]/10 px-3 py-2.5 text-[10px] font-semibold leading-4 text-[#ff7a7e]">
-                  {locationError}
-                </p>
-              )}
-            </div>
-          </div>
-          )}
         </>
       )}
 
@@ -649,12 +517,12 @@ export default function DriverOrderActions({
               }
             >
               {busy
-                ? "Actualizando..."
+                ? target === "CLAIM"
+                  ? "Asignando..."
+                  : "Actualizando..."
                 : target === "OUT_FOR_DELIVERY" && !allChecked
                   ? "Completa productos"
-                  : target === "OUT_FOR_DELIVERY" && !locationActive
-                    ? "Activa ubicación"
-                    : label}
+                  : label}
             </span>
           </div>
 

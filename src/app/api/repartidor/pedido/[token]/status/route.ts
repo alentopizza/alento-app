@@ -24,6 +24,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       total: true,
       customerId: true,
       customer: { select: { name: true, countryCode: true, phone: true } },
+      driver: {
+        select: {
+          driverAvailable: true,
+          driverLatitude: true,
+          driverLongitude: true,
+          driverLocationAccuracy: true,
+          driverLocationUpdatedAt: true,
+        },
+      },
       items: {
         select: {
           id: true,
@@ -55,28 +64,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       );
     }
 
-    const latitude = Number(body?.location?.latitude);
-    const longitude = Number(body?.location?.longitude);
-    const accuracy = Number(body?.location?.accuracy);
-    const timestamp = Number(body?.location?.timestamp);
-    const freshLocation =
-      Number.isFinite(latitude) &&
-      latitude >= -90 &&
-      latitude <= 90 &&
-      Number.isFinite(longitude) &&
-      longitude >= -180 &&
-      longitude <= 180 &&
-      Number.isFinite(accuracy) &&
-      accuracy >= 0 &&
-      accuracy <= 5000 &&
-      Number.isFinite(timestamp) &&
-      Math.abs(Date.now() - timestamp) <= 60_000;
-
-    if (!freshLocation) {
+    if (!order.driver?.driverAvailable) {
       return NextResponse.json(
         {
           error:
-            "Debes activar Compartir ubicación en tiempo real y obtener una lectura GPS reciente antes de salir.",
+            "Debes estar Activo para iniciar el domicilio.",
         },
         { status: 409 },
       );
@@ -92,6 +84,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     return NextResponse.json({ error: "El pedido aún no está listo para esta acción o ya fue actualizado." }, { status: 409 });
   }
 
+  const driverLatitude = Number(order.driver?.driverLatitude);
+  const driverLongitude = Number(order.driver?.driverLongitude);
+  const hasDriverLocation =
+    Number.isFinite(driverLatitude) &&
+    driverLatitude >= -90 &&
+    driverLatitude <= 90 &&
+    Number.isFinite(driverLongitude) &&
+    driverLongitude >= -180 &&
+    driverLongitude <= 180;
+
   const updated = await prisma.order.update({
     where: { id: order.id },
     data:
@@ -103,9 +105,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
             driverLocationAccuracy: null,
             driverLocationUpdatedAt: null,
           }
-        : {
-            status: requested as "OUT_FOR_DELIVERY" | "ARRIVED",
-          },
+        : requested === "OUT_FOR_DELIVERY" && hasDriverLocation
+          ? {
+              status: "OUT_FOR_DELIVERY",
+              driverLatitude,
+              driverLongitude,
+              driverLocationAccuracy: order.driver?.driverLocationAccuracy ?? null,
+              driverLocationUpdatedAt:
+                order.driver?.driverLocationUpdatedAt ?? new Date(),
+            }
+          : {
+              status: requested as "OUT_FOR_DELIVERY" | "ARRIVED",
+            },
     select: { id: true, status: true, updatedAt: true },
   });
 

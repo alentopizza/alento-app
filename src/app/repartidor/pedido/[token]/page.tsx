@@ -6,6 +6,7 @@ import DriverOrderStatus from "@/components/DriverOrderStatus";
 import DriverDestinationActions from "@/components/DriverDestinationActions";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
+import { getStaffSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,21 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
   const parsed = readDriverOrderToken(token);
   if (!parsed) notFound();
 
+  const session = await getStaffSession();
+  if (!session) redirect("/login");
+  if (!session.roles.some((role) => role === "DRIVER" || role === "DISPATCH")) {
+    redirect("/sin-acceso");
+  }
+  if (session.userId !== parsed.driverId) notFound();
+
   const order = await prisma.order.findFirst({
     where: {
       id: parsed.orderId,
-      driverId: parsed.driverId,
       fulfillmentType: "DELIVERY",
     },
     select: {
       id: true,
+      driverId: true,
       status: true,
       subtotal: true,
       deliveryFee: true,
@@ -70,6 +78,15 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
 
   if (!order) notFound();
 
+  const assigned = order.driverId === parsed.driverId;
+  const previewable =
+    order.driverId == null &&
+    ["CONFIRMED", "PREPARING", "PREPARED", "READY"].includes(order.status);
+
+  if (!assigned && !previewable) {
+    redirect("/repartidor");
+  }
+
   if (order.status === "DELIVERED" || order.status === "COMPLETED") {
     redirect("/repartidor");
   }
@@ -95,12 +112,14 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               </h2>
             </div>
 
-            <DriverDestinationActions
-              token={token}
-              phone={phone}
-              customerName={order.customer?.name ?? "Cliente"}
-              currentStatus={order.status}
-            />
+            {assigned && (
+              <DriverDestinationActions
+                token={token}
+                phone={phone}
+                customerName={order.customer?.name ?? "Cliente"}
+                currentStatus={order.status}
+              />
+            )}
 
             <div className="mt-3 rounded-xl bg-[#111] px-3 py-3 text-white">
               <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
@@ -174,6 +193,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
 
         <DriverOrderActions
           token={token}
+          claimOrderId={order.id}
+          initiallyAssigned={assigned}
           initialStatus={order.status}
           items={order.items.map((item) => ({
             id: item.id,

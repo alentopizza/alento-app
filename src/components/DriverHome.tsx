@@ -892,7 +892,11 @@ export default function DriverHome({
             });
 
             marker.addListener("click", () => {
-              setSelectedId(order.id);
+              if (order.href) {
+                router.push(order.href);
+                return;
+              }
+
               mapRef.current?.panTo(point);
               mapRef.current?.setZoom(15);
             });
@@ -1186,11 +1190,16 @@ export default function DriverHome({
                     key={order.id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => setSelectedId(order.id)}
+                    onClick={() => {
+                      if (order.href) router.push(order.href);
+                    }}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
+                      if (
+                        order.href &&
+                        (event.key === "Enter" || event.key === " ")
+                      ) {
                         event.preventDefault();
-                        setSelectedId(order.id);
+                        router.push(order.href);
                       }
                     }}
                     className={

@@ -125,6 +125,9 @@ export async function GET() {
       store: storeLocation(savedSettings?.value),
       orders: orders.map((order) => {
         const own = order.driverId === session.userId;
+        const claimable =
+          order.driverId == null &&
+          CLAIMABLE_STATUSES.has(order.status);
         return {
           id: order.id,
           code: `${order.source}-${String(
@@ -175,10 +178,8 @@ export async function GET() {
                 own,
               }
             : null,
-          claimable:
-            order.driverId == null &&
-            CLAIMABLE_STATUSES.has(order.status),
-          href: own
+          claimable,
+          href: own || claimable
             ? `/repartidor/pedido/${createDriverOrderToken(
                 order.id,
                 session.userId,
