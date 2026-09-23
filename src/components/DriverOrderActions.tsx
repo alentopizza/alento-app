@@ -56,6 +56,7 @@ export default function DriverOrderActions({
   const [locationError, setLocationError] = useState("");
 
   const storageKey = `alento-driver-checklist:${token}`;
+  const locationStorageKey = `alento-driver-location-sharing:${token}`;
 
   useEffect(() => {
     setStatus(initialStatus);
@@ -97,8 +98,38 @@ export default function DriverOrderActions({
       locationWatchRef.current = null;
       setLocationState("idle");
       setLocationSnapshot(null);
+      window.localStorage.removeItem(locationStorageKey);
     }
-  }, [status]);
+  }, [status, locationStorageKey]);
+
+  useEffect(() => {
+    if (status !== "READY" && status !== "OUT_FOR_DELIVERY") return;
+    if (locationWatchRef.current != null) return;
+
+    const shouldResume =
+      window.localStorage.getItem(locationStorageKey) === "1";
+
+    if (!shouldResume) return;
+
+    if (navigator.permissions?.query) {
+      void navigator.permissions
+        .query({ name: "geolocation" as PermissionName })
+        .then((permission) => {
+          if (
+            permission.state === "granted" &&
+            locationWatchRef.current == null
+          ) {
+            startLocationSharing();
+          }
+        })
+        .catch(() => {
+          startLocationSharing();
+        });
+      return;
+    }
+
+    startLocationSharing();
+  }, [status, locationStorageKey]);
 
   const target =
     status === "READY"
@@ -126,6 +157,11 @@ export default function DriverOrderActions({
 
   const canStartDelivery = allChecked && locationActive;
 
+  const pendingItems = useMemo(
+    () => items.filter((item) => !checkedIds.includes(item.id)),
+    [items, checkedIds],
+  );
+
   function toggleItem(itemId: number) {
     if (busy || status !== "READY") return;
 
@@ -147,6 +183,7 @@ export default function DriverOrderActions({
     setLocationState("idle");
     setLocationSnapshot(null);
     setLocationError("");
+    window.localStorage.removeItem(locationStorageKey);
   }
 
   function startLocationSharing() {
@@ -173,6 +210,7 @@ export default function DriverOrderActions({
         });
         setLocationState("active");
         setLocationError("");
+        window.localStorage.setItem(locationStorageKey, "1");
       },
       (error) => {
         locationWatchRef.current = null;
@@ -330,6 +368,7 @@ export default function DriverOrderActions({
     <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]">
       {target === "OUT_FOR_DELIVERY" && (
         <>
+          {pendingItems.length > 0 && (
           <div className="border-b border-white/10 p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
@@ -349,7 +388,7 @@ export default function DriverOrderActions({
             </div>
 
             <div className="space-y-2.5">
-              {items.map((item) => {
+              {pendingItems.map((item) => {
                 const checked = checkedIds.includes(item.id);
 
                 return (
@@ -435,7 +474,9 @@ export default function DriverOrderActions({
               })}
             </div>
           </div>
+          )}
 
+          {!locationActive && (
           <div className="border-b border-white/10 p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -529,33 +570,15 @@ export default function DriverOrderActions({
               )}
             </div>
           </div>
+          )}
         </>
       )}
 
-      <div className="p-5">
-        <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-          {target === "OUT_FOR_DELIVERY"
-            ? "3 · Acción del repartidor"
-            : "Acción del repartidor"}
-        </p>
-        <h3 className="mt-2 text-xl font-black">
-          {target === "OUT_FOR_DELIVERY"
-            ? "Salir a domicilio"
-            : "Confirmar llegada"}
-        </h3>
-
-        <p className="mt-1 text-xs leading-5 text-white/55">
-          {target === "OUT_FOR_DELIVERY" && !allChecked
-            ? "Primero completa la verificación de todos los productos."
-            : target === "OUT_FOR_DELIVERY" && !locationActive
-              ? "Activa Compartir ubicación en tiempo real para habilitar la salida."
-              : "Desliza para confirmar. El estado se actualiza inmediatamente y Alentó envía la notificación correspondiente al cliente."}
-        </p>
-
+      <div className="sticky bottom-0 z-20 border-t border-white/10 bg-[#101011]/96 p-4 backdrop-blur-xl sm:p-5">
         <div
           ref={trackRef}
           className={
-            "relative mt-5 h-[62px] w-full overflow-hidden rounded-full border shadow-inner backdrop-blur-sm " +
+            "relative h-[62px] w-full overflow-hidden rounded-full border shadow-inner backdrop-blur-sm " +
             (target === "OUT_FOR_DELIVERY" && !canStartDelivery
               ? "border-white/10 bg-white/[0.035] opacity-45"
               : "border-white/15 bg-white/[0.08]")
@@ -582,7 +605,7 @@ export default function DriverOrderActions({
               {busy
                 ? "Actualizando..."
                 : target === "OUT_FOR_DELIVERY" && !allChecked
-                  ? "Verifica el pedido"
+                  ? "Completa productos"
                   : target === "OUT_FOR_DELIVERY" && !locationActive
                     ? "Activa ubicación"
                     : label}
