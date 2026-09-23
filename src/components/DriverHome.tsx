@@ -345,6 +345,7 @@ export default function DriverHome({
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [routeSummaries, setRouteSummaries] = useState<Record<number, DriverRouteSummary>>({});
   const [tab, setTab] = useState<DriverTab>("requests");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busyAvailability, setBusyAvailability] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
@@ -707,7 +708,7 @@ export default function DriverHome({
       map.fitBounds(bounds, {
         top: 120,
         right: 74,
-        bottom: 250,
+        bottom: 190,
         left: 74,
       });
       return;
@@ -919,7 +920,7 @@ export default function DriverHome({
             mapRef.current.fitBounds(bounds, {
               top: 120,
               right: 74,
-              bottom: 250,
+              bottom: 190,
               left: 74,
             });
           } else {
@@ -1034,7 +1035,7 @@ export default function DriverHome({
           <div ref={mapHostRef} className="absolute inset-0 bg-[#efefeb]" />
         </div>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#080808] px-6 pb-28 pt-28">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#080808] px-6 pb-6 pt-28">
           <div className="w-full max-w-[430px] rounded-[26px] border border-white/10 bg-[#111] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,.35)]">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e21a22]/12 text-[#ff454b]">
               {navItems.find((item) => item.id === tab)?.icon}
@@ -1054,9 +1055,31 @@ export default function DriverHome({
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 px-3 pt-[max(12px,env(safe-area-inset-top))] sm:px-5">
         <div className="pointer-events-auto mx-auto flex max-w-[760px] items-center justify-between gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)]">
-            <img src={LOGO} alt="Alentó Pizza" className="h-10 w-10 rounded-xl object-cover" />
-          </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menú del repartidor"
+            title="Abrir menú"
+            className="group relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)] transition active:scale-95"
+          >
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-[3px] rounded-[19px] border border-[#e21a22]/55 animate-pulse"
+            />
+            <img
+              src={LOGO}
+              alt="Alentó Pizza"
+              className="h-10 w-10 rounded-xl object-cover"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] flex-col items-center justify-center gap-[2px] rounded-full border-2 border-white bg-[#e21a22] shadow-[0_4px_12px_rgba(226,26,34,.35)]"
+            >
+              <span className="h-[1.5px] w-2 rounded-full bg-white" />
+              <span className="h-[1.5px] w-2 rounded-full bg-white" />
+              <span className="h-[1.5px] w-2 rounded-full bg-white" />
+            </span>
+          </button>
 
           <div className="flex min-w-0 flex-1 items-center rounded-full border border-black/10 bg-white/96 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,.15)] backdrop-blur-xl">
             <button
@@ -1162,7 +1185,7 @@ export default function DriverHome({
       )}
 
       {tab === "requests" && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-[92px] z-30 px-3 sm:px-5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-[max(14px,env(safe-area-inset-bottom))] z-30 px-3 sm:px-5">
           <div className="pointer-events-auto mx-auto max-w-[760px]">
             <div className="flex snap-x gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {orders.length ? (
@@ -1484,30 +1507,118 @@ export default function DriverHome({
         </div>
       )}
 
-      <nav className="absolute inset-x-0 bottom-0 z-40 px-3 pb-[max(10px,env(safe-area-inset-bottom))] sm:px-5">
-        <div className="mx-auto grid h-[72px] max-w-[620px] grid-cols-3 overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_16px_44px_rgba(0,0,0,.22)]">
-          {navItems.map((item) => {
-            const active = item.id === tab;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTab(item.id)}
-                className={
-                  "relative flex flex-col items-center justify-center gap-1 text-[9px] font-black transition " +
-                  (active ? "text-[#e21a22]" : "text-neutral-400")
-                }
-              >
-                {item.icon}
-                <span>{item.label}</span>
-                {active && (
-                  <span className="absolute bottom-1 h-[3px] w-8 rounded-full bg-[#e21a22]" />
-                )}
-              </button>
-            );
-          })}
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 z-[70] bg-black/48 backdrop-blur-[2px]"
+        />
+      )}
+
+      <aside
+        aria-hidden={!menuOpen}
+        className={
+          "fixed inset-y-0 left-0 z-[80] flex w-[min(82vw,320px)] flex-col border-r border-white/10 bg-[#0b0b0b]/98 shadow-[28px_0_70px_rgba(0,0,0,.42)] backdrop-blur-2xl transition-transform duration-300 ease-out " +
+          (menuOpen ? "translate-x-0" : "-translate-x-full")
+        }
+      >
+        <div className="border-b border-white/10 px-4 pb-4 pt-[max(18px,env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white">
+                <img
+                  src={LOGO}
+                  alt="Alentó Pizza"
+                  className="h-10 w-10 rounded-xl object-cover"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[#ff454b]">
+                  Repartidor
+                </p>
+                <b className="mt-0.5 block truncate text-[15px] font-black">
+                  {driver.name}
+                </b>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Cerrar menú"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl text-white/55 transition active:bg-white/10"
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </nav>
+
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          <p className="px-3 text-[8px] font-black uppercase tracking-[0.14em] text-white/28">
+            Navegación
+          </p>
+
+          <div className="mt-2 space-y-1.5">
+            {navItems.map((item) => {
+              const active = item.id === tab;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setTab(item.id);
+                    setMenuOpen(false);
+                  }}
+                  className={
+                    "flex h-14 w-full items-center gap-3 rounded-[18px] px-3.5 text-left transition active:scale-[.99] " +
+                    (active
+                      ? "bg-[#e21a22] text-white shadow-[0_10px_24px_rgba(226,26,34,.18)]"
+                      : "text-white/58 hover:bg-white/[0.05]")
+                  }
+                >
+                  <span
+                    className={
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl " +
+                      (active ? "bg-white/12" : "bg-white/[0.055]")
+                    }
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[12px] font-black">
+                    {item.label}
+                  </span>
+                  <span className={active ? "text-white/70" : "text-white/20"}>
+                    ›
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 px-4 pb-[max(18px,env(safe-area-inset-bottom))] pt-4">
+          <div className="rounded-[18px] border border-white/[0.07] bg-white/[0.035] px-3.5 py-3">
+            <p className="text-[8px] font-black uppercase tracking-[0.1em] text-white/28">
+              Estado
+            </p>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span
+                className={
+                  "h-2 w-2 rounded-full " +
+                  (driver.driverAvailable
+                    ? "bg-[#e21a22] shadow-[0_0_10px_rgba(226,26,34,.65)]"
+                    : "bg-white/25")
+                }
+              />
+              <b className="text-[10px] text-white/62">
+                {driver.driverAvailable ? "Activo" : "Inactivo"}
+              </b>
+            </div>
+          </div>
+        </div>
+      </aside>
     </main>
   );
 }
