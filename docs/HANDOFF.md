@@ -391,6 +391,10 @@ La creación pública ya existe mediante `/api/public-checkout` y genera pedidos
 
 ### Regla de pedidos cancelados
 
+- un pedido cancelado sigue visible tanto para el cliente como en su ficha interna;
+- en `/clientes`, conservar siempre el histórico completo para análisis conductual;
+- mostrar cantidad y porcentaje de cancelaciones como métrica separada;
+- nunca mezclar cancelaciones con compras válidas, ticket promedio, frecuencia o total comprado;
 - un pedido cancelado sigue visible en el historial del cliente con etiqueta `CANCELADO`;
 - no cuenta dentro de las métricas de pedidos/compras válidas;
 - nunca debe sumar puntos Club;
