@@ -422,6 +422,8 @@ Reglas vigentes:
 - la dirección principal (`isDefault=true`) es solo la preferida;
 - al eliminar la principal, se promueve automáticamente la primera restante;
 - el checkout POS permite elegir qué dirección guardada usar en cada domicilio;
+- el checkout público también muestra todas las direcciones guardadas del cliente autenticado;
+- la principal es solo la selección inicial; al elegir otra se recalculan Google Routes, cobertura, tarifa, tiempo y mapa;
 - no sobrescribir la dirección principal al editar datos básicos del cliente;
 - los endpoints de administración son `/api/customers/[id]/addresses` y `/api/customers/[id]/addresses/[addressId]`.
 
