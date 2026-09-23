@@ -99,14 +99,14 @@ export default function OrderStatusSelector({
         <header className="shrink-0 bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.22),transparent_30%),linear-gradient(135deg,#09090a,#191617)] px-5 py-4 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/45">
+              <p className="alento-ui-label uppercase tracking-[0.10em] text-white/55">
                 Estado del pedido
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <h3 className="text-[22px] font-black tracking-[-0.035em]">
+                <h3 className="text-[24px] font-extrabold tracking-[-0.03em]">
                   {orderCode}
                 </h3>
-                <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.05em] text-white/65">
+                <span className="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 alento-ui-micro uppercase tracking-[0.04em] text-white/70">
                   {fulfillmentLabel(fulfillmentType)}
                 </span>
               </div>
@@ -126,14 +126,14 @@ export default function OrderStatusSelector({
           <section className="rounded-[20px] border border-neutral-200 bg-[#fbfaf8] px-4 py-4 sm:px-5 sm:py-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-500">
+                <p className="alento-ui-label uppercase text-neutral-500">
                   Flujo operativo
                 </p>
-                <p className="mt-1 text-[15px] font-bold leading-none text-neutral-900">
+                <p className="mt-1 alento-ui-status text-neutral-900">
                   {shortStatusLabel(currentStatus)}
                 </p>
               </div>
-              <span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.04em] text-white">
+              <span className="rounded-full bg-black px-3 py-1.5 alento-ui-micro uppercase tracking-[0.03em] text-white">
                 Estado actual
               </span>
             </div>
@@ -171,7 +171,7 @@ export default function OrderStatusSelector({
                     <div key={status} className="relative min-w-0 px-1 text-center">
                       <div
                         className={
-                          "relative z-10 mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-[12px] font-bold leading-none " +
+                          "relative z-10 mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-[13px] font-bold leading-none " +
                           (current
                             ? "border-black bg-black text-white ring-[5px] ring-black/10"
                             : complete
@@ -183,7 +183,7 @@ export default function OrderStatusSelector({
                       </div>
                       <span
                         className={
-                          "mt-3 block px-1 text-[10px] font-bold leading-[13px] tracking-[-0.01em] " +
+                          "mt-3 block px-1 text-[11px] font-bold leading-[14px] tracking-[-0.01em] " +
                           (current
                             ? "text-neutral-950"
                             : complete
@@ -205,14 +205,14 @@ export default function OrderStatusSelector({
               <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3.5 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-amber-700">
+                    <span className="block alento-ui-label uppercase text-amber-700">
                       Pago pendiente
                     </span>
-                    <b className="mt-0.5 block text-[16px] font-black text-amber-900">
+                    <b className="mt-1 block text-[18px] font-bold text-amber-900">
                       {money(pendingBalance)}
                     </b>
                   </div>
-                  <span className="rounded-full bg-white px-2 py-1 text-[8px] font-bold text-amber-700 ring-1 ring-amber-200">
+                  <span className="rounded-full bg-white px-2.5 py-1.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
                     Finalizado bloqueado
                   </span>
                 </div>
@@ -228,15 +228,15 @@ export default function OrderStatusSelector({
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-neutral-400">
+                    <span className="block alento-ui-label uppercase text-neutral-500">
                       Repartidor
                     </span>
-                    <b className="mt-0.5 block text-[11px] text-neutral-700">
+                    <b className="mt-1 block text-[13px] font-semibold text-neutral-800">
                       {assignedDriverId ? "Asignado" : "Sin asignar"}
                     </b>
                   </div>
                   {assignedDriverId && (
-                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold text-emerald-700 ring-1 ring-emerald-100">
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-100">
                       ACTIVO
                     </span>
                   )}
@@ -250,7 +250,7 @@ export default function OrderStatusSelector({
                       const value = event.target.value;
                       onDriverChange?.(value ? Number(value) : null);
                     }}
-                    className="alento-input h-10 min-w-0 flex-1 rounded-xl px-3 text-xs font-semibold"
+                    className="alento-input h-11 min-w-0 flex-1 rounded-xl px-3 alento-ui-control"
                   >
                     <option value="">Seleccionar repartidor...</option>
                     {drivers.map((driver) => (
@@ -265,7 +265,7 @@ export default function OrderStatusSelector({
                       type="button"
                       disabled={driverBusy || busy}
                       onClick={() => onConfirmDriver?.()}
-                      className="h-10 shrink-0 rounded-xl bg-neutral-950 px-3 text-[9px] font-black uppercase tracking-[0.04em] text-white disabled:opacity-50"
+                      className="h-11 shrink-0 rounded-xl bg-neutral-950 px-4 text-[11px] font-bold uppercase tracking-[0.03em] text-white disabled:opacity-50"
                     >
                       {driverBusy
                         ? "..."
@@ -282,7 +282,7 @@ export default function OrderStatusSelector({
           </div>
 
           <section className="mt-4 rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
-            <p className="text-[8px] font-black uppercase tracking-[0.09em] text-neutral-400">
+            <p className="alento-ui-label uppercase text-neutral-500">
               Siguiente paso
             </p>
 
@@ -299,14 +299,14 @@ export default function OrderStatusSelector({
                 }
               >
                 <span>
-                  <span className="block text-[9px] font-bold uppercase tracking-[0.06em] opacity-55">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.04em] opacity-60">
                     Cambiar a
                   </span>
-                  <b className="mt-0.5 block text-[15px] font-black">
+                  <b className="mt-1 block text-[17px] font-bold">
                     {statusLabel(nextStatus)}
                   </b>
                   {nextBlocked && (
-                    <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.05em] text-amber-600">
+                    <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.04em] text-amber-700">
                       Requiere pago total
                     </span>
                   )}
@@ -326,7 +326,7 @@ export default function OrderStatusSelector({
                 <button
                   type="button"
                   onClick={() => setShowMoreStatuses((value) => !value)}
-                  className="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-xl text-[9px] font-bold uppercase tracking-[0.06em] text-neutral-400 hover:bg-neutral-50"
+                  className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-xl text-[11px] font-bold uppercase tracking-[0.04em] text-neutral-500 hover:bg-neutral-50"
                 >
                   {showMoreStatuses ? "Ocultar estados" : "Más estados"}
                   <span className="text-sm">{showMoreStatuses ? "⌃" : "⌄"}</span>
@@ -346,7 +346,7 @@ export default function OrderStatusSelector({
                           disabled={busy || paymentBlocked}
                           onClick={() => onSelect(status)}
                           className={
-                            "flex min-h-12 items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold transition disabled:cursor-not-allowed " +
+                            "flex min-h-12 items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[13px] font-bold transition disabled:cursor-not-allowed " +
                             (paymentBlocked
                               ? "border-neutral-200 bg-neutral-100 text-neutral-400"
                               : `${statusTone(status)} hover:-translate-y-0.5 disabled:opacity-50`)
@@ -355,12 +355,12 @@ export default function OrderStatusSelector({
                           <span>
                             <span className="block">{statusLabel(status)}</span>
                             {isNext && (
-                              <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.06em] opacity-50">
+                              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.04em] opacity-55">
                                 Siguiente
                               </span>
                             )}
                             {paymentBlocked && (
-                              <span className="mt-0.5 block text-[8px] font-black uppercase tracking-[0.06em] text-amber-600">
+                              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.04em] text-amber-700">
                                 Requiere pago total
                               </span>
                             )}
@@ -375,7 +375,7 @@ export default function OrderStatusSelector({
             )}
 
             {hasPendingPayment && currentStatus !== "COMPLETED" && (
-              <p className="mt-2 text-center text-[8px] font-semibold leading-4 text-neutral-400">
+              <p className="mt-3 text-center text-[10px] font-semibold leading-4 text-neutral-500">
                 Finalizado se habilita automáticamente cuando el saldo quede en $0.
               </p>
             )}
