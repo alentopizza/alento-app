@@ -7,9 +7,6 @@ import { getCustomerSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const LOGO_URL =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
-
 const STATUS_FLOW = [
   "PREPARING",
   "PREPARED",
@@ -148,26 +145,11 @@ export default async function TrackingPage({
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
 
   return (
-    <main className="min-h-screen bg-[#f5f3ef] px-4 py-6 text-neutral-950 sm:px-6 lg:py-10">
+    <main className="min-h-screen bg-[#f5f3ef] px-4 pb-6 pt-3 text-neutral-950 sm:px-6 sm:pt-4 lg:pb-10 lg:pt-5">
       <LivePageRefresh intervalMs={3000} />
       <div className="mx-auto max-w-[760px]">
-        <header className="mb-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 overflow-hidden rounded-2xl bg-black shadow-[0_12px_30px_rgba(0,0,0,.18)]">
-              <img src={LOGO_URL} alt="Alentó Pizza" className="h-full w-full object-cover" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#a5191f]">Alentó Pizza</p>
-              <h1 className="text-xl font-black tracking-[-0.03em]">Sigue tu pedido</h1>
-            </div>
-          </div>
-          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-bold text-neutral-600 shadow-sm">
-            {code}
-          </span>
-        </header>
-
         <section className="overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,.07)]">
-          <div className="bg-[#111] px-5 py-6 text-white sm:px-7">
+          <div className="bg-[#111] px-5 pb-6 pt-5 text-white sm:px-7 sm:pb-7 sm:pt-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Estado actual</p>
             <h2 className="mt-2 text-[26px] font-black leading-tight tracking-[-0.035em] sm:text-[30px]">{activeLabel}</h2>
             <p className="mt-2 max-w-[560px] text-sm leading-6 text-white/64">{activeCopy}</p>
