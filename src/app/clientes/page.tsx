@@ -23,6 +23,8 @@ type CustomerMetrics = {
   firstOrderAt: string | null;
   lastOrderAt: string | null;
   frequencyDays: number | null;
+  canceledCount?: number;
+  cancellationRate?: number;
 };
 
 type Customer = {
@@ -974,16 +976,54 @@ export default function CustomersPage() {
               </header>
 
               <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-5">
-                <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
                   {[
-                    ["Compras", String(selected.metrics.purchaseCount)],
-                    ["Ticket promedio", money(selected.metrics.averageTicket)],
-                    ["Total comprado", money(selected.metrics.totalSpent)],
-                    ["Frecuencia", selected.metrics.frequencyDays ? `Cada ${selected.metrics.frequencyDays} d` : "Sin patrón"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-[0_10px_24px_rgba(28,23,20,.055)] [font-synthesis:none]">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-neutral-400">{label}</span>
-                      <b className="mt-2 block truncate text-[18px] font-bold leading-none tracking-[-0.018em] text-neutral-950">{value}</b>
+                    ["Compras", String(selected.metrics.purchaseCount), ""],
+                    ["Ticket promedio", money(selected.metrics.averageTicket), ""],
+                    ["Total comprado", money(selected.metrics.totalSpent), ""],
+                    ["Frecuencia", selected.metrics.frequencyDays ? `Cada ${selected.metrics.frequencyDays} d` : "Sin patrón", ""],
+                    [
+                      "Cancelados",
+                      String(selected.metrics.canceledCount ?? 0),
+                      (selected.metrics.canceledCount ?? 0) > 0
+                        ? `${selected.metrics.cancellationRate ?? 0}% del historial`
+                        : "Sin cancelaciones",
+                    ],
+                  ].map(([label, value, hint]) => (
+                    <div
+                      key={label}
+                      className={
+                        "rounded-2xl border p-4 shadow-[0_10px_24px_rgba(28,23,20,.055)] [font-synthesis:none] " +
+                        (label === "Cancelados" && (selected.metrics.canceledCount ?? 0) > 0
+                          ? "border-red-200 bg-red-50/70"
+                          : "border-neutral-200 bg-white")
+                      }
+                    >
+                      <span
+                        className={
+                          "block text-[10px] font-bold uppercase tracking-[0.08em] " +
+                          (label === "Cancelados" && (selected.metrics.canceledCount ?? 0) > 0
+                            ? "text-red-500"
+                            : "text-neutral-400")
+                        }
+                      >
+                        {label}
+                      </span>
+                      <b
+                        className={
+                          "mt-2 block truncate text-[18px] font-bold leading-none tracking-[-0.018em] " +
+                          (label === "Cancelados" && (selected.metrics.canceledCount ?? 0) > 0
+                            ? "text-red-700"
+                            : "text-neutral-950")
+                        }
+                      >
+                        {value}
+                      </b>
+                      {hint && (
+                        <span className="mt-1.5 block truncate text-[9px] text-neutral-400">
+                          {hint}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </section>
@@ -1077,9 +1117,16 @@ export default function CustomersPage() {
                       <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-400">Historial de compra</p>
                       <h3 className="mt-0.5 text-[18px] font-bold tracking-[-0.02em] text-neutral-950">Pedidos del cliente</h3>
                     </div>
-                    <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[10px] font-bold text-neutral-700 shadow-sm">
-                      {purchaseLabel(selected.orders.length)}
-                    </span>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[10px] font-bold text-neutral-700 shadow-sm">
+                        {selected.orders.length} pedidos
+                      </span>
+                      {(selected.metrics.canceledCount ?? 0) > 0 && (
+                        <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-bold text-red-700">
+                          {selected.metrics.canceledCount} cancelados
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {selected.orders.length === 0 ? (
@@ -1087,18 +1134,51 @@ export default function CustomersPage() {
                   ) : (
                     <div className="space-y-3 bg-[#f7f5f2] p-3">
                       {selected.orders.map((order) => (
-                        <article key={order.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_20px_rgba(28,23,20,.045)] [font-synthesis:none]">
-                          <div className="flex items-start justify-between gap-3 border-b border-neutral-100 px-4 py-3.5">
+                        <article
+                          key={order.id}
+                          className={
+                            "overflow-hidden rounded-2xl border shadow-[0_8px_20px_rgba(28,23,20,.045)] [font-synthesis:none] " +
+                            (order.status === "CANCELED"
+                              ? "border-red-200 bg-red-50/45"
+                              : "border-neutral-200 bg-white")
+                          }
+                        >
+                          <div
+                            className={
+                              "flex items-start justify-between gap-3 border-b px-4 py-3.5 " +
+                              (order.status === "CANCELED"
+                                ? "border-red-100 bg-red-50/70"
+                                : "border-neutral-100")
+                            }
+                          >
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
                                 <b className="text-[14px] font-bold text-neutral-950">{orderCode(order.sequenceNumber ?? order.id, order.source)}</b>
                                 <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-bold uppercase text-neutral-600">{fulfillmentLabel(order.fulfillmentType)}</span>
-                                <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[9px] font-bold uppercase text-neutral-600">{statusLabel(order.status)}</span>
+                                <span
+                                  className={
+                                    "rounded-full border px-2 py-1 text-[9px] font-bold uppercase " +
+                                    (order.status === "CANCELED"
+                                      ? "border-red-200 bg-white text-red-600"
+                                      : "border-neutral-200 bg-neutral-50 text-neutral-600")
+                                  }
+                                >
+                                  {order.status === "CANCELED" ? "Cancelado" : statusLabel(order.status)}
+                                </span>
                               </div>
                               <p className="mt-1.5 text-[11px] text-neutral-400">{dateTime(order.createdAt)}</p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
-                              <b className="text-[16px] font-bold tabular-nums tracking-[-0.015em] text-neutral-950">{money(order.total)}</b>
+                              <b
+                                className={
+                                  "text-[16px] font-bold tabular-nums tracking-[-0.015em] " +
+                                  (order.status === "CANCELED"
+                                    ? "text-neutral-400 line-through"
+                                    : "text-neutral-950")
+                                }
+                              >
+                                {money(order.total)}
+                              </b>
                               <button
                                 type="button"
                                 onClick={() => printCustomerOrder(order.id)}
@@ -1114,6 +1194,12 @@ export default function CustomersPage() {
                               </button>
                             </div>
                           </div>
+
+                          {order.status === "CANCELED" && (
+                            <div className="border-b border-red-100 bg-white/60 px-4 py-2 text-[9px] font-semibold text-red-600">
+                              Pedido realizado y posteriormente cancelado. Se conserva en el historial comercial y no cuenta como compra válida.
+                            </div>
+                          )}
 
                           <div className="space-y-2.5 p-3">
                             {order.items.map((item) => {
