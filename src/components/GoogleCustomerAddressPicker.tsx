@@ -151,7 +151,7 @@ function installGoogleMapsBootstrap(key: string) {
   }
 }
 
-async function loadGoogleMaps() {
+async function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
   if (!key) {
     throw new Error("Google Maps no está configurado para el POS.");
@@ -159,11 +159,12 @@ async function loadGoogleMaps() {
 
   installGoogleMapsBootstrap(key);
 
-  if (!getGoogleWindow().google?.maps?.importLibrary) {
+  const runtime = getGoogleWindow().google;
+  if (!runtime?.maps?.importLibrary) {
     throw new Error("No fue posible iniciar Google Maps.");
   }
 
-  return getGoogleWindow().google;
+  return runtime;
 }
 
 function componentValue(
