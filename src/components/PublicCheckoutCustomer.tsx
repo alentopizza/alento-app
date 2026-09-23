@@ -314,7 +314,7 @@ export default function PublicCheckoutCustomer({
       <div
         className={
           fullPage
-            ? "mx-auto flex min-h-[calc(100dvh-72px)] w-full max-w-[1080px] flex-col bg-[#101010] text-white"
+            ? "mx-auto flex min-h-dvh w-full max-w-[1080px] flex-col bg-[#101010] text-white"
             : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101010] text-white shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
         }
       >
@@ -489,24 +489,37 @@ export default function PublicCheckoutCustomer({
                   </button>
                 )}
 
-                <label className="mt-3 block">
-                  <span className="text-[9px] font-semibold text-white/45">
-                    Correo <span className="text-white/25">(opcional)</span>
-                  </span>
-                  <input
-                    value={customer.email}
-                    onChange={(event) =>
-                      setCustomer((current) => ({
-                        ...current,
-                        email: event.target.value,
-                      }))
-                    }
-                    type="email"
-                    autoComplete="email"
-                    className="mt-1.5 h-11 w-full rounded-[13px] border border-white/10 bg-black/25 px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
-                    placeholder="correo@ejemplo.com"
-                  />
-                </label>
+                <div className="mt-3 rounded-[15px] border border-white/10 bg-black/20 px-3.5 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/55">
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+                        <circle cx="12" cy="10" r="2.4" />
+                      </svg>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[8px] font-bold uppercase tracking-[0.11em] text-white/30">
+                        Dirección de entrega
+                      </span>
+                      <b className="mt-1 block text-[11px] leading-5 text-white/82">
+                        {selection.fulfillmentType === "DELIVERY"
+                          ? selection.destination?.formattedAddress ||
+                            "Dirección confirmada"
+                          : "Alentó Pizza"}
+                      </b>
+                    </div>
+                  </div>
+                </div>
 
                 {!signedIn && (
                   <p className="mt-3 text-[9px] leading-4 text-white/30">
