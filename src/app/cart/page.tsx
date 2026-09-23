@@ -113,7 +113,7 @@ export default function CartPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#e21a22]">Tu selección</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">Tu selección</p>
                 <p className="mt-1 text-[13px] font-semibold text-white/72">
                   {cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"} en tu pedido` : "Tu carrito está listo para empezar"}
                 </p>
@@ -196,7 +196,7 @@ export default function CartPage() {
                       <div>
                         <span className="block text-[13px] font-bold text-[#ff3439]">{money(item.unitPrice)}</span>
                         {item.configuration?.kind === "PIZZA" && (
-                          <span className="mt-1 block text-[9px] font-medium uppercase tracking-[0.08em] text-white/30">
+                          <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-white/30">
                             Pizza configurada
                           </span>
                         )}
@@ -220,7 +220,7 @@ export default function CartPage() {
 
             <aside className="fixed inset-x-3 bottom-[92px] z-[70] mx-auto max-w-[470px] rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.14),transparent_30%),linear-gradient(145deg,#161616,#0f0f0f)] p-4 shadow-[0_20px_50px_rgba(0,0,0,.42)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-6 lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-[24px] lg:p-5 lg:shadow-[0_18px_46px_rgba(0,0,0,.20)]">
               <div>
-                <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/32">Resumen</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/32">Resumen</p>
 
                 <div className="mt-2 flex items-center justify-between gap-4">
                   <span className="text-[11px] text-white/45">Subtotal</span>
@@ -270,7 +270,7 @@ export default function CartPage() {
 
               <Link
                 href="/menu"
-                className="mt-1 flex h-8 w-full items-center justify-center text-[9px] font-semibold text-white/42 lg:mt-2 lg:h-10 lg:text-[10px]"
+                className="mt-1 flex h-8 w-full items-center justify-center text-[11px] font-semibold text-white/42 lg:mt-2 lg:h-10 lg:text-[10px]"
               >
                 Agregar más productos
               </Link>
@@ -316,7 +316,7 @@ export default function CartPage() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-400/10 text-2xl text-emerald-300">
                 ✓
               </div>
-              <p className="mt-5 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-300">
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-300">
                 Pedido recibido
               </p>
               <h2 className="mt-1 text-[34px] font-black tracking-[-0.04em]">
@@ -330,7 +330,7 @@ export default function CartPage() {
 
               <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04]">
                 <div className="p-3">
-                  <span className="text-[8px] uppercase tracking-[0.12em] text-white/30">
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-white/30">
                     Tipo
                   </span>
                   <b className="mt-1 block text-[11px]">
@@ -340,7 +340,7 @@ export default function CartPage() {
                   </b>
                 </div>
                 <div className="border-l border-white/10 p-3 text-right">
-                  <span className="text-[8px] uppercase tracking-[0.12em] text-white/30">
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-white/30">
                     Total
                   </span>
                   <b className="mt-1 block text-[16px] text-[#ff454b]">
