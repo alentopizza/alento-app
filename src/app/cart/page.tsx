@@ -280,12 +280,6 @@ export default function CartPage() {
                   : "Continuar pedido"}
               </button>
 
-              <Link
-                href="/menu"
-                className="mt-1 flex h-8 w-full items-center justify-center text-[11px] font-semibold text-white/42 lg:mt-2 lg:h-10 lg:text-[10px]"
-              >
-                Agregar más productos
-              </Link>
             </aside>
           </div>
         )}
