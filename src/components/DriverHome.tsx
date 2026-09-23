@@ -47,6 +47,7 @@ type DriverTab = "requests" | "performance" | "wallet";
 
 type GoogleMarker = {
   setMap: (map: GoogleMap | null) => void;
+  setPosition: (point: { lat: number; lng: number }) => void;
   addListener: (event: string, listener: () => void) => unknown;
 };
 
@@ -57,6 +58,7 @@ type GoogleMap = {
   ) => void;
   panTo: (point: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
+  getZoom: () => number | undefined;
 };
 
 type GoogleBounds = {
@@ -158,7 +160,10 @@ export default function DriverHome({
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
-  const markerRefs = useRef<GoogleMarker[]>([]);
+  const driverMarkerRef = useRef<GoogleMarker | null>(null);
+  const requestMarkerRefs = useRef<Map<number, GoogleMarker>>(new Map());
+  const initialMapFitDoneRef = useRef(false);
+  const lastFocusedRequestRef = useRef<number | null>(null);
   const watchRef = useRef<number | null>(null);
   const lastGpsSyncRef = useRef(0);
 
@@ -394,6 +399,89 @@ export default function DriverHome({
     }
   }
 
+  const recenterMap = useCallback(() => {
+    const map = mapRef.current;
+    const google = getGoogle();
+    if (!map || !google) return;
+
+    const bounds = new google.maps.LatLngBounds();
+    let points = 0;
+
+    if (
+      driver.driverLatitude != null &&
+      driver.driverLongitude != null
+    ) {
+      bounds.extend({
+        lat: driver.driverLatitude,
+        lng: driver.driverLongitude,
+      });
+      points += 1;
+    }
+
+    orders.forEach((order) => {
+      if (
+        order.address?.latitude == null ||
+        order.address?.longitude == null
+      ) {
+        return;
+      }
+
+      bounds.extend({
+        lat: order.address.latitude,
+        lng: order.address.longitude,
+      });
+      points += 1;
+    });
+
+    if (points > 1) {
+      map.fitBounds(bounds, {
+        top: 120,
+        right: 74,
+        bottom: 250,
+        left: 74,
+      });
+      return;
+    }
+
+    if (
+      driver.driverLatitude != null &&
+      driver.driverLongitude != null
+    ) {
+      map.panTo({
+        lat: driver.driverLatitude,
+        lng: driver.driverLongitude,
+      });
+      map.setZoom(15);
+      return;
+    }
+
+    const first = orders.find(
+      (order) =>
+        order.address?.latitude != null &&
+        order.address?.longitude != null,
+    );
+
+    if (first?.address?.latitude != null && first.address.longitude != null) {
+      map.panTo({
+        lat: first.address.latitude,
+        lng: first.address.longitude,
+      });
+      map.setZoom(14);
+    }
+  }, [
+    driver.driverLatitude,
+    driver.driverLongitude,
+    orders,
+  ]);
+
+  const zoomMap = useCallback((delta: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const current = map.getZoom() ?? 14;
+    map.setZoom(Math.max(3, Math.min(20, current + delta)));
+  }, []);
+
   useEffect(() => {
     if (tab !== "requests" || !mapHostRef.current) return;
 
@@ -432,13 +520,10 @@ export default function DriverHome({
             zoom: 13,
             mapId: "b0bfaae2809a720a6204509b",
             disableDefaultUI: true,
-            zoomControl: true,
+            zoomControl: false,
             gestureHandling: "greedy",
           });
         }
-
-        markerRefs.current.forEach((marker) => marker.setMap(null));
-        markerRefs.current = [];
 
         const bounds = new google.maps.LatLngBounds();
         let points = 0;
@@ -451,61 +536,90 @@ export default function DriverHome({
             lat: driver.driverLatitude,
             lng: driver.driverLongitude,
           };
-          const marker = new google.maps.Marker({
-            map: mapRef.current,
-            position: point,
-            title: driver.name,
-            label: {
-              text: "🛵",
-              fontSize: "17px",
-            },
-            zIndex: 50,
-          });
-          markerRefs.current.push(marker);
+
+          if (!driverMarkerRef.current) {
+            driverMarkerRef.current = new google.maps.Marker({
+              map: mapRef.current,
+              position: point,
+              title: driver.name,
+              label: {
+                text: "🛵",
+                fontSize: "17px",
+              },
+              zIndex: 50,
+            });
+          } else {
+            driverMarkerRef.current.setPosition(point);
+          }
+
           bounds.extend(point);
           points += 1;
+        } else if (driverMarkerRef.current) {
+          driverMarkerRef.current.setMap(null);
+          driverMarkerRef.current = null;
         }
+
+        const visibleRequestIds = new Set<number>();
 
         requestWithLocation.forEach((order) => {
           const point = {
             lat: order.address!.latitude!,
             lng: order.address!.longitude!,
           };
+          visibleRequestIds.add(order.id);
 
-          const marker = new google.maps.Marker({
-            map: mapRef.current!,
-            position: point,
-            title: `${order.code} · ${order.customerName}`,
-            label: {
-              text: order.code.split("-").pop()?.slice(-2) || "•",
-              color: "#ffffff",
-              fontSize: "9px",
-              fontWeight: "700",
-            },
-            zIndex: order.claimable ? 30 : order.assignment?.own ? 40 : 20,
-          });
+          const existing = requestMarkerRefs.current.get(order.id);
 
-          marker.addListener("click", () => {
-            setSelectedId(order.id);
-            mapRef.current?.panTo(point);
-            mapRef.current?.setZoom(15);
-          });
+          if (existing) {
+            existing.setPosition(point);
+          } else {
+            const marker = new google.maps.Marker({
+              map: mapRef.current!,
+              position: point,
+              title: `${order.code} · ${order.customerName}`,
+              label: {
+                text: order.code.split("-").pop()?.slice(-2) || "•",
+                color: "#ffffff",
+                fontSize: "9px",
+                fontWeight: "700",
+              },
+              zIndex: order.claimable ? 30 : order.assignment?.own ? 40 : 20,
+            });
 
-          markerRefs.current.push(marker);
+            marker.addListener("click", () => {
+              setSelectedId(order.id);
+              mapRef.current?.panTo(point);
+              mapRef.current?.setZoom(15);
+            });
+
+            requestMarkerRefs.current.set(order.id, marker);
+          }
+
           bounds.extend(point);
           points += 1;
         });
 
-        if (points > 1 && !selectedOrder) {
-          mapRef.current.fitBounds(bounds, {
-            top: 110,
-            right: 46,
-            bottom: 240,
-            left: 46,
-          });
-        } else if (points === 1) {
-          mapRef.current.panTo(center);
-          mapRef.current.setZoom(14);
+        requestMarkerRefs.current.forEach((marker, orderId) => {
+          if (!visibleRequestIds.has(orderId)) {
+            marker.setMap(null);
+            requestMarkerRefs.current.delete(orderId);
+          }
+        });
+
+        if (!initialMapFitDoneRef.current && points > 0) {
+          if (points > 1) {
+            mapRef.current.fitBounds(bounds, {
+              top: 120,
+              right: 74,
+              bottom: 250,
+              left: 74,
+            });
+          } else {
+            mapRef.current.panTo(center);
+            mapRef.current.setZoom(14);
+          }
+
+          initialMapFitDoneRef.current = true;
         }
       } catch (err) {
         if (!disposed) {
@@ -528,17 +642,26 @@ export default function DriverHome({
     driver.driverLongitude,
     driver.name,
     orders,
-    selectedOrder,
     tab,
   ]);
 
   useEffect(() => {
     if (!selectedOrder?.address || !mapRef.current) return;
+    if (lastFocusedRequestRef.current === selectedOrder.id) return;
+
     const { latitude, longitude } = selectedOrder.address;
     if (latitude == null || longitude == null) return;
+
+    lastFocusedRequestRef.current = selectedOrder.id;
     mapRef.current.panTo({ lat: latitude, lng: longitude });
     mapRef.current.setZoom(15);
   }, [selectedOrder]);
+
+  useEffect(() => {
+    if (selectedId == null) {
+      lastFocusedRequestRef.current = null;
+    }
+  }, [selectedId]);
 
   const navItems: Array<{
     id: DriverTab;
@@ -648,6 +771,55 @@ export default function DriverHome({
           </div>
         </div>
       </div>
+
+      {tab === "requests" && (
+        <div className="pointer-events-none absolute right-3 top-[46%] z-30 -translate-y-1/2 sm:right-5">
+          <div className="pointer-events-auto flex flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white shadow-[0_10px_28px_rgba(0,0,0,.18)]">
+            <button
+              type="button"
+              onClick={() => zoomMap(1)}
+              aria-label="Acercar mapa"
+              title="Acercar"
+              className="flex h-12 w-12 items-center justify-center text-[26px] font-light text-neutral-800 transition active:bg-neutral-100"
+            >
+              +
+            </button>
+
+            <button
+              type="button"
+              onClick={recenterMap}
+              aria-label="Centrar mapa"
+              title="Centrar vista"
+              className="flex h-12 w-12 items-center justify-center border-y border-neutral-200 text-neutral-800 transition active:bg-neutral-100"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                className="h-[20px] w-[20px]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                <circle cx="12" cy="12" r="8" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => zoomMap(-1)}
+              aria-label="Alejar mapa"
+              title="Alejar"
+              className="flex h-12 w-12 items-center justify-center text-[28px] font-light text-neutral-800 transition active:bg-neutral-100"
+            >
+              −
+            </button>
+          </div>
+        </div>
+      )}
 
       {tab === "requests" && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[92px] z-30 px-3 sm:px-5">
