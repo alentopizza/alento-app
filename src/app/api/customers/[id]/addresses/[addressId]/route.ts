@@ -21,6 +21,10 @@ async function customerWithAddresses(customerId: number) {
           id: true,
           label: true,
           address: true,
+          formattedAddress: true,
+          placeId: true,
+          latitude: true,
+          longitude: true,
           neighborhood: true,
           city: true,
           notes: true,
@@ -54,6 +58,16 @@ export async function PATCH(
 
       const address =
         typeof body.address === "string" ? clean(body.address) : existing.address;
+      const formattedAddress =
+        typeof body.formattedAddress === "string"
+          ? clean(body.formattedAddress)
+          : existing.formattedAddress ?? "";
+      const placeId =
+        typeof body.placeId === "string" ? clean(body.placeId) : existing.placeId ?? "";
+      const latitude =
+        body.latitude == null ? existing.latitude : Number(body.latitude);
+      const longitude =
+        body.longitude == null ? existing.longitude : Number(body.longitude);
       const label =
         typeof body.label === "string" ? clean(body.label) : existing.label ?? "";
       const neighborhood =
@@ -80,6 +94,10 @@ export async function PATCH(
         where: { id: targetId },
         data: {
           address,
+          formattedAddress: formattedAddress || null,
+          placeId: placeId || null,
+          latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
+          longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
           label: label || null,
           neighborhood: neighborhood || null,
           city: city || null,
@@ -121,6 +139,10 @@ export async function PATCH(
               id: true,
               label: true,
               address: true,
+              formattedAddress: true,
+              placeId: true,
+              latitude: true,
+              longitude: true,
               neighborhood: true,
               city: true,
               notes: true,
@@ -198,6 +220,10 @@ export async function DELETE(
               id: true,
               label: true,
               address: true,
+              formattedAddress: true,
+              placeId: true,
+              latitude: true,
+              longitude: true,
               neighborhood: true,
               city: true,
               notes: true,
