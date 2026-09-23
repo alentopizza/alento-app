@@ -330,23 +330,11 @@ export default function DriverOrderActions({
     <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]">
       {target === "OUT_FOR_DELIVERY" && (
         <>
-          <div className="border-b border-white/10 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                  1 · Verificación del pedido
-                </p>
-                <h3 className="mt-2 text-xl font-black">
-                  Revisa antes de salir
-                </h3>
-                <p className="mt-1 text-xs leading-5 text-white/55">
-                  Confirma cada producto y su configuración antes de iniciar el domicilio.
-                </p>
-              </div>
-
+          <div className="border-b border-white/10 p-4 sm:p-5">
+            <div className="mb-3 flex justify-end">
               <span
                 className={
-                  "shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black " +
+                  "rounded-full px-3 py-1.5 text-[10px] font-black " +
                   (allChecked
                     ? "bg-[#e21a22] text-white"
                     : "bg-white/10 text-white/60")
@@ -356,7 +344,7 @@ export default function DriverOrderActions({
               </span>
             </div>
 
-            <div className="mt-4 space-y-2.5">
+            <div className="space-y-2.5">
               {items.map((item) => {
                 const checked = checkedIds.includes(item.id);
 
@@ -448,7 +436,7 @@ export default function DriverOrderActions({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
-                  2 · Ubicación
+                  1 · Ubicación
                 </p>
                 <h3 className="mt-2 text-xl font-black">
                   Compartir ubicación en tiempo real
@@ -549,7 +537,7 @@ export default function DriverOrderActions({
       <div className="p-5">
         <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
           {target === "OUT_FOR_DELIVERY"
-            ? "3 · Acción del repartidor"
+            ? "2 · Acción del repartidor"
             : "Acción del repartidor"}
         </p>
         <h3 className="mt-2 text-xl font-black">
