@@ -3,14 +3,29 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
+import { computeDrivingRoute } from "@/lib/googleMapsServer";
 
 const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
-type DeliveryBand = { id: string; name?: string; fee: number; active?: boolean };
+type DeliveryBand = {
+  id: string;
+  name?: string;
+  minMeters: number;
+  maxMeters: number;
+  fee: number;
+  active?: boolean;
+};
 type PaymentMethod = { id: string; name: string; active?: boolean };
-type PosSettings = { deliveryBands?: DeliveryBand[]; paymentMethods?: PaymentMethod[] };
+type PosSettings = {
+  store?: {
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  deliveryBands?: DeliveryBand[];
+  paymentMethods?: PaymentMethod[];
+};
 
 function money(value: number) {
   return Math.round(value);
@@ -92,10 +107,82 @@ export async function POST(request: NextRequest) {
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
+
     if (fulfillmentType === "DELIVERY") {
-      const zone = settings.deliveryBands?.find((item) => item.id === String(body.deliveryZoneId) && item.active !== false);
-      if (!zone) return NextResponse.json({ error: "La tarifa de domicilio seleccionada ya no está activa." }, { status: 400 });
-      deliveryFee = money(Number(zone.fee ?? 0));
+      const destinationLatitude = Number(address?.latitude);
+      const destinationLongitude = Number(address?.longitude);
+      const storeLatitude = Number(settings.store?.latitude);
+      const storeLongitude = Number(settings.store?.longitude);
+
+      if (
+        !Number.isFinite(destinationLatitude) ||
+        !Number.isFinite(destinationLongitude)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "La dirección del cliente debe estar validada con Google Maps para calcular el domicilio.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (
+        !Number.isFinite(storeLatitude) ||
+        !Number.isFinite(storeLongitude)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "La sede de Alentó no tiene una ubicación oficial válida para calcular domicilios.",
+          },
+          { status: 503 },
+        );
+      }
+
+      const route = await computeDrivingRoute({
+        origin: {
+          latitude: storeLatitude,
+          longitude: storeLongitude,
+        },
+        destination: {
+          latitude: destinationLatitude,
+          longitude: destinationLongitude,
+        },
+      });
+
+      const activeBands = (settings.deliveryBands ?? [])
+        .filter((item) => item.active !== false)
+        .map((item) => ({
+          ...item,
+          minMeters: Number(item.minMeters),
+          maxMeters: Number(item.maxMeters),
+          fee: Number(item.fee),
+        }))
+        .filter(
+          (item) =>
+            Number.isFinite(item.minMeters) &&
+            Number.isFinite(item.maxMeters) &&
+            Number.isFinite(item.fee),
+        );
+
+      const zone = activeBands.find(
+        (item) =>
+          route.distanceMeters >= item.minMeters &&
+          route.distanceMeters <= item.maxMeters,
+      );
+
+      if (!zone) {
+        return NextResponse.json(
+          {
+            error:
+              "La dirección está fuera de la cobertura configurada para domicilios.",
+          },
+          { status: 400 },
+        );
+      }
+
+      deliveryFee = money(zone.fee);
       deliveryZoneId = zone.id;
       deliveryZoneName = zone.name?.trim() || "Domicilio";
     }
