@@ -589,7 +589,17 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                   <span>Tipo</span><b>{fulfillmentLabel(fulfillmentType)}</b>
                   {customer && <><span>Cliente</span><b>{customer.name}</b></>}
                   {fulfillmentType === "DELIVERY" && address && <><span>Dirección</span><b>{address}</b></>}
-                  {fulfillmentType === "DELIVERY" && selectedDeliveryZone && <><span>Zona</span><b>{selectedDeliveryZone.name}</b></>}
+                  {fulfillmentType === "DELIVERY" &&
+                    deliveryQuote?.distanceMeters != null && (
+                      <>
+                        <span>Ruta</span>
+                        <b>
+                          {deliveryQuote.distanceMeters < 1000
+                            ? `${Math.round(deliveryQuote.distanceMeters)} m`
+                            : `${(deliveryQuote.distanceMeters / 1000).toFixed(1)} km`}
+                        </b>
+                      </>
+                    )}
                   {selectedCoupon && discountMode === "COUPON" && <><span>Cupón</span><b>{selectedCoupon.name}</b></>}
                   {selectedPaymentMethod && <><span>Pago</span><b>{selectedPaymentMethod.name}</b></>}
                   {cashPayment && validCashReceived && <><span>Paga con</span><b>{formatCOP(cashReceived)}</b><span>Vueltas</span><b className="green">{formatCOP(changeDue)}</b></>}
