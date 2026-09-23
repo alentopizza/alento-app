@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
@@ -136,12 +137,13 @@ async function loadGoogleMaps() {
 
   installGoogleMapsBootstrap(key);
 
-  const runtime = getGoogleWindow().google;
-  if (!runtime?.maps?.importLibrary) {
-    throw new Error("No fue posible iniciar Google Maps.");
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const runtime = getGoogleWindow().google;
+    if (runtime?.maps?.importLibrary) return runtime;
+    await new Promise((resolve) => window.setTimeout(resolve, 100));
   }
 
-  return runtime;
+  throw new Error("No fue posible iniciar Google Maps.");
 }
 
 function formatDistance(meters: number) {
@@ -174,12 +176,16 @@ export default function DriverDestinationActions({
   token,
   phone,
   customerName,
+  currentStatus,
 }: {
   token: string;
   phone: string | null;
   customerName: string;
+  currentStatus: string;
 }) {
+  const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
+  const arrivalTrackRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRefs = useRef<Array<GoogleMarkerInstance | GoogleAdvancedMarkerInstance>>([]);
   const routeRef = useRef<GooglePolylineInstance | null>(null);
@@ -191,6 +197,20 @@ export default function DriverDestinationActions({
   const [navigation, setNavigation] = useState<NavigationData | null>(null);
   const [origin, setOrigin] = useState<StoreOrigin | null>(null);
   const [error, setError] = useState("");
+  const [arrivalProgress, setArrivalProgress] = useState(0);
+  const [arrivalDragging, setArrivalDragging] = useState(false);
+  const [arrivalBusy, setArrivalBusy] = useState(false);
+
+  const resetMap = useCallback(() => {
+    markerRefs.current.forEach((marker) => {
+      if ("setMap" in marker) marker.setMap(null);
+      else marker.map = null;
+    });
+    markerRefs.current = [];
+    routeRef.current?.setMap(null);
+    routeRef.current = null;
+    mapRef.current = null;
+  }, []);
 
   const drawMap = useCallback(
     async (data: NavigationData, store: StoreOrigin | null) => {
@@ -426,8 +446,77 @@ export default function DriverDestinationActions({
       }
       watchRef.current = null;
       lastRouteAtRef.current = 0;
+      resetMap();
     };
-  }, [drawMap, open, requestNavigation, token]);
+  }, [drawMap, open, requestNavigation, resetMap, token]);
+
+  function updateArrivalFromPointer(clientX: number) {
+    const track = arrivalTrackRef.current;
+    if (!track) return 0;
+
+    const rect = track.getBoundingClientRect();
+    const knobSize = 54;
+    const padding = 4;
+    const usable = Math.max(1, rect.width - knobSize - padding * 2);
+    const raw = (clientX - rect.left - padding - knobSize / 2) / usable;
+    const next = Math.min(1, Math.max(0, raw));
+    setArrivalProgress(next);
+    return next;
+  }
+
+  async function confirmArrival() {
+    if (arrivalBusy || currentStatus !== "OUT_FOR_DELIVERY") return;
+
+    setArrivalBusy(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/repartidor/pedido/${encodeURIComponent(token)}/status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "ARRIVED" }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible registrar la llegada.");
+      }
+
+      setOpen(false);
+      router.refresh();
+      window.setTimeout(() => router.refresh(), 700);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible registrar la llegada.",
+      );
+      setArrivalProgress(0);
+    } finally {
+      setArrivalDragging(false);
+      setArrivalBusy(false);
+    }
+  }
+
+  function finishArrival(nextProgress = arrivalProgress) {
+    setArrivalDragging(false);
+
+    if (arrivalBusy || currentStatus !== "OUT_FOR_DELIVERY") {
+      setArrivalProgress(0);
+      return;
+    }
+
+    if (nextProgress >= 0.82) {
+      setArrivalProgress(1);
+      void confirmArrival();
+      return;
+    }
+
+    setArrivalProgress(0);
+  }
 
   const googleMapsUrl = navigation
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
@@ -496,14 +585,46 @@ export default function DriverDestinationActions({
                 </h2>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70"
-                aria-label="Cerrar navegación"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={googleMapsUrl ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Abrir ruta en Google Maps"
+                  title="Abrir en Google Maps"
+                  aria-disabled={!googleMapsUrl}
+                  className={
+                    "flex h-10 w-10 items-center justify-center rounded-full border transition " +
+                    (googleMapsUrl
+                      ? "border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.10]"
+                      : "pointer-events-none border-white/5 bg-white/[0.03] text-white/20")
+                  }
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-[18px] w-[18px]"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 5h5v5" />
+                    <path d="M10 14 19 5" />
+                    <path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" />
+                  </svg>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl text-white/70"
+                  aria-label="Cerrar navegación"
+                >
+                  ×
+                </button>
+              </div>
             </div>
 
             <div className="relative min-h-0 flex-1">
@@ -545,32 +666,101 @@ export default function DriverDestinationActions({
               )}
             </div>
 
-            <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="h-12 flex-1 rounded-full border border-white/10 bg-white/[0.05] text-[11px] font-bold text-white/65"
+            {currentStatus === "OUT_FOR_DELIVERY" && (
+              <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
+                <div
+                  ref={arrivalTrackRef}
+                  className="landing-menu-slider relative h-[62px] w-full overflow-hidden rounded-full border border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
                 >
-                  Cerrar
-                </button>
+                  <div
+                    className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#e21a22]"
+                    style={{
+                      width: `calc(54px + (100% - 62px) * ${arrivalProgress})`,
+                      transition: arrivalDragging
+                        ? "none"
+                        : "width 220ms cubic-bezier(.2,.8,.2,1)",
+                    }}
+                  />
 
-                <a
-                  href={googleMapsUrl ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-disabled={!googleMapsUrl}
-                  className={
-                    "flex h-12 flex-[1.45] items-center justify-center rounded-full text-[11px] font-black " +
-                    (googleMapsUrl
-                      ? "bg-[#e21a22] text-white"
-                      : "pointer-events-none bg-white/10 text-white/30")
-                  }
-                >
-                  Abrir en Google Maps
-                </a>
+                  <div
+                    className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center px-[72px] text-center"
+                    style={{
+                      opacity: Math.max(0.18, 1 - arrivalProgress * 1.15),
+                      transition: arrivalDragging ? "none" : "opacity 180ms ease",
+                    }}
+                  >
+                    <span className="landing-menu-slider-text truncate text-[10px] font-black uppercase tracking-[0.11em] text-black/75">
+                      {arrivalBusy
+                        ? "Registrando llegada..."
+                        : "Desliza cuando hayas llegado"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Desliza cuando hayas llegado"
+                    disabled={arrivalBusy}
+                    className={
+                      "absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60 landing-menu-slider-knob " +
+                      (!arrivalDragging && arrivalProgress === 0
+                        ? "landing-menu-slider-knob-idle"
+                        : "")
+                    }
+                    style={{
+                      left: `calc(4px + (100% - 62px) * ${arrivalProgress})`,
+                      transition: arrivalDragging
+                        ? "none"
+                        : "left 220ms cubic-bezier(.2,.8,.2,1)",
+                    }}
+                    onPointerDown={(event) => {
+                      if (arrivalBusy) return;
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setArrivalDragging(true);
+                      updateArrivalFromPointer(event.clientX);
+                    }}
+                    onPointerMove={(event) => {
+                      if (!arrivalDragging || arrivalBusy) return;
+                      updateArrivalFromPointer(event.clientX);
+                    }}
+                    onPointerUp={(event) => {
+                      if (!arrivalDragging || arrivalBusy) return;
+                      const next = updateArrivalFromPointer(event.clientX);
+                      finishArrival(next);
+                    }}
+                    onPointerCancel={() => {
+                      if (!arrivalBusy) finishArrival(0);
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        (event.key === "Enter" || event.key === " ") &&
+                        !arrivalBusy
+                      ) {
+                        event.preventDefault();
+                        setArrivalProgress(1);
+                        void confirmArrival();
+                      }
+                    }}
+                  >
+                    {arrivalBusy ? (
+                      <span className="text-lg">…</span>
+                    ) : (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="landing-menu-slider-arrow h-[22px] w-[22px]"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5 12h13" />
+                        <path d="m14 7 5 5-5 5" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
