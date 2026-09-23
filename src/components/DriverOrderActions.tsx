@@ -442,12 +442,6 @@ export default function DriverOrderActions({
                 <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
                   2 · Ubicación
                 </p>
-                <h3 className="mt-2 text-xl font-black">
-                  Compartir ubicación en tiempo real
-                </h3>
-                <p className="mt-1 max-w-[470px] text-xs leading-5 text-white/55">
-                  Mantén la ubicación activa durante el domicilio. Más adelante esta señal alimentará el seguimiento en vivo del cliente.
-                </p>
               </div>
 
               <span
