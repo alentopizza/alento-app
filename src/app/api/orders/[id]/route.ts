@@ -86,8 +86,23 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
       const updated = await prisma.$transaction(async (tx) => {
-        await tx.payment.updateMany({ where: { orderId: current.id, status: { not: "REFUNDED" } }, data: { status: "CANCELED" } });
-        return tx.order.update({ where: { id: current.id }, data: { status: "CANCELED" } });
+        await tx.payment.updateMany({
+          where: { orderId: current.id, status: { not: "REFUNDED" } },
+          data: { status: "CANCELED" },
+        });
+
+        // Regla Club Alentó:
+        // un pedido cancelado nunca puede conservar puntos de compra.
+        // En el flujo normal los puntos solo nacen al llegar a COMPLETED,
+        // pero esta limpieza protege datos históricos o inconsistencias previas.
+        await tx.clubPointTransaction.deleteMany({
+          where: { orderId: current.id },
+        });
+
+        return tx.order.update({
+          where: { id: current.id },
+          data: { status: "CANCELED" },
+        });
       });
       return NextResponse.json({ order: { ...serializeOrder(current), status: updated.status } });
     }
