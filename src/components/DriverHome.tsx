@@ -970,15 +970,27 @@ export default function DriverHome({
             </button>
           </div>
 
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)]">
-            <span
-              className={
-                "h-2.5 w-2.5 rounded-full " +
-                (driver.driverAvailable
-                  ? "bg-[#e21a22] shadow-[0_0_12px_rgba(226,26,34,.65)]"
-                  : "bg-neutral-300")
-              }
-            />
+          <div className="relative shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-white shadow-[0_8px_24px_rgba(0,0,0,.16)]">
+              <span
+                className={
+                  "h-2.5 w-2.5 rounded-full " +
+                  (driver.driverAvailable
+                    ? "bg-[#e21a22] shadow-[0_0_12px_rgba(226,26,34,.65)]"
+                    : "bg-neutral-300")
+                }
+              />
+            </div>
+
+            {tab === "requests" && (
+              <div className="absolute right-0 top-[56px] flex h-8 min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 bg-[#111]/94 px-3 text-white shadow-[0_10px_28px_rgba(0,0,0,.22)] backdrop-blur-xl">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#e21a22]" />
+                <b className="text-[10px] font-black">{availableCount}</b>
+                <span className="text-[9px] font-semibold text-white/55">
+                  {availableCount === 1 ? "disponible" : "disponibles"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1035,18 +1047,6 @@ export default function DriverHome({
       {tab === "requests" && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[92px] z-30 px-3 sm:px-5">
           <div className="pointer-events-auto mx-auto max-w-[760px]">
-            <div className="mb-2 flex items-center justify-between rounded-full border border-white/10 bg-[#111]/94 px-4 py-2.5 text-white shadow-xl backdrop-blur-xl">
-              <div>
-                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-[#ff454b]">
-                  Solicitudes
-                </span>
-                <b className="ml-2 text-[11px]">{orders.length}</b>
-              </div>
-              <span className="text-[9px] font-semibold text-white/45">
-                {availableCount} disponibles
-              </span>
-            </div>
-
             <div className="flex snap-x gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {orders.length ? (
                 orders.map((order) => (
