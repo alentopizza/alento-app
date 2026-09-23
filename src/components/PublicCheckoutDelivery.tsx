@@ -617,8 +617,8 @@ export default function PublicCheckoutDelivery({
     quote?.encodedPolyline,
   ]);
 
-  const loadSavedCustomerAddress = useCallback(async () => {
-    if (savedAddressChecked || loadingSavedAddress) return;
+  const loadSavedCustomerAddress = useCallback(async (force = false) => {
+    if ((!force && savedAddressChecked) || loadingSavedAddress) return;
 
     setLoadingSavedAddress(true);
     setSavedAddressChecked(true);
@@ -784,11 +784,17 @@ export default function PublicCheckoutDelivery({
               onClick={() => {
                 setFulfillmentType("DELIVERY");
                 setError("");
-                if (!quote?.destination) {
-                  setMapReady(false);
-                  setEditingAddress(true);
-                  void loadSavedCustomerAddress();
+
+                if (quote?.destination) {
+                  // Cambiar a Recoger no debe destruir la última dirección
+                  // válida del cliente. Al volver a Domicilio la reutilizamos.
+                  setEditingAddress(false);
+                  return;
                 }
+
+                setMapReady(false);
+                setEditingAddress(true);
+                void loadSavedCustomerAddress(true);
               }}
               className={
                 "rounded-[15px] border px-3 py-2.5 text-left transition sm:px-4 sm:py-3 " +
@@ -806,7 +812,9 @@ export default function PublicCheckoutDelivery({
               type="button"
               onClick={() => {
                 setFulfillmentType("PICKUP");
-                setQuote(null);
+                // Conservamos quote/destination en memoria. Pickup solo cambia
+                // la modalidad; no significa que el cliente haya borrado su
+                // dirección de domicilio.
                 setEditingAddress(false);
                 setError("");
               }}
