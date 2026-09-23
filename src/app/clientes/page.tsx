@@ -5,7 +5,7 @@ import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { orderCode } from "@/lib/orderCode";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
-import { subscribeLiveDataChange } from "@/lib/liveDataEvents";
+import { emitLiveDataChange, subscribeLiveDataChange } from "@/lib/liveDataEvents";
 
 type CustomerAddress = {
   id: number;
@@ -223,11 +223,20 @@ export default function CustomersPage() {
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("+57");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [addressEditor, setAddressEditor] = useState<{
+    id: number | null;
+    label: string;
+    address: string;
+    neighborhood: string;
+    city: string;
+    notes: string;
+    isDefault: boolean;
+  } | null>(null);
+  const [addressBusy, setAddressBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -392,10 +401,10 @@ export default function CustomersPage() {
     setName(customer.name);
     setCountryCode(customer.countryCode || "+57");
     setPhone(customer.phone || "");
-    setAddress(customer.addresses?.[0]?.address || "");
     setEmail(customer.email || "");
     setNotes(customer.notes || "");
     setMessage("");
+    setAddressEditor(null);
   }
 
   function closeEdit() {
@@ -414,11 +423,12 @@ export default function CustomersPage() {
       const response = await fetch(`/api/customers/${editing.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, countryCode, phone, address, email, notes }),
+        body: JSON.stringify({ name, countryCode, phone, email, notes }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible actualizar el cliente.");
       setEditing(null);
+      emitLiveDataChange(["customers", "account"]);
       await loadCustomers();
       if (selected?.id === editing.id) {
         await openCustomer({ ...editing, ...data.customer, metrics: editing.metrics });
@@ -427,6 +437,141 @@ export default function CustomersPage() {
       setMessage(error instanceof Error ? error.message : "No fue posible actualizar el cliente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openAddressEditor(item?: CustomerAddress) {
+    setAddressEditor(
+      item
+        ? {
+            id: item.id,
+            label: item.label ?? "",
+            address: item.address,
+            neighborhood: item.neighborhood ?? "",
+            city: item.city ?? "Bogotá",
+            notes: item.notes ?? "",
+            isDefault: item.isDefault,
+          }
+        : {
+            id: null,
+            label: "Casa",
+            address: "",
+            neighborhood: "",
+            city: "Bogotá",
+            notes: "",
+            isDefault: (editing?.addresses.length ?? 0) === 0,
+          },
+    );
+    setMessage("");
+  }
+
+  function mergeEditedCustomerAddresses(customer: {
+    addresses: CustomerAddress[];
+  }) {
+    setEditing((current) =>
+      current ? { ...current, addresses: customer.addresses } : current,
+    );
+    setSelected((current) =>
+      current ? { ...current, addresses: customer.addresses } : current,
+    );
+  }
+
+  async function saveCustomerAddress() {
+    if (!editing || !addressEditor?.address.trim()) {
+      setMessage("Escribe una dirección.");
+      return;
+    }
+
+    setAddressBusy(true);
+    setMessage("");
+
+    try {
+      const endpoint = addressEditor.id
+        ? `/api/customers/${editing.id}/addresses/${addressEditor.id}`
+        : `/api/customers/${editing.id}/addresses`;
+
+      const response = await fetch(endpoint, {
+        method: addressEditor.id ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressEditor),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible guardar la dirección.");
+      }
+
+      mergeEditedCustomerAddresses(data.customer);
+      setAddressEditor(null);
+      emitLiveDataChange(["customers", "account"]);
+      await loadCustomers(true);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "No fue posible guardar la dirección.",
+      );
+    } finally {
+      setAddressBusy(false);
+    }
+  }
+
+  async function setDefaultCustomerAddress(item: CustomerAddress) {
+    if (!editing || item.isDefault) return;
+
+    setAddressBusy(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/customers/${editing.id}/addresses/${item.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isDefault: true }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible cambiar la dirección principal.");
+      }
+
+      mergeEditedCustomerAddresses(data.customer);
+      emitLiveDataChange(["customers", "account"]);
+      await loadCustomers(true);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No fue posible cambiar la dirección principal.",
+      );
+    } finally {
+      setAddressBusy(false);
+    }
+  }
+
+  async function removeCustomerAddress(item: CustomerAddress) {
+    if (!editing) return;
+
+    setAddressBusy(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        `/api/customers/${editing.id}/addresses/${item.id}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible eliminar la dirección.");
+      }
+
+      mergeEditedCustomerAddresses(data.customer);
+      emitLiveDataChange(["customers", "account"]);
+      await loadCustomers(true);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "No fue posible eliminar la dirección.",
+      );
+    } finally {
+      setAddressBusy(false);
     }
   }
 
@@ -1358,11 +1503,174 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-[#faf9f7] p-3">
-                    <label className="mb-1.5 block text-xs font-black">Dirección <span className="font-medium text-neutral-400">(opcional)</span></label>
-                    <input value={address} onChange={(e) => setAddress(e.target.value)} className="alento-input w-full rounded-xl bg-white px-4 py-3" placeholder="Ej. Av. Calle 43 Sur #79A-33" />
-                    <p className="mt-1.5 text-[10px] text-neutral-500">Se guardará como dirección principal.</p>
-                  </div>
+                  <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="alento-ui-label uppercase text-neutral-400">Direcciones</p>
+                        <h3 className="mt-1 text-[16px] font-bold text-neutral-900">
+                          {editing.addresses.length} guardada{editing.addresses.length === 1 ? "" : "s"}
+                        </h3>
+                      </div>
+                      {!addressEditor && (
+                        <button
+                          type="button"
+                          onClick={() => openAddressEditor()}
+                          className="rounded-xl bg-black px-3 py-2 text-[11px] font-bold text-white"
+                        >
+                          + Agregar
+                        </button>
+                      )}
+                    </div>
+
+                    {!addressEditor && (
+                      <div className="mt-3 space-y-2">
+                        {editing.addresses.length ? (
+                          editing.addresses.map((item) => (
+                            <div
+                              key={item.id}
+                              className={
+                                "rounded-2xl border p-3 " +
+                                (item.isDefault
+                                  ? "border-emerald-200 bg-emerald-50/60"
+                                  : "border-neutral-200 bg-white")
+                              }
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <b className="text-[13px] font-bold text-neutral-900">
+                                      {item.label || "Dirección"}
+                                    </b>
+                                    {item.isDefault && (
+                                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                                        Principal
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-[12px] leading-5 text-neutral-700">
+                                    {item.address}
+                                  </p>
+                                  {(item.neighborhood || item.city) && (
+                                    <p className="mt-0.5 text-[10px] text-neutral-400">
+                                      {[item.neighborhood, item.city].filter(Boolean).join(" · ")}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openAddressEditor(item)}
+                                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                  >
+                                    Editar
+                                  </button>
+                                  {!item.isDefault && (
+                                    <button
+                                      type="button"
+                                      disabled={addressBusy}
+                                      onClick={() => void setDefaultCustomerAddress(item)}
+                                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2 text-[10px] font-bold text-neutral-600"
+                                    >
+                                      Principal
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={addressBusy}
+                                    onClick={() => void removeCustomerAddress(item)}
+                                    className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-[10px] font-bold text-red-600"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openAddressEditor()}
+                            className="w-full rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-left"
+                          >
+                            <b className="block text-[13px] text-amber-900">
+                              Sin dirección registrada
+                            </b>
+                            <span className="mt-1 block text-[11px] text-amber-700">
+                              Agrega una dirección para futuros domicilios.
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {addressEditor && (
+                      <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            value={addressEditor.label}
+                            onChange={(event) =>
+                              setAddressEditor({ ...addressEditor, label: event.target.value })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Etiqueta: Casa, Trabajo..."
+                          />
+                          <input
+                            value={addressEditor.neighborhood}
+                            onChange={(event) =>
+                              setAddressEditor({ ...addressEditor, neighborhood: event.target.value })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Barrio (opcional)"
+                          />
+                        </div>
+                        <input
+                          value={addressEditor.address}
+                          onChange={(event) =>
+                            setAddressEditor({ ...addressEditor, address: event.target.value })
+                          }
+                          className="alento-input mt-2 w-full rounded-xl px-3 py-2.5"
+                          placeholder="Dirección *"
+                        />
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <input
+                            value={addressEditor.city}
+                            onChange={(event) =>
+                              setAddressEditor({ ...addressEditor, city: event.target.value })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Ciudad"
+                          />
+                          <input
+                            value={addressEditor.notes}
+                            onChange={(event) =>
+                              setAddressEditor({ ...addressEditor, notes: event.target.value })
+                            }
+                            className="alento-input rounded-xl px-3 py-2.5"
+                            placeholder="Indicaciones (opcional)"
+                          />
+                        </div>
+
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAddressEditor(null)}
+                            className="rounded-xl border px-3 py-2 text-[11px] font-semibold"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={addressBusy}
+                            onClick={() => void saveCustomerAddress()}
+                            className="rounded-xl bg-black px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+                          >
+                            {addressBusy ? "Guardando..." : "Guardar dirección"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
 
                   <div>
                     <label className="mb-1.5 block text-xs font-black">Correo <span className="font-medium text-neutral-400">(opcional)</span></label>
