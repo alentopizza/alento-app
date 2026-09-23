@@ -65,7 +65,12 @@ function formatDuration(seconds?: number | null) {
 type GoogleMapInstance = {
   setCenter: (center: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
-  fitBounds: (bounds: unknown, padding?: number) => void;
+  fitBounds: (
+    bounds: unknown,
+    padding?:
+      | number
+      | { top: number; right: number; bottom: number; left: number },
+  ) => void;
 };
 
 type GoogleMarkerInstance = {
@@ -376,7 +381,12 @@ export default function PublicCheckoutDelivery({
     }
 
     if ((origin || destination) && mapInstanceRef.current) {
-      mapInstanceRef.current.fitBounds(bounds, 56);
+      mapInstanceRef.current.fitBounds(bounds, {
+        top: 78,
+        right: 44,
+        bottom: 64,
+        left: 44,
+      });
     } else {
       mapInstanceRef.current.setCenter(center);
       mapInstanceRef.current.setZoom(destination ? 15 : 14);
@@ -918,7 +928,7 @@ export default function PublicCheckoutDelivery({
                     className={
                       "relative mx-auto w-full overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] shadow-[0_18px_50px_rgba(0,0,0,.28)] sm:rounded-[26px] " +
                       (fullPage
-                        ? "aspect-[16/10] max-w-[860px] min-h-[420px]"
+                        ? "aspect-[3/4] max-w-[680px]"
                         : "aspect-[3/4] max-w-[480px]")
                     }
                   >
@@ -930,30 +940,30 @@ export default function PublicCheckoutDelivery({
                       className="h-full w-full"
                     />
 
-                    <div className="pointer-events-none absolute inset-x-3 top-3 z-10 grid grid-cols-3 overflow-hidden rounded-[18px] border border-white/15 bg-[#111]/88 shadow-[0_12px_30px_rgba(0,0,0,.30)] backdrop-blur-xl sm:inset-x-4 sm:top-4">
-                      <div className="px-2.5 py-2.5 sm:px-3 sm:py-3">
-                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                    <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid grid-cols-3 overflow-hidden rounded-[14px] border border-white/10 bg-[#111]/90 shadow-[0_8px_22px_rgba(0,0,0,.24)] backdrop-blur-xl sm:inset-x-3 sm:top-3">
+                      <div className="px-2 py-1.5 sm:px-2.5 sm:py-2">
+                        <span className="block text-[6px] font-bold uppercase tracking-[0.11em] text-white/38 sm:text-[7px]">
                           Ruta
                         </span>
-                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-white sm:text-[13px]">
+                        <b className="mt-px block truncate text-[10px] leading-4 text-white sm:text-[11px]">
                           {formatDistance(quote.distanceMeters)}
                         </b>
                       </div>
-                      <div className="border-l border-white/10 px-2.5 py-2.5 sm:px-3 sm:py-3">
-                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                      <div className="border-l border-white/[0.08] px-2 py-1.5 sm:px-2.5 sm:py-2">
+                        <span className="block text-[6px] font-bold uppercase tracking-[0.11em] text-white/38 sm:text-[7px]">
                           Domicilio
                         </span>
-                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-[#ff454b] sm:text-[13px]">
+                        <b className="mt-px block truncate text-[10px] leading-4 text-[#ff454b] sm:text-[11px]">
                           {quote.covered && quote.deliveryFee != null
                             ? money(quote.deliveryFee)
                             : "Sin cobertura"}
                         </b>
                       </div>
-                      <div className="border-l border-white/10 px-2.5 py-2.5 sm:px-3 sm:py-3">
-                        <span className="block text-[7px] font-bold uppercase tracking-[0.12em] text-white/38 sm:text-[8px]">
+                      <div className="border-l border-white/[0.08] px-2 py-1.5 sm:px-2.5 sm:py-2">
+                        <span className="block text-[6px] font-bold uppercase tracking-[0.11em] text-white/38 sm:text-[7px]">
                           Tiempo
                         </span>
-                        <b className="mt-0.5 block truncate text-[11px] leading-4 text-white sm:text-[13px]">
+                        <b className="mt-px block truncate text-[10px] leading-4 text-white sm:text-[11px]">
                           {formatDuration(quote.durationSeconds) || "—"}
                         </b>
                       </div>
@@ -962,7 +972,7 @@ export default function PublicCheckoutDelivery({
 
 
                     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2 sm:inset-x-4 sm:bottom-4">
-                      <div className="rounded-full border border-black/5 bg-white/92 px-3 py-2 text-[8px] font-bold text-neutral-800 shadow-lg backdrop-blur sm:text-[9px]">
+                      <div className="rounded-full border border-black/5 bg-white/90 px-2.5 py-1.5 text-[7px] font-bold text-neutral-800 shadow-md backdrop-blur sm:text-[8px]">
                         Alentó → tu ubicación
                       </div>
                       {quoting && (
