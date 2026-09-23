@@ -7,6 +7,7 @@ import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/compone
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import { fulfillmentLabel, nextStatus, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
+import { emitLiveDataChange } from "@/lib/liveDataEvents";
 
 type CustomerAddress = { id: number; address: string };
 type CustomerSearchResult = {
@@ -288,6 +289,7 @@ export default function OrdersCardsDashboardV3() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible actualizar el estado.");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible actualizar el estado.");
     } finally {
@@ -314,6 +316,7 @@ export default function OrdersCardsDashboardV3() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cancelar el pedido.");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible cancelar el pedido.");
     } finally {
@@ -329,6 +332,7 @@ export default function OrdersCardsDashboardV3() {
       if (!response.ok) throw new Error(data.error || "No fue posible eliminar el pedido.");
       if (selected?.id === order.id) setSelected(null);
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible eliminar el pedido.");
     } finally {
@@ -343,6 +347,7 @@ export default function OrdersCardsDashboardV3() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible eliminar el pago.");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible eliminar el pago.");
     } finally {
@@ -412,6 +417,7 @@ export default function OrdersCardsDashboardV3() {
       setCashReceived("");
       setReference("");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (saveError) {
       setPaymentError(saveError instanceof Error ? saveError.message : "No fue posible registrar el pago.");
     } finally {
@@ -470,6 +476,7 @@ export default function OrdersCardsDashboardV3() {
       setEditing(null);
       setStructuredAdditions([]);
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (saveError) {
       setEditError(saveError instanceof Error ? saveError.message : "No fue posible guardar los cambios.");
     } finally {
@@ -531,6 +538,7 @@ export default function OrdersCardsDashboardV3() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible actualizar el cliente.");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
       setCustomerOrder(null);
     } catch (saveError) {
       setCustomerError(saveError instanceof Error ? saveError.message : "No fue posible actualizar el cliente.");
@@ -563,6 +571,7 @@ export default function OrdersCardsDashboardV3() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cambiar el cliente del pedido.");
       await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
       setCustomerOrder(null);
     } catch (saveError) {
       setCustomerError(saveError instanceof Error ? saveError.message : "No fue posible cambiar el cliente del pedido.");
