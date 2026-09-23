@@ -5,7 +5,7 @@ import PublicLandingPageClient from "@/components/PublicLandingPageClient";
 function staffHome(roles: string[]) {
   if (roles.includes("ADMIN") || roles.includes("POS") || roles.includes("CASHIER")) return "/interno";
   if (roles.includes("KITCHEN")) return "/cocina";
-  if (roles.includes("DRIVER") || roles.includes("DISPATCH")) return "/sin-acceso";
+  if (roles.includes("DRIVER") || roles.includes("DISPATCH")) return "/repartidor";
   return "/sin-acceso";
 }
 
