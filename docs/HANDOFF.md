@@ -412,32 +412,19 @@ El cierre del pedido dentro de `/cart` usa pasos de página:
 
 `PublicCheckoutDelivery` y `PublicCheckoutCustomer` aceptan `fullPage`.
 
-No volver a convertir estos pasos en modales centrados, porque direcciones múltiples, Google Maps, ruta y pago requieren más espacio.
+No volver a convertir estos pasos en modales centrados, porque Google Maps, ruta y pago requieren más espacio.
 
-### Direcciones múltiples de clientes
+### Dirección única de clientes
 
-Captura vigente:
+Regla operativa definitiva:
 
-- POS y `/clientes` usan `GoogleCustomerAddressPicker`;
-- las direcciones nuevas se seleccionan desde Google Places;
-- el punto se muestra en mapa y se valida con Routes/cobertura;
-- evitar reintroducir un input libre como captura principal de dirección;
-- barrio e indicaciones son datos complementarios editables manualmente.
-
-### Direcciones múltiples de clientes
-
-`CustomerAddress` es una colección y no debe volver a reducirse a un único campo `address`.
-
-Reglas vigentes:
-
-- POS y `/clientes` permiten agregar, editar, eliminar y marcar principal;
-- la dirección principal (`isDefault=true`) es solo la preferida;
-- al eliminar la principal, se promueve automáticamente la primera restante;
-- el checkout POS permite elegir qué dirección guardada usar en cada domicilio;
-- el checkout público también muestra todas las direcciones guardadas del cliente autenticado;
-- la principal es solo la selección inicial; al elegir otra se recalculan Google Routes, cobertura, tarifa, tiempo y mapa;
-- no sobrescribir la dirección principal al editar datos básicos del cliente;
-- los endpoints de administración son `/api/customers/[id]/addresses` y `/api/customers/[id]/addresses/[addressId]`.
+- cada cliente usa una sola dirección;
+- la dirección válida debe tener `formattedAddress`, `placeId`, `latitude` y `longitude`;
+- POS, `/clientes` y checkout público usan Google Maps para validarla;
+- si solo existe texto heredado, debe mostrarse como **Requiere actualización**;
+- no mostrar selectores de Casa/Trabajo/múltiples direcciones;
+- guardar o usar una dirección válida reemplaza la anterior y elimina duplicados heredados;
+- `CustomerAddress` sigue siendo una relación técnica separada para conservar compatibilidad con pedidos históricos, pero operacionalmente solo se usa un registro activo por cliente.
 
 ### Regla de pedidos cancelados
 
