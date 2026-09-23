@@ -26,7 +26,14 @@ export default async function CustomerAccountPage() {
       customer: {
         include: {
           addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
-          clubPoints: { orderBy: { createdAt: "desc" } },
+          clubPoints: {
+            orderBy: { createdAt: "desc" },
+            include: {
+              order: {
+                select: { status: true },
+              },
+            },
+          },
           orders: {
             orderBy: { createdAt: "desc" },
             take: 10,
@@ -41,7 +48,13 @@ export default async function CustomerAccountPage() {
   const customer = account.customer;
   const validOrders = customer.orders.filter((order) => order.status !== "CANCELED");
   const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
-  const clubPoints = customer.clubPoints.reduce((sum, movement) => sum + movement.points, 0);
+  const validClubMovements = customer.clubPoints.filter(
+    (movement) => !movement.order || movement.order.status !== "CANCELED",
+  );
+  const clubPoints = validClubMovements.reduce(
+    (sum, movement) => sum + movement.points,
+    0,
+  );
 
   return (
     <>
