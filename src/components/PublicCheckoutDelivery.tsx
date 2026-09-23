@@ -217,11 +217,13 @@ export default function PublicCheckoutDelivery({
   initialSelection,
   onClose,
   onConfirm,
+  fullPage = false,
 }: {
   subtotal: number;
   initialSelection?: PublicCheckoutSelection | null;
   onClose: () => void;
   onConfirm: (selection: PublicCheckoutSelection) => void;
+  fullPage?: boolean;
 }) {
   const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -273,6 +275,7 @@ export default function PublicCheckoutDelivery({
   const [savedAddressChecked, setSavedAddressChecked] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedCustomerAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState<number | null>(null);
+  const [resolvingSavedAddressId, setResolvingSavedAddressId] = useState<number | null>(null);
 
   const drawMap = useCallback(async (
     destination?: {
@@ -557,6 +560,11 @@ export default function PublicCheckoutDelivery({
 
   const resolveSavedAddress = useCallback(
     async (addressId: number) => {
+      const previousAddressId = selectedSavedAddressId;
+
+      // Cambio optimista: la tarjeta responde inmediatamente al toque.
+      setSelectedSavedAddressId(addressId);
+      setResolvingSavedAddressId(addressId);
       setLoadingSavedAddress(true);
       setError("");
 
@@ -572,24 +580,32 @@ export default function PublicCheckoutDelivery({
           throw new Error(data.error || "No fue posible cargar esa dirección.");
         }
 
-        setSelectedSavedAddressId(addressId);
+        const latitude = Number(data.address.latitude);
+        const longitude = Number(data.address.longitude);
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          throw new Error("La dirección guardada no tiene una ubicación válida.");
+        }
+
         await requestQuote({
-          latitude: Number(data.address.latitude),
-          longitude: Number(data.address.longitude),
+          latitude,
+          longitude,
           formattedAddress: data.address.formattedAddress || "",
           placeId: data.address.placeId || "",
         });
       } catch (err) {
+        setSelectedSavedAddressId(previousAddressId);
         setError(
           err instanceof Error
             ? err.message
             : "No fue posible usar esa dirección guardada.",
         );
       } finally {
+        setResolvingSavedAddressId(null);
         setLoadingSavedAddress(false);
       }
     },
-    [requestQuote],
+    [requestQuote, selectedSavedAddressId],
   );
 
   const loadSavedCustomerAddress = useCallback(async () => {
@@ -707,13 +723,28 @@ export default function PublicCheckoutDelivery({
 
   return (
     <div
-      className="fixed inset-0 z-[140] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-5"
+      className={
+        fullPage
+          ? "fixed inset-0 z-[140] overflow-y-auto bg-[#090909]"
+          : "fixed inset-0 z-[140] flex items-end justify-center bg-black/80 backdrop-blur-sm sm:items-center sm:p-5"
+      }
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (!fullPage && event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[26px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]">
-        <header className="border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4">
+      <div
+        className={
+          fullPage
+            ? "mx-auto flex min-h-dvh w-full max-w-[1180px] flex-col bg-[#111] text-white"
+            : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[26px] border border-white/10 bg-[#111] text-white shadow-[0_28px_80px_rgba(0,0,0,.55)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
+        }
+      >
+        <header
+          className={
+            "border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4 " +
+            (fullPage ? "sticky top-0 z-30 bg-[#111]/95 backdrop-blur-xl" : "")
+          }
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#ff3439]">
@@ -780,11 +811,21 @@ export default function PublicCheckoutDelivery({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+        <div
+          className={
+            "min-h-0 flex-1 p-3 sm:p-5 " +
+            (fullPage ? "mx-auto w-full max-w-[1080px] overflow-visible py-5 sm:py-7" : "overflow-y-auto")
+          }
+        >
           {fulfillmentType === "DELIVERY" ? (
             <div className="space-y-2.5 sm:space-y-3">
               {savedAddresses.length > 1 && !editingAddress && (
-                <section className="rounded-[18px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[20px]">
+                <section
+                  className={
+                    "rounded-[18px] border border-white/10 bg-white/[0.035] p-3 sm:rounded-[20px] " +
+                    (fullPage ? "sm:p-5" : "")
+                  }
+                >
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/35">
@@ -816,7 +857,7 @@ export default function PublicCheckoutDelivery({
                         <button
                           key={item.id}
                           type="button"
-                          disabled={loadingSavedAddress}
+                          disabled={resolvingSavedAddressId === item.id}
                           onClick={() => void resolveSavedAddress(item.id)}
                           className={
                             "rounded-[14px] border p-3 text-left transition disabled:opacity-50 " +
@@ -836,9 +877,13 @@ export default function PublicCheckoutDelivery({
                                 </span>
                               )}
                             </div>
-                            {selected && (
+                            {resolvingSavedAddressId === item.id ? (
+                              <span className="text-[10px] font-bold text-[#ff777b]">
+                                Calculando...
+                              </span>
+                            ) : selected ? (
                               <span className="text-[13px] font-bold text-[#ff454b]">✓</span>
-                            )}
+                            ) : null}
                           </div>
 
                           <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/55">
@@ -946,7 +991,14 @@ export default function PublicCheckoutDelivery({
 
               {quote?.destination && (
                 <>
-                  <section className="relative mx-auto aspect-[3/4] w-full max-w-[480px] overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] shadow-[0_18px_50px_rgba(0,0,0,.28)] sm:rounded-[26px]">
+                  <section
+                    className={
+                      "relative mx-auto w-full overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] shadow-[0_18px_50px_rgba(0,0,0,.28)] sm:rounded-[26px] " +
+                      (fullPage
+                        ? "aspect-[16/10] max-w-[860px] min-h-[420px]"
+                        : "aspect-[3/4] max-w-[480px]")
+                    }
+                  >
                     <div
                       ref={(element) => {
                         mapRef.current = element;
@@ -1024,7 +1076,12 @@ export default function PublicCheckoutDelivery({
           )}
         </div>
 
-        <footer className="border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4">
+        <footer
+          className={
+            "border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4 " +
+            (fullPage ? "sticky bottom-0 z-30 mt-auto" : "")
+          }
+        >
           <div className="mb-2 flex items-center justify-between sm:mb-3">
             <span className="text-[10px] text-white/40">Total provisional</span>
             <b className="text-[20px] sm:text-[22px]">{money(total)}</b>
