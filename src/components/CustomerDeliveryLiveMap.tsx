@@ -175,6 +175,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
   const driverMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
   const destinationMarkerRef = useRef<{ setMap: (map: GoogleMapInstance | null) => void } | null>(null);
   const routeRef = useRef<GooglePolylineInstance | null>(null);
+  const routeDataRef = useRef<LivePayload["route"]>(null);
 
   const [data, setData] = useState<LivePayload | null>(null);
   const [routeData, setRouteData] = useState<LivePayload["route"]>(null);
@@ -295,12 +296,18 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
       const next = payload as LivePayload;
       setData(next);
 
-      const nextRoute = next.route ?? routeData;
-      if (next.route) setRouteData(next.route);
+      if (next.route) {
+        routeDataRef.current = next.route;
+        setRouteData(next.route);
+      }
 
-      await drawMap(next, nextRoute, Boolean(next.route));
+      await drawMap(
+        next,
+        next.route ?? routeDataRef.current,
+        Boolean(next.route),
+      );
     },
-    [drawMap, routeData, token],
+    [drawMap, token],
   );
 
   useEffect(() => {
