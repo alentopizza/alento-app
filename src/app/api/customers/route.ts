@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
         select: {
           id: true,
+          label: true,
           address: true,
           neighborhood: true,
           city: true,
@@ -139,6 +140,7 @@ export async function POST(request: NextRequest) {
           orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
           select: {
             id: true,
+            label: true,
             address: true,
             neighborhood: true,
             city: true,
