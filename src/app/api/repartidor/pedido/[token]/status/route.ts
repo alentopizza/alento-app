@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
   const body = await request.json().catch(() => ({}));
   const requested = String(body?.status || "").toUpperCase();
-  if (!["OUT_FOR_DELIVERY", "ARRIVED"].includes(requested)) {
+  if (!["OUT_FOR_DELIVERY", "ARRIVED", "DELIVERED"].includes(requested)) {
     return NextResponse.json({ error: "Estado de reparto inválido." }, { status: 400 });
   }
 
@@ -85,7 +85,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
   const allowed =
     (requested === "OUT_FOR_DELIVERY" && order.status === "READY") ||
-    (requested === "ARRIVED" && order.status === "OUT_FOR_DELIVERY");
+    (requested === "ARRIVED" && order.status === "OUT_FOR_DELIVERY") ||
+    (requested === "DELIVERED" && order.status === "ARRIVED");
 
   if (!allowed) {
     return NextResponse.json({ error: "El pedido aún no está listo para esta acción o ya fue actualizado." }, { status: 409 });
@@ -93,7 +94,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
   const updated = await prisma.order.update({
     where: { id: order.id },
-    data: { status: requested as "OUT_FOR_DELIVERY" | "ARRIVED" },
+    data:
+      requested === "DELIVERED"
+        ? {
+            status: "DELIVERED",
+            driverLatitude: null,
+            driverLongitude: null,
+            driverLocationAccuracy: null,
+            driverLocationUpdatedAt: null,
+          }
+        : {
+            status: requested as "OUT_FOR_DELIVERY" | "ARRIVED",
+          },
     select: { id: true, status: true, updatedAt: true },
   });
 
