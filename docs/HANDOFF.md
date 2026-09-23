@@ -389,6 +389,15 @@ La creación pública ya existe mediante `/api/public-checkout` y genera pedidos
 
 `POST /api/orders` sigue siendo el flujo interno protegido y crea `source=POS`.
 
+### Regla de pedidos cancelados
+
+- un pedido cancelado sigue visible en el historial del cliente con etiqueta `CANCELADO`;
+- no cuenta dentro de las métricas de pedidos/compras válidas;
+- nunca debe sumar puntos Club;
+- al cancelar, eliminar cualquier `ClubPointTransaction` ligado al pedido;
+- al calcular saldo Club, ignorar movimientos cuyo pedido esté `CANCELED`;
+- esta doble protección cubre tanto flujo nuevo como datos históricos inconsistentes.
+
 ### Club Alentó
 
 - `/club` funciona como invitado y autenticado;
