@@ -604,17 +604,6 @@ export default function PublicCheckoutCustomer({
                 )}
               </section>
 
-              {selection.fulfillmentType === "DELIVERY" &&
-                selection.destination && (
-                  <section className="rounded-[18px] border border-white/10 bg-white/[0.025] px-4 py-3">
-                    <span className="text-[8px] font-black uppercase tracking-[0.12em] text-white/28">
-                      Entrega
-                    </span>
-                    <b className="mt-1 block text-[11px] leading-5 text-white/75">
-                      {selection.destination.formattedAddress}
-                    </b>
-                  </section>
-                )}
             </div>
           )}
 
@@ -627,7 +616,7 @@ export default function PublicCheckoutCustomer({
 
         <footer
           className={
-            "border-t border-white/10 bg-[#0c0c0c] p-3 sm:p-4 " +
+            "border-t border-white/10 bg-[#0c0c0c] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3 " +
             (fullPage ? "sticky bottom-0 z-20 mt-auto" : "")
           }
         >
@@ -642,14 +631,6 @@ export default function PublicCheckoutCustomer({
             className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-bold uppercase tracking-[0.05em] text-white disabled:bg-white/10 disabled:text-white/30"
           >
             {creating ? "Creando pedido..." : "Confirmar compra"}
-          </button>
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={creating}
-            className="mt-1 h-9 w-full text-[9px] font-semibold text-white/35"
-          >
-            Volver a entrega
           </button>
         </footer>
       </div>
