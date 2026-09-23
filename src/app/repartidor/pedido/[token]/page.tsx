@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import DriverOrderActions from "@/components/DriverOrderActions";
 import DriverOrderStatus from "@/components/DriverOrderStatus";
+import DriverDestinationActions from "@/components/DriverDestinationActions";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 
@@ -33,7 +34,16 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       total: true,
       notes: true,
       deliveryZoneName: true,
-      address: { select: { address: true, neighborhood: true, notes: true } },
+      address: {
+        select: {
+          address: true,
+          formattedAddress: true,
+          neighborhood: true,
+          notes: true,
+          latitude: true,
+          longitude: true,
+        },
+      },
       customer: { select: { name: true, countryCode: true, phone: true } },
       payments: {
         where: { status: { not: "CANCELED" } },
@@ -81,27 +91,11 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               </h2>
             </div>
 
-            {phone && (
-              <a
-                href={`tel:${phone}`}
-                aria-label={`Llamar a ${order.customer?.name ?? "cliente"}`}
-                title={`Llamar · ${phone}`}
-                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#111] text-white shadow-[0_7px_16px_rgba(0,0,0,.18)] transition hover:bg-black active:scale-[.97] sm:right-5"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  className="h-[17px] w-[17px]"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.24-1.24a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
-                </svg>
-              </a>
-            )}
+            <DriverDestinationActions
+              token={token}
+              phone={phone}
+              customerName={order.customer?.name ?? "Cliente"}
+            />
 
             <div className="mt-3 rounded-xl bg-[#111] px-3 py-3 text-white">
               <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
