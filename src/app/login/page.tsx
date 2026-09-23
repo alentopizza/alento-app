@@ -189,7 +189,7 @@ export default function UnifiedLoginPage() {
           <div className="mx-auto flex h-[68px] w-[68px] items-center justify-center rounded-[22px] border border-white/10 bg-white/[0.04] shadow-[0_12px_30px_rgba(0,0,0,.35)]">
             <img src={LOGO} alt="Alentó Pizza" className="h-[56px] w-[56px] rounded-2xl object-cover" />
           </div>
-          <p className="mt-4 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#ef3a40]">
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ef3a40]">
             {mode === "customer" ? "Tu cuenta Alentó" : "Acceso colaboradores"}
           </p>
           <h1 className="mt-1 text-[27px] font-semibold tracking-[-0.03em] text-white">
