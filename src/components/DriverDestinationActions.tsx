@@ -395,7 +395,7 @@ export default function DriverDestinationActions({
 
             try {
               const next = await requestNavigation(position);
-              if (nextOrigin) await drawMap(next, nextOrigin);
+              await drawMap(next, nextOrigin);
               if (!disposed) setError("");
             } catch (err) {
               if (!disposed) {
