@@ -10,6 +10,15 @@
   --brand-red: #e51c11;
   --brand-red-dark: #b8140c;
   --brand-black: #0b0b0c;
+
+  /* Escala tipográfica operativa Alentó.
+     Evitar textos funcionales menores a 10px. */
+  --ui-text-micro: 10px;
+  --ui-text-label: 11px;
+  --ui-text-control: 13px;
+  --ui-text-body: 14px;
+  --ui-text-status: 16px;
+  --ui-text-title: 20px;
 }
 
 * {
@@ -31,6 +40,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-synthesis: none;
 }
 
 button,
@@ -50,6 +60,48 @@ button:active:not(:disabled) {
 
 ::selection {
   background: rgba(229, 28, 17, 0.16);
+}
+
+/* Tipografía operativa reutilizable.
+   Micro = ayudas secundarias, Label = rótulos, Control = inputs/botones,
+   Status = estados y acciones principales. */
+.alento-ui-micro {
+  font-size: var(--ui-text-micro);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.alento-ui-label {
+  font-size: var(--ui-text-label);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.alento-ui-control {
+  font-size: var(--ui-text-control);
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.alento-ui-body {
+  font-size: var(--ui-text-body);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.alento-ui-status {
+  font-size: var(--ui-text-status);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.alento-ui-title {
+  font-size: var(--ui-text-title);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .alento-card {
