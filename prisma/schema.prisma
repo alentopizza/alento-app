@@ -139,18 +139,22 @@ model CustomerAuthCode {
 }
 
 model CustomerAddress {
-  id           Int      @id @default(autoincrement())
-  customerId   Int
-  label        String?
-  address      String
-  neighborhood String?
-  city         String?  @default("Bogotá")
-  notes        String?
-  isDefault    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  orders       Order[]
+  id               Int      @id @default(autoincrement())
+  customerId       Int
+  label            String?
+  address          String
+  formattedAddress String?
+  placeId          String?
+  latitude         Float?
+  longitude        Float?
+  neighborhood     String?
+  city             String?  @default("Bogotá")
+  notes            String?
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders           Order[]
 
   @@index([customerId])
 }
