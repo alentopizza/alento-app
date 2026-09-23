@@ -214,6 +214,23 @@ Reglas actuales:
 - El mapa dibuja la ruta Alentó → cliente y resume Ruta / Domicilio / Tiempo en una sola fila.
 - El carrito ya habilita **Continuar pedido**, conserva la modalidad/domicilio seleccionado y muestra domicilio + total provisional.
 
+## Checkout como flujo de página
+
+El checkout público ya no debe crecer como una cadena de modales.
+
+Flujo vigente dentro de `/cart`:
+
+`Carrito → Entrega → Datos y pago → Confirmación`
+
+Reglas:
+
+- Entrega se renderiza como contenido de página, no como overlay;
+- Datos y pago también usa modo de página completa;
+- el header público permanece visible;
+- cada paso conserva navegación de regreso al anterior;
+- mapa y selector de direcciones aprovechan el ancho disponible;
+- no reintroducir contenedores centrados de 680px para este flujo salvo una necesidad puntual.
+
 ## Selección de direcciones guardadas
 
 Cuando un cliente autenticado tiene varias `CustomerAddress`:
