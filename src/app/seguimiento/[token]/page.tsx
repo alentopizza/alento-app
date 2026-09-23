@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
-import { getCustomerSession } from "@/lib/auth";
 import { isRecord } from "@/lib/orderConfiguration";
 
 export const dynamic = "force-dynamic";
@@ -196,7 +195,6 @@ export default async function TrackingPage({
       id: true,
       sequenceNumber: true,
       source: true,
-      customerId: true,
       status: true,
       fulfillmentType: true,
       subtotal: true,
@@ -222,15 +220,13 @@ export default async function TrackingPage({
 
   if (!order) notFound();
 
-  const session = await getCustomerSession();
-  const ownOrder = Boolean(session && session.customerId === order.customerId);
   const code = `${order.source}-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
   const { stages, current } = trackingStages(order.fulfillmentType, order.status);
   const activeLabel = STATUS_LABEL[order.status] ?? order.status;
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
 
   return (
-    <main className="min-h-screen bg-[#f5f3ef] px-4 pb-6 pt-3 text-neutral-950 sm:px-6 sm:pt-4 lg:pb-10 lg:pt-5">
+    <main className="min-h-screen bg-[#f5f3ef] px-4 pb-28 pt-3 text-neutral-950 sm:px-6 sm:pb-28 sm:pt-4 lg:pt-5">
       <LivePageRefresh intervalMs={3000} />
       <div className="mx-auto max-w-[760px]">
         <section className="overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,.07)]">
@@ -450,26 +446,19 @@ export default async function TrackingPage({
               </div>
             </section>
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <Link
-                href="/menu"
-                className="flex h-12 items-center justify-center rounded-full bg-[#111] px-5 text-[11px] font-bold text-white shadow-sm transition hover:bg-black"
-              >
-                Volver al menú
-              </Link>
-              <Link
-                href={ownOrder ? "/cuenta" : "/login"}
-                className="flex h-12 items-center justify-center rounded-full border border-neutral-200 bg-white px-5 text-[11px] font-bold text-neutral-700 shadow-sm transition hover:bg-neutral-50"
-              >
-                {ownOrder ? "Ir a mi cuenta" : "Iniciar sesión"}
-              </Link>
-            </div>
           </div>
         </section>
+      </div>
 
-        <footer className="px-2 py-5 text-center text-[11px] text-neutral-400">
-          Alentó Pizza · Sabor Que Te Hace Volver.
-        </footer>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-[#f5f3ef]/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-6">
+        <div className="mx-auto max-w-[760px]">
+          <Link
+            href="/menu"
+            className="flex h-13 w-full items-center justify-center rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_12px_30px_rgba(226,26,34,.24)] transition hover:bg-[#c9151c] active:scale-[0.99]"
+          >
+            Volver al menú
+          </Link>
+        </div>
       </div>
     </main>
   );
