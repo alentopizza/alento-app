@@ -108,6 +108,7 @@ model User {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   assignedOrders      Order[]          @relation("OrderDriver")
+  doughPreparations DoughPreparation[]
 
   @@index([active])
   @@index([whatsappPhone])
@@ -456,4 +457,32 @@ model AppSetting {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model DoughPreparation {
+  id               Int      @id @default(autoincrement())
+  createdById      Int?
+  createdByName    String
+  personalCount    Int      @default(0)
+  mediumCount      Int      @default(0)
+  largeCount       Int      @default(0)
+  extraLargeCount  Int      @default(0)
+  totalBalls       Int
+  totalWeightGrams Int
+  hydrationPct     Decimal  @db.Decimal(5, 2)
+  adnPct           Decimal  @db.Decimal(5, 2)
+  sugarPct         Decimal  @db.Decimal(5, 2)
+  saltPct          Decimal  @db.Decimal(5, 2)
+  yeastPct         Decimal  @db.Decimal(5, 2)
+  flourGrams       Decimal  @db.Decimal(14, 3)
+  waterGrams       Decimal  @db.Decimal(14, 3)
+  adnGrams         Decimal  @db.Decimal(14, 3)
+  sugarGrams       Decimal  @db.Decimal(14, 3)
+  saltGrams        Decimal  @db.Decimal(14, 3)
+  yeastGrams       Decimal  @db.Decimal(14, 3)
+  createdAt        DateTime @default(now())
+  createdBy        User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([createdById])
 }
