@@ -2,12 +2,32 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { PresentedDetail } from "@/lib/orderPresentation";
 
 type ChecklistItem = {
   id: number;
   productName: string;
+  variantName: string | null;
   quantity: number;
+  lineTotal: number;
+  details: PresentedDetail[];
+  notes: string | null;
 };
+
+type DriverLocationSnapshot = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+};
+
+function money(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export default function DriverOrderActions({
   token,
@@ -20,12 +40,21 @@ export default function DriverOrderActions({
 }) {
   const router = useRouter();
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const locationWatchRef = useRef<number | null>(null);
+
   const [status, setStatus] = useState(initialStatus);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
+  const [locationState, setLocationState] = useState<
+    "idle" | "requesting" | "active" | "error"
+  >("idle");
+  const [locationSnapshot, setLocationSnapshot] =
+    useState<DriverLocationSnapshot | null>(null);
+  const [locationError, setLocationError] = useState("");
+
   const storageKey = `alento-driver-checklist:${token}`;
 
   useEffect(() => {
@@ -54,6 +83,23 @@ export default function DriverOrderActions({
     }
   }, [status, storageKey, items]);
 
+  useEffect(() => {
+    return () => {
+      if (locationWatchRef.current != null) {
+        navigator.geolocation?.clearWatch(locationWatchRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status === "ARRIVED" && locationWatchRef.current != null) {
+      navigator.geolocation.clearWatch(locationWatchRef.current);
+      locationWatchRef.current = null;
+      setLocationState("idle");
+      setLocationSnapshot(null);
+    }
+  }, [status]);
+
   const target =
     status === "READY"
       ? "OUT_FOR_DELIVERY"
@@ -73,6 +119,13 @@ export default function DriverOrderActions({
     [items, checkedIds],
   );
 
+  const locationActive =
+    locationState === "active" &&
+    locationSnapshot != null &&
+    Date.now() - locationSnapshot.timestamp < 60_000;
+
+  const canStartDelivery = allChecked && locationActive;
+
   function toggleItem(itemId: number) {
     if (busy || status !== "READY") return;
 
@@ -84,6 +137,67 @@ export default function DriverOrderActions({
       window.localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
+  }
+
+  function stopLocationSharing() {
+    if (locationWatchRef.current != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(locationWatchRef.current);
+    }
+    locationWatchRef.current = null;
+    setLocationState("idle");
+    setLocationSnapshot(null);
+    setLocationError("");
+  }
+
+  function startLocationSharing() {
+    if (!navigator.geolocation) {
+      setLocationState("error");
+      setLocationError(
+        "Este dispositivo o navegador no permite compartir ubicación.",
+      );
+      return;
+    }
+
+    if (locationWatchRef.current != null) return;
+
+    setLocationState("requesting");
+    setLocationError("");
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setLocationSnapshot({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: Date.now(),
+        });
+        setLocationState("active");
+        setLocationError("");
+      },
+      (error) => {
+        locationWatchRef.current = null;
+        setLocationState("error");
+
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError(
+            "Debes permitir el acceso a la ubicación para iniciar el domicilio.",
+          );
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationError("No fue posible obtener tu ubicación actual.");
+        } else {
+          setLocationError(
+            "La ubicación tardó demasiado. Intenta activarla nuevamente.",
+          );
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10_000,
+        timeout: 15_000,
+      },
+    );
+
+    locationWatchRef.current = watchId;
   }
 
   function updateFromPointer(clientX: number) {
@@ -107,6 +221,14 @@ export default function DriverOrderActions({
       return;
     }
 
+    if (next === "OUT_FOR_DELIVERY" && !locationActive) {
+      setNotice(
+        "Activa Compartir ubicación en tiempo real antes de iniciar el domicilio.",
+      );
+      setProgress(0);
+      return;
+    }
+
     setBusy(true);
     setNotice("");
 
@@ -118,11 +240,15 @@ export default function DriverOrderActions({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: next,
-            checklistItemIds: next === "OUT_FOR_DELIVERY" ? checkedIds : undefined,
+            checklistItemIds:
+              next === "OUT_FOR_DELIVERY" ? checkedIds : undefined,
+            location:
+              next === "OUT_FOR_DELIVERY" ? locationSnapshot : undefined,
           }),
         },
       );
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "No fue posible actualizar el pedido.");
       }
@@ -136,7 +262,7 @@ export default function DriverOrderActions({
 
       setNotice(
         next === "OUT_FOR_DELIVERY"
-          ? "Entrega iniciada. El cliente fue notificado."
+          ? "Entrega iniciada. La ubicación sigue compartiéndose y el cliente fue notificado."
           : "Llegada registrada. El cliente fue notificado.",
       );
 
@@ -163,9 +289,13 @@ export default function DriverOrderActions({
       return;
     }
 
-    if (target === "OUT_FOR_DELIVERY" && !allChecked) {
+    if (target === "OUT_FOR_DELIVERY" && !canStartDelivery) {
       setProgress(0);
-      setNotice("Completa la verificación del pedido antes de salir.");
+      setNotice(
+        !allChecked
+          ? "Completa la verificación del pedido antes de salir."
+          : "Activa Compartir ubicación en tiempo real antes de salir.",
+      );
       return;
     }
 
@@ -180,12 +310,14 @@ export default function DriverOrderActions({
 
   if (!target || !label) {
     return (
-      <section className="rounded-[24px] bg-[#101011] p-5 text-center text-white">
-        <p className="text-[9px] font-bold uppercase tracking-[.13em] text-white/45">
+      <section className="rounded-[24px] border border-white/10 bg-[#101011] p-5 text-center text-white shadow-xl">
+        <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
           Estado operativo
         </p>
         <h3 className="mt-2 text-xl font-black">
-          {status === "ARRIVED" ? "Llegada registrada" : "Sin acciones pendientes"}
+          {status === "ARRIVED"
+            ? "Llegada registrada"
+            : "Sin acciones pendientes"}
         </h3>
         <p className="mt-2 text-xs leading-5 text-white/55">
           La operación continuará desde Alentó.
@@ -195,89 +327,256 @@ export default function DriverOrderActions({
   }
 
   return (
-    <section className="overflow-hidden rounded-[24px] bg-[#101011] text-white shadow-xl">
+    <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]">
       {target === "OUT_FOR_DELIVERY" && (
-        <div className="border-b border-white/10 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[.13em] text-white/45">
-                Verificación obligatoria
-              </p>
-              <h3 className="mt-2 text-xl font-black">Revisa el pedido antes de salir</h3>
-              <p className="mt-1 text-xs leading-5 text-white/55">
-                Marca cada producto que llevas. El botón para iniciar el domicilio se habilita únicamente cuando el pedido esté completo.
-              </p>
+        <>
+          <div className="border-b border-white/10 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
+                  1 · Verificación del pedido
+                </p>
+                <h3 className="mt-2 text-xl font-black">
+                  Revisa antes de salir
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/55">
+                  Confirma cada producto y su configuración antes de iniciar el domicilio.
+                </p>
+              </div>
+
+              <span
+                className={
+                  "shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black " +
+                  (allChecked
+                    ? "bg-[#e21a22] text-white"
+                    : "bg-white/10 text-white/60")
+                }
+              >
+                {checkedIds.length}/{items.length}
+              </span>
             </div>
-            <span className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black ${allChecked ? "bg-emerald-400/15 text-emerald-300" : "bg-white/10 text-white/60"}`}>
-              {checkedIds.length}/{items.length}
-            </span>
+
+            <div className="mt-4 space-y-2.5">
+              {items.map((item) => {
+                const checked = checkedIds.includes(item.id);
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => toggleItem(item.id)}
+                    disabled={busy}
+                    className={
+                      "w-full overflow-hidden rounded-[18px] border text-left transition " +
+                      (checked
+                        ? "border-[#e21a22]/45 bg-[#e21a22]/10"
+                        : "border-white/10 bg-white/[0.045] hover:bg-white/[0.07]")
+                    }
+                  >
+                    <div className="flex items-start gap-3 p-3.5">
+                      <span
+                        className={
+                          "flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl px-2 text-[10px] font-black " +
+                          (checked
+                            ? "bg-[#e21a22] text-white"
+                            : "bg-white/10 text-white")
+                        }
+                      >
+                        {item.quantity}×
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block text-[12px] font-black leading-5 text-white">
+                              {item.productName}
+                            </b>
+                            {item.variantName && (
+                              <span className="mt-0.5 block text-[9px] font-semibold text-white/45">
+                                {item.variantName}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2">
+                            <b className="text-[11px] text-white/72">
+                              {money(item.lineTotal)}
+                            </b>
+                            <span
+                              className={
+                                "flex h-7 w-7 items-center justify-center rounded-lg border text-[12px] font-black " +
+                                (checked
+                                  ? "border-[#e21a22] bg-[#e21a22] text-white"
+                                  : "border-white/20 bg-black/20 text-transparent")
+                              }
+                            >
+                              ✓
+                            </span>
+                          </div>
+                        </div>
+
+                        {item.details.length > 0 && (
+                          <div className="mt-2 space-y-0.5">
+                            {item.details.map((detail, index) => (
+                              <p
+                                key={`${detail.label}-${detail.value}-${index}`}
+                                className="text-[9px] leading-4 text-white/48"
+                              >
+                                <span className="font-bold text-white/65">
+                                  {detail.label}:
+                                </span>{" "}
+                                {detail.value}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        {item.notes && (
+                          <p className="mt-2 rounded-lg border border-[#e21a22]/20 bg-[#e21a22]/10 px-2.5 py-1.5 text-[9px] leading-4 text-white/70">
+                            Nota: {item.notes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="mt-4 space-y-2">
-            {items.map((item) => {
-              const checked = checkedIds.includes(item.id);
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => toggleItem(item.id)}
-                  disabled={busy}
-                  className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${checked
-                    ? "border-emerald-400/30 bg-emerald-400/10"
-                    : "border-white/10 bg-white/[0.055] hover:bg-white/[0.08]"
-                  }`}
+          <div className="border-b border-white/10 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
+                  2 · Ubicación
+                </p>
+                <h3 className="mt-2 text-xl font-black">
+                  Compartir ubicación en tiempo real
+                </h3>
+                <p className="mt-1 max-w-[470px] text-xs leading-5 text-white/55">
+                  Mantén la ubicación activa durante el domicilio. Más adelante esta señal alimentará el seguimiento en vivo del cliente.
+                </p>
+              </div>
+
+              <span
+                className={
+                  "shrink-0 rounded-full px-3 py-1.5 text-[9px] font-black uppercase " +
+                  (locationActive
+                    ? "bg-[#e21a22] text-white"
+                    : locationState === "requesting"
+                      ? "bg-white/10 text-white/65"
+                      : "bg-white/[0.06] text-white/40")
+                }
+              >
+                {locationActive
+                  ? "Activa"
+                  : locationState === "requesting"
+                    ? "Activando"
+                    : "Inactiva"}
+              </span>
+            </div>
+
+            <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.045] p-3.5">
+              <div className="flex items-center gap-3">
+                <div
+                  className={
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full " +
+                    (locationActive
+                      ? "bg-[#e21a22] text-white"
+                      : "bg-white/10 text-white/55")
+                  }
                 >
-                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-sm font-black ${checked
-                    ? "border-emerald-400 bg-emerald-400 text-black"
-                    : "border-white/20 bg-black/20 text-transparent"
-                  }`}>
-                    ✓
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-sm font-bold text-white">{item.productName}</b>
-                    <span className="mt-0.5 block text-[10px] text-white/45">
-                      Confirmar {item.quantity === 1 ? "1 unidad" : `${item.quantity} unidades`}
-                    </span>
-                  </span>
-                  <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-black text-white">
-                    ×{item.quantity}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                    <circle cx="12" cy="12" r="8" />
+                  </svg>
+                </div>
 
-          {allChecked && (
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2.5 text-[11px] font-bold text-emerald-200">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-[10px] text-black">✓</span>
-              Pedido verificado. Ya puedes iniciar la entrega.
+                <div className="min-w-0 flex-1">
+                  <b className="block text-[11px] text-white">
+                    {locationActive
+                      ? "Ubicación compartiéndose"
+                      : "Ubicación requerida para salir"}
+                  </b>
+                  <p className="mt-0.5 text-[9px] leading-4 text-white/42">
+                    {locationActive && locationSnapshot
+                      ? `Precisión aproximada: ±${Math.round(locationSnapshot.accuracy)} m`
+                      : "El navegador solicitará permiso para acceder a tu GPS."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={busy || locationState === "requesting"}
+                  onClick={
+                    locationActive ? stopLocationSharing : startLocationSharing
+                  }
+                  className={
+                    "h-10 shrink-0 rounded-xl px-3 text-[10px] font-black transition disabled:opacity-50 " +
+                    (locationActive
+                      ? "border border-white/10 bg-white/[0.06] text-white/65 hover:text-white"
+                      : "bg-[#e21a22] text-white hover:bg-[#c9151c]")
+                  }
+                >
+                  {locationState === "requesting"
+                    ? "Activando..."
+                    : locationActive
+                      ? "Detener"
+                      : "Activar"}
+                </button>
+              </div>
+
+              {locationError && (
+                <p className="mt-3 rounded-xl border border-[#e21a22]/25 bg-[#e21a22]/10 px-3 py-2.5 text-[10px] font-semibold leading-4 text-[#ff7a7e]">
+                  {locationError}
+                </p>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
 
       <div className="p-5">
-        <p className="text-[9px] font-bold uppercase tracking-[.13em] text-white/45">
-          Acción del repartidor
+        <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
+          {target === "OUT_FOR_DELIVERY"
+            ? "3 · Acción del repartidor"
+            : "Acción del repartidor"}
         </p>
         <h3 className="mt-2 text-xl font-black">
-          {target === "OUT_FOR_DELIVERY" ? "Salir a domicilio" : "Confirmar llegada"}
+          {target === "OUT_FOR_DELIVERY"
+            ? "Salir a domicilio"
+            : "Confirmar llegada"}
         </h3>
+
         <p className="mt-1 text-xs leading-5 text-white/55">
           {target === "OUT_FOR_DELIVERY" && !allChecked
             ? "Primero completa la verificación de todos los productos."
-            : "Desliza para confirmar. El estado se actualiza inmediatamente y Alentó envía la notificación correspondiente al cliente."}
+            : target === "OUT_FOR_DELIVERY" && !locationActive
+              ? "Activa Compartir ubicación en tiempo real para habilitar la salida."
+              : "Desliza para confirmar. El estado se actualiza inmediatamente y Alentó envía la notificación correspondiente al cliente."}
         </p>
 
         <div
           ref={trackRef}
-          className={`relative mt-5 h-[62px] w-full overflow-hidden rounded-full border shadow-inner backdrop-blur-sm ${target === "OUT_FOR_DELIVERY" && !allChecked
-            ? "border-white/10 bg-white/[0.035] opacity-45"
-            : "border-white/15 bg-white/[0.08]"
-          }`}
+          className={
+            "relative mt-5 h-[62px] w-full overflow-hidden rounded-full border shadow-inner backdrop-blur-sm " +
+            (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+              ? "border-white/10 bg-white/[0.035] opacity-45"
+              : "border-white/15 bg-white/[0.08]")
+          }
         >
           <div
-            className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#df1f26]"
+            className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#e21a22]"
             style={{
               width: `calc(54px + (100% - 62px) * ${progress})`,
               transition: dragging
@@ -298,15 +597,19 @@ export default function DriverOrderActions({
                 ? "Actualizando..."
                 : target === "OUT_FOR_DELIVERY" && !allChecked
                   ? "Verifica el pedido"
-                  : label}
+                  : target === "OUT_FOR_DELIVERY" && !locationActive
+                    ? "Activa ubicación"
+                    : label}
             </span>
           </div>
 
           <button
             type="button"
             aria-label={label}
-            disabled={busy || (target === "OUT_FOR_DELIVERY" && !allChecked)}
-            className="absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={
+              busy || (target === "OUT_FOR_DELIVERY" && !canStartDelivery)
+            }
+            className="absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-white text-black shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
             style={{
               left: `calc(4px + (100% - 62px) * ${progress})`,
               transition: dragging
@@ -314,7 +617,12 @@ export default function DriverOrderActions({
                 : "left 220ms cubic-bezier(.2,.8,.2,1)",
             }}
             onPointerDown={(event) => {
-              if (busy || (target === "OUT_FOR_DELIVERY" && !allChecked)) return;
+              if (
+                busy ||
+                (target === "OUT_FOR_DELIVERY" && !canStartDelivery)
+              ) {
+                return;
+              }
               event.currentTarget.setPointerCapture(event.pointerId);
               setDragging(true);
               updateFromPointer(event.clientX);
@@ -335,7 +643,7 @@ export default function DriverOrderActions({
               if (
                 (event.key === "Enter" || event.key === " ") &&
                 !busy &&
-                !(target === "OUT_FOR_DELIVERY" && !allChecked)
+                !(target === "OUT_FOR_DELIVERY" && !canStartDelivery)
               ) {
                 event.preventDefault();
                 setProgress(1);
@@ -363,7 +671,7 @@ export default function DriverOrderActions({
         </div>
 
         {notice && (
-          <p className="mt-3 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-semibold text-white/80">
+          <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs font-semibold text-white/80">
             {notice}
           </p>
         )}
