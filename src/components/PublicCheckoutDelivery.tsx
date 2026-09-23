@@ -1007,9 +1007,46 @@ export default function PublicCheckoutDelivery({
             (fullPage ? "sticky bottom-0 z-30 mt-auto" : "")
           }
         >
-          <div className="mb-2 flex items-center justify-between sm:mb-3">
-            <span className="text-[10px] text-white/40">Total provisional</span>
-            <b className="text-[20px] sm:text-[22px]">{money(total)}</b>
+          <div className="mb-3 rounded-[16px] border border-white/[0.07] bg-white/[0.025] px-3.5 py-3 sm:px-4">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[9px] font-semibold text-white/38 sm:text-[10px]">
+                Subtotal
+              </span>
+              <span className="text-[11px] font-semibold text-white/72 sm:text-[12px]">
+                {money(subtotal)}
+              </span>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between gap-4">
+              <span className="text-[9px] font-semibold text-white/38 sm:text-[10px]">
+                Domicilio
+              </span>
+              <span
+                className={
+                  "text-[11px] font-semibold sm:text-[12px] " +
+                  (fulfillmentType === "DELIVERY" &&
+                  quote?.covered &&
+                  quote.deliveryFee != null
+                    ? "text-[#ff454b]"
+                    : "text-white/72")
+                }
+              >
+                {fulfillmentType === "PICKUP"
+                  ? money(0)
+                  : quote?.covered && quote.deliveryFee != null
+                    ? money(quote.deliveryFee)
+                    : "—"}
+              </span>
+            </div>
+
+            <div className="mt-2.5 flex items-end justify-between gap-4 border-t border-white/[0.08] pt-2.5">
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">
+                Total
+              </span>
+              <b className="text-[21px] tracking-[-0.03em] text-white sm:text-[23px]">
+                {money(total)}
+              </b>
+            </div>
           </div>
           <button
             type="button"
