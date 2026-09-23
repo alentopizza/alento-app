@@ -11,7 +11,7 @@ type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
 type CouponType = "FIXED" | "PERCENTAGE";
 
-type CustomerAddress = { id: number; address: string; neighborhood: string | null; city: string | null; notes: string | null };
+type CustomerAddress = { id: number; label?: string | null; address: string; neighborhood: string | null; city: string | null; notes: string | null; isDefault?: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown; notes?: string };
 type DeliveryBand = { id: string; name: string; minMeters: number; maxMeters: number; fee: number; active: boolean };
@@ -191,6 +191,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const [error, setError] = useState("");
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -202,6 +203,11 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     setDiscountInput("");
     setCashReceivedInput("");
     setCreatedOrder(null);
+    const defaultAddress =
+      customer?.addresses?.find((item) => item.isDefault) ??
+      customer?.addresses?.[0] ??
+      null;
+    setSelectedAddressId(defaultAddress?.id ?? null);
 
     async function loadCheckoutData() {
       setLoadingSettings(true);
@@ -240,7 +246,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     }
 
     void loadCheckoutData();
-  }, [open, cart]);
+  }, [open, cart, customer]);
 
   const activeDeliveryZones = useMemo(() => settings?.deliveryBands.filter((zone) => zone.active) ?? [], [settings]);
   const activePaymentMethods = useMemo(() => settings?.paymentMethods.filter((method) => method.active) ?? [], [settings]);
@@ -259,7 +265,12 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     : 0;
   const discount = discountMode === "COUPON" ? couponDiscount : discountMode === "MANUAL" ? manualDiscount : 0;
   const total = Math.max(0, subtotal + deliveryFee - discount);
-  const address = customer?.addresses?.[0]?.address ?? "";
+  const selectedAddress =
+    customer?.addresses?.find((item) => item.id === selectedAddressId) ??
+    customer?.addresses?.find((item) => item.isDefault) ??
+    customer?.addresses?.[0] ??
+    null;
+  const address = selectedAddress?.address ?? "";
   const cashPayment = isCashMethod(selectedPaymentMethod);
   const cashReceived = Number(cashReceivedInput || 0);
   const validCashReceived = Number.isFinite(cashReceived) && cashReceived >= total;
@@ -301,7 +312,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
         body: JSON.stringify({
           fulfillmentType,
           customerId: customer?.id ?? null,
-          addressId: fulfillmentType === "DELIVERY" ? customer?.addresses?.[0]?.id ?? null : null,
+          addressId: fulfillmentType === "DELIVERY" ? selectedAddress?.id ?? null : null,
           deliveryZoneId: fulfillmentType === "DELIVERY" ? selectedDeliveryZone?.id ?? null : null,
           discountMode,
           couponId: discountMode === "COUPON" ? selectedCoupon?.id ?? null : null,
@@ -411,6 +422,48 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                       <div><span>1. Domicilio</span><h3>Dirección y tarifa</h3></div>
                       <p>{address || "Sin dirección"}</p>
                     </div>
+
+                    {customer && customer.addresses.length > 1 && (
+                      <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                        {customer.addresses.map((item) => {
+                          const selected = item.id === selectedAddress?.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedAddressId(item.id);
+                                setError("");
+                              }}
+                              className={
+                                "rounded-xl border p-3 text-left transition " +
+                                (selected
+                                  ? "border-[var(--brand-red)] bg-red-50 ring-1 ring-[var(--brand-red)]"
+                                  : "border-neutral-200 bg-white hover:border-neutral-300")
+                              }
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <b className="text-[12px] font-bold text-neutral-900">
+                                  {item.label || (item.isDefault ? "Principal" : "Dirección")}
+                                </b>
+                                {selected && (
+                                  <span className="text-[11px] font-bold text-[var(--brand-red)]">✓</span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-[11px] leading-4 text-neutral-600">
+                                {item.address}
+                              </p>
+                              {item.isDefault && (
+                                <span className="mt-1.5 inline-flex rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-bold uppercase text-neutral-500">
+                                  Principal
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <div className="checkout-choice-grid checkout-delivery-grid">
                       {activeDeliveryZones.map((zone) => {
                         const selected = deliveryZoneId === zone.id;
