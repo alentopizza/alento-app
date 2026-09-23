@@ -198,6 +198,22 @@ function statusLabel(status: string) {
   return labels[status] ?? status;
 }
 
+function requestStatusBadgeClass(status: string) {
+  if (status === "PREPARING") {
+    return "border border-[#ff454b]/30 bg-[#e21a22]/18 text-[#ff6267]";
+  }
+
+  if (status === "PREPARED") {
+    return "border border-amber-300/30 bg-amber-400/15 text-amber-300";
+  }
+
+  if (status === "READY") {
+    return "border border-emerald-400/30 bg-emerald-400/15 text-emerald-300";
+  }
+
+  return "bg-white/[0.07] text-white/55";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -1174,7 +1190,12 @@ export default function DriverHome({
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <b className="text-[12px] font-black">{order.code}</b>
-                            <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[8px] font-black uppercase text-white/55">
+                            <span
+                              className={
+                                "rounded-full px-2 py-0.5 text-[8px] font-black uppercase " +
+                                requestStatusBadgeClass(order.status)
+                              }
+                            >
                               {statusLabel(order.status)}
                             </span>
                           </div>
