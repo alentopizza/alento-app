@@ -386,6 +386,20 @@ El flujo actual crea `Order.source=WEB`, reutiliza el consecutivo global, vuelve
 
 Referencia: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
+### Pedidos cancelados en la experiencia del cliente
+
+Los pedidos `CANCELED` permanecen visibles en `/cuenta` dentro de Pedidos recientes para conservar trazabilidad.
+
+Reglas vigentes:
+
+- muestran una etiqueta visible **CANCELADO**;
+- el total se presenta atenuado/tachado;
+- se aclara que no cuentan como compra;
+- no suman al total de compras válidas mostrado en Perfil;
+- no generan ni conservan puntos Club Alentó.
+
+Al cancelar desde operación, cualquier `ClubPointTransaction` ligado al pedido se elimina como protección adicional. Perfil y Club también ignoran movimientos históricos asociados a pedidos cancelados.
+
 ### Club Alentó
 
 Club Alentó ya tiene persistencia y superficie pública.
