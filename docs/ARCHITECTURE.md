@@ -293,6 +293,28 @@ El checkout público todavía no crea la orden final. La fase pendiente debe cre
 
 No exponer `POST /api/orders` tal como está al navegador público: hoy es un endpoint interno protegido y fija `source=POS`. La creación WEB necesita un contrato público específico con recálculo y validaciones server-side.
 
+## Escala tipográfica operativa
+
+Desde 2026-09-22, las interfaces operativas de Alentó deben evitar microtexto excesivo.
+
+Escala base definida en `src/app/globals.css`:
+
+- `--ui-text-micro: 10px`: ayudas muy secundarias;
+- `--ui-text-label: 11px`: rótulos y etiquetas;
+- `--ui-text-control: 13px`: inputs, selects y botones;
+- `--ui-text-body: 14px`: texto normal;
+- `--ui-text-status: 16px`: estados y acciones;
+- `--ui-text-title: 20px`: títulos de bloque.
+
+Reglas:
+
+- no usar texto operativo por debajo de 10 px;
+- evitar `font-black` en tamaños pequeños;
+- preferir `font-semibold` / `font-bold` para controles y etiquetas;
+- `font-synthesis: none` está activo globalmente para evitar negrillas sintéticas borrosas;
+- usar las clases `alento-ui-micro`, `alento-ui-label`, `alento-ui-control`, `alento-ui-body`, `alento-ui-status` y `alento-ui-title` antes de inventar nuevos tamaños;
+- si un texto es funcional o necesario para operar, debe priorizar legibilidad sobre densidad.
+
 ## Integraciones
 
 Chatwoot debe actuar como canal de atención, no como un segundo motor de pedidos.
