@@ -524,11 +524,15 @@ Efectivo:
 - **Compartir ubicación en tiempo real** es obligatorio antes de `READY → OUT_FOR_DELIVERY`;
 - el cliente usa `navigator.geolocation.watchPosition()` y mantiene una lectura GPS activa;
 - el endpoint de estado exige checklist completo + lectura GPS válida de máximo 60 segundos para aceptar `OUT_FOR_DELIVERY`;
-- por ahora la lectura GPS se usa como precondición operativa y **no se persiste todavía en Prisma**;
+- la ubicación del repartidor se persiste en `Order.driverLatitude / driverLongitude / driverLocationAccuracy / driverLocationUpdatedAt`;
 - `READY → OUT_FOR_DELIVERY → ARRIVED`;
-- `/seguimiento/[token]` se refresca automáticamente.
+- `/seguimiento/[token]` se refresca automáticamente;
+- durante `OUT_FOR_DELIVERY`, el seguimiento del cliente muestra nombre del repartidor, distancia restante, ETA y mapa en vivo con la moto;
+- el endpoint firmado `/api/seguimiento/[token]/delivery-live` expone únicamente la ubicación de esa orden y puede recalcular ruta con Routes API;
+- el cliente consulta ubicación con mayor frecuencia y recalcula ruta/ETA con menor frecuencia para no sobrerrequerir Google Routes;
+- cuando el repartidor marca `ARRIVED`, el módulo de mapa del cliente desaparece al refrescar el estado.
 
-Persistencia/streaming de GPS en vivo y el icono de la moto sobre el mapa siguen pendientes. La implementación actual deja el `watchPosition` preparado para esa siguiente fase.
+El siguiente paso del rastreo puede ser mejorar animación/heading de la moto y decidir cuánto tiempo conservar o anonimizar la ubicación histórica.
 
 ### Datos del cliente en checkout
 
