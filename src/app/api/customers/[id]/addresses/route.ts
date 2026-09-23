@@ -1,39 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-async function customerWithAddresses(customerId: number) {
-  return prisma.customer.findUnique({
-    where: { id: customerId },
-    select: {
-      id: true,
-      name: true,
-      countryCode: true,
-      phone: true,
-      email: true,
-      notes: true,
-      addresses: {
-        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-        select: {
-          id: true,
-          label: true,
-          address: true,
-          formattedAddress: true,
-          placeId: true,
-          latitude: true,
-          longitude: true,
-          neighborhood: true,
-          city: true,
-          notes: true,
-          isDefault: true,
-        },
-      },
-    },
-  });
-}
-
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
+
+function numberOrNull(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const customerSelect = {
+  id: true,
+  name: true,
+  countryCode: true,
+  phone: true,
+  email: true,
+  notes: true,
+  addresses: {
+    orderBy: [{ isDefault: "desc" as const }, { createdAt: "asc" as const }],
+    take: 1,
+    select: {
+      id: true,
+      label: true,
+      address: true,
+      formattedAddress: true,
+      placeId: true,
+      latitude: true,
+      longitude: true,
+      neighborhood: true,
+      city: true,
+      notes: true,
+      isDefault: true,
+    },
+  },
+};
 
 export async function POST(
   request: NextRequest,
@@ -47,94 +48,96 @@ export async function POST(
   }
 
   const body = await request.json();
-  const address = clean(body.address);
-  const formattedAddress = clean(body.formattedAddress);
+  const formattedAddress = clean(body.formattedAddress || body.address);
   const placeId = clean(body.placeId);
-  const latitude = Number(body.latitude);
-  const longitude = Number(body.longitude);
-  const label = clean(body.label);
+  const latitude = numberOrNull(body.latitude);
+  const longitude = numberOrNull(body.longitude);
+  const label = clean(body.label) || "Casa";
   const neighborhood = clean(body.neighborhood);
   const city = clean(body.city) || "Bogotá";
   const notes = clean(body.notes);
-  const makeDefault = body.isDefault === true;
 
-  if (!address) {
+  if (
+    !formattedAddress ||
+    !placeId ||
+    latitude == null ||
+    longitude == null ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
     return NextResponse.json(
-      { error: "La dirección es obligatoria." },
+      { error: "Selecciona y valida la dirección con Google Maps." },
       { status: 400 },
     );
   }
 
   try {
     const customer = await prisma.$transaction(async (tx) => {
-      const existingCustomer = await tx.customer.findUnique({
+      const exists = await tx.customer.findUnique({
         where: { id: customerId },
-        select: {
-          id: true,
-          _count: { select: { addresses: true } },
-        },
+        select: { id: true },
+      });
+      if (!exists) throw new Error("CUSTOMER_NOT_FOUND");
+
+      const existing = await tx.customerAddress.findFirst({
+        where: { customerId },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
       });
 
-      if (!existingCustomer) {
-        throw new Error("CUSTOMER_NOT_FOUND");
-      }
+      let keepId: number;
 
-      const shouldBeDefault =
-        makeDefault || existingCustomer._count.addresses === 0;
-
-      if (shouldBeDefault) {
-        await tx.customerAddress.updateMany({
-          where: { customerId },
-          data: { isDefault: false },
+      if (existing) {
+        const updated = await tx.customerAddress.update({
+          where: { id: existing.id },
+          data: {
+            label,
+            address: formattedAddress,
+            formattedAddress,
+            placeId,
+            latitude,
+            longitude,
+            neighborhood: neighborhood || null,
+            city,
+            notes: notes || null,
+            isDefault: true,
+          },
         });
+        keepId = updated.id;
+      } else {
+        const created = await tx.customerAddress.create({
+          data: {
+            customerId,
+            label,
+            address: formattedAddress,
+            formattedAddress,
+            placeId,
+            latitude,
+            longitude,
+            neighborhood: neighborhood || null,
+            city,
+            notes: notes || null,
+            isDefault: true,
+          },
+        });
+        keepId = created.id;
       }
 
-      await tx.customerAddress.create({
-        data: {
+      await tx.customerAddress.deleteMany({
+        where: {
           customerId,
-          label: label || null,
-          address,
-          formattedAddress: formattedAddress || null,
-          placeId: placeId || null,
-          latitude: Number.isFinite(latitude) ? latitude : null,
-          longitude: Number.isFinite(longitude) ? longitude : null,
-          neighborhood: neighborhood || null,
-          city: city || null,
-          notes: notes || null,
-          isDefault: shouldBeDefault,
+          id: { not: keepId },
         },
       });
 
       return tx.customer.findUnique({
         where: { id: customerId },
-        select: {
-          id: true,
-          name: true,
-          countryCode: true,
-          phone: true,
-          email: true,
-          notes: true,
-          addresses: {
-            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-            select: {
-              id: true,
-              label: true,
-              address: true,
-              formattedAddress: true,
-              placeId: true,
-              latitude: true,
-              longitude: true,
-              neighborhood: true,
-              city: true,
-              notes: true,
-              isDefault: true,
-            },
-          },
-        },
+        select: customerSelect,
       });
     });
 
-    return NextResponse.json({ customer }, { status: 201 });
+    return NextResponse.json({ customer }, { status: 200 });
   } catch (error) {
     if (error instanceof Error && error.message === "CUSTOMER_NOT_FOUND") {
       return NextResponse.json(
@@ -143,7 +146,7 @@ export async function POST(
       );
     }
 
-    console.error("Error creating customer address", error);
+    console.error("Error saving customer address", error);
     return NextResponse.json(
       { error: "No fue posible guardar la dirección." },
       { status: 500 },
