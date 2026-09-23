@@ -136,3 +136,22 @@ export function orderItemDetailText(configuration: unknown) {
     .map((detail) => `${detail.label}: ${detail.value}`)
     .join(" · ");
 }
+
+
+export function fulfillmentLabel(value: string) {
+  const labels: Record<string, string> = {
+    DELIVERY: "Domicilio",
+    PICKUP: "Recoger en tienda",
+    STORE: "Consumo en local",
+  };
+
+  return labels[value] ?? value;
+}
+
+export function bogotaDateTime(value: Date) {
+  return new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Bogota",
+  }).format(value);
+}
