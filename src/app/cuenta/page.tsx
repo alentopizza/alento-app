@@ -26,14 +26,9 @@ export default async function CustomerAccountPage() {
     include: {
       customer: {
         include: {
-          addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
-          clubPoints: {
-            orderBy: { createdAt: "desc" },
-            include: {
-              order: {
-                select: { status: true },
-              },
-            },
+          addresses: {
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            take: 1,
           },
           orders: {
             orderBy: { createdAt: "desc" },
@@ -47,107 +42,197 @@ export default async function CustomerAccountPage() {
 
   if (!account?.active) redirect("/login");
   const customer = account.customer;
-  const validOrders = customer.orders.filter((order) => order.status !== "CANCELED");
-  const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
-  const validClubMovements = customer.clubPoints.filter(
-    (movement) => !movement.order || movement.order.status !== "CANCELED",
-  );
-  const clubPoints = validClubMovements.reduce(
-    (sum, movement) => sum + movement.points,
-    0,
-  );
 
   return (
     <>
-      <LivePageRefresh intervalMs={8000} scopes={["orders", "customers", "club", "account"]} />
+      <LivePageRefresh
+        intervalMs={8000}
+        scopes={["orders", "customers", "account"]}
+      />
       <PublicBrandHeader />
-      <main className="min-h-screen bg-[#f7f4ef] px-4 pb-28 pt-4 sm:p-6 sm:pb-28">
-      <div className="mx-auto max-w-[760px] space-y-4">
-        <header className="rounded-[28px] bg-[linear-gradient(135deg,#09090a,#281516)] p-6 text-white shadow-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Mi cuenta</p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-[-0.025em]">{customer.name}</h1>
-          <p className="mt-1 text-[12px] text-white/55">{customer.countryCode} {customer.phone}</p>
-        </header>
 
-        <section className="grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Pedidos</span><b className="mt-2 block text-[22px] font-semibold">{validOrders.length}</b></div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Comprado</span><b className="mt-2 block text-[18px] font-semibold">{money(total)}</b></div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4"><span className="text-[11px] font-semibold uppercase text-neutral-400">Direcciones</span><b className="mt-2 block text-[22px] font-semibold">{customer.addresses.length}</b></div>
-          <div className="rounded-2xl border border-red-100 bg-[#fff7f7] p-4"><span className="text-[11px] font-semibold uppercase text-red-400">Club Alentó</span><b className="mt-2 block text-[22px] font-semibold text-[#e21a22]">{clubPoints.toLocaleString("es-CO")} pts</b></div>
-        </section>
+      <main className="min-h-screen bg-[#080808] px-4 pb-28 pt-4 text-white sm:px-6 sm:pb-28 sm:pt-6">
+        <div className="mx-auto max-w-[760px] space-y-4">
+          <header className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.16),transparent_34%),linear-gradient(145deg,#171717,#090909_72%)] p-5 shadow-[0_20px_60px_rgba(0,0,0,.34)] sm:p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ff454b]">
+              Mi cuenta
+            </p>
+            <h1 className="mt-2 text-[28px] font-black tracking-[-0.035em] text-white">
+              {customer.name}
+            </h1>
+            <p className="mt-1 text-[12px] font-medium text-white/48">
+              {customer.countryCode} {customer.phone}
+            </p>
+          </header>
 
-        <section className="rounded-[24px] border border-neutral-200 bg-white p-5">
-          <h2 className="text-[18px] font-semibold">Mis direcciones</h2>
-          <div className="mt-3 space-y-2">
-            {customer.addresses.length ? customer.addresses.map((address) => (
-              <div key={address.id} className="rounded-xl bg-[#faf9f7] px-4 py-3"><b className="text-[12px] font-semibold">{address.label || (address.isDefault ? "Principal" : "Dirección")}</b><p className="mt-1 text-[11px] text-neutral-500">{address.address}{address.neighborhood ? ` · ${address.neighborhood}` : ""}</p></div>
-            )) : <p className="text-[12px] text-neutral-400">No tienes direcciones registradas.</p>}
-          </div>
-        </section>
+          <section className="rounded-[24px] border border-white/10 bg-white p-5 text-neutral-950 shadow-[0_16px_40px_rgba(0,0,0,.20)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#e21a22]">
+                  Entrega
+                </p>
+                <h2 className="mt-1 text-[18px] font-black tracking-[-0.02em]">
+                  Dirección de entrega
+                </h2>
+              </div>
 
-        <section className="rounded-[24px] border border-neutral-200 bg-white p-5">
-          <h2 className="text-[18px] font-semibold">Pedidos recientes</h2>
-          <div className="mt-3 space-y-2">
-            {customer.orders.length ? customer.orders.map((order) => (
-              <div
-                key={order.id}
-                className={
-                  "rounded-xl border px-4 py-3 " +
-                  (order.status === "CANCELED"
-                    ? "border-red-100 bg-red-50/55"
-                    : "border-neutral-100 bg-[#faf9f7]")
-                }
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <b className="text-[12px] font-semibold">
-                        Pedido #{order.sequenceNumber ?? order.id}
+              {customer.addresses[0] && (
+                <span className="rounded-full bg-[#111] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.06em] text-white">
+                  Guardada
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4">
+              {customer.addresses[0] ? (
+                <div className="rounded-[18px] border border-neutral-200 bg-[#fafafa] px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#111] text-white">
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+                        <circle cx="12" cy="10" r="2.4" />
+                      </svg>
+                    </div>
+
+                    <div className="min-w-0">
+                      <b className="block text-[12px] text-neutral-900">
+                        {customer.addresses[0].formattedAddress ||
+                          customer.addresses[0].address}
                       </b>
-                      {order.status === "CANCELED" && (
-                        <span className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-red-600">
-                          Cancelado
-                        </span>
+                      {(customer.addresses[0].neighborhood ||
+                        customer.addresses[0].city) && (
+                        <p className="mt-1 text-[10px] text-neutral-500">
+                          {[
+                            customer.addresses[0].neighborhood,
+                            customer.addresses[0].city,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
                       )}
                     </div>
-                    <p
-                      className={
-                        "mt-1 text-[10px] " +
-                        (order.status === "CANCELED"
-                          ? "text-red-400/80"
-                          : "text-neutral-500")
-                      }
-                    >
-                      {order.items.map((item) => `${item.quantity}× ${item.productName}`).join(" · ")}
-                    </p>
                   </div>
-                  <b
+                </div>
+              ) : (
+                <div className="rounded-[18px] border border-dashed border-[#e21a22]/25 bg-[#e21a22]/[0.04] px-4 py-4">
+                  <b className="text-[12px] text-neutral-900">
+                    Sin dirección registrada
+                  </b>
+                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                    Podrás agregarla y validarla con Google Maps cuando hagas
+                    un pedido a domicilio.
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-[24px] border border-white/10 bg-white p-5 text-neutral-950 shadow-[0_16px_40px_rgba(0,0,0,.20)]">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#e21a22]">
+                  Historial
+                </p>
+                <h2 className="mt-1 text-[18px] font-black tracking-[-0.02em]">
+                  Pedidos recientes
+                </h2>
+              </div>
+
+              {customer.orders.length > 0 && (
+                <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[9px] font-bold text-neutral-500">
+                  {customer.orders.length}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-4 space-y-2.5">
+              {customer.orders.length ? (
+                customer.orders.map((order) => (
+                  <div
+                    key={order.id}
                     className={
-                      "shrink-0 text-[12px] font-semibold " +
+                      "rounded-[18px] border px-4 py-3.5 " +
                       (order.status === "CANCELED"
-                        ? "text-neutral-400 line-through"
-                        : "")
+                        ? "border-[#e21a22]/20 bg-[#e21a22]/[0.045]"
+                        : "border-neutral-200 bg-[#fafafa]")
                     }
                   >
-                    {money(order.total)}
-                  </b>
-                </div>
-                {order.status === "CANCELED" && (
-                  <p className="mt-2 text-[11px] font-semibold text-red-500/80">
-                    Este pedido no cuenta como compra ni genera puntos del Club Alentó.
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <b className="text-[12px] font-black text-neutral-900">
+                            Pedido #{order.sequenceNumber ?? order.id}
+                          </b>
+
+                          {order.status === "CANCELED" && (
+                            <span className="rounded-full bg-[#e21a22] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.07em] text-white">
+                              Cancelado
+                            </span>
+                          )}
+                        </div>
+
+                        <p
+                          className={
+                            "mt-1.5 text-[10px] leading-4 " +
+                            (order.status === "CANCELED"
+                              ? "text-[#e21a22]/70"
+                              : "text-neutral-500")
+                          }
+                        >
+                          {order.items
+                            .map(
+                              (item) =>
+                                `${item.quantity}× ${item.productName}`,
+                            )
+                            .join(" · ")}
+                        </p>
+                      </div>
+
+                      <b
+                        className={
+                          "shrink-0 text-[12px] font-black " +
+                          (order.status === "CANCELED"
+                            ? "text-neutral-400 line-through"
+                            : "text-neutral-950")
+                        }
+                      >
+                        {money(order.total)}
+                      </b>
+                    </div>
+
+                    {order.status === "CANCELED" && (
+                      <p className="mt-2 border-t border-[#e21a22]/10 pt-2 text-[9px] font-semibold text-[#e21a22]/65">
+                        Pedido conservado en tu historial.
+                      </p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-[18px] border border-dashed border-neutral-200 px-4 py-5 text-center">
+                  <p className="text-[11px] text-neutral-400">
+                    Todavía no tienes pedidos registrados.
                   </p>
-                )}
-              </div>
-            )) : <p className="text-[12px] text-neutral-400">Todavía no tienes pedidos registrados.</p>}
-          </div>
-        </section>
+                </div>
+              )}
+            </div>
+          </section>
 
-        <form action="/api/auth/customer/logout" method="post">
-          <button className="w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[12px] font-semibold text-neutral-600">Cerrar sesión</button>
-        </form>
-      </div>
-
-    </main>
+          <form action="/api/auth/customer/logout" method="post">
+            <button className="h-12 w-full rounded-full border border-white/12 bg-[#111] px-4 text-[11px] font-bold text-white/72 transition hover:border-[#e21a22]/50 hover:text-white">
+              Cerrar sesión
+            </button>
+          </form>
+        </div>
+      </main>
     </>
   );
 }
