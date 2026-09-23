@@ -402,6 +402,19 @@ Reglas de no regresión:
 - un pedido finalizado borrado desaparece también de historial, métricas y puntos del cliente;
 - esta acción es de mantenimiento y no sustituye Cancelar.
 
+### Direcciones múltiples de clientes
+
+`CustomerAddress` es una colección y no debe volver a reducirse a un único campo `address`.
+
+Reglas vigentes:
+
+- POS y `/clientes` permiten agregar, editar, eliminar y marcar principal;
+- la dirección principal (`isDefault=true`) es solo la preferida;
+- al eliminar la principal, se promueve automáticamente la primera restante;
+- el checkout POS permite elegir qué dirección guardada usar en cada domicilio;
+- no sobrescribir la dirección principal al editar datos básicos del cliente;
+- los endpoints de administración son `/api/customers/[id]/addresses` y `/api/customers/[id]/addresses/[addressId]`.
+
 ### Regla de pedidos cancelados
 
 - un pedido cancelado sigue visible tanto para el cliente como en su ficha interna;
