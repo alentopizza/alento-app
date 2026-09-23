@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCustomerSession, getStaffSession } from "@/lib/auth";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import LivePageRefresh from "@/components/LivePageRefresh";
+import CustomerAccountHeader from "@/components/CustomerAccountHeader";
 import {
   bogotaDateTime,
   fulfillmentLabel,
@@ -58,17 +59,10 @@ export default async function CustomerAccountPage() {
 
       <main className="min-h-screen bg-[#080808] px-4 pb-28 pt-4 text-white sm:px-6 sm:pb-28 sm:pt-6">
         <div className="mx-auto max-w-[760px] space-y-4">
-          <header className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.16),transparent_34%),linear-gradient(145deg,#171717,#090909_72%)] p-5 shadow-[0_20px_60px_rgba(0,0,0,.34)] sm:p-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#ff454b]">
-              Mi cuenta
-            </p>
-            <h1 className="mt-2 text-[28px] font-black tracking-[-0.035em] text-white">
-              {customer.name}
-            </h1>
-            <p className="mt-1 text-[12px] font-medium text-white/48">
-              {customer.countryCode} {customer.phone}
-            </p>
-          </header>
+          <CustomerAccountHeader
+            name={customer.name}
+            phone={`${customer.countryCode} ${customer.phone ?? ""}`.trim()}
+          />
 
           <section className="rounded-[24px] border border-white/10 bg-white p-5 text-neutral-950 shadow-[0_16px_40px_rgba(0,0,0,.20)]">
             <div className="flex items-center justify-between gap-3">
@@ -320,11 +314,6 @@ export default async function CustomerAccountPage() {
             </div>
           </section>
 
-          <form action="/api/auth/customer/logout" method="post">
-            <button className="h-12 w-full rounded-full border border-white/12 bg-[#111] px-4 text-[11px] font-bold text-white/72 transition hover:border-[#e21a22]/50 hover:text-white">
-              Cerrar sesión
-            </button>
-          </form>
         </div>
       </main>
     </>
