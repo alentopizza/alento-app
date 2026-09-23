@@ -117,6 +117,7 @@ model User {
 
   @@index([active])
   @@index([whatsappPhone])
+  @@index([driverAvailable])
 }
 
 model CustomerAccount {
