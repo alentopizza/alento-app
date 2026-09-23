@@ -42,6 +42,7 @@ export default function DriverOrderActions({
   const router = useRouter();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const locationWatchRef = useRef<number | null>(null);
+  const lastLocationSyncRef = useRef(0);
 
   const [status, setStatus] = useState(initialStatus);
   const [progress, setProgress] = useState(0);
@@ -228,6 +229,25 @@ export default function DriverOrderActions({
         setLocationState("active");
         setLocationError("");
         window.localStorage.setItem(locationStorageKey, "1");
+
+        const now = Date.now();
+        if (now - lastLocationSyncRef.current >= 5000) {
+          lastLocationSyncRef.current = now;
+          void fetch(
+            `/api/repartidor/pedido/${encodeURIComponent(token)}/location`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+              }),
+            },
+          ).catch(() => {
+            // El watchPosition sigue activo aunque falle una sincronización puntual.
+          });
+        }
       },
       (error) => {
         locationWatchRef.current = null;
