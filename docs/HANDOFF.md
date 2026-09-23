@@ -518,6 +518,9 @@ Efectivo:
 - enlace firmado para el repartidor;
 - `/repartidor/pedido/[token]`;
 - checklist obligatorio antes de salir;
+- el checklist de productos del repartidor se persiste en `OrderItem` y queda asociado al `driverId` que lo verificó;
+- el checklist ya no usa `localStorage`: dos dispositivos abiertos con la misma orden ven el mismo avance mediante la base de datos y el refresco automático;
+- una reasignación de repartidor no reutiliza como válidos los checks hechos por el driver anterior;
 - **Compartir ubicación en tiempo real** es obligatorio antes de `READY → OUT_FOR_DELIVERY`;
 - el cliente usa `navigator.geolocation.watchPosition()` y mantiene una lectura GPS activa;
 - el endpoint de estado exige checklist completo + lectura GPS válida de máximo 60 segundos para aceptar `OUT_FOR_DELIVERY`;
