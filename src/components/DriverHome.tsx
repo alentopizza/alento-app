@@ -663,6 +663,20 @@ export default function DriverHome({
     }
   }, [selectedId]);
 
+  useEffect(() => {
+    if (tab === "requests") return;
+
+    driverMarkerRef.current?.setMap(null);
+    driverMarkerRef.current = null;
+
+    requestMarkerRefs.current.forEach((marker) => marker.setMap(null));
+    requestMarkerRefs.current.clear();
+
+    mapRef.current = null;
+    initialMapFitDoneRef.current = false;
+    lastFocusedRequestRef.current = null;
+  }, [tab]);
+
   const navItems: Array<{
     id: DriverTab;
     label: string;
