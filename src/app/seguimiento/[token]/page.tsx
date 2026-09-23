@@ -7,16 +7,6 @@ import { getCustomerSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_FLOW = [
-  "PREPARING",
-  "PREPARED",
-  "READY",
-  "OUT_FOR_DELIVERY",
-  "ARRIVED",
-  "DELIVERED",
-  "COMPLETED",
-] as const;
-
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: "Pedido recibido",
   CONFIRMED: "Pedido confirmado",
@@ -65,14 +55,6 @@ function fulfillmentLabel(value: string) {
     STORE: "Consumo en local",
   };
   return labels[value] ?? value;
-}
-
-function progressFor(status: string) {
-  if (status === "CANCELED") return 0;
-  if (status === "DRAFT" || status === "CONFIRMED") return 8;
-  const index = STATUS_FLOW.indexOf(status as (typeof STATUS_FLOW)[number]);
-  if (index < 0) return 8;
-  return Math.round(((index + 1) / STATUS_FLOW.length) * 100);
 }
 
 function trackingStages(fulfillmentType: string, status: string) {
@@ -139,7 +121,6 @@ export default async function TrackingPage({
   const session = await getCustomerSession();
   const ownOrder = Boolean(session && session.customerId === order.customerId);
   const code = `${order.source}-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
-  const progress = progressFor(order.status);
   const { stages, current } = trackingStages(order.fulfillmentType, order.status);
   const activeLabel = STATUS_LABEL[order.status] ?? order.status;
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
@@ -154,53 +135,78 @@ export default async function TrackingPage({
             <h2 className="mt-2 text-[26px] font-black leading-tight tracking-[-0.035em] sm:text-[30px]">{activeLabel}</h2>
             <p className="mt-2 max-w-[560px] text-sm leading-6 text-white/64">{activeCopy}</p>
 
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+            <div className="relative mt-6">
               <div
-                className="h-full rounded-full bg-white transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-
-            <div className="relative mt-5">
-              <div
-                className="absolute top-[11px] h-[2px] bg-white/15"
+                className="absolute top-[11px] grid"
                 style={{
                   left: `${100 / (stages.length * 2)}%`,
                   right: `${100 / (stages.length * 2)}%`,
+                  gridTemplateColumns: `repeat(${Math.max(1, stages.length - 1)}, minmax(0, 1fr))`,
                 }}
-              />
-              <div
-                className="absolute top-[11px] h-[2px] bg-white transition-all"
-                style={{
-                  left: `${100 / (stages.length * 2)}%`,
-                  width: `${(current / Math.max(1, stages.length - 1)) * (100 - 100 / stages.length)}%`,
-                }}
-              />
+              >
+                {stages.slice(0, -1).map((_, index) => {
+                  const completed = index < current;
+                  const activeSegment =
+                    index === current && current < stages.length - 1;
+
+                  return (
+                    <div
+                      key={index}
+                      className="relative h-[2px] overflow-hidden bg-white/10"
+                    >
+                      {completed && (
+                        <div className="absolute inset-0 bg-[#e21a22]" />
+                      )}
+
+                      {activeSegment && (
+                        <>
+                          <div className="absolute inset-0 bg-[#e21a22]/18" />
+                          <div className="alento-progress-runner absolute inset-y-0 left-0 w-full origin-left bg-[linear-gradient(90deg,rgba(226,26,34,.22),#ff3439_55%,#ff7a7e)] shadow-[0_0_10px_rgba(255,52,57,.55)]" />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
               <div
                 className="relative grid gap-1"
-                style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}
+                style={{
+                  gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))`,
+                }}
               >
                 {stages.map((stage, index) => {
                   const completed = index < current;
                   const active = index === current;
+
                   return (
-                    <div key={stage.label} className="text-center">
+                    <div key={stage.label} className="min-w-0 text-center">
                       <div
                         className={
-                          "mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black " +
+                          "relative mx-auto flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition " +
                           (completed
-                            ? "border-white bg-white text-black"
+                            ? "border-[#e21a22] bg-[#e21a22] text-white"
                             : active
-                              ? "border-white bg-white/15 text-white ring-4 ring-white/10"
-                              : "border-white/25 bg-[#111] text-white/35")
+                              ? "border-[#ff454b] bg-[#ff454b]/20 text-[#ff454b] ring-4 ring-[#e21a22]/10"
+                              : "border-white/20 bg-[#111] text-white/30")
                         }
                       >
-                        {completed ? "✓" : index + 1}
+                        {active && current < stages.length - 1 && (
+                          <span className="alento-progress-pulse absolute inset-[-5px] rounded-full border border-[#ff454b]/30" />
+                        )}
+                        <span className="relative z-10">
+                          {completed ? "✓" : index + 1}
+                        </span>
                       </div>
+
                       <span
                         className={
                           "mt-2 block text-[8px] font-semibold leading-3 sm:text-[9px] " +
-                          (active ? "text-white" : completed ? "text-white/65" : "text-white/30")
+                          (active
+                            ? "text-white"
+                            : completed
+                              ? "text-white/60"
+                              : "text-white/25")
                         }
                       >
                         {stage.label}
