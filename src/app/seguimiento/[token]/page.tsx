@@ -227,12 +227,12 @@ export default async function TrackingPage({
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
 
   return (
-    <main className="min-h-screen bg-[#f5f3ef] px-4 pb-28 pt-3 text-neutral-950 sm:px-6 sm:pb-28 sm:pt-4 lg:pt-5">
+    <main className="min-h-screen bg-[#080808] px-4 pb-28 pt-3 text-white sm:px-6 sm:pb-28 sm:pt-4 lg:pt-5">
       <LivePageRefresh intervalMs={3000} />
       <div className="mx-auto max-w-[760px]">
-        <section className="overflow-hidden rounded-[26px] border border-neutral-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,.07)]">
-          <div className="bg-[#111] px-5 pb-6 pt-5 text-white sm:px-7 sm:pb-7 sm:pt-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/45">Estado actual</p>
+        <section className="overflow-hidden rounded-[26px] border border-white/10 bg-[#0e0e0e] shadow-[0_24px_70px_rgba(0,0,0,.34)]">
+          <div className="border-b border-[#e21a22]/25 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.14),transparent_34%),linear-gradient(145deg,#151515,#090909_72%)] px-5 pb-6 pt-5 text-white sm:px-7 sm:pb-7 sm:pt-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#ff454b]">Estado actual</p>
             <h2 className="mt-2 text-[26px] font-black leading-tight tracking-[-0.035em] sm:text-[30px]">{activeLabel}</h2>
             <p className="mt-2 max-w-[560px] text-sm leading-6 text-white/64">{activeCopy}</p>
 
@@ -319,12 +319,12 @@ export default async function TrackingPage({
             </div>
           </div>
 
-          <div className="p-5 sm:p-7">
-            <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(0,0,0,.035)]">
-              <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
+          <div className="bg-[#0e0e0e] p-4 sm:p-6">
+            <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
+              <div className="border-b border-neutral-200 px-4 py-4 sm:px-5">
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#a5191f]">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#e21a22]">
                       Tu compra
                     </p>
                     <h3 className="mt-1 text-base font-black">Detalle del pedido</h3>
@@ -335,27 +335,27 @@ export default async function TrackingPage({
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-[#f7f6f3] px-3 py-2.5">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                  <div className="rounded-xl bg-[#111] px-3 py-2.5 text-white">
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
                       Pedido
                     </span>
-                    <strong className="mt-1 block text-[12px] text-neutral-900">
+                    <strong className="mt-1 block text-[12px] text-white">
                       {code}
                     </strong>
                   </div>
 
-                  <div className="rounded-xl bg-[#f7f6f3] px-3 py-2.5">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                  <div className="rounded-xl bg-[#111] px-3 py-2.5 text-white">
+                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
                       Modalidad
                     </span>
-                    <strong className="mt-1 block text-[12px] text-neutral-900">
+                    <strong className="mt-1 block text-[12px] text-white">
                       {fulfillmentLabel(order.fulfillmentType)}
                     </strong>
                   </div>
                 </div>
               </div>
 
-              <div className="divide-y divide-neutral-100">
+              <div className="divide-y divide-neutral-200">
                 {order.items.map((item, index) => {
                   const details = orderItemDetails(item.configuration);
                   const unitPrice = Number(item.unitPrice);
@@ -367,7 +367,7 @@ export default async function TrackingPage({
                       className="px-4 py-4 sm:px-5"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl bg-neutral-950 px-2 text-[10px] font-black text-white">
+                        <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl bg-[#e21a22] px-2 text-[10px] font-black text-white shadow-[0_6px_14px_rgba(226,26,34,.18)]">
                           {item.quantity}×
                         </span>
 
@@ -410,7 +410,7 @@ export default async function TrackingPage({
                           )}
 
                           {item.notes && (
-                            <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[9px] leading-4 text-amber-800">
+                            <p className="mt-2 rounded-lg border border-[#e21a22]/15 bg-[#e21a22]/[0.06] px-2.5 py-1.5 text-[9px] leading-4 text-neutral-700">
                               Nota: {item.notes}
                             </p>
                           )}
@@ -421,31 +421,31 @@ export default async function TrackingPage({
                 })}
               </div>
 
-              <div className="border-t border-neutral-200 bg-[#faf9f7] px-4 py-4 sm:px-5">
+              <div className="border-t border-neutral-900 bg-[#111] px-4 py-4 text-white sm:px-5">
                 <div className="flex items-center justify-between gap-4 text-[11px]">
-                  <span className="text-neutral-500">Subtotal</span>
-                  <b className="text-neutral-800">{money(Number(order.subtotal))}</b>
+                  <span className="text-white/48">Subtotal</span>
+                  <b className="text-white">{money(Number(order.subtotal))}</b>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between gap-4 text-[11px]">
-                  <span className="text-neutral-500">Domicilio</span>
-                  <b className="text-neutral-800">{money(Number(order.deliveryFee))}</b>
+                  <span className="text-white/48">Domicilio</span>
+                  <b className="text-[#ff454b]">{money(Number(order.deliveryFee))}</b>
                 </div>
 
                 {Number(order.discount) > 0 && (
                   <div className="mt-2 flex items-center justify-between gap-4 text-[11px]">
-                    <span className="text-emerald-700">Descuento</span>
-                    <b className="text-emerald-700">
+                    <span className="text-[#ff7a7e]">Descuento</span>
+                    <b className="text-[#ff7a7e]">
                       − {money(Number(order.discount))}
                     </b>
                   </div>
                 )}
 
-                <div className="mt-3 flex items-end justify-between gap-4 border-t border-neutral-200 pt-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.08em] text-neutral-500">
+                <div className="mt-3 flex items-end justify-between gap-4 border-t border-white/10 pt-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.08em] text-white/55">
                     Total
                   </span>
-                  <strong className="text-xl font-black tracking-[-0.03em] text-neutral-950">
+                  <strong className="text-xl font-black tracking-[-0.03em] text-white">
                     {money(Number(order.total))}
                   </strong>
                 </div>
@@ -456,11 +456,11 @@ export default async function TrackingPage({
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-[#f5f3ef]/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-6">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-6">
         <div className="mx-auto max-w-[760px]">
           <Link
             href="/menu"
-            className="flex h-13 w-full items-center justify-center rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_12px_30px_rgba(226,26,34,.24)] transition hover:bg-[#c9151c] active:scale-[0.99]"
+            className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_12px_30px_rgba(226,26,34,.28)] transition hover:bg-[#c9151c] active:scale-[0.99]"
           >
             Volver al menú
           </Link>
