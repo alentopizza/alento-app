@@ -441,7 +441,7 @@ export default function PublicMenuPage() {
                     )}
                   </div>
 
-                  <span className={`block w-full truncate text-[7px] font-extrabold uppercase leading-none tracking-[-0.01em] sm:text-[9px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
+                  <span className={`block w-full truncate text-[10px] font-extrabold uppercase leading-none tracking-[-0.01em] sm:text-[11px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
                     {category.name}
                   </span>
                 </button>
@@ -459,7 +459,7 @@ export default function PublicMenuPage() {
             <h2 className="text-[27px] font-extrabold uppercase leading-[.98] tracking-[-0.035em] text-white sm:text-[32px] lg:text-[38px]">
               Nuestros <span className="text-[#e21a22]">más vendidos</span>
             </h2>
-            <p className="mx-auto mt-2 max-w-[520px] text-[8px] font-medium uppercase tracking-[0.14em] text-white/28 sm:text-[9px] lg:text-[10px] lg:tracking-[0.16em]">
+            <p className="mx-auto mt-2 max-w-[520px] text-[10px] font-medium uppercase tracking-[0.14em] text-white/28 sm:text-[11px] lg:text-[10px] lg:tracking-[0.16em]">
               Favoritos de quienes siempre vuelven
             </p>
           </div>
@@ -521,7 +521,7 @@ export default function PublicMenuPage() {
         <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-16 lg:px-8">
           <div className="mb-3 flex flex-col gap-2.5 sm:mb-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[8px] font-black uppercase tracking-[0.15em] text-white/35 lg:text-[9px]">Catálogo</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/35 lg:text-[11px]">Catálogo</p>
               <h2 className="mt-0.5 text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[25px] lg:text-[27px]">
                 {categories.find((category) => category.slug === activeCategory)?.name || "Menú"}
               </h2>
@@ -674,7 +674,7 @@ export default function PublicMenuPage() {
 
             <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#e21a22]">Producto</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#e21a22]">Producto</p>
                 <h2 className="mt-1 text-[24px] font-semibold tracking-[-0.035em] text-white">{selectedProduct.name}</h2>
               </div>
               <button
