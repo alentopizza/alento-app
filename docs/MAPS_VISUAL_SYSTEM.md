@@ -138,3 +138,17 @@ En el mapa administrativo:
 - distancia y tiempo provienen de Google Routes y se actualizan junto con el refresco de rutas;
 - cuando el repartidor está en ruta, la tarjeta también resume sus paradas y la distancia/tiempo restante del recorrido;
 - el refresco rápido de ubicación conserva el último resumen de ruta para evitar parpadeos de información entre recalculaciones.
+
+
+## Interacción con pedidos en Mapa De Entregas
+
+El mapa administrativo también funciona como superficie operativa:
+
+- los pines de pedidos son interactivos;
+- al tocar un domicilio se muestra código, estado, cliente, dirección, total, valor del domicilio, cantidad de productos, estado de pago y repartidor actual;
+- desde un pedido todavía no iniciado en ruta se puede asignar o cambiar el repartidor directamente en el mapa;
+- el selector muestra carga actual / capacidad máxima y deshabilita repartidores inactivos, sin WhatsApp o sin cupo;
+- la asignación usa el endpoint operativo existente y conserva las validaciones de capacidad del backend;
+- si el pedido ya está OUT_FOR_DELIVERY o ARRIVED, el mapa no permite una reasignación directa; ese cambio debe pasar por el flujo de Estados;
+- las tarjetas del repartidor listan debajo sus órdenes asignadas con estado, cliente, dirección, total, domicilio, saldo por cobrar y distancia/ETA del tramo cuando existe una ruta calculada;
+- tocar una orden dentro de la tarjeta del repartidor abre el mismo detalle operativo del pin.

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { dispatchDriverAssignedNotification } from "@/lib/notifier";
 import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
+import { orderCode as formatOrderCode } from "@/lib/orderCode";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       select: {
         id: true,
         sequenceNumber: true,
+        source: true,
         driverId: true,
         fulfillmentType: true,
         status: true,
@@ -98,10 +100,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     },
   });
 
-  const orderCode = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+  const displayOrderCode = formatOrderCode(
+    order.sequenceNumber ?? order.id,
+    order.source,
+  );
   const notification = await dispatchDriverAssignedNotification({
     orderId: order.id,
-    orderCode,
+    orderCode: displayOrderCode,
     total: Number(order.total),
     fulfillmentType: order.fulfillmentType,
     driverId: driver.id,

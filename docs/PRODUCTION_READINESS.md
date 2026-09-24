@@ -28,7 +28,7 @@ Estados usados:
 | Pedidos | LISTO CON VALIDACIÓN | detalle, edición, cliente, pagos, estados, cancelación controlada, impresión, driver, mapa de entregas |
 | Cocina | LISTO CON VALIDACIÓN | PREPARING → preparación por cantidades → PREPARED/Horneando → READY desde operación |
 | Recoger / Local | LISTO CON VALIDACIÓN | PREPARING → PREPARED → READY → COMPLETED; COMPLETED exige saldo pagado |
-| Domicilio / Repartidor | LISTO CON VALIDACIÓN | asignación → checklist al estar READY → EN CAMINO → LLEGÓ → ENTREGADO → cierre operativo; en mapa ADMIN el pin de repartidor es clicable y muestra nombre, distancia/tiempo a Alentó y carga operativa |
+| Domicilio / Repartidor | LISTO CON VALIDACIÓN | asignación → checklist al estar READY → EN CAMINO → LLEGÓ → ENTREGADO → cierre operativo; mapa ADMIN con repartidores y pedidos interactivos, detalle de carga y asignación directa desde pin antes de iniciar ruta |
 | Reparto múltiple | LISTO CON VALIDACIÓN | límite configurable, orden de paradas, mapa, rutas encadenadas y colores por tramo |
 | Geocerca de aceptación | LISTO CON VALIDACIÓN | radio configurable alrededor de Alentó; autoasignación requiere ubicación reciente y estar dentro de zona |
 | Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, mapa/ETA/moto hasta ARRIVED; GPS continúa hasta DELIVERED, luego se cierra el seguimiento activo y queda historial |

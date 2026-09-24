@@ -4,6 +4,7 @@ import { requireStaffSession } from "@/lib/auth";
 import { computeDrivingRoute } from "@/lib/googleMapsServer";
 import { orderCode } from "@/lib/orderCode";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
+import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     const includeRoutes =
       request.nextUrl.searchParams.get("routes") === "1";
 
-    const [orders, drivers, settings] = await Promise.all([
+    const [orders, driverUsers, settings] = await Promise.all([
       prisma.order.findMany({
         where: {
           fulfillmentType: "DELIVERY",
@@ -67,6 +68,8 @@ export async function GET(request: NextRequest) {
           source: true,
           status: true,
           createdAt: true,
+          total: true,
+          deliveryFee: true,
           driverId: true,
           driverLatitude: true,
           driverLongitude: true,
@@ -75,6 +78,17 @@ export async function GET(request: NextRequest) {
           customer: {
             select: {
               name: true,
+            },
+          },
+          items: {
+            select: {
+              quantity: true,
+            },
+          },
+          payments: {
+            where: { status: "PAID" },
+            select: {
+              amount: true,
             },
           },
           address: {
@@ -101,10 +115,7 @@ export async function GET(request: NextRequest) {
       prisma.user.findMany({
         where: {
           active: true,
-          driverAvailable: true,
           roles: { hasSome: ["DRIVER", "DISPATCH"] },
-          driverLatitude: { not: null },
-          driverLongitude: { not: null },
         },
         orderBy: { name: "asc" },
         select: {
@@ -115,6 +126,7 @@ export async function GET(request: NextRequest) {
           driverLongitude: true,
           driverLocationAccuracy: true,
           driverLocationUpdatedAt: true,
+          whatsappPhone: true,
         },
       }),
       prisma.appSetting.findUnique({
@@ -124,6 +136,24 @@ export async function GET(request: NextRequest) {
     ]);
 
     const store = storeLocation(settings?.value);
+    const maxConcurrentDeliveries =
+      driverMaxConcurrentFromSettings(settings?.value);
+
+    const assignedCountByDriver = new Map<number, number>();
+    orders.forEach((order) => {
+      if (order.driverId == null) return;
+      assignedCountByDriver.set(
+        order.driverId,
+        (assignedCountByDriver.get(order.driverId) ?? 0) + 1,
+      );
+    });
+
+    const drivers = driverUsers.filter(
+      (driver) =>
+        driver.driverAvailable &&
+        coordinate(driver.driverLatitude) != null &&
+        coordinate(driver.driverLongitude) != null,
+    );
 
     const driverRouteEntries =
       includeRoutes && store
@@ -311,6 +341,20 @@ export async function GET(request: NextRequest) {
           durationFromStoreSeconds: routeFromStore?.durationSeconds ?? null,
         };
       }),
+      assignableDrivers: driverUsers.map((driver) => {
+        const assignedDeliveries = assignedCountByDriver.get(driver.id) ?? 0;
+
+        return {
+          id: driver.id,
+          name: driver.name,
+          available: driver.driverAvailable,
+          ready: Boolean(driver.whatsappPhone),
+          assignedDeliveries,
+          maxConcurrentDeliveries,
+          capacityReached:
+            assignedDeliveries >= maxConcurrentDeliveries,
+        };
+      }),
       orders: orders.map((order) => {
         const latitude = coordinate(order.address?.latitude);
         const longitude = coordinate(order.address?.longitude);
@@ -321,12 +365,26 @@ export async function GET(request: NextRequest) {
           coordinate(order.driver?.driverLongitude) ??
           coordinate(order.driverLongitude);
 
+        const paidAmount = order.payments.reduce(
+          (sum, payment) => sum + Number(payment.amount),
+          0,
+        );
+        const total = Number(order.total);
+
         return {
           id: order.id,
           code: orderCode(order.sequenceNumber ?? order.id, order.source),
           status: order.status,
           createdAt: order.createdAt.toISOString(),
           customerName: order.customer?.name ?? "Cliente",
+          total,
+          deliveryFee: Number(order.deliveryFee),
+          paidAmount,
+          balance: Math.max(0, total - paidAmount),
+          itemCount: order.items.reduce(
+            (sum, item) => sum + item.quantity,
+            0,
+          ),
           destination:
             latitude != null && longitude != null
               ? {

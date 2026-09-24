@@ -73,6 +73,11 @@ type MapOrder = {
   status: string;
   createdAt: string;
   customerName: string;
+  total: number;
+  deliveryFee: number;
+  paidAmount: number;
+  balance: number;
+  itemCount: number;
   destination: (Point & { address: string }) | null;
   driver:
     | {
@@ -87,10 +92,21 @@ type MapOrder = {
     | null;
 };
 
+type AssignableDriver = {
+  id: number;
+  name: string;
+  available: boolean;
+  ready: boolean;
+  assignedDeliveries: number;
+  maxConcurrentDeliveries: number;
+  capacityReached: boolean;
+};
+
 type MapPayload = {
   updatedAt: string;
   store: MapStore | null;
   drivers: MapDriver[];
+  assignableDrivers: AssignableDriver[];
   orders: MapOrder[];
   trips: MapTrip[];
 };
@@ -232,6 +248,14 @@ function formatDistance(meters: number) {
     : `${(meters / 1000).toFixed(1)} km`;
 }
 
+function money(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export default function AdminDeliveryMapModal({
   open,
   onClose,
@@ -248,6 +272,14 @@ export default function AdminDeliveryMapModal({
 
   const [data, setData] = useState<MapPayload | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [selectedAssignDriverId, setSelectedAssignDriverId] =
+    useState<number | null>(null);
+  const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
+  const [actionNotice, setActionNotice] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -485,8 +517,23 @@ export default function AdminDeliveryMapModal({
                 order.code,
                 assigned ? { tone: "assigned" } : undefined,
               ),
-          zIndex: routeStop ? 38 : assigned ? 32 : 25,
+          zIndex:
+            selectedOrderId === order.id
+              ? 66
+              : routeStop
+                ? 38
+                : assigned
+                  ? 32
+                  : 25,
         });
+
+        marker.addListener?.("click", () => {
+          setSelectedOrderId(order.id);
+          setSelectedDriverId(null);
+          setSelectedAssignDriverId(order.driver?.id ?? null);
+          setActionNotice(null);
+        });
+
         markersRef.current.push(marker);
         bounds.extend(point);
         points += 1;
@@ -508,6 +555,9 @@ export default function AdminDeliveryMapModal({
 
         marker.addListener?.("click", () => {
           setSelectedDriverId(driver.id);
+          setSelectedOrderId(null);
+          setSelectedAssignDriverId(null);
+          setActionNotice(null);
         });
 
         markersRef.current.push(marker);
@@ -554,7 +604,7 @@ export default function AdminDeliveryMapModal({
         }
       }
     },
-    [colorForLeg, selectedDriverId],
+    [colorForLeg, selectedDriverId, selectedOrderId],
   );
 
   useEffect(() => {
@@ -580,6 +630,10 @@ export default function AdminDeliveryMapModal({
     mapRef.current = null;
     setData(null);
     setSelectedDriverId(null);
+    setSelectedOrderId(null);
+    setSelectedAssignDriverId(null);
+    setAssigningOrderId(null);
+    setActionNotice(null);
     setError("");
   }, [open]);
 
@@ -631,6 +685,70 @@ export default function AdminDeliveryMapModal({
           ),
     [data?.orders, selectedDriverId],
   );
+
+  const selectedOrder = useMemo(
+    () =>
+      selectedOrderId == null
+        ? null
+        : data?.orders.find((order) => order.id === selectedOrderId) ?? null,
+    [data?.orders, selectedOrderId],
+  );
+
+  async function assignSelectedOrder() {
+    if (
+      !selectedOrder ||
+      !selectedAssignDriverId ||
+      assigningOrderId === selectedOrder.id
+    ) {
+      return;
+    }
+
+    setAssigningOrderId(selectedOrder.id);
+    setActionNotice(null);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${selectedOrder.id}/driver`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driverId: selectedAssignDriverId }),
+        },
+      );
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "No fue posible asignar el repartidor.",
+        );
+      }
+
+      const driverName =
+        data?.assignableDrivers.find(
+          (driver) => driver.id === selectedAssignDriverId,
+        )?.name ?? "El repartidor";
+
+      setActionNotice({
+        tone: payload.notification?.ok === false ? "error" : "success",
+        message:
+          payload.notification?.ok === false
+            ? `${driverName} quedó asignado, pero la notificación no pudo enviarse.`
+            : `${driverName} quedó asignado a ${selectedOrder.code}.`,
+      });
+
+      await load(true, true);
+    } catch (assignmentError) {
+      setActionNotice({
+        tone: "error",
+        message:
+          assignmentError instanceof Error
+            ? assignmentError.message
+            : "No fue posible asignar el repartidor.",
+      });
+    } finally {
+      setAssigningOrderId(null);
+    }
+  }
 
   if (!open) return null;
 
@@ -706,7 +824,7 @@ export default function AdminDeliveryMapModal({
           </div>
 
           {selectedDriver && (
-            <div className="absolute right-4 top-4 z-30 w-[min(360px,calc(100%-2rem))] overflow-hidden rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
+            <div className="absolute right-4 top-4 z-30 max-h-[calc(100%-2rem)] w-[min(380px,calc(100%-2rem))] overflow-y-auto rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
               <div className="flex items-start gap-3 border-b border-white/10 px-4 py-3.5">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white text-[22px] shadow-lg">
                   <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111]">
@@ -724,9 +842,9 @@ export default function AdminDeliveryMapModal({
                   <p className="mt-1 text-[9px] font-semibold text-emerald-300">
                     {selectedDriverTrip?.stops.length
                       ? "En ruta"
-                      : selectedDriver.available
-                        ? "Disponible"
-                        : "No disponible"}
+                      : selectedDriverOrders.length > 0
+                        ? "Activo · pedido asignado"
+                        : "Activo · sin pedidos"}
                   </p>
                 </div>
 
@@ -808,6 +926,296 @@ export default function AdminDeliveryMapModal({
                   )}
                 </div>
               )}
+
+              {selectedDriverOrders.length > 0 && (
+                <div className="border-t border-white/10 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/30">
+                      Órdenes asignadas
+                    </span>
+                    <span className="text-[8px] font-bold text-white/32">
+                      {selectedDriverOrders.length}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 space-y-2">
+                    {selectedDriverOrders.map((order) => {
+                      const leg = selectedDriverTrip?.legs.find(
+                        (item) => item.orderId === order.id,
+                      );
+
+                      return (
+                        <button
+                          key={order.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setSelectedDriverId(null);
+                            setSelectedAssignDriverId(
+                              order.driver?.id ?? null,
+                            );
+                            setActionNotice(null);
+                          }}
+                          className="w-full rounded-[14px] border border-white/10 bg-white/[0.045] p-3 text-left transition hover:bg-white/[0.075]"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <b className="text-[12px] font-black">
+                                  {order.code}
+                                </b>
+                                <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[7px] font-black uppercase text-white/50">
+                                  {formatStatus(order.status)}
+                                </span>
+                              </div>
+                              <p className="mt-1 truncate text-[10px] font-semibold text-white/72">
+                                {order.customerName}
+                              </p>
+                              <p className="mt-0.5 line-clamp-2 text-[8px] leading-4 text-white/36">
+                                {order.destination?.address || "Sin dirección"}
+                              </p>
+                            </div>
+                            <span className="shrink-0 text-[11px] font-black text-white">
+                              {money(order.total)}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-1.5 text-[7px] font-bold">
+                            <span className="rounded-full bg-white/[0.06] px-2 py-1 text-white/45">
+                              Domicilio {money(order.deliveryFee)}
+                            </span>
+                            <span
+                              className={
+                                "rounded-full px-2 py-1 " +
+                                (order.balance <= 0
+                                  ? "bg-emerald-400/12 text-emerald-300"
+                                  : "bg-red-400/12 text-red-300")
+                              }
+                            >
+                              {order.balance <= 0
+                                ? "Pagado"
+                                : `Cobrar ${money(order.balance)}`}
+                            </span>
+                            {leg && (
+                              <span className="rounded-full bg-white/[0.06] px-2 py-1 text-white/45">
+                                {formatDistance(leg.distanceMeters)} ·{" "}
+                                {formatDuration(leg.durationSeconds)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {selectedOrder && (
+            <div className="absolute right-4 top-4 z-30 max-h-[calc(100%-2rem)] w-[min(390px,calc(100%-2rem))] overflow-y-auto rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
+              <div className="flex items-start gap-3 border-b border-white/10 px-4 py-3.5">
+                <div
+                  className={
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white text-[12px] font-black text-white shadow-lg " +
+                    (selectedOrder.driver
+                      ? "bg-emerald-600"
+                      : "bg-[#e21a22]")
+                  }
+                >
+                  {selectedOrder.code.split("-").at(-1)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[7px] font-black uppercase tracking-[.13em] text-[#ff5a60]">
+                    Pedido en mapa
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <h3 className="text-[17px] font-black leading-5">
+                      {selectedOrder.code}
+                    </h3>
+                    <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[7px] font-black uppercase text-white/52">
+                      {formatStatus(selectedOrder.status)}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedOrderId(null);
+                    setSelectedAssignDriverId(null);
+                    setActionNotice(null);
+                  }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-base text-white/55 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar información del pedido"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-3 px-4 py-3.5">
+                <div>
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/30">
+                    Cliente
+                  </span>
+                  <b className="mt-1 block text-[13px]">
+                    {selectedOrder.customerName}
+                  </b>
+                  <p className="mt-1 text-[9px] leading-4 text-white/42">
+                    {selectedOrder.destination?.address || "Sin dirección"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
+                    <span className="block text-[6px] font-black uppercase tracking-[.08em] text-white/28">
+                      Total
+                    </span>
+                    <b className="mt-1 block text-[11px]">
+                      {money(selectedOrder.total)}
+                    </b>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
+                    <span className="block text-[6px] font-black uppercase tracking-[.08em] text-white/28">
+                      Domicilio
+                    </span>
+                    <b className="mt-1 block text-[11px]">
+                      {money(selectedOrder.deliveryFee)}
+                    </b>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
+                    <span className="block text-[6px] font-black uppercase tracking-[.08em] text-white/28">
+                      Productos
+                    </span>
+                    <b className="mt-1 block text-[11px]">
+                      {selectedOrder.itemCount}
+                    </b>
+                  </div>
+                </div>
+
+                <div
+                  className={
+                    "rounded-xl border px-3 py-2.5 " +
+                    (selectedOrder.balance <= 0
+                      ? "border-emerald-400/15 bg-emerald-400/10"
+                      : "border-red-400/15 bg-red-400/10")
+                  }
+                >
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/34">
+                    Estado de pago
+                  </span>
+                  <b
+                    className={
+                      "mt-1 block text-[11px] " +
+                      (selectedOrder.balance <= 0
+                        ? "text-emerald-300"
+                        : "text-red-300")
+                    }
+                  >
+                    {selectedOrder.balance <= 0
+                      ? "Pagado"
+                      : `Pendiente por cobrar · ${money(selectedOrder.balance)}`}
+                  </b>
+                </div>
+
+                {selectedOrder.driver && (
+                  <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/10 px-3 py-2.5">
+                    <span className="block text-[7px] font-black uppercase tracking-[.08em] text-emerald-300/70">
+                      Repartidor actual
+                    </span>
+                    <b className="mt-1 block text-[11px] text-emerald-200">
+                      {selectedOrder.driver.name}
+                    </b>
+                  </div>
+                )}
+
+                {!["OUT_FOR_DELIVERY", "ARRIVED"].includes(
+                  selectedOrder.status,
+                ) ? (
+                  <div className="border-t border-white/10 pt-3">
+                    <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/30">
+                      {selectedOrder.driver
+                        ? "Cambiar repartidor"
+                        : "Asignar repartidor"}
+                    </span>
+
+                    <select
+                      value={selectedAssignDriverId ?? ""}
+                      onChange={(event) => {
+                        const next = Number(event.target.value);
+                        setSelectedAssignDriverId(
+                          Number.isInteger(next) && next > 0 ? next : null,
+                        );
+                        setActionNotice(null);
+                      }}
+                      className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#1b1b1c] px-3 text-[10px] font-bold text-white outline-none"
+                    >
+                      <option value="">Selecciona un repartidor</option>
+                      {(data?.assignableDrivers ?? []).map((driver) => {
+                        const isCurrent =
+                          selectedOrder.driver?.id === driver.id;
+                        const disabled =
+                          !driver.ready ||
+                          !driver.available ||
+                          (driver.capacityReached && !isCurrent);
+
+                        return (
+                          <option
+                            key={driver.id}
+                            value={driver.id}
+                            disabled={disabled}
+                          >
+                            {driver.name} · {driver.assignedDeliveries}/
+                            {driver.maxConcurrentDeliveries}
+                            {!driver.available
+                              ? " · Inactivo"
+                              : !driver.ready
+                                ? " · Sin WhatsApp"
+                                : driver.capacityReached && !isCurrent
+                                  ? " · Sin cupo"
+                                  : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => void assignSelectedOrder()}
+                      disabled={
+                        !selectedAssignDriverId ||
+                        assigningOrderId === selectedOrder.id ||
+                        selectedAssignDriverId === selectedOrder.driver?.id
+                      }
+                      className="mt-2 h-11 w-full rounded-xl bg-[#e21a22] px-3 text-[9px] font-black uppercase tracking-[.04em] text-white shadow-[0_8px_20px_rgba(226,26,34,.22)] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30"
+                    >
+                      {assigningOrderId === selectedOrder.id
+                        ? "Asignando..."
+                        : selectedOrder.driver
+                          ? "Cambiar repartidor"
+                          : "Asignar repartidor"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-300/15 bg-amber-300/10 px-3 py-2.5 text-[9px] leading-4 text-amber-100">
+                    Este pedido ya está en reparto. Para cambiar el repartidor debe gestionarse desde Estados para conservar el flujo operativo.
+                  </div>
+                )}
+
+                {actionNotice && (
+                  <div
+                    className={
+                      "rounded-xl border px-3 py-2.5 text-[9px] font-semibold leading-4 " +
+                      (actionNotice.tone === "success"
+                        ? "border-emerald-400/15 bg-emerald-400/10 text-emerald-200"
+                        : "border-red-400/15 bg-red-400/10 text-red-200")
+                    }
+                  >
+                    {actionNotice.message}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
