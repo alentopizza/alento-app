@@ -20,6 +20,7 @@ import {
   cashExpenseSubcategories,
 } from "@/lib/cashExpenseCatalog";
 import { CASH_INCOME_CATEGORIES } from "@/lib/cashIncomeCatalog";
+import CashLoansPanel from "@/components/CashLoansPanel";
 
 type MethodSummary = {
   method: string;
@@ -87,6 +88,8 @@ type Summary = {
   otherIncomeTotal: number;
   otherIncomeCount: number;
   totalInflow: number;
+  loanDisbursedTotal: number;
+  loanRecoveredTotal: number;
   expensesTotal: number;
   expenseCount: number;
   netTotal: number;
@@ -139,7 +142,7 @@ type ImportPreview = {
   blockers: string[];
 };
 
-type Tab = "SUMMARY" | "INCOMES" | "EXPENSES";
+type Tab = "SUMMARY" | "INCOMES" | "LOANS" | "EXPENSES";
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -780,6 +783,7 @@ export default function CashPage() {
             {([
               ["SUMMARY", "Resumen"],
               ["INCOMES", "Otros ingresos"],
+              ["LOANS", "Préstamos"],
               ["EXPENSES", "Salidas"],
             ] as [Tab, string][]).map(([value, label]) => (
               <button
@@ -958,8 +962,15 @@ export default function CashPage() {
                   {formatCOP(summary.netTotal)}
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
-                  Cobros + otros ingresos − salidas
+                  Cobros + otros ingresos + abonos − salidas − préstamos
                 </p>
+                {(summary.loanDisbursedTotal > 0 ||
+                  summary.loanRecoveredTotal > 0) && (
+                  <p className="mt-1 text-[9px] font-bold text-neutral-400">
+                    Prestado {formatCOP(summary.loanDisbursedTotal)} · Recuperado{" "}
+                    {formatCOP(summary.loanRecoveredTotal)}
+                  </p>
+                )}
               </article>
             </section>
 
@@ -1337,6 +1348,11 @@ export default function CashPage() {
                   )}
                 </div>
               </section>
+            ) : tab === "LOANS" ? (
+              <CashLoansPanel
+                isAdmin={isAdmin}
+                onCashChanged={() => void load()}
+              />
             ) : (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
