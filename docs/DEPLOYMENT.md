@@ -171,17 +171,28 @@ AUTH_SESSION_SECRET=<secreto aleatorio de al menos 32 caracteres>
 AUTH_BOOTSTRAP_KEY=<clave temporal fuerte para crear el primer ADMIN>
 ```
 
-Para login de clientes por WhatsApp:
+Para login de clientes por WhatsApp, el código vigente delega la entrega del OTP al escenario externo de Make:
 
 ```text
-WHATSAPP_ACCESS_TOKEN=...
-WHATSAPP_PHONE_NUMBER_ID=...
-WHATSAPP_GRAPH_VERSION=v25.0
-WHATSAPP_AUTH_TEMPLATE_NAME=authentication_code_copy_code_button
-WHATSAPP_AUTH_LANGUAGE_CODE=es
+MAKE_WHATSAPP_OTP_WEBHOOK_URL=...
 ```
 
-La plantilla de WhatsApp debe ser categoría AUTHENTICATION y estar aprobada.
+La configuración Meta/WhatsApp que exista detrás de Make pertenece a la infraestructura externa de Alentó y no se guarda en este repositorio.
+
+Para notificaciones operativas opcionales:
+
+```text
+NOTIFIER_WEBHOOK_URL=...
+NOTIFIER_SHARED_SECRET=...
+```
+
+Para el Dashboard App exclusivo de Chatwoot:
+
+```text
+CHATWOOT_DASHBOARD_KEY=...
+```
+
+Estas integraciones están delimitadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 Orden recomendado de activación:
 
@@ -215,3 +226,52 @@ WHATSAPP_DEV_LOG_OTP=1
 Esto escribe el OTP en logs para pruebas.
 
 Nunca habilitarlo en producción.
+
+
+## Hardening previo a producción estable
+
+La revisión vigente está en `docs/PRODUCTION_READINESS.md`.
+
+### Riesgo actual: db push durante cada start
+
+El comportamiento actual:
+
+```bash
+prisma db push && next start -p 3000
+```
+
+es útil durante la etapa de construcción, pero no es la estrategia recomendada para operación estable porque un reinicio/redeploy puede intentar modificar el schema.
+
+Antes de retirar ese `db push` del arranque:
+
+1. tomar backup/snapshot de PostgreSQL;
+2. verificar que producción está sincronizada;
+3. crear un baseline formal;
+4. acordar la estrategia de migraciones;
+5. cambiar el comando de start en un despliegue controlado.
+
+No hacer el cambio sin estos pasos.
+
+### Health check
+
+EasyPanel puede usar:
+
+`GET /api/health`
+
+como comprobación simple de disponibilidad.
+
+### Validación antes de cada deploy productivo
+
+Mientras no exista CI:
+
+```bash
+npm ci
+npm run lint
+npm run build
+```
+
+El repositorio todavía no tiene workflow automático de CI ni suite de integración.
+
+### Integraciones opcionales
+
+Chatwoot, notifier/Meta y la preparación de masa no son prerrequisitos del núcleo genérico. Ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.

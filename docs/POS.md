@@ -2,7 +2,7 @@
 
 Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Ruta principal: `/`
+Ruta principal: `/interno`
 
 Este documento describe el comportamiento vigente del Punto de Venta de Alentó App. Es la referencia funcional para creación de pedidos internos desde mostrador, domicilio y recogida.
 
@@ -208,18 +208,11 @@ El POS permite:
 - seleccionar cliente;
 - crear cliente;
 - editar cliente;
-- administrar múltiples direcciones;
-- agregar nuevas direcciones;
-- editar una dirección existente;
-- marcar una dirección como principal;
-- eliminar direcciones;
-- elegir en el checkout cuál dirección guardada usar para el domicilio.
+- capturar o corregir la dirección operativa del cliente con Google Maps.
 
-`CustomerAddress` se trata como una colección. La dirección marcada `isDefault=true` solo es la selección inicial/preferida; no sustituye ni elimina las demás direcciones del cliente.
+La operación actual usa una **dirección principal operativa por cliente**. Direcciones históricas adicionales pueden existir por compatibilidad o por pedidos invitados, pero no se presentan como un selector normal del POS.
 
-Un cliente nuevo puede guardar una primera dirección durante su creación. Una vez creado, las demás direcciones se administran con los endpoints específicos de direcciones.
-
-En Domicilio, el checkout selecciona por defecto la dirección principal y, si existen varias, permite escoger otra antes de crear la orden.
+En Domicilio, la dirección debe tener coordenadas válidas para que el servidor calcule la ruta y tarifa.
 
 El cliente comercial (`Customer`) es independiente del usuario interno (`User`).
 
@@ -383,3 +376,18 @@ No ejecutar `npx prisma db push` por cambios exclusivamente visuales/funcionales
 El Punto de Venta se sirve desde `/interno`.
 
 La raíz `/` corresponde a la experiencia pública principal de Alentó y no debe volver a protegerse como POS. El acceso del colaborador se realiza desde el login unificado y, según sus roles, puede redirigir a `/interno`.
+
+
+### Edición posterior de un domicilio
+
+La tarifa tampoco se selecciona manualmente desde Pedidos.
+
+Al guardar una edición de un pedido DELIVERY:
+
+1. se toma la dirección validada del cliente;
+2. se toma el origen oficial de Configuración;
+3. se recalcula Google Routes;
+4. se elige la banda activa por distancia;
+5. se actualiza `deliveryFee` server-side.
+
+No reintroducir selectores manuales de tarifa/zona en la edición.

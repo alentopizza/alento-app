@@ -9,10 +9,12 @@ Cocina                ✅ CERRADO
 Clientes              ✅ CERRADO
 Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
-Caja avanzada         ⏳ PENDIENTE
+Caja básica           ✅ IMPLEMENTADA / CIERRE AVANZADO PENDIENTE
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   🟡 PEDIDO WEB IMPLEMENTADO / VALIDACIÓN Y MEJORAS
-Integraciones         ⏳ ÚLTIMA FASE DEL DESARROLLO
+Experiencia pública   ✅ CHECKOUT + SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA
+Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
+Producción             🟡 HARDENING Y VALIDACIÓN
+Integraciones externas 🔒 OPCIONALES / ALENTÓ-ESPECÍFICAS
 ```
 
 Los módulos cerrados pueden recibir correcciones de bugs y pequeños ajustes de UX, pero no deben reabrirse como fase de diseño sin una solicitud explícita.
@@ -177,7 +179,7 @@ La documentación del repositorio debe tener prioridad sobre el historial de cha
 
 # Experiencia pública — V1
 
-Estado: **HOME APROBADA / MENÚ + CARRITO + CLUB IMPLEMENTADOS / CHECKOUT DE DOMICILIO EN DESARROLLO**.
+Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA PENDIENTE**.
 
 ### Implementado
 
@@ -213,13 +215,13 @@ Estado: **HOME APROBADA / MENÚ + CARRITO + CLUB IMPLEMENTADOS / CHECKOUT DE DOM
 - enlace firmado de seguimiento;
 - notificación de pedido creado cuando el notifier está configurado.
 
-### Pendiente para cerrar la fase pública
+### Pendiente para cerrar la validación productiva
 
-1. Persistir `placeId`, `formattedAddress`, `latitude` y `longitude` en `CustomerAddress`.
-2. Mejorar selección/edición de direcciones del cliente.
-3. Validar producción en móvil, PWA, tablet y escritorio.
-4. Integrar canje real de Club Alentó al checkout.
-5. Más adelante, GPS en vivo del repartidor y tracking cartográfico.
+1. Ejecutar el checklist end-to-end de `docs/PRODUCTION_READINESS.md`.
+2. Validar producción en móvil, PWA, tablet y escritorio.
+3. Decidir el alcance de lanzamiento del canje de Club Alentó.
+4. Endurecer despliegue/Prisma y automatizar build/lint.
+5. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
 
 Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 

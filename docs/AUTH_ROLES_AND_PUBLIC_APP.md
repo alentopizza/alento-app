@@ -2,7 +2,7 @@
 
 Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
-Última actualización: 2026-09-22.
+Última actualización: 2026-09-23.
 
 Este documento describe la autenticación vigente de Alentó App y la separación entre colaboradores internos y clientes.
 
@@ -161,7 +161,10 @@ Rutas principales:
 - `/configuracion`: ADMIN;
 - `/personalizacion`: ADMIN;
 - `/usuarios`: ADMIN;
-- `/cupones`: ADMIN.
+- `/cupones`: ADMIN;
+- `/masa`: ADMIN, KITCHEN;
+- `/notificaciones`: ADMIN;
+- `/club-alento`: ADMIN.
 
 Las APIs internas principales también se validan por rol en middleware y/o servidor.
 
@@ -238,7 +241,7 @@ Cliente escribe teléfono
 → localizar Customer
 → generar código de 6 dígitos
 → guardar hash del código
-→ enviar plantilla AUTHENTICATION por WhatsApp Cloud API
+→ enviar el OTP al webhook externo configurado en Make
 → cliente escribe código
 → POST /api/auth/customer/verify-code
 → verificar hash / expiración / intentos
@@ -272,21 +275,21 @@ Características:
 
 La sesión de cliente **no concede ningún permiso interno**.
 
-## WhatsApp Cloud API
+## Entrega del OTP por WhatsApp
 
-Variables:
+El código vigente no llama directamente a Meta desde la app principal.
 
-- `WHATSAPP_ACCESS_TOKEN`;
-- `WHATSAPP_PHONE_NUMBER_ID`;
-- `WHATSAPP_GRAPH_VERSION`;
-- `WHATSAPP_AUTH_TEMPLATE_NAME`;
-- `WHATSAPP_AUTH_LANGUAGE_CODE`.
+Variable usada:
 
-Se utiliza una plantilla de categoría `AUTHENTICATION` con botón OTP tipo copy-code.
+`MAKE_WHATSAPP_OTP_WEBHOOK_URL`
 
-El valor OTP se envía tanto como parámetro del body como del botón.
+`src/lib/whatsappAuth.ts` envía al escenario de Make:
 
-La plantilla debe existir y estar aprobada en la cuenta de WhatsApp Business antes de usar producción.
+- teléfono E.164;
+- código OTP;
+- nombre.
+
+La conexión real con WhatsApp/Meta vive fuera del núcleo de la aplicación y se considera integración opcional/exclusiva de Alentó. Ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 ## Modo desarrollo
 
@@ -322,17 +325,9 @@ Esto imprime el OTP en logs para probar el flujo.
 
 `AUTH_BOOTSTRAP_KEY` durante la creación del primer administrador.
 
-### WhatsApp en producción
+### OTP de cliente cuando se habilita la integración Alentó
 
-`WHATSAPP_ACCESS_TOKEN`
-
-`WHATSAPP_PHONE_NUMBER_ID`
-
-`WHATSAPP_GRAPH_VERSION`
-
-`WHATSAPP_AUTH_TEMPLATE_NAME`
-
-`WHATSAPP_AUTH_LANGUAGE_CODE`
+`MAKE_WHATSAPP_OTP_WEBHOOK_URL`
 
 ## Prisma
 
@@ -359,8 +354,9 @@ Es obligatorio antes de probar login.
 - la sesión interna es stateless y no tiene revocación inmediata centralizada;
 - no existe segundo factor para colaboradores;
 - WhatsApp depende de Meta, plantilla aprobada y credenciales válidas;
-- la experiencia pública ya tiene menú, carrito, Club y selección de domicilio, pero todavía no crea el pedido final `source=WEB`;
-- la ubicación GPS en vivo del repartidor todavía no está implementada.
+- la experiencia pública ya crea pedidos `source=WEB` y ofrece seguimiento firmado;
+- el GPS en vivo, mapa, ETA y flujo operativo del repartidor ya están implementados;
+- recuperación de contraseña y revocación central de sesiones siguen pendientes.
 
 ## Regla pública vigente
 

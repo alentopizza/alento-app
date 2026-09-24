@@ -1,6 +1,6 @@
 # Checkout público + Google Maps Platform
 
-Estado: **IMPLEMENTACIÓN EN CURSO — SEDE, PLACES Y ROUTES CONECTADOS**
+Estado: **IMPLEMENTADO — VALIDACIÓN PRODUCTIVA PENDIENTE**
 
 Este documento define cómo Alentó App resolverá dirección, geolocalización, cobertura y tarifa de domicilio en el checkout público.
 
@@ -115,7 +115,7 @@ El endpoint actual /api/delivery/quote podrá evolucionar para recibir ubicació
 
 ## Datos de dirección
 
-Cuando comience la implementación se ampliará CustomerAddress para conservar:
+CustomerAddress ya conserva en producción:
 
 - placeId;
 - formattedAddress;
@@ -126,7 +126,7 @@ Cuando comience la implementación se ampliará CustomerAddress para conservar:
 
 Los campos actuales address, neighborhood, city y notes se mantienen.
 
-**Este documento no modifica aún Prisma.** El cambio de schema se hará en implementación y requerirá `npx prisma db push`.
+Los campos `placeId`, `formattedAddress`, `latitude` y `longitude` ya forman parte del schema vigente. La sincronización de Prisma se rige por `docs/DEPLOYMENT.md`.
 
 ## Seguridad
 
@@ -253,3 +253,17 @@ No reintroducir lógica de Casa/Trabajo/múltiples direcciones en el checkout p�
 Validar en producción el flujo completo desde carrito hasta creación `WEB`, incluyendo invitado, recuperación por WhatsApp, efectivo y seguimiento. Después completar Fase C con persistencia enriquecida de `CustomerAddress` y mejorar selección/edición de direcciones.
 
 No pegar las claves en chats, commits ni capturas públicas.
+
+
+### Protección de dirección para invitados
+
+Un checkout invitado puede asociarse al `Customer` operativo por teléfono, pero conocer un teléfono no autoriza a sustituir su dirección privada guardada.
+
+Regla vigente:
+
+- con sesión verificada del cliente, la dirección confirmada puede actualizar la dirección operativa guardada;
+- sin sesión, si el teléfono coincide con un cliente existente, la dirección del nuevo pedido no reemplaza ni se convierte en principal sobre la dirección privada previa;
+- si coincide exactamente el Place ID/coordenadas se puede reutilizar;
+- de lo contrario se crea una dirección de entrega no principal para asociarla únicamente al pedido.
+
+Esto evita que un tercero que conozca un teléfono pueda modificar datos privados persistidos.

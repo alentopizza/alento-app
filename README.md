@@ -313,3 +313,13 @@ Rutas de menú:
 
 - `/menu`: menú público para clientes;
 - `/interno/menu`: administración interna del catálogo.
+
+
+## Preparación para producción
+
+Antes de un go-live leer:
+
+- `docs/PRODUCTION_READINESS.md` — revisión funcional proceso por proceso y checklist de salida.
+- `docs/ALENTO_EXCLUSIVE_MODULES.md` — límites entre el núcleo reutilizable y los módulos exclusivos de Alentó Pizza.
+
+La operación genérica no debe depender de Chatwoot, plantillas Meta/notifier ni de la receta de masa de Alentó.

@@ -1,8 +1,26 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-22.
+Última actualización: 2026-09-23.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
+
+## Corte de producción 2026-09-23
+
+La revisión funcional actual está en `docs/PRODUCTION_READINESS.md`.
+
+Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de este documento:
+
+- checkout WEB ya crea pedidos `source=WEB`;
+- `CustomerAddress` ya persiste `formattedAddress`, `placeId`, latitude y longitude;
+- el repartidor ya dispone de home propia, disponibilidad, GPS, autoasignación, límite simultáneo, checklist, navegación, rutas múltiples y cierre de entrega;
+- el cliente ya ve seguimiento en vivo del repartidor con mapa, distancia y ETA;
+- Pedidos ya dispone de Mapa De Entregas, asignación/desasignación y rutas múltiples;
+- el domicilio se calcula automáticamente con Google Routes tanto al crear como al editar;
+- Caja básica y pagos parciales/mixtos están implementados;
+- Club acumula y muestra puntos, pero el canje transaccional sigue pendiente;
+- `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
+Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
 
 ## Módulos cerrados
 
@@ -290,7 +308,7 @@ Clientes:
 - `CustomerAccount` permanece separado de `Customer`;
 - `/cuenta` muestra información privada del cliente autenticado.
 
-Este bloque requiere `npx prisma db push` y variables de entorno nuevas.
+Los modelos de autenticación ya forman parte del schema vigente. Cualquier sincronización de schema debe seguir la estrategia documentada en `docs/DEPLOYMENT.md`.
 
 Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
@@ -467,7 +485,7 @@ Existe:
 - autoactualización de la página del repartidor;
 - seguimiento del cliente en `/seguimiento/[token]` con actualización automática.
 
-La ubicación GPS en vivo del repartidor y su representación sobre el mapa del cliente siguen siendo futuras.
+La ubicación GPS en vivo del repartidor, las rutas y su representación sobre el mapa del cliente ya están implementadas.
 
 ## Pendientes inmediatos de la experiencia pública
 

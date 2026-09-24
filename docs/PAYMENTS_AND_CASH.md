@@ -107,7 +107,7 @@ La numeración operativa está documentada en:
 
 `docs/ORDER_NUMBERING.md`
 
-POS y WEB comparten la misma secuencia global de `Order.id`; solo cambia el prefijo visible.
+POS y WEB comparten la misma secuencia global de `Order.sequenceNumber`; solo cambia el prefijo visible.
 
 ## Próximas extensiones contables
 
@@ -144,3 +144,21 @@ npx prisma db push
 ```
 
 Los cambios de eliminación física y de numeración no agregan columnas nuevas.
+
+
+## Cancelación después de recibir dinero
+
+Todavía no existe un flujo contable de devolución/refund.
+
+Por seguridad, si un pedido tiene uno o más movimientos `PAID`, la cancelación queda bloqueada.
+
+Motivo: marcar como cancelado el dinero recibido sin crear un movimiento de devolución rompería la trazabilidad de Caja.
+
+Flujo vigente:
+
+```text
+sin pagos PAID → se puede cancelar
+con pagos PAID → bloquear cancelación → implementar/registrar refund antes de permitirla
+```
+
+No retirar esta protección hasta que exista un movimiento `REFUNDED` auditable.

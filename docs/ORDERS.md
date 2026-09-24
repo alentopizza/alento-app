@@ -511,3 +511,18 @@ Pedido activo
 → permiso DELETE_ORDERS
 → eliminación definitiva
 ```
+
+
+## Revisión productiva 2026-09-23
+
+Reglas vigentes adicionales:
+
+- el domicilio ya no permite escoger una tarifa manual al editar;
+- el backend recalcula Google Routes y selecciona la banda activa;
+- la tarjeta muestra repartidor asignado;
+- el administrador puede desasignar un repartidor;
+- si se desasigna durante `OUT_FOR_DELIVERY` o `ARRIVED`, el pedido vuelve a `READY` y se limpia la verificación del driver;
+- existe **Mapa De Entregas** con pedidos, repartidores, Alentó y rutas;
+- rutas múltiples encadenan paradas y diferencian cada tramo por color;
+- el límite de domicilios simultáneos por repartidor se configura desde Configuración;
+- una orden con dinero `PAID` no puede cancelarse hasta disponer de un flujo de refund.

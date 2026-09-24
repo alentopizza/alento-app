@@ -8,7 +8,9 @@ Leer en este orden:
 
 1. `README.md`
 2. `docs/CURRENT_STATE.md`
-3. `docs/ROADMAP.md`
+3. `docs/PRODUCTION_READINESS.md`
+4. `docs/ALENTO_EXCLUSIVE_MODULES.md`
+5. `docs/ROADMAP.md`
 4. `docs/POS.md`
 5. `docs/ORDERS.md`
 6. `docs/KITCHEN.md`
@@ -574,3 +576,16 @@ El siguiente paso del rastreo puede ser mejorar animación/heading de la moto y 
 ### Regla al continuar
 
 No crear una segunda lógica pública para precios, combos, rutas o pedidos. El flujo WEB reutiliza `normalizeOrderLine`, configuración estructurada, bandas de domicilio, consecutivo global y estados existentes.
+
+
+## Límite entre núcleo y módulos exclusivos
+
+Antes de preparar una versión para terceros, leer `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
+No considerar parte del núcleo genérico:
+
+- receta/preparación de masa de Alentó;
+- plantillas e infraestructura Meta/WhatsApp/notifier de Alentó;
+- integración Chatwoot de la instalación actual.
+
+Estas capacidades pueden existir en el repositorio operativo de Alentó sin convertirse por ello en requisitos de una distribución comercial genérica.
