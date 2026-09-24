@@ -355,3 +355,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 - ✅ 2026-09-24 — Roles y permisos: validación manual aprobada con usuarios reales separados; los accesos y restricciones principales por rol funcionan según la matriz vigente.
 - ✅ 2026-09-24 — Pagos y Caja: validación manual aprobada; registro de pago, saldo en cero, medio de pago y total diario de Caja funcionan correctamente.
 - ✅ 2026-09-24 — Pagos parciales y mixtos: validación manual aprobada; múltiples movimientos PAID reducen correctamente el saldo, conservan sus medios de pago y Caja suma los ingresos sin duplicar el pedido.
+- ✅ 2026-09-24 — Eliminación de pago erróneo: validación manual aprobada; al eliminar un movimiento PAID se recalculan saldo y estado de cobro, y Caja descuenta correctamente el valor eliminado.
