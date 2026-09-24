@@ -314,6 +314,14 @@ Corregido:
 
 Regla de no regresión: **si un rol puede entrar al POS, debe poder completar el flujo POS de punta a punta**. El acceso a APIs operativas no implica acceso a la página CRM `/clientes`.
 
+### 2026-09-24 — CASHIER al actualizar estado
+
+Durante la prueba `POS → Recoger`, el usuario CASHIER pudo crear y consultar el pedido, pero recibió `403 Sin permisos` al intentar cambiar el pedido de Horneando/PREPARED a Listo/READY.
+
+Causa: el middleware permitía `PATCH /api/orders/[id]/status` a ADMIN, POS y KITCHEN, pero no a CASHIER, aunque CASHIER tiene acceso funcional a Pedidos.
+
+Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado desde Pedidos. Las validaciones de flujo, saldo y modalidad continúan aplicándose en el endpoint.
+
 
 ## Resultados de validación manual
 

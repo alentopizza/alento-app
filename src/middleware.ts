@@ -42,7 +42,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
     if (pathname.includes("/items/") && pathname.endsWith("/prepared")) return ["ADMIN", "KITCHEN"];
     if (pathname.endsWith("/payment") || /\/payment\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER"];
     if (pathname.endsWith("/edit")) return ["ADMIN", "POS"];
-    if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN"];
+    if (pathname.endsWith("/status")) return ["ADMIN", "POS", "KITCHEN", "CASHIER"];
     if (/^\/api\/orders\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER", "KITCHEN"];
     if (method === "GET") return ["ADMIN", "POS", "KITCHEN", "CASHIER"];
     return ["ADMIN", "POS"];
