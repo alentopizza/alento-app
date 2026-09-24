@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { Pizza } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
@@ -413,9 +415,22 @@ export default function KitchenPage() {
               <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Cocina</h1>
               <p className="mt-0.5 text-sm text-white/65">Lo que entra, lo que se prepara y lo que ya puede salir.</p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Cocina</span>
-              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/masa"
+                className="group inline-flex h-[58px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-[11px] font-black text-white shadow-inner transition hover:bg-white/[0.12] active:scale-[.98]"
+                title="Abrir preparaciones"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.28)] transition group-hover:scale-[1.03]">
+                  <Pizza className="h-[19px] w-[19px]" strokeWidth={2.35} />
+                </span>
+                <span className="hidden sm:inline">Preparaciones</span>
+              </Link>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Cocina</span>
+                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
+              </div>
             </div>
           </div>
         </section>
