@@ -5,13 +5,27 @@ import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
+import GoogleCustomerAddressPicker, {
+  type GoogleCustomerAddressSelection,
+} from "@/components/GoogleCustomerAddressPicker";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import { fulfillmentLabel, nextStatus, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
 
-type CustomerAddress = { id: number; address: string };
+type CustomerAddress = {
+  id: number;
+  address: string;
+  formattedAddress?: string | null;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  notes?: string | null;
+  isDefault?: boolean;
+};
 type CustomerSearchResult = {
   id: number;
   name: string;
@@ -37,7 +51,7 @@ type Order = {
   deliveryZoneName: string | null;
   createdAt: string;
   customer: { id: number; name: string; countryCode: string; phone: string | null; addresses?: CustomerAddress[] } | null;
-  address: { id: number; address: string } | null;
+  address: CustomerAddress | null;
   driver: { id: number; name: string } | null;
   driverAssignedAt?: string | null;
   items: OrderItem[];
@@ -209,6 +223,8 @@ export default function OrdersCardsDashboardV3() {
   const [customerName, setCustomerName] = useState("");
   const [customerCountryCode, setCustomerCountryCode] = useState("+57");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerAddressSelection, setCustomerAddressSelection] =
+    useState<GoogleCustomerAddressSelection | null>(null);
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerMatches, setCustomerMatches] = useState<CustomerSearchResult[]>([]);
   const [replacementCustomer, setReplacementCustomer] = useState<CustomerSearchResult | null>(null);
@@ -546,6 +562,25 @@ export default function OrdersCardsDashboardV3() {
     setCustomerName(order.customer?.name ?? "");
     setCustomerCountryCode(order.customer?.countryCode || "+57");
     setCustomerPhone(order.customer?.phone ?? "");
+    setCustomerAddressSelection(
+      order.fulfillmentType === "DELIVERY" &&
+        order.address?.placeId &&
+        order.address.latitude != null &&
+        order.address.longitude != null
+        ? {
+            formattedAddress:
+              order.address.formattedAddress || order.address.address,
+            placeId: order.address.placeId,
+            latitude: Number(order.address.latitude),
+            longitude: Number(order.address.longitude),
+            neighborhood: order.address.neighborhood || "",
+            city: order.address.city || "Bogotá",
+            covered: true,
+            deliveryFee: Number(order.deliveryFee),
+            distanceMeters: null,
+          }
+        : null,
+    );
     setCustomerQuery("");
     setCustomerMatches([]);
     setReplacementCustomer(null);
@@ -591,7 +626,38 @@ export default function OrdersCardsDashboardV3() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible actualizar el cliente.");
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible actualizar el cliente.");
+      }
+
+      if (customerOrder.fulfillmentType === "DELIVERY") {
+        if (!customerAddressSelection) {
+          throw new Error(
+            "Selecciona y valida la dirección del domicilio con Google Maps.",
+          );
+        }
+
+        const addressResponse = await fetch(
+          `/api/orders/${customerOrder.id}/delivery-address`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...customerAddressSelection,
+              notes: customerOrder.address?.notes ?? "",
+            }),
+          },
+        );
+        const addressData = await addressResponse.json();
+
+        if (!addressResponse.ok) {
+          throw new Error(
+            addressData.error ||
+              "No fue posible actualizar la dirección del domicilio.",
+          );
+        }
+      }
+
       await load(true);
       emitLiveDataChange(["orders", "customers", "club", "account"]);
       setCustomerOrder(null);
@@ -854,7 +920,7 @@ export default function OrdersCardsDashboardV3() {
 
     {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
 
-    {customerOrder && <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/65 p-4" onClick={() => { if (!customerSaving) setCustomerOrder(null); }}><div onClick={(event) => event.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl"><div className="flex items-center justify-between bg-black px-5 py-4 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Cliente del pedido</p><h3 className="text-xl font-black">{displayOrderCode(customerOrder)}</h3></div><button onClick={() => { if (!customerSaving) setCustomerOrder(null); }} className="h-9 w-9 rounded-xl bg-white/10"><Icon name="close" /></button></div><div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5"><div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#f7f5f2] p-1.5"><button onClick={() => { setCustomerMode("EDIT"); setCustomerError(""); }} disabled={!customerOrder.customer} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "EDIT" ? "bg-white shadow-sm" : "text-neutral-500"} disabled:opacity-40`}>Actualizar datos</button><button onClick={() => { setCustomerMode("CHANGE"); setCustomerError(""); }} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "CHANGE" ? "bg-white shadow-sm" : "text-neutral-500"}`}>Cambiar cliente</button></div>{customerMode === "EDIT" && customerOrder.customer ? <div className="mt-5 space-y-4"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Mantiene el mismo historial</p><p className="mt-1 text-xs text-neutral-500">Úsalo cuando la misma persona cambió de número o necesitas corregir su nombre.</p></div><div><label className="mb-1.5 block text-xs font-black">Nombre</label><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className="alento-input w-full rounded-xl px-4 py-3" /></div><div className="grid gap-3 sm:grid-cols-[110px_1fr]"><div><label className="mb-1.5 block text-xs font-black">Indicativo</label><select value={customerCountryCode} onChange={(event) => setCustomerCountryCode(event.target.value)} className="alento-input w-full rounded-xl px-3 py-3"><option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option></select></div><div><label className="mb-1.5 block text-xs font-black">Teléfono</label><input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} inputMode="tel" className="alento-input w-full rounded-xl px-4 py-3" /></div></div><div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">El cliente conserva sus pedidos anteriores y futuros porque se actualiza el mismo registro.</div></div> : <div className="mt-5"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Buscar otro cliente</p><p className="mt-1 text-xs text-neutral-500">Busca por nombre, teléfono o correo y asígnalo únicamente a este pedido.</p></div><input value={customerQuery} onChange={(event) => void searchReplacementCustomers(event.target.value)} placeholder="Ej. Ivan, 3243755611..." className="alento-input mt-3 w-full rounded-xl px-4 py-3" />{customerMatches.length > 0 && <div className="mt-3 space-y-2">{customerMatches.map((customer) => <button key={customer.id} onClick={() => { setReplacementCustomer(customer); setReplacementAddressId(customer.addresses?.[0]?.id ?? null); setCustomerError(""); }} className={`w-full rounded-xl border p-3 text-left ${replacementCustomer?.id === customer.id ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white"}`}><div className="flex items-center justify-between gap-3"><div className="min-w-0"><b className="block truncate text-sm">{customer.name}</b><p className="mt-0.5 text-xs text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p></div>{replacementCustomer?.id === customer.id && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black uppercase text-white">Seleccionado</span>}</div></button>)}</div>}{replacementCustomer && customerOrder.fulfillmentType === "DELIVERY" && <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Dirección para este domicilio</p>{replacementCustomer.addresses.length === 0 ? <p className="mt-2 text-xs font-semibold text-red-600">Este cliente no tiene una dirección registrada.</p> : <div className="mt-2 space-y-2">{replacementCustomer.addresses.map((address) => <button key={address.id} onClick={() => setReplacementAddressId(address.id)} className={`w-full rounded-xl border bg-white p-3 text-left text-sm ${replacementAddressId === address.id ? "border-[var(--brand-red)] ring-1 ring-[var(--brand-red)]" : "border-neutral-200"}`}>{address.address}</button>)}</div>}</div>}</div>}{customerError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{customerError}</p>}</div><div className="grid grid-cols-2 gap-2 border-t p-4"><button onClick={() => setCustomerOrder(null)} disabled={customerSaving} className="h-11 rounded-xl border font-bold disabled:opacity-50">Cancelar</button><button onClick={() => customerMode === "EDIT" ? void saveCurrentCustomer() : void changeOrderCustomer()} disabled={customerSaving || (customerMode === "CHANGE" && !replacementCustomer)} className="h-11 rounded-xl bg-[var(--brand-red)] font-black text-white disabled:opacity-50">{customerSaving ? "Guardando..." : customerMode === "EDIT" ? "Guardar cliente" : "Asignar cliente"}</button></div></div></div>}
+    {customerOrder && <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/65 p-4" onClick={() => { if (!customerSaving) setCustomerOrder(null); }}><div onClick={(event) => event.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl"><div className="flex items-center justify-between bg-black px-5 py-4 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Cliente del pedido</p><h3 className="text-xl font-black">{displayOrderCode(customerOrder)}</h3></div><button onClick={() => { if (!customerSaving) setCustomerOrder(null); }} className="h-9 w-9 rounded-xl bg-white/10"><Icon name="close" /></button></div><div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5"><div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#f7f5f2] p-1.5"><button onClick={() => { setCustomerMode("EDIT"); setCustomerError(""); }} disabled={!customerOrder.customer} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "EDIT" ? "bg-white shadow-sm" : "text-neutral-500"} disabled:opacity-40`}>Actualizar datos</button><button onClick={() => { setCustomerMode("CHANGE"); setCustomerError(""); }} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "CHANGE" ? "bg-white shadow-sm" : "text-neutral-500"}`}>Cambiar cliente</button></div>{customerMode === "EDIT" && customerOrder.customer ? <div className="mt-5 space-y-4"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Mantiene el mismo historial</p><p className="mt-1 text-xs text-neutral-500">Úsalo cuando la misma persona cambió de número o necesitas corregir su nombre.</p></div><div><label className="mb-1.5 block text-xs font-black">Nombre</label><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className="alento-input w-full rounded-xl px-4 py-3" /></div><div className="grid gap-3 sm:grid-cols-[110px_1fr]"><div><label className="mb-1.5 block text-xs font-black">Indicativo</label><select value={customerCountryCode} onChange={(event) => setCustomerCountryCode(event.target.value)} className="alento-input w-full rounded-xl px-3 py-3"><option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option></select></div><div><label className="mb-1.5 block text-xs font-black">Teléfono</label><input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} inputMode="tel" className="alento-input w-full rounded-xl px-4 py-3" /></div></div>{customerOrder.fulfillmentType === "DELIVERY" && <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3"><div className="mb-3"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Dirección de este domicilio</p><p className="mt-1 text-[11px] leading-4 text-neutral-500">Si el cliente se equivocó, corrige la ubicación aquí. La tarifa y la ruta se recalculan al guardar.</p></div><GoogleCustomerAddressPicker currentAddress={customerOrder.address?.formattedAddress || customerOrder.address?.address || undefined} initialSelection={{ formattedAddress: customerOrder.address?.formattedAddress || customerOrder.address?.address || undefined, placeId: customerOrder.address?.placeId || undefined, latitude: customerOrder.address?.latitude ?? null, longitude: customerOrder.address?.longitude ?? null, neighborhood: customerOrder.address?.neighborhood || undefined, city: customerOrder.address?.city || undefined }} onSelect={(selection) => { setCustomerAddressSelection(selection); setCustomerError(""); }} /></div>}<div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">El cliente conserva sus pedidos anteriores y futuros porque se actualiza el mismo registro.</div></div> : <div className="mt-5"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Buscar otro cliente</p><p className="mt-1 text-xs text-neutral-500">Busca por nombre, teléfono o correo y asígnalo únicamente a este pedido.</p></div><input value={customerQuery} onChange={(event) => void searchReplacementCustomers(event.target.value)} placeholder="Ej. Ivan, 3243755611..." className="alento-input mt-3 w-full rounded-xl px-4 py-3" />{customerMatches.length > 0 && <div className="mt-3 space-y-2">{customerMatches.map((customer) => <button key={customer.id} onClick={() => { setReplacementCustomer(customer); setReplacementAddressId(customer.addresses?.[0]?.id ?? null); setCustomerError(""); }} className={`w-full rounded-xl border p-3 text-left ${replacementCustomer?.id === customer.id ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white"}`}><div className="flex items-center justify-between gap-3"><div className="min-w-0"><b className="block truncate text-sm">{customer.name}</b><p className="mt-0.5 text-xs text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p></div>{replacementCustomer?.id === customer.id && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black uppercase text-white">Seleccionado</span>}</div></button>)}</div>}{replacementCustomer && customerOrder.fulfillmentType === "DELIVERY" && <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Dirección para este domicilio</p>{replacementCustomer.addresses.length === 0 ? <p className="mt-2 text-xs font-semibold text-red-600">Este cliente no tiene una dirección registrada.</p> : <div className="mt-2 space-y-2">{replacementCustomer.addresses.map((address) => <button key={address.id} onClick={() => setReplacementAddressId(address.id)} className={`w-full rounded-xl border bg-white p-3 text-left text-sm ${replacementAddressId === address.id ? "border-[var(--brand-red)] ring-1 ring-[var(--brand-red)]" : "border-neutral-200"}`}>{address.address}</button>)}</div>}</div>}</div>}{customerError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{customerError}</p>}</div><div className="grid grid-cols-2 gap-2 border-t p-4"><button onClick={() => setCustomerOrder(null)} disabled={customerSaving} className="h-11 rounded-xl border font-bold disabled:opacity-50">Cancelar</button><button onClick={() => customerMode === "EDIT" ? void saveCurrentCustomer() : void changeOrderCustomer()} disabled={customerSaving || (customerMode === "CHANGE" && !replacementCustomer)} className="h-11 rounded-xl bg-[var(--brand-red)] font-black text-white disabled:opacity-50">{customerSaving ? "Guardando..." : customerMode === "EDIT" ? "Guardar cliente" : "Asignar cliente"}</button></div></div></div>}
 
     <AdminDeliveryMapModal
       open={deliveryMapOpen}

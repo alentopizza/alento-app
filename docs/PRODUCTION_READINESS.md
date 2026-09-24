@@ -25,7 +25,7 @@ Estados usados:
 | POS interno | LISTO CON VALIDACIÓN | carrito estructurado → modalidad → cliente/dirección → descuento → intención de pago → creación real de Order |
 | Domicilio POS | LISTO CON VALIDACIÓN | dirección Google → Routes server-side → cobertura → tarifa automática; también al editar |
 | Cobertura / tarifas de domicilio | LISTO CON VALIDACIÓN | editor ADMIN de zonas por distancia, tarifa, activar/desactivar, agregar/eliminar, cobertura máxima y mapa visual por radios; el cobro real sigue usando Google Routes |
-| Pedidos | LISTO CON VALIDACIÓN | detalle, edición, cliente, pagos, estados, cancelación controlada, impresión, driver, mapa de entregas |
+| Pedidos | LISTO CON VALIDACIÓN | detalle, edición, cliente, corrección de dirección desde Editar cliente con recálculo server-side, pagos, estados, cancelación controlada, impresión, driver, mapa de entregas |
 | Cocina | LISTO CON VALIDACIÓN | PREPARING → preparación por cantidades → PREPARED/Horneando → READY desde operación |
 | Recoger / Local | LISTO CON VALIDACIÓN | PREPARING → PREPARED → READY → COMPLETED; COMPLETED exige saldo pagado |
 | Domicilio / Repartidor | LISTO CON VALIDACIÓN | asignación → checklist al estar READY → EN CAMINO → LLEGÓ → ENTREGADO → cierre operativo; mapa ADMIN con repartidores y pedidos interactivos, detalle de carga y asignación directa desde pin antes de iniciar ruta |

@@ -152,9 +152,24 @@ Se usa cuando la misma persona cambia:
 
 - nombre;
 - teléfono;
-- indicativo.
+- indicativo;
+- dirección del domicilio cuando el pedido es DELIVERY.
 
 Se modifica el mismo `Customer`, preservando su historial.
+
+### Corregir dirección del domicilio
+
+Cuando un cliente se equivoca al ingresar su dirección, **Editar cliente** muestra el mismo selector Google Maps usado por el CRM:
+
+- se puede buscar otra dirección;
+- se puede ajustar el pin manualmente;
+- al guardar se actualiza la dirección operativa del cliente y la dirección asociada al pedido;
+- la ruta se recalcula con Google Routes;
+- la banda y tarifa de domicilio se recalculan server-side;
+- el total y el saldo pendiente se ajustan automáticamente;
+- no se permite guardar una dirección fuera de cobertura;
+- si el nuevo total queda por debajo de dinero ya recibido, el cambio se bloquea hasta resolver la devolución;
+- pedidos DELIVERED, COMPLETED o CANCELED no permiten cambiar la dirección.
 
 ### Cambiar cliente
 
