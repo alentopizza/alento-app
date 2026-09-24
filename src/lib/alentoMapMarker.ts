@@ -5,7 +5,6 @@ function applyBaseMarkerAccessibility(root: HTMLElement, ariaLabel: string) {
   root.setAttribute("aria-label", ariaLabel);
   root.setAttribute("role", "img");
   root.style.userSelect = "none";
-  root.style.pointerEvents = "none";
 }
 
 export function orderMapPinLabel(value?: string | number | null): string | null {
