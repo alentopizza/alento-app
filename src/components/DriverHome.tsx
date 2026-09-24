@@ -1058,8 +1058,6 @@ export default function DriverHome({
       disposed = true;
     };
   }, [
-    driver.driverLatitude,
-    driver.driverLongitude,
     assignedStopNumbers,
     driver.driverLatitude,
     driver.driverLongitude,
