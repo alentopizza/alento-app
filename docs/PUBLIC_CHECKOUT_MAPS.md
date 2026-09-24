@@ -94,6 +94,8 @@ La experiencia de domicilio usa un layout compacto orientado a móvil:
 - el mapa pasa a ser el elemento visual principal en formato 3:4 y se inicializa únicamente cuando su contenedor ya está montado;
 - la ruta Alentó → cliente se dibuja sobre el mapa;
 - Ruta, Domicilio y Tiempo se integran como una cabecera flotante dentro de la parte superior del mapa;
+- cuando la ruta está fuera de cobertura, una alerta flotante dentro del mapa ocupa el centro visual y ofrece dos salidas directas: **Editar dirección** o **Recoger en tienda**;
+- la alerta fuera de cobertura no se relega debajo del mapa, porque en móvil puede quedar oculta por el resumen/footer;
 - al entrar en modo edición se bloquea la confirmación hasta validar de nuevo la dirección.
 
 Más adelante este bloque se complementará con barrio, apartamento/casa/local y nota de entrega antes de crear el pedido.

@@ -989,6 +989,64 @@ export default function PublicCheckoutDelivery({
 
 
 
+                    {!quoting && !quote.covered && (
+                      <div className="absolute inset-x-4 top-1/2 z-20 -translate-y-1/2 sm:inset-x-8">
+                        <div className="mx-auto max-w-[430px] rounded-[22px] border border-[#e21a22]/35 bg-[#111]/94 p-4 text-white shadow-[0_22px_60px_rgba(0,0,0,.45)] backdrop-blur-xl sm:p-5">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#ff5a60]/25 bg-[#e21a22]/15 text-[#ff5a60]">
+                              <svg
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                                className="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M12 9v4" />
+                                <path d="M12 17h.01" />
+                                <path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />
+                              </svg>
+                            </span>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[13px] font-black leading-5 sm:text-[14px]">
+                                Esta ubicación está fuera de nuestra cobertura
+                              </p>
+                              <p className="mt-1 text-[10px] leading-4 text-white/55 sm:text-[11px] sm:leading-5">
+                                Elige otra dirección o cambia a Recoger en tienda.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingAddress(true);
+                                setError("");
+                              }}
+                              className="h-10 rounded-full border border-white/12 bg-white/[0.06] px-3 text-[9px] font-black text-white/78 transition hover:bg-white/[0.10] active:scale-[0.98] sm:text-[10px]"
+                            >
+                              Editar dirección
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFulfillmentType("PICKUP");
+                                setEditingAddress(false);
+                                setError("");
+                              }}
+                              className="h-10 rounded-full bg-[#e21a22] px-3 text-[9px] font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.28)] transition hover:bg-[#c9151c] active:scale-[0.98] sm:text-[10px]"
+                            >
+                              Recoger en tienda
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex items-center justify-between gap-2 sm:inset-x-4 sm:bottom-4">
                       <div className="rounded-full border border-black/5 bg-white/90 px-2.5 py-1.5 text-[7px] font-bold text-neutral-800 shadow-md backdrop-blur sm:text-[8px]">
                         Alentó → tu ubicación
@@ -1000,12 +1058,6 @@ export default function PublicCheckoutDelivery({
                       )}
                     </div>
                   </section>
-
-                  {!quoting && !quote.covered && (
-                    <div className="rounded-[13px] border border-amber-400/20 bg-amber-400/10 p-2.5 text-[9px] leading-4 text-amber-100">
-                      Esta ubicación está fuera de nuestra cobertura. Elige otra dirección o selecciona Recoger.
-                    </div>
-                  )}
                 </>
               )}
             </div>          ) : (

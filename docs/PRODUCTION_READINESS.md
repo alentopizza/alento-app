@@ -257,6 +257,8 @@ Regla visual: el código del pedido debe quedar visible en la cabecera tanto par
 
 ### WEB
 
+Regla visual: si una dirección está fuera de cobertura, la alerta de fuera de cobertura debe mostrarse superpuesta dentro del mapa y permitir **Editar dirección** o cambiar directamente a **Recoger en tienda**.
+
 1. Compra invitado.
 2. Cliente autenticado.
 3. Domicilio y Recoger.
