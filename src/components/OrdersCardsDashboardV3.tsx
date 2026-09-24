@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
+import FeedbackModal from "@/components/FeedbackModal";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
@@ -197,6 +198,12 @@ export default function OrdersCardsDashboardV3() {
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    tone: "warning" | "error" | "success";
+    title: string;
+    message: string;
+    detail?: string;
+  } | null>(null);
   const [customerOrder, setCustomerOrder] = useState<Order | null>(null);
   const [customerMode, setCustomerMode] = useState<"EDIT" | "CHANGE">("EDIT");
   const [customerName, setCustomerName] = useState("");
@@ -357,7 +364,18 @@ export default function OrdersCardsDashboardV3() {
       await load(true);
       emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
-      window.alert(actionError instanceof Error ? actionError.message : "No fue posible cancelar el pedido.");
+      const message =
+        actionError instanceof Error
+          ? actionError.message
+          : "No fue posible cancelar el pedido.";
+
+      setFeedbackModal({
+        tone: "warning",
+        title: "No se puede cancelar el pedido",
+        message:
+          "Este pedido ya recibió dinero y debe conservar su trazabilidad financiera.",
+        detail: message,
+      });
     } finally {
       setBusy(null);
     }
@@ -822,6 +840,17 @@ export default function OrdersCardsDashboardV3() {
       }}
       onConfirm={() => void executeConfirmedAction()}
     />}
+
+    {feedbackModal && (
+      <FeedbackModal
+        tone={feedbackModal.tone}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        detail={feedbackModal.detail}
+        buttonLabel="Entendido"
+        onClose={() => setFeedbackModal(null)}
+      />
+    )}
 
     {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
 

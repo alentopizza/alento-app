@@ -119,6 +119,7 @@ Se corrigieron antes de declarar esta revisión:
 4. La edición de un domicilio ya no permite elegir manualmente una tarifa: vuelve a calcular Google Routes y la banda en servidor.
 5. El endpoint legacy de edición usa la misma regla de tarifa automática.
 6. Mientras no exista un flujo de refund, se bloquea cancelar pedidos con pagos `PAID` para no borrar trazabilidad financiera.
+7. La respuesta de este bloqueo se muestra en un modal visual propio de Alentó; no se usa `window.alert` para esta restricción financiera.
 
 ---
 
@@ -357,3 +358,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 - ✅ 2026-09-24 — Pagos parciales y mixtos: validación manual aprobada; múltiples movimientos PAID reducen correctamente el saldo, conservan sus medios de pago y Caja suma los ingresos sin duplicar el pedido.
 - ✅ 2026-09-24 — Eliminación de pago erróneo: validación manual aprobada; al eliminar un movimiento PAID se recalculan saldo y estado de cobro, y Caja descuenta correctamente el valor eliminado.
 - ✅ 2026-09-24 — Bloqueo de cierre con saldo pendiente: validación manual aprobada; un pedido con saldo por cobrar no puede pasar a COMPLETED/Finalizado hasta registrar el pago completo.
+- ✅ 2026-09-24 — Cancelación de pedido pagado: validación manual aprobada; un pedido con movimientos PAID queda protegido contra cancelación mientras no exista un flujo auditable de devolución/refund. Caja y los pagos se conservan.
