@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       requestedEnd,
     );
 
-    const [sales, payments, otherIncomes, expenses] = await prisma.$transaction([
+    const [sales, payments, otherIncomes, expenses, loans, loanRepayments] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
           createdAt: { gte: start, lt: endExclusive },
@@ -84,6 +84,35 @@ export async function GET(request: NextRequest) {
           occurredAt: { gte: start, lt: endExclusive },
         },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      }),
+      prisma.cashLoan.findMany({
+        where: {
+          issuedAt: { gte: start, lt: endExclusive },
+          historicalPaidWithoutRepayment: false,
+        },
+        select: {
+          id: true,
+          workerName: true,
+          principal: true,
+          issuedAt: true,
+        },
+      }),
+      prisma.cashLoanRepayment.findMany({
+        where: {
+          paidAt: { gte: start, lt: endExclusive },
+        },
+        select: {
+          id: true,
+          loanId: true,
+          amount: true,
+          paidAt: true,
+          method: true,
+          loan: {
+            select: {
+              workerName: true,
+            },
+          },
+        },
       }),
     ]);
 
@@ -145,6 +174,14 @@ export async function GET(request: NextRequest) {
     }
 
     const salesTotal = Number(sales._sum.total ?? 0);
+    const loanDisbursedTotal = loans.reduce(
+      (sum, loan) => sum + Number(loan.principal),
+      0,
+    );
+    const loanRecoveredTotal = loanRepayments.reduce(
+      (sum, repayment) => sum + Number(repayment.amount),
+      0,
+    );
 
     return NextResponse.json({
       startDate,
@@ -156,9 +193,16 @@ export async function GET(request: NextRequest) {
       otherIncomeTotal,
       otherIncomeCount: otherIncomes.length,
       totalInflow: receivedTotal + otherIncomeTotal,
+      loanDisbursedTotal,
+      loanRecoveredTotal,
       expensesTotal,
       expenseCount: expenses.length,
-      netTotal: receivedTotal + otherIncomeTotal - expensesTotal,
+      netTotal:
+        receivedTotal +
+        otherIncomeTotal +
+        loanRecoveredTotal -
+        expensesTotal -
+        loanDisbursedTotal,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
       incomeCategories: [...incomeCategories.values()].sort(
         (a, b) => b.amount - a.amount,
@@ -190,6 +234,20 @@ export async function GET(request: NextRequest) {
         occurredAt: income.occurredAt,
         source: income.source,
         createdByName: income.createdByName,
+      })),
+      loans: loans.map((loan) => ({
+        id: loan.id,
+        workerName: loan.workerName,
+        amount: Number(loan.principal),
+        issuedAt: loan.issuedAt,
+      })),
+      loanRepayments: loanRepayments.map((repayment) => ({
+        id: repayment.id,
+        loanId: repayment.loanId,
+        workerName: repayment.loan.workerName,
+        amount: Number(repayment.amount),
+        paidAt: repayment.paidAt,
+        method: repayment.method,
       })),
       expenses: expenses.map((expense) => ({
         id: expense.id,
