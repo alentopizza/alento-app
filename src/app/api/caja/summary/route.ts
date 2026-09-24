@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       requestedEnd,
     );
 
-    const [sales, payments, expenses] = await prisma.$transaction([
+    const [sales, payments, otherIncomes, expenses] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
           createdAt: { gte: start, lt: endExclusive },
@@ -73,6 +73,12 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
+      prisma.cashIncome.findMany({
+        where: {
+          occurredAt: { gte: start, lt: endExclusive },
+        },
+        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+      }),
       prisma.cashExpense.findMany({
         where: {
           occurredAt: { gte: start, lt: endExclusive },
@@ -98,6 +104,25 @@ export async function GET(request: NextRequest) {
       current.amount += amount;
       current.count += 1;
       methods.set(payment.method, current);
+    }
+
+    const incomeCategories = new Map<
+      string,
+      { category: string; amount: number; count: number }
+    >();
+    let otherIncomeTotal = 0;
+
+    for (const income of otherIncomes) {
+      const amount = Number(income.amount);
+      otherIncomeTotal += amount;
+      const current = incomeCategories.get(income.category) ?? {
+        category: income.category,
+        amount: 0,
+        count: 0,
+      };
+      current.amount += amount;
+      current.count += 1;
+      incomeCategories.set(income.category, current);
     }
 
     const expenseCategories = new Map<
@@ -128,10 +153,16 @@ export async function GET(request: NextRequest) {
       orderCount: sales._count._all,
       receivedTotal,
       paymentCount: payments.length,
+      otherIncomeTotal,
+      otherIncomeCount: otherIncomes.length,
+      totalInflow: receivedTotal + otherIncomeTotal,
       expensesTotal,
       expenseCount: expenses.length,
-      netTotal: receivedTotal - expensesTotal,
+      netTotal: receivedTotal + otherIncomeTotal - expensesTotal,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
+      incomeCategories: [...incomeCategories.values()].sort(
+        (a, b) => b.amount - a.amount,
+      ),
       expenseCategories: [...expenseCategories.values()].sort(
         (a, b) => b.amount - a.amount,
       ),
@@ -150,6 +181,15 @@ export async function GET(request: NextRequest) {
           total: Number(payment.order.total),
           customerName: payment.order.customer?.name ?? "Cliente ocasional",
         },
+      })),
+      otherIncomes: otherIncomes.map((income) => ({
+        id: income.id,
+        category: income.category,
+        note: income.note,
+        amount: Number(income.amount),
+        occurredAt: income.occurredAt,
+        source: income.source,
+        createdByName: income.createdByName,
       })),
       expenses: expenses.map((expense) => ({
         id: expense.id,
