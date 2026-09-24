@@ -123,6 +123,44 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+    const store = storeLocation(settings?.value);
+
+    const driverRouteEntries =
+      includeRoutes && store
+        ? await Promise.all(
+            drivers.map(async (driver) => {
+              try {
+                const route = await computeDrivingRoute({
+                  origin: {
+                    latitude: Number(driver.driverLatitude),
+                    longitude: Number(driver.driverLongitude),
+                  },
+                  destination: {
+                    latitude: store.latitude,
+                    longitude: store.longitude,
+                  },
+                });
+
+                return [
+                  driver.id,
+                  {
+                    distanceMeters: route.distanceMeters,
+                    durationSeconds: route.durationSeconds,
+                  },
+                ] as const;
+              } catch (error) {
+                console.error(
+                  `Driver-to-store route error for driver ${driver.id}`,
+                  error,
+                );
+                return [driver.id, null] as const;
+              }
+            }),
+          )
+        : [];
+
+    const driverRouteById = new Map(driverRouteEntries);
+
     const enRouteByDriver = new Map<
       number,
       Array<(typeof orders)[number]>
@@ -254,19 +292,25 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       updatedAt: new Date().toISOString(),
-      store: storeLocation(settings?.value),
-      drivers: drivers.map((driver) => ({
-        id: driver.id,
-        name: driver.name,
-        available: driver.driverAvailable,
-        latitude: Number(driver.driverLatitude),
-        longitude: Number(driver.driverLongitude),
-        accuracy:
-          driver.driverLocationAccuracy == null
-            ? null
-            : Number(driver.driverLocationAccuracy),
-        updatedAt: driver.driverLocationUpdatedAt?.toISOString() ?? null,
-      })),
+      store,
+      drivers: drivers.map((driver) => {
+        const routeFromStore = driverRouteById.get(driver.id) ?? null;
+
+        return {
+          id: driver.id,
+          name: driver.name,
+          available: driver.driverAvailable,
+          latitude: Number(driver.driverLatitude),
+          longitude: Number(driver.driverLongitude),
+          accuracy:
+            driver.driverLocationAccuracy == null
+              ? null
+              : Number(driver.driverLocationAccuracy),
+          updatedAt: driver.driverLocationUpdatedAt?.toISOString() ?? null,
+          distanceFromStoreMeters: routeFromStore?.distanceMeters ?? null,
+          durationFromStoreSeconds: routeFromStore?.durationSeconds ?? null,
+        };
+      }),
       orders: orders.map((order) => {
         const latitude = coordinate(order.address?.latitude);
         const longitude = coordinate(order.address?.longitude);

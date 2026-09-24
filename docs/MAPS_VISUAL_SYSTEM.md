@@ -30,6 +30,7 @@ Visual oficial:
 - centro negro;
 - moto amarilla;
 - sombra suave.
+- el helper admite un label opcional para superficies operativas que necesiten identificar al repartidor sin abrir detalles.
 
 Debe verse igual en el mapa principal del repartidor, navegación del repartidor, seguimiento del cliente y cualquier mapa futuro donde aparezca un repartidor.
 
@@ -125,3 +126,15 @@ Reglas:
 El componente canónico de esta vista es:
 
 `src/components/DeliveryCoverageMap.tsx`.
+
+
+## Interacción de repartidores en Mapa De Entregas
+
+En el mapa administrativo:
+
+- los repartidores muestran su nombre al lado del pin de moto;
+- el pin es interactivo;
+- al tocarlo se abre una tarjeta operativa con nombre, disponibilidad, pedidos asignados, precisión GPS, distancia por carretera a Alentó y tiempo estimado hacia Alentó;
+- distancia y tiempo provienen de Google Routes y se actualizan junto con el refresco de rutas;
+- cuando el repartidor está en ruta, la tarjeta también resume sus paradas y la distancia/tiempo restante del recorrido;
+- el refresco rápido de ubicación conserva el último resumen de ruta para evitar parpadeos de información entre recalculaciones.

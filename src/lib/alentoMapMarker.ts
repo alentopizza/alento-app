@@ -73,7 +73,9 @@ export function createAlentoMapPinElement() {
 }
 
 /** Pin oficial del repartidor: aro blanco, centro negro y moto. */
-export function createDriverMapPinElement() {
+export function createDriverMapPinElement(options?: {
+  label?: string;
+}) {
   const root = document.createElement("div");
   applyBaseMarkerAccessibility(root, "Repartidor");
   root.dataset.alentoMapMarker = "driver";
@@ -101,6 +103,35 @@ export function createDriverMapPinElement() {
   inner.textContent = "🛵";
 
   root.appendChild(inner);
+
+  const label = options?.label?.trim();
+  if (label) {
+    const nameBadge = document.createElement("div");
+    nameBadge.textContent = label;
+    nameBadge.setAttribute("aria-hidden", "true");
+    nameBadge.style.position = "absolute";
+    nameBadge.style.left = "42px";
+    nameBadge.style.top = "7px";
+    nameBadge.style.zIndex = "5";
+    nameBadge.style.maxWidth = "150px";
+    nameBadge.style.overflow = "hidden";
+    nameBadge.style.textOverflow = "ellipsis";
+    nameBadge.style.whiteSpace = "nowrap";
+    nameBadge.style.border = "1px solid rgba(17,17,17,.08)";
+    nameBadge.style.borderRadius = "999px";
+    nameBadge.style.background = "rgba(255,255,255,.96)";
+    nameBadge.style.boxShadow = "0 7px 18px rgba(0,0,0,.18)";
+    nameBadge.style.padding = "6px 9px";
+    nameBadge.style.fontSize = "10px";
+    nameBadge.style.fontWeight = "900";
+    nameBadge.style.lineHeight = "1";
+    nameBadge.style.letterSpacing = ".02em";
+    nameBadge.style.color = "#111111";
+    nameBadge.style.pointerEvents = "none";
+    nameBadge.style.backdropFilter = "blur(10px)";
+    root.appendChild(nameBadge);
+  }
+
   return root;
 }
 

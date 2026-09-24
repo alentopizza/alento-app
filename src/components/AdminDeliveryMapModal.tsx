@@ -36,6 +36,8 @@ type MapDriver = Point & {
   available: boolean;
   accuracy: number | null;
   updatedAt: string | null;
+  distanceFromStoreMeters: number | null;
+  durationFromStoreSeconds: number | null;
 };
 
 type MapTripStop = {
@@ -106,6 +108,10 @@ type GoogleMapInstance = {
 
 type GoogleAdvancedMarker = {
   map: GoogleMapInstance | null;
+  addListener?: (
+    eventName: string,
+    handler: () => void,
+  ) => { remove?: () => void };
 };
 
 type GoogleMarkerLibrary = {
@@ -241,6 +247,7 @@ export default function AdminDeliveryMapModal({
   const colorByLegRef = useRef<Map<string, string>>(new Map());
 
   const [data, setData] = useState<MapPayload | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -266,8 +273,29 @@ export default function AdminDeliveryMapModal({
         current.trips.map((trip) => [trip.driverId, trip]),
       );
 
+      const previousDrivers = new Map(
+        current.drivers.map((driver) => [driver.id, driver]),
+      );
+
       return {
         ...next,
+        drivers: next.drivers.map((driver) => {
+          if (
+            driver.distanceFromStoreMeters != null ||
+            driver.durationFromStoreSeconds != null
+          ) {
+            return driver;
+          }
+
+          const previous = previousDrivers.get(driver.id);
+          return previous
+            ? {
+                ...driver,
+                distanceFromStoreMeters: previous.distanceFromStoreMeters,
+                durationFromStoreSeconds: previous.durationFromStoreSeconds,
+              }
+            : driver;
+        }),
         trips: next.trips.map((trip) => {
           if (trip.legs.length > 0) return trip;
 
@@ -473,10 +501,15 @@ export default function AdminDeliveryMapModal({
         const marker = new AdvancedMarkerElement({
           map,
           position: point,
-          title: driver.name,
-          content: createDriverMapPinElement(),
-          zIndex: 50,
+          title: `${driver.name} · Ver información`,
+          content: createDriverMapPinElement({ label: driver.name }),
+          zIndex: selectedDriverId === driver.id ? 65 : 50,
         });
+
+        marker.addListener?.("click", () => {
+          setSelectedDriverId(driver.id);
+        });
+
         markersRef.current.push(marker);
         bounds.extend(point);
         points += 1;
@@ -521,7 +554,7 @@ export default function AdminDeliveryMapModal({
         }
       }
     },
-    [colorForLeg],
+    [colorForLeg, selectedDriverId],
   );
 
   useEffect(() => {
@@ -546,6 +579,7 @@ export default function AdminDeliveryMapModal({
     routesRef.current = [];
     mapRef.current = null;
     setData(null);
+    setSelectedDriverId(null);
     setError("");
   }, [open]);
 
@@ -570,6 +604,32 @@ export default function AdminDeliveryMapModal({
         durationSeconds: trip.totalDurationSeconds,
       })),
     [colorForLeg, data],
+  );
+
+  const selectedDriver = useMemo(
+    () =>
+      selectedDriverId == null
+        ? null
+        : data?.drivers.find((driver) => driver.id === selectedDriverId) ?? null,
+    [data?.drivers, selectedDriverId],
+  );
+
+  const selectedDriverTrip = useMemo(
+    () =>
+      selectedDriverId == null
+        ? null
+        : data?.trips.find((trip) => trip.driverId === selectedDriverId) ?? null,
+    [data?.trips, selectedDriverId],
+  );
+
+  const selectedDriverOrders = useMemo(
+    () =>
+      selectedDriverId == null
+        ? []
+        : (data?.orders ?? []).filter(
+            (order) => order.driver?.id === selectedDriverId,
+          ),
+    [data?.orders, selectedDriverId],
   );
 
   if (!open) return null;
@@ -644,6 +704,112 @@ export default function AdminDeliveryMapModal({
               Disponible
             </span>
           </div>
+
+          {selectedDriver && (
+            <div className="absolute right-4 top-4 z-30 w-[min(360px,calc(100%-2rem))] overflow-hidden rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
+              <div className="flex items-start gap-3 border-b border-white/10 px-4 py-3.5">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white text-[22px] shadow-lg">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111]">
+                    🛵
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[7px] font-black uppercase tracking-[.13em] text-[#ff5a60]">
+                    Repartidor en vivo
+                  </p>
+                  <h3 className="mt-1 truncate text-[17px] font-black leading-5">
+                    {selectedDriver.name}
+                  </h3>
+                  <p className="mt-1 text-[9px] font-semibold text-emerald-300">
+                    {selectedDriverTrip?.stops.length
+                      ? "En ruta"
+                      : selectedDriver.available
+                        ? "Disponible"
+                        : "No disponible"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedDriverId(null)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-base text-white/55 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar información del repartidor"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 divide-x divide-white/10 border-b border-white/10">
+                <div className="px-4 py-3">
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/32">
+                    Distancia a Alentó
+                  </span>
+                  <b className="mt-1 block text-[17px] tabular-nums">
+                    {selectedDriver.distanceFromStoreMeters != null
+                      ? formatDistance(selectedDriver.distanceFromStoreMeters)
+                      : "Calculando…"}
+                  </b>
+                </div>
+                <div className="px-4 py-3">
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/32">
+                    Tiempo a Alentó
+                  </span>
+                  <b className="mt-1 block text-[17px] tabular-nums">
+                    {selectedDriver.durationFromStoreSeconds != null
+                      ? formatDuration(selectedDriver.durationFromStoreSeconds)
+                      : "Calculando…"}
+                  </b>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 px-4 py-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/28">
+                    Pedidos asignados
+                  </span>
+                  <b className="mt-1 block text-sm">
+                    {selectedDriverOrders.length}
+                  </b>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/28">
+                    GPS
+                  </span>
+                  <b className="mt-1 block text-sm">
+                    {selectedDriver.accuracy != null
+                      ? `±${Math.round(selectedDriver.accuracy)} m`
+                      : "Activo"}
+                  </b>
+                </div>
+              </div>
+
+              {selectedDriverTrip && selectedDriverTrip.stops.length > 0 && (
+                <div className="border-t border-white/10 px-4 py-3">
+                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/30">
+                    Ruta actual
+                  </span>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {selectedDriverTrip.stops.map((stop) => (
+                      <span
+                        key={stop.orderId}
+                        className="rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-[8px] font-bold text-white/65"
+                      >
+                        {stop.stopNumber}. {stop.code}
+                      </span>
+                    ))}
+                  </div>
+                  {selectedDriverTrip.totalDistanceMeters > 0 && (
+                    <p className="mt-2 text-[8px] text-white/36">
+                      Ruta restante · {formatDistance(selectedDriverTrip.totalDistanceMeters)}
+                      {" · "}
+                      {formatDuration(selectedDriverTrip.totalDurationSeconds)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {routeLegend.length > 0 && (
             <div className="absolute bottom-4 left-4 z-20 max-w-[calc(100%-2rem)] rounded-[18px] border border-white/15 bg-[#111]/94 p-2.5 text-white shadow-xl backdrop-blur-xl">
