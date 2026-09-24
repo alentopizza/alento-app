@@ -3,25 +3,40 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import {
+  BadgePercent,
+  Bell,
+  BookOpen,
+  ChefHat,
+  ClipboardList,
+  CookingPot,
+  Palette,
+  Settings,
+  ShieldCheck,
+  Star,
+  Store,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import { PUBLIC_CART_STORAGE_KEY, type PublicCartItem } from "@/lib/publicCart";
 
 const LOGO_DARK = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 const items = [
-  { href: "/interno", label: "Punto de venta", icon: "◉", roles: ["ADMIN", "POS", "CASHIER"] },
-  { href: "/pedidos", label: "Pedidos", icon: "▤", roles: ["ADMIN", "POS", "CASHIER"] },
-  { href: "/cocina", label: "Cocina", icon: "♨", roles: ["ADMIN", "KITCHEN"] },
-  { href: "/masa", label: "Preparación", icon: "◒", roles: ["ADMIN", "KITCHEN"] },
-  { href: "/clientes", label: "Clientes", icon: "◎", roles: ["ADMIN", "POS"] },
-  { href: "/interno/menu", label: "Menú", icon: "▦", roles: ["ADMIN"] },
-  { href: "/cupones", label: "Cupones", icon: "%", roles: ["ADMIN"] },
-  { href: "/caja", label: "Caja", icon: "$", roles: ["ADMIN", "CASHIER"] },
-  { href: "/personalizacion", label: "Personalización", icon: "✦", roles: ["ADMIN"] },
-  { href: "/club-alento", label: "Club Alentó", icon: "★", roles: ["ADMIN"] },
-  { href: "/notificaciones", label: "Notificaciones", icon: "✉", roles: ["ADMIN"] },
-  { href: "/configuracion", label: "Configuración", icon: "⚙", roles: ["ADMIN"] },
-  { href: "/usuarios", label: "Usuarios y Roles", icon: "♟", roles: ["ADMIN"] },
+  { href: "/interno", label: "Punto de venta", icon: Store, roles: ["ADMIN", "POS", "CASHIER"] },
+  { href: "/pedidos", label: "Pedidos", icon: ClipboardList, roles: ["ADMIN", "POS", "CASHIER"] },
+  { href: "/cocina", label: "Cocina", icon: ChefHat, roles: ["ADMIN", "KITCHEN"] },
+  { href: "/masa", label: "Preparación", icon: CookingPot, roles: ["ADMIN", "KITCHEN"] },
+  { href: "/clientes", label: "Clientes", icon: Users, roles: ["ADMIN", "POS"] },
+  { href: "/interno/menu", label: "Menú", icon: BookOpen, roles: ["ADMIN"] },
+  { href: "/cupones", label: "Cupones", icon: BadgePercent, roles: ["ADMIN"] },
+  { href: "/caja", label: "Caja", icon: WalletCards, roles: ["ADMIN", "CASHIER"] },
+  { href: "/personalizacion", label: "Personalización", icon: Palette, roles: ["ADMIN"] },
+  { href: "/club-alento", label: "Club Alentó", icon: Star, roles: ["ADMIN"] },
+  { href: "/notificaciones", label: "Notificaciones", icon: Bell, roles: ["ADMIN"] },
+  { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["ADMIN"] },
+  { href: "/usuarios", label: "Usuarios y Roles", icon: ShieldCheck, roles: ["ADMIN"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -150,14 +165,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${
         sidebarCollapsed
-          ? "lg:grid-cols-[76px_1fr]"
+          ? "lg:grid-cols-[84px_1fr]"
           : "lg:grid-cols-[212px_1fr]"
       }`}
     >
       <aside className="relative border-b border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-b-0 lg:border-r lg:border-white/10">
         <div
           className={`flex items-center justify-between px-4 py-3.5 lg:flex lg:min-h-[82px] lg:items-start lg:pb-3.5 lg:pt-4 ${
-            sidebarCollapsed ? "lg:px-3" : "lg:px-4"
+            sidebarCollapsed ? "lg:px-[18px]" : "lg:px-4"
           }`}
         >
           <Link href="/interno" className="block min-w-0">
@@ -199,7 +214,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav
           className={`flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-2.5 lg:block lg:min-h-0 lg:flex-1 lg:space-y-0.5 lg:overflow-y-auto lg:pb-3 ${
-            sidebarCollapsed ? "lg:px-2" : "lg:px-2.5"
+            sidebarCollapsed ? "lg:px-2.5" : "lg:px-2.5"
           }`}
         >
           {visibleItems.map((item) => {
@@ -212,7 +227,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label={sidebarCollapsed ? item.label : undefined}
                 className={`group relative flex min-w-fit items-center overflow-hidden rounded-2xl py-2 transition-all lg:w-full ${
                   sidebarCollapsed
-                    ? "lg:justify-center lg:px-2"
+                    ? "lg:justify-center lg:px-2 lg:py-2.5"
                     : "gap-2.5 px-3"
                 } ${
                   active
@@ -228,13 +243,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 )}
                 <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[13px] font-black transition ${
+                  className={`flex shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
+                    sidebarCollapsed ? "h-10 w-10" : "h-9 w-9"
+                  } ${
                     active
-                      ? "bg-black text-white"
-                      : "bg-white/[0.07] text-white/70 group-hover:bg-white/10 group-hover:text-white"
+                      ? "bg-black text-white shadow-[0_4px_14px_rgba(0,0,0,.18)]"
+                      : "bg-white/[0.07] text-white/80 group-hover:bg-white/10 group-hover:text-white"
                   }`}
                 >
-                  {item.icon}
+                  <item.icon
+                    className={sidebarCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]"}
+                    strokeWidth={2.35}
+                    aria-hidden="true"
+                  />
                 </span>
                 <span
                   className={`min-w-0 truncate text-[13px] font-bold leading-5 transition-all duration-200 ${
