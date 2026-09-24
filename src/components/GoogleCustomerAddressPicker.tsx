@@ -228,13 +228,16 @@ export default function GoogleCustomerAddressPicker({
   onSelect,
 }: {
   currentAddress?: string;
-  initialSelection?: Partial<GoogleCustomerAddressSelection> & {
+  initialSelection?: {
     formattedAddress?: string;
     placeId?: string;
     latitude?: number | null;
     longitude?: number | null;
     neighborhood?: string;
     city?: string;
+    covered?: boolean;
+    deliveryFee?: number | null;
+    distanceMeters?: number | null;
   };
   onSelect: (selection: GoogleCustomerAddressSelection) => void;
 }) {
