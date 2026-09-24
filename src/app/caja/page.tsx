@@ -777,54 +777,82 @@ export default function CashPage() {
 
         <section className="flex flex-col gap-3 rounded-[20px] border border-neutral-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(28,23,20,.045)] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-1 rounded-[14px] bg-[#f5f4f2] p-1">
-            <button
-              type="button"
-              onClick={() => setTab("SUMMARY")}
-              className={`h-10 rounded-[11px] px-4 text-[11px] font-black transition ${
-                tab === "SUMMARY"
-                  ? "bg-neutral-950 text-white shadow-sm"
-                  : "text-neutral-600 hover:bg-white"
-              }`}
-            >
-              Resumen
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("EXPENSES")}
-              className={`h-10 rounded-[11px] px-4 text-[11px] font-black transition ${
-                tab === "EXPENSES"
-                  ? "bg-neutral-950 text-white shadow-sm"
-                  : "text-neutral-600 hover:bg-white"
-              }`}
-            >
-              Salidas
-            </button>
+            {([
+              ["SUMMARY", "Resumen"],
+              ["INCOMES", "Otros ingresos"],
+              ["EXPENSES", "Salidas"],
+            ] as [Tab, string][]).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTab(value)}
+                className={`h-10 rounded-[11px] px-4 text-[11px] font-black transition ${
+                  tab === value
+                    ? "bg-neutral-950 text-white shadow-sm"
+                    : "text-neutral-600 hover:bg-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {isAdmin && !importCompleted && (
-              <button
-                type="button"
-                onClick={() => {
-                  setImportFile(null);
-                  setImportPreview(null);
-                  setImportMessage("");
-                  setImportOpen(true);
-                }}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
-              >
-                <Upload className="h-4 w-4" />
-                Importar histórico
-              </button>
+            {tab === "INCOMES" && (
+              <>
+                {isAdmin && !incomeImportCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIncomeImportFile(null);
+                      setIncomeImportPreview(null);
+                      setIncomeImportMessage("");
+                      setIncomeImportOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Importar ingresos
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={openIncome}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nuevo ingreso
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={openExpense}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
-            >
-              <Plus className="h-4 w-4" />
-              Nueva salida
-            </button>
+
+            {tab === "EXPENSES" && (
+              <>
+                {isAdmin && !importCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportFile(null);
+                      setImportPreview(null);
+                      setImportMessage("");
+                      setImportOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Importar salidas
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={openExpense}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nueva salida
+                </button>
+              </>
+            )}
           </div>
         </section>
 
@@ -838,7 +866,7 @@ export default function CashPage() {
           </div>
         ) : summary ? (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <article className="rounded-[22px] border border-sky-100 bg-[linear-gradient(145deg,#ffffff,#f0f7ff)] p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
@@ -862,14 +890,31 @@ export default function CashPage() {
                     <ArrowDownCircle className="h-5 w-5" />
                   </span>
                   <span className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-600">
-                    Ingresó
+                    Cobros de ventas
                   </span>
                 </div>
-                <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-emerald-700">
+                <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
                   {formatCOP(summary.receivedTotal)}
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
-                  {summary.paymentCount} movimiento{summary.paymentCount === 1 ? "" : "s"} PAID
+                  {summary.paymentCount} pago{summary.paymentCount === 1 ? "" : "s"} recibido{summary.paymentCount === 1 ? "" : "s"}
+                </p>
+              </article>
+
+              <article className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+                    <Banknote className="h-5 w-5" />
+                  </span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-teal-600">
+                    Otros ingresos
+                  </span>
+                </div>
+                <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
+                  {formatCOP(summary.otherIncomeTotal)}
+                </b>
+                <p className="mt-1 text-[11px] text-neutral-500">
+                  {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
                 </p>
               </article>
 
@@ -913,7 +958,7 @@ export default function CashPage() {
                   {formatCOP(summary.netTotal)}
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
-                  Ingresos recibidos − salidas
+                  Cobros + otros ingresos − salidas
                 </p>
               </article>
             </section>
