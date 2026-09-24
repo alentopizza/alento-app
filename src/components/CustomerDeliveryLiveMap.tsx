@@ -258,7 +258,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
           bounds.extend(driverPoint);
           bounds.extend(destinationPoint);
           mapRef.current.fitBounds(bounds, {
-            top: 128,
+            top: 118,
             right: 52,
             bottom: 70,
             left: 52,
@@ -269,7 +269,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
         bounds.extend(driverPoint);
         bounds.extend(destinationPoint);
         mapRef.current.fitBounds(bounds, {
-          top: 128,
+          top: 118,
           right: 52,
           bottom: 70,
           left: 52,
@@ -354,38 +354,40 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
 
   return (
     <section className="mb-4 overflow-hidden rounded-[22px] border border-white/10 bg-[#111] text-white shadow-[0_18px_46px_rgba(0,0,0,.28)]">
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3.5 sm:px-5">
-        <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
-            Tu repartidor
-          </p>
-          <h3 className="mt-1 truncate text-[16px] font-black">
-            {driverName}
-          </h3>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="rounded-xl bg-white/[0.06] px-3 py-2 text-right">
-            <span className="block text-[8px] font-black uppercase tracking-[.08em] text-white/35">
-              Distancia
-            </span>
-            <b className="mt-0.5 block text-[12px]">
-              {formatDistance(routeData?.distanceMeters)}
-            </b>
-          </div>
-          <div className="rounded-xl bg-white/[0.06] px-3 py-2 text-right">
-            <span className="block text-[8px] font-black uppercase tracking-[.08em] text-white/35">
-              Tiempo
-            </span>
-            <b className="mt-0.5 block text-[12px]">
-              {formatDuration(routeData?.durationSeconds)}
-            </b>
-          </div>
-        </div>
-      </div>
-
       <div className="relative aspect-[4/3] min-h-[250px] overflow-hidden bg-[#080808]">
         <div ref={mapHostRef} className="absolute inset-0" />
+
+        <div className="pointer-events-none absolute left-3 right-3 top-3 z-20">
+          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-[#111]/94 p-2.5 shadow-xl backdrop-blur-xl sm:left-4 sm:right-4">
+            <div className="min-w-0 px-1">
+              <p className="text-[8px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
+                Tu repartidor
+              </p>
+              <h3 className="mt-0.5 truncate text-[14px] font-black">
+                {driverName}
+              </h3>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-[14px] border border-white/[0.07] bg-white/[0.055]">
+              <div className="min-w-[76px] px-2.5 py-2 text-center">
+                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+                  Distancia
+                </span>
+                <b className="mt-0.5 block text-[12px]">
+                  {formatDistance(routeData?.distanceMeters)}
+                </b>
+              </div>
+              <div className="min-w-[68px] px-2.5 py-2 text-center">
+                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+                  Tiempo
+                </span>
+                <b className="mt-0.5 block text-[12px]">
+                  {formatDuration(routeData?.durationSeconds)}
+                </b>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {!locationReady && (
           <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
