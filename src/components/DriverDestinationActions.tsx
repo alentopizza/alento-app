@@ -177,14 +177,17 @@ export default function DriverDestinationActions({
   phone,
   customerName,
   currentStatus,
+  canStartDelivery,
 }: {
   token: string;
   phone: string | null;
   customerName: string;
   currentStatus: string;
+  canStartDelivery: boolean;
 }) {
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
+  const departureTrackRef = useRef<HTMLDivElement | null>(null);
   const arrivalTrackRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRefs = useRef<Array<GoogleMarkerInstance | GoogleAdvancedMarkerInstance>>([]);
@@ -197,16 +200,24 @@ export default function DriverDestinationActions({
   const [navigation, setNavigation] = useState<NavigationData | null>(null);
   const [origin, setOrigin] = useState<StoreOrigin | null>(null);
   const [error, setError] = useState("");
+  const [navigationStatus, setNavigationStatus] = useState(currentStatus);
+  const [departureProgress, setDepartureProgress] = useState(0);
+  const [departureDragging, setDepartureDragging] = useState(false);
+  const [departureBusy, setDepartureBusy] = useState(false);
   const [arrivalProgress, setArrivalProgress] = useState(0);
   const [arrivalDragging, setArrivalDragging] = useState(false);
   const [arrivalBusy, setArrivalBusy] = useState(false);
+
+  useEffect(() => {
+    setNavigationStatus(currentStatus);
+  }, [currentStatus]);
 
   const navigationDisabled = [
     "ARRIVED",
     "DELIVERED",
     "COMPLETED",
     "CANCELED",
-  ].includes(currentStatus);
+  ].includes(navigationStatus);
 
   const resetMap = useCallback(() => {
     markerRefs.current.forEach((marker) => {
@@ -465,6 +476,88 @@ export default function DriverDestinationActions({
     };
   }, [drawMap, navigationDisabled, open, requestNavigation, resetMap, token]);
 
+  function updateDepartureFromPointer(clientX: number) {
+    const track = departureTrackRef.current;
+    if (!track) return 0;
+
+    const rect = track.getBoundingClientRect();
+    const knobSize = 54;
+    const padding = 4;
+    const usable = Math.max(1, rect.width - knobSize - padding * 2);
+    const raw = (clientX - rect.left - padding - knobSize / 2) / usable;
+    const next = Math.min(1, Math.max(0, raw));
+    setDepartureProgress(next);
+    return next;
+  }
+
+  async function confirmDeparture() {
+    if (
+      departureBusy ||
+      navigationStatus !== "READY" ||
+      !canStartDelivery
+    ) {
+      setDepartureProgress(0);
+      return;
+    }
+
+    setDepartureBusy(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/repartidor/pedido/${encodeURIComponent(token)}/status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "OUT_FOR_DELIVERY" }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible iniciar el domicilio.",
+        );
+      }
+
+      setNavigationStatus("OUT_FOR_DELIVERY");
+      setDepartureProgress(0);
+      router.refresh();
+      window.setTimeout(() => router.refresh(), 700);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible iniciar el domicilio.",
+      );
+      setDepartureProgress(0);
+    } finally {
+      setDepartureDragging(false);
+      setDepartureBusy(false);
+    }
+  }
+
+  function finishDeparture(nextProgress = departureProgress) {
+    setDepartureDragging(false);
+
+    if (
+      departureBusy ||
+      navigationStatus !== "READY" ||
+      !canStartDelivery
+    ) {
+      setDepartureProgress(0);
+      return;
+    }
+
+    if (nextProgress >= 0.82) {
+      setDepartureProgress(1);
+      void confirmDeparture();
+      return;
+    }
+
+    setDepartureProgress(0);
+  }
+
   function updateArrivalFromPointer(clientX: number) {
     const track = arrivalTrackRef.current;
     if (!track) return 0;
@@ -480,7 +573,7 @@ export default function DriverDestinationActions({
   }
 
   async function confirmArrival() {
-    if (arrivalBusy || currentStatus !== "OUT_FOR_DELIVERY") return;
+    if (arrivalBusy || navigationStatus !== "OUT_FOR_DELIVERY") return;
 
     setArrivalBusy(true);
     setError("");
@@ -522,7 +615,7 @@ export default function DriverDestinationActions({
   function finishArrival(nextProgress = arrivalProgress) {
     setArrivalDragging(false);
 
-    if (arrivalBusy || currentStatus !== "OUT_FOR_DELIVERY") {
+    if (arrivalBusy || navigationStatus !== "OUT_FOR_DELIVERY") {
       setArrivalProgress(0);
       return;
     }
@@ -700,7 +793,130 @@ export default function DriverDestinationActions({
               )}
             </div>
 
-            {currentStatus === "OUT_FOR_DELIVERY" && (
+            {navigationStatus === "READY" && (
+              <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
+                <div
+                  ref={departureTrackRef}
+                  className={
+                    "relative h-[62px] w-full overflow-hidden rounded-full border backdrop-blur-md " +
+                    (canStartDelivery
+                      ? "landing-menu-slider border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)]"
+                      : "border-white/20 bg-white/70 shadow-[0_12px_30px_rgba(0,0,0,.18)]")
+                  }
+                >
+                  <div
+                    className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#e21a22]"
+                    style={{
+                      width: `calc(54px + (100% - 62px) * ${departureProgress})`,
+                      transition: departureDragging
+                        ? "none"
+                        : "width 220ms cubic-bezier(.2,.8,.2,1)",
+                    }}
+                  />
+
+                  <div
+                    className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center px-[72px] text-center"
+                    style={{
+                      opacity: Math.max(0.18, 1 - departureProgress * 1.15),
+                      transition: departureDragging
+                        ? "none"
+                        : "opacity 180ms ease",
+                    }}
+                  >
+                    <span
+                      className={
+                        "truncate text-[10px] font-black uppercase tracking-[0.11em] " +
+                        (canStartDelivery
+                          ? "landing-menu-slider-text text-black/75"
+                          : "text-black/45")
+                      }
+                    >
+                      {departureBusy
+                        ? "Iniciando domicilio..."
+                        : canStartDelivery
+                          ? "Desliza para iniciar entrega"
+                          : "Verifica los productos primero"}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label={
+                      canStartDelivery
+                        ? "Desliza para iniciar entrega"
+                        : "Verifica los productos primero"
+                    }
+                    disabled={departureBusy || !canStartDelivery}
+                    className={
+                      "absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed " +
+                      (canStartDelivery
+                        ? "landing-menu-slider-knob " +
+                          (!departureDragging && departureProgress === 0
+                            ? "landing-menu-slider-knob-idle"
+                            : "")
+                        : "opacity-55 shadow-[0_8px_18px_rgba(0,0,0,.24)]")
+                    }
+                    style={{
+                      left: `calc(4px + (100% - 62px) * ${departureProgress})`,
+                      transition: departureDragging
+                        ? "none"
+                        : "left 220ms cubic-bezier(.2,.8,.2,1)",
+                    }}
+                    onPointerDown={(event) => {
+                      if (departureBusy || !canStartDelivery) return;
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      setDepartureDragging(true);
+                      updateDepartureFromPointer(event.clientX);
+                    }}
+                    onPointerMove={(event) => {
+                      if (!departureDragging || departureBusy) return;
+                      updateDepartureFromPointer(event.clientX);
+                    }}
+                    onPointerUp={(event) => {
+                      if (!departureDragging || departureBusy) return;
+                      const next = updateDepartureFromPointer(event.clientX);
+                      finishDeparture(next);
+                    }}
+                    onPointerCancel={() => {
+                      if (!departureBusy) finishDeparture(0);
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        (event.key === "Enter" || event.key === " ") &&
+                        !departureBusy &&
+                        canStartDelivery
+                      ) {
+                        event.preventDefault();
+                        setDepartureProgress(1);
+                        void confirmDeparture();
+                      }
+                    }}
+                  >
+                    {departureBusy ? (
+                      <span className="text-lg">…</span>
+                    ) : (
+                      <svg
+                        viewBox="0 0 24 24"
+                        className={
+                          "h-[22px] w-[22px] " +
+                          (canStartDelivery ? "landing-menu-slider-arrow" : "")
+                        }
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M5 12h13" />
+                        <path d="m14 7 5 5-5 5" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {navigationStatus === "OUT_FOR_DELIVERY" && (
               <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
                 <div
                   ref={arrivalTrackRef}

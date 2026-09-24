@@ -96,6 +96,16 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     ? `${order.customer.countryCode || "+57"}${order.customer.phone}`
     : null;
 
+  const canStartDelivery =
+    assigned &&
+    order.status === "READY" &&
+    order.items.length > 0 &&
+    order.items.every(
+      (item) =>
+        item.driverVerifiedAt != null &&
+        item.driverVerifiedDriverId === parsed.driverId,
+    );
+
   return (
     <main className="min-h-screen bg-[#080808] px-4 pb-32 pt-5 text-white">
       <LivePageRefresh intervalMs={2500} />
@@ -130,6 +140,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 phone={phone}
                 customerName={order.customer?.name ?? "Cliente"}
                 currentStatus={order.status}
+                canStartDelivery={canStartDelivery}
               />
             )}
 
