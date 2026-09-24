@@ -152,3 +152,17 @@ El mapa administrativo también funciona como superficie operativa:
 - si el pedido ya está OUT_FOR_DELIVERY o ARRIVED, el mapa no permite una reasignación directa; ese cambio debe pasar por el flujo de Estados;
 - las tarjetas del repartidor listan debajo sus órdenes asignadas con estado, cliente, dirección, total, domicilio, saldo por cobrar y distancia/ETA del tramo cuando existe una ruta calculada;
 - tocar una orden dentro de la tarjeta del repartidor abre el mismo detalle operativo del pin.
+
+
+## Ajuste fino de dirección de clientes
+
+La edición de clientes permite arrastrar el pin oficial de domicilio después de seleccionar una referencia de Google.
+
+Reglas:
+
+- usar `AdvancedMarkerElement` con el contenido de `createDeliveryMapPinElement()`;
+- el pin de destino puede moverse, el pin de Alentó nunca;
+- al finalizar el drag se ejecuta reverse geocoding server-side;
+- la coordenada ajustada vuelve a pasar por `/api/delivery/quote` para recalcular ruta, cobertura y tarifa;
+- la dirección formateada y el `placeId` se actualizan con el punto final;
+- esta interacción está pensada para direcciones donde Google ubica correctamente la calle o conjunto pero no la entrada exacta.

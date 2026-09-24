@@ -32,6 +32,15 @@ type GoogleMarkerInstance = {
 
 type GoogleAdvancedMarkerInstance = {
   map: GoogleMapInstance | null;
+  addListener?: (
+    eventName: string,
+    handler: (event: {
+      latLng?: {
+        lat: () => number;
+        lng: () => number;
+      } | null;
+    }) => void,
+  ) => { remove?: () => void };
 };
 
 type GoogleMarkerLibrary = {
@@ -41,6 +50,7 @@ type GoogleMarkerLibrary = {
     title?: string;
     content?: Node;
     zIndex?: number;
+    gmpDraggable?: boolean;
   }) => GoogleAdvancedMarkerInstance;
 };
 
@@ -214,9 +224,18 @@ function distance(value: number | null) {
 
 export default function GoogleCustomerAddressPicker({
   currentAddress,
+  initialSelection,
   onSelect,
 }: {
   currentAddress?: string;
+  initialSelection?: Partial<GoogleCustomerAddressSelection> & {
+    formattedAddress?: string;
+    placeId?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    neighborhood?: string;
+    city?: string;
+  };
   onSelect: (selection: GoogleCustomerAddressSelection) => void;
 }) {
   const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
@@ -229,12 +248,119 @@ export default function GoogleCustomerAddressPicker({
   const onSelectRef = useRef(onSelect);
   const [editing, setEditing] = useState(!currentAddress);
   const [loading, setLoading] = useState(false);
+  const [adjustingPin, setAdjustingPin] = useState(false);
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
+
+  const quoteCoordinates = useCallback(
+    async (input: {
+      latitude: number;
+      longitude: number;
+      formattedAddress: string;
+      placeId: string;
+      neighborhood?: string;
+      city?: string;
+    }) => {
+      const response = await fetch("/api/delivery/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: input.latitude,
+          longitude: input.longitude,
+          formattedAddress: input.formattedAddress,
+          placeId: input.placeId,
+        }),
+      });
+      const data = (await response.json()) as DeliveryQuote & {
+        error?: string;
+      };
+
+      if (!response.ok || !data.destination) {
+        throw new Error(data.error || "No fue posible validar la dirección.");
+      }
+
+      setQuote(data);
+      setEditing(false);
+
+      onSelectRef.current({
+        formattedAddress: data.destination.formattedAddress,
+        placeId: data.destination.placeId,
+        latitude: data.destination.latitude,
+        longitude: data.destination.longitude,
+        neighborhood: input.neighborhood?.trim() ?? "",
+        city: input.city?.trim() || "Bogotá",
+        covered: data.covered,
+        deliveryFee: data.deliveryFee ?? null,
+        distanceMeters: Number.isFinite(Number(data.distanceMeters))
+          ? Number(data.distanceMeters)
+          : null,
+      });
+
+      return data;
+    },
+    [],
+  );
+
+  const refineDraggedPoint = useCallback(
+    async (latitude: number, longitude: number) => {
+      setAdjustingPin(true);
+      setError("");
+
+      try {
+        const response = await fetch("/api/customers/address-reverse-geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude, longitude }),
+        });
+        const data = (await response.json()) as {
+          error?: string;
+          location?: {
+            formattedAddress: string;
+            placeId: string;
+            latitude: number;
+            longitude: number;
+          };
+        };
+
+        if (!response.ok || !data.location) {
+          throw new Error(
+            data.error || "No fue posible identificar ese punto del mapa.",
+          );
+        }
+
+        const nextQuote = await quoteCoordinates({
+          ...data.location,
+          neighborhood: initialSelection?.neighborhood,
+          city: initialSelection?.city,
+        });
+
+        window.requestAnimationFrame(() => {
+          void drawMapRef.current?.(nextQuote);
+        });
+      } catch (dragError) {
+        setError(
+          dragError instanceof Error
+            ? dragError.message
+            : "No fue posible ajustar la ubicación.",
+        );
+      } finally {
+        setAdjustingPin(false);
+      }
+    },
+    [
+      initialSelection?.city,
+      initialSelection?.neighborhood,
+      quoteCoordinates,
+    ],
+  );
+
+  const drawMapRef = useRef<
+    ((nextQuote: DeliveryQuote) => Promise<void>) | null
+  >(null);
 
   const drawMap = useCallback(async (nextQuote: DeliveryQuote) => {
     if (!mapRef.current || !nextQuote.destination) return;
@@ -256,7 +382,8 @@ export default function GoogleCustomerAddressPicker({
         zoom: 15,
         mapId: ALENTO_DELIVERY_MAP_ID,
         disableDefaultUI: true,
-        gestureHandling: "cooperative",
+        zoomControl: true,
+        gestureHandling: "greedy",
       });
     }
 
@@ -289,10 +416,26 @@ export default function GoogleCustomerAddressPicker({
     const destinationMarker = new AdvancedMarkerElement({
       map: mapInstanceRef.current,
       position: destination,
-      title: "Destino del cliente",
+      title: "Arrastra para ajustar la ubicación exacta",
       content: createDeliveryMapPinElement(),
       zIndex: 25,
+      gmpDraggable: true,
     });
+
+    destinationMarker.addListener?.("dragend", (event) => {
+      const latitude = event.latLng?.lat();
+      const longitude = event.latLng?.lng();
+
+      if (
+        typeof latitude === "number" &&
+        typeof longitude === "number" &&
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude)
+      ) {
+        void refineDraggedPoint(latitude, longitude);
+      }
+    });
+
     destinationMarkerRef.current = {
       setMap: (map) => {
         destinationMarker.map = map;
@@ -320,7 +463,11 @@ export default function GoogleCustomerAddressPicker({
     }
 
     mapInstanceRef.current.fitBounds(bounds, 42);
-  }, []);
+  }, [refineDraggedPoint]);
+
+  useEffect(() => {
+    drawMapRef.current = drawMap;
+  }, [drawMap]);
 
   const quotePlace = useCallback(
     async (place: GooglePlace) => {
@@ -346,24 +493,6 @@ export default function GoogleCustomerAddressPicker({
         throw new Error("Google no devolvió una ubicación válida.");
       }
 
-      const response = await fetch("/api/delivery/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          latitude,
-          longitude,
-          formattedAddress: place.formattedAddress ?? "",
-          placeId: place.id ?? "",
-        }),
-      });
-      const data = (await response.json()) as DeliveryQuote & {
-        error?: string;
-      };
-
-      if (!response.ok || !data.destination) {
-        throw new Error(data.error || "No fue posible validar la dirección.");
-      }
-
       const neighborhood = componentValue(place.addressComponents, [
         "neighborhood",
         "sublocality_level_1",
@@ -374,29 +503,77 @@ export default function GoogleCustomerAddressPicker({
         "administrative_area_level_2",
       ]);
 
-      setQuote(data);
-      setEditing(false);
-
-      onSelectRef.current({
-        formattedAddress: data.destination.formattedAddress,
-        placeId: data.destination.placeId,
-        latitude: data.destination.latitude,
-        longitude: data.destination.longitude,
+      const data = await quoteCoordinates({
+        latitude,
+        longitude,
+        formattedAddress: place.formattedAddress ?? "",
+        placeId: place.id ?? "",
         neighborhood,
         city: city || "Bogotá",
-        covered: data.covered,
-        deliveryFee: data.deliveryFee ?? null,
-        distanceMeters: Number.isFinite(Number(data.distanceMeters))
-          ? Number(data.distanceMeters)
-          : null,
       });
 
       window.requestAnimationFrame(() => {
         void drawMap(data);
       });
     },
-    [drawMap],
+    [drawMap, quoteCoordinates],
   );
+
+  useEffect(() => {
+    if (
+      !currentAddress ||
+      quote ||
+      !initialSelection?.placeId ||
+      initialSelection.latitude == null ||
+      initialSelection.longitude == null ||
+      !Number.isFinite(Number(initialSelection.latitude)) ||
+      !Number.isFinite(Number(initialSelection.longitude))
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void quoteCoordinates({
+      formattedAddress:
+        initialSelection.formattedAddress?.trim() || currentAddress,
+      placeId: initialSelection.placeId,
+      latitude: Number(initialSelection.latitude),
+      longitude: Number(initialSelection.longitude),
+      neighborhood: initialSelection.neighborhood,
+      city: initialSelection.city,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        window.requestAnimationFrame(() => {
+          void drawMap(data);
+        });
+      })
+      .catch((initialError) => {
+        if (!cancelled) {
+          setError(
+            initialError instanceof Error
+              ? initialError.message
+              : "No fue posible cargar la ubicación guardada.",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    currentAddress,
+    drawMap,
+    initialSelection?.city,
+    initialSelection?.formattedAddress,
+    initialSelection?.latitude,
+    initialSelection?.longitude,
+    initialSelection?.neighborhood,
+    initialSelection?.placeId,
+    quote,
+    quoteCoordinates,
+  ]);
 
   useEffect(() => {
     if (!editing) return;
@@ -493,9 +670,12 @@ export default function GoogleCustomerAddressPicker({
             <span className="alento-ui-label uppercase text-neutral-400">
               Google Maps
             </span>
-            <b className="mt-1 block text-[13px] text-neutral-900">
-              Busca y selecciona la dirección
+            <b className="mt-1 block text-[14px] text-neutral-900">
+              Busca una referencia cercana
             </b>
+            <p className="mt-1 text-[10px] leading-4 text-neutral-400">
+              Si Google no encuentra el número exacto, selecciona la opción más cercana y luego ajusta el pin en el mapa.
+            </p>
           </div>
 
           <div className="mt-2 min-h-[48px] rounded-xl border border-neutral-200 bg-white px-2 py-0.5">
@@ -508,7 +688,7 @@ export default function GoogleCustomerAddressPicker({
           </div>
 
           <p className="mt-2 text-[10px] leading-4 text-neutral-400">
-            Elige una sugerencia de Google. Validaremos ubicación, ruta y cobertura.
+            Primero elegimos una referencia de Google; la ubicación final la puedes precisar manualmente.
           </p>
         </div>
       ) : null}
@@ -537,9 +717,9 @@ export default function GoogleCustomerAddressPicker({
             </button>
           </div>
 
-          <div className="relative aspect-[16/7] min-h-[180px] bg-neutral-100">
+          <div className="relative aspect-[16/8] min-h-[230px] bg-neutral-100">
             <div ref={mapRef} className="absolute inset-0" />
-            <div className="pointer-events-none absolute inset-x-3 top-3 grid grid-cols-2 overflow-hidden rounded-xl border border-white/70 bg-white/90 shadow-lg backdrop-blur">
+            <div className="pointer-events-none absolute inset-x-3 top-3 grid grid-cols-2 overflow-hidden rounded-xl border border-white/70 bg-white/92 shadow-lg backdrop-blur">
               <div className="px-3 py-2">
                 <span className="block text-[10px] font-bold uppercase text-neutral-400">
                   Ruta
@@ -568,6 +748,20 @@ export default function GoogleCustomerAddressPicker({
                 </b>
               </div>
             </div>
+
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center">
+              <div className="rounded-full border border-white/80 bg-[#111]/92 px-3 py-2 text-[9px] font-black text-white shadow-lg backdrop-blur">
+                {adjustingPin
+                  ? "Actualizando ubicación y cobertura…"
+                  : "↔ Arrastra el pin rojo hasta la entrada exacta"}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-neutral-100 bg-[#faf9f7] px-3 py-2.5">
+            <p className="text-[10px] leading-4 text-neutral-500">
+              El punto del pin será la ubicación usada para calcular ruta y domicilio. La dirección escrita se actualiza al soltarlo.
+            </p>
           </div>
         </div>
       )}

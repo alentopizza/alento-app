@@ -1463,49 +1463,77 @@ export default function CustomersPage() {
         )}
 
         {editing && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/65 p-4">
-            <div className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-[30px] bg-white shadow-2xl ring-1 ring-black/5">
-              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 px-6 py-5 md:px-7">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px] md:p-5">
+            <div className="flex max-h-[94dvh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_28%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white md:px-7 md:py-5">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Cliente #{editing.id}</p>
-                  <h2 className="mt-0.5 text-2xl font-black">Editar cliente</h2>
-                  <p className="mt-0.5 text-xs text-neutral-500">Actualiza sus datos sin perder el historial.</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">Cliente #{editing.id}</p>
+                  <h2 className="mt-1 text-[24px] font-black tracking-[-0.03em] md:text-[28px]">Editar cliente</h2>
+                  <p className="mt-1 text-[11px] text-white/48">Datos, ubicación de entrega e información útil en un solo lugar.</p>
                 </div>
-                <button onClick={closeEdit} className="rounded-full bg-neutral-100 px-3 py-2 text-sm font-bold">Cerrar</button>
+                <button
+                  type="button"
+                  onClick={closeEdit}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-xl text-white/65 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar edición"
+                >
+                  ×
+                </button>
               </div>
 
-              <form onSubmit={saveCustomer}>
-                <div className="space-y-4 px-6 py-5 md:px-7">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-black">Nombre <span className="text-[var(--brand-red)]">*</span></label>
-                    <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Nombre del cliente" />
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-[110px_1fr]">
-                    <div>
-                      <label className="mb-1.5 block text-xs font-black">Indicativo</label>
-                      <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input w-full rounded-2xl px-3 py-3">
-                        <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-black">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
-                      <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="Número de teléfono" />
-                    </div>
-                  </div>
-
-                                    <section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
-                    <div className="flex items-start justify-between gap-3">
+              <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
+                <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5">
+                    <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-[11px] font-black text-white">01</span>
                       <div>
-                        <p className="alento-ui-label uppercase text-neutral-400">
-                          Dirección
-                        </p>
-                        <h3 className="mt-1 text-[16px] font-bold text-neutral-900">
-                          Dirección de entrega
-                        </h3>
-                        <p className="mt-1 text-[11px] leading-4 text-neutral-500">
-                          El cliente conserva una sola dirección y debe quedar validada con Google Maps.
-                        </p>
+                        <p className="text-[8px] font-black uppercase tracking-[.12em] text-neutral-400">Información personal</p>
+                        <h3 className="mt-0.5 text-[17px] font-black text-neutral-950">Datos del cliente</h3>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Nombre <span className="text-[var(--brand-red)]">*</span></label>
+                        <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Nombre del cliente" />
+                      </div>
+
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <div>
+                          <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Indicativo</label>
+                          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input h-12 w-full rounded-xl px-3">
+                            <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
+                          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Número de teléfono" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Correo <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label>
+                        <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="correo@ejemplo.com" />
+                      </div>
+
+                      <div>
+                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Nota del cliente <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label>
+                        <input value={notes} onChange={(e) => setNotes(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Información útil para futuras compras" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5">
+                    <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-[11px] font-black text-white">02</span>
+                        <div>
+                          <p className="text-[8px] font-black uppercase tracking-[.12em] text-neutral-400">Ubicación de entrega</p>
+                          <h3 className="mt-0.5 text-[17px] font-black text-neutral-950">Dirección del cliente</h3>
+                          <p className="mt-1 text-[10px] leading-4 text-neutral-400">
+                            Busca una referencia en Google y ajusta el pin si necesitas mayor precisión.
+                          </p>
+                        </div>
                       </div>
                       {addressEditor?.placeId &&
                       addressEditor.latitude != null &&
@@ -1521,7 +1549,7 @@ export default function CustomersPage() {
                     </div>
 
                     {addressEditor && (
-                      <div className="mt-3 rounded-2xl border border-neutral-200 bg-white p-3">
+                      <div className="mt-4">
                         <GoogleCustomerAddressPicker
                           currentAddress={
                             addressEditor.placeId &&
@@ -1531,6 +1559,16 @@ export default function CustomersPage() {
                                 addressEditor.address
                               : undefined
                           }
+                          initialSelection={{
+                            formattedAddress:
+                              addressEditor.formattedAddress ||
+                              addressEditor.address,
+                            placeId: addressEditor.placeId,
+                            latitude: addressEditor.latitude,
+                            longitude: addressEditor.longitude,
+                            neighborhood: addressEditor.neighborhood,
+                            city: addressEditor.city,
+                          }}
                           onSelect={(selection) =>
                             setAddressEditor((current) =>
                               current
@@ -1553,7 +1591,7 @@ export default function CustomersPage() {
                           }
                         />
 
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
                           <input
                             value={addressEditor.neighborhood}
                             onChange={(event) =>
@@ -1578,12 +1616,15 @@ export default function CustomersPage() {
                           />
                         </div>
 
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-[10px] leading-4 text-neutral-500">
+                            Guarda esta ubicación cuando el pin esté exactamente donde recibe el cliente.
+                          </p>
                           <button
                             type="button"
                             disabled={addressBusy}
                             onClick={() => void saveCustomerAddress()}
-                            className="rounded-xl bg-black px-4 py-2 text-[11px] font-bold text-white disabled:opacity-50"
+                            className="h-10 shrink-0 rounded-xl bg-neutral-950 px-4 text-[10px] font-black uppercase tracking-[.04em] text-white disabled:opacity-50"
                           >
                             {addressBusy ? "Guardando..." : "Guardar dirección"}
                           </button>
@@ -1592,22 +1633,28 @@ export default function CustomersPage() {
                     )}
                   </section>
 
-                  <div>
-                    <label className="mb-1.5 block text-xs font-black">Correo <span className="font-medium text-neutral-400">(opcional)</span></label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input w-full rounded-2xl px-4 py-3" placeholder="correo@ejemplo.com" />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-black">Notas <span className="font-medium text-neutral-400">(opcional)</span></label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="alento-input w-full resize-none rounded-2xl px-4 py-3" placeholder="Información útil del cliente" />
-                  </div>
-
-                  {message && <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{message}</div>}
+                  {message && (
+                    <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-bold text-red-700">
+                      {message}
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-col-reverse gap-2 border-t border-neutral-100 bg-[#faf9f7] px-6 py-4 sm:flex-row sm:justify-end md:px-7">
-                  <button type="button" onClick={closeEdit} className="rounded-2xl border bg-white px-5 py-3 text-sm font-black">Cancelar</button>
-                  <button type="submit" disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar cambios"}</button>
+                <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:justify-end md:px-6">
+                  <button
+                    type="button"
+                    onClick={closeEdit}
+                    className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-sm font-bold text-neutral-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="h-11 rounded-xl bg-[var(--brand-red)] px-6 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:bg-neutral-300"
+                  >
+                    {saving ? "Guardando..." : "Guardar cliente"}
+                  </button>
                 </div>
               </form>
             </div>

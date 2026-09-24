@@ -159,6 +159,15 @@ Permite actualizar:
 - correo;
 - notas.
 
+La edición usa un modal operativo más amplio y organizado por secciones. Para la dirección:
+
+- se busca primero una referencia con Google Places;
+- después se muestra el mapa con el pin oficial de domicilio;
+- el pin es draggable y permite ajustar manualmente el punto exacto aunque Google no encuentre el número preciso;
+- al soltar el pin se hace reverse geocoding server-side, se actualiza la dirección visible y se recalculan ruta, cobertura y tarifa;
+- el punto guardado es la coordenada final elegida por el operador;
+- barrio e indicaciones continúan editables manualmente.
+
 Actualizar el cliente no elimina ni separa su historial.
 
 ## Eliminación masiva

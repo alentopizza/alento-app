@@ -37,7 +37,7 @@ Estados usados:
 | Caja básica | LISTO CON VALIDACIÓN | total diario y desglose por medios usando únicamente PAID |
 | Devoluciones / refunds | PENDIENTE CONTROLADO | no existe flujo contable de devolución; se bloquea cancelar un pedido que ya tenga dinero PAID |
 | Club Alentó | PARCIAL | acumulación, saldo e historial funcionan; canje transaccional dentro del checkout sigue pendiente |
-| Clientes | LISTO CON VALIDACIÓN | CRM, clasificación, historial, direcciones, importación/exportación y permisos |
+| Clientes | LISTO CON VALIDACIÓN | CRM, clasificación, historial, dirección Google con ajuste manual del pin, importación/exportación y permisos |
 | Cupones | LISTO CON VALIDACIÓN | administración y aplicación server-side en POS según elegibilidad |
 | Usuarios / roles | LISTO CON VALIDACIÓN | login, roles, permisos sensibles y protección de rutas principales |
 | Recuperación de contraseña / revocación central | PENDIENTE CONTROLADO | no implementado; las sesiones internas siguen siendo stateless |
