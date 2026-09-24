@@ -256,6 +256,10 @@ export default function GoogleCustomerAddressPicker({
     onSelectRef.current = onSelect;
   }, [onSelect]);
 
+  const drawMapRef = useRef<
+    ((nextQuote: DeliveryQuote) => Promise<void>) | null
+  >(null);
+
   const quoteCoordinates = useCallback(
     async (input: {
       latitude: number;
@@ -357,10 +361,6 @@ export default function GoogleCustomerAddressPicker({
       quoteCoordinates,
     ],
   );
-
-  const drawMapRef = useRef<
-    ((nextQuote: DeliveryQuote) => Promise<void>) | null
-  >(null);
 
   const drawMap = useCallback(async (nextQuote: DeliveryQuote) => {
     if (!mapRef.current || !nextQuote.destination) return;
