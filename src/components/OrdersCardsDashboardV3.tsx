@@ -695,17 +695,21 @@ export default function OrdersCardsDashboardV3() {
                       {order.driver.name}
                     </b>
                   </div>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void unassignDriver(order);
-                    }}
-                    disabled={busy === order.id}
-                    className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
-                  >
-                    Desasignar
-                  </button>
+                  {!["DELIVERED", "COMPLETED", "CANCELED"].includes(
+                    order.status,
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void unassignDriver(order);
+                      }}
+                      disabled={busy === order.id}
+                      className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
+                    >
+                      Desasignar
+                    </button>
+                  )}
                 </div>
               )}
               <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
