@@ -455,6 +455,41 @@ model CashIncome {
   @@index([category, occurredAt])
 }
 
+model CashLoan {
+  id                              Int                 @id @default(autoincrement())
+  workerName                      String
+  note                            String?
+  principal                       Decimal             @db.Decimal(12, 2)
+  issuedAt                        DateTime
+  status                          String              @default("OPEN")
+  source                          String              @default("MANUAL")
+  createdByName                   String
+  historicalPaidWithoutRepayment Boolean             @default(false)
+  createdAt                       DateTime            @default(now())
+  updatedAt                       DateTime            @updatedAt
+  repayments                      CashLoanRepayment[]
+
+  @@index([issuedAt])
+  @@index([status, issuedAt])
+  @@index([workerName, issuedAt])
+}
+
+model CashLoanRepayment {
+  id            Int      @id @default(autoincrement())
+  loanId        Int
+  amount        Decimal  @db.Decimal(12, 2)
+  paidAt        DateTime
+  method        String   @default("PAGO")
+  note          String?
+  source        String   @default("MANUAL")
+  createdByName String
+  createdAt     DateTime @default(now())
+  loan          CashLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId, paidAt])
+  @@index([paidAt])
+}
+
 
 model ClubPointTransaction {
   id              Int      @id @default(autoincrement())
