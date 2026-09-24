@@ -108,8 +108,18 @@ export function createDriverMapPinElement() {
  * Pin oficial del domicilio.
  * Con pedido creado muestra su consecutivo; antes de crear el pedido queda genérico.
  */
-export function createDeliveryMapPinElement(orderCode?: string | number | null) {
+export function createDeliveryMapPinElement(
+  orderCode?: string | number | null,
+  options?: {
+    tone?: "default" | "assigned";
+  },
+) {
   const label = orderMapPinLabel(orderCode);
+  const assigned = options?.tone === "assigned";
+  const pinColor = assigned ? "#059669" : "#e21a22";
+  const shadowColor = assigned
+    ? "rgba(5,150,105,.34)"
+    : "rgba(226,26,34,.32)";
   const root = document.createElement("div");
   applyBaseMarkerAccessibility(
     root,
@@ -119,7 +129,9 @@ export function createDeliveryMapPinElement(orderCode?: string | number | null) 
   root.style.position = "relative";
   root.style.width = "46px";
   root.style.height = "54px";
-  root.style.filter = "drop-shadow(0 8px 12px rgba(226,26,34,.30))";
+  root.style.filter = assigned
+    ? "drop-shadow(0 8px 12px rgba(5,150,105,.32))"
+    : "drop-shadow(0 8px 12px rgba(226,26,34,.30))";
 
   const pin = document.createElement("div");
   pin.style.position = "absolute";
@@ -129,10 +141,10 @@ export function createDeliveryMapPinElement(orderCode?: string | number | null) 
   pin.style.height = "38px";
   pin.style.borderRadius = "50% 50% 50% 0";
   pin.style.transform = "rotate(-45deg)";
-  pin.style.background = "#e21a22";
+  pin.style.background = pinColor;
   pin.style.border = "2px solid #ffffff";
   pin.style.boxShadow =
-    "0 6px 16px rgba(226,26,34,.32), inset 0 0 0 1px rgba(255,255,255,.12)";
+    `0 6px 16px ${shadowColor}, inset 0 0 0 1px rgba(255,255,255,.12)`;
 
   const center = document.createElement("div");
   center.style.position = "absolute";
@@ -176,6 +188,9 @@ export function createDeliveryRouteStopPinElement(
   orderCode: string | number,
   stopNumber: number,
   routeColor: string,
+  options?: {
+    tone?: "default" | "assigned";
+  },
 ) {
   const root = document.createElement("div");
   root.style.position = "relative";
@@ -183,7 +198,7 @@ export function createDeliveryRouteStopPinElement(
   root.style.height = "60px";
   root.style.userSelect = "none";
 
-  const pin = createDeliveryMapPinElement(orderCode);
+  const pin = createDeliveryMapPinElement(orderCode, options);
   pin.style.position = "absolute";
   pin.style.left = "0";
   pin.style.top = "4px";

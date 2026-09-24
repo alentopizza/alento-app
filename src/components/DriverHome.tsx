@@ -975,13 +975,18 @@ export default function DriverHome({
 
           const existing = requestMarkerRefs.current.get(order.id);
           const stopNumber = assignedStopNumbers.get(order.id);
+          const ownAssignment = order.assignment?.own === true;
           const markerContent = stopNumber
             ? createDeliveryRouteStopPinElement(
                 order.code,
                 stopNumber,
-                "#111111",
+                "#065f46",
+                { tone: "assigned" },
               )
-            : createDeliveryMapPinElement(order.code);
+            : createDeliveryMapPinElement(
+                order.code,
+                ownAssignment ? { tone: "assigned" } : undefined,
+              );
 
           if (existing) {
             existing.position = point;
@@ -1327,10 +1332,17 @@ export default function DriverHome({
                       }
                     }}
                     className={
-                      "min-w-[286px] cursor-pointer snap-start overflow-hidden rounded-[20px] border bg-[#111]/96 text-white shadow-[0_16px_42px_rgba(0,0,0,.28)] backdrop-blur-xl transition active:scale-[.99] sm:min-w-[310px] " +
+                      "min-w-[286px] cursor-pointer snap-start overflow-hidden rounded-[20px] border text-white backdrop-blur-xl transition active:scale-[.99] sm:min-w-[310px] " +
+                      (order.assignment?.own
+                        ? "border-emerald-400/35 bg-[#071a13]/96 shadow-[0_16px_42px_rgba(5,150,105,.16)] "
+                        : "bg-[#111]/96 shadow-[0_16px_42px_rgba(0,0,0,.28)] ") +
                       (selectedId === order.id
-                        ? "border-[#e21a22]/60"
-                        : "border-white/10")
+                        ? order.assignment?.own
+                          ? "border-emerald-300/70"
+                          : "border-[#e21a22]/60"
+                        : order.assignment?.own
+                          ? "border-emerald-400/35"
+                          : "border-white/10")
                     }
                   >
                     <div className="p-3.5">
@@ -1346,6 +1358,11 @@ export default function DriverHome({
                             >
                               {statusLabel(order.status)}
                             </span>
+                            {order.assignment?.own && (
+                              <span className="rounded-full border border-emerald-300/20 bg-emerald-400/12 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.06em] text-emerald-300">
+                                Mi pedido
+                              </span>
+                            )}
                           </div>
                           <p className="mt-1 truncate text-[10px] font-semibold text-white/70">
                             {order.customerName}
@@ -1355,7 +1372,14 @@ export default function DriverHome({
                           <span className="block text-[7px] font-black uppercase tracking-[0.09em] text-white/32">
                             Domicilio
                           </span>
-                          <b className="mt-0.5 block text-[13px] text-[#ff454b]">
+                          <b
+                            className={
+                              "mt-0.5 block text-[13px] " +
+                              (order.assignment?.own
+                                ? "text-emerald-300"
+                                : "text-[#ff454b]")
+                            }
+                          >
                             {money(order.deliveryFee)}
                           </b>
                         </div>
@@ -1364,13 +1388,23 @@ export default function DriverHome({
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         {routeSummaries[order.id] ? (
                           <>
-                            <span className="inline-flex h-6 items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.055] px-2 text-[8px] font-bold text-white/62">
+                            <span className={
+                                "inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[8px] font-bold " +
+                                (order.assignment?.own
+                                  ? "border-emerald-300/15 bg-emerald-400/[0.08] text-emerald-100/70"
+                                  : "border-white/[0.07] bg-white/[0.055] text-white/62")
+                              }>
                               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                                 <path d="M5 19 19 5M10 5h9v9" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                               {routeDistance(routeSummaries[order.id].distanceMeters)}
                             </span>
-                            <span className="inline-flex h-6 items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.055] px-2 text-[8px] font-bold text-white/62">
+                            <span className={
+                                "inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[8px] font-bold " +
+                                (order.assignment?.own
+                                  ? "border-emerald-300/15 bg-emerald-400/[0.08] text-emerald-100/70"
+                                  : "border-white/[0.07] bg-white/[0.055] text-white/62")
+                              }>
                               <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                                 <circle cx="12" cy="12" r="8" />
                                 <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1386,10 +1420,26 @@ export default function DriverHome({
                       </div>
 
                       <div className="mt-2 flex items-end justify-between gap-3">
-                        <p className="line-clamp-2 min-w-0 text-[9px] leading-4 text-white/42">
+                        <p
+                          className={
+                            "line-clamp-2 min-w-0 text-[9px] leading-4 " +
+                            (order.assignment?.own
+                              ? "text-emerald-50/55"
+                              : "text-white/42")
+                          }
+                        >
                           {order.address?.address || "Dirección pendiente"}
                         </p>
-                        <span className="shrink-0 text-lg leading-none text-white/28">›</span>
+                        <span
+                          className={
+                            "shrink-0 text-lg leading-none " +
+                            (order.assignment?.own
+                              ? "text-emerald-300/45"
+                              : "text-white/28")
+                          }
+                        >
+                          ›
+                        </span>
                       </div>
                     </div>
                   </article>

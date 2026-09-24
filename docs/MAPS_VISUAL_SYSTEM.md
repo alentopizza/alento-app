@@ -47,6 +47,7 @@ Reglas:
 - en rutas con múltiples entregas usar `createDeliveryRouteStopPinElement(orderCode, stopNumber, routeColor)`; el número principal sigue siendo el pedido y el badge pequeño identifica `Parada 1`, `Parada 2`, etc.;
 - el `routeColor` debe corresponder al tramo que llega a esa parada, no al repartidor completo: `Moto → Parada 1` y `Parada 1 → Parada 2` usan colores distintos aunque pertenezcan al mismo repartidor.
 - en el mapa principal del repartidor, cuando tiene 2 o más domicilios propios con ubicación, solo esos pines asignados muestran el badge `1, 2, 3...`; solicitudes sin asignar conservan únicamente el número del pedido.
+- en la vista del repartidor, los domicilios asignados al propio repartidor usan tono esmeralda tanto en el pin como en la tarjeta; las solicitudes todavía libres conservan el pin rojo y la tarjeta neutral. El color del estado de cocina sigue siendo independiente de esta distinción.
 - el orden de paradas se calcula con la misma heurística compartida `orderDeliveryStopsByProximity()` usada por el mapa operativo del administrador.
 
 ## Implementación
