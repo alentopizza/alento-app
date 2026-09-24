@@ -965,7 +965,7 @@ export default function CashPage() {
 
             {tab === "SUMMARY" ? (
               <div className="space-y-4">
-                <section className="grid gap-4 xl:grid-cols-2">
+                <section className="grid gap-4 xl:grid-cols-3">
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
@@ -1025,6 +1025,52 @@ export default function CashPage() {
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                        Otros ingresos
+                      </p>
+                      <h2 className="mt-1 text-xl font-black">
+                        Por tipo
+                      </h2>
+                    </div>
+
+                    <div className="mt-5 space-y-4">
+                      {summary.incomeCategories.length === 0 ? (
+                        <p className="text-sm text-neutral-400">
+                          No hay otros ingresos en este período.
+                        </p>
+                      ) : (
+                        summary.incomeCategories.map((item) => (
+                          <div key={item.category}>
+                            <div className="flex items-end justify-between gap-4">
+                              <div>
+                                <b className="text-sm">{item.category}</b>
+                                <p className="text-[10px] text-neutral-400">
+                                  {item.count} movimiento{item.count === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                              <b className="text-sm text-teal-700">
+                                {formatCOP(item.amount)}
+                              </b>
+                            </div>
+                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
+                              <div
+                                className="h-full rounded-full bg-teal-500"
+                                style={{
+                                  width: `${Math.max(
+                                    4,
+                                    (item.amount / maxIncomeCategory) * 100,
+                                  )}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
                         Salidas
                       </p>
                       <h2 className="mt-1 text-xl font-black">
@@ -1069,7 +1115,7 @@ export default function CashPage() {
                   </div>
                 </section>
 
-                <section className="grid gap-4 xl:grid-cols-2">
+                <section className="grid gap-4 xl:grid-cols-3">
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
                       Últimos ingresos
@@ -1113,6 +1159,43 @@ export default function CashPage() {
                       {summary.payments.length === 0 && (
                         <p className="text-sm text-neutral-400">
                           No hay pagos en este período.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      Otros ingresos
+                    </p>
+                    <h2 className="mt-1 text-xl font-black">
+                      Entradas adicionales
+                    </h2>
+                    <div className="mt-4 space-y-2">
+                      {summary.otherIncomes.slice(0, 8).map((income) => (
+                        <div
+                          key={income.id}
+                          className="grid gap-2 rounded-2xl border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+                        >
+                          <div className="min-w-0">
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-700">
+                              {income.category}
+                            </span>
+                            <p className="mt-1 truncate text-[11px] text-neutral-500">
+                              {income.note || "Sin observación"}
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-neutral-400">
+                              {dateTimeLabel(income.occurredAt)}
+                            </p>
+                          </div>
+                          <b className="text-sm text-emerald-700">
+                            + {formatCOP(income.amount)}
+                          </b>
+                        </div>
+                      ))}
+                      {summary.otherIncomes.length === 0 && (
+                        <p className="text-sm text-neutral-400">
+                          No hay otros ingresos en este período.
                         </p>
                       )}
                     </div>
