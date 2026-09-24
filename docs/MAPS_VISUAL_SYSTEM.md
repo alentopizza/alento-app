@@ -33,6 +33,12 @@ Visual oficial:
 
 Debe verse igual en el mapa principal del repartidor, navegación del repartidor, seguimiento del cliente y cualquier mapa futuro donde aparezca un repartidor.
 
+En la pantalla **Navegación** del repartidor, el mapa no debe incluir Alentó Pizza dentro del encuadre operativo. Esa vista representa únicamente:
+
+`repartidor actual → destino del cliente`
+
+El `fitBounds` debe construirse con la ubicación viva del repartidor, el destino y la polilínea vigente. Como la ruta se recalcula durante el desplazamiento, el mapa debe acercarse progresivamente al destino.
+
 ### Domicilio / destino
 
 Usar `createDeliveryMapPinElement(orderCode)`.

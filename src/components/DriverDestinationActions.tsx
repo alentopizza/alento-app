@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  createAlentoMapPinElement,
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
@@ -28,10 +27,6 @@ type NavigationData = {
     durationSeconds: number | null;
     encodedPolyline: string;
   };
-};
-
-type StoreOrigin = Point & {
-  formattedAddress?: string;
 };
 
 type GoogleMapInstance = {
@@ -189,7 +184,6 @@ export default function DriverDestinationActions({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [navigation, setNavigation] = useState<NavigationData | null>(null);
-  const [origin, setOrigin] = useState<StoreOrigin | null>(null);
   const [error, setError] = useState("");
   const [navigationStatus, setNavigationStatus] = useState(currentStatus);
   const [departureProgress, setDepartureProgress] = useState(0);
@@ -222,7 +216,7 @@ export default function DriverDestinationActions({
   }, []);
 
   const drawMap = useCallback(
-    async (data: NavigationData, store: StoreOrigin | null) => {
+    async (data: NavigationData) => {
       if (!mapHostRef.current) return;
 
       const google = await loadGoogleMaps();
@@ -253,17 +247,6 @@ export default function DriverDestinationActions({
 
       const map = mapRef.current;
 
-      if (store) {
-        const storeMarker = new AdvancedMarkerElement({
-          map,
-          position: { lat: store.latitude, lng: store.longitude },
-          title: "Alentó Pizza",
-          content: createAlentoMapPinElement(),
-          zIndex: 20,
-        });
-        markerRefs.current.push(storeMarker);
-      }
-
       const driverMarker = new AdvancedMarkerElement({
         map,
         position: {
@@ -289,9 +272,6 @@ export default function DriverDestinationActions({
       markerRefs.current.push(customerMarker);
 
       const bounds = new google.maps.LatLngBounds();
-      if (store) {
-        bounds.extend({ lat: store.latitude, lng: store.longitude });
-      }
       bounds.extend({
         lat: data.driver.latitude,
         lng: data.driver.longitude,
@@ -324,12 +304,13 @@ export default function DriverDestinationActions({
       }
 
       map.fitBounds(bounds, {
-        // Zona segura amplia para que moto, cliente y Alentó nunca queden
-        // debajo del panel flotante de Distancia / Tiempo.
+        // La navegación debe encuadrar únicamente moto + destino.
+        // Como la ruta se recalcula mientras avanza, el fit se va cerrando
+        // progresivamente hasta acercarse al cliente.
         top: 160,
-        right: 68,
+        right: 54,
         bottom: 96,
-        left: 68,
+        left: 54,
       });
     },
     [customerName, orderCode],
@@ -379,17 +360,6 @@ export default function DriverDestinationActions({
       setError("");
 
       try {
-        const originResponse = await fetch("/api/delivery/origin", {
-          cache: "no-store",
-        });
-        const originData = await originResponse.json();
-        const nextOrigin =
-          originResponse.ok && originData?.origin
-            ? (originData.origin as StoreOrigin)
-            : null;
-
-        if (!disposed) setOrigin(nextOrigin);
-
         if (!navigator.geolocation) {
           throw new Error("Este dispositivo no permite obtener ubicación.");
         }
@@ -413,7 +383,7 @@ export default function DriverDestinationActions({
 
             try {
               const next = await requestNavigation(position);
-              await drawMap(next, nextOrigin);
+              await drawMap(next);
               if (!disposed) setError("");
             } catch (err) {
               if (!disposed) {
