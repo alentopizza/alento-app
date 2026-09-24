@@ -3,13 +3,28 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
+import { computeDrivingRoute } from "@/lib/googleMapsServer";
 
 const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
-type DeliveryBand = { id: string; name?: string; fee: number; active?: boolean };
+type DeliveryBand = {
+  id: string;
+  name?: string;
+  minMeters: number;
+  maxMeters: number;
+  fee: number;
+  active?: boolean;
+};
 type PaymentMethod = { id: string; name: string; active?: boolean };
-type PosSettings = { deliveryBands?: DeliveryBand[]; paymentMethods?: PaymentMethod[] };
+type PosSettings = {
+  store?: {
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  deliveryBands?: DeliveryBand[];
+  paymentMethods?: PaymentMethod[];
+};
 type ExistingLinePatch = { id: number; quantity: number; notes?: unknown };
 type Addition = { productId: number; quantity: number; configuration?: unknown; notes?: unknown };
 
@@ -85,6 +100,21 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         return NextResponse.json({ error: "No tienes permiso para cancelar pedidos." }, { status: 403 });
       }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
+
+      const receivedAmount = current.payments
+        .filter((payment) => payment.status === "PAID")
+        .reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+      if (receivedAmount > 0) {
+        return NextResponse.json(
+          {
+            error:
+              `Este pedido tiene ${receivedAmount.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })} recibido. Antes de cancelarlo debe existir un flujo de devolución para conservar la trazabilidad del dinero.`,
+          },
+          { status: 409 },
+        );
+      }
+
       const updated = await prisma.$transaction(async (tx) => {
         await tx.payment.updateMany({
           where: { orderId: current.id, status: { not: "REFUNDED" } },
@@ -164,15 +194,82 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     let deliveryZoneName: string | null = null;
     if (fulfillmentType === "DELIVERY") {
       const customer = current.customer;
-      if (!customer) return NextResponse.json({ error: "El domicilio necesita un cliente." }, { status: 400 });
-      const requestedAddressId = Number(body.addressId ?? current.addressId ?? customer.addresses[0]?.id);
-      const address = customer.addresses.find((item) => item.id === requestedAddressId) ?? customer.addresses[0];
-      if (!address) return NextResponse.json({ error: "El cliente no tiene una dirección para domicilio." }, { status: 400 });
+      if (!customer) {
+        return NextResponse.json(
+          { error: "El domicilio necesita un cliente." },
+          { status: 400 },
+        );
+      }
+
+      const requestedAddressId = Number(
+        body.addressId ?? current.addressId ?? customer.addresses[0]?.id,
+      );
+      const address =
+        customer.addresses.find((item) => item.id === requestedAddressId) ??
+        customer.addresses[0];
+
+      if (!address) {
+        return NextResponse.json(
+          { error: "El cliente no tiene una dirección para domicilio." },
+          { status: 400 },
+        );
+      }
+
+      const latitude = Number(address.latitude);
+      const longitude = Number(address.longitude);
+      const storeLatitude = Number(settings.store?.latitude);
+      const storeLongitude = Number(settings.store?.longitude);
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "La dirección del cliente debe validarse con Google Maps antes de editar este domicilio.",
+          },
+          { status: 409 },
+        );
+      }
+
+      if (
+        !Number.isFinite(storeLatitude) ||
+        !Number.isFinite(storeLongitude)
+      ) {
+        return NextResponse.json(
+          { error: "La ubicación de Alentó no está configurada." },
+          { status: 503 },
+        );
+      }
+
+      const route = await computeDrivingRoute({
+        origin: {
+          latitude: storeLatitude,
+          longitude: storeLongitude,
+        },
+        destination: { latitude, longitude },
+      });
+
+      const zone = settings.deliveryBands
+        ?.filter((item) => item.active !== false)
+        .find(
+          (item) =>
+            route.distanceMeters >= Number(item.minMeters) &&
+            route.distanceMeters <= Number(item.maxMeters),
+        );
+
+      if (!zone) {
+        return NextResponse.json(
+          { error: "La dirección quedó fuera de cobertura para domicilio." },
+          { status: 409 },
+        );
+      }
+
       addressId = address.id;
-      const requestedZoneId = String(body.deliveryZoneId ?? current.deliveryZoneId ?? "");
-      const zone = settings.deliveryBands?.find((item) => item.id === requestedZoneId && item.active !== false);
-      if (!zone) return NextResponse.json({ error: "Selecciona una tarifa de domicilio activa." }, { status: 400 });
-      deliveryFee = money(Number(zone.fee ?? 0)); deliveryZoneId = zone.id; deliveryZoneName = zone.name?.trim() || "Domicilio";
+      deliveryFee = money(Number(zone.fee ?? 0));
+      deliveryZoneId = zone.id;
+      deliveryZoneName = zone.name?.trim() || "Domicilio";
     }
 
     const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];

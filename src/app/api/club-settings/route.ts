@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
 import {
   CLUB_ALENTO_SETTING_KEY,
   DEFAULT_CLUB_ALENTO_SETTINGS,
@@ -19,6 +20,17 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  try {
+    await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const forbidden =
+      error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const settings = normalizeClubAlentoSettings(body?.settings);
 

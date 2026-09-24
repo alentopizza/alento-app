@@ -348,8 +348,10 @@ export async function POST(request: NextRequest) {
         resolvedDeliveryLongitude != null
       ) {
         const existingAddress = customer.addresses[0] ?? null;
+        const mayReplaceSavedAddress =
+          sessionOwnsCustomer || existingCustomer == null;
 
-        if (existingAddress) {
+        if (existingAddress && mayReplaceSavedAddress) {
           const updatedAddress = await tx.customerAddress.update({
             where: { id: existingAddress.id },
             data: {
@@ -370,18 +372,29 @@ export async function POST(request: NextRequest) {
               id: { not: existingAddress.id },
             },
           });
+        } else if (
+          existingAddress &&
+          !mayReplaceSavedAddress &&
+          ((resolvedDeliveryPlaceId &&
+            existingAddress.placeId === resolvedDeliveryPlaceId) ||
+            (Number(existingAddress.latitude) === resolvedDeliveryLatitude &&
+              Number(existingAddress.longitude) === resolvedDeliveryLongitude))
+        ) {
+          addressId = existingAddress.id;
         } else {
           const createdAddress = await tx.customerAddress.create({
             data: {
               customerId: customer.id,
-              label: "Casa",
+              label: "Entrega",
               address: resolvedDeliveryAddress,
               formattedAddress: resolvedDeliveryAddress,
               placeId: resolvedDeliveryPlaceId,
               latitude: resolvedDeliveryLatitude,
               longitude: resolvedDeliveryLongitude,
-              city: "Bogotá",
-              isDefault: true,
+              city: existingAddress?.city || "Bogotá",
+              // Un invitado que solo conoce el teléfono no puede sustituir
+              // ni convertir en principal la dirección privada ya guardada.
+              isDefault: existingAddress ? false : true,
             },
           });
           addressId = createdAddress.id;

@@ -5,8 +5,21 @@ import { prisma } from "@/lib/prisma";
 const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
-type DeliveryBand = { id: string; name?: string; fee: number; active?: boolean };
-type PosSettings = { deliveryBands?: DeliveryBand[] };
+type DeliveryBand = {
+  id: string;
+  name?: string;
+  minMeters: number;
+  maxMeters: number;
+  fee: number;
+  active?: boolean;
+};
+type PosSettings = {
+  store?: {
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  deliveryBands?: DeliveryBand[];
+};
 type ExistingLinePatch = { id: number; quantity: number };
 type Addition = { productId: number; quantity: number };
 
@@ -84,16 +97,64 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (fulfillmentType === "DELIVERY") {
       const customer = current.customer;
       if (!customer) return NextResponse.json({ error: "El domicilio necesita un cliente." }, { status: 400 });
-      const requestedAddressId = Number(body.addressId ?? current.addressId ?? customer.addresses[0]?.id);
-      const address = customer.addresses.find((item) => item.id === requestedAddressId) ?? customer.addresses[0];
-      if (!address) return NextResponse.json({ error: "El cliente no tiene una dirección para domicilio." }, { status: 400 });
-      addressId = address.id;
 
-      const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
+      const requestedAddressId = Number(
+        body.addressId ?? current.addressId ?? customer.addresses[0]?.id,
+      );
+      const address =
+        customer.addresses.find((item) => item.id === requestedAddressId) ??
+        customer.addresses[0];
+
+      if (!address) {
+        return NextResponse.json(
+          { error: "El cliente no tiene una dirección para domicilio." },
+          { status: 400 },
+        );
+      }
+
+      const settingsRow = await prisma.appSetting.findUnique({
+        where: { key: SETTINGS_KEY },
+      });
       const settings = parseSettings(settingsRow?.value ?? null);
-      const requestedZoneId = String(body.deliveryZoneId ?? current.deliveryZoneId ?? "");
-      const zone = settings.deliveryBands?.find((item) => item.id === requestedZoneId && item.active !== false);
-      if (!zone) return NextResponse.json({ error: "Selecciona una tarifa de domicilio activa." }, { status: 400 });
+      const latitude = Number(address.latitude);
+      const longitude = Number(address.longitude);
+      const storeLatitude = Number(settings.store?.latitude);
+      const storeLongitude = Number(settings.store?.longitude);
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return NextResponse.json(
+          { error: "La dirección debe validarse con Google Maps antes de editar el domicilio." },
+          { status: 409 },
+        );
+      }
+
+      if (!Number.isFinite(storeLatitude) || !Number.isFinite(storeLongitude)) {
+        return NextResponse.json(
+          { error: "La ubicación de Alentó no está configurada." },
+          { status: 503 },
+        );
+      }
+
+      const route = await computeDrivingRoute({
+        origin: { latitude: storeLatitude, longitude: storeLongitude },
+        destination: { latitude, longitude },
+      });
+      const zone = settings.deliveryBands
+        ?.filter((item) => item.active !== false)
+        .find(
+          (item) =>
+            route.distanceMeters >= Number(item.minMeters) &&
+            route.distanceMeters <= Number(item.maxMeters),
+        );
+
+      if (!zone) {
+        return NextResponse.json(
+          { error: "La dirección quedó fuera de cobertura para domicilio." },
+          { status: 409 },
+        );
+      }
+
+      addressId = address.id;
       deliveryFee = money(Number(zone.fee ?? 0));
       deliveryZoneId = zone.id;
       deliveryZoneName = zone.name?.trim() || "Domicilio";
