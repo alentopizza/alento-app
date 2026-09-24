@@ -1,6 +1,17 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Bike,
+  MapPin,
+  Pencil,
+  Pizza,
+  Search,
+  ShoppingBag,
+  ShoppingCart,
+  Store,
+  UserRound,
+} from "lucide-react";
 import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
 import type { ComboOrderConfiguration, OrderLineConfiguration, PizzaOrderConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
@@ -30,10 +41,10 @@ type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavor
 type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
-const fulfillmentOptions: { type: FulfillmentType; icon: string; title: string; shortTitle: string }[] = [
-  { type: "DELIVERY", icon: "🛵", title: "Domicilio", shortTitle: "Domicilio" },
-  { type: "PICKUP", icon: "🛍️", title: "Recoger en tienda", shortTitle: "Recoger" },
-  { type: "STORE", icon: "🍽️", title: "Local", shortTitle: "Local" },
+const fulfillmentOptions = [
+  { type: "DELIVERY" as const, icon: Bike, title: "Domicilio", shortTitle: "Domicilio" },
+  { type: "PICKUP" as const, icon: ShoppingBag, title: "Recoger en tienda", shortTitle: "Recoger" },
+  { type: "STORE" as const, icon: Store, title: "Local", shortTitle: "Local" },
 ];
 
 function formatCOP(value: number) {
@@ -647,56 +658,82 @@ export default function StructuredPosPageV2() {
   }
 
   return (
-    <main className="min-h-screen p-3 sm:p-4 lg:p-5 xl:p-5">
-      <div className="w-full space-y-4">
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="space-y-4">
-            <header className="alento-dark max-w-[820px] rounded-[22px] px-6 py-4 md:px-7 md:py-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">Operación Alentó</p>
-                  <h1 className="text-2xl font-black md:text-[2rem] md:leading-9">Punto de venta</h1>
-                  <p className="mt-1 text-xs text-white/60">Configura, cobra y envía cada pedido a operación.</p>
+    <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
+      <div className="w-full space-y-5">
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="min-w-0 space-y-5">
+            <header className="relative min-h-[150px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_77%_42%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_62%_110%,rgba(120,10,14,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_42%,#1a0b0d_67%,#5a090c_100%)]" />
+              <div className="absolute inset-y-0 right-0 w-[48%] opacity-60 [background:repeating-linear-gradient(120deg,transparent_0_46px,rgba(255,255,255,.025)_47px_48px)]" />
+              <div className="absolute right-[7%] top-[-24px] h-32 w-32 rounded-full border border-red-300/10 bg-red-500/[0.04]" />
+
+              <div className="relative flex min-h-[150px] items-center justify-between gap-5 px-6 py-5 md:px-8 xl:px-9">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="hidden h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] border border-red-400/25 bg-[linear-gradient(145deg,rgba(226,26,34,.75),rgba(76,8,11,.78))] text-red-100 shadow-[0_12px_28px_rgba(168,11,16,.24),inset_0_1px_0_rgba(255,255,255,.12)] sm:flex">
+                    <Pizza className="h-8 w-8" strokeWidth={2.05} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                      <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                        Operación Alentó
+                      </p>
+                    </div>
+                    <h1 className="mt-2 text-[36px] font-black leading-none tracking-[-0.045em] md:text-[42px]">
+                      Punto de venta
+                    </h1>
+                    <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
+                      Configura, cobra y envía cada pedido a operación.
+                    </p>
+                  </div>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 shadow-inner">
+
+                <div className="hidden items-center gap-2 rounded-[18px] border border-white/12 bg-white/[0.08] px-4 py-3 shadow-inner backdrop-blur-sm sm:inline-flex">
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/50" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
                   </span>
                   <div className="leading-tight">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-white/40">Sistema</span>
-                    <b className="text-[11px] font-semibold text-white/85">POS activo</b>
+                    <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/42">Sistema</span>
+                    <b className="text-[11px] font-bold text-white/88">POS activo</b>
                   </div>
                 </div>
               </div>
             </header>
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <>
-              <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="flex min-w-0 gap-2 overflow-x-auto pb-0.5">
-                  {catalog?.categories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveCategory(category.slug);
-                        setProductQuery("");
-                      }}
-                      className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold transition ${selectedCategory?.slug === category.slug && !productQuery.trim() ? "bg-black text-white" : "border border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400"}`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
+                  {catalog?.categories.map((category) => {
+                    const active = selectedCategory?.slug === category.slug && !productQuery.trim();
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveCategory(category.slug);
+                          setProductQuery("");
+                        }}
+                        className={`h-12 whitespace-nowrap rounded-[16px] border px-5 text-[13px] font-black transition-all ${
+                          active
+                            ? "border-red-500 bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_8px_18px_rgba(226,26,34,.22)]"
+                            : "border-neutral-200 bg-white text-neutral-700 shadow-sm hover:border-neutral-300 hover:bg-neutral-50"
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <label className="group relative w-full shrink-0 xl:w-[290px]">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-neutral-400 transition group-focus-within:text-neutral-700">⌕</span>
+                <label className="group relative w-full shrink-0 xl:w-[320px]">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-neutral-400 transition group-focus-within:text-neutral-700" strokeWidth={2} />
                   <input
                     type="search"
                     value={productQuery}
                     onChange={(event) => setProductQuery(event.target.value)}
                     placeholder="Buscar producto..."
-                    className="h-[42px] w-full rounded-full border border-neutral-300 bg-white pl-10 pr-10 text-sm font-medium text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-500 focus:shadow-[0_0_0_3px_rgba(0,0,0,.04)]"
+                    className="h-12 w-full rounded-[16px] border border-neutral-200 bg-white pl-11 pr-10 text-sm font-medium text-neutral-900 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 focus:shadow-[0_0_0_3px_rgba(0,0,0,.035)]"
                     aria-label="Buscar productos"
                   />
                   {productQuery && (
@@ -725,21 +762,21 @@ export default function StructuredPosPageV2() {
                 {visibleCatalogProducts.map((product) => (
                   <article
                     key={product.id}
-                    className="group relative overflow-hidden rounded-[22px] border-[5px] border-white bg-white shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(28,23,20,.14)]"
+                    className="group relative overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_28px_rgba(28,23,20,.075)] transition duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_18px_38px_rgba(28,23,20,.13)]"
                   >
-                    <div className="relative aspect-square overflow-hidden rounded-[17px_17px_0_0] bg-white">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[linear-gradient(145deg,#fff,#f7f5f1)]">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-[1.012]"
+                          className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-[1.025]"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
                       )}
                     </div>
 
-                    <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-3.5 text-white">
+                    <div className="bg-[linear-gradient(135deg,#111113,#1d191a)] p-4 text-white">
                       <h3 className="truncate text-[17px] font-medium leading-6 tracking-[-0.01em] text-white">
                         {product.name}
                       </h3>
@@ -752,7 +789,7 @@ export default function StructuredPosPageV2() {
                         <button
                           type="button"
                           onClick={() => startAdd(product)}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-medium leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition hover:scale-[1.05] active:scale-95"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-[22px] font-medium leading-none text-white shadow-[0_8px_18px_rgba(226,26,34,.30)] transition hover:scale-[1.06] hover:brightness-110 active:scale-95"
                           aria-label={`Agregar ${product.name}`}
                           title={`Agregar ${product.name}`}
                         >
@@ -781,12 +818,34 @@ export default function StructuredPosPageV2() {
             </>}
           </div>
 
-          <aside className="alento-card rounded-[28px] p-4 xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
-            <div className="mb-3 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-              <div className="mb-3 flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Preparar pedido</p><h2 className="mt-1 text-lg font-black">Tipo de pedido y cliente</h2></div><button onClick={openNewCustomer} className="rounded-full border border-[rgba(229,28,17,0.14)] bg-white px-3 py-1.5 text-[11px] font-black text-[var(--brand-red)]">+ Nuevo cliente</button></div>
-              <div className="space-y-3">
-                <div><p className="mb-1.5 text-[11px] font-black">1. Tipo</p><div className="grid grid-cols-3 gap-1 rounded-2xl border border-neutral-200 bg-white p-1">{fulfillmentOptions.map((option) => { const selected = fulfillmentType === option.type; return <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`flex min-h-[46px] items-center justify-center gap-2 rounded-xl px-2 text-center ${selected ? "border border-[var(--brand-red)] bg-red-50 shadow-[0_4px_14px_rgba(229,28,17,0.12)]" : "border border-transparent bg-transparent hover:bg-neutral-50"}`}><span className="text-[16px] leading-none">{option.icon}</span><b className="text-[12px] leading-4">{option.shortTitle}</b></button>; })}</div></div>
-                <div><p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>{selectedCustomer ? <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-2"><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="block truncate text-xs text-neutral-500">{selectedAddress.address}</span>}</div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Editar</button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[11px] font-bold">Cambiar</button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && (
+          <aside className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-[0_18px_42px_rgba(28,23,20,.09)] xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
+            <div className="relative shrink-0 overflow-hidden border-b border-white/10 bg-[#0b0b0c] px-5 py-4 text-white">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_20%,rgba(226,26,34,.42),transparent_34%),linear-gradient(135deg,#101114,#221215_70%,#650b0f)]" />
+              <div className="relative flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-white/[0.08]">
+                    <ShoppingCart className="h-5 w-5" strokeWidth={2.2} />
+                  </span>
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">Punto de venta</p>
+                    <h2 className="mt-0.5 text-[20px] font-black tracking-[-0.025em]">Nuevo pedido</h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={openNewCustomer}
+                  className="rounded-xl border border-white/12 bg-white/[0.08] px-3 py-2 text-[10px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                >
+                  + Cliente
+                </button>
+              </div>
+            </div>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="mb-3 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                <div className="space-y-3">
+                <div><p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Tipo de pedido</p><div className="grid grid-cols-3 gap-1.5 rounded-[16px] border border-neutral-200 bg-white p-1.5">{fulfillmentOptions.map((option) => { const selected = fulfillmentType === option.type; return <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`flex min-h-[52px] items-center justify-center gap-2 rounded-[12px] px-2 text-center transition ${selected ? "bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_6px_16px_rgba(226,26,34,.22)]" : "text-neutral-700 hover:bg-neutral-50"}`}><option.icon className="h-[17px] w-[17px]" strokeWidth={2.15} /><b className="text-[11px] leading-4">{option.shortTitle}</b></button>; })}</div></div>
+                <div><p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>{selectedCustomer ? <div className="rounded-[16px] border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600"><UserRound className="h-5 w-5" strokeWidth={2} /></span><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-neutral-500"><MapPin className="h-3 w-3 shrink-0" />{selectedAddress.address}</span>}</div></div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Editar cliente"><Pencil className="h-4 w-4" /></button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Cambiar cliente"><UserRound className="h-4 w-4" /></button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && (
                   <button
                     type="button"
                     onClick={() => openEditCustomer(selectedCustomer)}
@@ -807,11 +866,13 @@ export default function StructuredPosPageV2() {
               </div>
             </div>
 
-            <div className="mb-3"><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Pedido actual</p><h2 className="mt-1 text-2xl font-black">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-sm text-neutral-500">Para {selectedCustomer.name}</p>}{fulfillmentType && <p className="mt-1 text-xs font-bold text-neutral-400">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</p>}</div>
+            <div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-400">Productos</p><h2 className="mt-1 text-[22px] font-black tracking-[-0.025em]">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-xs text-neutral-500">Para {selectedCustomer.name}</p>}</div>{fulfillmentType && <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase text-neutral-500">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</span>}</div>
 
-            {cart.length ? <div className="alento-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">{cart.map((item) => <PosCartLine key={item.key} item={item} editable={item.configuration.kind === "PIZZA" || item.configuration.kind === "COMBO"} onEdit={() => editCartItem(item)} onChangeQty={(delta) => changeQty(item.key, delta)} />)}</div> : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
+            {cart.length ? <div className="space-y-2">{cart.map((item) => <PosCartLine key={item.key} item={item} editable={item.configuration.kind === "PIZZA" || item.configuration.kind === "COMBO"} onEdit={() => editCartItem(item)} onChangeQty={(delta) => changeQty(item.key, delta)} />)}</div> : <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
 
-            <div className="mt-3 border-t pt-3">
+            </div>
+
+            <div className="shrink-0 border-t border-neutral-200 bg-white p-4">
               <div className="flex justify-between">
                 <span className="text-neutral-500">Subtotal</span>
                 <b>{formatCOP(subtotal)}</b>
@@ -847,8 +908,9 @@ export default function StructuredPosPageV2() {
               <button
                 onClick={() => setCheckoutOpen(true)}
                 disabled={!canContinue}
-                className="mt-3 w-full rounded-2xl bg-[var(--brand-red)] px-4 py-3 font-black text-white disabled:bg-neutral-200 disabled:text-neutral-400"
+                className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#ef1d26,#d4131a)] px-4 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.22)] transition hover:brightness-105 disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
               >
+                <ShoppingCart className="h-[17px] w-[17px]" strokeWidth={2.2} />
                 Continuar pedido
               </button>
             </div>
