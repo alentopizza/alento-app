@@ -4,11 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createAlentoMapPinElement,
+  createDeliveryClusterPinElement,
   createDeliveryMapPinElement,
   createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
+import {
+  groupDeliveryLocations,
+  spreadDeliveryClusterPoint,
+} from "@/lib/deliveryMapClusters";
 
 const LOGO =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -410,7 +415,7 @@ export default function DriverHome({
   const driverMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
   const storeMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
   const acceptanceZoneCircleRef = useRef<GoogleCircle | null>(null);
-  const requestMarkerRefs = useRef<Map<number, GoogleAdvancedMarker>>(new Map());
+  const requestMarkerRefs = useRef<Map<string, GoogleAdvancedMarker>>(new Map());
   const knownRequestIdsRef = useRef<Set<number> | null>(null);
   const routeSummaryCacheRef = useRef<Map<string, DriverRouteSummary>>(new Map());
   const pendingRouteSummaryRef = useRef<Set<string>>(new Set());
@@ -430,6 +435,8 @@ export default function DriverHome({
   const [tab, setTab] = useState<DriverTab>("requests");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [expandedLocationCluster, setExpandedLocationCluster] =
+    useState<string | null>(null);
   const [busyAvailability, setBusyAvailability] = useState(false);
   const [busyLogout, setBusyLogout] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
@@ -1077,16 +1084,24 @@ export default function DriverHome({
           acceptanceZoneCircleRef.current = null;
         }
 
-        const visibleRequestIds = new Set<number>();
+        const visibleRequestMarkerKeys = new Set<string>();
+        const locationClusters = groupDeliveryLocations(
+          requestWithLocation,
+          (order) => ({
+            latitude: order.address!.latitude!,
+            longitude: order.address!.longitude!,
+          }),
+          (order) => order.id,
+        );
 
-        requestWithLocation.forEach((order) => {
-          const point = {
-            lat: order.address!.latitude!,
-            lng: order.address!.longitude!,
-          };
-          visibleRequestIds.add(order.id);
-
-          const existing = requestMarkerRefs.current.get(order.id);
+        const upsertOrderMarker = (
+          markerKey: string,
+          order: DriverRequest,
+          point: { lat: number; lng: number },
+          expanded = false,
+        ) => {
+          visibleRequestMarkerKeys.add(markerKey);
+          const existing = requestMarkerRefs.current.get(markerKey);
           const stopNumber = assignedStopNumbers.get(order.id);
           const ownAssignment = order.assignment?.own === true;
           const markerContent = stopNumber
@@ -1104,38 +1119,130 @@ export default function DriverHome({
           if (existing) {
             existing.position = point;
             existing.content = markerContent;
-          } else {
-            const marker = new AdvancedMarkerElement({
-              map: mapRef.current!,
-              position: point,
-              title: stopNumber
-                ? `Parada ${stopNumber} · ${order.code} · ${order.customerName}`
-                : `${order.code} · ${order.customerName}`,
-              content: markerContent,
-              zIndex: order.claimable ? 30 : order.assignment?.own ? 40 : 20,
-            });
-
-            marker.addListener("click", () => {
-              if (order.href) {
-                router.push(order.href);
-                return;
-              }
-
-              mapRef.current?.panTo(point);
-              mapRef.current?.setZoom(15);
-            });
-
-            requestMarkerRefs.current.set(order.id, marker);
+            return;
           }
 
-          bounds.extend(point);
+          const marker = new AdvancedMarkerElement({
+            map: mapRef.current!,
+            position: point,
+            title: stopNumber
+              ? `Parada ${stopNumber} · ${order.code} · ${order.customerName}`
+              : `${order.code} · ${order.customerName}`,
+            content: markerContent,
+            zIndex: expanded
+              ? 58
+              : order.claimable
+                ? 30
+                : ownAssignment
+                  ? 40
+                  : 20,
+          });
+
+          marker.addListener("click", () => {
+            if (order.href) {
+              router.push(order.href);
+              return;
+            }
+
+            mapRef.current?.panTo(point);
+            mapRef.current?.setZoom(15);
+          });
+
+          requestMarkerRefs.current.set(markerKey, marker);
+        };
+
+        locationClusters.forEach((cluster) => {
+          const centerPoint = {
+            lat: cluster.center.latitude,
+            lng: cluster.center.longitude,
+          };
+
+          bounds.extend(centerPoint);
           points += 1;
+
+          if (cluster.items.length === 1) {
+            upsertOrderMarker(
+              `order:${cluster.items[0].id}`,
+              cluster.items[0],
+              centerPoint,
+            );
+            return;
+          }
+
+          const clusterMarkerKey = `cluster:${cluster.key}`;
+          visibleRequestMarkerKeys.add(clusterMarkerKey);
+          const allAssigned = cluster.items.every(
+            (order) => order.assignment?.own === true,
+          );
+          const someAssigned = cluster.items.some(
+            (order) => order.assignment?.own === true,
+          );
+          const tone = allAssigned
+            ? "assigned"
+            : someAssigned
+              ? "mixed"
+              : "default";
+          const clusterContent = createDeliveryClusterPinElement(
+            cluster.items.length,
+            { tone },
+          );
+          const existingCluster =
+            requestMarkerRefs.current.get(clusterMarkerKey);
+
+          if (existingCluster) {
+            existingCluster.position = centerPoint;
+            existingCluster.content = clusterContent;
+          } else {
+            const clusterMarker = new AdvancedMarkerElement({
+              map: mapRef.current!,
+              position: centerPoint,
+              title: `${cluster.items.length} pedidos en esta ubicación · ${cluster.items
+                .map((order) => order.code)
+                .join(" · ")}`,
+              content: clusterContent,
+              zIndex: 52,
+            });
+
+            clusterMarker.addListener("click", () => {
+              setExpandedLocationCluster((current) =>
+                current === cluster.key ? null : cluster.key,
+              );
+              mapRef.current?.panTo(centerPoint);
+              if ((mapRef.current?.getZoom() ?? 0) < 18) {
+                mapRef.current?.setZoom(18);
+              }
+            });
+
+            requestMarkerRefs.current.set(
+              clusterMarkerKey,
+              clusterMarker,
+            );
+          }
+
+          if (expandedLocationCluster !== cluster.key) return;
+
+          cluster.items.forEach((order, index) => {
+            const spreadPoint = spreadDeliveryClusterPoint(
+              cluster.center,
+              index,
+              cluster.items.length,
+            );
+            upsertOrderMarker(
+              `cluster-order:${cluster.key}:${order.id}`,
+              order,
+              {
+                lat: spreadPoint.latitude,
+                lng: spreadPoint.longitude,
+              },
+              true,
+            );
+          });
         });
 
-        requestMarkerRefs.current.forEach((marker, orderId) => {
-          if (!visibleRequestIds.has(orderId)) {
+        requestMarkerRefs.current.forEach((marker, markerKey) => {
+          if (!visibleRequestMarkerKeys.has(markerKey)) {
             marker.map = null;
-            requestMarkerRefs.current.delete(orderId);
+            requestMarkerRefs.current.delete(markerKey);
           }
         });
 
@@ -1181,8 +1288,10 @@ export default function DriverHome({
     driver.driverLatitude,
     driver.driverLongitude,
     driver.name,
+    expandedLocationCluster,
     orders,
     ordersLoaded,
+    router,
     store,
     tab,
   ]);
@@ -1225,6 +1334,7 @@ export default function DriverHome({
     mapRef.current = null;
     initialMapFitDoneRef.current = false;
     lastFocusedRequestRef.current = null;
+    setExpandedLocationCluster(null);
   }, [tab]);
 
   const navItems: Array<{

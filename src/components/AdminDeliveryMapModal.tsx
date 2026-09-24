@@ -3,10 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createAlentoMapPinElement,
+  createDeliveryClusterPinElement,
   createDeliveryMapPinElement,
   createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
+import {
+  groupDeliveryLocations,
+  spreadDeliveryClusterPoint,
+} from "@/lib/deliveryMapClusters";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
 const ROUTE_COLORS = [
@@ -273,6 +278,8 @@ export default function AdminDeliveryMapModal({
   const [data, setData] = useState<MapPayload | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [expandedLocationCluster, setExpandedLocationCluster] =
+    useState<string | null>(null);
   const [selectedAssignDriverId, setSelectedAssignDriverId] =
     useState<number | null>(null);
   const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
@@ -483,17 +490,31 @@ export default function AdminDeliveryMapModal({
         });
       });
 
-      payload.orders.forEach((order) => {
-        if (!order.destination) return;
+      const ordersWithDestination = payload.orders.filter(
+        (
+          order,
+        ): order is MapOrder & {
+          destination: Point & { address: string };
+        } => order.destination != null,
+      );
+      const locationClusters = groupDeliveryLocations(
+        ordersWithDestination,
+        (order) => ({
+          latitude: order.destination.latitude,
+          longitude: order.destination.longitude,
+        }),
+        (order) => order.id,
+      );
 
-        const point = {
-          lat: order.destination.latitude,
-          lng: order.destination.longitude,
-        };
+      const drawOrderMarker = (
+        order: MapOrder & {
+          destination: Point & { address: string };
+        },
+        point: { lat: number; lng: number },
+        expanded = false,
+      ) => {
         const routeStop = routeStopByOrder.get(order.id);
-
         const assigned = order.driver != null;
-
         const marker = new AdvancedMarkerElement({
           map,
           position: point,
@@ -519,12 +540,14 @@ export default function AdminDeliveryMapModal({
               ),
           zIndex:
             selectedOrderId === order.id
-              ? 66
-              : routeStop
-                ? 38
-                : assigned
-                  ? 32
-                  : 25,
+              ? 72
+              : expanded
+                ? 64
+                : routeStop
+                  ? 38
+                  : assigned
+                    ? 32
+                    : 25,
         });
 
         marker.addListener?.("click", () => {
@@ -535,8 +558,74 @@ export default function AdminDeliveryMapModal({
         });
 
         markersRef.current.push(marker);
-        bounds.extend(point);
+      };
+
+      locationClusters.forEach((cluster) => {
+        const centerPoint = {
+          lat: cluster.center.latitude,
+          lng: cluster.center.longitude,
+        };
+
+        bounds.extend(centerPoint);
         points += 1;
+
+        if (cluster.items.length === 1) {
+          drawOrderMarker(cluster.items[0], centerPoint);
+          return;
+        }
+
+        const assignedCount = cluster.items.filter(
+          (order) => order.driver != null,
+        ).length;
+        const tone =
+          assignedCount === cluster.items.length
+            ? "assigned"
+            : assignedCount > 0
+              ? "mixed"
+              : "default";
+        const clusterMarker = new AdvancedMarkerElement({
+          map,
+          position: centerPoint,
+          title: `${cluster.items.length} pedidos en esta ubicación · ${cluster.items
+            .map((order) => order.code)
+            .join(" · ")}`,
+          content: createDeliveryClusterPinElement(cluster.items.length, {
+            tone,
+          }),
+          zIndex: 58,
+        });
+
+        clusterMarker.addListener?.("click", () => {
+          setExpandedLocationCluster((current) =>
+            current === cluster.key ? null : cluster.key,
+          );
+          setSelectedOrderId(null);
+          setSelectedDriverId(null);
+          setSelectedAssignDriverId(null);
+          setActionNotice(null);
+          map.setCenter(centerPoint);
+          map.setZoom(18);
+        });
+
+        markersRef.current.push(clusterMarker);
+
+        if (expandedLocationCluster !== cluster.key) return;
+
+        cluster.items.forEach((order, index) => {
+          const spreadPoint = spreadDeliveryClusterPoint(
+            cluster.center,
+            index,
+            cluster.items.length,
+          );
+          drawOrderMarker(
+            order,
+            {
+              lat: spreadPoint.latitude,
+              lng: spreadPoint.longitude,
+            },
+            true,
+          );
+        });
       });
 
       payload.drivers.forEach((driver) => {
@@ -604,7 +693,12 @@ export default function AdminDeliveryMapModal({
         }
       }
     },
-    [colorForLeg, selectedDriverId, selectedOrderId],
+    [
+      colorForLeg,
+      expandedLocationCluster,
+      selectedDriverId,
+      selectedOrderId,
+    ],
   );
 
   useEffect(() => {
@@ -631,6 +725,7 @@ export default function AdminDeliveryMapModal({
     setData(null);
     setSelectedDriverId(null);
     setSelectedOrderId(null);
+    setExpandedLocationCluster(null);
     setSelectedAssignDriverId(null);
     setAssigningOrderId(null);
     setActionNotice(null);

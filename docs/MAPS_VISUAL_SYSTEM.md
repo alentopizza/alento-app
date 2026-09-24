@@ -166,3 +166,19 @@ Reglas:
 - la coordenada ajustada vuelve a pasar por `/api/delivery/quote` para recalcular ruta, cobertura y tarifa;
 - la dirección formateada y el `placeId` se actualizan con el punto final;
 - esta interacción está pensada para direcciones donde Google ubica correctamente la calle o conjunto pero no la entrada exacta.
+
+
+## Pedidos superpuestos / misma ubicación
+
+Tanto la pantalla principal de **Repartidor** como el **Mapa De Entregas** administrativo agrupan pedidos cuyas coordenadas estén a aproximadamente **12 metros o menos**.
+
+Reglas visuales:
+
+- con un solo pedido se conserva el pin normal;
+- con 2 o más pedidos se muestra un pin agrupado con la cantidad total;
+- rojo = todos libres, esmeralda = todos asignados y tono mixto = combinación de asignados/libres;
+- al tocar el grupo, el mapa acerca la zona y despliega los pedidos alrededor del punto real;
+- los pines desplegados conservan código de pedido, color de asignación y badge de parada cuando corresponda;
+- tocar un pin individual mantiene su acción normal: abrir el pedido en Repartidor o abrir el detalle/asignación en Mapa De Entregas;
+- el desplazamiento radial es únicamente visual: **no modifica las coordenadas guardadas, la ruta, la tarifa ni el orden real de las paradas**;
+- el marcador central sigue representando que todos esos pedidos pertenecen a la misma ubicación o entrada.

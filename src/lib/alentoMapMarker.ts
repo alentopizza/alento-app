@@ -211,6 +211,92 @@ export function createDeliveryMapPinElement(
 
 
 /**
+ * Pin agrupado para 2+ domicilios ubicados en el mismo punto o a pocos metros.
+ * El número representa la cantidad de pedidos, no un consecutivo.
+ */
+export function createDeliveryClusterPinElement(
+  count: number,
+  options?: {
+    tone?: "default" | "assigned" | "mixed";
+  },
+) {
+  const safeCount = Math.max(2, Math.trunc(count));
+  const tone = options?.tone ?? "default";
+  const root = document.createElement("div");
+  applyBaseMarkerAccessibility(
+    root,
+    `${safeCount} pedidos en esta ubicación`,
+  );
+  root.dataset.alentoMapMarker = "delivery-cluster";
+  root.style.position = "relative";
+  root.style.width = "56px";
+  root.style.height = "62px";
+  root.style.filter =
+    tone === "assigned"
+      ? "drop-shadow(0 9px 14px rgba(5,150,105,.35))"
+      : tone === "mixed"
+        ? "drop-shadow(0 9px 14px rgba(17,17,17,.32))"
+        : "drop-shadow(0 9px 14px rgba(226,26,34,.32))";
+
+  const pin = document.createElement("div");
+  pin.style.position = "absolute";
+  pin.style.left = "6px";
+  pin.style.top = "2px";
+  pin.style.width = "44px";
+  pin.style.height = "44px";
+  pin.style.borderRadius = "50% 50% 50% 0";
+  pin.style.transform = "rotate(-45deg)";
+  pin.style.border = "3px solid #ffffff";
+  pin.style.background =
+    tone === "assigned"
+      ? "#059669"
+      : tone === "mixed"
+        ? "linear-gradient(135deg,#059669 0 49%,#111111 49% 51%,#e21a22 51% 100%)"
+        : "#e21a22";
+  pin.style.boxShadow = "0 7px 18px rgba(0,0,0,.20)";
+
+  const center = document.createElement("div");
+  center.style.position = "absolute";
+  center.style.left = "11px";
+  center.style.top = "7px";
+  center.style.zIndex = "2";
+  center.style.display = "flex";
+  center.style.width = "34px";
+  center.style.height = "34px";
+  center.style.alignItems = "center";
+  center.style.justifyContent = "center";
+  center.style.borderRadius = "999px";
+  center.style.background = "rgba(0,0,0,.16)";
+  center.style.color = "#ffffff";
+  center.style.fontSize = safeCount >= 10 ? "11px" : "13px";
+  center.style.fontWeight = "950";
+  center.style.letterSpacing = "-0.02em";
+  center.textContent = String(safeCount);
+
+  const badge = document.createElement("div");
+  badge.style.position = "absolute";
+  badge.style.left = "50%";
+  badge.style.bottom = "0";
+  badge.style.transform = "translateX(-50%)";
+  badge.style.whiteSpace = "nowrap";
+  badge.style.borderRadius = "999px";
+  badge.style.border = "1px solid rgba(17,17,17,.08)";
+  badge.style.background = "rgba(255,255,255,.97)";
+  badge.style.boxShadow = "0 5px 12px rgba(0,0,0,.16)";
+  badge.style.padding = "3px 7px";
+  badge.style.color = "#111111";
+  badge.style.fontSize = "7px";
+  badge.style.fontWeight = "900";
+  badge.style.lineHeight = "1";
+  badge.style.letterSpacing = ".06em";
+  badge.textContent = "PEDIDOS";
+
+  root.append(pin, center, badge);
+  return root;
+}
+
+
+/**
  * Variante oficial para una parada dentro de una ruta con múltiples entregas.
  * Conserva el número del pedido en el pin y agrega un badge pequeño con el
  * orden de parada (1, 2, 3...) usando el color asignado a la ruta.
