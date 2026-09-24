@@ -348,3 +348,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 - ✅ 2026-09-24 — POS → Recoger: flujo validado correctamente de punta a punta, incluyendo Cocina, READY, pago y COMPLETED con usuario CASHIER.
 - ✅ 2026-09-24 — POS → Domicilio: flujo validado correctamente de punta a punta, incluyendo tarifa automática, asignación y geocerca del repartidor, navegación y recálculo de ruta, seguimiento cliente hasta ARRIVED, contacto cliente↔repartidor, estado de pago visible para el repartidor y cierre de seguimiento al marcar DELIVERED.
 - ✅ 2026-09-24 — POS → Solo bebidas: pedido validado correctamente sin bloqueo de Cocina y con entrada directa a READY/Listo.
+- ✅ 2026-09-24 — WEB → Recoger: flujo validado correctamente de punta a punta, incluyendo creación WEB-XXXX, seguimiento de estados y cierre automático del seguimiento con aviso al pasar a COMPLETED/Finalizado.
