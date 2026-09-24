@@ -66,14 +66,7 @@ export default function DriverOrderActions({
   }, [initialStatus, initiallyAssigned]);
 
   useEffect(() => {
-    const canVerify = [
-      "CONFIRMED",
-      "PREPARING",
-      "PREPARED",
-      "READY",
-    ].includes(status);
-
-    if (!isAssigned || !canVerify) {
+    if (!isAssigned || status !== "READY") {
       setCheckedIds([]);
       return;
     }
@@ -128,9 +121,7 @@ export default function DriverOrderActions({
             ? "Desliza para entregar"
             : null;
 
-  const canVerifyProducts =
-    isAssigned &&
-    ["CONFIRMED", "PREPARING", "PREPARED", "READY"].includes(status);
+  const canVerifyProducts = isAssigned && status === "READY";
 
   const allChecked = useMemo(
     () => items.length > 0 && items.every((item) => checkedIds.includes(item.id)),

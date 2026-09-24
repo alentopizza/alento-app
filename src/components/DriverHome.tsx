@@ -348,6 +348,7 @@ export default function DriverHome({
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [busyAvailability, setBusyAvailability] = useState(false);
+  const [busyLogout, setBusyLogout] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -626,6 +627,39 @@ export default function DriverHome({
       );
     } finally {
       setBusyAvailability(false);
+    }
+  }
+
+  async function logout() {
+    if (busyLogout) return;
+
+    setBusyLogout(true);
+    setError("");
+
+    try {
+      stopGps(true);
+
+      await fetch("/api/repartidor/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: false }),
+      }).catch(() => undefined);
+
+      const response = await fetch("/api/auth/staff/logout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("No fue posible cerrar la sesión.");
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No fue posible cerrar la sesión.",
+      );
+      setBusyLogout(false);
     }
   }
 
@@ -1623,6 +1657,36 @@ export default function DriverHome({
               </b>
             </div>
           </div>
+
+          <button
+            type="button"
+            disabled={busyLogout}
+            onClick={() => void logout()}
+            className="mt-2.5 flex h-12 w-full items-center justify-between rounded-[16px] border border-[#e21a22]/20 bg-[#e21a22]/[0.07] px-3.5 text-left text-[#ff6b70] transition active:scale-[.99] disabled:opacity-50"
+          >
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#e21a22]/12">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10 17l5-5-5-5" />
+                  <path d="M15 12H3" />
+                  <path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" />
+                </svg>
+              </span>
+              <b className="text-[10px]">
+                {busyLogout ? "Cerrando sesión..." : "Cerrar sesión"}
+              </b>
+            </span>
+            <span className="text-white/20">›</span>
+          </button>
         </div>
       </aside>
     </main>
