@@ -58,6 +58,10 @@ export async function GET() {
         where: {
           fulfillmentType: "DELIVERY",
           status: { in: [...PROCESS_STATUSES] },
+          OR: [
+            { driverId: null },
+            { driverId: session.userId },
+          ],
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: {
