@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import StoreOriginMapPicker, {
   type StoreOriginLocation,
 } from "@/components/StoreOriginMapPicker";
+import DeliveryCoverageMap from "@/components/DeliveryCoverageMap";
 
 type DeliveryBand = {
   id: string;
@@ -519,6 +520,19 @@ export default function SettingsPage() {
                 </article>
               ))}
           </div>
+
+          {settings.store.latitude != null &&
+          settings.store.longitude != null ? (
+            <DeliveryCoverageMap
+              latitude={settings.store.latitude}
+              longitude={settings.store.longitude}
+              bands={settings.deliveryBands}
+            />
+          ) : (
+            <div className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-4 text-xs font-semibold text-amber-800">
+              Valida primero la ubicación oficial de Alentó para visualizar las zonas de cobertura en el mapa.
+            </div>
+          )}
 
           <div className="mt-4 rounded-2xl bg-[#111] px-4 py-4 text-white">
             <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-white/45">

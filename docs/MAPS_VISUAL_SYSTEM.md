@@ -105,3 +105,23 @@ Reglas:
 - la asignación manual del administrador permanece como override operativo.
 
 El mapa debe comunicar claramente `Dentro de zona` o `Fuera de zona` y mostrar la distancia actual a Alentó cuando se encuentre fuera.
+
+
+## Mapa visual de cobertura de domicilios
+
+La pantalla `Configuración → Domicilios → Cobertura y tarifas` incluye un mapa de referencia con círculos concéntricos alrededor de la ubicación oficial de Alentó.
+
+Reglas:
+
+- solo dibuja zonas activas;
+- cada zona usa un color distinto y una leyenda con nombre, rango y tarifa;
+- el radio visual de cada círculo corresponde a `maxMeters`;
+- el mapa se ajusta automáticamente al radio de la zona activa más amplia;
+- el pin central debe usar `createAlentoMapPinElement()`;
+- los círculos son una ayuda visual para administración y **no sustituyen la regla de cobro**;
+- POS, WEB y edición de pedidos siguen usando la distancia real de conducción calculada por Google Routes para determinar la banda y la tarifa;
+- por esta diferencia, un punto que visualmente esté dentro de un círculo puede pertenecer a otra banda al calcular la ruta real por calles.
+
+El componente canónico de esta vista es:
+
+`src/components/DeliveryCoverageMap.tsx`.
