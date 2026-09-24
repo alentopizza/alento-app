@@ -100,7 +100,9 @@ Acceso total al sistema interno.
 - Caja;
 - puede buscar, crear y actualizar el cliente necesario para cerrar una venta desde POS;
 - puede consultar cupones, elegibilidad de descuentos y cálculo de domicilio usados por POS;
+- puede editar pedidos activos desde Pedidos para ajustar cantidades, agregar productos y notas de cocina, sujeto a las mismas validaciones de saldo, estado y domicilio;
 - puede avanzar estados operativos desde Pedidos, incluyendo `PREPARED → READY` y cierre de pedidos cuando las demás reglas lo permiten;
+- cancelar y eliminar pedidos siguen dependiendo de los permisos sensibles individuales `CANCEL_ORDERS` y `DELETE_ORDERS`;
 - no recibe por ello acceso a la página CRM `/clientes`, que continúa reservada a ADMIN/POS.
 
 ### DRIVER

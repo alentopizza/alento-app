@@ -88,7 +88,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (body?.action !== "cancel") {
       const access = await currentStaffAccess();
       if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-      if (!access.isAdmin && !access.roles.includes("POS")) {
+      if (
+        !access.isAdmin &&
+        !access.roles.some((role) => ["POS", "CASHIER"].includes(role))
+      ) {
         return NextResponse.json({ error: "No tienes permiso para editar pedidos." }, { status: 403 });
       }
     }

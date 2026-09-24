@@ -344,6 +344,16 @@ Causa: el middleware permitía `PATCH /api/orders/[id]/status` a ADMIN, POS y KI
 
 Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado desde Pedidos. Las validaciones de flujo, saldo y modalidad continúan aplicándose en el endpoint.
 
+### 2026-09-24 — CASHIER al editar pedido
+
+Durante la regresión de Cocina del Paso 13, un usuario CASHIER podía abrir **Editar pedido**, pero al guardar cambios recibía `403 No tienes permiso para editar pedidos`.
+
+Causa: la página Pedidos y el middleware ya permitían al CASHIER consultar la orden, pero la autorización interna de `PATCH /api/orders/[id]` todavía limitaba la edición a ADMIN/POS. El endpoint legacy `/api/orders/[id]/edit` también conservaba la misma restricción en middleware.
+
+Corregido: CASHIER puede editar pedidos activos para ajustar cantidades, agregar productos y modificar notas de cocina. Cancelar/eliminar continúan protegidos por permisos sensibles separados, y las reglas de saldo, estado cerrado y tarifa automática de domicilio permanecen intactas.
+
+Regla de no regresión: **si CASHIER opera Pedidos, debe poder corregir el contenido de una orden activa sin recibir acceso implícito a cancelación o eliminación**.
+
 
 ## Resultados de validación manual
 
