@@ -432,22 +432,32 @@ export default function AdminDeliveryMapModal({
         };
         const routeStop = routeStopByOrder.get(order.id);
 
+        const assigned = order.driver != null;
+
         const marker = new AdvancedMarkerElement({
           map,
           position: point,
           title: routeStop
             ? `Parada ${routeStop.stopNumber} · ${order.code} · ${order.customerName} · ${routeStop.driverName}`
-            : `${order.code} · ${order.customerName} · ${formatStatus(
-                order.status,
-              )}`,
+            : assigned
+              ? `${order.code} · ${order.customerName} · Asignado a ${order.driver!.name} · ${formatStatus(
+                  order.status,
+                )}`
+              : `${order.code} · ${order.customerName} · Disponible · ${formatStatus(
+                  order.status,
+                )}`,
           content: routeStop
             ? createDeliveryRouteStopPinElement(
                 order.code,
                 routeStop.stopNumber,
                 routeStop.color,
+                { tone: "assigned" },
               )
-            : createDeliveryMapPinElement(order.code),
-          zIndex: routeStop ? 38 : 25,
+            : createDeliveryMapPinElement(
+                order.code,
+                assigned ? { tone: "assigned" } : undefined,
+              ),
+          zIndex: routeStop ? 38 : assigned ? 32 : 25,
         });
         markersRef.current.push(marker);
         bounds.extend(point);
@@ -623,6 +633,18 @@ export default function AdminDeliveryMapModal({
         <div className="relative min-h-0 flex-1 bg-[#ecebe7]">
           <div ref={mapHostRef} className="absolute inset-0" />
 
+          <div className="pointer-events-none absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111]/92 px-2.5 py-2 text-white shadow-lg backdrop-blur-xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 shadow-[0_0_8px_rgba(5,150,105,.45)]" />
+              Asignado
+            </span>
+            <span className="h-4 w-px bg-white/10" />
+            <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#e21a22] shadow-[0_0_8px_rgba(226,26,34,.40)]" />
+              Disponible
+            </span>
+          </div>
+
           {routeLegend.length > 0 && (
             <div className="absolute bottom-4 left-4 z-20 max-w-[calc(100%-2rem)] rounded-[18px] border border-white/15 bg-[#111]/94 p-2.5 text-white shadow-xl backdrop-blur-xl">
               <p className="px-1 text-[7px] font-black uppercase tracking-[.12em] text-white/35">
@@ -672,7 +694,7 @@ export default function AdminDeliveryMapModal({
           )}
 
           {error && (
-            <div className="absolute left-4 right-4 top-4 z-30 rounded-[16px] border border-red-200 bg-white/95 px-4 py-3 text-[11px] font-semibold text-red-700 shadow-xl backdrop-blur-md">
+            <div className="absolute left-4 right-4 top-16 z-30 rounded-[16px] border border-red-200 bg-white/95 px-4 py-3 text-[11px] font-semibold text-red-700 shadow-xl backdrop-blur-md">
               {error}
             </div>
           )}
