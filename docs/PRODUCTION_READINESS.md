@@ -326,3 +326,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 ## Resultados de validación manual
 
 - ✅ 2026-09-23 — POS → Local: flujo validado correctamente de punta a punta.
+- ✅ 2026-09-24 — POS → Recoger: flujo validado correctamente de punta a punta, incluyendo Cocina, READY, pago y COMPLETED con usuario CASHIER.
