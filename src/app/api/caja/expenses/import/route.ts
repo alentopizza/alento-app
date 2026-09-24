@@ -73,7 +73,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin();
-  if (auth.response || !auth.session) return auth.response;
+  if (auth.response) return auth.response;
+  if (!auth.session) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
 
   const fileResult = await readFile(request);
   if ("response" in fileResult) return fileResult.response;
