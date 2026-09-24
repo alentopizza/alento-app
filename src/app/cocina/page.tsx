@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pizza } from "lucide-react";
+import { CircleCheck, CookingPot, Pizza, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
@@ -406,30 +406,51 @@ export default function KitchenPage() {
   }
 
   return (
-    <main className="p-4 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1600px] space-y-4">
-        <section className="rounded-[28px] bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.24),transparent_28%),linear-gradient(135deg,#09090a,#181516)] px-6 py-5 text-white shadow-[0_20px_55px_rgba(20,16,14,.12)] md:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Producción</p>
-              <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Cocina</h1>
-              <p className="mt-0.5 text-sm text-white/65">Lo que entra, lo que se prepara y lo que ya puede salir.</p>
+    <main className="w-full p-3 md:p-5 xl:p-6">
+      <div className="w-full space-y-5">
+        <section className="relative min-h-[176px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
+
+          <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-6 py-6 md:flex-row md:items-center md:px-8 xl:px-10">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                  Producción
+                </p>
+              </div>
+              <h1 className="mt-2 text-[42px] font-black leading-none tracking-[-0.045em] md:text-[48px]">
+                Cocina
+              </h1>
+              <p className="mt-2 text-[14px] font-medium text-white/68 md:text-[15px]">
+                Lo que entra, lo que se prepara y lo que ya puede salir.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-3 self-end md:self-auto">
               <Link
                 href="/masa"
-                className="group inline-flex h-[58px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-[11px] font-black text-white shadow-inner transition hover:bg-white/[0.12] active:scale-[.98]"
+                className="group inline-flex h-[68px] items-center gap-3 rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] px-5 text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
                 title="Abrir preparaciones"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.28)] transition group-hover:scale-[1.03]">
-                  <Pizza className="h-[19px] w-[19px]" strokeWidth={2.35} />
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08]">
+                  <Pizza className="h-[22px] w-[22px]" strokeWidth={2.15} />
                 </span>
-                <span className="hidden sm:inline">Preparaciones</span>
+                <span className="hidden text-[13px] font-black sm:inline">
+                  Preparaciones
+                </span>
               </Link>
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Cocina</span>
-                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{kitchenOrders.length}</b>
+              <div className="flex h-[68px] min-w-[92px] flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
+                  Cocina
+                </span>
+                <b className="mt-1 text-[30px] font-black leading-none tabular-nums text-white">
+                  {kitchenOrders.length}
+                </b>
               </div>
             </div>
           </div>
@@ -440,10 +461,29 @@ export default function KitchenPage() {
         {loading ? (
           <div className="rounded-3xl bg-white p-8 text-sm text-neutral-500 shadow-sm ring-1 ring-neutral-200">Cargando pedidos...</div>
         ) : kitchenOrders.length === 0 ? (
-          <div className="rounded-3xl bg-white p-12 text-center shadow-sm ring-1 ring-neutral-200">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100 text-2xl">✓</div>
-            <h2 className="mt-4 text-xl font-black">Cocina al día</h2>
-            <p className="mt-1 text-sm text-neutral-500">No hay pedidos pendientes de preparación.</p>
+          <div className="flex min-h-[560px] w-full items-center justify-center rounded-[28px] border border-neutral-200/90 bg-[radial-gradient(circle_at_50%_42%,rgba(236,253,245,.72),transparent_22%),linear-gradient(180deg,#ffffff,#fdfdfd)] px-6 py-12 text-center shadow-[0_12px_32px_rgba(28,23,20,.045)]">
+            <div className="max-w-xl">
+              <div className="relative mx-auto h-[150px] w-[190px]">
+                <div className="absolute left-1/2 top-[54px] h-[72px] w-[124px] -translate-x-1/2 rounded-t-[70px] border border-neutral-200 bg-[linear-gradient(180deg,#ffffff,#eef0f4)] shadow-[0_14px_22px_rgba(17,24,39,.10)]">
+                  <span className="absolute left-1/2 top-[-18px] h-7 w-7 -translate-x-1/2 rounded-full border border-neutral-200 bg-[linear-gradient(180deg,#fff,#e7e9ee)] shadow-sm" />
+                  <CookingPot className="absolute left-1/2 top-[22px] h-8 w-8 -translate-x-1/2 text-neutral-300" strokeWidth={1.3} />
+                </div>
+                <div className="absolute bottom-[18px] left-1/2 h-[10px] w-[146px] -translate-x-1/2 rounded-full bg-neutral-200/80 blur-[1px]" />
+                <div className="absolute right-[22px] top-[66px] flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_12px_26px_rgba(16,185,129,.30)]">
+                  <CircleCheck className="h-8 w-8" strokeWidth={2.5} />
+                </div>
+                <Sparkles className="absolute left-[12px] top-[42px] h-6 w-6 text-emerald-200" />
+                <Sparkles className="absolute right-[8px] top-[25px] h-5 w-5 text-emerald-300" />
+              </div>
+
+              <h2 className="mt-2 text-[32px] font-black tracking-[-0.035em] text-neutral-950">
+                Cocina al día
+              </h2>
+              <p className="mt-2 text-[15px] font-medium text-slate-500">
+                No hay pedidos pendientes de preparación.
+              </p>
+              <div className="mx-auto mt-6 h-1.5 w-16 rounded-full bg-emerald-400/70" />
+            </div>
           </div>
         ) : (
           <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
