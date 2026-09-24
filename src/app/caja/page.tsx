@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
+  Banknote,
   CircleDollarSign,
   Plus,
   ReceiptText,
@@ -18,6 +19,7 @@ import {
   CASH_EXPENSE_CATEGORIES,
   cashExpenseSubcategories,
 } from "@/lib/cashExpenseCatalog";
+import { CASH_INCOME_CATEGORIES } from "@/lib/cashIncomeCatalog";
 
 type MethodSummary = {
   method: string;
@@ -26,6 +28,12 @@ type MethodSummary = {
 };
 
 type ExpenseCategorySummary = {
+  category: string;
+  amount: number;
+  count: number;
+};
+
+type IncomeCategorySummary = {
   category: string;
   amount: number;
   count: number;
@@ -48,6 +56,16 @@ type PaymentRow = {
   };
 };
 
+type IncomeRow = {
+  id: number;
+  category: string;
+  note: string | null;
+  amount: number;
+  occurredAt: string;
+  source: string;
+  createdByName: string;
+};
+
 type ExpenseRow = {
   id: number;
   category: string;
@@ -66,13 +84,38 @@ type Summary = {
   orderCount: number;
   receivedTotal: number;
   paymentCount: number;
+  otherIncomeTotal: number;
+  otherIncomeCount: number;
+  totalInflow: number;
   expensesTotal: number;
   expenseCount: number;
   netTotal: number;
   methods: MethodSummary[];
+  incomeCategories: IncomeCategorySummary[];
   expenseCategories: ExpenseCategorySummary[];
   payments: PaymentRow[];
+  otherIncomes: IncomeRow[];
   expenses: ExpenseRow[];
+};
+
+type IncomeImportPreview = {
+  summary: {
+    totalRows: number;
+    toImport: number;
+    issues: number;
+    totalAmount: number;
+    categoryCount: number;
+    canImport: boolean;
+  };
+  preview: Array<{
+    rowNumber: number;
+    occurredAt: string;
+    category: string;
+    note: string;
+    amount: number;
+  }>;
+  issues: Array<{ rowNumber: number; reason: string }>;
+  blockers: string[];
 };
 
 type ImportPreview = {
@@ -96,7 +139,7 @@ type ImportPreview = {
   blockers: string[];
 };
 
-type Tab = "SUMMARY" | "EXPENSES";
+type Tab = "SUMMARY" | "INCOMES" | "EXPENSES";
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -169,8 +212,22 @@ export default function CashPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("ALL");
+  const [incomeQuery, setIncomeQuery] = useState("");
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
   const [expenseQuery, setExpenseQuery] = useState("");
+
+  const [incomeOpen, setIncomeOpen] = useState(false);
+  const [incomeCategory, setIncomeCategory] = useState("Otros");
+  const [incomeNote, setIncomeNote] = useState("");
+  const [incomeAmount, setIncomeAmount] = useState("");
+  const [incomeDate, setIncomeDate] = useState(today);
+  const [incomeTime, setIncomeTime] = useState(localTimeInput());
+  const [incomeSaving, setIncomeSaving] = useState(false);
+  const [incomeMessage, setIncomeMessage] = useState("");
+
+  const [incomeDeleteTarget, setIncomeDeleteTarget] = useState<IncomeRow | null>(null);
+  const [incomeDeleteBusy, setIncomeDeleteBusy] = useState(false);
 
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [expenseCategory, setExpenseCategory] = useState("Insumos");
@@ -187,6 +244,12 @@ export default function CashPage() {
 
   const [importOpen, setImportOpen] = useState(false);
   const [importCompleted, setImportCompleted] = useState(false);
+  const [incomeImportOpen, setIncomeImportOpen] = useState(false);
+  const [incomeImportCompleted, setIncomeImportCompleted] = useState(false);
+  const [incomeImportFile, setIncomeImportFile] = useState<File | null>(null);
+  const [incomeImportPreview, setIncomeImportPreview] = useState<IncomeImportPreview | null>(null);
+  const [incomeImportBusy, setIncomeImportBusy] = useState(false);
+  const [incomeImportMessage, setIncomeImportMessage] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
@@ -241,11 +304,20 @@ export default function CashPage() {
 
     async function loadImportStatus() {
       try {
-        const response = await fetch("/api/caja/expenses/import", {
-          cache: "no-store",
-        });
-        const data = await response.json();
-        if (response.ok) setImportCompleted(Boolean(data.completed));
+        const [expensesResponse, incomesResponse] = await Promise.all([
+          fetch("/api/caja/expenses/import", { cache: "no-store" }),
+          fetch("/api/caja/incomes/import", { cache: "no-store" }),
+        ]);
+        const [expensesData, incomesData] = await Promise.all([
+          expensesResponse.json(),
+          incomesResponse.json(),
+        ]);
+        if (expensesResponse.ok) {
+          setImportCompleted(Boolean(expensesData.completed));
+        }
+        if (incomesResponse.ok) {
+          setIncomeImportCompleted(Boolean(incomesData.completed));
+        }
       } catch {}
     }
 
@@ -260,6 +332,32 @@ export default function CashPage() {
       ),
     [summary],
   );
+
+  const maxIncomeCategory = useMemo(
+    () =>
+      Math.max(
+        1,
+        ...(summary?.incomeCategories.map((item) => item.amount) ?? [1]),
+      ),
+    [summary],
+  );
+
+  const filteredIncomes = useMemo(() => {
+    const query = incomeQuery.trim().toLowerCase();
+    return (summary?.otherIncomes ?? []).filter((income) => {
+      if (
+        incomeCategoryFilter !== "ALL" &&
+        income.category !== incomeCategoryFilter
+      ) {
+        return false;
+      }
+      if (!query) return true;
+
+      return [income.category, income.note, income.createdByName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
+  }, [summary, incomeCategoryFilter, incomeQuery]);
 
   const maxExpenseCategory = useMemo(
     () =>
@@ -301,6 +399,155 @@ export default function CashPage() {
   function setMonthRange() {
     setStartDate(firstDayOfMonth());
     setEndDate(localDateInput());
+  }
+
+  function openIncome() {
+    setIncomeCategory("Otros");
+    setIncomeNote("");
+    setIncomeAmount("");
+    setIncomeDate(localDateInput());
+    setIncomeTime(localTimeInput());
+    setIncomeMessage("");
+    setIncomeOpen(true);
+  }
+
+  async function saveIncome() {
+    if (incomeSaving) return;
+
+    setIncomeSaving(true);
+    setIncomeMessage("");
+    try {
+      const occurredAt = new Date(
+        `${incomeDate}T${incomeTime || "12:00"}:00-05:00`,
+      ).toISOString();
+
+      const response = await fetch("/api/caja/incomes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: incomeCategory,
+          note: incomeNote,
+          amount: Number(incomeAmount.replace(/\D/g, "")),
+          occurredAt,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible registrar el ingreso.");
+      }
+
+      setIncomeOpen(false);
+      setTab("INCOMES");
+      await load();
+    } catch (saveError) {
+      setIncomeMessage(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible registrar el ingreso.",
+      );
+    } finally {
+      setIncomeSaving(false);
+    }
+  }
+
+  async function deleteIncome() {
+    if (!incomeDeleteTarget || incomeDeleteBusy) return;
+
+    setIncomeDeleteBusy(true);
+    try {
+      const response = await fetch(
+        `/api/caja/incomes/${incomeDeleteTarget.id}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible eliminar el ingreso.");
+      }
+      setIncomeDeleteTarget(null);
+      await load();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "No fue posible eliminar el ingreso.",
+      );
+    } finally {
+      setIncomeDeleteBusy(false);
+    }
+  }
+
+  async function analyzeIncomeImport(file: File) {
+    setIncomeImportBusy(true);
+    setIncomeImportMessage("");
+    setIncomeImportPreview(null);
+
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      body.set("action", "preview");
+      const response = await fetch("/api/caja/incomes/import", {
+        method: "POST",
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible analizar los ingresos.",
+        );
+      }
+      setIncomeImportPreview(data);
+    } catch (importError) {
+      setIncomeImportMessage(
+        importError instanceof Error
+          ? importError.message
+          : "No fue posible analizar los ingresos.",
+      );
+    } finally {
+      setIncomeImportBusy(false);
+    }
+  }
+
+  async function confirmIncomeImport() {
+    if (
+      !incomeImportFile ||
+      !incomeImportPreview?.summary.canImport ||
+      incomeImportBusy
+    ) {
+      return;
+    }
+
+    setIncomeImportBusy(true);
+    setIncomeImportMessage("");
+    try {
+      const body = new FormData();
+      body.set("file", incomeImportFile);
+      body.set("action", "import");
+      const response = await fetch("/api/caja/incomes/import", {
+        method: "POST",
+        body,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible importar los ingresos.",
+        );
+      }
+
+      setIncomeImportCompleted(true);
+      setIncomeImportOpen(false);
+      setIncomeImportFile(null);
+      setIncomeImportPreview(null);
+      setTab("INCOMES");
+      await load();
+    } catch (importError) {
+      setIncomeImportMessage(
+        importError instanceof Error
+          ? importError.message
+          : "No fue posible importar los ingresos.",
+      );
+    } finally {
+      setIncomeImportBusy(false);
+    }
   }
 
   function openExpense() {
