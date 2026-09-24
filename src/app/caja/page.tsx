@@ -1350,6 +1350,306 @@ export default function CashPage() {
         ) : null}
       </div>
 
+      {incomeOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
+          <div className="w-full max-w-xl overflow-hidden rounded-[26px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
+            <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-400">
+                Caja · Otros ingresos
+              </p>
+              <h2 className="mt-1 text-2xl font-black">Registrar ingreso</h2>
+              <p className="mt-1 text-[11px] text-white/50">
+                Registra dinero que entró y no corresponde a un pago de pedido.
+              </p>
+            </header>
+
+            <div className="space-y-4 p-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                    Fecha
+                  </label>
+                  <input
+                    type="date"
+                    value={incomeDate}
+                    onChange={(event) => setIncomeDate(event.target.value)}
+                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                    Hora
+                  </label>
+                  <input
+                    type="time"
+                    value={incomeTime}
+                    onChange={(event) => setIncomeTime(event.target.value)}
+                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  Tipo de ingreso
+                </label>
+                <input
+                  list="cash-income-categories"
+                  value={incomeCategory}
+                  onChange={(event) => setIncomeCategory(event.target.value)}
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                  placeholder="Ej. Rappi, préstamo, ajuste..."
+                />
+                <datalist id="cash-income-categories">
+                  {CASH_INCOME_CATEGORIES.map((category) => (
+                    <option key={category} value={category} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  Observación
+                </label>
+                <input
+                  value={incomeNote}
+                  onChange={(event) => setIncomeNote(event.target.value)}
+                  placeholder="Ej. Préstamo para caja, retorno de comisión..."
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  Monto
+                </label>
+                <input
+                  inputMode="numeric"
+                  value={incomeAmount}
+                  onChange={(event) =>
+                    setIncomeAmount(event.target.value.replace(/\D/g, ""))
+                  }
+                  placeholder="0"
+                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-lg font-black outline-none"
+                />
+                {incomeAmount && (
+                  <p className="mt-1 text-xs font-bold text-emerald-700">
+                    {formatCOP(Number(incomeAmount))}
+                  </p>
+                )}
+              </div>
+
+              {incomeMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+                  {incomeMessage}
+                </div>
+              )}
+            </div>
+
+            <footer className="grid grid-cols-2 gap-2 border-t border-neutral-200 bg-white p-4">
+              <button
+                type="button"
+                onClick={() => !incomeSaving && setIncomeOpen(false)}
+                disabled={incomeSaving}
+                className="h-11 rounded-xl border border-neutral-200 font-bold text-neutral-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveIncome()}
+                disabled={incomeSaving}
+                className="h-11 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50"
+              >
+                {incomeSaving ? "Guardando..." : "Guardar ingreso"}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {incomeDeleteTarget && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
+          <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-2xl">
+            <div className="bg-[#111113] px-5 py-4 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-400">
+                Confirmar
+              </p>
+              <h3 className="mt-1 text-xl font-black">Eliminar ingreso</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-neutral-600">
+                ¿Eliminar <b>{incomeDeleteTarget.category}</b> por{" "}
+                <b>{formatCOP(incomeDeleteTarget.amount)}</b>?
+              </p>
+              <p className="mt-2 text-[11px] text-neutral-400">
+                Se descontará inmediatamente de otros ingresos y del flujo neto.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t p-4">
+              <button
+                type="button"
+                disabled={incomeDeleteBusy}
+                onClick={() => setIncomeDeleteTarget(null)}
+                className="h-11 rounded-xl border border-neutral-200 font-bold"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={incomeDeleteBusy}
+                onClick={() => void deleteIncome()}
+                className="h-11 rounded-xl bg-red-600 font-black text-white"
+              >
+                {incomeDeleteBusy ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {incomeImportOpen && (
+        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
+          <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
+            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-400">
+                Migración única
+              </p>
+              <h2 className="mt-1 text-2xl font-black">
+                Importar otros ingresos
+              </h2>
+              <p className="mt-1 text-[11px] text-white/50">
+                Carga el registro histórico de entradas que no pertenecen a pedidos.
+              </p>
+            </header>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5">
+              <label className="block cursor-pointer rounded-[20px] border border-dashed border-neutral-300 bg-white p-6 text-center">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setIncomeImportFile(file);
+                    setIncomeImportPreview(null);
+                    setIncomeImportMessage("");
+                    if (file) void analyzeIncomeImport(file);
+                  }}
+                />
+                <Upload className="mx-auto h-6 w-6 text-neutral-400" />
+                <b className="mt-2 block text-sm">
+                  {incomeImportFile?.name || "Seleccionar AP_Registros_Ingresos.csv"}
+                </b>
+                <span className="mt-1 block text-[10px] text-neutral-400">
+                  Fecha · Tipo De Ingreso · Observación · Monto
+                </span>
+              </label>
+
+              {incomeImportBusy && (
+                <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs font-bold text-neutral-600">
+                  Analizando archivo...
+                </div>
+              )}
+
+              {incomeImportMessage && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+                  {incomeImportMessage}
+                </div>
+              )}
+
+              {incomeImportPreview && (
+                <>
+                  <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                      <span className="text-[8px] font-black uppercase text-neutral-400">Registros</span>
+                      <b className="mt-1 block text-lg">{incomeImportPreview.summary.toImport}</b>
+                    </div>
+                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                      <span className="text-[8px] font-black uppercase text-neutral-400">Total ingresos</span>
+                      <b className="mt-1 block text-lg text-emerald-700">{formatCOP(incomeImportPreview.summary.totalAmount)}</b>
+                    </div>
+                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                      <span className="text-[8px] font-black uppercase text-neutral-400">Tipos</span>
+                      <b className="mt-1 block text-lg">{incomeImportPreview.summary.categoryCount}</b>
+                    </div>
+                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
+                      <span className="text-[8px] font-black uppercase text-neutral-400">Errores</span>
+                      <b className={`mt-1 block text-lg ${incomeImportPreview.summary.issues ? "text-red-600" : "text-emerald-600"}`}>
+                        {incomeImportPreview.summary.issues}
+                      </b>
+                    </div>
+                  </div>
+
+                  {incomeImportPreview.blockers.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] font-bold text-red-700">
+                      {incomeImportPreview.blockers.map((blocker) => (
+                        <p key={blocker}>• {blocker}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4 overflow-hidden rounded-[18px] border border-neutral-200 bg-white">
+                    <div className="border-b bg-[#faf9f7] px-4 py-3 text-[10px] font-black uppercase text-neutral-500">
+                      Vista previa
+                    </div>
+                    <div className="divide-y divide-neutral-100">
+                      {incomeImportPreview.preview.slice(0, 8).map((income) => (
+                        <div
+                          key={income.rowNumber}
+                          className="grid gap-2 px-4 py-3 sm:grid-cols-[120px_1fr_auto] sm:items-center"
+                        >
+                          <div>
+                            <b className="text-[11px]">{income.category}</b>
+                            <p className="text-[9px] text-neutral-400">
+                              {dateTimeLabel(income.occurredAt)}
+                            </p>
+                          </div>
+                          <p className="truncate text-[11px] font-bold text-neutral-700">
+                            {income.note || "Sin observación"}
+                          </p>
+                          <b className="text-[11px] text-emerald-700">
+                            {formatCOP(income.amount)}
+                          </b>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <footer className="flex shrink-0 items-center justify-between gap-3 border-t bg-white p-4">
+              <p className="text-[9px] text-neutral-400">
+                La importación se bloquea después de ejecutarse correctamente.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={incomeImportBusy}
+                  onClick={() => setIncomeImportOpen(false)}
+                  className="h-10 rounded-xl border border-neutral-200 px-4 text-xs font-bold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={incomeImportBusy || !incomeImportPreview?.summary.canImport}
+                  onClick={() => void confirmIncomeImport()}
+                  className="h-10 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white disabled:bg-neutral-300"
+                >
+                  {incomeImportBusy
+                    ? "Importando..."
+                    : incomeImportPreview
+                      ? `Importar ${incomeImportPreview.summary.toImport}`
+                      : "Importar"}
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
       {expenseOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-xl overflow-hidden rounded-[26px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
