@@ -1,6 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Ban,
+  BarChart3,
+  Clock3,
+  Download,
+  MapPin,
+  RefreshCcw,
+  Search,
+  ShoppingCart,
+  Star,
+  Tag,
+  Upload,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { orderCode } from "@/lib/orderCode";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
@@ -198,19 +213,90 @@ function customerFilterTone(status: CustomerStatusFilter, active: boolean) {
     : { button: "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50", count: "border border-neutral-200 bg-neutral-100 text-neutral-700" };
 }
 
+function customerCardVisual(status: CustomerStatusFilter) {
+  if (status === "Nuevo") {
+    return {
+      top: "bg-sky-500",
+      avatar: "border-sky-100 bg-sky-50 text-sky-700",
+    };
+  }
+  if (status === "Activo") {
+    return {
+      top: "bg-amber-500",
+      avatar: "border-amber-100 bg-amber-50 text-amber-700",
+    };
+  }
+  if (status === "Frecuente") {
+    return {
+      top: "bg-emerald-500",
+      avatar: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    };
+  }
+  if (status === "Por recuperar") {
+    return {
+      top: "bg-rose-500",
+      avatar: "border-rose-100 bg-rose-50 text-rose-700",
+    };
+  }
+  if (status === "Sin compras") {
+    return {
+      top: "bg-violet-500",
+      avatar: "border-violet-100 bg-violet-50 text-violet-700",
+    };
+  }
+  return {
+    top: "bg-neutral-950",
+    avatar: "border-neutral-200 bg-neutral-100 text-neutral-800",
+  };
+}
+
+function CustomerFilterIcon({
+  status,
+  className = "h-[17px] w-[17px]",
+}: {
+  status: CustomerStatusFilter;
+  className?: string;
+}) {
+  if (status === "Nuevo") return <UserPlus className={className} strokeWidth={2.1} />;
+  if (status === "Activo") return <Clock3 className={className} strokeWidth={2.1} />;
+  if (status === "Frecuente") return <Star className={className} strokeWidth={2.1} />;
+  if (status === "Por recuperar") return <RefreshCcw className={className} strokeWidth={2.1} />;
+  if (status === "Sin compras") return <Ban className={className} strokeWidth={2.1} />;
+  return <Users className={className} strokeWidth={2.1} />;
+}
+
 function Metric({
   label,
   value,
   hint,
+  icon,
 }: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon?: "purchases" | "ticket" | "spent";
+}) {
   label: string;
   value: string;
   hint?: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 [font-synthesis:none]">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.085em] text-neutral-400">{label}</span>
-      <b className="mt-1.5 block truncate text-[17px] font-bold leading-none tracking-[-0.015em] text-neutral-950">{value}</b>
+    <div className="min-w-0 rounded-[14px] border border-neutral-100 bg-[#f8f9fb] px-3.5 py-3 [font-synthesis:none]">
+      <div className="flex items-center gap-2 text-neutral-400">
+        {icon === "purchases" ? (
+          <ShoppingCart className="h-3.5 w-3.5" strokeWidth={1.9} />
+        ) : icon === "ticket" ? (
+          <Tag className="h-3.5 w-3.5" strokeWidth={1.9} />
+        ) : icon === "spent" ? (
+          <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.9} />
+        ) : null}
+        <span className="block truncate text-[9px] font-bold uppercase tracking-[0.055em] text-neutral-400">
+          {label}
+        </span>
+      </div>
+      <b className="mt-2 block truncate text-[16px] font-black leading-none tracking-[-0.015em] text-neutral-950">
+        {value}
+      </b>
       {hint && <span className="mt-1.5 block truncate text-[10px] text-neutral-400">{hint}</span>}
     </div>
   );
@@ -721,53 +807,73 @@ export default function CustomersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f4f2] p-4 lg:p-6">
-      <div className="mx-auto max-w-[1540px] space-y-4">
-        <section className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Relación con clientes</p>
-              <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Clientes</h1>
-              <p className="mt-1 text-sm text-white/65">Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.</p>
+    <main className="min-h-screen w-full bg-[#f4f4f2] p-3 md:p-5 xl:p-6">
+      <div className="w-full space-y-5">
+        <section className="relative min-h-[150px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_40%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_68%_110%,rgba(132,12,16,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <Users className="absolute right-[30%] top-[-28px] h-48 w-48 rotate-[-10deg] text-white/[0.035]" strokeWidth={1.15} />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-65 [background:repeating-linear-gradient(120deg,transparent_0_54px,rgba(255,255,255,.022)_55px_56px)]" />
+
+          <div className="relative flex min-h-[150px] flex-col justify-between gap-5 px-6 py-5 md:flex-row md:items-center md:px-8 xl:px-10">
+            <div className="max-w-3xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                  Relación con clientes
+                </p>
+              </div>
+              <h1 className="mt-2 text-[38px] font-black leading-none tracking-[-0.045em] md:text-[44px]">
+                Clientes
+              </h1>
+              <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
+                Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
               <button
                 type="button"
                 onClick={() => setImportOpen(true)}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-3.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white transition hover:bg-white/[0.13]"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/14 bg-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.04em] text-white transition hover:bg-white/[0.13]"
               >
+                <Upload className="h-4 w-4" strokeWidth={2.2} />
                 Importar
               </button>
               <button
                 type="button"
                 onClick={() => void exportCustomers()}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08] px-3.5 text-[10px] font-bold uppercase tracking-[0.05em] text-white transition hover:bg-white/[0.13]"
+                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/14 bg-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.04em] text-white transition hover:bg-white/[0.13]"
               >
+                <Download className="h-4 w-4" strokeWidth={2.2} />
                 Exportar
               </button>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Clientes</span>
-                <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{customers.length}</b>
+              <div className="flex h-[66px] min-w-[118px] items-center gap-3 rounded-[18px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                <Users className="h-6 w-6 text-white/80" strokeWidth={2} />
+                <div>
+                  <span className="block text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
+                    Clientes
+                  </span>
+                  <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">
+                    {customers.length}
+                  </b>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+        <section className="rounded-[20px] border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(28,23,20,.045)]">
           <div className="relative">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true">
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="m16 16 4 4" />
-            </svg>
+            <Search className="absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-neutral-400" strokeWidth={2} />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 text-sm outline-none transition focus:border-neutral-400 focus:bg-white"
+              className="h-12 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-12 pr-4 text-sm font-medium outline-none transition focus:border-neutral-400 focus:bg-white"
               placeholder="Buscar por nombre, teléfono, correo, dirección o nota"
             />
           </div>
 
-          <div className="mt-2 grid grid-cols-2 gap-1.5 pb-0.5 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="mt-2.5 grid grid-cols-2 gap-2 pb-0.5 sm:grid-cols-3 xl:grid-cols-6">
             {([
               ["ALL", "Todos", customers.length],
               ["Nuevo", "Nuevo", statusCounts.Nuevo],
@@ -783,10 +889,13 @@ export default function CustomersPage() {
                   key={value}
                   type="button"
                   onClick={() => setStatusFilter(value)}
-                  className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.025em] transition ${tone.button}`}
+                  className={`flex min-h-12 w-full min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.025em] transition ${tone.button}`}
                 >
-                  <span>{label}</span>
-                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-[3px] text-[11px] font-bold leading-none tabular-nums ${tone.count}`}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CustomerFilterIcon status={value} />
+                    <span className="truncate">{label}</span>
+                  </span>
+                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[11px] font-black leading-none tabular-nums ${tone.count}`}>
                     {count}
                   </span>
                 </button>
@@ -855,10 +964,11 @@ export default function CustomersPage() {
                       else void openCustomer(customer);
                     }
                   }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_10px_26px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)] ${selectedCustomerIds.includes(customer.id) ? "border-red-300 ring-2 ring-red-100" : "border-neutral-200 hover:border-neutral-300"} ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-[20px] border bg-white shadow-[0_10px_28px_rgba(28,23,20,.055)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(28,23,20,.09)] ${selectedCustomerIds.includes(customer.id) ? "border-red-300 ring-2 ring-red-100" : "border-neutral-200 hover:border-neutral-300"} ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
                 >
-                  <div className="p-5 [font-synthesis:none]">
-                    <div className={`relative w-full rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4 shadow-[0_6px_18px_rgba(28,23,20,.035)] ${bulkMode ? "pr-44" : "pr-36"}`}>
+                  <div className={`absolute inset-x-0 top-0 h-1 ${customerCardVisual(signal.label as CustomerStatusFilter).top}`} />
+                  <div className="p-5 pt-6 [font-synthesis:none]">
+                    <div className={`relative w-full ${bulkMode ? "pr-40" : "pr-32"}`}>
                       <div className="absolute right-3 top-3 flex items-center gap-1.5">
                         <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>
                           {signal.label}
@@ -871,27 +981,29 @@ export default function CustomersPage() {
                       </div>
 
                       <div className="flex min-w-0 items-center gap-3.5">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-[19px] font-bold text-neutral-900 shadow-sm">
+                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border text-[20px] font-black shadow-sm ${customerCardVisual(signal.label as CustomerStatusFilter).avatar}`}>
                           {customer.name.trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h2 className="truncate text-[19px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
                           <div className="mt-2 grid gap-1">
-                            <p className="relative truncate pl-3 text-[13px] font-medium leading-5 text-neutral-500 before:absolute before:left-0 before:top-[8px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
-                              {customer.countryCode} {customer.phone || "Sin teléfono"}
+                            <p className="flex min-w-0 items-center gap-2 truncate text-[12px] font-medium leading-5 text-neutral-500">
+                              <span className="text-[11px]">⌕</span>
+                              <span className="truncate">{customer.countryCode} {customer.phone || "Sin teléfono"}</span>
                             </p>
-                            <p className="relative truncate pl-3 text-[13px] font-medium leading-5 text-neutral-500 before:absolute before:left-0 before:top-[8px] before:h-1 before:w-1 before:rounded-full before:bg-neutral-400">
-                              {customer.addresses?.[0]?.address || "Sin dirección registrada"}
+                            <p className="flex min-w-0 items-center gap-2 truncate text-[12px] font-medium leading-5 text-neutral-500">
+                              <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                              <span className="truncate">{customer.addresses?.[0]?.address || "Sin dirección registrada"}</span>
                             </p>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-3 gap-2.5">
-                      <Metric label="Compras" value={String(customer.metrics.purchaseCount)} />
-                      <Metric label="Ticket promedio" value={money(customer.metrics.averageTicket)} />
-                      <Metric label="Total comprado" value={money(customer.metrics.totalSpent)} />
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <Metric label="Compras" value={String(customer.metrics.purchaseCount)} icon="purchases" />
+                      <Metric label="Ticket promedio" value={money(customer.metrics.averageTicket)} icon="ticket" />
+                      <Metric label="Total comprado" value={money(customer.metrics.totalSpent)} icon="spent" />
                     </div>
                   </div>
                 </article>
