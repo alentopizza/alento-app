@@ -47,8 +47,11 @@ Al abrirlo se muestra un modal amplio de operación en vivo con:
 - todos los domicilios activos con `createDeliveryMapPinElement(orderCode)`, por lo que cada pin muestra el consecutivo del pedido;
 - repartidores activos con ubicación disponible usando `createDriverMapPinElement()`;
 - rutas únicamente para pedidos `OUT_FOR_DELIVERY`;
+- si un mismo repartidor lleva varios pedidos en camino, el backend ordena las paradas por proximidad: primero el domicilio más cercano a su ubicación actual y luego el siguiente más cercano desde la parada anterior;
+- la ruta se dibuja de forma encadenada `Repartidor → Parada 1 → Parada 2 → ...`, en lugar de crear varias rutas independientes desde la moto;
+- cada pin conserva el consecutivo del pedido y agrega un badge pequeño con el número de parada;
 - un color distinto por repartidor cuando existen varias rutas simultáneas;
-- leyenda inferior para relacionar color, repartidor y pedidos;
+- leyenda inferior para relacionar color, repartidor, orden de paradas, distancia total y tiempo estimado;
 - actualización de ubicaciones cada 5 segundos;
 - recálculo de rutas cada 15 segundos.
 

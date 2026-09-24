@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createAlentoMapPinElement,
   createDeliveryMapPinElement,
+  createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
 
@@ -37,10 +38,31 @@ type MapDriver = Point & {
   updatedAt: string | null;
 };
 
-type MapRoute = {
+type MapTripStop = {
+  orderId: number;
+  code: string;
+  customerName: string;
+  stopNumber: number;
+  destination: Point & { address: string };
+};
+
+type MapTripLeg = {
+  stopNumber: number;
+  orderId: number;
+  code: string;
   distanceMeters: number;
   durationSeconds: number | null;
   encodedPolyline: string;
+};
+
+type MapTrip = {
+  driverId: number;
+  driverName: string;
+  origin: Point;
+  stops: MapTripStop[];
+  legs: MapTripLeg[];
+  totalDistanceMeters: number;
+  totalDurationSeconds: number;
 };
 
 type MapOrder = {
@@ -61,7 +83,6 @@ type MapOrder = {
         updatedAt: string | null;
       }
     | null;
-  route: MapRoute | null;
 };
 
 type MapPayload = {
@@ -69,6 +90,7 @@ type MapPayload = {
   store: MapStore | null;
   drivers: MapDriver[];
   orders: MapOrder[];
+  trips: MapTrip[];
 };
 
 type GoogleMapInstance = {
@@ -234,19 +256,33 @@ export default function AdminDeliveryMapModal({
 
   const mergePayload = useCallback((next: MapPayload) => {
     setData((current) => {
-      const previousRoutes = new Map(
-        (current?.orders ?? []).map((order) => [order.id, order.route]),
+      if (!current) return next;
+
+      const previousTrips = new Map(
+        current.trips.map((trip) => [trip.driverId, trip]),
       );
 
       return {
         ...next,
-        orders: next.orders.map((order) => ({
-          ...order,
-          route:
-            order.status === "OUT_FOR_DELIVERY"
-              ? order.route ?? previousRoutes.get(order.id) ?? null
-              : null,
-        })),
+        trips: next.trips.map((trip) => {
+          if (trip.legs.length > 0) return trip;
+
+          const previous = previousTrips.get(trip.driverId);
+          if (!previous) return trip;
+
+          const sameStops =
+            previous.stops.map((stop) => stop.orderId).join(",") ===
+            trip.stops.map((stop) => stop.orderId).join(",");
+
+          return sameStops
+            ? {
+                ...trip,
+                legs: previous.legs,
+                totalDistanceMeters: previous.totalDistanceMeters,
+                totalDurationSeconds: previous.totalDurationSeconds,
+              }
+            : trip;
+        }),
       };
     });
   }, []);
@@ -368,6 +404,22 @@ export default function AdminDeliveryMapModal({
         points += 1;
       }
 
+      const routeStopByOrder = new Map<
+        number,
+        { stopNumber: number; color: string; driverName: string }
+      >();
+
+      payload.trips.forEach((trip) => {
+        const color = colorForDriver(trip.driverId);
+        trip.stops.forEach((stop) => {
+          routeStopByOrder.set(stop.orderId, {
+            stopNumber: stop.stopNumber,
+            color,
+            driverName: trip.driverName,
+          });
+        });
+      });
+
       payload.orders.forEach((order) => {
         if (!order.destination) return;
 
@@ -375,15 +427,24 @@ export default function AdminDeliveryMapModal({
           lat: order.destination.latitude,
           lng: order.destination.longitude,
         };
+        const routeStop = routeStopByOrder.get(order.id);
 
         const marker = new AdvancedMarkerElement({
           map,
           position: point,
-          title: `${order.code} · ${order.customerName} · ${formatStatus(
-            order.status,
-          )}`,
-          content: createDeliveryMapPinElement(order.code),
-          zIndex: order.status === "OUT_FOR_DELIVERY" ? 35 : 25,
+          title: routeStop
+            ? `Parada ${routeStop.stopNumber} · ${order.code} · ${order.customerName} · ${routeStop.driverName}`
+            : `${order.code} · ${order.customerName} · ${formatStatus(
+                order.status,
+              )}`,
+          content: routeStop
+            ? createDeliveryRouteStopPinElement(
+                order.code,
+                routeStop.stopNumber,
+                routeStop.color,
+              )
+            : createDeliveryMapPinElement(order.code),
+          zIndex: routeStop ? 38 : 25,
         });
         markersRef.current.push(marker);
         bounds.extend(point);
@@ -408,34 +469,32 @@ export default function AdminDeliveryMapModal({
         points += 1;
       });
 
-      payload.orders.forEach((order) => {
-        if (
-          order.status !== "OUT_FOR_DELIVERY" ||
-          !order.driver ||
-          !order.route?.encodedPolyline ||
-          !google.maps.geometry?.encoding?.decodePath
-        ) {
-          return;
-        }
+      payload.trips.forEach((trip) => {
+        if (!google.maps.geometry?.encoding?.decodePath) return;
 
-        const path = google.maps.geometry.encoding.decodePath(
-          order.route.encodedPolyline,
-        );
-        const color = colorForDriver(order.driver.id);
+        const color = colorForDriver(trip.driverId);
 
-        const polyline = new google.maps.Polyline({
-          map,
-          path,
-          strokeColor: color,
-          strokeOpacity: 0.95,
-          strokeWeight: 6,
-          geodesic: true,
+        trip.legs.forEach((leg) => {
+          if (!leg.encodedPolyline) return;
+
+          const path = google.maps.geometry!.encoding!.decodePath(
+            leg.encodedPolyline,
+          );
+
+          const polyline = new google.maps.Polyline({
+            map,
+            path,
+            strokeColor: color,
+            strokeOpacity: 0.95,
+            strokeWeight: 6,
+            geodesic: true,
+          });
+          routesRef.current.push(polyline);
+
+          path.forEach((point) =>
+            bounds.extend({ lat: point.lat(), lng: point.lng() }),
+          );
         });
-        routesRef.current.push(polyline);
-
-        path.forEach((point) =>
-          bounds.extend({ lat: point.lat(), lng: point.lng() }),
-        );
       });
 
       if (!initialFitRef.current && points > 0) {
@@ -481,38 +540,23 @@ export default function AdminDeliveryMapModal({
   const inRoute = useMemo(
     () =>
       (data?.orders ?? []).filter(
-        (order) =>
-          order.status === "OUT_FOR_DELIVERY" &&
-          order.driver &&
-          order.route,
+        (order) => order.status === "OUT_FOR_DELIVERY",
       ),
     [data],
   );
 
-  const routeLegend = useMemo(() => {
-    const unique = new Map<
-      number,
-      { id: number; name: string; color: string; orders: string[] }
-    >();
-
-    inRoute.forEach((order) => {
-      if (!order.driver) return;
-      const current = unique.get(order.driver.id);
-      if (current) {
-        current.orders.push(order.code);
-        return;
-      }
-
-      unique.set(order.driver.id, {
-        id: order.driver.id,
-        name: order.driver.name,
-        color: colorForDriver(order.driver.id),
-        orders: [order.code],
-      });
-    });
-
-    return [...unique.values()];
-  }, [colorForDriver, inRoute]);
+  const routeLegend = useMemo(
+    () =>
+      (data?.trips ?? []).map((trip) => ({
+        id: trip.driverId,
+        name: trip.driverName,
+        color: colorForDriver(trip.driverId),
+        stops: trip.stops,
+        distanceMeters: trip.totalDistanceMeters,
+        durationSeconds: trip.totalDurationSeconds,
+      })),
+    [colorForDriver, data],
+  );
 
   if (!open) return null;
 
@@ -591,9 +635,21 @@ export default function AdminDeliveryMapModal({
                       style={{ backgroundColor: item.color }}
                     />
                     <b className="text-[9px]">{item.name}</b>
-                    <span className="text-[8px] text-white/40">
-                      {item.orders.join(", ")}
+                    <span className="text-[8px] text-white/48">
+                      {item.stops
+                        .map(
+                          (stop) =>
+                            `${stop.stopNumber}. ${stop.code}`,
+                        )
+                        .join("  →  ")}
                     </span>
+                    {item.distanceMeters > 0 && (
+                      <span className="text-[8px] text-white/28">
+                        {formatDistance(item.distanceMeters)}
+                        {" · "}
+                        {formatDuration(item.durationSeconds)}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

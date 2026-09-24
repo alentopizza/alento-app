@@ -15,6 +15,11 @@ const ACTIVE_DELIVERY_STATUSES = [
   "ARRIVED",
 ] as const;
 
+type RoutePoint = {
+  latitude: number;
+  longitude: number;
+};
+
 function coordinate(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -43,6 +48,23 @@ function storeLocation(value: unknown) {
     latitude,
     longitude,
   };
+}
+
+function haversineMeters(a: RoutePoint, b: RoutePoint) {
+  const radius = 6_371_000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const lat1 = toRadians(a.latitude);
+  const lat2 = toRadians(b.latitude);
+  const deltaLat = toRadians(b.latitude - a.latitude);
+  const deltaLng = toRadians(b.longitude - a.longitude);
+
+  const h =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(deltaLng / 2) ** 2;
+
+  return 2 * radius * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 export async function GET(request: NextRequest) {
@@ -121,65 +143,159 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const routes = new Map<
+    const enRouteByDriver = new Map<
       number,
-      {
-        distanceMeters: number;
-        durationSeconds: number | null;
-        encodedPolyline: string;
-      }
+      Array<(typeof orders)[number]>
     >();
 
-    if (includeRoutes) {
-      const routeJobs = orders
-        .filter(
-          (order) =>
-            order.status === "OUT_FOR_DELIVERY" &&
-            order.driverId != null &&
-            order.address?.latitude != null &&
-            order.address?.longitude != null,
-        )
-        .map(async (order) => {
-          const driverLatitude =
-            coordinate(order.driverLatitude) ??
-            coordinate(order.driver?.driverLatitude);
-          const driverLongitude =
-            coordinate(order.driverLongitude) ??
-            coordinate(order.driver?.driverLongitude);
-          const destinationLatitude = coordinate(order.address?.latitude);
-          const destinationLongitude = coordinate(order.address?.longitude);
+    orders.forEach((order) => {
+      if (
+        order.status !== "OUT_FOR_DELIVERY" ||
+        order.driverId == null ||
+        order.address?.latitude == null ||
+        order.address?.longitude == null
+      ) {
+        return;
+      }
 
-          if (
-            driverLatitude == null ||
-            driverLongitude == null ||
-            destinationLatitude == null ||
-            destinationLongitude == null
-          ) {
-            return;
-          }
+      const current = enRouteByDriver.get(order.driverId) ?? [];
+      current.push(order);
+      enRouteByDriver.set(order.driverId, current);
+    });
 
-          try {
-            const route = await computeDrivingRoute({
-              origin: {
-                latitude: driverLatitude,
-                longitude: driverLongitude,
-              },
-              destination: {
-                latitude: destinationLatitude,
-                longitude: destinationLongitude,
-              },
+    const trips = await Promise.all(
+      [...enRouteByDriver.entries()].map(async ([driverId, assignedOrders]) => {
+        const first = assignedOrders[0];
+        const originLatitude =
+          coordinate(first.driver?.driverLatitude) ??
+          coordinate(first.driverLatitude);
+        const originLongitude =
+          coordinate(first.driver?.driverLongitude) ??
+          coordinate(first.driverLongitude);
+
+        if (originLatitude == null || originLongitude == null) {
+          return null;
+        }
+
+        let currentPoint: RoutePoint = {
+          latitude: originLatitude,
+          longitude: originLongitude,
+        };
+        const pending = [...assignedOrders];
+        const ordered: Array<(typeof orders)[number]> = [];
+
+        while (pending.length > 0) {
+          let nearestIndex = 0;
+          let nearestDistance = Number.POSITIVE_INFINITY;
+
+          pending.forEach((order, index) => {
+            const latitude = coordinate(order.address?.latitude);
+            const longitude = coordinate(order.address?.longitude);
+            if (latitude == null || longitude == null) return;
+
+            const distance = haversineMeters(currentPoint, {
+              latitude,
+              longitude,
             });
-            routes.set(order.id, route);
-          } catch (error) {
-            console.error(
-              `Delivery map route error for order ${order.id}`,
-              error,
-            );
-          }
-        });
 
-      await Promise.all(routeJobs);
-    }
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearestIndex = index;
+            }
+          });
+
+          const [nearest] = pending.splice(nearestIndex, 1);
+          ordered.push(nearest);
+
+          const latitude = coordinate(nearest.address?.latitude);
+          const longitude = coordinate(nearest.address?.longitude);
+          if (latitude != null && longitude != null) {
+            currentPoint = { latitude, longitude };
+          }
+        }
+
+        const stops = ordered.map((order, index) => ({
+          orderId: order.id,
+          code: orderCode(order.sequenceNumber ?? order.id, order.source),
+          customerName: order.customer?.name ?? "Cliente",
+          stopNumber: index + 1,
+          destination: {
+            address:
+              order.address?.formattedAddress ||
+              order.address?.address ||
+              "Destino",
+            latitude: Number(order.address?.latitude),
+            longitude: Number(order.address?.longitude),
+          },
+        }));
+
+        const legs: Array<{
+          stopNumber: number;
+          orderId: number;
+          code: string;
+          distanceMeters: number;
+          durationSeconds: number | null;
+          encodedPolyline: string;
+        }> = [];
+
+        if (includeRoutes) {
+          let legOrigin: RoutePoint = {
+            latitude: originLatitude,
+            longitude: originLongitude,
+          };
+
+          for (const stop of stops) {
+            try {
+              const route = await computeDrivingRoute({
+                origin: legOrigin,
+                destination: {
+                  latitude: stop.destination.latitude,
+                  longitude: stop.destination.longitude,
+                },
+              });
+
+              legs.push({
+                stopNumber: stop.stopNumber,
+                orderId: stop.orderId,
+                code: stop.code,
+                distanceMeters: route.distanceMeters,
+                durationSeconds: route.durationSeconds,
+                encodedPolyline: route.encodedPolyline,
+              });
+            } catch (error) {
+              console.error(
+                `Delivery trip route error for driver ${driverId}, stop ${stop.orderId}`,
+                error,
+              );
+            }
+
+            legOrigin = {
+              latitude: stop.destination.latitude,
+              longitude: stop.destination.longitude,
+            };
+          }
+        }
+
+        return {
+          driverId,
+          driverName: first.driver?.name ?? "Repartidor",
+          origin: {
+            latitude: originLatitude,
+            longitude: originLongitude,
+          },
+          stops,
+          legs,
+          totalDistanceMeters: legs.reduce(
+            (sum, leg) => sum + leg.distanceMeters,
+            0,
+          ),
+          totalDurationSeconds: legs.reduce(
+            (sum, leg) => sum + (leg.durationSeconds ?? 0),
+            0,
+          ),
+        };
+      }),
+    );
 
     return NextResponse.json({
       updatedAt: new Date().toISOString(),
@@ -200,11 +316,11 @@ export async function GET(request: NextRequest) {
         const latitude = coordinate(order.address?.latitude);
         const longitude = coordinate(order.address?.longitude);
         const driverLatitude =
-          coordinate(order.driverLatitude) ??
-          coordinate(order.driver?.driverLatitude);
+          coordinate(order.driver?.driverLatitude) ??
+          coordinate(order.driverLatitude);
         const driverLongitude =
-          coordinate(order.driverLongitude) ??
-          coordinate(order.driver?.driverLongitude);
+          coordinate(order.driver?.driverLongitude) ??
+          coordinate(order.driverLongitude);
 
         return {
           id: order.id,
@@ -231,18 +347,20 @@ export async function GET(request: NextRequest) {
                 latitude: driverLatitude,
                 longitude: driverLongitude,
                 accuracy:
-                  order.driverLocationAccuracy ??
                   order.driver.driverLocationAccuracy ??
+                  order.driverLocationAccuracy ??
                   null,
                 updatedAt:
-                  order.driverLocationUpdatedAt?.toISOString() ??
                   order.driver.driverLocationUpdatedAt?.toISOString() ??
+                  order.driverLocationUpdatedAt?.toISOString() ??
                   null,
               }
             : null,
-          route: routes.get(order.id) ?? null,
         };
       }),
+      trips: trips.filter(
+        (trip): trip is NonNullable<typeof trip> => trip != null,
+      ),
     });
   } catch (error) {
     const forbidden =

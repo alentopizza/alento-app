@@ -165,3 +165,50 @@ export function createDeliveryMapPinElement(orderCode?: string | number | null) 
   root.append(pin, center);
   return root;
 }
+
+
+/**
+ * Variante oficial para una parada dentro de una ruta con múltiples entregas.
+ * Conserva el número del pedido en el pin y agrega un badge pequeño con el
+ * orden de parada (1, 2, 3...) usando el color asignado a la ruta.
+ */
+export function createDeliveryRouteStopPinElement(
+  orderCode: string | number,
+  stopNumber: number,
+  routeColor: string,
+) {
+  const root = document.createElement("div");
+  root.style.position = "relative";
+  root.style.width = "54px";
+  root.style.height = "60px";
+  root.style.userSelect = "none";
+
+  const pin = createDeliveryMapPinElement(orderCode);
+  pin.style.position = "absolute";
+  pin.style.left = "0";
+  pin.style.top = "4px";
+
+  const stopBadge = document.createElement("div");
+  stopBadge.setAttribute("aria-label", `Parada ${stopNumber}`);
+  stopBadge.style.position = "absolute";
+  stopBadge.style.right = "0";
+  stopBadge.style.top = "0";
+  stopBadge.style.zIndex = "4";
+  stopBadge.style.display = "flex";
+  stopBadge.style.width = "22px";
+  stopBadge.style.height = "22px";
+  stopBadge.style.alignItems = "center";
+  stopBadge.style.justifyContent = "center";
+  stopBadge.style.borderRadius = "999px";
+  stopBadge.style.border = "2px solid #ffffff";
+  stopBadge.style.background = routeColor;
+  stopBadge.style.color = "#ffffff";
+  stopBadge.style.fontSize = "10px";
+  stopBadge.style.fontWeight = "900";
+  stopBadge.style.lineHeight = "1";
+  stopBadge.style.boxShadow = "0 5px 12px rgba(0,0,0,.24)";
+  stopBadge.textContent = String(stopNumber);
+
+  root.append(pin, stopBadge);
+  return root;
+}
