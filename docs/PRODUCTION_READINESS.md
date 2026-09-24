@@ -353,3 +353,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 - ✅ 2026-09-24 — WEB → Recoger: flujo validado correctamente de punta a punta, incluyendo creación WEB-XXXX, seguimiento de estados y cierre automático del seguimiento con aviso al pasar a COMPLETED/Finalizado.
 - ✅ 2026-09-24 — WEB → Domicilio: flujo validado correctamente de punta a punta, incluyendo compra como invitado, cobertura y tarifa automáticas, privacidad de direcciones de clientes existentes, creación WEB-XXXX, asignación/reparto y seguimiento público hasta cierre.
 - ✅ 2026-09-24 — Roles y permisos: validación manual aprobada con usuarios reales separados; los accesos y restricciones principales por rol funcionan según la matriz vigente.
+- ✅ 2026-09-24 — Pagos y Caja: validación manual aprobada; registro de pago, saldo en cero, medio de pago y total diario de Caja funcionan correctamente.
