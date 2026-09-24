@@ -890,14 +890,14 @@ export default function CashPage() {
                     <ArrowDownCircle className="h-5 w-5" />
                   </span>
                   <span className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-600">
-                    Cobros de ventas
+                    Entró total
                   </span>
                 </div>
                 <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
-                  {formatCOP(summary.receivedTotal)}
+                  {formatCOP(summary.totalInflow)}
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
-                  {summary.paymentCount} pago{summary.paymentCount === 1 ? "" : "s"} recibido{summary.paymentCount === 1 ? "" : "s"}
+                  Cobros de ventas {formatCOP(summary.receivedTotal)}
                 </p>
               </article>
 
