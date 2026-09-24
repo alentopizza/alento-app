@@ -236,13 +236,13 @@ Para producción hay que decidir una de dos:
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
 4. Autoasignación.
-2. Límite simultáneo.
-3. Desasignación.
-4. Checklist únicamente en READY.
-5. En camino → llegó → entregado.
-6. Dos pedidos en ruta y orden 1/2.
-7. Otro repartidor no debe ver pedidos ya asignados.
-8. No permitir Inactivo con domicilios pendientes.
+5. Límite simultáneo.
+6. Desasignación.
+7. Checklist únicamente en READY.
+8. En camino → llegó → entregado.
+9. Dos pedidos en ruta y orden 1/2.
+10. Otro repartidor no debe ver pedidos ya asignados.
+11. No permitir Inactivo con domicilios pendientes.
 
 ### WEB
 
