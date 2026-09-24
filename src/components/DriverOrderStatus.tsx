@@ -9,7 +9,6 @@ const STAGES: DriverStage[] = [
   { label: "Listo", statuses: ["READY"] },
   { label: "En camino", statuses: ["OUT_FOR_DELIVERY"] },
   { label: "Llegó", statuses: ["ARRIVED"] },
-  { label: "Entregado", statuses: ["DELIVERED", "COMPLETED"] },
 ];
 
 const STATUS_TITLE: Record<string, string> = {
