@@ -48,6 +48,12 @@ export async function GET() {
       include: {
         customer: true,
         address: true,
+        driver: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         items: {
           include: {
             product: {

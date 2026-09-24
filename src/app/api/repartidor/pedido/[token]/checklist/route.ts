@@ -50,9 +50,16 @@ export async function POST(
     );
   }
 
-  if (order.status !== "READY") {
+  const verifiableStatuses = new Set([
+    "CONFIRMED",
+    "PREPARING",
+    "PREPARED",
+    "READY",
+  ]);
+
+  if (!verifiableStatuses.has(order.status)) {
     return NextResponse.json(
-      { error: "El pedido aún no está listo para verificar productos." },
+      { error: "Este pedido ya no permite verificar productos." },
       { status: 409 },
     );
   }

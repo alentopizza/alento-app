@@ -66,13 +66,20 @@ export default function DriverOrderActions({
   }, [initialStatus, initiallyAssigned]);
 
   useEffect(() => {
-    if (status !== "READY") {
+    const canVerify = [
+      "CONFIRMED",
+      "PREPARING",
+      "PREPARED",
+      "READY",
+    ].includes(status);
+
+    if (!isAssigned || !canVerify) {
       setCheckedIds([]);
       return;
     }
 
     setCheckedIds(items.filter((item) => item.verified).map((item) => item.id));
-  }, [status, items]);
+  }, [isAssigned, status, items]);
 
   useEffect(() => {
     return () => {
@@ -121,6 +128,10 @@ export default function DriverOrderActions({
             ? "Desliza para entregar"
             : null;
 
+  const canVerifyProducts =
+    isAssigned &&
+    ["CONFIRMED", "PREPARING", "PREPARED", "READY"].includes(status);
+
   const allChecked = useMemo(
     () => items.length > 0 && items.every((item) => checkedIds.includes(item.id)),
     [items, checkedIds],
@@ -134,7 +145,7 @@ export default function DriverOrderActions({
   );
 
   async function toggleItem(itemId: number) {
-    if (busy || status !== "READY") return;
+    if (busy || !canVerifyProducts) return;
 
     const checked = checkedIds.includes(itemId);
     const optimistic = checked
@@ -355,21 +366,21 @@ export default function DriverOrderActions({
     setProgress(0);
   }
 
-  if (!target || !label) {
+  if ((!target || !label) && !canVerifyProducts) {
     return null;
   }
 
   return (
     <section
       className={
-        target === "OUT_FOR_DELIVERY" && pendingItems.length > 0
+        canVerifyProducts
           ? "overflow-hidden rounded-[24px] border border-white/10 bg-[#101011] text-white shadow-[0_20px_55px_rgba(0,0,0,.32)]"
           : "contents"
       }
     >
-      {target === "OUT_FOR_DELIVERY" && (
+      {canVerifyProducts && (
         <>
-          {pendingItems.length > 0 && (
+          {pendingItems.length > 0 ? (
           <div className="border-b border-white/10 p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-[9px] font-black uppercase tracking-[.13em] text-[#ff454b]">
@@ -475,11 +486,30 @@ export default function DriverOrderActions({
               })}
             </div>
           </div>
+          ) : (
+            <div className="p-4 sm:p-5">
+              <div className="flex items-center gap-3 rounded-[18px] border border-emerald-400/15 bg-emerald-400/[0.07] px-3.5 py-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
+                  ✓
+                </span>
+                <div className="min-w-0">
+                  <b className="block text-[11px] text-white">
+                    Productos verificados
+                  </b>
+                  <p className="mt-0.5 text-[9px] leading-4 text-white/42">
+                    {status === "READY"
+                      ? "El pedido está listo para iniciar el domicilio."
+                      : "Esperando que Cocina marque el pedido como Listo."}
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
         </>
       )}
 
+      {target && label && (
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
         <div className="mx-auto max-w-[640px]">
           <div
@@ -613,6 +643,7 @@ export default function DriverOrderActions({
           )}
         </div>
       </div>
+      )}
     </section>
   );
 }
