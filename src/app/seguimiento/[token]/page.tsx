@@ -236,14 +236,36 @@ export default async function TrackingPage({
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
 
   return (
-    <main className="min-h-screen bg-[#080808] px-4 pb-28 pt-3 text-white sm:px-6 sm:pb-28 sm:pt-4 lg:pt-5">
+    <main className="min-h-screen bg-[#080808] px-4 pb-8 pt-3 text-white sm:px-6 sm:pb-10 sm:pt-4 lg:pt-5">
       <LivePageRefresh intervalMs={3000} />
       <div className="mx-auto max-w-[760px]">
         <section className="overflow-hidden rounded-[26px] border border-white/10 bg-[#0e0e0e] shadow-[0_24px_70px_rgba(0,0,0,.34)]">
-          <div className="border-b border-[#e21a22]/25 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.14),transparent_34%),linear-gradient(145deg,#151515,#090909_72%)] px-5 pb-6 pt-5 text-white sm:px-7 sm:pb-7 sm:pt-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#ff454b]">Estado actual</p>
-            <h2 className="mt-2 text-[26px] font-black leading-tight tracking-[-0.035em] sm:text-[30px]">{activeLabel}</h2>
-            <p className="mt-2 max-w-[560px] text-sm leading-6 text-white/64">{activeCopy}</p>
+          <div className="relative border-b border-[#e21a22]/25 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.14),transparent_34%),linear-gradient(145deg,#151515,#090909_72%)] px-5 pb-6 pt-5 text-white sm:px-7 sm:pb-7 sm:pt-6">
+            <Link
+              href="/menu"
+              aria-label="Cerrar seguimiento y volver al menú"
+              title="Cerrar"
+              className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/45 text-[22px] font-medium leading-none text-white/75 shadow-[0_8px_22px_rgba(0,0,0,.28)] backdrop-blur-md transition hover:bg-black/60 hover:text-white active:scale-95 sm:right-5 sm:top-5"
+            >
+              ×
+            </Link>
+
+            <div className="pr-14">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#ff454b]">
+                  Estado actual
+                </p>
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white/72">
+                  Pedido {code}
+                </span>
+              </div>
+              <h2 className="mt-2 text-[26px] font-black leading-tight tracking-[-0.035em] sm:text-[30px]">
+                {activeLabel}
+              </h2>
+              <p className="mt-2 max-w-[560px] text-sm leading-6 text-white/64">
+                {activeCopy}
+              </p>
+            </div>
 
             <div className="relative mt-6">
               <div
@@ -470,16 +492,6 @@ export default async function TrackingPage({
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl sm:px-6">
-        <div className="mx-auto max-w-[760px]">
-          <Link
-            href="/menu"
-            className="flex h-[52px] w-full items-center justify-center rounded-full bg-[#e21a22] px-5 text-[11px] font-black uppercase tracking-[0.06em] text-white shadow-[0_12px_30px_rgba(226,26,34,.28)] transition hover:bg-[#c9151c] active:scale-[0.99]"
-          >
-            Volver al menú
-          </Link>
-        </div>
-      </div>
     </main>
   );
 }

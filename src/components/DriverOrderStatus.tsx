@@ -37,13 +37,24 @@ const STATUS_COPY: Record<string, string> = {
   CANCELED: "Este pedido fue cancelado. No continúes con la entrega.",
 };
 
-export default function DriverOrderStatus({ status }: { status: string }) {
+export default function DriverOrderStatus({
+  status,
+  orderCode,
+}: {
+  status: string;
+  orderCode: string;
+}) {
   if (status === "CANCELED") {
     return (
       <section className="rounded-[24px] border border-[#e21a22]/35 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.20),transparent_38%),linear-gradient(145deg,#171717,#090909_72%)] p-5 text-white shadow-[0_20px_55px_rgba(0,0,0,.30)]">
-        <p className="text-[9px] font-black uppercase tracking-[.14em] text-[#ff454b]">
-          Estado actual
-        </p>
+        <div className="flex flex-wrap items-center gap-2 pr-12">
+          <p className="text-[9px] font-black uppercase tracking-[.14em] text-[#ff454b]">
+            Estado actual
+          </p>
+          <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[8px] font-black uppercase tracking-[.08em] text-white/70">
+            Pedido {orderCode}
+          </span>
+        </div>
         <h2 className="mt-2 text-[24px] font-black tracking-[-0.03em]">
           Pedido cancelado
         </h2>
@@ -59,9 +70,14 @@ export default function DriverOrderStatus({ status }: { status: string }) {
 
   return (
     <section className="overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(226,26,34,.14),transparent_36%),linear-gradient(145deg,#151515,#090909_72%)] px-5 pb-5 pt-4 text-white shadow-[0_20px_55px_rgba(0,0,0,.30)]">
-      <p className="text-[9px] font-black uppercase tracking-[.14em] text-[#ff454b]">
-        Estado actual
-      </p>
+      <div className="flex flex-wrap items-center gap-2 pr-12">
+        <p className="text-[9px] font-black uppercase tracking-[.14em] text-[#ff454b]">
+          Estado actual
+        </p>
+        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[8px] font-black uppercase tracking-[.08em] text-white/70">
+          Pedido {orderCode}
+        </span>
+      </div>
 
       <h2 className="mt-2 text-[24px] font-black leading-tight tracking-[-0.035em]">
         {STATUS_TITLE[status] ?? "Pedido en proceso"}

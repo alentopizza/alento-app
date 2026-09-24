@@ -361,32 +361,33 @@ export default function CustomerDeliveryLiveMap({
               <p className="text-[6.5px] font-black uppercase tracking-[0.1em] text-[#ff454b]">
                 Repartidor
               </p>
-              <h3 className="mt-0.5 truncate text-[12px] font-black leading-4">
-                {driverName}
-              </h3>
+              <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                <h3 className="min-w-0 truncate text-[12px] font-black uppercase leading-4">
+                  {driverName}
+                </h3>
+                {driverPhone && (
+                  <a
+                    href={`tel:${driverPhone}`}
+                    aria-label={`Llamar a ${driverName}`}
+                    title={`Llamar a ${driverName}`}
+                    className="pointer-events-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_6px_14px_rgba(16,185,129,.25)] transition active:scale-95"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.24-1.24a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
+                    </svg>
+                  </a>
+                )}
+              </div>
             </div>
-
-            {driverPhone && (
-              <a
-                href={`tel:${driverPhone}`}
-                aria-label={`Llamar a ${driverName}`}
-                title={`Llamar a ${driverName}`}
-                className="pointer-events-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_7px_18px_rgba(16,185,129,.28)] transition active:scale-95"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.9"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.24-1.24a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
-                </svg>
-              </a>
-            )}
 
             <div className="grid shrink-0 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-[11px] border border-white/[0.07] bg-white/[0.055]">
               <div className="min-w-[62px] px-2 py-1.5 text-center">

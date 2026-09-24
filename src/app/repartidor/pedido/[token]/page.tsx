@@ -135,7 +135,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
             ×
           </Link>
 
-          <DriverOrderStatus status={order.status} />
+          <DriverOrderStatus status={order.status} orderCode={orderCode} />
         </div>
 
         <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">

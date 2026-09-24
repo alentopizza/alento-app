@@ -241,6 +241,8 @@ El repartidor debe ver el estado de pago en español y con señal visual operaci
 
 Durante OUT_FOR_DELIVERY y ARRIVED el cliente puede contactar por llamada al repartidor desde el encabezado del mapa en vivo. El teléfono del repartidor solo se expone en el endpoint firmado de seguimiento mientras ese seguimiento está activo; después de DELIVERED/COMPLETED deja de devolverse.
 
+Regla visual: el código del pedido debe quedar visible en la cabecera tanto para cliente como para repartidor. En seguimiento cliente no existe botón fijo "Volver al menú": se usa una X superior igual a la del detalle del repartidor y dirige a /menu. El nombre del repartidor se muestra en mayúscula y el botón de llamada queda inmediatamente junto al nombre.
+
 1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
