@@ -37,6 +37,29 @@ Ejemplo:
 
 Eliminar un pedido no retrocede ni reutiliza el consecutivo comercial.
 
+## Mapa De Entregas
+
+El header de `/pedidos` incluye el botón **Mapa De Entregas**.
+
+Al abrirlo se muestra un modal amplio de operación en vivo con:
+
+- ubicación oficial de Alentó usando `createAlentoMapPinElement()`;
+- todos los domicilios activos con `createDeliveryMapPinElement(orderCode)`, por lo que cada pin muestra el consecutivo del pedido;
+- repartidores activos con ubicación disponible usando `createDriverMapPinElement()`;
+- rutas únicamente para pedidos `OUT_FOR_DELIVERY`;
+- un color distinto por repartidor cuando existen varias rutas simultáneas;
+- leyenda inferior para relacionar color, repartidor y pedidos;
+- actualización de ubicaciones cada 5 segundos;
+- recálculo de rutas cada 15 segundos.
+
+El endpoint operativo es:
+
+`GET /api/orders/delivery-map`
+
+Con `?routes=1` también calcula las rutas vigentes mediante Google Routes.
+
+La pantalla reutiliza el sistema visual obligatorio de `src/lib/alentoMapMarker.ts`; no crear pines alternativos dentro del dashboard.
+
 ## Búsqueda y filtros
 
 Permite buscar por código comercial, cliente, teléfono, estado y medio de pago.
