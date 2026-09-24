@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Pizza, Upload } from "lucide-react";
+import { MapPin, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
@@ -716,10 +716,6 @@ export default function OrdersCardsDashboardV3() {
 
         <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-6 py-6 md:flex-row md:items-center md:px-8 xl:px-10">
           <div className="flex items-center gap-4">
-            <div className="hidden h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] border border-red-400/25 bg-[linear-gradient(145deg,rgba(226,26,34,.75),rgba(76,8,11,.78))] text-red-100 shadow-[0_12px_28px_rgba(168,11,16,.24),inset_0_1px_0_rgba(255,255,255,.12)] sm:flex">
-              <Pizza className="h-8 w-8" strokeWidth={2.05} />
-            </div>
-
             <div className="max-w-2xl">
               <div className="flex items-center gap-3">
                 <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
