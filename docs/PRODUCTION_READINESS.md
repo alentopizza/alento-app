@@ -313,3 +313,8 @@ Corregido:
 - actualización de la dirección propia del cliente por sesión pública ya no queda interceptada como API staff.
 
 Regla de no regresión: **si un rol puede entrar al POS, debe poder completar el flujo POS de punta a punta**. El acceso a APIs operativas no implica acceso a la página CRM `/clientes`.
+
+
+## Resultados de validación manual
+
+- ✅ 2026-09-23 — POS → Local: flujo validado correctamente de punta a punta.
