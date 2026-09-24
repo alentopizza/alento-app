@@ -276,10 +276,6 @@ function Metric({
   hint?: string;
   icon?: "purchases" | "ticket" | "spent";
 }) {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
   return (
     <div className="min-w-0 rounded-[14px] border border-neutral-100 bg-[#f8f9fb] px-3.5 py-3 [font-synthesis:none]">
       <div className="flex items-center gap-2 text-neutral-400">
