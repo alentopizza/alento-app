@@ -354,6 +354,16 @@ Corregido: CASHIER puede editar pedidos activos para ajustar cantidades, agregar
 
 Regla de no regresión: **si CASHIER opera Pedidos, debe poder corregir el contenido de una orden activa sin recibir acceso implícito a cancelación o eliminación**.
 
+### 2026-09-24 — CASHIER al asignar repartidor
+
+Durante la validación de reparto múltiple del Paso 14, un usuario CASHIER podía abrir la gestión de estados y seleccionar un repartidor, pero la asignación respondía `403 Sin permisos`.
+
+Causa: el endpoint `POST /api/orders/[id]/driver` ya autorizaba ADMIN/POS/CASHIER internamente, pero el middleware no tenía una regla específica para `/driver` y caía en la regla genérica de escritura de pedidos, limitada a ADMIN/POS.
+
+Corregido: el middleware permite ADMIN/POS/CASHIER en `/api/orders/[id]/driver` tanto para asignar como para desasignar. Las validaciones de capacidad, estado del pedido, WhatsApp del repartidor y protección de pedidos cerrados permanecen en el backend.
+
+Regla de no regresión: **CASHIER puede gestionar repartidores de pedidos a domicilio desde Pedidos sin adquirir permisos sensibles de cancelación o eliminación**.
+
 
 ## Resultados de validación manual
 
