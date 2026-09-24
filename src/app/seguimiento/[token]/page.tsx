@@ -50,15 +50,6 @@ function dateTime(value: Date) {
   }).format(value);
 }
 
-function fulfillmentLabel(value: string) {
-  const labels: Record<string, string> = {
-    DELIVERY: "Domicilio",
-    PICKUP: "Recoger en tienda",
-    STORE: "Consumo en local",
-  };
-  return labels[value] ?? value;
-}
-
 function textValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -370,25 +361,6 @@ export default async function TrackingPage({
                   </span>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-[#111] px-3 py-2.5 text-white">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
-                      Pedido
-                    </span>
-                    <strong className="mt-1 block text-[12px] text-white">
-                      {code}
-                    </strong>
-                  </div>
-
-                  <div className="rounded-xl bg-[#111] px-3 py-2.5 text-white">
-                    <span className="block text-[8px] font-bold uppercase tracking-[0.08em] text-white/42">
-                      Modalidad
-                    </span>
-                    <strong className="mt-1 block text-[12px] text-white">
-                      {fulfillmentLabel(order.fulfillmentType)}
-                    </strong>
-                  </div>
-                </div>
               </div>
 
               <div className="divide-y divide-neutral-200">
