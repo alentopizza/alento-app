@@ -36,6 +36,7 @@ type PosSettings = {
   };
   driverManagement: {
     maxConcurrentDeliveries: number;
+    acceptanceRadiusMeters: number;
   };
 };
 
@@ -326,6 +327,89 @@ export default function SettingsPage() {
                 })}
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg font-black text-white"
                 aria-label="Aumentar máximo de pedidos simultáneos"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <b className="block text-sm text-neutral-900">
+                Radio para aceptar domicilios
+              </b>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
+                El repartidor debe estar dentro de esta zona alrededor de Alentó para autoasignarse un pedido. Salir de la zona durante una entrega no afecta los pedidos que ya tenga asignados.
+              </p>
+              <p className="mt-2 text-[11px] font-black text-emerald-700">
+                Radio actual: {settings.driverManagement.acceptanceRadiusMeters >= 1000
+                  ? `${(settings.driverManagement.acceptanceRadiusMeters / 1000).toFixed(
+                      settings.driverManagement.acceptanceRadiusMeters % 1000 === 0 ? 0 : 1,
+                    )} km`
+                  : `${settings.driverManagement.acceptanceRadiusMeters} m`}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-emerald-200 bg-white p-1.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    driverManagement: {
+                      ...settings.driverManagement,
+                      acceptanceRadiusMeters: Math.max(
+                        100,
+                        settings.driverManagement.acceptanceRadiusMeters - 100,
+                      ),
+                    },
+                  })
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-lg font-black text-neutral-700"
+                aria-label="Reducir radio de aceptación"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={100}
+                max={10000}
+                step={100}
+                value={settings.driverManagement.acceptanceRadiusMeters}
+                onChange={(event) =>
+                  setSettings({
+                    ...settings,
+                    driverManagement: {
+                      ...settings.driverManagement,
+                      acceptanceRadiusMeters: Math.min(
+                        10000,
+                        Math.max(100, Number(event.target.value) || 100),
+                      ),
+                    },
+                  })
+                }
+                className="h-10 w-20 rounded-xl border-0 bg-transparent text-center text-lg font-black tabular-nums outline-none"
+                aria-label="Radio en metros para aceptar domicilios"
+              />
+              <span className="pr-1 text-[10px] font-black uppercase text-neutral-400">
+                m
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    driverManagement: {
+                      ...settings.driverManagement,
+                      acceptanceRadiusMeters: Math.min(
+                        10000,
+                        settings.driverManagement.acceptanceRadiusMeters + 100,
+                      ),
+                    },
+                  })
+                }
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-lg font-black text-white"
+                aria-label="Aumentar radio de aceptación"
               >
                 +
               </button>

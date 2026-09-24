@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { createDriverOrderToken } from "@/lib/driverTracking";
 import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
+import { driverAcceptanceZoneFromSettings } from "@/lib/driverAcceptanceZone";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -54,7 +55,7 @@ export async function GET() {
   try {
     const session = await requireStaffSession(["DRIVER", "DISPATCH"]);
 
-    const [orders, savedSettings] = await Promise.all([
+    const [orders, savedSettings, driverLocation] = await Promise.all([
       prisma.order.findMany({
         where: {
           fulfillmentType: "DELIVERY",
@@ -124,6 +125,14 @@ export async function GET() {
         where: { key: SETTINGS_KEY },
         select: { value: true },
       }),
+      prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          driverLatitude: true,
+          driverLongitude: true,
+          driverLocationUpdatedAt: true,
+        },
+      }),
     ]);
 
     const maxConcurrentDeliveries =
@@ -132,9 +141,21 @@ export async function GET() {
       (order) => order.driverId === session.userId,
     ).length;
     const capacityReached = assignedDeliveries >= maxConcurrentDeliveries;
+    const acceptanceZone = driverAcceptanceZoneFromSettings(
+      savedSettings?.value,
+      driverLocation?.driverLatitude != null &&
+        driverLocation?.driverLongitude != null
+        ? {
+            latitude: Number(driverLocation.driverLatitude),
+            longitude: Number(driverLocation.driverLongitude),
+            updatedAt: driverLocation.driverLocationUpdatedAt,
+          }
+        : null,
+    );
 
     return NextResponse.json({
       store: storeLocation(savedSettings?.value),
+      acceptanceZone,
       capacity: {
         assignedDeliveries,
         maxConcurrentDeliveries,
@@ -143,10 +164,13 @@ export async function GET() {
       },
       orders: orders.map((order) => {
         const own = order.driverId === session.userId;
-        const claimable =
-          !capacityReached &&
+        const previewable =
           order.driverId == null &&
           CLAIMABLE_STATUSES.has(order.status);
+        const claimable =
+          !capacityReached &&
+          acceptanceZone.inside &&
+          previewable;
         return {
           id: order.id,
           code: `${order.source}-${String(
@@ -198,7 +222,7 @@ export async function GET() {
               }
             : null,
           claimable,
-          href: own || claimable
+          href: own || previewable
             ? `/repartidor/pedido/${createDriverOrderToken(
                 order.id,
                 session.userId,

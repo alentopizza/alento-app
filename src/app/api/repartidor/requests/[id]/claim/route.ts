@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { createDriverOrderToken } from "@/lib/driverTracking";
 import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
+import { driverAcceptanceZoneFromSettings } from "@/lib/driverAcceptanceZone";
 
 const CLAIMABLE_STATUSES = [
   "CONFIRMED",
@@ -36,6 +37,9 @@ export async function POST(
       select: {
         id: true,
         driverAvailable: true,
+        driverLatitude: true,
+        driverLongitude: true,
+        driverLocationUpdatedAt: true,
       },
     });
 
@@ -92,6 +96,58 @@ export async function POST(
     ) {
       return NextResponse.json(
         { error: "Este pedido ya no está disponible para autoasignación." },
+        { status: 409 },
+      );
+    }
+
+    const savedSettings = await prisma.appSetting.findUnique({
+      where: { key: "pos_settings" },
+      select: { value: true },
+    });
+
+    const acceptanceZone = driverAcceptanceZoneFromSettings(
+      savedSettings?.value,
+      driver.driverLatitude != null && driver.driverLongitude != null
+        ? {
+            latitude: Number(driver.driverLatitude),
+            longitude: Number(driver.driverLongitude),
+            updatedAt: driver.driverLocationUpdatedAt,
+          }
+        : null,
+    );
+
+    if (!acceptanceZone.storeConfigured) {
+      return NextResponse.json(
+        {
+          error:
+            "La zona de aceptación no está disponible porque falta configurar la ubicación de Alentó.",
+          acceptanceZone,
+        },
+        { status: 503 },
+      );
+    }
+
+    if (!acceptanceZone.hasLocation || !acceptanceZone.locationFresh) {
+      return NextResponse.json(
+        {
+          error:
+            "Necesitamos tu ubicación actual para confirmar que estás dentro de la zona de Alentó.",
+          acceptanceZone,
+        },
+        { status: 409 },
+      );
+    }
+
+    if (!acceptanceZone.inside) {
+      return NextResponse.json(
+        {
+          error: `Estás a ${(
+            (acceptanceZone.distanceMeters ?? 0) / 1000
+          ).toFixed(1)} km de Alentó. Acércate a la zona de ${Math.round(
+            acceptanceZone.radiusMeters,
+          )} m para aceptar pedidos.`,
+          acceptanceZone,
+        },
         { status: 409 },
       );
     }

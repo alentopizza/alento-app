@@ -81,6 +81,21 @@ type DriverRouteSummary = {
   durationSeconds: number | null;
 };
 
+type DriverAcceptanceZone = {
+  radiusMeters: number;
+  distanceMeters: number | null;
+  inside: boolean;
+  hasLocation: boolean;
+  locationFresh: boolean;
+  storeConfigured: boolean;
+  reason:
+    | "INSIDE"
+    | "OUTSIDE"
+    | "NO_LOCATION"
+    | "STALE_LOCATION"
+    | "STORE_UNCONFIGURED";
+};
+
 type DriverTab = "requests" | "performance" | "wallet";
 
 type GoogleAdvancedMarker = {
@@ -98,6 +113,12 @@ type GoogleMarkerLibrary = {
     content?: Node;
     zIndex?: number;
   }) => GoogleAdvancedMarker;
+};
+
+type GoogleCircle = {
+  setMap: (map: GoogleMap | null) => void;
+  setCenter: (point: { lat: number; lng: number }) => void;
+  setRadius: (radius: number) => void;
 };
 
 type GoogleMap = {
@@ -118,6 +139,7 @@ type GoogleRuntime = {
   maps: {
     importLibrary: (name: string) => Promise<unknown>;
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
+    Circle: new (options: Record<string, unknown>) => GoogleCircle;
     LatLngBounds: new () => GoogleBounds;
   };
 };
@@ -201,6 +223,44 @@ function routeDuration(value: number | null) {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+function acceptanceZoneLabel(zone: DriverAcceptanceZone | null) {
+  if (!zone) return "Actualizando zona…";
+  if (!zone.storeConfigured) return "Zona sin configurar";
+  if (!zone.hasLocation || !zone.locationFresh) return "Actualizando tu ubicación…";
+  if (zone.inside) return "Dentro de zona · Puedes aceptar pedidos";
+  return `Fuera de zona · ${routeDistance(zone.distanceMeters ?? 0)} de Alentó`;
+}
+
+function extendCircleBounds(
+  bounds: GoogleBounds,
+  store: DriverStore,
+  radiusMeters: number,
+) {
+  const latDelta = radiusMeters / 111_320;
+  const cosine = Math.max(
+    0.2,
+    Math.cos((store.latitude * Math.PI) / 180),
+  );
+  const lngDelta = radiusMeters / (111_320 * cosine);
+
+  bounds.extend({
+    lat: store.latitude + latDelta,
+    lng: store.longitude,
+  });
+  bounds.extend({
+    lat: store.latitude - latDelta,
+    lng: store.longitude,
+  });
+  bounds.extend({
+    lat: store.latitude,
+    lng: store.longitude + lngDelta,
+  });
+  bounds.extend({
+    lat: store.latitude,
+    lng: store.longitude - lngDelta,
+  });
 }
 
 function statusLabel(status: string) {
@@ -346,6 +406,7 @@ export default function DriverHome({
   const mapRef = useRef<GoogleMap | null>(null);
   const driverMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
   const storeMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
+  const acceptanceZoneCircleRef = useRef<GoogleCircle | null>(null);
   const requestMarkerRefs = useRef<Map<number, GoogleAdvancedMarker>>(new Map());
   const knownRequestIdsRef = useRef<Set<number> | null>(null);
   const routeSummaryCacheRef = useRef<Map<string, DriverRouteSummary>>(new Map());
@@ -358,6 +419,8 @@ export default function DriverHome({
 
   const [driver, setDriver] = useState(initialDriver);
   const [store, setStore] = useState<DriverStore | null>(null);
+  const [acceptanceZone, setAcceptanceZone] =
+    useState<DriverAcceptanceZone | null>(null);
   const [orders, setOrders] = useState<DriverRequest[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [routeSummaries, setRouteSummaries] = useState<Record<number, DriverRouteSummary>>({});
@@ -548,6 +611,9 @@ export default function DriverHome({
 
     knownRequestIdsRef.current = nextIds;
     setStore((data.store ?? null) as DriverStore | null);
+    setAcceptanceZone(
+      (data.acceptanceZone ?? null) as DriverAcceptanceZone | null,
+    );
     setOrders(next);
     setOrdersLoaded(true);
     setSelectedId((current) =>
@@ -791,6 +857,15 @@ export default function DriverHome({
         lng: store.longitude,
       });
       points += 1;
+
+      if (acceptanceZone?.radiusMeters) {
+        extendCircleBounds(
+          bounds,
+          store,
+          acceptanceZone.radiusMeters,
+        );
+        points += 4;
+      }
     }
 
     orders.forEach((order) => {
@@ -845,6 +920,7 @@ export default function DriverHome({
     }
   }, [
     driver.driverLatitude,
+    acceptanceZone?.radiusMeters,
     driver.driverLongitude,
     orders,
     store,
@@ -959,9 +1035,43 @@ export default function DriverHome({
 
           bounds.extend(storePoint);
           points += 1;
-        } else if (storeMarkerRef.current) {
-          storeMarkerRef.current.map = null;
-          storeMarkerRef.current = null;
+
+          if (acceptanceZone?.radiusMeters) {
+            if (!acceptanceZoneCircleRef.current) {
+              acceptanceZoneCircleRef.current = new google.maps.Circle({
+                map: mapRef.current,
+                center: storePoint,
+                radius: acceptanceZone.radiusMeters,
+                strokeColor: "#059669",
+                strokeOpacity: 0.82,
+                strokeWeight: 2,
+                fillColor: "#10b981",
+                fillOpacity: 0.11,
+                clickable: false,
+                zIndex: 5,
+              });
+            } else {
+              acceptanceZoneCircleRef.current.setMap(mapRef.current);
+              acceptanceZoneCircleRef.current.setCenter(storePoint);
+              acceptanceZoneCircleRef.current.setRadius(
+                acceptanceZone.radiusMeters,
+              );
+            }
+
+            extendCircleBounds(
+              bounds,
+              store,
+              acceptanceZone.radiusMeters,
+            );
+            points += 4;
+          }
+        } else {
+          if (storeMarkerRef.current) {
+            storeMarkerRef.current.map = null;
+            storeMarkerRef.current = null;
+          }
+          acceptanceZoneCircleRef.current?.setMap(null);
+          acceptanceZoneCircleRef.current = null;
         }
 
         const visibleRequestIds = new Set<number>();
@@ -1063,6 +1173,7 @@ export default function DriverHome({
       disposed = true;
     };
   }, [
+    acceptanceZone?.radiusMeters,
     assignedStopNumbers,
     driver.driverLatitude,
     driver.driverLongitude,
@@ -1099,6 +1210,9 @@ export default function DriverHome({
 
     if (storeMarkerRef.current) storeMarkerRef.current.map = null;
     storeMarkerRef.current = null;
+
+    acceptanceZoneCircleRef.current?.setMap(null);
+    acceptanceZoneCircleRef.current = null;
 
     requestMarkerRefs.current.forEach((marker) => {
       marker.map = null;
@@ -1259,6 +1373,36 @@ export default function DriverHome({
           </div>
         </div>
       </div>
+
+      {tab === "requests" && driver.driverAvailable && (
+        <div className="pointer-events-none absolute inset-x-0 top-[76px] z-30 px-3 sm:px-5">
+          <div className="mx-auto flex max-w-[760px] justify-center">
+            <div
+              className={
+                "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[9px] font-black shadow-[0_8px_24px_rgba(0,0,0,.14)] backdrop-blur-xl " +
+                (acceptanceZone?.inside
+                  ? "border-emerald-200 bg-emerald-50/95 text-emerald-700"
+                  : "border-amber-200 bg-amber-50/95 text-amber-800")
+              }
+            >
+              <span
+                className={
+                  "h-2.5 w-2.5 rounded-full " +
+                  (acceptanceZone?.inside
+                    ? "bg-emerald-500"
+                    : "bg-amber-500")
+                }
+              />
+              {acceptanceZoneLabel(acceptanceZone)}
+              {acceptanceZone?.radiusMeters ? (
+                <span className="font-semibold opacity-60">
+                  · radio {routeDistance(acceptanceZone.radiusMeters)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === "requests" && (
         <div className="pointer-events-none absolute right-3 top-[46%] z-30 -translate-y-1/2 sm:right-5">
@@ -1677,7 +1821,7 @@ export default function DriverHome({
       )}
 
       {error && (
-        <div className="absolute left-3 right-3 top-[86px] z-40 mx-auto max-w-[520px] rounded-[16px] border border-[#e21a22]/25 bg-[#210b0d]/95 px-3.5 py-3 text-[10px] font-semibold leading-4 text-[#ff8b8f] shadow-xl backdrop-blur-xl">
+        <div className="absolute left-3 right-3 top-[122px] z-40 mx-auto max-w-[520px] rounded-[16px] border border-[#e21a22]/25 bg-[#210b0d]/95 px-3.5 py-3 text-[10px] font-semibold leading-4 text-[#ff8b8f] shadow-xl backdrop-blur-xl">
           {error}
         </div>
       )}

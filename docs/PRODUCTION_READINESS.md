@@ -29,6 +29,7 @@ Estados usados:
 | Recoger / Local | LISTO CON VALIDACIÓN | PREPARING → PREPARED → READY → COMPLETED; COMPLETED exige saldo pagado |
 | Domicilio / Repartidor | LISTO CON VALIDACIÓN | asignación → checklist al estar READY → EN CAMINO → LLEGÓ → ENTREGADO → cierre operativo |
 | Reparto múltiple | LISTO CON VALIDACIÓN | límite configurable, orden de paradas, mapa, rutas encadenadas y colores por tramo |
+| Geocerca de aceptación | LISTO CON VALIDACIÓN | radio configurable alrededor de Alentó; autoasignación requiere ubicación reciente y estar dentro de zona |
 | Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, actualización automática, mapa/ETA/moto durante reparto |
 | Checkout WEB | LISTO CON VALIDACIÓN | invitado o sesión → dirección/cobertura → pago previsto → WEB-xxxx → seguimiento |
 | Pagos | LISTO CON VALIDACIÓN | intención PENDING, múltiples ingresos PAID, pagos parciales/mixtos, saldo |
@@ -231,7 +232,10 @@ Para producción hay que decidir una de dos:
 
 ### Domicilio / repartidor
 
-1. Autoasignación.
+1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
+2. Entrar en la zona: debe habilitar autoasignación automáticamente.
+3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
+4. Autoasignación.
 2. Límite simultáneo.
 3. Desasignación.
 4. Checklist únicamente en READY.

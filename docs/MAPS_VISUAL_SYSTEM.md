@@ -85,3 +85,23 @@ La regla se aplica en:
 Todo mapa nuevo debe revisar este documento y `src/lib/alentoMapMarker.ts` antes de implementar marcadores.
 
 Si cambia el diseño oficial de un pin, modificar el helper compartido para que todas las superficies hereden el cambio. No corregir cada mapa por separado.
+
+
+## Zona de aceptación de repartidores
+
+El mapa principal del repartidor dibuja una geocerca circular alrededor de Alentó Pizza.
+
+Reglas:
+
+- centro: coordenadas oficiales de la sede;
+- radio: `pos_settings.driverManagement.acceptanceRadiusMeters`;
+- valor inicial por defecto: **1500 m**;
+- visual: borde y relleno esmeralda suave;
+- la geocerca controla únicamente la **autoasignación de nuevos domicilios**;
+- estar fuera de la zona no desasigna ni bloquea pedidos que el repartidor ya tenga;
+- la ubicación debe ser reciente para poder aceptar;
+- el backend vuelve a calcular la distancia al reclamar el pedido; la UI nunca es la autoridad final;
+- el límite simultáneo y la geocerca deben cumplirse al mismo tiempo;
+- la asignación manual del administrador permanece como override operativo.
+
+El mapa debe comunicar claramente `Dentro de zona` o `Fuera de zona` y mostrar la distancia actual a Alentó cuando se encuentre fuera.

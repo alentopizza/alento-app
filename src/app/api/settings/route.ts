@@ -4,6 +4,10 @@ import {
   DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
   normalizeDriverMaxConcurrentDeliveries,
 } from "@/lib/driverCapacity";
+import {
+  DEFAULT_DRIVER_ACCEPTANCE_RADIUS_METERS,
+  normalizeDriverAcceptanceRadiusMeters,
+} from "@/lib/driverAcceptanceZone";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -38,6 +42,7 @@ type PosSettings = {
   };
   driverManagement: {
     maxConcurrentDeliveries: number;
+    acceptanceRadiusMeters: number;
   };
 };
 
@@ -72,6 +77,7 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
   },
   driverManagement: {
     maxConcurrentDeliveries: DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
+    acceptanceRadiusMeters: DEFAULT_DRIVER_ACCEPTANCE_RADIUS_METERS,
   },
 };
 
@@ -127,6 +133,9 @@ function normalizeSettings(value: unknown): PosSettings {
       ? {
           maxConcurrentDeliveries: normalizeDriverMaxConcurrentDeliveries(
             raw.driverManagement.maxConcurrentDeliveries,
+          ),
+          acceptanceRadiusMeters: normalizeDriverAcceptanceRadiusMeters(
+            raw.driverManagement.acceptanceRadiusMeters,
           ),
         }
       : DEFAULT_POS_SETTINGS.driverManagement;
