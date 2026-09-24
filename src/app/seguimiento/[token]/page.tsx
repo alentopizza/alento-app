@@ -165,7 +165,8 @@ function trackingStages(fulfillmentType: string, status: string) {
     { label: "Horneando", statuses: ["PREPARED"] },
     { label: "Listo", statuses: ["READY"] },
     { label: "En camino", statuses: ["OUT_FOR_DELIVERY"] },
-    { label: "Entregado", statuses: ["ARRIVED", "DELIVERED", "COMPLETED"] },
+    { label: "Llegó", statuses: ["ARRIVED"] },
+    { label: "Entregado", statuses: ["DELIVERED", "COMPLETED"] },
   ];
 
   const pickup = [
@@ -322,7 +323,7 @@ export default async function TrackingPage({
 
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
             {order.fulfillmentType === "DELIVERY" &&
-              order.status === "OUT_FOR_DELIVERY" && (
+              ["OUT_FOR_DELIVERY", "ARRIVED"].includes(order.status) && (
                 <CustomerDeliveryLiveMap token={token} orderCode={code} />
               )}
 

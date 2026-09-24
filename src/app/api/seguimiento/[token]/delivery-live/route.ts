@@ -35,6 +35,10 @@ export async function GET(
       driver: {
         select: {
           name: true,
+          driverLatitude: true,
+          driverLongitude: true,
+          driverLocationAccuracy: true,
+          driverLocationUpdatedAt: true,
         },
       },
       address: {
@@ -55,14 +59,43 @@ export async function GET(
     );
   }
 
-  const driverLatitude = finite(order.driverLatitude);
-  const driverLongitude = finite(order.driverLongitude);
+  const trackingActive = ["OUT_FOR_DELIVERY", "ARRIVED"].includes(
+    order.status,
+  );
+
+  const orderDriverLatitude = finite(order.driverLatitude);
+  const orderDriverLongitude = finite(order.driverLongitude);
+  const liveDriverLatitude = finite(order.driver?.driverLatitude);
+  const liveDriverLongitude = finite(order.driver?.driverLongitude);
+
+  const orderLocationUpdatedAt = order.driverLocationUpdatedAt;
+  const liveLocationUpdatedAt = order.driver?.driverLocationUpdatedAt ?? null;
+  const liveLocationIsNewer =
+    liveDriverLatitude != null &&
+    liveDriverLongitude != null &&
+    liveLocationUpdatedAt != null &&
+    (orderLocationUpdatedAt == null ||
+      liveLocationUpdatedAt.getTime() > orderLocationUpdatedAt.getTime());
+
+  const driverLatitude = liveLocationIsNewer
+    ? liveDriverLatitude
+    : orderDriverLatitude;
+  const driverLongitude = liveLocationIsNewer
+    ? liveDriverLongitude
+    : orderDriverLongitude;
+  const driverAccuracy = liveLocationIsNewer
+    ? order.driver?.driverLocationAccuracy ?? null
+    : order.driverLocationAccuracy;
+  const updatedAt = liveLocationIsNewer
+    ? liveLocationUpdatedAt
+    : orderLocationUpdatedAt;
+
   const destinationLatitude = finite(order.address?.latitude);
   const destinationLongitude = finite(order.address?.longitude);
 
-  const updatedAt = order.driverLocationUpdatedAt;
   const ageMs = updatedAt ? Date.now() - updatedAt.getTime() : null;
   const locationAvailable =
+    trackingActive &&
     driverLatitude != null &&
     driverLongitude != null &&
     destinationLatitude != null &&
@@ -70,7 +103,7 @@ export async function GET(
 
   const wantsRoute =
     request.nextUrl.searchParams.get("route") === "1" &&
-    order.status === "OUT_FOR_DELIVERY" &&
+    trackingActive &&
     locationAvailable;
 
   let route: {
@@ -108,8 +141,8 @@ export async function GET(
           latitude: driverLatitude,
           longitude: driverLongitude,
           accuracy:
-            order.driverLocationAccuracy != null
-              ? Number(order.driverLocationAccuracy)
+            driverAccuracy != null
+              ? Number(driverAccuracy)
               : null,
           updatedAt: updatedAt?.toISOString() ?? null,
           stale: ageMs == null || ageMs > 90_000,

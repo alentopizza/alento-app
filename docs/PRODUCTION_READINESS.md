@@ -235,6 +235,8 @@ Antes de probar domicilio, validar en Configuración que las zonas activas sean 
 
 ### Domicilio / repartidor
 
+Regla de no regresión: el seguimiento del cliente permanece visible también en ARRIVED ("Llegó") y solo deja de mostrar la ubicación del repartidor cuando el pedido pasa a DELIVERED/COMPLETED.
+
 1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
