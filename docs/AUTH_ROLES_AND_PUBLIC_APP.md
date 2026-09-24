@@ -471,3 +471,16 @@ No se mezclan las sesiones ni las identidades. El formulario es compartido, pero
 - `alento_staff_session` para colaboradores.
 
 Después de iniciar sesión como colaborador, el destino depende de roles. El Punto de Venta se encuentra en `/interno`.
+
+
+## Privacidad en la recuperación por teléfono
+
+La interfaz pública no debe indicar si un teléfono ya existe en la base de clientes antes de verificar su propiedad.
+
+Regla:
+
+- escribir un número válido puede ofrecer la acción **Verificar mi número**;
+- el mensaje debe ser neutral y no afirmar que ese teléfono ya compró;
+- si después del OTP existe un Customer, se recuperan sus datos;
+- si no existe, la verificación puede crear su identidad de cliente sin revelar previamente esa condición;
+- no agregar endpoints públicos de tipo `existsByPhone` o mensajes distintos según existencia, porque permitirían enumerar clientes.

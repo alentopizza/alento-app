@@ -259,6 +259,8 @@ Regla visual: el código del pedido debe quedar visible en la cabecera tanto par
 
 Regla visual: si una dirección está fuera de cobertura, la alerta de fuera de cobertura debe mostrarse superpuesta dentro del mapa y permitir **Editar dirección** o cambiar directamente a **Recoger en tienda**.
 
+Regla de privacidad: la UI no debe afirmar que un teléfono ya compró solo porque tenga formato válido. Antes del OTP se usa un mensaje neutral **Verificar mi número**; la existencia de un Customer no se revela públicamente.
+
 Regla de cierre público: para PICKUP/STORE, COMPLETED cierra el seguimiento activo inmediatamente, redirige al menú y muestra una notificación breve **"Pedido XXXX fue finalizado"**. No existe un paso visual "Finalizado" dentro del seguimiento activo; el detalle posterior queda en el historial de /cuenta.
 
 1. Compra invitado.

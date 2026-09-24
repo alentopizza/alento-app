@@ -475,16 +475,16 @@ export default function PublicCheckoutCustomer({
                     }}
                     className="mt-2 flex w-full items-center justify-between rounded-[13px] border border-[#e21a22]/25 bg-[#e21a22]/10 px-3.5 py-2.5 text-left"
                   >
-                    <span>
+                    <span className="min-w-0 pr-3">
                       <b className="block text-[10px] text-white/85">
-                        ¿Ya has comprado con este número?
+                        Verificar mi número
                       </b>
-                      <span className="mt-0.5 block text-[8px] text-white/35">
-                        Verifica tu WhatsApp y autocompletamos tus datos.
+                      <span className="mt-0.5 block text-[8px] leading-4 text-white/35">
+                        Si ya compraste antes, recuperamos tus datos. Si es un número nuevo, solo verificamos que sea tuyo.
                       </span>
                     </span>
-                    <span className="text-[9px] font-bold text-[#ff454b]">
-                      Recuperar
+                    <span className="shrink-0 text-[9px] font-bold text-[#ff454b]">
+                      Verificar
                     </span>
                   </button>
                 )}
@@ -523,8 +523,7 @@ export default function PublicCheckoutCustomer({
 
                 {!signedIn && (
                   <p className="mt-3 text-[9px] leading-4 text-white/30">
-                    Si ya has comprado antes, puedes verificar tu número por WhatsApp
-                    para recuperar tus datos. También puedes continuar como invitado.
+                    Verificar el número es opcional. Nunca mostramos si un teléfono ya existe antes de comprobar que te pertenece.
                   </p>
                 )}
               </section>
@@ -641,13 +640,13 @@ export default function PublicCheckoutCustomer({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[8px] font-black uppercase tracking-[0.14em] text-[#ff3439]">
-                  Recuperar mis datos
+                  Verificar mi número
                 </p>
                 <h3 className="mt-1 text-[19px] font-bold">
                   Verifica tu WhatsApp
                 </h3>
                 <p className="mt-1 text-[10px] leading-4 text-white/40">
-                  Solo mostramos datos guardados después de validar que el número es tuyo.
+                  Si este número ya tiene datos guardados, los recuperaremos después de validar que es tuyo.
                 </p>
               </div>
               <button
