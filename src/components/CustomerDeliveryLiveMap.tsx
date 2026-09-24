@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createDeliveryMapPinElement,
+  createDriverMapPinElement,
+} from "@/lib/alentoMapMarker";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -152,28 +156,18 @@ function formatDuration(seconds?: number | null) {
   return `${Math.max(1, Math.round(seconds / 60))} min`;
 }
 
-function createDriverMarkerElement() {
-  const root = document.createElement("div");
-  root.style.width = "44px";
-  root.style.height = "44px";
-  root.style.borderRadius = "999px";
-  root.style.background = "#111";
-  root.style.border = "3px solid #fff";
-  root.style.boxShadow = "0 8px 22px rgba(0,0,0,.30)";
-  root.style.display = "flex";
-  root.style.alignItems = "center";
-  root.style.justifyContent = "center";
-  root.style.fontSize = "22px";
-  root.textContent = "🛵";
-  root.setAttribute("aria-label", "Tu repartidor");
-  return root;
-}
 
-export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
+export default function CustomerDeliveryLiveMap({
+  token,
+  orderCode,
+}: {
+  token: string;
+  orderCode: string;
+}) {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const driverMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
-  const destinationMarkerRef = useRef<{ setMap: (map: GoogleMapInstance | null) => void } | null>(null);
+  const destinationMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
   const routeRef = useRef<GooglePolylineInstance | null>(null);
   const routeDataRef = useRef<LivePayload["route"]>(null);
 
@@ -220,7 +214,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
           map: mapRef.current,
           position: driverPoint,
           title: "Tu repartidor",
-          content: createDriverMarkerElement(),
+          content: createDriverMapPinElement(),
           zIndex: 30,
         });
       } else {
@@ -228,12 +222,15 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
       }
 
       if (!destinationMarkerRef.current) {
-        destinationMarkerRef.current = new google.maps.Marker({
+        destinationMarkerRef.current = new AdvancedMarkerElement({
           map: mapRef.current,
           position: destinationPoint,
-          title: "Tu ubicación",
+          title: `Tu pedido ${orderCode}`,
+          content: createDeliveryMapPinElement(orderCode),
           zIndex: 25,
         });
+      } else {
+        destinationMarkerRef.current.position = destinationPoint;
       }
 
       if (route?.encodedPolyline && google.maps.geometry?.encoding?.decodePath) {
@@ -276,7 +273,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
         });
       }
     },
-    [],
+    [orderCode],
   );
 
   const fetchLive = useCallback(
@@ -343,7 +340,7 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
       window.clearInterval(locationTimer);
       window.clearInterval(routeTimer);
       driverMarkerRef.current && (driverMarkerRef.current.map = null);
-      destinationMarkerRef.current?.setMap(null);
+      if (destinationMarkerRef.current) destinationMarkerRef.current.map = null;
       routeRef.current?.setMap(null);
       mapRef.current = null;
     };

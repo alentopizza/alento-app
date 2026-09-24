@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createAlentoMapPinElement,
+  createDeliveryMapPinElement,
+} from "@/lib/alentoMapMarker";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -24,6 +28,20 @@ type GoogleMapInstance = {
 
 type GoogleMarkerInstance = {
   setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GoogleAdvancedMarkerInstance = {
+  map: GoogleMapInstance | null;
+};
+
+type GoogleMarkerLibrary = {
+  AdvancedMarkerElement: new (options: {
+    map: GoogleMapInstance;
+    position: { lat: number; lng: number };
+    title?: string;
+    content?: Node;
+    zIndex?: number;
+  }) => GoogleAdvancedMarkerInstance;
 };
 
 type GooglePolylineInstance = {
@@ -224,6 +242,8 @@ export default function GoogleCustomerAddressPicker({
     const google = await loadGoogleMaps();
     await google.maps.importLibrary("maps");
     await google.maps.importLibrary("geometry");
+    const { AdvancedMarkerElement } =
+      (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
 
     const destination = {
       lat: nextQuote.destination.latitude,
@@ -251,20 +271,33 @@ export default function GoogleCustomerAddressPicker({
         lat: nextQuote.origin.latitude,
         lng: nextQuote.origin.longitude,
       };
-      originMarkerRef.current = new google.maps.Marker({
+      const originMarker = new AdvancedMarkerElement({
         map: mapInstanceRef.current,
         position: origin,
         title: "Alentó Pizza",
-        label: { text: "A", color: "#fff", fontWeight: "700" },
+        content: createAlentoMapPinElement(),
+        zIndex: 20,
       });
+      originMarkerRef.current = {
+        setMap: (map) => {
+          originMarker.map = map;
+        },
+      };
       bounds.extend(origin);
     }
 
-    destinationMarkerRef.current = new google.maps.Marker({
+    const destinationMarker = new AdvancedMarkerElement({
       map: mapInstanceRef.current,
       position: destination,
-      title: "Cliente",
+      title: "Destino del cliente",
+      content: createDeliveryMapPinElement(),
+      zIndex: 25,
     });
+    destinationMarkerRef.current = {
+      setMap: (map) => {
+        destinationMarker.map = map;
+      },
+    };
     bounds.extend(destination);
 
     if (

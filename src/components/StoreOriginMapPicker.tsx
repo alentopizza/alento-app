@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
-const ALENTO_WEB_ICON =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
 
 type GoogleLatLng = {
   lat: () => number;
@@ -28,13 +27,24 @@ type GoogleMapInstance = {
   ) => GoogleMapsListener;
 };
 
-type GoogleMarkerInstance = {
-  setMap: (map: GoogleMapInstance | null) => void;
-  setPosition: (position: { lat: number; lng: number }) => void;
+type GoogleAdvancedMarkerInstance = {
+  map: GoogleMapInstance | null;
+  position: { lat: number; lng: number };
   addListener: (
     eventName: string,
     handler: (event: GoogleMapMouseEvent) => void,
   ) => GoogleMapsListener;
+};
+
+type GoogleMarkerLibrary = {
+  AdvancedMarkerElement: new (options: {
+    map: GoogleMapInstance;
+    position: { lat: number; lng: number };
+    title?: string;
+    content?: Node;
+    zIndex?: number;
+    gmpDraggable?: boolean;
+  }) => GoogleAdvancedMarkerInstance;
 };
 
 type GoogleMapsRuntime = {
@@ -44,10 +54,7 @@ type GoogleMapsRuntime = {
       element: HTMLElement,
       options: Record<string, unknown>,
     ) => GoogleMapInstance;
-    Marker: new (
-      options: Record<string, unknown>,
-    ) => GoogleMarkerInstance;
-    Size: new (width: number, height: number) => unknown;
+
   };
 };
 
@@ -131,7 +138,7 @@ export default function StoreOriginMapPicker({
 }) {
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
-  const markerRef = useRef<GoogleMarkerInstance | null>(null);
+  const markerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState("");
@@ -182,6 +189,8 @@ export default function StoreOriginMapPicker({
       try {
         const google = await loadGoogleMaps();
         await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement } =
+          (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
 
         if (disposed || !mapHostRef.current) return;
 
@@ -198,15 +207,12 @@ export default function StoreOriginMapPicker({
           gestureHandling: "greedy",
         });
 
-        const marker = new google.maps.Marker({
+        const marker = new AdvancedMarkerElement({
           map,
           position: center,
           title: "Alentó Pizza",
-          draggable: true,
-          icon: {
-            url: ALENTO_WEB_ICON,
-            scaledSize: new google.maps.Size(48, 48),
-          },
+          content: createAlentoMapPinElement(),
+          gmpDraggable: true,
           zIndex: 30,
         });
 
@@ -242,7 +248,7 @@ export default function StoreOriginMapPicker({
               return;
             }
 
-            marker.setPosition({ lat: nextLat, lng: nextLng });
+            marker.position = { lat: nextLat, lng: nextLng };
             void resolvePoint(nextLat, nextLng);
           }),
         );
@@ -262,7 +268,7 @@ export default function StoreOriginMapPicker({
     return () => {
       disposed = true;
       listeners.forEach((listener) => listener.remove?.());
-      markerRef.current?.setMap(null);
+      if (markerRef.current) markerRef.current.map = null;
       markerRef.current = null;
       mapRef.current = null;
     };

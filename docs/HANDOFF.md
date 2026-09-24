@@ -21,8 +21,9 @@ Leer en este orden:
 13. `docs/PAYMENTS_AND_CASH.md`
 14. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
 15. `docs/DEPLOYMENT.md`
-16. `prisma/schema.prisma`
-17. archivos del módulo que se vaya a modificar.
+16. `docs/MAPS_VISUAL_SYSTEM.md`
+17. `prisma/schema.prisma`
+18. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -321,6 +322,20 @@ Clientes:
 Variables y activación están documentadas en `docs/AUTH_ROLES_AND_PUBLIC_APP.md` y `docs/DEPLOYMENT.md`.
 
 No confundir autorización visual con autorización server-side.
+
+## Sistema visual de mapas
+
+Documento canónico: `docs/MAPS_VISUAL_SYSTEM.md`.
+
+Regla obligatoria:
+
+- tienda/origen usa `createAlentoMapPinElement()`;
+- repartidor usa `createDriverMapPinElement()`;
+- domicilio usa `createDeliveryMapPinElement(orderCode)`;
+- cuando el pedido ya existe, el pin del domicilio muestra su consecutivo;
+- checkout o selección de dirección sin pedido usan el mismo pin rojo sin número;
+- no duplicar marcadores en componentes ni volver a pines predeterminados de Google para estas entidades;
+- mapas nuevos deben consumir `src/lib/alentoMapMarker.ts`.
 
 ## Integraciones
 

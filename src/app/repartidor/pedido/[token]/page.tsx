@@ -36,6 +36,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     },
     select: {
       id: true,
+      sequenceNumber: true,
+      source: true,
       driverId: true,
       status: true,
       subtotal: true,
@@ -95,6 +97,9 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
   const phone = order.customer?.phone
     ? `${order.customer.countryCode || "+57"}${order.customer.phone}`
     : null;
+  const orderCode = `${order.source}-${String(
+    order.sequenceNumber ?? order.id,
+  ).padStart(4, "0")}`;
 
   const canStartDelivery =
     assigned &&
@@ -141,6 +146,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 customerName={order.customer?.name ?? "Cliente"}
                 currentStatus={order.status}
                 canStartDelivery={canStartDelivery}
+                orderCode={orderCode}
               />
             )}
 

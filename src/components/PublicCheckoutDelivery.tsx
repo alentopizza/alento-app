@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
+import {
+  createAlentoMapPinElement,
+  createDeliveryMapPinElement,
+} from "@/lib/alentoMapMarker";
 
 type FulfillmentType = "DELIVERY" | "PICKUP";
 
@@ -346,11 +349,18 @@ export default function PublicCheckoutDelivery({
     }
 
     if (destination && mapInstanceRef.current) {
-      destinationMarkerRef.current = new google.maps.Marker({
+      const deliveryMarker = new AdvancedMarkerElement({
         map: mapInstanceRef.current,
         position: center,
         title: "Tu ubicación",
+        content: createDeliveryMapPinElement(),
+        zIndex: 25,
       });
+      destinationMarkerRef.current = {
+        setMap: (map) => {
+          deliveryMarker.map = map;
+        },
+      };
     }
 
     const bounds = new google.maps.LatLngBounds();

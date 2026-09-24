@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  createAlentoMapPinElement,
+  createDeliveryMapPinElement,
+  createDriverMapPinElement,
+} from "@/lib/alentoMapMarker";
 
 const LOGO =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -76,10 +81,20 @@ type DriverRouteSummary = {
 
 type DriverTab = "requests" | "performance" | "wallet";
 
-type GoogleMarker = {
-  setMap: (map: GoogleMap | null) => void;
-  setPosition: (point: { lat: number; lng: number }) => void;
+type GoogleAdvancedMarker = {
+  map: GoogleMap | null;
+  position: { lat: number; lng: number };
   addListener: (event: string, listener: () => void) => unknown;
+};
+
+type GoogleMarkerLibrary = {
+  AdvancedMarkerElement: new (options: {
+    map: GoogleMap;
+    position: { lat: number; lng: number };
+    title?: string;
+    content?: Node;
+    zIndex?: number;
+  }) => GoogleAdvancedMarker;
 };
 
 type GoogleMap = {
@@ -327,9 +342,9 @@ export default function DriverHome({
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
-  const driverMarkerRef = useRef<GoogleMarker | null>(null);
-  const storeMarkerRef = useRef<GoogleMarker | null>(null);
-  const requestMarkerRefs = useRef<Map<number, GoogleMarker>>(new Map());
+  const driverMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
+  const storeMarkerRef = useRef<GoogleAdvancedMarker | null>(null);
+  const requestMarkerRefs = useRef<Map<number, GoogleAdvancedMarker>>(new Map());
   const knownRequestIdsRef = useRef<Set<number> | null>(null);
   const routeSummaryCacheRef = useRef<Map<string, DriverRouteSummary>>(new Map());
   const pendingRouteSummaryRef = useRef<Set<string>>(new Set());
@@ -810,6 +825,8 @@ export default function DriverHome({
       try {
         const google = await loadGoogleMaps();
         await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement } =
+          (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
 
         if (disposed || !mapHostRef.current) return;
 
@@ -862,24 +879,21 @@ export default function DriverHome({
           };
 
           if (!driverMarkerRef.current) {
-            driverMarkerRef.current = new google.maps.Marker({
+            driverMarkerRef.current = new AdvancedMarkerElement({
               map: mapRef.current,
               position: point,
               title: driver.name,
-              label: {
-                text: "🛵",
-                fontSize: "17px",
-              },
+              content: createDriverMapPinElement(),
               zIndex: 50,
             });
           } else {
-            driverMarkerRef.current.setPosition(point);
+            driverMarkerRef.current.position = point;
           }
 
           bounds.extend(point);
           points += 1;
         } else if (driverMarkerRef.current) {
-          driverMarkerRef.current.setMap(null);
+          driverMarkerRef.current.map = null;
           driverMarkerRef.current = null;
         }
 
@@ -890,24 +904,21 @@ export default function DriverHome({
           };
 
           if (!storeMarkerRef.current) {
-            storeMarkerRef.current = new google.maps.Marker({
+            storeMarkerRef.current = new AdvancedMarkerElement({
               map: mapRef.current,
               position: storePoint,
               title: "Alentó Pizza",
-              label: {
-                text: "🏠",
-                fontSize: "18px",
-              },
+              content: createAlentoMapPinElement(),
               zIndex: 45,
             });
           } else {
-            storeMarkerRef.current.setPosition(storePoint);
+            storeMarkerRef.current.position = storePoint;
           }
 
           bounds.extend(storePoint);
           points += 1;
         } else if (storeMarkerRef.current) {
-          storeMarkerRef.current.setMap(null);
+          storeMarkerRef.current.map = null;
           storeMarkerRef.current = null;
         }
 
@@ -923,18 +934,13 @@ export default function DriverHome({
           const existing = requestMarkerRefs.current.get(order.id);
 
           if (existing) {
-            existing.setPosition(point);
+            existing.position = point;
           } else {
-            const marker = new google.maps.Marker({
+            const marker = new AdvancedMarkerElement({
               map: mapRef.current!,
               position: point,
               title: `${order.code} · ${order.customerName}`,
-              label: {
-                text: order.code.split("-").pop()?.slice(-2) || "•",
-                color: "#ffffff",
-                fontSize: "9px",
-                fontWeight: "700",
-              },
+              content: createDeliveryMapPinElement(order.code),
               zIndex: order.claimable ? 30 : order.assignment?.own ? 40 : 20,
             });
 
@@ -957,7 +963,7 @@ export default function DriverHome({
 
         requestMarkerRefs.current.forEach((marker, orderId) => {
           if (!visibleRequestIds.has(orderId)) {
-            marker.setMap(null);
+            marker.map = null;
             requestMarkerRefs.current.delete(orderId);
           }
         });

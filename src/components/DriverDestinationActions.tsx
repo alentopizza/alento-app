@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
+import {
+  createAlentoMapPinElement,
+  createDeliveryMapPinElement,
+  createDriverMapPinElement,
+} from "@/lib/alentoMapMarker";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -156,21 +160,6 @@ function formatDuration(seconds?: number | null) {
   return `${Math.max(1, Math.round(seconds / 60))} min`;
 }
 
-function createDriverMarkerElement() {
-  const root = document.createElement("div");
-  root.style.width = "42px";
-  root.style.height = "42px";
-  root.style.borderRadius = "999px";
-  root.style.background = "#111";
-  root.style.border = "3px solid #fff";
-  root.style.boxShadow = "0 8px 20px rgba(0,0,0,.28)";
-  root.style.display = "flex";
-  root.style.alignItems = "center";
-  root.style.justifyContent = "center";
-  root.style.fontSize = "21px";
-  root.textContent = "🛵";
-  return root;
-}
 
 export default function DriverDestinationActions({
   token,
@@ -178,12 +167,14 @@ export default function DriverDestinationActions({
   customerName,
   currentStatus,
   canStartDelivery,
+  orderCode,
 }: {
   token: string;
   phone: string | null;
   customerName: string;
   currentStatus: string;
   canStartDelivery: boolean;
+  orderCode: string;
 }) {
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
@@ -280,18 +271,19 @@ export default function DriverDestinationActions({
           lng: data.driver.longitude,
         },
         title: "Repartidor",
-        content: createDriverMarkerElement(),
+        content: createDriverMapPinElement(),
         zIndex: 30,
       });
       markerRefs.current.push(driverMarker);
 
-      const customerMarker = new google.maps.Marker({
+      const customerMarker = new AdvancedMarkerElement({
         map,
         position: {
           lat: data.destination.latitude,
           lng: data.destination.longitude,
         },
-        title: customerName,
+        title: `${orderCode} · ${customerName}`,
+        content: createDeliveryMapPinElement(orderCode),
         zIndex: 25,
       });
       markerRefs.current.push(customerMarker);
@@ -340,7 +332,7 @@ export default function DriverDestinationActions({
         left: 68,
       });
     },
-    [customerName],
+    [customerName, orderCode],
   );
 
   const requestNavigation = useCallback(

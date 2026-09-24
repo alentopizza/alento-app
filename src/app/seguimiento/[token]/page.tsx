@@ -323,7 +323,7 @@ export default async function TrackingPage({
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
             {order.fulfillmentType === "DELIVERY" &&
               order.status === "OUT_FOR_DELIVERY" && (
-                <CustomerDeliveryLiveMap token={token} />
+                <CustomerDeliveryLiveMap token={token} orderCode={code} />
               )}
 
             <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
