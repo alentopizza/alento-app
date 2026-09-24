@@ -93,9 +93,11 @@ API principal:
 Caja usa la zona horaria de Colombia y separa cuatro conceptos:
 
 - **Ventas**: suma de pedidos creados dentro del rango, excluyendo DRAFT y CANCELED.
-- **Ingresó**: suma únicamente `Payment.status = PAID` por `paidAt` dentro del rango.
+- **Cobros de ventas**: suma únicamente `Payment.status = PAID` por `paidAt` dentro del rango.
+- **Otros ingresos**: suma de `CashIncome.amount` por `occurredAt` dentro del rango.
+- **Entró total**: cobros de ventas + otros ingresos.
 - **Salió**: suma de `CashExpense.amount` por `occurredAt` dentro del rango.
-- **Flujo neto**: ingresos realmente recibidos menos salidas.
+- **Flujo neto**: entró total menos salidas.
 
 También muestra:
 
@@ -222,3 +224,56 @@ Al completar la importación se crea el lock:
 `cash_expenses_import_v1`
 
 No volver a ejecutar la misma migración después de crear ese lock.
+
+
+## Otros ingresos de Caja
+
+Modelo:
+
+`CashIncome`
+
+Se usa para entradas de dinero que no están asociadas a un `Payment` de un pedido, por ejemplo:
+
+- ingresos de Rappi;
+- retornos o ajustes de Wompi;
+- préstamos;
+- ventas históricas no facturadas/no registradas como Order;
+- ajustes u otras entradas extraordinarias.
+
+Campos:
+
+- `category`: tipo de ingreso;
+- `note`: observación;
+- `amount`: monto;
+- `occurredAt`: fecha/hora real de ingreso;
+- `source`: `MANUAL` o `GLIDE_IMPORT`;
+- `createdByName`: responsable del registro/importación.
+
+Rutas:
+
+- `POST /api/caja/incomes`: registrar otro ingreso;
+- `DELETE /api/caja/incomes/[id]`: eliminar un ingreso cargado por error;
+- `GET/POST /api/caja/incomes/import`: migración histórica ADMIN.
+
+La categoría `Venta` dentro de este modelo sigue siendo **otro ingreso histórico/manual**, no una venta de pedidos. No se suma a `Ventas` para evitar falsear el total de Orders.
+
+### Importación histórica de otros ingresos
+
+Formato esperado:
+
+`Fecha, Tipo De Ingreso, Observación, Monto`
+
+La migración es de una sola ejecución y crea el lock:
+
+`cash_incomes_import_v1`
+
+El resumen de Caja queda definido como:
+
+```text
+Ventas = Orders del período
+Cobros de ventas = Payments PAID del período
+Otros ingresos = CashIncome del período
+Entró total = Cobros de ventas + Otros ingresos
+Salidas = CashExpense del período
+Flujo neto = Entró total - Salidas
+```

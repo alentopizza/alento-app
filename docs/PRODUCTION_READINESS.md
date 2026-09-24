@@ -34,7 +34,7 @@ Estados usados:
 | Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, mapa/ETA/moto hasta ARRIVED; GPS continúa hasta DELIVERED, luego se cierra el seguimiento activo y queda historial |
 | Checkout WEB | LISTO CON VALIDACIÓN | invitado o sesión → dirección/cobertura → pago previsto → WEB-xxxx → seguimiento |
 | Pagos | LISTO CON VALIDACIÓN | intención PENDING, múltiples ingresos PAID, pagos parciales/mixtos, saldo |
-| Caja | LISTO CON VALIDACIÓN | rango de fechas, ventas por pedidos, ingresos reales por PAID, salidas, flujo neto, desglose por medio/categoría y migración histórica de salidas |
+| Caja | LISTO CON VALIDACIÓN | rango de fechas, ventas por pedidos, cobros PAID, otros ingresos, entradas totales, salidas, flujo neto, desglose por medio/tipo/categoría y migraciones históricas |
 | Devoluciones / refunds | PENDIENTE CONTROLADO | no existe flujo contable de devolución; se bloquea cancelar un pedido que ya tenga dinero PAID |
 | Club Alentó | PARCIAL | acumulación, saldo e historial funcionan; canje transaccional dentro del checkout sigue pendiente |
 | Clientes | LISTO CON VALIDACIÓN | CRM, clasificación, historial, dirección Google con ajuste manual del pin, importación/exportación y permisos |
@@ -411,3 +411,20 @@ La pantalla permite seleccionar fecha inicial y final, registrar/eliminar salida
 Se añadió una migración ADMIN de una sola ejecución para el histórico de salidas proveniente de Glide, conservando fecha, categoría, subtipo, observación y monto.
 
 Regla de no regresión: **Ventas e ingresos no son sinónimos**. Ventas usa fecha de creación del pedido; Ingresos usa exclusivamente `Payment.paidAt` con estado `PAID`.
+
+
+### 2026-09-24 — Otros ingresos de Caja
+
+Se añadió `CashIncome` para registrar entradas que no corresponden a pagos de pedidos.
+
+Caja distingue ahora:
+
+`Ventas → Cobros de ventas → Otros ingresos → Entró total → Salidas → Flujo neto`
+
+La importación histórica ADMIN acepta:
+
+`Fecha, Tipo De Ingreso, Observación, Monto`
+
+y se bloquea después de ejecutarse mediante `cash_incomes_import_v1`.
+
+Regla de no regresión: un `CashIncome` nunca crea ni modifica un Order ni un Payment. Incluso si su categoría es `Venta`, permanece como entrada adicional para no duplicar ventas registradas en pedidos.
