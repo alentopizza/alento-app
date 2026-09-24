@@ -194,7 +194,7 @@ export default function OrdersCardsDashboardV3() {
   const [deliveryMapOpen, setDeliveryMapOpen] = useState(false);
   const [historyImportOpen, setHistoryImportOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [filter, setFilter] = useState<Filter>("ACTIVE");
   const [selected, setSelected] = useState<Order | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -757,7 +757,7 @@ export default function OrdersCardsDashboardV3() {
       <section className="rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-sm">
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"><Icon name="search" /></span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar pedido, cliente, teléfono, pago o estado" className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 text-sm outline-none focus:border-neutral-400" /></div>
-          <div className="flex gap-1.5 overflow-x-auto">{([ ["ALL", "Todos"], ["ACTIVE", "Activos"], ["COMPLETED", "Finalizados"], ["CANCELED", "Cancelados"] ] as [Filter, string][]).map(([value, label]) => <button key={value} onClick={() => setFilter(value)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-bold ${filter === value ? "bg-black text-white" : "border border-neutral-200 bg-white text-neutral-600"}`}>{label}</button>)}</div>
+          <div className="flex gap-1.5 overflow-x-auto">{([ ["ACTIVE", "Activos"], ["COMPLETED", "Finalizados"], ["CANCELED", "Cancelados"], ["ALL", "Todos"] ] as [Filter, string][]).map(([value, label]) => <button key={value} onClick={() => setFilter(value)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-bold ${filter === value ? "bg-black text-white" : "border border-neutral-200 bg-white text-neutral-600"}`}>{label}</button>)}</div>
         </div>
       </section>
 
