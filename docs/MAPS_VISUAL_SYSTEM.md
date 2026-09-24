@@ -44,7 +44,8 @@ Reglas:
 - usar el código real, por ejemplo `POS-0026` o `WEB-0041`; el helper extrae `26` o `41`;
 - si aún no existe pedido —checkout o edición de dirección— usar `createDeliveryMapPinElement()` sin número;
 - no usar el pin predeterminado de Google para un domicilio de Alentó.
-- en rutas con múltiples entregas usar `createDeliveryRouteStopPinElement(orderCode, stopNumber, routeColor)`; el número principal sigue siendo el pedido y el badge pequeño identifica `Parada 1`, `Parada 2`, etc.
+- en rutas con múltiples entregas usar `createDeliveryRouteStopPinElement(orderCode, stopNumber, routeColor)`; el número principal sigue siendo el pedido y el badge pequeño identifica `Parada 1`, `Parada 2`, etc.;
+- el `routeColor` debe corresponder al tramo que llega a esa parada, no al repartidor completo: `Moto → Parada 1` y `Parada 1 → Parada 2` usan colores distintos aunque pertenezcan al mismo repartidor.
 
 ## Implementación
 

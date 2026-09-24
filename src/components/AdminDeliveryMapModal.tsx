@@ -238,21 +238,25 @@ export default function AdminDeliveryMapModal({
   const markersRef = useRef<GoogleAdvancedMarker[]>([]);
   const routesRef = useRef<GooglePolyline[]>([]);
   const initialFitRef = useRef(false);
-  const colorByDriverRef = useRef<Map<number, string>>(new Map());
+  const colorByLegRef = useRef<Map<string, string>>(new Map());
 
   const [data, setData] = useState<MapPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const colorForDriver = useCallback((driverId: number) => {
-    const existing = colorByDriverRef.current.get(driverId);
-    if (existing) return existing;
+  const colorForLeg = useCallback(
+    (driverId: number, orderId: number) => {
+      const key = `${driverId}:${orderId}`;
+      const existing = colorByLegRef.current.get(key);
+      if (existing) return existing;
 
-    const color =
-      ROUTE_COLORS[colorByDriverRef.current.size % ROUTE_COLORS.length];
-    colorByDriverRef.current.set(driverId, color);
-    return color;
-  }, []);
+      const color =
+        ROUTE_COLORS[colorByLegRef.current.size % ROUTE_COLORS.length];
+      colorByLegRef.current.set(key, color);
+      return color;
+    },
+    [],
+  );
 
   const mergePayload = useCallback((next: MapPayload) => {
     setData((current) => {
@@ -323,7 +327,7 @@ export default function AdminDeliveryMapModal({
     if (!open) return;
 
     initialFitRef.current = false;
-    colorByDriverRef.current.clear();
+    colorByLegRef.current.clear();
     void load(true);
 
     const locationTimer = window.setInterval(() => {
@@ -410,11 +414,10 @@ export default function AdminDeliveryMapModal({
       >();
 
       payload.trips.forEach((trip) => {
-        const color = colorForDriver(trip.driverId);
         trip.stops.forEach((stop) => {
           routeStopByOrder.set(stop.orderId, {
             stopNumber: stop.stopNumber,
-            color,
+            color: colorForLeg(trip.driverId, stop.orderId),
             driverName: trip.driverName,
           });
         });
@@ -472,14 +475,13 @@ export default function AdminDeliveryMapModal({
       payload.trips.forEach((trip) => {
         if (!google.maps.geometry?.encoding?.decodePath) return;
 
-        const color = colorForDriver(trip.driverId);
-
         trip.legs.forEach((leg) => {
           if (!leg.encodedPolyline) return;
 
           const path = google.maps.geometry!.encoding!.decodePath(
             leg.encodedPolyline,
           );
+          const color = colorForLeg(trip.driverId, leg.orderId);
 
           const polyline = new google.maps.Polyline({
             map,
@@ -509,7 +511,7 @@ export default function AdminDeliveryMapModal({
         }
       }
     },
-    [colorForDriver],
+    [colorForLeg],
   );
 
   useEffect(() => {
@@ -550,12 +552,14 @@ export default function AdminDeliveryMapModal({
       (data?.trips ?? []).map((trip) => ({
         id: trip.driverId,
         name: trip.driverName,
-        color: colorForDriver(trip.driverId),
-        stops: trip.stops,
+        stops: trip.stops.map((stop) => ({
+          ...stop,
+          color: colorForLeg(trip.driverId, stop.orderId),
+        })),
         distanceMeters: trip.totalDistanceMeters,
         durationSeconds: trip.totalDurationSeconds,
       })),
-    [colorForDriver, data],
+    [colorForLeg, data],
   );
 
   if (!open) return null;
@@ -630,19 +634,24 @@ export default function AdminDeliveryMapModal({
                     key={item.id}
                     className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1.5"
                   >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
                     <b className="text-[9px]">{item.name}</b>
-                    <span className="text-[8px] text-white/48">
-                      {item.stops
-                        .map(
-                          (stop) =>
-                            `${stop.stopNumber}. ${stop.code}`,
-                        )
-                        .join("  →  ")}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {item.stops.map((stop, index) => (
+                        <span
+                          key={stop.orderId}
+                          className="inline-flex items-center gap-1 text-[8px] text-white/52"
+                        >
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: stop.color }}
+                          />
+                          {stop.stopNumber}. {stop.code}
+                          {index < item.stops.length - 1 && (
+                            <span className="ml-0.5 text-white/22">→</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                     {item.distanceMeters > 0 && (
                       <span className="text-[8px] text-white/28">
                         {formatDistance(item.distanceMeters)}
