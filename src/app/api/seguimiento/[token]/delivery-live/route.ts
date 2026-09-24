@@ -35,6 +35,8 @@ export async function GET(
       driver: {
         select: {
           name: true,
+          whatsappCountryCode: true,
+          whatsappPhone: true,
           driverLatitude: true,
           driverLongitude: true,
           driverLocationAccuracy: true,
@@ -131,11 +133,15 @@ export async function GET(
 
   return NextResponse.json({
     status: order.status,
-    driver: order.driver
-      ? {
-          name: order.driver.name,
-        }
-      : null,
+    driver:
+      order.driver && trackingActive
+        ? {
+            name: order.driver.name,
+            phone: order.driver.whatsappPhone
+              ? `${order.driver.whatsappCountryCode || "+57"}${order.driver.whatsappPhone}`
+              : null,
+          }
+        : null,
     location: locationAvailable
       ? {
           latitude: driverLatitude,

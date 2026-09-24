@@ -239,6 +239,8 @@ Regla de no regresión: el seguimiento del cliente permanece visible también en
 
 El repartidor debe ver el estado de pago en español y con señal visual operacional: **Pagado** en verde cuando la suma de movimientos PAID cubra el total; **Pendiente por cobrar** o **Pago parcial** en rojo cuando todavía exista saldo. Nunca mostrar al repartidor estados crudos en inglés como PENDING/PAID para decidir si debe cobrar.
 
+Durante OUT_FOR_DELIVERY y ARRIVED el cliente puede contactar por llamada al repartidor desde el encabezado del mapa en vivo. El teléfono del repartidor solo se expone en el endpoint firmado de seguimiento mientras ese seguimiento está activo; después de DELIVERED/COMPLETED deja de devolverse.
+
 1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
