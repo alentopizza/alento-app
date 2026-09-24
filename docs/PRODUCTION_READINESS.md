@@ -342,3 +342,4 @@ Corregido: `CASHIER` también puede ejecutar transiciones operativas de estado d
 
 - ✅ 2026-09-23 — POS → Local: flujo validado correctamente de punta a punta.
 - ✅ 2026-09-24 — POS → Recoger: flujo validado correctamente de punta a punta, incluyendo Cocina, READY, pago y COMPLETED con usuario CASHIER.
+- ✅ 2026-09-24 — POS → Domicilio: flujo validado correctamente de punta a punta, incluyendo tarifa automática, asignación y geocerca del repartidor, navegación y recálculo de ruta, seguimiento cliente hasta ARRIVED, contacto cliente↔repartidor, estado de pago visible para el repartidor y cierre de seguimiento al marcar DELIVERED.
