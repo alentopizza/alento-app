@@ -59,8 +59,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       payments: {
         where: { status: { not: "CANCELED" } },
         orderBy: { id: "desc" },
-        take: 1,
-        select: { method: true, status: true },
+        select: { method: true, status: true, amount: true },
       },
       items: {
         orderBy: { id: "asc" },
@@ -100,6 +99,17 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
   const orderCode = `${order.source}-${String(
     order.sequenceNumber ?? order.id,
   ).padStart(4, "0")}`;
+  const paidAmount = order.payments
+    .filter((payment) => payment.status === "PAID")
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const totalAmount = Number(order.total);
+  const paymentPending = Math.max(0, totalAmount - paidAmount);
+  const paymentPaid = paymentPending <= 0;
+  const paymentPartiallyPaid = paidAmount > 0 && !paymentPaid;
+  const paymentMethod =
+    order.payments.find((payment) => payment.status === "PAID")?.method ??
+    order.payments[0]?.method ??
+    "Sin información";
 
   const canStartDelivery =
     assigned &&
@@ -188,17 +198,30 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
               </b>
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-[11px]">
-              <span className="text-white/48">Medio de pago</span>
-              <div className="flex items-center gap-2">
-                <b className="text-white">
-                  {order.payments[0]?.method ?? "Sin información"}
-                </b>
-                {order.payments[0]?.status && (
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[.06em] text-white/55">
-                    {order.payments[0].status}
-                  </span>
-                )}
+            <div className="mt-3 border-t border-white/10 pt-3">
+              <div className="flex items-center justify-between gap-4 text-[11px]">
+                <span className="text-white/48">Medio de pago</span>
+                <b className="text-white">{paymentMethod}</b>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <span className="text-[11px] text-white/48">
+                  Estado de pago
+                </span>
+                <span
+                  className={
+                    "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[.06em] " +
+                    (paymentPaid
+                      ? "border-emerald-300/25 bg-emerald-400/15 text-emerald-300"
+                      : "border-[#ff6267]/25 bg-[#e21a22]/15 text-[#ff7a7e]")
+                  }
+                >
+                  {paymentPaid
+                    ? "Pagado"
+                    : paymentPartiallyPaid
+                      ? `Pago parcial · falta ${money(paymentPending)}`
+                      : "Pendiente por cobrar"}
+                </span>
               </div>
             </div>
 

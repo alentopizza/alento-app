@@ -237,6 +237,8 @@ Antes de probar domicilio, validar en Configuración que las zonas activas sean 
 
 Regla de no regresión: el seguimiento del cliente permanece visible también en ARRIVED ("Llegó") y la ubicación continúa actualizándose hasta DELIVERED. Al marcar DELIVERED, el seguimiento activo se cierra, desaparece de pedidos en proceso y la pantalla pública muestra una notificación breve "Pedido XXXX fue entregado"; el detalle posterior queda en el historial de /cuenta. No existe un sexto paso visual "Entregado" dentro del seguimiento activo.
 
+El repartidor debe ver el estado de pago en español y con señal visual operacional: **Pagado** en verde cuando la suma de movimientos PAID cubra el total; **Pendiente por cobrar** o **Pago parcial** en rojo cuando todavía exista saldo. Nunca mostrar al repartidor estados crudos en inglés como PENDING/PAID para decidir si debe cobrar.
+
 1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.

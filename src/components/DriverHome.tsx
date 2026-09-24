@@ -56,7 +56,10 @@ type DriverRequest = {
   customerPhone: string | null;
   payment: {
     method: string;
-    status: string;
+    paidAmount: number;
+    balance: number;
+    paid: boolean;
+    partial: boolean;
   } | null;
   address: {
     address: string;
@@ -1765,15 +1768,31 @@ export default function DriverHome({
                       </b>
                     </div>
                   )}
-                  <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-2">
-                    <span className="text-white/42">Pago</span>
-                    <div className="flex items-center gap-2">
-                      <b>{selectedOrder.payment?.method || "Sin información"}</b>
-                      {selectedOrder.payment?.status && (
-                        <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[8px] font-black uppercase text-white/40">
-                          {selectedOrder.payment.status}
-                        </span>
-                      )}
+                  <div className="border-t border-white/10 pt-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-white/42">Medio de pago</span>
+                      <b>
+                        {selectedOrder.payment?.method || "Sin información"}
+                      </b>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <span className="text-white/42">Estado de pago</span>
+                      <span
+                        className={
+                          "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[.05em] " +
+                          (selectedOrder.payment?.paid
+                            ? "border-emerald-300/20 bg-emerald-400/12 text-emerald-300"
+                            : "border-[#ff6267]/20 bg-[#e21a22]/12 text-[#ff7a7e]")
+                        }
+                      >
+                        {selectedOrder.payment?.paid
+                          ? "Pagado"
+                          : selectedOrder.payment?.partial
+                            ? `Pago parcial · falta ${money(
+                                selectedOrder.payment.balance,
+                              )}`
+                            : "Pendiente por cobrar"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-end justify-between gap-3 border-t border-white/10 pt-3">

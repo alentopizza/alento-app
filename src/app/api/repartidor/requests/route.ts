@@ -112,11 +112,12 @@ export async function GET() {
             },
           },
           payments: {
+            where: { status: { not: "CANCELED" } },
             orderBy: { id: "desc" },
-            take: 1,
             select: {
               method: true,
               status: true,
+              amount: true,
             },
           },
         },
@@ -186,12 +187,28 @@ export async function GET() {
           customerPhone: order.customer?.phone
             ? `${order.customer.countryCode || ""}${order.customer.phone}`
             : null,
-          payment: order.payments[0]
-            ? {
-                method: order.payments[0].method,
-                status: order.payments[0].status,
-              }
-            : null,
+          payment: (() => {
+            const paidAmount = order.payments
+              .filter((payment) => payment.status === "PAID")
+              .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            const total = Number(order.total);
+            const balance = Math.max(0, total - paidAmount);
+            const paid = balance <= 0;
+            const partial = paidAmount > 0 && !paid;
+
+            return {
+              method:
+                order.payments.find(
+                  (payment) => payment.status === "PAID",
+                )?.method ??
+                order.payments[0]?.method ??
+                "Sin información",
+              paidAmount,
+              balance,
+              paid,
+              partial,
+            };
+          })(),
           address: order.address
             ? {
                 address:
