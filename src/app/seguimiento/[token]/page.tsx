@@ -163,7 +163,6 @@ function trackingStages(fulfillmentType: string, status: string) {
     { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
     { label: "Horneando", statuses: ["PREPARED"] },
     { label: "Listo para recoger", statuses: ["READY"] },
-    { label: "Finalizado", statuses: ["COMPLETED"] },
   ];
 
   const stages = fulfillmentType === "DELIVERY" ? delivery : pickup;
@@ -220,6 +219,13 @@ export default async function TrackingPage({
     ["DELIVERED", "COMPLETED"].includes(order.status)
   ) {
     redirect(`/menu?pedidoEntregado=${encodeURIComponent(code)}`);
+  }
+
+  if (
+    order.fulfillmentType !== "DELIVERY" &&
+    order.status === "COMPLETED"
+  ) {
+    redirect(`/menu?pedidoFinalizado=${encodeURIComponent(code)}`);
   }
 
   const { stages, current } = trackingStages(order.fulfillmentType, order.status);

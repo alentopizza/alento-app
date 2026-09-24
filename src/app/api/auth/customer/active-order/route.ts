@@ -31,7 +31,7 @@ export async function GET() {
 
   const recentWindow = new Date(Date.now() - 15 * 60 * 1000);
 
-  const [orders, recentDelivered] = await Promise.all([
+  const [orders, recentDelivered, recentFinalized] = await Promise.all([
     prisma.order.findMany({
       where: {
         customerId: account.customerId,
@@ -55,6 +55,21 @@ export async function GET() {
         customerId: account.customerId,
         fulfillmentType: "DELIVERY",
         status: { in: ["DELIVERED", "COMPLETED"] },
+        updatedAt: { gte: recentWindow },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        sequenceNumber: true,
+        source: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.order.findFirst({
+      where: {
+        customerId: account.customerId,
+        fulfillmentType: { in: ["PICKUP", "STORE"] },
+        status: "COMPLETED",
         updatedAt: { gte: recentWindow },
       },
       orderBy: { updatedAt: "desc" },
@@ -98,6 +113,15 @@ export async function GET() {
             recentDelivered.sequenceNumber ?? recentDelivered.id,
           ).padStart(4, "0")}`,
           updatedAt: recentDelivered.updatedAt,
+        }
+      : null,
+    recentFinalized: recentFinalized
+      ? {
+          id: recentFinalized.id,
+          code: `${recentFinalized.source}-${String(
+            recentFinalized.sequenceNumber ?? recentFinalized.id,
+          ).padStart(4, "0")}`,
+          updatedAt: recentFinalized.updatedAt,
         }
       : null,
   });

@@ -28,7 +28,6 @@ const PICKUP_STAGES: Stage[] = [
   { label: "Preparando" },
   { label: "Horneando" },
   { label: "Listo para recoger" },
-  { label: "Finalizado" },
 ];
 
 function stageIndex(order: ActiveOrder) {
@@ -174,6 +173,7 @@ export default function PublicActiveOrderBanner({
   const [orders, setOrders] = useState<ActiveOrder[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [deliveredNotice, setDeliveredNotice] = useState<string | null>(null);
+  const [finalizedNotice, setFinalizedNotice] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
   const previousOrderIdsRef = useRef<Set<number> | null>(null);
 
@@ -182,9 +182,19 @@ export default function PublicActiveOrderBanner({
 
     const url = new URL(window.location.href);
     const deliveredFromTracking = url.searchParams.get("pedidoEntregado");
+    const finalizedFromTracking = url.searchParams.get("pedidoFinalizado");
+
     if (deliveredFromTracking) {
       setDeliveredNotice(deliveredFromTracking);
       url.searchParams.delete("pedidoEntregado");
+    }
+
+    if (finalizedFromTracking) {
+      setFinalizedNotice(finalizedFromTracking);
+      url.searchParams.delete("pedidoFinalizado");
+    }
+
+    if (deliveredFromTracking || finalizedFromTracking) {
       window.history.replaceState({}, "", url.pathname + url.search + url.hash);
     }
 
@@ -211,6 +221,12 @@ export default function PublicActiveOrderBanner({
             typeof data.recentDelivered.code === "string"
               ? (data.recentDelivered as { id: number; code: string })
               : null;
+          const recentFinalized =
+            data?.recentFinalized &&
+            typeof data.recentFinalized.id === "number" &&
+            typeof data.recentFinalized.code === "string"
+              ? (data.recentFinalized as { id: number; code: string })
+              : null;
           const previousOrderIds = previousOrderIdsRef.current;
 
           if (
@@ -221,6 +237,17 @@ export default function PublicActiveOrderBanner({
             if (!window.sessionStorage.getItem(noticeKey)) {
               window.sessionStorage.setItem(noticeKey, "1");
               setDeliveredNotice(recentDelivered.code);
+            }
+          }
+
+          if (
+            recentFinalized &&
+            previousOrderIds?.has(recentFinalized.id)
+          ) {
+            const noticeKey = `alento-finalized-notice:${recentFinalized.id}`;
+            if (!window.sessionStorage.getItem(noticeKey)) {
+              window.sessionStorage.setItem(noticeKey, "1");
+              setFinalizedNotice(recentFinalized.code);
             }
           }
 
@@ -256,6 +283,16 @@ export default function PublicActiveOrderBanner({
     return () => window.clearTimeout(timer);
   }, [deliveredNotice]);
 
+  useEffect(() => {
+    if (!finalizedNotice) return;
+
+    const timer = window.setTimeout(() => {
+      setFinalizedNotice(null);
+    }, 9000);
+
+    return () => window.clearTimeout(timer);
+  }, [finalizedNotice]);
+
   function goTo(index: number) {
     const rail = railRef.current;
     if (!rail || !orders.length) return;
@@ -275,7 +312,7 @@ export default function PublicActiveOrderBanner({
     setActiveIndex(Math.max(0, Math.min(index, orders.length - 1)));
   }
 
-  if (!orders.length && !deliveredNotice) return null;
+  if (!orders.length && !deliveredNotice && !finalizedNotice) return null;
 
   return (
     <>
@@ -307,6 +344,42 @@ export default function PublicActiveOrderBanner({
           <button
             type="button"
             onClick={() => setDeliveredNotice(null)}
+            aria-label="Cerrar notificación"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-sm text-white/50"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {finalizedNotice && (
+        <div
+          role="status"
+          className={
+            "mb-3 flex items-center gap-3 rounded-[18px] border border-emerald-400/20 bg-[#071a13] px-4 py-3 text-white shadow-[0_14px_38px_rgba(5,150,105,.18)] " +
+            className
+          }
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
+            ✓
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[8px] font-black uppercase tracking-[0.12em] text-emerald-300">
+              Pedido finalizado
+            </p>
+            <b className="mt-0.5 block text-[12px]">
+              Pedido {finalizedNotice} fue finalizado.
+            </b>
+          </div>
+          <Link
+            href="/cuenta"
+            className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[8px] font-black text-white/75"
+          >
+            Historial
+          </Link>
+          <button
+            type="button"
+            onClick={() => setFinalizedNotice(null)}
             aria-label="Cerrar notificación"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-sm text-white/50"
           >

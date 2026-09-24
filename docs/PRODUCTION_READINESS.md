@@ -259,6 +259,8 @@ Regla visual: el código del pedido debe quedar visible en la cabecera tanto par
 
 Regla visual: si una dirección está fuera de cobertura, la alerta de fuera de cobertura debe mostrarse superpuesta dentro del mapa y permitir **Editar dirección** o cambiar directamente a **Recoger en tienda**.
 
+Regla de cierre público: para PICKUP/STORE, COMPLETED cierra el seguimiento activo inmediatamente, redirige al menú y muestra una notificación breve **"Pedido XXXX fue finalizado"**. No existe un paso visual "Finalizado" dentro del seguimiento activo; el detalle posterior queda en el historial de /cuenta.
+
 1. Compra invitado.
 2. Cliente autenticado.
 3. Domicilio y Recoger.
