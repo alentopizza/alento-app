@@ -97,7 +97,10 @@ Acceso total al sistema interno.
 
 - Punto de venta;
 - Pedidos;
-- Caja.
+- Caja;
+- puede buscar, crear y actualizar el cliente necesario para cerrar una venta desde POS;
+- puede consultar cupones, elegibilidad de descuentos y cálculo de domicilio usados por POS;
+- no recibe por ello acceso a la página CRM `/clientes`, que continúa reservada a ADMIN/POS.
 
 ### DRIVER
 

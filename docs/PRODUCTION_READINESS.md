@@ -289,3 +289,27 @@ Para el go-live funcional de Alentó:
 8. dejar refund bloqueado hasta implementarlo;
 9. realizar un pedido real de punta a punta por cada modalidad;
 10. observar logs durante el primer turno completo.
+
+
+## Incidencias encontradas durante la validación manual
+
+### 2026-09-23 — CASHIER en POS
+
+Primera prueba de producción:
+
+`CASHIER → /interno → buscar cliente`
+
+Resultado inicial: `403 Sin permisos`.
+
+Causa: el rol `CASHIER` tenía acceso a la página del Punto de Venta, pero middleware bloqueaba APIs necesarias para completar el mismo flujo.
+
+Corregido:
+
+- búsqueda/creación/actualización operativa de clientes;
+- lectura de cupones;
+- elegibilidad de descuentos;
+- APIs de domicilio requeridas por POS;
+- creación de pedidos `POST /api/orders`;
+- actualización de la dirección propia del cliente por sesión pública ya no queda interceptada como API staff.
+
+Regla de no regresión: **si un rol puede entrar al POS, debe poder completar el flujo POS de punta a punta**. El acceso a APIs operativas no implica acceso a la página CRM `/clientes`.

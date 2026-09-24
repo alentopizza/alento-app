@@ -29,14 +29,14 @@ function apiRoles(pathname: string, method: string): string[] | null {
   }
 
   if (pathname === "/api/coupons") {
-    return method === "GET" ? ["ADMIN", "POS"] : ["ADMIN"];
+    return method === "GET" ? ["ADMIN", "POS", "CASHIER"] : ["ADMIN"];
   }
   if (pathname.startsWith("/api/coupons/")) return ["ADMIN"];
 
   if (pathname.startsWith("/api/caja")) return ["ADMIN", "CASHIER"];
-  if (pathname.startsWith("/api/customers")) return ["ADMIN", "POS"];
-  if (pathname.startsWith("/api/delivery")) return ["ADMIN", "POS"];
-  if (pathname.startsWith("/api/discount")) return ["ADMIN", "POS"];
+  if (pathname.startsWith("/api/customers")) return ["ADMIN", "POS", "CASHIER"];
+  if (pathname.startsWith("/api/delivery")) return ["ADMIN", "POS", "CASHIER"];
+  if (pathname.startsWith("/api/discount")) return ["ADMIN", "POS", "CASHIER"];
 
   if (pathname.startsWith("/api/orders/")) {
     if (pathname.includes("/items/") && pathname.endsWith("/prepared")) return ["ADMIN", "KITCHEN"];
@@ -51,7 +51,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname === "/api/orders") {
     return method === "GET"
       ? ["ADMIN", "POS", "KITCHEN", "CASHIER"]
-      : ["ADMIN", "POS"];
+      : ["ADMIN", "POS", "CASHIER"];
   }
 
   return null;
@@ -159,7 +159,7 @@ export async function middleware(request: NextRequest) {
     (pathname === "/api/delivery/quote" && request.method === "POST") ||
     (pathname === "/api/delivery/origin" && request.method === "GET") ||
     (pathname === "/api/delivery/customer-default-address" &&
-      request.method === "GET")
+      ["GET", "PUT"].includes(request.method))
   ) {
     return NextResponse.next();
   }
