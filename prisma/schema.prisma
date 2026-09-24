@@ -440,6 +440,21 @@ model CashExpense {
   @@index([category, occurredAt])
 }
 
+model CashIncome {
+  id            Int      @id @default(autoincrement())
+  category      String
+  note          String?
+  amount        Decimal  @db.Decimal(12, 2)
+  occurredAt    DateTime
+  source        String   @default("MANUAL")
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([occurredAt])
+  @@index([category, occurredAt])
+}
+
 
 model ClubPointTransaction {
   id              Int      @id @default(autoincrement())
