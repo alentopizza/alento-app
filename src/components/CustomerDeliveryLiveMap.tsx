@@ -258,10 +258,10 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
           bounds.extend(driverPoint);
           bounds.extend(destinationPoint);
           mapRef.current.fitBounds(bounds, {
-            top: 118,
-            right: 52,
-            bottom: 70,
-            left: 52,
+            top: 90,
+            right: 42,
+            bottom: 58,
+            left: 42,
           });
         }
       } else if (fit) {
@@ -269,10 +269,10 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
         bounds.extend(driverPoint);
         bounds.extend(destinationPoint);
         mapRef.current.fitBounds(bounds, {
-          top: 118,
-          right: 52,
-          bottom: 70,
-          left: 52,
+          top: 90,
+          right: 42,
+          bottom: 58,
+          left: 42,
         });
       }
     },
@@ -354,34 +354,34 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
 
   return (
     <section className="mb-4 overflow-hidden rounded-[22px] border border-white/10 bg-[#111] text-white shadow-[0_18px_46px_rgba(0,0,0,.28)]">
-      <div className="relative aspect-[4/3] min-h-[250px] overflow-hidden bg-[#080808]">
+      <div className="relative aspect-square min-h-[250px] overflow-hidden bg-[#080808]">
         <div ref={mapHostRef} className="absolute inset-0" />
 
-        <div className="pointer-events-none absolute left-3 right-3 top-3 z-20">
-          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/10 bg-[#111]/94 p-2.5 shadow-xl backdrop-blur-xl sm:left-4 sm:right-4">
-            <div className="min-w-0 px-1">
-              <p className="text-[8px] font-black uppercase tracking-[0.11em] text-[#ff454b]">
-                Tu repartidor
+        <div className="pointer-events-none absolute left-2 right-2 top-2 z-20">
+          <div className="flex items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-[#111]/92 p-1.5 shadow-lg backdrop-blur-xl">
+            <div className="min-w-0 flex-1 px-1.5">
+              <p className="text-[6.5px] font-black uppercase tracking-[0.1em] text-[#ff454b]">
+                Repartidor
               </p>
-              <h3 className="mt-0.5 truncate text-[14px] font-black">
+              <h3 className="mt-0.5 truncate text-[12px] font-black leading-4">
                 {driverName}
               </h3>
             </div>
 
-            <div className="grid shrink-0 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-[14px] border border-white/[0.07] bg-white/[0.055]">
-              <div className="min-w-[76px] px-2.5 py-2 text-center">
-                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+            <div className="grid shrink-0 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-[11px] border border-white/[0.07] bg-white/[0.055]">
+              <div className="min-w-[62px] px-2 py-1.5 text-center">
+                <span className="block text-[6px] font-black uppercase tracking-[.06em] text-white/35">
                   Distancia
                 </span>
-                <b className="mt-0.5 block text-[12px]">
+                <b className="mt-0.5 block text-[11px] leading-4">
                   {formatDistance(routeData?.distanceMeters)}
                 </b>
               </div>
-              <div className="min-w-[68px] px-2.5 py-2 text-center">
-                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+              <div className="min-w-[58px] px-2 py-1.5 text-center">
+                <span className="block text-[6px] font-black uppercase tracking-[.06em] text-white/35">
                   Tiempo
                 </span>
-                <b className="mt-0.5 block text-[12px]">
+                <b className="mt-0.5 block text-[11px] leading-4">
                   {formatDuration(routeData?.durationSeconds)}
                 </b>
               </div>
@@ -406,8 +406,8 @@ export default function CustomerDeliveryLiveMap({ token }: { token: string }) {
         )}
 
         {data?.location?.stale && (
-          <div className="absolute bottom-3 left-3 right-3 rounded-[14px] border border-white/10 bg-[#111]/92 px-3 py-2 text-center text-[9px] font-semibold text-white/55 backdrop-blur-md">
-            Actualizando la ubicación del repartidor…
+          <div className="absolute bottom-2 left-2 right-2 rounded-[12px] border border-white/10 bg-[#111]/90 px-2.5 py-1.5 text-center text-[8px] font-semibold text-white/50 backdrop-blur-md">
+            Actualizando ubicación…
           </div>
         )}
       </div>
