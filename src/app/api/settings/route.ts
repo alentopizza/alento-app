@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
+  normalizeDriverMaxConcurrentDeliveries,
+} from "@/lib/driverCapacity";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -32,6 +36,9 @@ type PosSettings = {
   customerManagement: {
     bulkDeleteEnabled: boolean;
   };
+  driverManagement: {
+    maxConcurrentDeliveries: number;
+  };
 };
 
 function defaultBandName(fee: number, index: number) {
@@ -62,6 +69,9 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
   ],
   customerManagement: {
     bulkDeleteEnabled: true,
+  },
+  driverManagement: {
+    maxConcurrentDeliveries: DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
   },
 };
 
@@ -112,11 +122,21 @@ function normalizeSettings(value: unknown): PosSettings {
       }
     : DEFAULT_POS_SETTINGS.customerManagement;
 
+  const driverManagement =
+    raw.driverManagement && typeof raw.driverManagement === "object"
+      ? {
+          maxConcurrentDeliveries: normalizeDriverMaxConcurrentDeliveries(
+            raw.driverManagement.maxConcurrentDeliveries,
+          ),
+        }
+      : DEFAULT_POS_SETTINGS.driverManagement;
+
   return {
     store,
     deliveryBands: deliveryBands.length ? deliveryBands.sort((a, b) => a.minMeters - b.minMeters) : DEFAULT_POS_SETTINGS.deliveryBands,
     paymentMethods: paymentMethods.length ? paymentMethods : DEFAULT_POS_SETTINGS.paymentMethods,
     customerManagement,
+    driverManagement,
   };
 }
 

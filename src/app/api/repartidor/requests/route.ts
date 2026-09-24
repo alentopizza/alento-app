@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { createDriverOrderToken } from "@/lib/driverTracking";
+import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -125,11 +126,25 @@ export async function GET() {
       }),
     ]);
 
+    const maxConcurrentDeliveries =
+      driverMaxConcurrentFromSettings(savedSettings?.value);
+    const assignedDeliveries = orders.filter(
+      (order) => order.driverId === session.userId,
+    ).length;
+    const capacityReached = assignedDeliveries >= maxConcurrentDeliveries;
+
     return NextResponse.json({
       store: storeLocation(savedSettings?.value),
+      capacity: {
+        assignedDeliveries,
+        maxConcurrentDeliveries,
+        remaining: Math.max(0, maxConcurrentDeliveries - assignedDeliveries),
+        reached: capacityReached,
+      },
       orders: orders.map((order) => {
         const own = order.driverId === session.userId;
         const claimable =
+          !capacityReached &&
           order.driverId == null &&
           CLAIMABLE_STATUSES.has(order.status);
         return {

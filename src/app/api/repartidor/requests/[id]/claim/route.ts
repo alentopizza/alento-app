@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { createDriverOrderToken } from "@/lib/driverTracking";
+import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
 
 const CLAIMABLE_STATUSES = [
   "CONFIRMED",
@@ -91,6 +92,20 @@ export async function POST(
     ) {
       return NextResponse.json(
         { error: "Este pedido ya no está disponible para autoasignación." },
+        { status: 409 },
+      );
+    }
+
+    const capacity = await getDriverDeliveryCapacity(session.userId, orderId);
+    if (capacity.reached) {
+      return NextResponse.json(
+        {
+          error:
+            capacity.maxConcurrentDeliveries === 1
+              ? "Ya tienes el máximo de 1 domicilio asignado. Finalízalo antes de tomar otro."
+              : `Ya tienes el máximo de ${capacity.maxConcurrentDeliveries} domicilios asignados. Finaliza uno antes de tomar otro.`,
+          capacity,
+        },
         { status: 409 },
       );
     }

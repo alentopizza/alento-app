@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { computeDrivingRoute } from "@/lib/googleMapsServer";
 import { orderCode } from "@/lib/orderCode";
+import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -14,11 +15,6 @@ const ACTIVE_DELIVERY_STATUSES = [
   "OUT_FOR_DELIVERY",
   "ARRIVED",
 ] as const;
-
-type RoutePoint = {
-  latitude: number;
-  longitude: number;
-};
 
 function coordinate(value: unknown) {
   const parsed = Number(value);
@@ -50,22 +46,6 @@ function storeLocation(value: unknown) {
   };
 }
 
-function haversineMeters(a: RoutePoint, b: RoutePoint) {
-  const radius = 6_371_000;
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const lat1 = toRadians(a.latitude);
-  const lat2 = toRadians(b.latitude);
-  const deltaLat = toRadians(b.latitude - a.latitude);
-  const deltaLng = toRadians(b.longitude - a.longitude);
-
-  const h =
-    Math.sin(deltaLat / 2) ** 2 +
-    Math.cos(lat1) *
-      Math.cos(lat2) *
-      Math.sin(deltaLng / 2) ** 2;
-
-  return 2 * radius * Math.asin(Math.min(1, Math.sqrt(h)));
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -177,42 +157,17 @@ export async function GET(request: NextRequest) {
           return null;
         }
 
-        let currentPoint: RoutePoint = {
-          latitude: originLatitude,
-          longitude: originLongitude,
-        };
-        const pending = [...assignedOrders];
-        const ordered: Array<(typeof orders)[number]> = [];
-
-        while (pending.length > 0) {
-          let nearestIndex = 0;
-          let nearestDistance = Number.POSITIVE_INFINITY;
-
-          pending.forEach((order, index) => {
-            const latitude = coordinate(order.address?.latitude);
-            const longitude = coordinate(order.address?.longitude);
-            if (latitude == null || longitude == null) return;
-
-            const distance = haversineMeters(currentPoint, {
-              latitude,
-              longitude,
-            });
-
-            if (distance < nearestDistance) {
-              nearestDistance = distance;
-              nearestIndex = index;
-            }
-          });
-
-          const [nearest] = pending.splice(nearestIndex, 1);
-          ordered.push(nearest);
-
-          const latitude = coordinate(nearest.address?.latitude);
-          const longitude = coordinate(nearest.address?.longitude);
-          if (latitude != null && longitude != null) {
-            currentPoint = { latitude, longitude };
-          }
-        }
+        const ordered = orderDeliveryStopsByProximity(
+          {
+            latitude: originLatitude,
+            longitude: originLongitude,
+          },
+          assignedOrders,
+          (order) => ({
+            latitude: Number(order.address!.latitude),
+            longitude: Number(order.address!.longitude),
+          }),
+        );
 
         const stops = ordered.map((order, index) => ({
           orderId: order.id,
@@ -239,7 +194,7 @@ export async function GET(request: NextRequest) {
         }> = [];
 
         if (includeRoutes) {
-          let legOrigin: RoutePoint = {
+          let legOrigin = {
             latitude: originLatitude,
             longitude: originLongitude,
           };

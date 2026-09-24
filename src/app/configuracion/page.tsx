@@ -34,6 +34,9 @@ type PosSettings = {
   customerManagement: {
     bulkDeleteEnabled: boolean;
   };
+  driverManagement: {
+    maxConcurrentDeliveries: number;
+  };
 };
 
 export default function SettingsPage() {
@@ -264,6 +267,69 @@ export default function SettingsPage() {
                 Pendiente validar la ubicación oficial de la sede.
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="alento-card rounded-[28px] p-5 md:p-6">
+          <div className="mb-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Repartidores</p>
+            <h2 className="mt-1 text-xl font-black">Capacidad simultánea</h2>
+            <p className="mt-1 text-sm text-neutral-500">Define cuántos domicilios sin entregar puede tener asignados al mismo tiempo cada repartidor.</p>
+          </div>
+
+          <div className="flex flex-col gap-4 rounded-2xl border bg-[#faf9f7] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <b className="block text-sm text-neutral-900">Máximo de pedidos por repartidor</b>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
+                Al alcanzar este límite el repartidor ya no podrá autoasignarse otro domicilio y el panel administrativo también bloqueará nuevas asignaciones. Los pedidos entregados, finalizados o cancelados liberan cupo automáticamente.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSettings({
+                  ...settings,
+                  driverManagement: {
+                    ...settings.driverManagement,
+                    maxConcurrentDeliveries: Math.max(1, settings.driverManagement.maxConcurrentDeliveries - 1),
+                  },
+                })}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-lg font-black text-neutral-700"
+                aria-label="Reducir máximo de pedidos simultáneos"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={settings.driverManagement.maxConcurrentDeliveries}
+                onChange={(event) => setSettings({
+                  ...settings,
+                  driverManagement: {
+                    ...settings.driverManagement,
+                    maxConcurrentDeliveries: Math.min(10, Math.max(1, Number(event.target.value) || 1)),
+                  },
+                })}
+                className="h-10 w-16 rounded-xl border-0 bg-transparent text-center text-xl font-black tabular-nums outline-none"
+                aria-label="Máximo de pedidos simultáneos por repartidor"
+              />
+              <button
+                type="button"
+                onClick={() => setSettings({
+                  ...settings,
+                  driverManagement: {
+                    ...settings.driverManagement,
+                    maxConcurrentDeliveries: Math.min(10, settings.driverManagement.maxConcurrentDeliveries + 1),
+                  },
+                })}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-black text-lg font-black text-white"
+                aria-label="Aumentar máximo de pedidos simultáneos"
+              >
+                +
+              </button>
+            </div>
           </div>
         </section>
 

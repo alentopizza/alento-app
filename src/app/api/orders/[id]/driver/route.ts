@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { dispatchDriverAssignedNotification } from "@/lib/notifier";
+import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       select: {
         id: true,
         sequenceNumber: true,
+        driverId: true,
         fulfillmentType: true,
         status: true,
         total: true,
@@ -59,6 +61,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   if (!driver) return NextResponse.json({ error: "El repartidor no está disponible." }, { status: 404 });
   if (!driver.whatsappPhone) {
     return NextResponse.json({ error: "El repartidor no tiene número de WhatsApp configurado." }, { status: 409 });
+  }
+
+  const capacity = await getDriverDeliveryCapacity(driver.id, order.id);
+  if (capacity.reached && order.driverId !== driver.id) {
+    return NextResponse.json(
+      {
+        error:
+          capacity.maxConcurrentDeliveries === 1
+            ? `${driver.name} ya tiene 1 domicilio asignado, que es el máximo permitido.`
+            : `${driver.name} ya tiene ${capacity.maxConcurrentDeliveries} domicilios asignados, que es el máximo permitido.`,
+        capacity,
+      },
+      { status: 409 },
+    );
   }
 
   const updated = await prisma.order.update({

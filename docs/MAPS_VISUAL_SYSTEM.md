@@ -46,6 +46,8 @@ Reglas:
 - no usar el pin predeterminado de Google para un domicilio de Alentó.
 - en rutas con múltiples entregas usar `createDeliveryRouteStopPinElement(orderCode, stopNumber, routeColor)`; el número principal sigue siendo el pedido y el badge pequeño identifica `Parada 1`, `Parada 2`, etc.;
 - el `routeColor` debe corresponder al tramo que llega a esa parada, no al repartidor completo: `Moto → Parada 1` y `Parada 1 → Parada 2` usan colores distintos aunque pertenezcan al mismo repartidor.
+- en el mapa principal del repartidor, cuando tiene 2 o más domicilios propios con ubicación, solo esos pines asignados muestran el badge `1, 2, 3...`; solicitudes sin asignar conservan únicamente el número del pedido.
+- el orden de paradas se calcula con la misma heurística compartida `orderDeliveryStopsByProximity()` usada por el mapa operativo del administrador.
 
 ## Implementación
 

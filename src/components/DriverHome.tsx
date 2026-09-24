@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   createAlentoMapPinElement,
   createDeliveryMapPinElement,
+  createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
+import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 
 const LOGO =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -84,6 +86,7 @@ type DriverTab = "requests" | "performance" | "wallet";
 type GoogleAdvancedMarker = {
   map: GoogleMap | null;
   position: { lat: number; lng: number };
+  content?: Node | null;
   addListener: (event: string, listener: () => void) => unknown;
 };
 
@@ -380,6 +383,46 @@ export default function DriverHome({
     () => orders.filter((order) => order.assignment?.own).length,
     [orders],
   );
+
+  const assignedStopNumbers = useMemo(() => {
+    const assigned = orders.filter(
+      (order) =>
+        order.assignment?.own &&
+        order.address?.latitude != null &&
+        order.address?.longitude != null,
+    );
+
+    if (assigned.length < 2) return new Map<number, number>();
+
+    const origin =
+      driver.driverLatitude != null && driver.driverLongitude != null
+        ? {
+            latitude: driver.driverLatitude,
+            longitude: driver.driverLongitude,
+          }
+        : store
+          ? {
+              latitude: store.latitude,
+              longitude: store.longitude,
+            }
+          : null;
+
+    const ordered = origin
+      ? orderDeliveryStopsByProximity(
+          origin,
+          assigned,
+          (order) => ({
+            latitude: order.address!.latitude!,
+            longitude: order.address!.longitude!,
+          }),
+        )
+      : [...assigned].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+
+    return new Map(ordered.map((order, index) => [order.id, index + 1]));
+  }, [driver.driverLatitude, driver.driverLongitude, orders, store]);
 
   const stopGps = useCallback((clearIntent = false) => {
     if (watchRef.current != null && navigator.geolocation) {
@@ -931,15 +974,26 @@ export default function DriverHome({
           visibleRequestIds.add(order.id);
 
           const existing = requestMarkerRefs.current.get(order.id);
+          const stopNumber = assignedStopNumbers.get(order.id);
+          const markerContent = stopNumber
+            ? createDeliveryRouteStopPinElement(
+                order.code,
+                stopNumber,
+                "#111111",
+              )
+            : createDeliveryMapPinElement(order.code);
 
           if (existing) {
             existing.position = point;
+            existing.content = markerContent;
           } else {
             const marker = new AdvancedMarkerElement({
               map: mapRef.current!,
               position: point,
-              title: `${order.code} · ${order.customerName}`,
-              content: createDeliveryMapPinElement(order.code),
+              title: stopNumber
+                ? `Parada ${stopNumber} · ${order.code} · ${order.customerName}`
+                : `${order.code} · ${order.customerName}`,
+              content: markerContent,
               zIndex: order.claimable ? 30 : order.assignment?.own ? 40 : 20,
             });
 
@@ -1004,6 +1058,9 @@ export default function DriverHome({
       disposed = true;
     };
   }, [
+    driver.driverLatitude,
+    driver.driverLongitude,
+    assignedStopNumbers,
     driver.driverLatitude,
     driver.driverLongitude,
     driver.name,
