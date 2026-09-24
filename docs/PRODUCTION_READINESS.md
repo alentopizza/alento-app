@@ -381,3 +381,19 @@ Regla de no regresión: **CASHIER puede gestionar repartidores de pedidos a domi
 - ✅ 2026-09-24 — Cancelación de pedido pagado: validación manual aprobada; un pedido con movimientos PAID queda protegido contra cancelación mientras no exista un flujo auditable de devolución/refund. Caja y los pagos se conservan.
 - ✅ 2026-09-24 — Cocina / regresión final: validación manual aprobada, incluyendo edición de pedidos activos por CASHIER, ajuste de cantidades/productos/notas y retorno correcto al flujo de Cocina cuando corresponde.
 - ✅ 2026-09-24 — Reparto múltiple: validación manual aprobada con dos domicilios simultáneos para un mismo repartidor, orden de paradas, rutas encadenadas, capacidad máxima y agrupación/expansión de pedidos superpuestos en Repartidor y Mapa De Entregas.
+
+
+### 2026-09-24 — Migración histórica de Glide
+
+Se añadió una migración ADMIN de una sola ejecución para reconstruir historial de compra por cliente desde `Pedidos.csv`.
+
+Decisiones:
+
+- no conservar los IDs/consecutivos de Glide;
+- generar nuevo consecutivo Alentó desde 0001 en orden cronológico;
+- vincular clientes por teléfono y crear faltantes;
+- importar pedidos como COMPLETED sin activar Cocina, reparto, Club ni notificaciones;
+- reconstruir líneas de productos desde el snapshot textual, incluyendo configuración de pizzas y bebida de Combo Antojo cuando existe;
+- regularizar registros NO PAGADO como pago histórico en Efectivo;
+- bloquear una segunda ejecución mediante AppSetting;
+- exigir Pedidos vacío para garantizar que el histórico arranque en 0001.
