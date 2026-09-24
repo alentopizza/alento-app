@@ -88,6 +88,9 @@ export default function OrderStatusSelector({
     nextStatus === "COMPLETED" && hasPendingPayment;
 
   const remainingStatuses = statuses.filter((_, index) => index > currentIndex);
+  const driverEditable = !["DELIVERED", "COMPLETED", "CANCELED"].includes(
+    currentStatus,
+  );
 
   return (
     <div
@@ -221,7 +224,7 @@ export default function OrderStatusSelector({
               </div>
             )}
 
-            {fulfillmentType === "DELIVERY" && (
+            {fulfillmentType === "DELIVERY" && driverEditable && (
               <div
                 className={
                   "rounded-[16px] border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 " +

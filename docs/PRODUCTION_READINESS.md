@@ -248,7 +248,7 @@ Regla visual: el código del pedido debe quedar visible en la cabecera tanto par
 3. Confirmar que salir de la zona con un pedido ya asignado no lo afecta.
 4. Autoasignación.
 5. Límite simultáneo.
-6. Desasignación. Los pedidos DELIVERED, COMPLETED o CANCELED pueden conservar visualmente el repartidor histórico, pero no deben mostrar la acción **Desasignar**; el backend también debe rechazarla.
+6. Desasignación. Los pedidos DELIVERED, COMPLETED o CANCELED pueden conservar visualmente el repartidor histórico, pero no deben mostrar la acción **Desasignar**; el backend también debe rechazarla. Los pedidos finalizados no muestran el botón **ESTADOS** ni permiten abrir el selector operativo. Dentro del selector, la gestión del repartidor también queda deshabilitada desde DELIVERED en adelante.
 7. Checklist únicamente en READY.
 8. En camino → llegó → entregado.
 9. Dos pedidos en ruta y orden 1/2.

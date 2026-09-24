@@ -48,20 +48,39 @@ function codeFromTrigger(trigger: HTMLElement) {
   return drawer?.querySelector("header h2")?.textContent?.trim() ?? "";
 }
 
-function isCanceledContext(trigger: HTMLElement) {
+function isClosedContext(trigger: HTMLElement) {
   const card = trigger.closest("article.group");
   if (card) {
-    const status = card.querySelector(":scope > div:first-child > span:first-child")?.textContent?.trim().toLowerCase();
-    return status === "cancelado";
+    const status = card
+      .querySelector(":scope > div:first-child > span:first-child")
+      ?.textContent?.trim()
+      .toLowerCase();
+
+    return status === "cancelado" || status === "finalizado";
   }
+
   const drawer = trigger.closest("aside");
-  return drawer?.textContent?.toLowerCase().includes("cancelado") ?? false;
+  const text = drawer?.textContent?.toLowerCase() ?? "";
+  return text.includes("cancelado") || text.includes("finalizado");
 }
 
 function decorateStatusTriggers() {
   document.querySelectorAll<HTMLElement>(TRIGGER_SELECTOR).forEach((trigger) => {
-    if (isCanceledContext(trigger)) return;
-    if (trigger.dataset.orderStatusTrigger === "true" && trigger.textContent?.trim() === "ESTADOS") return;
+    if (isClosedContext(trigger)) {
+      trigger.dataset.orderStatusTrigger = "false";
+      trigger.hidden = true;
+      trigger.style.display = "none";
+      return;
+    }
+
+    trigger.hidden = false;
+    trigger.style.display = "";
+    if (
+      trigger.dataset.orderStatusTrigger === "true" &&
+      trigger.textContent?.trim() === "ESTADOS"
+    ) {
+      return;
+    }
 
     trigger.dataset.orderStatusTrigger = "true";
     trigger.textContent = "ESTADOS";
@@ -101,7 +120,9 @@ export default function OrdersStatusController() {
       if (driversResponse.ok) setDrivers(driverData.drivers ?? []);
       const order = orders.find((item) => displayedCode(item) === code);
       if (!order) throw new Error("No fue posible identificar el pedido seleccionado.");
-      if (order.status === "CANCELED") throw new Error("Los pedidos cancelados se gestionan fuera del selector de estados.");
+      if (["CANCELED", "COMPLETED"].includes(order.status)) {
+        throw new Error("Este pedido ya está cerrado y no necesita gestión de estados.");
+      }
 
       setSelectedOrder(order);
       setSelectedDriverId(order.driverId ?? null);
