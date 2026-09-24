@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MapPin, Pizza, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
@@ -705,59 +706,102 @@ export default function OrdersCardsDashboardV3() {
 
   const activeCount = orders.filter((order) => !["COMPLETED", "CANCELED"].includes(order.status)).length;
 
-  return <main className="p-4 md:p-6 xl:p-8">
-    <div className="mx-auto max-w-[1600px] space-y-4">
-      <section className="rounded-[28px] bg-[radial-gradient(circle_at_88%_20%,rgba(229,28,17,.24),transparent_28%),linear-gradient(135deg,#09090a,#181516)] px-6 py-5 text-white shadow-[0_20px_55px_rgba(20,16,14,.12)] md:px-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Operación</p>
-            <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Pedidos</h1>
-            <p className="mt-0.5 text-sm text-white/65">Todo el flujo de tus órdenes, en un solo lugar.</p>
+  return <main className="w-full p-3 md:p-5 xl:p-6">
+    <div className="w-full space-y-5">
+      <section className="relative min-h-[176px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_38%,rgba(226,26,34,.50),transparent_24%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+        <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+        <div className="absolute right-[18%] top-[-32px] h-28 w-28 rotate-12 rounded-[32px] border border-red-400/10 bg-red-500/[0.045]" />
+        <div className="absolute right-[5%] top-[72px] h-[2px] w-[34%] bg-gradient-to-r from-transparent via-red-300/35 to-transparent" />
+
+        <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-6 py-6 md:flex-row md:items-center md:px-8 xl:px-10">
+          <div className="flex items-center gap-4">
+            <div className="hidden h-[68px] w-[68px] shrink-0 items-center justify-center rounded-[20px] border border-red-400/25 bg-[linear-gradient(145deg,rgba(226,26,34,.75),rgba(76,8,11,.78))] text-red-100 shadow-[0_12px_28px_rgba(168,11,16,.24),inset_0_1px_0_rgba(255,255,255,.12)] sm:flex">
+              <Pizza className="h-8 w-8" strokeWidth={2.05} />
+            </div>
+
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                  Operación
+                </p>
+              </div>
+              <h1 className="mt-2 text-[42px] font-black leading-none tracking-[-0.045em] md:text-[48px]">
+                Pedidos
+              </h1>
+              <p className="mt-2 text-[14px] font-medium text-white/68 md:text-[15px]">
+                Todo el flujo de tus órdenes, en un solo lugar.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
             {staffAccess.isAdmin && orders.length === 0 && (
               <button
                 type="button"
                 onClick={() => setHistoryImportOpen(true)}
-                className="inline-flex h-[58px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-[10px] font-black uppercase tracking-[0.04em] text-white shadow-inner transition hover:bg-white/[0.12] active:scale-[.98]"
+                className="group inline-flex h-[58px] items-center gap-2.5 rounded-[18px] border border-white/12 bg-white/[0.07] px-4 text-[11px] font-black text-white shadow-inner transition hover:bg-white/[0.12] active:scale-[.98]"
               >
-                <span className="text-[#ff5a60]">↑</span>
-                Importar historial
+                <Upload className="h-[17px] w-[17px] text-red-300" strokeWidth={2.2} />
+                <span className="hidden sm:inline">Importar historial</span>
               </button>
             )}
+
             <button
               type="button"
               onClick={() => setDeliveryMapOpen(true)}
-              className="inline-flex h-[58px] items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 text-[11px] font-black text-white shadow-inner transition hover:bg-white/[0.12] active:scale-[.98]"
+              className="group inline-flex h-[68px] items-center gap-3 rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] px-5 text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-[17px] w-[17px] text-[#ff5a60]"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.9"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
-                <circle cx="12" cy="10" r="2.5" />
-              </svg>
-              Mapa De Entregas
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08]">
+                <MapPin className="h-[21px] w-[21px]" strokeWidth={2.25} />
+              </span>
+              <span className="hidden text-[13px] font-black sm:inline">
+                Mapa De Entregas
+              </span>
             </button>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[8px] font-bold uppercase tracking-[0.14em] text-white/40">Activos</span>
-              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{activeCount}</b>
+            <div className="flex h-[68px] min-w-[92px] flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+              <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
+                Activos
+              </span>
+              <b className="mt-1 text-[30px] font-black leading-none tabular-nums text-white">
+                {activeCount}
+              </b>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-2.5 shadow-sm">
+      <section className="w-full rounded-[20px] border border-neutral-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(28,23,20,.045)]">
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
-          <div className="relative min-w-0 flex-1"><span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"><Icon name="search" /></span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar pedido, cliente, teléfono, pago o estado" className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 text-sm outline-none focus:border-neutral-400" /></div>
-          <div className="flex gap-1.5 overflow-x-auto">{([ ["ACTIVE", "Activos"], ["COMPLETED", "Finalizados"], ["CANCELED", "Cancelados"], ["ALL", "Todos"] ] as [Filter, string][]).map(([value, label]) => <button key={value} onClick={() => setFilter(value)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-bold ${filter === value ? "bg-black text-white" : "border border-neutral-200 bg-white text-neutral-600"}`}>{label}</button>)}</div>
+          <div className="relative min-w-0 flex-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
+              <Icon name="search" />
+            </span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar pedido, cliente, teléfono, pago o estado..."
+              className="h-12 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-12 pr-4 text-sm font-medium outline-none transition focus:border-neutral-400 focus:bg-white"
+            />
+          </div>
+
+          <div className="flex gap-1.5 overflow-x-auto rounded-[14px] border border-neutral-200 bg-[#faf9f7] p-1">
+            {([["ACTIVE", "Activos"], ["COMPLETED", "Finalizados"], ["CANCELED", "Cancelados"], ["ALL", "Todos"]] as [Filter, string][]).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`h-10 whitespace-nowrap rounded-[11px] px-4 text-[11px] font-black transition ${
+                  filter === value
+                    ? "bg-neutral-950 text-white shadow-sm"
+                    : "text-neutral-600 hover:bg-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
