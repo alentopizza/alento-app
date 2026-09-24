@@ -369,3 +369,4 @@ Regla de no regresión: **si CASHIER opera Pedidos, debe poder corregir el conte
 - ✅ 2026-09-24 — Eliminación de pago erróneo: validación manual aprobada; al eliminar un movimiento PAID se recalculan saldo y estado de cobro, y Caja descuenta correctamente el valor eliminado.
 - ✅ 2026-09-24 — Bloqueo de cierre con saldo pendiente: validación manual aprobada; un pedido con saldo por cobrar no puede pasar a COMPLETED/Finalizado hasta registrar el pago completo.
 - ✅ 2026-09-24 — Cancelación de pedido pagado: validación manual aprobada; un pedido con movimientos PAID queda protegido contra cancelación mientras no exista un flujo auditable de devolución/refund. Caja y los pagos se conservan.
+- ✅ 2026-09-24 — Cocina / regresión final: validación manual aprobada, incluyendo edición de pedidos activos por CASHIER, ajuste de cantidades/productos/notas y retorno correcto al flujo de Cocina cuando corresponde.
