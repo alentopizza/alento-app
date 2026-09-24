@@ -115,7 +115,6 @@ type GoogleRuntime = {
   maps: {
     importLibrary: (name: string) => Promise<unknown>;
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
-    Marker: new (options: Record<string, unknown>) => GoogleMarker;
     LatLngBounds: new () => GoogleBounds;
   };
 };
@@ -1035,13 +1034,15 @@ export default function DriverHome({
   useEffect(() => {
     if (tab === "requests") return;
 
-    driverMarkerRef.current?.setMap(null);
+    if (driverMarkerRef.current) driverMarkerRef.current.map = null;
     driverMarkerRef.current = null;
 
-    storeMarkerRef.current?.setMap(null);
+    if (storeMarkerRef.current) storeMarkerRef.current.map = null;
     storeMarkerRef.current = null;
 
-    requestMarkerRefs.current.forEach((marker) => marker.setMap(null));
+    requestMarkerRefs.current.forEach((marker) => {
+      marker.map = null;
+    });
     requestMarkerRefs.current.clear();
 
     mapRef.current = null;
