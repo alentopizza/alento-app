@@ -104,7 +104,7 @@ export default function DriverOrderStatus({ status }: { status: string }) {
         </div>
 
         <div
-          className="relative grid gap-1"
+          className="relative grid gap-2"
           style={{
             gridTemplateColumns: `repeat(${STAGES.length}, minmax(0, 1fr))`,
           }}
@@ -135,7 +135,7 @@ export default function DriverOrderStatus({ status }: { status: string }) {
 
                 <span
                   className={
-                    "mt-2 block text-[8px] font-semibold leading-3 sm:text-[9px] " +
+                    "mt-2 block px-0.5 text-[7px] font-semibold leading-3 tracking-[-0.02em] sm:px-1 sm:text-[9px] " +
                     (active
                       ? "text-white"
                       : completed

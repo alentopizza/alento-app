@@ -362,6 +362,11 @@ export default function DriverHome({
     [orders],
   );
 
+  const assignedPendingCount = useMemo(
+    () => orders.filter((order) => order.assignment?.own).length,
+    [orders],
+  );
+
   const stopGps = useCallback((clearIntent = false) => {
     if (watchRef.current != null && navigator.geolocation) {
       navigator.geolocation.clearWatch(watchRef.current);
@@ -639,11 +644,19 @@ export default function DriverHome({
     try {
       stopGps(true);
 
-      await fetch("/api/repartidor/state", {
+      const stateResponse = await fetch("/api/repartidor/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: false }),
-      }).catch(() => undefined);
+      });
+      const stateData = await stateResponse.json().catch(() => ({}));
+
+      if (!stateResponse.ok) {
+        throw new Error(
+          stateData.error ||
+            "Finaliza tus domicilios asignados antes de cerrar sesión.",
+        );
+      }
 
       const response = await fetch("/api/auth/staff/logout", {
         method: "POST",
@@ -1122,13 +1135,28 @@ export default function DriverHome({
           <div className="flex min-w-0 flex-1 items-center rounded-full border border-black/10 bg-white/96 p-1.5 shadow-[0_10px_30px_rgba(0,0,0,.15)] backdrop-blur-xl">
             <button
               type="button"
-              disabled={busyAvailability}
+              disabled={
+                busyAvailability ||
+                (driver.driverAvailable && assignedPendingCount > 0)
+              }
               onClick={() => void changeAvailability(false)}
+              aria-label={
+                assignedPendingCount > 0
+                  ? "No puedes ponerte Inactivo mientras tengas domicilios asignados"
+                  : "Ponerte Inactivo"
+              }
+              title={
+                assignedPendingCount > 0
+                  ? "Finaliza tus domicilios asignados antes de ponerte Inactivo"
+                  : "Ponerte Inactivo"
+              }
               className={
-                "h-10 flex-1 rounded-full text-[11px] font-black transition " +
+                "h-10 flex-1 rounded-full text-[11px] font-black transition disabled:cursor-not-allowed " +
                 (!driver.driverAvailable
                   ? "bg-[#e21a22] text-white shadow-[0_6px_18px_rgba(226,26,34,.24)]"
-                  : "text-neutral-400")
+                  : assignedPendingCount > 0
+                    ? "bg-neutral-100 text-neutral-300"
+                    : "text-neutral-400")
               }
             >
               Inactivo
@@ -1656,6 +1684,13 @@ export default function DriverHome({
                 {driver.driverAvailable ? "Activo" : "Inactivo"}
               </b>
             </div>
+            {assignedPendingCount > 0 && (
+              <p className="mt-2 text-[9px] leading-4 text-white/38">
+                {assignedPendingCount === 1
+                  ? "1 domicilio asignado pendiente de entrega."
+                  : `${assignedPendingCount} domicilios asignados pendientes de entrega.`}
+              </p>
+            )}
           </div>
 
           <button

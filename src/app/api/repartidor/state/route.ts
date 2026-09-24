@@ -55,6 +55,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!body.active) {
+      const assignedPending = await prisma.order.count({
+        where: {
+          driverId: session.userId,
+          fulfillmentType: "DELIVERY",
+          status: {
+            notIn: ["DELIVERED", "COMPLETED", "CANCELED"],
+          },
+        },
+      });
+
+      if (assignedPending > 0) {
+        return NextResponse.json(
+          {
+            error:
+              assignedPending === 1
+                ? "Tienes 1 domicilio asignado sin entregar. Finalízalo antes de ponerte Inactivo."
+                : `Tienes ${assignedPending} domicilios asignados sin entregar. Finalízalos antes de ponerte Inactivo.`,
+            assignedPending,
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     const driver = await prisma.user.update({
       where: { id: session.userId },
       data: body.active
