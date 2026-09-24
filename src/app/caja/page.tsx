@@ -1163,6 +1163,97 @@ export default function CashPage() {
                   </div>
                 </section>
               </div>
+            ) : tab === "INCOMES" ? (
+              <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      Otros ingresos
+                    </p>
+                    <h2 className="mt-1 text-xl font-black">
+                      {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} · {formatCOP(summary.otherIncomeTotal)}
+                    </h2>
+                    <p className="mt-1 text-[11px] text-neutral-500">
+                      Entradas que no provienen de pagos asociados a pedidos.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <label className="relative min-w-[240px]">
+                      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      <input
+                        value={incomeQuery}
+                        onChange={(event) => setIncomeQuery(event.target.value)}
+                        placeholder="Buscar ingreso..."
+                        className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 text-xs outline-none focus:border-neutral-400"
+                      />
+                    </label>
+                    <select
+                      value={incomeCategoryFilter}
+                      onChange={(event) =>
+                        setIncomeCategoryFilter(event.target.value)
+                      }
+                      className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                    >
+                      <option value="ALL">Todos los tipos</option>
+                      {CASH_INCOME_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2">
+                  {filteredIncomes.map((income) => (
+                    <article
+                      key={income.id}
+                      className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
+                    >
+                      <div>
+                        <span className="inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase text-emerald-700">
+                          {income.category}
+                        </span>
+                        <p className="mt-2 text-[10px] text-neutral-400">
+                          {dateTimeLabel(income.occurredAt)}
+                        </p>
+                      </div>
+
+                      <div className="min-w-0">
+                        <b className="block truncate text-sm text-neutral-900">
+                          {income.note || "Ingreso adicional"}
+                        </b>
+                        <p className="mt-1 text-[9px] text-neutral-400">
+                          {income.source === "GLIDE_IMPORT"
+                            ? "Histórico importado"
+                            : `Registró: ${income.createdByName}`}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 md:justify-end">
+                        <b className="text-base font-black text-emerald-700">
+                          {formatCOP(income.amount)}
+                        </b>
+                        <button
+                          type="button"
+                          onClick={() => setIncomeDeleteTarget(income)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
+                          title="Eliminar ingreso"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+
+                  {filteredIncomes.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
+                      No hay otros ingresos para mostrar con estos filtros.
+                    </div>
+                  )}
+                </div>
+              </section>
             ) : (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
