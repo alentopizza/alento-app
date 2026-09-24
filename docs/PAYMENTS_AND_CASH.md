@@ -84,18 +84,27 @@ Ruta:
 
 `/caja`
 
-API:
+API principal:
 
-`GET /api/caja/summary?date=YYYY-MM-DD`
+`GET /api/caja/summary?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`
 
-El resumen diario usa `paidAt` y zona horaria de Colombia para agrupar los ingresos del día.
+`date=YYYY-MM-DD` sigue aceptándose como compatibilidad de un solo día.
 
-Muestra:
+Caja usa la zona horaria de Colombia y separa cuatro conceptos:
 
-- total realmente recibido;
-- cantidad de pagos;
-- acumulado por medio de pago;
-- lista de movimientos con pedido, cliente, hora, medio, referencia y valor.
+- **Ventas**: suma de pedidos creados dentro del rango, excluyendo DRAFT y CANCELED.
+- **Ingresó**: suma únicamente `Payment.status = PAID` por `paidAt` dentro del rango.
+- **Salió**: suma de `CashExpense.amount` por `occurredAt` dentro del rango.
+- **Flujo neto**: ingresos realmente recibidos menos salidas.
+
+También muestra:
+
+- cantidad de pedidos vendidos;
+- cantidad de pagos recibidos;
+- distribución por medio de pago;
+- distribución de salidas por categoría;
+- movimientos recientes de ingresos;
+- movimientos recientes de salidas.
 
 No suma órdenes pendientes solo porque tengan un medio de pago seleccionado.
 
@@ -162,3 +171,54 @@ con pagos PAID → bloquear cancelación → implementar/registrar refund antes 
 ```
 
 No retirar esta protección hasta que exista un movimiento `REFUNDED` auditable.
+
+
+## Salidas de Caja
+
+Modelo:
+
+`CashExpense`
+
+Campos principales:
+
+- `category`: tipo de salida;
+- `subcategory`: subtipo opcional;
+- `note`: observación;
+- `amount`: monto;
+- `occurredAt`: fecha/hora real de la salida;
+- `source`: `MANUAL` o `GLIDE_IMPORT`;
+- `createdByName`: colaborador que registró/importó.
+
+Rutas:
+
+- `POST /api/caja/expenses`: registrar salida;
+- `DELETE /api/caja/expenses/[id]`: eliminar una salida registrada por error;
+- `GET/POST /api/caja/expenses/import`: migración histórica ADMIN.
+
+Categorías sugeridas vigentes:
+
+- Maquinaria;
+- Insumos;
+- Nomina;
+- Domicilios;
+- Servicios Públicos;
+- Plataformas;
+- Parqueadero;
+- Otros;
+- Arriendo;
+- Publicidad;
+- Consumo Interno.
+
+Los subtipos son sugerencias, no enums rígidos: el usuario puede escribir un valor nuevo para no bloquear la operación.
+
+### Importación histórica
+
+La migración histórica de salidas es de una sola ejecución y usa CSV con columnas:
+
+`Fecha, Tipo De Gasto, Observación, Monto, Sub Tipo De Gasto`
+
+Al completar la importación se crea el lock:
+
+`cash_expenses_import_v1`
+
+No volver a ejecutar la misma migración después de crear ese lock.

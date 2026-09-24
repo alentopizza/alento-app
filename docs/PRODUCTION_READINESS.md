@@ -34,7 +34,7 @@ Estados usados:
 | Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, mapa/ETA/moto hasta ARRIVED; GPS continúa hasta DELIVERED, luego se cierra el seguimiento activo y queda historial |
 | Checkout WEB | LISTO CON VALIDACIÓN | invitado o sesión → dirección/cobertura → pago previsto → WEB-xxxx → seguimiento |
 | Pagos | LISTO CON VALIDACIÓN | intención PENDING, múltiples ingresos PAID, pagos parciales/mixtos, saldo |
-| Caja básica | LISTO CON VALIDACIÓN | total diario y desglose por medios usando únicamente PAID |
+| Caja | LISTO CON VALIDACIÓN | rango de fechas, ventas por pedidos, ingresos reales por PAID, salidas, flujo neto, desglose por medio/categoría y migración histórica de salidas |
 | Devoluciones / refunds | PENDIENTE CONTROLADO | no existe flujo contable de devolución; se bloquea cancelar un pedido que ya tenga dinero PAID |
 | Club Alentó | PARCIAL | acumulación, saldo e historial funcionan; canje transaccional dentro del checkout sigue pendiente |
 | Clientes | LISTO CON VALIDACIÓN | CRM, clasificación, historial, dirección Google con ajuste manual del pin, importación/exportación y permisos |
@@ -169,16 +169,17 @@ Antes de permitir cancelaciones después del cobro se necesita un flujo explíci
 
 ### 4. Caja avanzada — prioridad media
 
-Caja básica registra correctamente dinero recibido, pero aún no existe:
+Caja ya registra ventas, ingresos reales, salidas y flujo neto por rango de fechas. Las salidas conservan categoría, subtipo, observación, fecha y responsable.
+
+Aún no existe:
 
 - apertura/cierre por turno;
-- arqueo;
-- retiros/gastos;
+- arqueo de efectivo;
 - conciliación bancaria/digital;
-- devolución;
-- responsable del movimiento.
+- devolución/refund;
+- aprobación multinivel de gastos.
 
-Esto no impide operar si Alentó acepta una Caja de movimientos diarios como alcance V1.
+Esto no impide operar con el alcance actual de Caja.
 
 ### 5. Autenticación interna — prioridad media
 
@@ -397,3 +398,16 @@ Decisiones:
 - regularizar registros NO PAGADO como pago histórico en Efectivo;
 - bloquear una segunda ejecución mediante AppSetting;
 - exigir Pedidos vacío para garantizar que el histórico arranque en 0001.
+
+
+### 2026-09-24 — Salidas y rango de Caja
+
+Se amplió Caja para separar claramente:
+
+`Ventas → Ingresos PAID → Salidas → Flujo neto`
+
+La pantalla permite seleccionar fecha inicial y final, registrar/eliminar salidas y filtrar el historial por categoría.
+
+Se añadió una migración ADMIN de una sola ejecución para el histórico de salidas proveniente de Glide, conservando fecha, categoría, subtipo, observación y monto.
+
+Regla de no regresión: **Ventas e ingresos no son sinónimos**. Ventas usa fecha de creación del pedido; Ingresos usa exclusivamente `Payment.paidAt` con estado `PAID`.
