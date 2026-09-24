@@ -167,6 +167,76 @@ export default function OrdersStatusController() {
     }
   }
 
+  async function unassignDriver() {
+    if (!selectedOrder?.driverId || driverBusy) return;
+
+    const driver = drivers.find(
+      (item) => item.id === selectedOrder.driverId,
+    );
+
+    const accepted = window.confirm(
+      `¿Desasignar a ${driver?.name || "este repartidor"} de ${displayedCode(
+        selectedOrder,
+      )}?`,
+    );
+    if (!accepted) return;
+
+    setDriverBusy(true);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${selectedOrder.id}/driver`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible desasignar el repartidor.",
+        );
+      }
+
+      setSelectedOrder((current) =>
+        current
+          ? {
+              ...current,
+              driverId: null,
+              status: data.order?.status ?? current.status,
+            }
+          : current,
+      );
+      setSelectedDriverId(null);
+
+      setAlert({
+        tone: "success",
+        title: "Repartidor desasignado",
+        message: data.resetToReady
+          ? "El domicilio volvió a Listo para que pueda ser asignado nuevamente."
+          : "El domicilio quedó disponible para una nueva asignación.",
+      });
+
+      window.setTimeout(() => {
+        document
+          .querySelector<HTMLButtonElement>(
+            "button[aria-label='Actualizar']",
+          )
+          ?.click();
+        decorateStatusTriggers();
+      }, 0);
+    } catch (error) {
+      setAlert({
+        tone: "error",
+        title: "No fue posible desasignar",
+        message:
+          error instanceof Error
+            ? error.message
+            : "No fue posible desasignar el repartidor.",
+      });
+    } finally {
+      setDriverBusy(false);
+    }
+  }
+
   async function assignDriver() {
     if (!selectedOrder || !selectedDriverId || driverBusy) return;
     const driverId = selectedDriverId;
@@ -221,6 +291,7 @@ export default function OrdersStatusController() {
       driverBusy={driverBusy}
       onDriverChange={setSelectedDriverId}
       onConfirmDriver={() => void assignDriver()}
+      onUnassignDriver={() => void unassignDriver()}
       onClose={() => !busy && !driverBusy && setSelectedOrder(null)}
       onSelect={(status) => void selectStatus(status)}
     />

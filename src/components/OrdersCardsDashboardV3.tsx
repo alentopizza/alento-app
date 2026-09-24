@@ -284,6 +284,42 @@ export default function OrdersCardsDashboardV3() {
     return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [catalog]);
 
+  async function unassignDriver(order: Order) {
+    if (!order.driver || busy === order.id) return;
+
+    const accepted = window.confirm(
+      `¿Desasignar a ${order.driver.name} de ${displayOrderCode(order)}?`,
+    );
+    if (!accepted) return;
+
+    setBusy(order.id);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${order.id}/driver`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible desasignar el repartidor.",
+        );
+      }
+
+      await load(true);
+      emitLiveDataChange(["orders"]);
+    } catch (actionError) {
+      window.alert(
+        actionError instanceof Error
+          ? actionError.message
+          : "No fue posible desasignar el repartidor.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function advance(order: Order) {
     const next = nextStatus(order.status, order.fulfillmentType);
     if (!next || ["PREPARING", "PREPARED", "CONFIRMED"].includes(order.status)) return;
@@ -658,10 +694,21 @@ export default function OrdersCardsDashboardV3() {
                     <span className="text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700">
                       Asignado
                     </span>
+                    <b className="truncate text-[11px] text-emerald-950">
+                      {order.driver.name}
+                    </b>
                   </div>
-                  <b className="truncate text-[11px] text-emerald-950">
-                    {order.driver.name}
-                  </b>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void unassignDriver(order);
+                    }}
+                    disabled={busy === order.id}
+                    className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
+                  >
+                    Desasignar
+                  </button>
                 </div>
               )}
               <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
@@ -712,7 +759,7 @@ export default function OrdersCardsDashboardV3() {
     {selected && <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-[3px]" onClick={() => setSelected(null)}><aside onClick={(event) => event.stopPropagation()} className="order-detail-drawer absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden bg-[#f5f2ee] shadow-[-24px_0_70px_rgba(0,0,0,.24)]">
       <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--brand-red)] bg-[radial-gradient(circle_at_90%_20%,rgba(229,28,17,.22),transparent_28%),linear-gradient(135deg,#0b0b0c,#171718)] px-5 py-5 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Detalle del pedido</p><h2 className="mt-1 text-2xl font-black">{displayOrderCode(selected)}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="order-detail-date text-xs text-white/55">{dateTime(selected.createdAt)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${fulfillmentTone(selected.fulfillmentType)}`}>{fulfillmentLabel(selected.fulfillmentType)}</span>{selected.fulfillmentType === "DELIVERY" && <span className="order-detail-delivery-fee">{selected.deliveryZoneName || (Number(selected.deliveryFee) > 0 ? money(selected.deliveryFee) : "Sin costo")}</span>}</div></div><button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]"><Icon name="close" /></button></header>
       <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
+        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 flex flex-wrap items-center gap-2"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div><button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
   onClick={() => openCustomerManager(selected)}
   disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
   className="inline-flex h-10 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-700 shadow-[0_6px_18px_rgba(28,23,20,.08)] transition-all duration-150 hover:-translate-y-[1px] hover:border-[var(--brand-red)] hover:text-[var(--brand-red)] hover:shadow-[0_10px_24px_rgba(28,23,20,.12)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-neutral-200 disabled:hover:text-neutral-700"

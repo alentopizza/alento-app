@@ -21,6 +21,7 @@ type OrderStatusSelectorProps = {
   driverBusy?: boolean;
   onDriverChange?: (driverId: number | null) => void;
   onConfirmDriver?: () => void;
+  onUnassignDriver?: () => void;
   onClose: () => void;
   onSelect: (status: OrderStatus) => void;
 };
@@ -68,6 +69,7 @@ export default function OrderStatusSelector({
   driverBusy = false,
   onDriverChange,
   onConfirmDriver,
+  onUnassignDriver,
   onClose,
   onSelect,
 }: OrderStatusSelectorProps) {
@@ -277,6 +279,17 @@ export default function OrderStatusSelector({
                     </button>
                   )}
                 </div>
+
+                {assignedDriverId && (
+                  <button
+                    type="button"
+                    disabled={driverBusy || busy}
+                    onClick={() => onUnassignDriver?.()}
+                    className="mt-2 flex h-10 w-full items-center justify-center rounded-xl border border-red-200 bg-white text-[10px] font-black uppercase tracking-[0.05em] text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {driverBusy ? "Procesando..." : "Desasignar repartidor"}
+                  </button>
+                )}
               </div>
             )}
           </div>
