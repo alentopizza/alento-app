@@ -380,3 +380,4 @@ Regla de no regresión: **CASHIER puede gestionar repartidores de pedidos a domi
 - ✅ 2026-09-24 — Bloqueo de cierre con saldo pendiente: validación manual aprobada; un pedido con saldo por cobrar no puede pasar a COMPLETED/Finalizado hasta registrar el pago completo.
 - ✅ 2026-09-24 — Cancelación de pedido pagado: validación manual aprobada; un pedido con movimientos PAID queda protegido contra cancelación mientras no exista un flujo auditable de devolución/refund. Caja y los pagos se conservan.
 - ✅ 2026-09-24 — Cocina / regresión final: validación manual aprobada, incluyendo edición de pedidos activos por CASHIER, ajuste de cantidades/productos/notas y retorno correcto al flujo de Cocina cuando corresponde.
+- ✅ 2026-09-24 — Reparto múltiple: validación manual aprobada con dos domicilios simultáneos para un mismo repartidor, orden de paradas, rutas encadenadas, capacidad máxima y agrupación/expansión de pedidos superpuestos en Repartidor y Mapa De Entregas.
