@@ -11,21 +11,21 @@ Leer en este orden:
 3. `docs/PRODUCTION_READINESS.md`
 4. `docs/ALENTO_EXCLUSIVE_MODULES.md`
 5. `docs/ROADMAP.md`
-4. `docs/POS.md`
-5. `docs/ORDERS.md`
-6. `docs/KITCHEN.md`
-7. `docs/CUSTOMERS.md`
-8. `docs/MENU.md`
-9. `docs/ARCHITECTURE.md`
-10. `docs/ORDER_DATA_INTEGRITY.md`
-11. `docs/ORDER_NUMBERING.md`
-12. `docs/PAYMENTS.md`
-13. `docs/PAYMENTS_AND_CASH.md`
-14. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-15. `docs/DEPLOYMENT.md`
-16. `docs/MAPS_VISUAL_SYSTEM.md`
-17. `prisma/schema.prisma`
-18. archivos del módulo que se vaya a modificar.
+6. `docs/POS.md`
+7. `docs/ORDERS.md`
+8. `docs/KITCHEN.md`
+9. `docs/CUSTOMERS.md`
+10. `docs/MENU.md`
+11. `docs/ARCHITECTURE.md`
+12. `docs/ORDER_DATA_INTEGRITY.md`
+13. `docs/ORDER_NUMBERING.md`
+14. `docs/PAYMENTS.md`
+15. `docs/PAYMENTS_AND_CASH.md`
+16. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+17. `docs/DEPLOYMENT.md`
+18. `docs/MAPS_VISUAL_SYSTEM.md`
+19. `prisma/schema.prisma`
+20. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -314,11 +314,11 @@ Colaboradores:
 
 Clientes:
 
-- navegación pública futura sin login obligatorio;
-- teléfono + OTP de WhatsApp;
+- navegación pública y checkout WEB disponibles sin login obligatorio;
+- teléfono + OTP opcional mediante proveedor externo de Alentó;
 - `CustomerAccount`;
 - cookie `alento_customer_session`;
-- `/cuenta/login`;
+- login unificado en `/login`;
 - `/cuenta`.
 
 Variables y activación están documentadas en `docs/AUTH_ROLES_AND_PUBLIC_APP.md` y `docs/DEPLOYMENT.md`.
@@ -354,19 +354,22 @@ Antes de probar login en un despliegue existente:
 3. ejecutar `npx prisma db push`;
 4. crear el primer ADMIN desde `/setup/admin`;
 5. crear colaboradores desde `/usuarios`;
-6. configurar WhatsApp cuando se vaya a probar login de clientes.
+6. configurar `MAKE_WHATSAPP_OTP_WEBHOOK_URL` únicamente cuando se vaya a habilitar el login OTP de clientes en la infraestructura de Alentó.
 
 ## Prisma en producción
 
 No existe baseline formal de Prisma Migrate.
 
-Cuando cambie schema:
+El despliegue actual todavía ejecuta `prisma db push` al arrancar; esto es una condición temporal de la etapa de construcción, no la meta de producción estable.
 
-```bash
-npx prisma db push
-```
+Antes de cambiarla:
 
-No usar `prisma migrate deploy` hasta realizar baseline.
+1. backup de PostgreSQL;
+2. verificar schema real;
+3. crear baseline;
+4. separar migración y start.
+
+No usar `prisma migrate deploy` sobre la base actual hasta completar ese baseline.
 
 ## Regla obligatoria de documentación
 

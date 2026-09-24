@@ -69,7 +69,7 @@ La primera versión de autenticación y autorización por roles ya está impleme
 
 Cupones, Caja y Configuración existen, pero no están incluidos en el grupo de cinco módulos declarados cerrados en esta actualización.
 
-Integraciones externas permanecen pospuestas y deben abordarse al final del desarrollo.
+Las integraciones externas no bloquean el núcleo. Chatwoot y el ecosistema WhatsApp/notifier actual se consideran extensiones exclusivas de Alentó; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 ## Infraestructura
 
@@ -283,7 +283,7 @@ Rappi, DiDi y otras integraciones externas no forman parte del código operativo
 
 La implementación experimental fue retirada.
 
-**Integraciones permanece reservada para la última fase del desarrollo.**
+**Las integraciones exclusivas de Alentó se mantienen separadas del criterio de cierre del núcleo genérico.**
 
 ## Autenticación y roles — primera versión implementada
 
@@ -303,8 +303,8 @@ Colaboradores:
 
 Clientes:
 
-- navegación pública futura no requiere login;
-- `/cuenta/login` usa teléfono + OTP por WhatsApp;
+- navegación pública y compra como invitado no requieren login;
+- `/login` ofrece teléfono + OTP cuando la integración externa está configurada;
 - `CustomerAccount` permanece separado de `Customer`;
 - `/cuenta` muestra información privada del cliente autenticado.
 
@@ -316,13 +316,9 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 La base de producción no tiene baseline formal de Prisma Migrate.
 
-Cuando cambie el schema:
+El start actual todavía ejecuta `prisma db push`. Antes de producción estable debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
 
-```bash
-npx prisma db push
-```
-
-No usar `prisma migrate deploy` hasta realizar baseline.
+No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
 El cierre documental de los cinco módulos no requiere un cambio de schema.
 
@@ -339,11 +335,11 @@ Pendientes estratégicos conocidos:
 - costos;
 - rentabilidad;
 - mejoras futuras de Menú: tipos de producto y modificadores;
-- experiencia pública;
-- sustitución de Glide;
-- integraciones externas como última fase.
+- validación productiva de la experiencia pública ya implementada;
+- sustitución de Glide donde todavía aplique;
+- integraciones externas solo como extensiones opcionales.
 
-## Experiencia pública — estado vigente 2026-09-22
+## Experiencia pública — estado vigente 2026-09-23
 
 La experiencia pública ya es una parte activa de Alentó App y comparte el mismo catálogo y las mismas estructuras comerciales del sistema interno.
 

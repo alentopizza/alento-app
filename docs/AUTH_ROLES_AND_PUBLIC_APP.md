@@ -180,7 +180,7 @@ La tarifa y la distancia oficiales no se confían al navegador: se resuelven ser
 
 ## Clientes
 
-Los clientes **no necesitan iniciar sesión para navegar la futura app pública**.
+Los clientes **no necesitan iniciar sesión para navegar la app pública ni para comprar como invitados**.
 
 El login sirve para vincular la sesión con el `Customer` existente y habilitar información privada:
 
@@ -291,18 +291,6 @@ Variable usada:
 
 La conexión real con WhatsApp/Meta vive fuera del núcleo de la aplicación y se considera integración opcional/exclusiva de Alentó. Ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
-## Modo desarrollo
-
-Si WhatsApp todavía no está conectado se puede habilitar:
-
-`WHATSAPP_DEV_LOG_OTP=1`
-
-Solo fuera de producción.
-
-Esto imprime el OTP en logs para probar el flujo.
-
-**Nunca activar en producción.**
-
 ## Archivos principales
 
 - `prisma/schema.prisma`
@@ -312,7 +300,7 @@ Esto imprime el OTP en logs para probar el flujo.
 - `src/app/login/page.tsx`
 - `src/app/setup/admin/page.tsx`
 - `src/app/usuarios/page.tsx`
-- `src/app/cuenta/login/page.tsx`
+- `src/app/login/page.tsx`
 - `src/app/cuenta/page.tsx`
 - `src/app/api/auth/**`
 - `src/app/api/users/**`
@@ -353,7 +341,7 @@ Es obligatorio antes de probar login.
 - auditoría completa de cambios de usuarios todavía no existe;
 - la sesión interna es stateless y no tiene revocación inmediata centralizada;
 - no existe segundo factor para colaboradores;
-- WhatsApp depende de Meta, plantilla aprobada y credenciales válidas;
+- el login OTP depende del webhook externo de Make y de la infraestructura WhatsApp/Meta configurada detrás de ese escenario;
 - la experiencia pública ya crea pedidos `source=WEB` y ofrece seguimiento firmado;
 - el GPS en vivo, mapa, ETA y flujo operativo del repartidor ya están implementados;
 - recuperación de contraseña y revocación central de sesiones siguen pendientes.
@@ -374,7 +362,7 @@ No bloquear por falta de login:
 
 Sí exigir sesión para operaciones privadas como historial, datos personales, direcciones persistidas y saldo/movimientos individuales del Club.
 
-El checkout final podrá aceptar invitado o sesión según la decisión de producto, pero nunca debe conceder permisos internos ni reutilizar la sesión de colaborador.
+El checkout final ya acepta invitado o sesión. Nunca debe conceder permisos internos ni reutilizar la sesión de colaborador.
 
 ## Regla de no regresión
 
@@ -427,7 +415,7 @@ Ya existe:
 - transición `OUT_FOR_DELIVERY → ARRIVED`;
 - seguimiento del cliente con autoactualización.
 
-GPS en vivo y mapa dinámico del repartidor siguen pendientes.
+GPS en vivo, mapa dinámico, rutas, ETA y navegación del repartidor ya están implementados.
 
 `DISPATCH` se conserva únicamente como valor legacy en Prisma.
 
