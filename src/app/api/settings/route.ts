@@ -159,8 +159,47 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const settings = normalizeSettings(body?.settings);
 
-  if (!settings.deliveryBands.some((band) => band.active)) {
+  const activeBands = settings.deliveryBands
+    .filter((band) => band.active)
+    .sort((a, b) => a.minMeters - b.minMeters);
+
+  if (!activeBands.length) {
     return NextResponse.json({ error: "Debe existir al menos una tarifa de domicilio activa." }, { status: 400 });
+  }
+
+  for (const band of activeBands) {
+    if (band.maxMeters < band.minMeters) {
+      return NextResponse.json(
+        { error: `La zona "${band.name}" tiene un rango inválido: la distancia final debe ser mayor o igual a la inicial.` },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (activeBands[0].minMeters !== 0) {
+    return NextResponse.json(
+      { error: "La primera zona activa debe comenzar en 0 metros para no dejar un vacío junto a Alentó." },
+      { status: 400 },
+    );
+  }
+
+  for (let index = 1; index < activeBands.length; index += 1) {
+    const previous = activeBands[index - 1];
+    const current = activeBands[index];
+
+    if (current.minMeters <= previous.maxMeters) {
+      return NextResponse.json(
+        { error: `Las zonas "${previous.name}" y "${current.name}" se están solapando.` },
+        { status: 400 },
+      );
+    }
+
+    if (current.minMeters !== previous.maxMeters + 1) {
+      return NextResponse.json(
+        { error: `Hay un espacio sin cobertura entre "${previous.name}" y "${current.name}". Ajusta el siguiente rango para que empiece en ${previous.maxMeters + 1} m.` },
+        { status: 400 },
+      );
+    }
   }
 
   if (!settings.paymentMethods.some((method) => method.active)) {

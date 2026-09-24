@@ -24,6 +24,7 @@ Estados usados:
 | Menú / catálogo | LISTO | administración, orden, destacados, productos, pizzas, combos y catálogo compartido |
 | POS interno | LISTO CON VALIDACIÓN | carrito estructurado → modalidad → cliente/dirección → descuento → intención de pago → creación real de Order |
 | Domicilio POS | LISTO CON VALIDACIÓN | dirección Google → Routes server-side → cobertura → tarifa automática; también al editar |
+| Cobertura / tarifas de domicilio | LISTO CON VALIDACIÓN | editor ADMIN de zonas por distancia, tarifa, activar/desactivar, agregar/eliminar y cobertura máxima |
 | Pedidos | LISTO CON VALIDACIÓN | detalle, edición, cliente, pagos, estados, cancelación controlada, impresión, driver, mapa de entregas |
 | Cocina | LISTO CON VALIDACIÓN | PREPARING → preparación por cantidades → PREPARED/Horneando → READY desde operación |
 | Recoger / Local | LISTO CON VALIDACIÓN | PREPARING → PREPARED → READY → COMPLETED; COMPLETED exige saldo pagado |
@@ -203,6 +204,8 @@ Para producción hay que decidir una de dos:
 ## Validación manual obligatoria antes de abrir producción
 
 ### POS
+
+Antes de probar domicilio, validar en Configuración que las zonas activas sean continuas y que la cobertura máxima coincida con la operación real.
 
 1. Crear Local solo con bebidas.
 2. Crear Local/Pickup con pizza.
