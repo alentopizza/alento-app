@@ -11,7 +11,6 @@ const ACTIVE_STATUSES = [
   "READY",
   "OUT_FOR_DELIVERY",
   "ARRIVED",
-  "DELIVERED",
 ] as const;
 
 export async function GET() {
@@ -30,24 +29,43 @@ export async function GET() {
     return NextResponse.json({ authenticated: false, order: null });
   }
 
-  const orders = await prisma.order.findMany({
-    where: {
-      customerId: account.customerId,
-      status: { in: [...ACTIVE_STATUSES] },
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    take: 5,
-    select: {
-      id: true,
-      sequenceNumber: true,
-      source: true,
-      status: true,
-      fulfillmentType: true,
-      total: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  const recentWindow = new Date(Date.now() - 15 * 60 * 1000);
+
+  const [orders, recentDelivered] = await Promise.all([
+    prisma.order.findMany({
+      where: {
+        customerId: account.customerId,
+        status: { in: [...ACTIVE_STATUSES] },
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: 5,
+      select: {
+        id: true,
+        sequenceNumber: true,
+        source: true,
+        status: true,
+        fulfillmentType: true,
+        total: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.order.findFirst({
+      where: {
+        customerId: account.customerId,
+        fulfillmentType: "DELIVERY",
+        status: { in: ["DELIVERED", "COMPLETED"] },
+        updatedAt: { gte: recentWindow },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        sequenceNumber: true,
+        source: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
 
   const serializedOrders = orders.map((order) => {
     let trackingPath: string | null = null;
@@ -73,5 +91,14 @@ export async function GET() {
     authenticated: true,
     orders: serializedOrders,
     order: serializedOrders[0] ?? null,
+    recentDelivered: recentDelivered
+      ? {
+          id: recentDelivered.id,
+          code: `${recentDelivered.source}-${String(
+            recentDelivered.sequenceNumber ?? recentDelivered.id,
+          ).padStart(4, "0")}`,
+          updatedAt: recentDelivered.updatedAt,
+        }
+      : null,
   });
 }

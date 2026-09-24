@@ -31,7 +31,7 @@ Estados usados:
 | Domicilio / Repartidor | LISTO CON VALIDACIÓN | asignación → checklist al estar READY → EN CAMINO → LLEGÓ → ENTREGADO → cierre operativo |
 | Reparto múltiple | LISTO CON VALIDACIÓN | límite configurable, orden de paradas, mapa, rutas encadenadas y colores por tramo |
 | Geocerca de aceptación | LISTO CON VALIDACIÓN | radio configurable alrededor de Alentó; autoasignación requiere ubicación reciente y estar dentro de zona |
-| Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, actualización automática, mapa/ETA/moto durante reparto |
+| Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, mapa/ETA/moto hasta ARRIVED; GPS continúa hasta DELIVERED, luego se cierra el seguimiento activo y queda historial |
 | Checkout WEB | LISTO CON VALIDACIÓN | invitado o sesión → dirección/cobertura → pago previsto → WEB-xxxx → seguimiento |
 | Pagos | LISTO CON VALIDACIÓN | intención PENDING, múltiples ingresos PAID, pagos parciales/mixtos, saldo |
 | Caja básica | LISTO CON VALIDACIÓN | total diario y desglose por medios usando únicamente PAID |
@@ -235,7 +235,7 @@ Antes de probar domicilio, validar en Configuración que las zonas activas sean 
 
 ### Domicilio / repartidor
 
-Regla de no regresión: el seguimiento del cliente permanece visible también en ARRIVED ("Llegó") y solo deja de mostrar la ubicación del repartidor cuando el pedido pasa a DELIVERED/COMPLETED.
+Regla de no regresión: el seguimiento del cliente permanece visible también en ARRIVED ("Llegó") y la ubicación continúa actualizándose hasta DELIVERED. Al marcar DELIVERED, el seguimiento activo se cierra, desaparece de pedidos en proceso y la pantalla pública muestra una notificación breve "Pedido XXXX fue entregado"; el detalle posterior queda en el historial de /cuenta. No existe un sexto paso visual "Entregado" dentro del seguimiento activo.
 
 1. Probar geocerca fuera de zona: debe ver solicitudes pero no poder autoasignarse.
 2. Entrar en la zona: debe habilitar autoasignación automáticamente.

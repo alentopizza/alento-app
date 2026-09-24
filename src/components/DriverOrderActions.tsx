@@ -83,17 +83,22 @@ export default function DriverOrderActions({
   }, []);
 
   useEffect(() => {
-    if (status === "ARRIVED" && locationWatchRef.current != null) {
-      navigator.geolocation.clearWatch(locationWatchRef.current);
-      locationWatchRef.current = null;
-      setLocationSnapshot(null);
-      window.localStorage.removeItem(locationStorageKey);
+    if (
+      !["DELIVERED", "COMPLETED", "CANCELED"].includes(status) ||
+      locationWatchRef.current == null
+    ) {
+      return;
     }
+
+    navigator.geolocation.clearWatch(locationWatchRef.current);
+    locationWatchRef.current = null;
+    setLocationSnapshot(null);
+    window.localStorage.removeItem(locationStorageKey);
   }, [status, locationStorageKey]);
 
   useEffect(() => {
     if (!isAssigned) return;
-    if (status !== "READY" && status !== "OUT_FOR_DELIVERY") return;
+    if (!["READY", "OUT_FOR_DELIVERY", "ARRIVED"].includes(status)) return;
     if (locationWatchRef.current != null) return;
 
     startLocationSharing();
@@ -307,6 +312,10 @@ export default function DriverOrderActions({
       }
 
       if (next === "DELIVERED") {
+        if (locationWatchRef.current != null) {
+          navigator.geolocation.clearWatch(locationWatchRef.current);
+          locationWatchRef.current = null;
+        }
         window.localStorage.removeItem(locationStorageKey);
         router.replace("/repartidor");
         router.refresh();
@@ -316,7 +325,7 @@ export default function DriverOrderActions({
       setNotice(
         next === "OUT_FOR_DELIVERY"
           ? "Entrega iniciada. La ubicación sigue compartiéndose y el cliente fue notificado."
-          : "Llegada registrada. El cliente fue notificado.",
+          : "Llegada registrada. El cliente seguirá viendo tu ubicación hasta que marques Entregado.",
       );
 
       router.refresh();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
@@ -166,7 +166,6 @@ function trackingStages(fulfillmentType: string, status: string) {
     { label: "Listo", statuses: ["READY"] },
     { label: "En camino", statuses: ["OUT_FOR_DELIVERY"] },
     { label: "Llegó", statuses: ["ARRIVED"] },
-    { label: "Entregado", statuses: ["DELIVERED", "COMPLETED"] },
   ];
 
   const pickup = [
@@ -224,6 +223,14 @@ export default async function TrackingPage({
   if (!order) notFound();
 
   const code = `${order.source}-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+
+  if (
+    order.fulfillmentType === "DELIVERY" &&
+    ["DELIVERED", "COMPLETED"].includes(order.status)
+  ) {
+    redirect(`/menu?pedidoEntregado=${encodeURIComponent(code)}`);
+  }
+
   const { stages, current } = trackingStages(order.fulfillmentType, order.status);
   const activeLabel = STATUS_LABEL[order.status] ?? order.status;
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";

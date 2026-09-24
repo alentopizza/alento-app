@@ -21,7 +21,7 @@ const DELIVERY_STAGES: Stage[] = [
   { label: "Horneando" },
   { label: "Listo" },
   { label: "En camino" },
-  { label: "Entregado" },
+  { label: "Llegó" },
 ];
 
 const PICKUP_STAGES: Stage[] = [
@@ -39,7 +39,7 @@ function stageIndex(order: ActiveOrder) {
     if (status === "PREPARED") return 1;
     if (status === "READY") return 2;
     if (status === "OUT_FOR_DELIVERY") return 3;
-    if (["ARRIVED", "DELIVERED"].includes(status)) return 4;
+    if (status === "ARRIVED") return 4;
     return 0;
   }
 
@@ -61,7 +61,6 @@ function statusTitle(order: ActiveOrder) {
         : "Tu pedido está listo para recoger",
     OUT_FOR_DELIVERY: "Tu pedido va en camino",
     ARRIVED: "Tu pedido ya llegó",
-    DELIVERED: "Pedido entregado",
   };
 
   return labels[order.status] ?? "Tu pedido está en proceso";
@@ -174,10 +173,20 @@ export default function PublicActiveOrderBanner({
 }) {
   const [orders, setOrders] = useState<ActiveOrder[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [deliveredNotice, setDeliveredNotice] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
+  const previousOrderIdsRef = useRef<Set<number> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+
+    const url = new URL(window.location.href);
+    const deliveredFromTracking = url.searchParams.get("pedidoEntregado");
+    if (deliveredFromTracking) {
+      setDeliveredNotice(deliveredFromTracking);
+      url.searchParams.delete("pedidoEntregado");
+      window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+    }
 
     async function load() {
       try {
@@ -196,6 +205,28 @@ export default function PublicActiveOrderBanner({
                 : []
             : [];
 
+          const recentDelivered =
+            data?.recentDelivered &&
+            typeof data.recentDelivered.id === "number" &&
+            typeof data.recentDelivered.code === "string"
+              ? (data.recentDelivered as { id: number; code: string })
+              : null;
+          const previousOrderIds = previousOrderIdsRef.current;
+
+          if (
+            recentDelivered &&
+            previousOrderIds?.has(recentDelivered.id)
+          ) {
+            const noticeKey = `alento-delivered-notice:${recentDelivered.id}`;
+            if (!window.sessionStorage.getItem(noticeKey)) {
+              window.sessionStorage.setItem(noticeKey, "1");
+              setDeliveredNotice(recentDelivered.code);
+            }
+          }
+
+          previousOrderIdsRef.current = new Set(
+            nextOrders.map((order) => order.id),
+          );
           setOrders(nextOrders);
           setActiveIndex((current) =>
             nextOrders.length ? Math.min(current, nextOrders.length - 1) : 0,
@@ -214,6 +245,16 @@ export default function PublicActiveOrderBanner({
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!deliveredNotice) return;
+
+    const timer = window.setTimeout(() => {
+      setDeliveredNotice(null);
+    }, 9000);
+
+    return () => window.clearTimeout(timer);
+  }, [deliveredNotice]);
 
   function goTo(index: number) {
     const rail = railRef.current;
@@ -234,15 +275,53 @@ export default function PublicActiveOrderBanner({
     setActiveIndex(Math.max(0, Math.min(index, orders.length - 1)));
   }
 
-  if (!orders.length) return null;
+  if (!orders.length && !deliveredNotice) return null;
 
   return (
-    <section
-      className={
-        "overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#101010)] p-4 text-white shadow-[0_14px_38px_rgba(0,0,0,.24)] " +
-        className
-      }
-    >
+    <>
+      {deliveredNotice && (
+        <div
+          role="status"
+          className={
+            "mb-3 flex items-center gap-3 rounded-[18px] border border-emerald-400/20 bg-[#071a13] px-4 py-3 text-white shadow-[0_14px_38px_rgba(5,150,105,.18)] " +
+            className
+          }
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
+            ✓
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[8px] font-black uppercase tracking-[0.12em] text-emerald-300">
+              Entrega finalizada
+            </p>
+            <b className="mt-0.5 block text-[12px]">
+              Pedido {deliveredNotice} fue entregado.
+            </b>
+          </div>
+          <Link
+            href="/cuenta"
+            className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-[8px] font-black text-white/75"
+          >
+            Historial
+          </Link>
+          <button
+            type="button"
+            onClick={() => setDeliveredNotice(null)}
+            aria-label="Cerrar notificación"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-sm text-white/50"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {orders.length > 0 && (
+      <section
+        className={
+          "overflow-hidden rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#101010)] p-4 text-white shadow-[0_14px_38px_rgba(0,0,0,.24)] " +
+          className
+        }
+      >
       {orders.length > 1 && (
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
@@ -307,6 +386,8 @@ export default function PublicActiveOrderBanner({
       )}
 
 
-    </section>
+      </section>
+      )}
+    </>
   );
 }
