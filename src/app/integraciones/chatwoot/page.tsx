@@ -97,6 +97,7 @@ type OrderSummary = {
   deliveryZoneName: string | null;
   pointsEarned: number;
   pointsBase: number | null;
+  repeatable: boolean;
   createdAt: string;
   address: AddressSummary | null;
   items: Array<{
@@ -298,11 +299,7 @@ function itemDetails(value: string) {
 }
 
 function isHistoricalOrder(order: OrderSummary) {
-  return order.payments.some((payment) =>
-    ["histórico", "historico"].includes(
-      payment.method.trim().toLocaleLowerCase("es"),
-    ),
-  );
+  return !order.repeatable;
 }
 
 function parseContextMessage(data: unknown): ChatwootContext | null {
@@ -614,7 +611,7 @@ export default function ChatwootDashboardPage() {
               <span className="create-order-icon"><Plus size={20} /></span>
               <span>
                 <b>Crear orden</b>
-                <small>Abre el POS con este cliente seleccionado</small>
+                <small>Cliente listo · elige tipo de pedido y productos</small>
               </span>
             </button>
 
