@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  cashDateClosedResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -135,6 +140,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await assertCashDateEditable(issuedAt);
+
     const loan = await prisma.cashLoan.create({
       data: {
         workerName,
@@ -154,6 +161,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === CASH_DATE_CLOSED_ERROR) {
+      return NextResponse.json(
+        { error: cashDateClosedResponseMessage() },
+        { status: 409 },
+      );
+    }
+
     console.error("Cash loan create error", error);
     return NextResponse.json(
       { error: "No fue posible registrar el préstamo." },
