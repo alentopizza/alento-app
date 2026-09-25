@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  DELIVERY_TRAVEL_MODE_OPTIONS,
+  deliveryTravelModeColor,
+  deliveryTravelModeLabel,
+  googleMapsUrlTravelMode,
+  normalizeDeliveryTravelMode,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
+import {
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
@@ -15,6 +23,7 @@ type Point = {
 };
 
 type NavigationData = {
+  travelMode: DeliveryTravelMode;
   driver: Point & {
     accuracy?: number | null;
     updatedAt: string;
@@ -26,6 +35,9 @@ type NavigationData = {
     distanceMeters: number;
     durationSeconds: number | null;
     encodedPolyline: string;
+    requestedTravelMode?: DeliveryTravelMode;
+    routeTravelMode?: DeliveryTravelMode;
+    fallbackToVehicle?: boolean;
   };
 };
 
@@ -163,6 +175,7 @@ export default function DriverDestinationActions({
   currentStatus,
   canStartDelivery,
   orderCode,
+  initialTravelMode,
 }: {
   token: string;
   phone: string | null;
@@ -170,6 +183,7 @@ export default function DriverDestinationActions({
   currentStatus: string;
   canStartDelivery: boolean;
   orderCode: string;
+  initialTravelMode: string | null;
 }) {
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
@@ -186,6 +200,9 @@ export default function DriverDestinationActions({
   const [navigation, setNavigation] = useState<NavigationData | null>(null);
   const [error, setError] = useState("");
   const [navigationStatus, setNavigationStatus] = useState(currentStatus);
+  const [travelMode, setTravelMode] = useState<DeliveryTravelMode | null>(
+    normalizeDeliveryTravelMode(initialTravelMode),
+  );
   const [departureProgress, setDepartureProgress] = useState(0);
   const [departureDragging, setDepartureDragging] = useState(false);
   const [departureBusy, setDepartureBusy] = useState(false);
@@ -195,7 +212,10 @@ export default function DriverDestinationActions({
 
   useEffect(() => {
     setNavigationStatus(currentStatus);
-  }, [currentStatus]);
+    setTravelMode(
+      normalizeDeliveryTravelMode(initialTravelMode),
+    );
+  }, [currentStatus, initialTravelMode]);
 
   const navigationDisabled = [
     "ARRIVED",
@@ -292,7 +312,7 @@ export default function DriverDestinationActions({
         routeRef.current = new google.maps.Polyline({
           map,
           path,
-          strokeColor: "#e21a22",
+          strokeColor: deliveryTravelModeColor(data.travelMode),
           strokeOpacity: 0.96,
           strokeWeight: 5,
           geodesic: true,
@@ -327,6 +347,7 @@ export default function DriverDestinationActions({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
+            deliveryTravelMode: travelMode,
           }),
         },
       );
@@ -341,7 +362,7 @@ export default function DriverDestinationActions({
       setNavigation(next);
       return next;
     },
-    [token],
+    [token, travelMode],
   );
 
   useEffect(() => {
@@ -372,6 +393,11 @@ export default function DriverDestinationActions({
         watchRef.current = navigator.geolocation.watchPosition(
           async (position) => {
             if (disposed) return;
+
+            if (!travelMode) {
+              setLoading(false);
+              return;
+            }
 
             const now = Date.now();
             const shouldRoute =
@@ -456,7 +482,8 @@ export default function DriverDestinationActions({
     if (
       departureBusy ||
       navigationStatus !== "READY" ||
-      !canStartDelivery
+      !canStartDelivery ||
+      !travelMode
     ) {
       setDepartureProgress(0);
       return;
@@ -471,7 +498,10 @@ export default function DriverDestinationActions({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "OUT_FOR_DELIVERY" }),
+          body: JSON.stringify({
+            status: "OUT_FOR_DELIVERY",
+            deliveryTravelMode: travelMode,
+          }),
         },
       );
       const data = await response.json();
@@ -505,7 +535,8 @@ export default function DriverDestinationActions({
     if (
       departureBusy ||
       navigationStatus !== "READY" ||
-      !canStartDelivery
+      !canStartDelivery ||
+      !travelMode
     ) {
       setDepartureProgress(0);
       return;
@@ -594,7 +625,9 @@ export default function DriverDestinationActions({
   const googleMapsUrl = navigation
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
         `${navigation.destination.latitude},${navigation.destination.longitude}`,
-      )}&travelmode=driving`
+      )}&travelmode=${googleMapsUrlTravelMode(
+        navigation.travelMode,
+      )}&dir_action=navigate`
     : null;
 
   return (
@@ -719,22 +752,30 @@ export default function DriverDestinationActions({
             <div className="relative min-h-0 flex-1">
               <div ref={mapHostRef} className="absolute inset-0" />
 
-              <div className="pointer-events-none absolute left-3 right-3 top-3 z-20 grid grid-cols-2 gap-2 rounded-[18px] border border-white/10 bg-[#111]/94 p-2.5 shadow-xl backdrop-blur-xl sm:left-4 sm:right-4">
+              <div className="pointer-events-none absolute left-3 right-3 top-3 z-20 grid grid-cols-3 gap-1 rounded-[18px] border border-white/10 bg-[#111]/94 p-2.5 shadow-xl backdrop-blur-xl sm:left-4 sm:right-4">
                 <div className="border-r border-white/10 px-2">
-                  <span className="block text-[8px] font-black uppercase tracking-[.1em] text-white/40">
+                  <span className="block text-[7px] font-black uppercase tracking-[.1em] text-white/40">
+                    Modo
+                  </span>
+                  <b className="mt-1 block truncate text-[12px]">
+                    {travelMode ? deliveryTravelModeLabel(travelMode) : "—"}
+                  </b>
+                </div>
+                <div className="border-r border-white/10 px-2">
+                  <span className="block text-[7px] font-black uppercase tracking-[.1em] text-white/40">
                     Distancia
                   </span>
-                  <b className="mt-1 block text-[15px]">
+                  <b className="mt-1 block text-[12px]">
                     {navigation
                       ? formatDistance(navigation.route.distanceMeters)
                       : "—"}
                   </b>
                 </div>
                 <div className="px-2">
-                  <span className="block text-[8px] font-black uppercase tracking-[.1em] text-white/40">
+                  <span className="block text-[7px] font-black uppercase tracking-[.1em] text-white/40">
                     Tiempo
                   </span>
-                  <b className="mt-1 block text-[15px]">
+                  <b className="mt-1 block text-[12px]">
                     {navigation
                       ? formatDuration(navigation.route.durationSeconds)
                       : "—"}
@@ -748,6 +789,12 @@ export default function DriverDestinationActions({
                 </div>
               )}
 
+              {navigation?.route.fallbackToVehicle && (
+                <div className="absolute bottom-3 left-3 right-3 z-20 rounded-[16px] border border-amber-300/20 bg-[#211708]/95 px-3 py-2.5 text-[9px] font-semibold leading-4 text-amber-200 shadow-xl">
+                  Google no devolvió una ruta específica para moto en este punto. Se muestra una ruta vial aproximada.
+                </div>
+              )}
+
               {error && (
                 <div className="absolute bottom-3 left-3 right-3 z-20 rounded-[16px] border border-[#e21a22]/25 bg-[#210b0d]/95 px-3 py-3 text-[10px] font-semibold leading-4 text-[#ff8b8f] shadow-xl">
                   {error}
@@ -757,11 +804,45 @@ export default function DriverDestinationActions({
 
             {navigationStatus === "READY" && (
               <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
+                <div className="mb-3">
+                  <span className="block text-[8px] font-black uppercase tracking-[.11em] text-white/40">
+                    ¿Cómo vas a entregar?
+                  </span>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {DELIVERY_TRAVEL_MODE_OPTIONS.map((option) => {
+                      const selected = travelMode === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            setTravelMode(option.value);
+                            setNavigation(null);
+                            lastRouteAtRef.current = 0;
+                          }}
+                          className={
+                            "rounded-[14px] border px-2 py-2.5 text-center transition " +
+                            (selected
+                              ? "border-[#e21a22] bg-[#e21a22]/15 text-white"
+                              : "border-white/10 bg-white/[0.045] text-white/55")
+                          }
+                        >
+                          <span className="block text-lg">{option.emoji}</span>
+                          <b className="mt-1 block text-[9px]">{option.label}</b>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[8px] leading-4 text-white/32">
+                    Las rutas a pie y en moto dependen de la cobertura disponible de Google y pueden requerir precaución adicional.
+                  </p>
+                </div>
+
                 <div
                   ref={departureTrackRef}
                   className={
                     "relative h-[62px] w-full overflow-hidden rounded-full border backdrop-blur-md " +
-                    (canStartDelivery
+                    (canStartDelivery && travelMode
                       ? "landing-menu-slider border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)]"
                       : "border-white/20 bg-white/70 shadow-[0_12px_30px_rgba(0,0,0,.18)]")
                   }
@@ -788,16 +869,18 @@ export default function DriverDestinationActions({
                     <span
                       className={
                         "truncate text-[10px] font-black uppercase tracking-[0.11em] " +
-                        (canStartDelivery
+                        (canStartDelivery && travelMode
                           ? "landing-menu-slider-text text-black/75"
                           : "text-black/45")
                       }
                     >
                       {departureBusy
                         ? "Iniciando domicilio..."
-                        : canStartDelivery
-                          ? "Desliza para iniciar entrega"
-                          : "Verifica los productos primero"}
+                        : !canStartDelivery
+                          ? "Verifica los productos primero"
+                          : !travelMode
+                            ? "Elige cómo vas a entregar"
+                            : "Desliza para iniciar entrega"}
                     </span>
                   </div>
 
@@ -805,13 +888,15 @@ export default function DriverDestinationActions({
                     type="button"
                     aria-label={
                       canStartDelivery
-                        ? "Desliza para iniciar entrega"
+                        ? travelMode
+                          ? "Desliza para iniciar entrega"
+                          : "Elige cómo vas a entregar"
                         : "Verifica los productos primero"
                     }
-                    disabled={departureBusy || !canStartDelivery}
+                    disabled={departureBusy || !canStartDelivery || !travelMode}
                     className={
                       "absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed " +
-                      (canStartDelivery
+                      (canStartDelivery && travelMode
                         ? "landing-menu-slider-knob " +
                           (!departureDragging && departureProgress === 0
                             ? "landing-menu-slider-knob-idle"
@@ -825,7 +910,7 @@ export default function DriverDestinationActions({
                         : "left 220ms cubic-bezier(.2,.8,.2,1)",
                     }}
                     onPointerDown={(event) => {
-                      if (departureBusy || !canStartDelivery) return;
+                      if (departureBusy || !canStartDelivery || !travelMode) return;
                       event.currentTarget.setPointerCapture(event.pointerId);
                       setDepartureDragging(true);
                       updateDepartureFromPointer(event.clientX);
@@ -846,7 +931,8 @@ export default function DriverDestinationActions({
                       if (
                         (event.key === "Enter" || event.key === " ") &&
                         !departureBusy &&
-                        canStartDelivery
+                        canStartDelivery &&
+                        travelMode
                       ) {
                         event.preventDefault();
                         setDepartureProgress(1);
