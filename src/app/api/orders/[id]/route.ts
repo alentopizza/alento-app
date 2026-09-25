@@ -282,7 +282,24 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
 
       addressId = address.id;
-      deliveryFee = money(Number(zone.fee ?? 0));
+      const sameDeliveryAddress =
+        current.fulfillmentType === "DELIVERY" &&
+        current.addressId === address.id;
+      deliveryFee = sameDeliveryAddress
+        ? money(Number(current.deliveryFee))
+        : money(Number(zone.fee ?? 0));
+
+      if (body.deliveryFeeOverride != null) {
+        const requestedDeliveryFee = Number(body.deliveryFeeOverride);
+        if (!Number.isFinite(requestedDeliveryFee) || requestedDeliveryFee < 0) {
+          return NextResponse.json(
+            { error: "El valor manual del domicilio no es válido." },
+            { status: 400 },
+          );
+        }
+        deliveryFee = money(requestedDeliveryFee);
+      }
+
       deliveryZoneId = zone.id;
       deliveryZoneName = zone.name?.trim() || "Domicilio";
     }
