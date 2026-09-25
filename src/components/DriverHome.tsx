@@ -17,6 +17,7 @@ import {
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
 import {
+  isAlentoNativeDriverApp,
   startNativeDriverAvailabilityTracking,
   stopNativeDriverTracking,
 } from "@/lib/nativeDriverApp";
@@ -223,6 +224,59 @@ function money(value: number) {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function gpsFreshness(updatedAt: string | null) {
+  if (!updatedAt) {
+    return {
+      ageSeconds: null,
+      label: "Esperando señal",
+      tone: "neutral" as const,
+    };
+  }
+
+  const timestamp = new Date(updatedAt).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return {
+      ageSeconds: null,
+      label: "Sin lectura",
+      tone: "neutral" as const,
+    };
+  }
+
+  const ageSeconds = Math.max(
+    0,
+    Math.round((Date.now() - timestamp) / 1000),
+  );
+
+  if (ageSeconds <= 15) {
+    return {
+      ageSeconds,
+      label: "En vivo",
+      tone: "live" as const,
+    };
+  }
+
+  if (ageSeconds <= 45) {
+    return {
+      ageSeconds,
+      label: "Reciente",
+      tone: "recent" as const,
+    };
+  }
+
+  return {
+    ageSeconds,
+    label: "Desactualizado",
+    tone: "stale" as const,
+  };
+}
+
+function gpsAgeLabel(ageSeconds: number | null) {
+  if (ageSeconds == null) return "sin actualización";
+  if (ageSeconds < 60) return `hace ${ageSeconds} s`;
+  const minutes = Math.floor(ageSeconds / 60);
+  return `hace ${minutes} min`;
 }
 
 function routeDistance(value: number) {
@@ -448,6 +502,9 @@ export default function DriverHome({
   const [busyLogout, setBusyLogout] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [error, setError] = useState("");
+
+  const gpsState = gpsFreshness(driver.driverLocationUpdatedAt);
+  const nativeGps = isAlentoNativeDriverApp();
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.id === selectedId) ?? null,
@@ -2076,6 +2133,51 @@ export default function DriverHome({
                 {driver.driverAvailable ? "Activo" : "Inactivo"}
               </b>
             </div>
+            {driver.driverAvailable && (
+              <div className="mt-2.5 rounded-[13px] border border-white/[0.07] bg-black/20 px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.08em] text-white/42">
+                    <span
+                      className={
+                        "h-2 w-2 rounded-full " +
+                        (gpsState.tone === "live"
+                          ? "bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.7)]"
+                          : gpsState.tone === "recent"
+                            ? "bg-amber-300 shadow-[0_0_9px_rgba(252,211,77,.6)]"
+                            : gpsState.tone === "stale"
+                              ? "bg-[#ff6267] shadow-[0_0_9px_rgba(255,98,103,.6)]"
+                              : "bg-white/25")
+                      }
+                    />
+                    {nativeGps ? "GPS nativo" : "GPS"}
+                  </span>
+                  <b
+                    className={
+                      "text-[8px] " +
+                      (gpsState.tone === "live"
+                        ? "text-emerald-300"
+                        : gpsState.tone === "recent"
+                          ? "text-amber-200"
+                          : gpsState.tone === "stale"
+                            ? "text-[#ff777c]"
+                            : "text-white/45")
+                    }
+                  >
+                    {gpsState.label}
+                  </b>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[8px] font-semibold text-white/36">
+                  <span>
+                    {driver.driverLocationAccuracy != null
+                      ? `Precisión ±${Math.round(driver.driverLocationAccuracy)} m`
+                      : "Precisión pendiente"}
+                  </span>
+                  <span className="text-white/15">·</span>
+                  <span>{gpsAgeLabel(gpsState.ageSeconds)}</span>
+                </div>
+              </div>
+            )}
+
             {assignedPendingCount > 0 && (
               <p className="mt-2 text-[9px] leading-4 text-white/38">
                 {assignedPendingCount === 1
