@@ -408,6 +408,7 @@ export async function GET(request: NextRequest) {
     },
     orders: recentOrders.map((order) => ({
       id: order.id,
+      number: order.sequenceNumber ?? order.id,
       code: orderCode(order.source, order.sequenceNumber, order.id),
       source: order.source,
       status: order.status,
