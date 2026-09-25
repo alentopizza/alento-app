@@ -12,13 +12,13 @@ La APK añade capacidades nativas que una PWA no puede garantizar:
 
 - WebView con sesión persistente.
 - Geolocalización precisa.
-- Foreground Location Service durante un domicilio.
+- Foreground Location Service mientras el repartidor esté marcado como **Activo**.
 - Seguimiento mientras Google Maps está abierto.
 - Seguimiento con pantalla apagada, sujeto a la administración de batería del fabricante.
-- Notificación permanente mientras existe una entrega en curso.
+- Notificación permanente mientras el repartidor esté **Activo**; cambia de contenido durante una entrega.
 - Al tocar la notificación, vuelve directamente al pedido.
-- El servicio se detiene cuando la web marca el pedido como entregado.
-- Si el backend responde que el pedido ya no acepta ubicación (401/404/409), el servicio se detiene solo.
+- Al entregar, el servicio deja de actualizar ese pedido pero sigue reportando la ubicación general del repartidor. Solo se detiene al pasar a **Inactivo**.
+- Si un pedido ya no acepta ubicación, se elimina únicamente el contexto de ese pedido. Si el backend indica que el repartidor está Inactivo, el servicio se detiene.
 
 ## Puente web → Android
 
@@ -26,16 +26,18 @@ La WebView expone:
 
 ```text
 window.AlentoNative.platform()
-window.AlentoNative.startTracking(token, orderCode, travelMode)
+window.AlentoNative.startAvailabilityTracking()
+window.AlentoNative.setOrderTracking(token, orderCode, travelMode)
+window.AlentoNative.clearOrderTracking()
 window.AlentoNative.stopTracking()
 window.AlentoNative.isTracking()
 ```
 
-La aplicación web llama este puente después de confirmar `OUT_FOR_DELIVERY` y al confirmar `DELIVERED`.
+La aplicación web inicia el seguimiento general al pasar el repartidor a **Activo**. Al confirmar `OUT_FOR_DELIVERY` añade el pedido al servicio; al confirmar `DELIVERED` quita solo el pedido. Al pasar a **Inactivo** detiene por completo el servicio.
 
 ## Privacidad y permisos
 
-La V1 **no solicita ACCESS_BACKGROUND_LOCATION**.
+La V1 **no solicita ACCESS_BACKGROUND_LOCATION**. El seguimiento se inicia desde una acción visible del repartidor y se mantiene mediante un Foreground Service de ubicación mientras permanezca Activo.
 
 El servicio de ubicación se inicia desde la pantalla visible del pedido y se ejecuta como Foreground Service de tipo `location`, con una notificación permanente mientras comparte ubicación.
 
