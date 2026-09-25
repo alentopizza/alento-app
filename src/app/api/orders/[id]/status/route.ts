@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         total: true,
         driverId: true,
         deliveryFee: true,
+        deliveredAt: true,
         driverEarningAmount: true,
         driverEarningCreditedAt: true,
         customer: {
@@ -167,7 +168,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           Number(order.deliveryFee),
           savedSettings?.value,
         );
-        const deliveredAt = new Date();
+        const deliveredAt = order.deliveredAt ?? new Date();
 
         earningData = {
           deliveredAt,
