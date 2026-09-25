@@ -731,7 +731,7 @@ export default function DriverHome({
     }, 2500);
 
     if (initialDriver.driverAvailable) {
-      startNativeDriverAvailabilityTracking();
+      void startNativeDriverAvailabilityTracking();
 
       if (window.localStorage.getItem(HOME_GPS_KEY) === "1") {
         startGps();
@@ -840,7 +840,7 @@ export default function DriverHome({
 
       if (active) {
         window.localStorage.setItem(HOME_GPS_KEY, "1");
-        startNativeDriverAvailabilityTracking();
+        void startNativeDriverAvailabilityTracking();
         startGps();
       } else {
         stopNativeDriverTracking();
