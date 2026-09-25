@@ -1496,7 +1496,9 @@ export default function CashPage() {
                         <p className="mt-1 text-[9px] text-neutral-400">
                           {expense.source === "GLIDE_IMPORT"
                             ? "Histórico importado"
-                            : `Registró: ${expense.createdByName}`}
+                            : expense.source === "DRIVER_PAYMENT"
+                              ? `Pago a repartidor · Registró: ${expense.createdByName}`
+                              : `Registró: ${expense.createdByName}`}
                         </p>
                       </div>
 
@@ -2094,7 +2096,9 @@ export default function CashPage() {
                 <b>{formatCOP(deleteTarget.amount)}</b>?
               </p>
               <p className="mt-2 text-[11px] text-neutral-400">
-                Se descontará inmediatamente del resumen de salidas.
+                {deleteTarget.source === "DRIVER_PAYMENT"
+                  ? "Se eliminará de salidas y el monto volverá al saldo de la cartera del repartidor."
+                  : "Se descontará inmediatamente del resumen de salidas."}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 border-t p-4">
