@@ -173,7 +173,7 @@ class LocationForegroundService : Service() {
 
         val title =
             if (!token.isNullOrBlank()) {
-                "\${activeOrderCode ?: "Alentó"} · Entrega en curso"
+                "${activeOrderCode ?: "Alentó"} · Entrega en curso"
             } else {
                 "Alentó · Repartidor activo"
             }
@@ -340,11 +340,7 @@ class LocationForegroundService : Service() {
             }
 
             val body =
-                "{" +
-                    "\\"latitude\\":" + location.latitude + "," +
-                    "\\"longitude\\":" + location.longitude + "," +
-                    "\\"accuracy\\":" + location.accuracy +
-                    "}"
+                """{"latitude":${location.latitude},"longitude":${location.longitude},"accuracy":${location.accuracy}}"""
 
             connection.outputStream.use { output ->
                 output.write(body.toByteArray(Charsets.UTF_8))
