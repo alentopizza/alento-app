@@ -226,7 +226,15 @@ function money(value: number) {
   }).format(value);
 }
 
-function gpsFreshness(updatedAt: string | null) {
+function gpsFreshness(updatedAt: string | null, nowMs: number) {
+  if (nowMs <= 0) {
+    return {
+      ageSeconds: null,
+      label: "Actualizando",
+      tone: "neutral" as const,
+    };
+  }
+
   if (!updatedAt) {
     return {
       ageSeconds: null,
@@ -246,7 +254,7 @@ function gpsFreshness(updatedAt: string | null) {
 
   const ageSeconds = Math.max(
     0,
-    Math.round((Date.now() - timestamp) / 1000),
+    Math.round((nowMs - timestamp) / 1000),
   );
 
   if (ageSeconds <= 15) {
@@ -502,9 +510,23 @@ export default function DriverHome({
   const [busyLogout, setBusyLogout] = useState(false);
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [gpsNow, setGpsNow] = useState(0);
+  const [nativeGps, setNativeGps] = useState(false);
 
-  const gpsState = gpsFreshness(driver.driverLocationUpdatedAt);
-  const nativeGps = isAlentoNativeDriverApp();
+  const gpsState = gpsFreshness(
+    driver.driverLocationUpdatedAt,
+    gpsNow,
+  );
+
+  useEffect(() => {
+    setNativeGps(isAlentoNativeDriverApp());
+
+    const tick = () => setGpsNow(Date.now());
+    tick();
+    const timer = window.setInterval(tick, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   const selectedOrder = useMemo(
     () => orders.find((order) => order.id === selectedId) ?? null,
