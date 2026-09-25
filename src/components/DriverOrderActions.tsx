@@ -8,6 +8,10 @@ import {
   normalizeDeliveryTravelMode,
   type DeliveryTravelMode,
 } from "@/lib/deliveryTravelMode";
+import {
+  startNativeDriverTracking,
+  stopNativeDriverTracking,
+} from "@/lib/nativeDriverApp";
 
 type ChecklistItem = {
   id: number;
@@ -328,9 +332,19 @@ export default function DriverOrderActions({
 
       if (next === "OUT_FOR_DELIVERY") {
         setCheckedIds([]);
+        if (travelMode) {
+          startNativeDriverTracking({
+            token,
+            orderCode:
+              document.querySelector("[data-driver-order-code]")?.textContent?.trim() ||
+              "Alentó",
+            travelMode,
+          });
+        }
       }
 
       if (next === "DELIVERED") {
+        stopNativeDriverTracking();
         if (locationWatchRef.current != null) {
           navigator.geolocation.clearWatch(locationWatchRef.current);
           locationWatchRef.current = null;
