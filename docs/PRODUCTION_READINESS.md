@@ -34,7 +34,7 @@ Estados usados:
 | Seguimiento cliente | LISTO CON VALIDACIÓN | estado firmado, mapa/ETA/moto hasta ARRIVED; GPS continúa hasta DELIVERED, luego se cierra el seguimiento activo y queda historial |
 | Checkout WEB | LISTO CON VALIDACIÓN | invitado o sesión → dirección/cobertura → pago previsto → WEB-xxxx → seguimiento |
 | Pagos | LISTO CON VALIDACIÓN | intención PENDING, múltiples ingresos PAID, pagos parciales/mixtos, saldo |
-| Caja | LISTO CON VALIDACIÓN | rango de fechas, ventas por pedidos, cobros PAID, otros ingresos, entradas totales, salidas, flujo neto, desglose por medio/tipo/categoría y migraciones históricas |
+| Caja | LISTO CON VALIDACIÓN | rango de fechas, ventas, cobros PAID, otros ingresos, préstamos/vales, abonos, salidas, flujo neto y migraciones históricas |
 | Devoluciones / refunds | PENDIENTE CONTROLADO | no existe flujo contable de devolución; se bloquea cancelar un pedido que ya tenga dinero PAID |
 | Club Alentó | PARCIAL | acumulación, saldo e historial funcionan; canje transaccional dentro del checkout sigue pendiente |
 | Clientes | LISTO CON VALIDACIÓN | CRM, clasificación, historial, dirección Google con ajuste manual del pin, importación/exportación y permisos |
@@ -428,3 +428,18 @@ La importación histórica ADMIN acepta:
 y se bloquea después de ejecutarse mediante `cash_incomes_import_v1`.
 
 Regla de no regresión: un `CashIncome` nunca crea ni modifica un Order ni un Payment. Incluso si su categoría es `Venta`, permanece como entrada adicional para no duplicar ventas registradas en pedidos.
+
+
+### 2026-09-24 — Préstamos y vales
+
+Caja incorpora cartera de trabajadores con préstamos, saldos pendientes y abonos parciales.
+
+Reglas:
+
+- crear un préstamo reduce el flujo neto del período;
+- registrar un abono aumenta el flujo neto del período;
+- el saldo pendiente se mantiene separado de gastos;
+- un préstamo pagado queda cerrado y conserva su trazabilidad;
+- los abonos pueden registrarse como pago directo o descuento de nómina;
+- la migración histórica usa `prestamos.csv` una sola vez mediante `cash_loans_import_v1`;
+- los PAGADO históricos no reciben una fecha de devolución inventada si Glide no la proporciona.

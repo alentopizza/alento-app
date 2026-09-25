@@ -731,7 +731,7 @@ export default function CashPage() {
                 Caja
               </h1>
               <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
-                Ventas, dinero recibido y salidas reales en el período.
+                Ventas, entradas, préstamos y salidas reales en el período.
               </p>
             </div>
 

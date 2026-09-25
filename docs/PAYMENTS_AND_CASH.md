@@ -277,3 +277,49 @@ Entró total = Cobros de ventas + Otros ingresos
 Salidas = CashExpense del período
 Flujo neto = Entró total - Salidas
 ```
+
+
+## Préstamos y vales a trabajadores
+
+Caja incorpora una cartera separada de préstamos/vales entregados a trabajadores.
+
+Modelos:
+
+- `CashLoan`: principal entregado, trabajador, fecha, estado, origen y responsable.
+- `CashLoanRepayment`: abonos posteriores, fecha, monto, método y responsable.
+
+Regla contable operativa:
+
+```text
+Flujo neto del período =
+Cobros de ventas
++ Otros ingresos
++ Abonos recuperados de préstamos
+- Salidas
+- Nuevos préstamos entregados
+```
+
+Un préstamo **no es un gasto**: el dinero sale de disponibilidad y pasa a cartera por cobrar.
+
+Un abono **no es un ingreso comercial**: recupera dinero previamente prestado y vuelve al flujo neto.
+
+Los abonos pueden ser parciales. Métodos vigentes:
+
+- `PAGO`: el trabajador devuelve el dinero.
+- `DESCUENTO_NOMINA`: se recupera mediante descuento de nómina.
+
+### Histórico Glide
+
+La migración ADMIN acepta:
+
+`Fecha, Trabajador, Monto, Estado Final`
+
+Lock de una sola ejecución:
+
+`cash_loans_import_v1`
+
+Los registros históricos `NO PAGADO` se importan como cartera pendiente real.
+
+Los registros históricos `PAGADO` se importan como préstamos cerrados, pero **sin inventar una fecha de devolución**, porque el archivo fuente solo conserva el estado final. Por esta razón esos préstamos cerrados históricos no generan un movimiento sintético de Caja.
+
+Desde la migración en adelante, todos los nuevos préstamos y sus abonos sí conservan fechas exactas y afectan el flujo neto del período correspondiente.
