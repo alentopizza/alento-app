@@ -257,7 +257,11 @@ function initials(value: string) {
   );
 }
 
-function compactAddress(address: AddressSummary | null) {
+function compactAddress(
+  address:
+    | Pick<AddressSummary, "address" | "formattedAddress" | "neighborhood">
+    | null,
+) {
   if (!address) return "";
   const base = (
     address.address?.trim() ||
@@ -291,6 +295,14 @@ function itemDetails(value: string) {
     .split("·")
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+function isHistoricalOrder(order: OrderSummary) {
+  return order.payments.some((payment) =>
+    ["histórico", "historico"].includes(
+      payment.method.trim().toLocaleLowerCase("es"),
+    ),
+  );
 }
 
 function parseContextMessage(data: unknown): ChatwootContext | null {
@@ -721,13 +733,23 @@ export default function ChatwootDashboardPage() {
                       <button
                         type="button"
                         className="repeat-order-button"
-                        disabled={repeatLoadingId === order.id}
+                        disabled={
+                          repeatLoadingId === order.id ||
+                          isHistoricalOrder(order)
+                        }
+                        title={
+                          isHistoricalOrder(order)
+                            ? "Los pedidos importados no conservan la configuración estructurada necesaria para repetirlos con seguridad."
+                            : "Repetir este pedido"
+                        }
                         onClick={() => void prepareRepeat(order.id)}
                       >
                         <RotateCcw size={13} />
-                        {repeatLoadingId === order.id
-                          ? "Preparando..."
-                          : "Repetir pedido"}
+                        {isHistoricalOrder(order)
+                          ? "Pedido histórico"
+                          : repeatLoadingId === order.id
+                            ? "Preparando..."
+                            : "Repetir pedido"}
                       </button>
                     </div>
                   </div>
