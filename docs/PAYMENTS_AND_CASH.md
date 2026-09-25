@@ -323,3 +323,49 @@ Los registros históricos `NO PAGADO` se importan como cartera pendiente real.
 Los registros históricos `PAGADO` se importan como préstamos cerrados, pero **sin inventar una fecha de devolución**, porque el archivo fuente solo conserva el estado final. Por esta razón esos préstamos cerrados históricos no generan un movimiento sintético de Caja.
 
 Desde la migración en adelante, todos los nuevos préstamos y sus abonos sí conservan fechas exactas y afectan el flujo neto del período correspondiente.
+
+
+## Cartera de repartidores
+
+La cartera de repartidores se integra con pedidos y Salidas de Caja.
+
+Configuración en `pos_settings.driverManagement`:
+
+- `earningPercent`: porcentaje del domicilio cobrado al cliente que corresponde al repartidor, entre 0% y 100%;
+- `freeDeliveryEarning`: incentivo fijo para pedidos cuyo `deliveryFee` sea $0.
+
+Valores iniciales:
+
+- porcentaje: 100%;
+- entrega sin costo: $2.000.
+
+Al marcar un domicilio como `DELIVERED`, el pedido congela:
+
+- `deliveredAt`;
+- `driverEarningAmount`;
+- `driverEarningBase`;
+- `driverEarningRatePercent`;
+- `driverEarningKind`;
+- `driverEarningCreditedAt`.
+
+Cambiar la configuración después no modifica ganancias ya liquidadas.
+
+La cartera se calcula como:
+
+```text
+Saldo disponible =
+Ganancias de domicilios acreditadas
+- Pagos registrados al repartidor en CashExpense
+```
+
+Los pagos se registran en Caja como:
+
+- categoría: `Domicilios`;
+- `driverId`: repartidor beneficiario;
+- `source = DRIVER_PAYMENT`.
+
+Caja bloquea pagos superiores al saldo disponible. Los pagos pueden ser parciales.
+
+Eliminar una salida `DRIVER_PAYMENT` elimina también su efecto sobre la cartera, por lo que el monto vuelve automáticamente al saldo disponible.
+
+Las salidas históricas/importadas de Domicilios que no tengan `driverId` no afectan esta nueva cartera. Los pedidos históricos anteriores a la activación pueden contar como entregas en Desempeño, pero no generan saldo retroactivo si no tienen una ganancia acreditada.
