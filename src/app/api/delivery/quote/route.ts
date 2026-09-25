@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeDrivingRoute, reverseGeocode } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -137,22 +138,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const route = await computeDrivingRoute({
-      origin: {
-        latitude: storeLatitude,
-        longitude: storeLongitude,
-      },
-      destination: {
-        latitude,
-        longitude,
-      },
+    const origin = {
+      latitude: storeLatitude,
+      longitude: storeLongitude,
+    };
+    const destinationCoordinates = {
+      latitude,
+      longitude,
+    };
+    const commercialDistanceMeters = directDistanceMeters({
+      origin,
+      destination: destinationCoordinates,
     });
 
     const band = activeBands.find(
       (item) =>
-        route.distanceMeters >= item.minMeters &&
-        route.distanceMeters <= item.maxMeters,
+        commercialDistanceMeters >= item.minMeters &&
+        commercialDistanceMeters <= item.maxMeters,
     );
+
+    let route:
+      | {
+          distanceMeters: number;
+          durationSeconds: number | null;
+          encodedPolyline: string;
+        }
+      | null = null;
+
+    try {
+      route = await computeDrivingRoute({
+        origin,
+        destination: destinationCoordinates,
+      });
+    } catch (routeError) {
+      console.warn(
+        "Delivery quote route unavailable; using direct commercial distance",
+        routeError,
+      );
+    }
 
     let destination = {
       formattedAddress:
@@ -172,9 +195,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       covered: Boolean(band),
-      distanceMeters: route.distanceMeters,
-      durationSeconds: route.durationSeconds,
-      encodedPolyline: route.encodedPolyline,
+      distanceMeters: Math.round(commercialDistanceMeters),
+      commercialDistanceMeters: Math.round(commercialDistanceMeters),
+      routeDistanceMeters: route?.distanceMeters ?? null,
+      durationSeconds: route?.durationSeconds ?? null,
+      encodedPolyline: route?.encodedPolyline ?? "",
       deliveryFee: band ? band.fee : null,
       band: band ?? null,
       maxCoverageMeters: Math.max(
