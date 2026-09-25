@@ -888,16 +888,35 @@ export default function AdminDeliveryMapModal({
         <div className="relative min-h-0 flex-1 bg-[#ecebe7]">
           <div ref={mapHostRef} className="absolute inset-0" />
 
-          <div className="pointer-events-none absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111]/92 px-2.5 py-2 text-white shadow-lg backdrop-blur-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 shadow-[0_0_8px_rgba(5,150,105,.45)]" />
-              Asignado
-            </span>
-            <span className="h-4 w-px bg-white/10" />
-            <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#e21a22] shadow-[0_0_8px_rgba(226,26,34,.40)]" />
-              Disponible
-            </span>
+          <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">
+            <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111]/92 px-2.5 py-2 text-white shadow-lg backdrop-blur-xl">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 shadow-[0_0_8px_rgba(5,150,105,.45)]" />
+                Asignado
+              </span>
+              <span className="h-4 w-px bg-white/10" />
+              <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#e21a22] shadow-[0_0_8px_rgba(226,26,34,.40)]" />
+                Disponible
+              </span>
+            </div>
+
+            {routeLegend.length > 0 && (
+              <div className="flex items-center gap-2 rounded-full border border-white/15 bg-[#111]/92 px-3 py-2 text-[8px] font-black text-white/62 shadow-lg backdrop-blur-xl">
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-4 rounded-full bg-[#2563eb]" />
+                  Pie
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-4 rounded-full bg-[#e21a22]" />
+                  Moto
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-4 rounded-full bg-[#f59e0b]" />
+                  Vehículo
+                </span>
+              </div>
+            )}
           </div>
 
           {selectedDriver && (
@@ -1303,9 +1322,14 @@ export default function AdminDeliveryMapModal({
 
           {routeLegend.length > 0 && (
             <div className="absolute bottom-4 left-4 z-20 max-w-[calc(100%-2rem)] rounded-[18px] border border-white/15 bg-[#111]/94 p-2.5 text-white shadow-xl backdrop-blur-xl">
-              <p className="px-1 text-[7px] font-black uppercase tracking-[.12em] text-white/35">
-                Rutas en camino
-              </p>
+              <div className="flex items-center justify-between gap-3 px-1">
+                <p className="text-[7px] font-black uppercase tracking-[.12em] text-white/35">
+                  Rutas en camino
+                </p>
+                <span className="text-[7px] font-semibold text-white/28">
+                  A pie y moto: rutas orientativas
+                </span>
+              </div>
               <div className="mt-2 flex max-w-[760px] flex-wrap gap-1.5">
                 {routeLegend.map((item) => (
                   <div
