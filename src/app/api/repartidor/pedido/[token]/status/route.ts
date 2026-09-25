@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
+import { calculateDriverEarning } from "@/lib/driverCompensation";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       status: true,
       fulfillmentType: true,
       total: true,
+      deliveryFee: true,
       customerId: true,
       deliveryTravelMode: true,
       customer: { select: { name: true, countryCode: true, phone: true } },
@@ -110,12 +112,34 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     driverLongitude >= -180 &&
     driverLongitude <= 180;
 
+  const deliveredAt = requested === "DELIVERED" ? new Date() : null;
+  const compensationSetting =
+    requested === "DELIVERED"
+      ? await prisma.appSetting.findUnique({
+          where: { key: "pos_settings" },
+          select: { value: true },
+        })
+      : null;
+  const earning =
+    requested === "DELIVERED"
+      ? calculateDriverEarning(
+          Number(order.deliveryFee),
+          compensationSetting?.value,
+        )
+      : null;
+
   const updated = await prisma.order.update({
     where: { id: order.id },
     data:
-      requested === "DELIVERED"
+      requested === "DELIVERED" && earning && deliveredAt
         ? {
             status: "DELIVERED",
+            deliveredAt,
+            driverEarningAmount: earning.amount,
+            driverEarningBase: earning.base,
+            driverEarningRatePercent: earning.ratePercent,
+            driverEarningKind: earning.kind,
+            driverEarningCreditedAt: deliveredAt,
             driverLatitude: null,
             driverLongitude: null,
             driverLocationAccuracy: null,
@@ -143,6 +167,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       id: true,
       status: true,
       deliveryTravelMode: true,
+      deliveredAt: true,
+      driverEarningAmount: true,
       updatedAt: true,
     },
   });
