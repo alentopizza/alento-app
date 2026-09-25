@@ -39,5 +39,5 @@ export function directDistanceMeters(input: {
   const centralAngle =
     2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
 
-  return EARTH_RADIUS_METERS * centralAngle;
+  return Math.round(EARTH_RADIUS_METERS * centralAngle);
 }
