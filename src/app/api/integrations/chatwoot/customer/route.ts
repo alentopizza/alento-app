@@ -2,11 +2,56 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { orderItemDetailText } from "@/lib/orderPresentation";
+import { computeDrivingRoute } from "@/lib/googleMapsServer";
 
 function secureEqual(received: string, expected: string) {
   const left = Buffer.from(received);
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+const SETTINGS_KEY = "pos_settings";
+
+type DeliveryBand = {
+  id: string;
+  name?: string;
+  minMeters: number;
+  maxMeters: number;
+  fee: number;
+  active: boolean;
+};
+
+type SettingsValue = {
+  store?: {
+    address?: string;
+    formattedAddress?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
+  deliveryBands?: DeliveryBand[];
+};
+
+function finiteCoordinate(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function activeDeliveryBands(value: SettingsValue | null) {
+  return (Array.isArray(value?.deliveryBands) ? value.deliveryBands : [])
+    .filter((band) => band.active !== false)
+    .map((band) => ({
+      ...band,
+      minMeters: Number(band.minMeters),
+      maxMeters: Number(band.maxMeters),
+      fee: Number(band.fee),
+    }))
+    .filter(
+      (band) =>
+        Number.isFinite(band.minMeters) &&
+        Number.isFinite(band.maxMeters) &&
+        Number.isFinite(band.fee),
+    )
+    .sort((a, b) => a.minMeters - b.minMeters);
 }
 
 function phoneCandidates(value: string) {
@@ -210,6 +255,12 @@ export async function GET(request: NextRequest) {
             status: true,
           },
         },
+        clubPoint: {
+          select: {
+            points: true,
+            amountBase: true,
+          },
+        },
       },
     }),
     prisma.clubPointTransaction.aggregate({
@@ -217,6 +268,97 @@ export async function GET(request: NextRequest) {
       _sum: { points: true },
     }),
   ]);
+
+  const settingsRow = await prisma.appSetting.findUnique({
+    where: { key: SETTINGS_KEY },
+    select: { value: true },
+  });
+  const settings = (settingsRow?.value ?? null) as SettingsValue | null;
+  const defaultAddress = customer.addresses[0] ?? null;
+  const storeLatitude = finiteCoordinate(settings?.store?.latitude);
+  const storeLongitude = finiteCoordinate(settings?.store?.longitude);
+  const customerLatitude = finiteCoordinate(defaultAddress?.latitude);
+  const customerLongitude = finiteCoordinate(defaultAddress?.longitude);
+
+  let deliveryContext: {
+    available: boolean;
+    covered: boolean;
+    distanceMeters: number | null;
+    durationSeconds: number | null;
+    quotedFee: number | null;
+    zoneName: string | null;
+    origin: {
+      address: string;
+      latitude: number;
+      longitude: number;
+    } | null;
+    destination: {
+      address: string;
+      latitude: number;
+      longitude: number;
+    } | null;
+  } = {
+    available: false,
+    covered: false,
+    distanceMeters: null,
+    durationSeconds: null,
+    quotedFee: null,
+    zoneName: null,
+    origin: null,
+    destination: null,
+  };
+
+  if (
+    storeLatitude != null &&
+    storeLongitude != null &&
+    customerLatitude != null &&
+    customerLongitude != null
+  ) {
+    try {
+      const route = await computeDrivingRoute({
+        origin: {
+          latitude: storeLatitude,
+          longitude: storeLongitude,
+        },
+        destination: {
+          latitude: customerLatitude,
+          longitude: customerLongitude,
+        },
+      });
+      const band = activeDeliveryBands(settings).find(
+        (item) =>
+          route.distanceMeters >= item.minMeters &&
+          route.distanceMeters <= item.maxMeters,
+      );
+
+      deliveryContext = {
+        available: true,
+        covered: Boolean(band),
+        distanceMeters: route.distanceMeters,
+        durationSeconds: route.durationSeconds,
+        quotedFee: band ? band.fee : null,
+        zoneName: band?.name?.trim() || null,
+        origin: {
+          address:
+            settings?.store?.formattedAddress ||
+            settings?.store?.address ||
+            "Alentó Pizza",
+          latitude: storeLatitude,
+          longitude: storeLongitude,
+        },
+        destination: {
+          address:
+            defaultAddress?.address ||
+            defaultAddress?.formattedAddress ||
+            "Cliente",
+          latitude: customerLatitude,
+          longitude: customerLongitude,
+        },
+      };
+    } catch (error) {
+      console.warn("Chatwoot customer route calculation failed", error);
+    }
+  }
 
   const purchaseCount = ordersForMetrics.length;
   const totalSpent = ordersForMetrics.reduce(
@@ -252,6 +394,7 @@ export async function GET(request: NextRequest) {
       createdAt: customer.createdAt,
       defaultAddress: customer.addresses[0] ?? null,
     },
+    deliveryContext,
     metrics: {
       purchaseCount,
       totalSpent,
@@ -275,6 +418,11 @@ export async function GET(request: NextRequest) {
       total: Number(order.total),
       notes: order.notes,
       deliveryZoneName: order.deliveryZoneName,
+      pointsEarned: order.clubPoint?.points ?? 0,
+      pointsBase:
+        order.clubPoint?.amountBase == null
+          ? null
+          : Number(order.clubPoint.amountBase),
       createdAt: order.createdAt,
       address: order.address,
       items: order.items.map((item) => ({
