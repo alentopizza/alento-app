@@ -5,11 +5,17 @@ import {
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
+import {
+  deliveryTravelModeColor,
+  deliveryTravelModeLabel,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
 
 type LivePayload = {
   status: string;
+  travelMode: DeliveryTravelMode;
   driver: { name: string; phone: string | null } | null;
   location: {
     latitude: number;
@@ -27,6 +33,9 @@ type LivePayload = {
     distanceMeters: number;
     durationSeconds: number | null;
     encodedPolyline: string;
+    requestedTravelMode?: DeliveryTravelMode;
+    routeTravelMode?: DeliveryTravelMode;
+    fallbackToVehicle?: boolean;
   } | null;
 };
 
@@ -241,7 +250,7 @@ export default function CustomerDeliveryLiveMap({
         routeRef.current = new google.maps.Polyline({
           map: mapRef.current,
           path,
-          strokeColor: "#e21a22",
+          strokeColor: deliveryTravelModeColor(next.travelMode),
           strokeOpacity: 0.96,
           strokeWeight: 5,
           geodesic: true,
@@ -365,6 +374,20 @@ export default function CustomerDeliveryLiveMap({
                 <h3 className="min-w-0 truncate text-[12px] font-black uppercase leading-4">
                   {driverName}
                 </h3>
+                {data?.travelMode && (
+                  <span
+                    className="shrink-0 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase"
+                    style={{
+                      borderColor:
+                        deliveryTravelModeColor(data.travelMode) + "55",
+                      color: deliveryTravelModeColor(data.travelMode),
+                      backgroundColor:
+                        deliveryTravelModeColor(data.travelMode) + "12",
+                    }}
+                  >
+                    {deliveryTravelModeLabel(data.travelMode)}
+                  </span>
+                )}
                 {driverPhone && (
                   <a
                     href={`tel:${driverPhone}`}
@@ -423,6 +446,12 @@ export default function CustomerDeliveryLiveMap({
                 La ubicación aparecerá aquí apenas recibamos una señal reciente.
               </p>
             </div>
+          </div>
+        )}
+
+        {routeData?.fallbackToVehicle && (
+          <div className="absolute bottom-12 left-2 right-2 rounded-[12px] border border-amber-300/20 bg-[#211708]/94 px-2.5 py-1.5 text-center text-[8px] font-semibold leading-4 text-amber-100 backdrop-blur-md">
+            Ruta de moto aproximada con vía vehicular.
           </div>
         )}
 
