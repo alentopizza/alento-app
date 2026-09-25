@@ -7,6 +7,7 @@ import {
   computeTwoWheelerRoute,
   computeWalkingRoute,
 } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 function secureEqual(received: string, expected: string) {
   const left = Buffer.from(received);
@@ -343,6 +344,8 @@ export async function GET(request: NextRequest) {
         },
       };
 
+      const commercialDistanceMeters = directDistanceMeters(routeInput);
+
       const [drivingResult, walkingResult, motorcycleResult] =
         await Promise.allSettled([
           computeDrivingRoute(routeInput),
@@ -350,11 +353,10 @@ export async function GET(request: NextRequest) {
           computeTwoWheelerRoute(routeInput),
         ]);
 
-      if (drivingResult.status !== "fulfilled") {
-        throw drivingResult.reason;
-      }
-
-      const drivingRoute = drivingResult.value;
+      const drivingRoute =
+        drivingResult.status === "fulfilled"
+          ? drivingResult.value
+          : null;
       const walkingRoute =
         walkingResult.status === "fulfilled" ? walkingResult.value : null;
       const motorcycleBase =
@@ -364,15 +366,15 @@ export async function GET(request: NextRequest) {
 
       const band = activeDeliveryBands(settings).find(
         (item) =>
-          drivingRoute.distanceMeters >= item.minMeters &&
-          drivingRoute.distanceMeters <= item.maxMeters,
+          commercialDistanceMeters >= item.minMeters &&
+          commercialDistanceMeters <= item.maxMeters,
       );
 
       deliveryContext = {
         available: true,
         covered: Boolean(band),
-        distanceMeters: drivingRoute.distanceMeters,
-        durationSeconds: drivingRoute.durationSeconds,
+        distanceMeters: Math.round(commercialDistanceMeters),
+        durationSeconds: drivingRoute?.durationSeconds ?? null,
         quotedFee: band ? band.fee : null,
         zoneName: band?.name?.trim() || null,
         origin: {
@@ -392,10 +394,12 @@ export async function GET(request: NextRequest) {
           longitude: customerLongitude,
         },
         walkingRoute,
-        motorcycleRoute: {
-          ...motorcycleBase,
-          fallbackToDriving: motorcycleResult.status !== "fulfilled",
-        },
+        motorcycleRoute: motorcycleBase
+          ? {
+              ...motorcycleBase,
+              fallbackToDriving: motorcycleResult.status !== "fulfilled",
+            }
+          : null,
       };
     } catch (error) {
       console.warn("Chatwoot customer route calculation failed", error);
