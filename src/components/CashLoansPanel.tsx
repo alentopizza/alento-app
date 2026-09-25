@@ -116,9 +116,13 @@ function dateTimeLabel(value: string) {
 
 export default function CashLoansPanel({
   isAdmin,
+  cashDateLocked,
+  businessDate,
   onCashChanged,
 }: {
   isAdmin: boolean;
+  cashDateLocked: boolean;
+  businessDate: string;
   onCashChanged: () => void;
 }) {
   const [data, setData] = useState<LoansResponse | null>(null);
@@ -210,7 +214,7 @@ export default function CashLoansPanel({
   }, [data, query, statusFilter]);
 
   async function saveLoan() {
-    if (loanBusy) return;
+    if (loanBusy || cashDateLocked) return;
     setLoanBusy(true);
     setLoanMessage("");
 
@@ -255,13 +259,13 @@ export default function CashLoansPanel({
     setRepayAmount(String(Math.round(loan.outstandingAmount)));
     setRepayMethod("PAGO");
     setRepayNote("");
-    setRepayDate(localDateInput());
+    setRepayDate(businessDate);
     setRepayTime(localTimeInput());
     setRepayMessage("");
   }
 
   async function saveRepayment() {
-    if (!repayLoan || repayBusy) return;
+    if (!repayLoan || repayBusy || cashDateLocked) return;
     setRepayBusy(true);
     setRepayMessage("");
 
@@ -302,7 +306,7 @@ export default function CashLoansPanel({
   }
 
   async function deleteLoan() {
-    if (!deleteTarget || deleteBusy) return;
+    if (!deleteTarget || deleteBusy || cashDateLocked) return;
     setDeleteBusy(true);
 
     try {
@@ -415,34 +419,42 @@ export default function CashLoansPanel({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {isAdmin && !importCompleted && (
-              <button
-                type="button"
-                onClick={() => {
-                  setImportFile(null);
-                  setImportPreview(null);
-                  setImportMessage("");
-                  setImportOpen(true);
-                }}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700"
-              >
-                <Upload className="h-4 w-4" />
-                Importar histórico
-              </button>
+            {cashDateLocked ? (
+              <span className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
+                Caja cerrada · solo consulta
+              </span>
+            ) : (
+              <>
+                {isAdmin && !importCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportFile(null);
+                      setImportPreview(null);
+                      setImportMessage("");
+                      setImportOpen(true);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Importar histórico
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoanDate(businessDate);
+                    setLoanTime(localTimeInput());
+                    setLoanMessage("");
+                    setNewOpen(true);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-950 px-4 text-[10px] font-black text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nuevo préstamo
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setLoanDate(localDateInput());
-                setLoanTime(localTimeInput());
-                setLoanMessage("");
-                setNewOpen(true);
-              }}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-950 px-4 text-[10px] font-black text-white"
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo préstamo
-            </button>
           </div>
         </div>
 
@@ -599,7 +611,7 @@ export default function CashLoansPanel({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {loan.outstandingAmount > 0 && (
+                  {!cashDateLocked && loan.outstandingAmount > 0 && (
                     <button
                       type="button"
                       onClick={() => openRepayment(loan)}
@@ -608,7 +620,8 @@ export default function CashLoansPanel({
                       Registrar abono
                     </button>
                   )}
-                  {loan.repayments.length === 0 &&
+                  {!cashDateLocked &&
+                    loan.repayments.length === 0 &&
                     !loan.historicalPaidWithoutRepayment && (
                       <button
                         type="button"
