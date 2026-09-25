@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -133,21 +134,46 @@ export async function PATCH(
   }
 
   try {
-    const route = await computeDrivingRoute({
-      origin: {
-        latitude: storeLatitude,
-        longitude: storeLongitude,
-      },
-      destination: { latitude, longitude },
+    const origin = {
+      latitude: storeLatitude,
+      longitude: storeLongitude,
+    };
+    const destination = { latitude, longitude };
+    const commercialDistanceMeters = directDistanceMeters({
+      origin,
+      destination,
     });
 
     const zone = (settings.deliveryBands ?? [])
       .filter((item) => item.active !== false)
       .find(
         (item) =>
-          route.distanceMeters >= Number(item.minMeters) &&
-          route.distanceMeters <= Number(item.maxMeters),
+          commercialDistanceMeters >= Number(item.minMeters) &&
+          commercialDistanceMeters <= Number(item.maxMeters),
       );
+
+    let route:
+      | {
+          distanceMeters: number;
+          durationSeconds: number | null;
+        }
+      | null = null;
+
+    try {
+      const drivingRoute = await computeDrivingRoute({
+        origin,
+        destination,
+      });
+      route = {
+        distanceMeters: drivingRoute.distanceMeters,
+        durationSeconds: drivingRoute.durationSeconds,
+      };
+    } catch (routeError) {
+      console.warn(
+        "Order address route unavailable; commercial distance remains valid",
+        routeError,
+      );
+    }
 
     if (!zone) {
       return NextResponse.json(
@@ -307,8 +333,9 @@ export async function PATCH(
     return NextResponse.json({
       order: result,
       route: {
-        distanceMeters: route.distanceMeters,
-        durationSeconds: route.durationSeconds,
+        commercialDistanceMeters: Math.round(commercialDistanceMeters),
+        distanceMeters: route?.distanceMeters ?? null,
+        durationSeconds: route?.durationSeconds ?? null,
       },
     });
   } catch (error) {
