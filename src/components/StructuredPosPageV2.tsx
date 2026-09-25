@@ -59,7 +59,11 @@ function crustPriceForSize(crust: Crust, sizeId: number | null) {
   return crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null;
 }
 
-export default function StructuredPosPageV2() {
+export default function StructuredPosPageV2({
+  initialCustomerId = null,
+}: {
+  initialCustomerId?: number | null;
+}) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
@@ -123,6 +127,48 @@ export default function StructuredPosPageV2() {
     }
     void loadCatalog();
   }, []);
+
+  useEffect(() => {
+    if (!initialCustomerId) return;
+
+    let cancelled = false;
+
+    async function loadInitialCustomer() {
+      try {
+        const response = await fetch(
+          `/api/customers/${initialCustomerId}`,
+          { cache: "no-store" },
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.error || "No fue posible cargar el cliente de Chatwoot.",
+          );
+        }
+        if (cancelled) return;
+
+        const customer = data.customer as Customer;
+        setSelectedCustomer(customer);
+        setQuery(customer.phone || customer.name);
+        setCustomers([]);
+        setSearchMessage("");
+      } catch (error) {
+        if (!cancelled) {
+          setSearchMessage(
+            error instanceof Error
+              ? error.message
+              : "No fue posible cargar el cliente de Chatwoot.",
+          );
+        }
+      }
+    }
+
+    void loadInitialCustomer();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCustomerId]);
 
   const selectedCategory = useMemo(() => catalog?.categories.find((category) => category.slug === activeCategory) ?? catalog?.categories[0], [catalog, activeCategory]);
   const visibleCatalogProducts = useMemo(() => {
