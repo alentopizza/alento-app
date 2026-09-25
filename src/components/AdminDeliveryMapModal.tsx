@@ -286,7 +286,7 @@ function gpsFreshness(updatedAt: string | null, nowMs: number) {
     Math.round((nowMs - timestamp) / 1000),
   );
 
-  if (ageSeconds <= 15) {
+  if (ageSeconds <= 40) {
     return {
       ageSeconds,
       label: "En vivo",
@@ -294,7 +294,7 @@ function gpsFreshness(updatedAt: string | null, nowMs: number) {
     };
   }
 
-  if (ageSeconds <= 45) {
+  if (ageSeconds <= 90) {
     return {
       ageSeconds,
       label: "Reciente",
