@@ -36,6 +36,8 @@ export async function GET() {
   try {
     const session = await requireStaffSession(["DRIVER", "DISPATCH"]);
     const { today, week, month } = periodStarts();
+    const earliestPerformanceStart =
+      week.getTime() < month.getTime() ? week : month;
 
     const [
       periodOrders,
@@ -48,7 +50,7 @@ export async function GET() {
         where: {
           driverId: session.userId,
           fulfillmentType: "DELIVERY",
-          deliveredAt: { gte: month },
+          deliveredAt: { gte: earliestPerformanceStart },
           status: { in: ["DELIVERED", "COMPLETED"] },
         },
         orderBy: { deliveredAt: "desc" },
