@@ -45,6 +45,7 @@ export default function DriverOrderActions({
   initiallyAssigned,
   initialStatus,
   initialTravelMode,
+  orderCode,
   items,
 }: {
   token: string;
@@ -52,6 +53,7 @@ export default function DriverOrderActions({
   initiallyAssigned: boolean;
   initialStatus: string;
   initialTravelMode: string | null;
+  orderCode: string;
   items: ChecklistItem[];
 }) {
   const router = useRouter();
@@ -335,9 +337,7 @@ export default function DriverOrderActions({
         if (travelMode) {
           startNativeDriverTracking({
             token,
-            orderCode:
-              document.querySelector("[data-driver-order-code]")?.textContent?.trim() ||
-              "Alentó",
+            orderCode,
             travelMode,
           });
         }
