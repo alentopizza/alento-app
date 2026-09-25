@@ -70,7 +70,7 @@ export const CASH_EXPENSE_CATEGORIES: CashExpenseCategory[] = [
     ],
   },
   { name: "Nomina", subcategories: ["Nicolas"] },
-  { name: "Domicilios", subcategories: ["Diego", "Jhon", "Nicolas"] },
+  { name: "Domicilios", subcategories: [] },
   {
     name: "Servicios Públicos",
     subcategories: ["Luz", "Gas", "Agua"],
