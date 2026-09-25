@@ -80,15 +80,15 @@ class LocationForegroundService : Service() {
         }
 
         if (action == ACTION_SET_ORDER) {
-            val token = intent.getStringExtra(EXTRA_TOKEN)
+            val token = intent?.getStringExtra(EXTRA_TOKEN)
             if (!token.isNullOrBlank()) {
                 activeToken = token
                 activeOrderCode =
-                    intent.getStringExtra(EXTRA_ORDER_CODE)
+                    intent?.getStringExtra(EXTRA_ORDER_CODE)
                         ?.ifBlank { "Alentó" }
                         ?: "Alentó"
                 activeTravelMode =
-                    intent.getStringExtra(EXTRA_TRAVEL_MODE)
+                    intent?.getStringExtra(EXTRA_TRAVEL_MODE)
                         ?.ifBlank { "VEHICLE" }
                         ?.uppercase()
                         ?: "VEHICLE"
