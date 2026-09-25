@@ -9,19 +9,34 @@ class AlentoNativeBridge(
     fun platform(): String = "android"
 
     @JavascriptInterface
-    fun startTracking(
+    fun startAvailabilityTracking(): Boolean {
+        activity.runOnUiThread {
+            activity.requestNativeAvailabilityTracking()
+        }
+        return true
+    }
+
+    @JavascriptInterface
+    fun setOrderTracking(
         token: String,
         orderCode: String,
         travelMode: String,
     ): Boolean {
         activity.runOnUiThread {
-            activity.requestNativeTracking(
+            activity.requestNativeOrderTracking(
                 token = token,
                 orderCode = orderCode,
                 travelMode = travelMode,
             )
         }
         return true
+    }
+
+    @JavascriptInterface
+    fun clearOrderTracking() {
+        activity.runOnUiThread {
+            activity.clearNativeOrderTracking()
+        }
     }
 
     @JavascriptInterface
