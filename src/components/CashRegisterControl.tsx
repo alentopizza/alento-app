@@ -174,7 +174,6 @@ export default function CashRegisterControl({
     session?.status === "CLOSED" && session.closingLoanReceivable != null
       ? session.closingLoanReceivable
       : data?.movement?.loansReceivable ?? 0;
-  const controlledExpected = expectedNow + loansReceivable;
 
   const cashTotal = useMemo(
     () =>
@@ -193,8 +192,7 @@ export default function CashRegisterControl({
     Number(card || 0) +
     Number(davivienda || 0);
 
-  const controlledTotal = countedTotal + loansReceivable;
-  const previewDifference = controlledTotal - controlledExpected;
+  const previewDifference = countedTotal - expectedNow;
 
   function prepareOpen() {
     const suggested = data?.suggestedOpeningBalance;
@@ -643,7 +641,7 @@ export default function CashRegisterControl({
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Cuadre · {dateLabel(businessDate)}</p>
                   <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">Cerrar caja</h2>
-                  <p className="mt-1 text-[11px] text-white/50">Cuenta lo que realmente tienes. Nosotros calculamos la diferencia.</p>
+                  <p className="mt-1 text-[11px] text-white/50">Cuenta efectivo y cuentas. Los préstamos no se cuentan aquí.</p>
                 </div>
                 <button
                   type="button"
@@ -656,8 +654,8 @@ export default function CashRegisterControl({
               </div>
 
               <div className="relative mt-3 grid grid-cols-3 gap-2 xl:absolute xl:right-20 xl:top-1/2 xl:mt-0 xl:w-[530px] xl:-translate-y-1/2">
-                <CloseMetric label="Teórico total" value={money(controlledExpected)} />
-                <CloseMetric label="Controlado" value={money(controlledTotal)} />
+                <CloseMetric label="Debe haber" value={money(expectedNow)} />
+                <CloseMetric label="Contaste" value={money(countedTotal)} />
                 <CloseMetric
                   label="Diferencia"
                   value={(previewDifference > 0 ? "+" : "") + money(previewDifference)}
@@ -739,27 +737,64 @@ export default function CashRegisterControl({
                     </div>
                   </section>
 
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                                    <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Resumen del cierre</p>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Cuadre</p>
+                        <h3 className="mt-0.5 text-[18px] font-black">Resumen simple</h3>
+                      </div>
                       <span className="text-[9px] font-bold text-neutral-400">{dateLabel(businessDate)}</span>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-[11px]">
-                      <SummaryLine label="Saldo inicial total" value={money(openingControlledBalance)} />
-                      <SummaryLine label="Préstamos al iniciar" value={money(openingLoansReceivable)} />
-                      <SummaryLine label="Disponible inicial" value={money(openingAvailableBalance)} />
-                      <SummaryLine label="Flujo neto del día" value={money(liveMovement)} />
-                      <SummaryLine label="Dinero esperado" value={money(expectedNow)} strong />
-                      <SummaryLine label="Préstamos por cobrar" value={money(loansReceivable)} />
-                      <div className="col-span-2 my-0.5 h-px bg-neutral-100" />
-                      <SummaryLine label="Efectivo contado" value={money(cashTotal)} />
-                      <SummaryLine label="Saldos digitales" value={money(countedTotal - cashTotal)} />
-                      <SummaryLine label="Dinero disponible real" value={money(countedTotal)} />
-                      <SummaryLine label="Préstamos por cobrar" value={money(loansReceivable)} />
-                      <div className="col-span-2 my-0.5 h-px bg-neutral-100" />
-                      <SummaryLine label="Total controlado" value={money(controlledTotal)} strong />
-                      <SummaryLine label="Total teórico" value={money(controlledExpected)} strong />
+
+                    <div className="mt-4 rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[11px] font-medium text-neutral-500">Disponible al iniciar</span>
+                        <b className="text-[12px] font-black text-neutral-800">{money(openingAvailableBalance)}</b>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-4">
+                        <span className="text-[11px] font-medium text-neutral-500">Movimiento del día</span>
+                        <b className={"text-[12px] font-black " + (liveMovement >= 0 ? "text-emerald-700" : "text-red-700")}>
+                          {liveMovement >= 0 ? "+" : ""}{money(liveMovement)}
+                        </b>
+                      </div>
+                      <div className="my-3 h-px bg-neutral-200" />
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-[12px] font-black text-neutral-800">Debe haber disponible</span>
+                        <b className="text-[18px] font-black text-neutral-950">{money(expectedNow)}</b>
+                      </div>
                     </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-[16px] border border-neutral-200 bg-white px-3 py-3">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-neutral-400">Efectivo</span>
+                        <b className="mt-1 block text-[15px] font-black text-neutral-900">{money(cashTotal)}</b>
+                      </div>
+                      <div className="rounded-[16px] border border-neutral-200 bg-white px-3 py-3">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-neutral-400">En cuentas</span>
+                        <b className="mt-1 block text-[15px] font-black text-neutral-900">{money(countedTotal - cashTotal)}</b>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-4 rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3">
+                      <div>
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-amber-700">Préstamos por cobrar</span>
+                        <p className="mt-0.5 text-[9px] text-amber-700/70">Es dinero de Alentó, pero no se cuenta en caja.</p>
+                      </div>
+                      <b className="shrink-0 text-[15px] font-black text-amber-800">{money(loansReceivable)}</b>
+                    </div>
+
+                    <details className="mt-3 rounded-[14px] border border-neutral-200 bg-white px-3 py-2.5">
+                      <summary className="cursor-pointer text-[10px] font-black text-neutral-500">
+                        Ver detalle del movimiento del día
+                      </summary>
+                      <div className="mt-3 space-y-2 text-[10px]">
+                        <SummaryLine label="Ventas cobradas" value={money(data?.movement?.received ?? 0)} />
+                        <SummaryLine label="Otros ingresos" value={money(data?.movement?.otherIncome ?? 0)} />
+                        <SummaryLine label="Abonos de préstamos" value={money(data?.movement?.recovered ?? 0)} />
+                        <SummaryLine label="Salidas" value={"- " + money(data?.movement?.expensesTotal ?? 0)} />
+                        <SummaryLine label="Préstamos entregados" value={"- " + money(data?.movement?.loansTotal ?? 0)} />
+                      </div>
+                    </details>
 
                     <div className={"mt-3 rounded-2xl border px-4 py-3 " + (
                       previewDifference === 0
@@ -790,14 +825,14 @@ export default function CashRegisterControl({
                       placeholder="Ej. pendiente confirmar transferencia..."
                       className="mt-2 w-full resize-none rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 text-[11px] outline-none focus:border-neutral-400"
                     />
-                  </section>
+                  </section>                  </section>
                 </div>
               </div>
             </div>
 
             <div className="flex shrink-0 flex-col gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <p className="text-[10px] text-neutral-400">
-                El cierre guarda el dinero disponible y la cartera de préstamos por cobrar de este día.
+                Solo compara el dinero disponible que debes tener contra lo que realmente contaste.
               </p>
               <div className="flex gap-2">
                 <button
