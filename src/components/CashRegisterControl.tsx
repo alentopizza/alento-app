@@ -436,7 +436,7 @@ export default function CashRegisterControl({
           <div className="w-full max-w-[560px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_30px_100px_rgba(0,0,0,.35)]">
             <div className="relative overflow-hidden bg-[#0b0b0c] p-5 text-white sm:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_25%,rgba(226,26,34,.34),transparent_30%),linear-gradient(120deg,#111319,#1a0b0d)]" />
-              <div className="relative flex items-center justify-between gap-4">
+              <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Caja · {dateLabel(businessDate)}</p>
                   <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">Abrir caja</h2>
@@ -533,7 +533,7 @@ export default function CashRegisterControl({
           <div className="flex max-h-[96dvh] w-full max-w-[1280px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f5f2] shadow-[0_30px_100px_rgba(0,0,0,.38)]">
             <div className="relative shrink-0 overflow-hidden bg-[#0b0b0c] px-5 py-4 text-white sm:px-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_30%,rgba(226,26,34,.38),transparent_28%),linear-gradient(120deg,#111319,#1a0b0d)]" />
-              <div className="relative flex items-start justify-between gap-4">
+              <div className="relative flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Cuadre · {dateLabel(businessDate)}</p>
                   <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">Cerrar caja</h2>
