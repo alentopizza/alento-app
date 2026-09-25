@@ -462,7 +462,7 @@ export default function AdminDeliveryMapModal({
 
     const routeTimer = window.setInterval(() => {
       void load(true, true);
-    }, 15000);
+    }, 60000);
 
     return () => {
       window.clearInterval(locationTimer);
