@@ -191,7 +191,7 @@ export async function GET() {
           appLastSeenAt: app.lastSeenAt.toISOString(),
         };
       })
-      .filter((customer): customer is NonNullable<typeof customer> => Boolean(customer))
+      .filter((customer) => customer !== null)
       .sort(
         (a, b) =>
           b.points - a.points ||
