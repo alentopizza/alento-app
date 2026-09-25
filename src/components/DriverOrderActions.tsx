@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PresentedDetail } from "@/lib/orderPresentation";
+import {
+  DELIVERY_TRAVEL_MODE_OPTIONS,
+  normalizeDeliveryTravelMode,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
 
 type ChecklistItem = {
   id: number;
@@ -35,12 +40,14 @@ export default function DriverOrderActions({
   claimOrderId,
   initiallyAssigned,
   initialStatus,
+  initialTravelMode,
   items,
 }: {
   token: string;
   claimOrderId: number;
   initiallyAssigned: boolean;
   initialStatus: string;
+  initialTravelMode: string | null;
   items: ChecklistItem[];
 }) {
   const router = useRouter();
@@ -49,6 +56,9 @@ export default function DriverOrderActions({
   const lastLocationSyncRef = useRef(0);
 
   const [status, setStatus] = useState(initialStatus);
+  const [travelMode, setTravelMode] = useState<DeliveryTravelMode | null>(
+    normalizeDeliveryTravelMode(initialTravelMode),
+  );
   const [isAssigned, setIsAssigned] = useState(initiallyAssigned);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -62,8 +72,9 @@ export default function DriverOrderActions({
 
   useEffect(() => {
     setStatus(initialStatus);
+    setTravelMode(normalizeDeliveryTravelMode(initialTravelMode));
     setIsAssigned(initiallyAssigned);
-  }, [initialStatus, initiallyAssigned]);
+  }, [initialStatus, initialTravelMode, initiallyAssigned]);
 
   useEffect(() => {
     if (!isAssigned || status !== "READY") {
@@ -262,6 +273,12 @@ export default function DriverOrderActions({
       return;
     }
 
+    if (next === "OUT_FOR_DELIVERY" && !travelMode) {
+      setNotice("Elige si vas a entregar a pie, en moto o en vehículo.");
+      setProgress(0);
+      return;
+    }
+
     setBusy(true);
     setNotice("");
 
@@ -294,6 +311,8 @@ export default function DriverOrderActions({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: next,
+            deliveryTravelMode:
+              next === "OUT_FOR_DELIVERY" ? travelMode : undefined,
             location:
               next === "OUT_FOR_DELIVERY" ? locationSnapshot : undefined,
           }),
@@ -354,6 +373,12 @@ export default function DriverOrderActions({
     if (target === "OUT_FOR_DELIVERY" && !canStartDelivery) {
       setProgress(0);
       setNotice("Completa la verificación del pedido antes de salir.");
+      return;
+    }
+
+    if (target === "OUT_FOR_DELIVERY" && !travelMode) {
+      setProgress(0);
+      setNotice("Elige cómo vas a realizar la entrega.");
       return;
     }
 
@@ -512,11 +537,41 @@ export default function DriverOrderActions({
       {target && label && (
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-black/92 px-4 pb-[max(14px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
         <div className="mx-auto max-w-[640px]">
+          {target === "OUT_FOR_DELIVERY" && canStartDelivery && (
+            <div className="mb-2.5">
+              <div className="grid grid-cols-3 gap-2">
+                {DELIVERY_TRAVEL_MODE_OPTIONS.map((option) => {
+                  const selected = travelMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setTravelMode(option.value);
+                        setNotice("");
+                      }}
+                      className={
+                        "rounded-[12px] border px-2 py-2 text-center transition " +
+                        (selected
+                          ? "border-[#e21a22] bg-[#e21a22]/15 text-white"
+                          : "border-white/10 bg-white/[0.055] text-white/55")
+                      }
+                    >
+                      <span className="mr-1 text-sm">{option.emoji}</span>
+                      <b className="text-[9px]">{option.shortLabel}</b>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div
             ref={trackRef}
             className={
               "relative h-[62px] w-full overflow-hidden rounded-full border backdrop-blur-md " +
-              (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+              (target === "OUT_FOR_DELIVERY" && (!canStartDelivery || !travelMode)
                 ? "border-white/20 bg-white/70 shadow-[0_12px_30px_rgba(0,0,0,.22)]"
                 : "landing-menu-slider border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)]")
             }
@@ -541,7 +596,7 @@ export default function DriverOrderActions({
             <span
               className={
                 "truncate text-[10px] font-black uppercase tracking-[0.11em] " +
-                (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+                (target === "OUT_FOR_DELIVERY" && (!canStartDelivery || !travelMode)
                   ? "text-black/45"
                   : "landing-menu-slider-text text-black/75")
               }
@@ -552,7 +607,9 @@ export default function DriverOrderActions({
                   : "Actualizando..."
                 : target === "OUT_FOR_DELIVERY" && !allChecked
                   ? "Completa productos"
-                  : label}
+                  : target === "OUT_FOR_DELIVERY" && !travelMode
+                    ? "Elige cómo vas a entregar"
+                    : label}
             </span>
           </div>
 
@@ -560,11 +617,13 @@ export default function DriverOrderActions({
             type="button"
             aria-label={label}
             disabled={
-              busy || (target === "OUT_FOR_DELIVERY" && !canStartDelivery)
+              busy ||
+              (target === "OUT_FOR_DELIVERY" &&
+                (!canStartDelivery || !travelMode))
             }
             className={
               "absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e21a22] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed " +
-              (target === "OUT_FOR_DELIVERY" && !canStartDelivery
+              (target === "OUT_FOR_DELIVERY" && (!canStartDelivery || !travelMode)
                 ? "opacity-55 shadow-[0_8px_18px_rgba(0,0,0,.24)]"
                 : "landing-menu-slider-knob " +
                   (!dragging && progress === 0
@@ -580,7 +639,8 @@ export default function DriverOrderActions({
             onPointerDown={(event) => {
               if (
                 busy ||
-                (target === "OUT_FOR_DELIVERY" && !canStartDelivery)
+                (target === "OUT_FOR_DELIVERY" &&
+                  (!canStartDelivery || !travelMode))
               ) {
                 return;
               }
@@ -604,7 +664,10 @@ export default function DriverOrderActions({
               if (
                 (event.key === "Enter" || event.key === " ") &&
                 !busy &&
-                !(target === "OUT_FOR_DELIVERY" && !canStartDelivery)
+                !(
+                  target === "OUT_FOR_DELIVERY" &&
+                  (!canStartDelivery || !travelMode)
+                )
               ) {
                 event.preventDefault();
                 setProgress(1);
