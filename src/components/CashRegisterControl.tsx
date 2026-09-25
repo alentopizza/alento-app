@@ -825,7 +825,7 @@ export default function CashRegisterControl({
                       placeholder="Ej. pendiente confirmar transferencia..."
                       className="mt-2 w-full resize-none rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 text-[11px] outline-none focus:border-neutral-400"
                     />
-                  </section>                  </section>
+                  </section>
                 </div>
               </div>
             </div>
