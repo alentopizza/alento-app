@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { computeDeliveryRoute } from "@/lib/deliveryRoute";
+import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 
 function finite(value: unknown) {
   const number = Number(value);
@@ -28,6 +29,7 @@ export async function GET(
       id: true,
       status: true,
       fulfillmentType: true,
+      deliveryTravelMode: true,
       driverLatitude: true,
       driverLongitude: true,
       driverLocationAccuracy: true,
@@ -114,18 +116,24 @@ export async function GET(
     encodedPolyline: string;
   } | null = null;
 
+  const travelMode =
+    normalizeDeliveryTravelMode(order.deliveryTravelMode) ?? "VEHICLE";
+
   if (wantsRoute) {
     try {
-      route = await computeDrivingRoute({
-        origin: {
-          latitude: driverLatitude!,
-          longitude: driverLongitude!,
+      route = await computeDeliveryRoute(
+        {
+          origin: {
+            latitude: driverLatitude!,
+            longitude: driverLongitude!,
+          },
+          destination: {
+            latitude: destinationLatitude!,
+            longitude: destinationLongitude!,
+          },
         },
-        destination: {
-          latitude: destinationLatitude!,
-          longitude: destinationLongitude!,
-        },
-      });
+        travelMode,
+      );
     } catch {
       route = null;
     }
@@ -133,6 +141,7 @@ export async function GET(
 
   return NextResponse.json({
     status: order.status,
+    travelMode,
     driver:
       order.driver && trackingActive
         ? {
