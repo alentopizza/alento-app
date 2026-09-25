@@ -70,6 +70,7 @@ type Props = {
   customer: Customer | null;
   cart: CartItem[];
   subtotal: number;
+  deliveryFeeOverride?: number | null;
   onClose: () => void;
   onValidated?: (result: CheckoutResult) => void;
 };
@@ -194,7 +195,7 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
   );
 }
 
-export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, onClose }: Props) {
+export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, deliveryFeeOverride = null, onClose }: Props) {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [eligibility, setEligibility] = useState<Eligibility>({ eligibleSubtotal: 0, excludedSubtotal: 0, eligibleProductIds: [], excludedProductIds: [] });
@@ -272,9 +273,20 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const activePaymentMethods = useMemo(() => settings?.paymentMethods.filter((method) => method.active) ?? [], [settings]);
   const selectedCoupon = coupons.find((coupon) => coupon.id === couponId) ?? null;
   const selectedPaymentMethod = activePaymentMethods.find((method) => method.id === paymentMethodId);
-  const deliveryFee =
+  const automaticDeliveryFee =
     fulfillmentType === "DELIVERY"
       ? Number(deliveryQuote?.deliveryFee ?? 0)
+      : 0;
+  const hasDeliveryFeeOverride =
+    fulfillmentType === "DELIVERY" &&
+    deliveryFeeOverride != null &&
+    Number.isFinite(deliveryFeeOverride) &&
+    deliveryFeeOverride >= 0;
+  const deliveryFee =
+    fulfillmentType === "DELIVERY"
+      ? hasDeliveryFeeOverride
+        ? Math.floor(deliveryFeeOverride)
+        : automaticDeliveryFee
       : 0;
   const eligibleSubtotal = eligibility.eligibleSubtotal;
 
@@ -427,6 +439,10 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
           discountMode,
           couponId: discountMode === "COUPON" ? selectedCoupon?.id ?? null : null,
           manualDiscount: discountMode === "MANUAL" ? manualDiscount : 0,
+          deliveryFeeOverride:
+            fulfillmentType === "DELIVERY" && hasDeliveryFeeOverride
+              ? deliveryFee
+              : null,
           paymentMethodId,
           cashReceived: cashPayment ? cashReceived : null,
           items: cart.map((item) => ({
@@ -615,7 +631,14 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                   <div><span>Subtotal</span><b>{formatCOP(subtotal)}</b></div>
                   {fulfillmentType === "DELIVERY" && (
                     <div>
-                      <span>Domicilio</span>
+                      <span>
+                        Domicilio
+                        {hasDeliveryFeeOverride && (
+                          <small className="ml-1 text-[8px] font-black uppercase tracking-[0.08em] text-[var(--brand-red)]">
+                            Manual
+                          </small>
+                        )}
+                      </span>
                       <b>
                         {loadingDeliveryQuote
                           ? "Calculando..."
