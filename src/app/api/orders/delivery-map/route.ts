@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
           driverLongitude: true,
           driverLocationAccuracy: true,
           driverLocationUpdatedAt: true,
+          driverLocationSource: true,
           customer: {
             select: {
               name: true,
@@ -111,6 +112,8 @@ export async function GET(request: NextRequest) {
               driverLongitude: true,
               driverLocationAccuracy: true,
               driverLocationUpdatedAt: true,
+          driverLocationSource: true,
+              driverLocationSource: true,
             },
           },
         },
@@ -129,6 +132,7 @@ export async function GET(request: NextRequest) {
           driverLongitude: true,
           driverLocationAccuracy: true,
           driverLocationUpdatedAt: true,
+          driverLocationSource: true,
           whatsappPhone: true,
         },
       }),
@@ -352,6 +356,7 @@ export async function GET(request: NextRequest) {
               ? null
               : Number(driver.driverLocationAccuracy),
           updatedAt: driver.driverLocationUpdatedAt?.toISOString() ?? null,
+          source: driver.driverLocationSource,
           distanceFromStoreMeters: routeFromStore?.distanceMeters ?? null,
           durationFromStoreSeconds: routeFromStore?.durationSeconds ?? null,
         };
@@ -429,6 +434,7 @@ export async function GET(request: NextRequest) {
                   order.driver.driverLocationUpdatedAt?.toISOString() ??
                   order.driverLocationUpdatedAt?.toISOString() ??
                   null,
+                source: order.driver.driverLocationSource,
               }
             : null,
         };
