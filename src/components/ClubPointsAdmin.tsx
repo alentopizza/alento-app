@@ -136,14 +136,6 @@ export default function ClubPointsAdmin() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const examples = useMemo(() => {
-    const rate = settings?.earnRatePercent ?? 5;
-    return [14900, 39900, 69900].map((amount) => ({
-      amount,
-      points: Math.floor(amount * (rate / 100)),
-    }));
-  }, [settings]);
-
   const visibleCustomers = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("es");
     if (!value) return customers;
@@ -155,8 +147,7 @@ export default function ClubPointsAdmin() {
 
   const topCustomers = customers.slice(0, 3);
 
-  async function save() {
-    if (!settings) return;
+  async function save(nextSettings: ClubSettings) {
     setSaving(true);
     setMessage("");
     setError("");
@@ -164,7 +155,7 @@ export default function ClubPointsAdmin() {
       const response = await fetch("/api/club-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: nextSettings }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible guardar Club Alentó.");
@@ -342,13 +333,11 @@ export default function ClubPointsAdmin() {
       {settingsOpen && (
         <SettingsModal
           settings={settings}
-          setSettings={setSettings}
-          examples={examples}
           saving={saving}
           message={message}
           error={error}
           onClose={() => setSettingsOpen(false)}
-          onSave={() => void save()}
+          onSave={(nextSettings) => void save(nextSettings)}
         />
       )}
     </main>
@@ -402,8 +391,6 @@ function TopCard({ customer }: { customer: ClubCustomer }) {
 
 function SettingsModal({
   settings,
-  setSettings,
-  examples,
   saving,
   message,
   error,
@@ -411,14 +398,20 @@ function SettingsModal({
   onSave,
 }: {
   settings: ClubSettings;
-  setSettings: (settings: ClubSettings) => void;
-  examples: { amount: number; points: number }[];
   saving: boolean;
   message: string;
   error: string;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (settings: ClubSettings) => void;
 }) {
+  const [draft, setDraft] = useState(settings);
+  const examples = useMemo(() => {
+    return [14900, 39900, 69900].map((amount) => ({
+      amount,
+      points: Math.floor(amount * (draft.earnRatePercent / 100)),
+    }));
+  }, [draft.earnRatePercent]);
+
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-black/65 p-3 backdrop-blur-[3px] sm:p-5"
@@ -454,7 +447,7 @@ function SettingsModal({
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Regla actual</p>
               <div className="mt-3 flex items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-[30px] font-black tracking-[-0.045em]">{settings.earnRatePercent}% en puntos</h3>
+                  <h3 className="text-[30px] font-black tracking-[-0.045em]">{draft.earnRatePercent}% en puntos</h3>
                   <p className="mt-1 text-[11px] text-white/48">sobre el subtotal elegible del pedido</p>
                 </div>
                 <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black text-emerald-300">ACTIVO</span>
@@ -470,8 +463,8 @@ function SettingsModal({
                     min={0}
                     max={100}
                     step={0.1}
-                    value={settings.earnRatePercent}
-                    onChange={(event) => setSettings({ ...settings, earnRatePercent: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })}
+                    value={draft.earnRatePercent}
+                    onChange={(event) => setDraft({ ...draft, earnRatePercent: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })}
                     className="alento-input w-full rounded-2xl px-4 py-4 pr-12 text-[22px] font-black"
                   />
                   <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg font-black text-neutral-400">%</span>
@@ -482,8 +475,8 @@ function SettingsModal({
                   type="number"
                   min={0}
                   step={100}
-                  value={settings.minimumRedemptionPurchase}
-                  onChange={(event) => setSettings({ ...settings, minimumRedemptionPurchase: Math.max(0, Math.round(Number(event.target.value) || 0)) })}
+                  value={draft.minimumRedemptionPurchase}
+                  onChange={(event) => setDraft({ ...draft, minimumRedemptionPurchase: Math.max(0, Math.round(Number(event.target.value) || 0)) })}
                   className="alento-input mt-2 w-full rounded-2xl px-4 py-4 text-[20px] font-black"
                 />
                 <p className="mt-2 text-[10px] leading-5 text-neutral-400">Los puntos se calculan al finalizar el pedido sobre productos elegibles y sin incluir domicilio.</p>
@@ -510,7 +503,7 @@ function SettingsModal({
               {[
                 ["01", "Solo productos sin descuento", "Los combos y productos afectados por cupón o descuento manual no generan puntos."],
                 ["02", "Sobre el subtotal elegible", "El domicilio y otros cargos externos a los productos no generan puntos."],
-                ["03", "Compra mínima para redimir", "La compra debe ser de mínimo " + money(settings.minimumRedemptionPurchase) + " antes de aplicar cualquier canje."],
+                ["03", "Compra mínima para redimir", "La compra debe ser de mínimo " + money(draft.minimumRedemptionPurchase) + " antes de aplicar cualquier canje."],
                 ["04", "1 punto = $1 COP", "El saldo Club se usa como descuento en recompensas habilitadas; no se entrega en efectivo."],
                 ["05", "Solo pedidos finalizados", "Los puntos se acreditan cuando el pedido queda pagado y finalizado."],
                 ["06", "Sin puntos sobre puntos", "La parte pagada con puntos no vuelve a generar nuevos puntos cuando se habilite la redención."],
@@ -529,7 +522,7 @@ function SettingsModal({
           <p className="text-[10px] font-medium text-neutral-400">Los cambios aplican a las próximas acreditaciones del Club.</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} disabled={saving} className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[11px] font-black text-neutral-600">Cancelar</button>
-            <button type="button" onClick={onSave} disabled={saving} className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:bg-neutral-300">
+            <button type="button" onClick={() => onSave(draft)} disabled={saving} className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:bg-neutral-300">
               {saving ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
