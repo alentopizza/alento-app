@@ -14,8 +14,10 @@ import android.graphics.Color
 import android.location.Location
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.webkit.CookieManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -29,16 +31,19 @@ import javax.net.ssl.HttpsURLConnection
 class LocationForegroundService : Service() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private val networkExecutor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private var activeToken: String? = null
-    private var activeOrderCode: String = "Alentó"
+    private var activeOrderCode: String? = null
     private var activeTravelMode: String = "VEHICLE"
-    private var lastUploadAt = 0L
+    private var lastGeneralUploadAt = 0L
+    private var lastOrderUploadAt = 0L
 
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             val location = result.lastLocation ?: return
-            uploadLocation(location)
+            uploadAvailabilityLocation(location)
+            uploadOrderLocation(location)
         }
     }
 
@@ -54,51 +59,103 @@ class LocationForegroundService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
-        if (intent?.action == ACTION_STOP) {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val action = intent?.action
+
+        if (action == ACTION_STOP) {
             stopTracking()
             return START_NOT_STICKY
         }
 
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val token =
-            intent?.getStringExtra(EXTRA_TOKEN)
-                ?: prefs.getString(PREF_TOKEN, null)
-        val orderCode =
-            intent?.getStringExtra(EXTRA_ORDER_CODE)
-                ?: prefs.getString(PREF_ORDER_CODE, "Alentó")
-                ?: "Alentó"
-        val travelMode =
-            intent?.getStringExtra(EXTRA_TRAVEL_MODE)
-                ?: prefs.getString(PREF_TRAVEL_MODE, "VEHICLE")
-                ?: "VEHICLE"
+        if (action == ACTION_CLEAR_ORDER) {
+            if (!prefs.getBoolean(PREF_ACTIVE, false)) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
 
-        if (token.isNullOrBlank()) {
-            stopSelf()
-            return START_NOT_STICKY
+            clearOrderContext()
+            startAsForeground()
+            requestLocationUpdates()
+            return START_STICKY
         }
 
-        activeToken = token
-        activeOrderCode = orderCode
-        activeTravelMode = travelMode.uppercase()
+        if (action == ACTION_SET_ORDER) {
+            val token = intent.getStringExtra(EXTRA_TOKEN)
+            if (!token.isNullOrBlank()) {
+                activeToken = token
+                activeOrderCode =
+                    intent.getStringExtra(EXTRA_ORDER_CODE)
+                        ?.ifBlank { "Alentó" }
+                        ?: "Alentó"
+                activeTravelMode =
+                    intent.getStringExtra(EXTRA_TRAVEL_MODE)
+                        ?.ifBlank { "VEHICLE" }
+                        ?.uppercase()
+                        ?: "VEHICLE"
+
+                prefs.edit()
+                    .putBoolean(PREF_ACTIVE, true)
+                    .putString(PREF_TOKEN, activeToken)
+                    .putString(PREF_ORDER_CODE, activeOrderCode)
+                    .putString(PREF_TRAVEL_MODE, activeTravelMode)
+                    .apply()
+            }
+        } else if (action == ACTION_START_AVAILABILITY) {
+            prefs.edit()
+                .putBoolean(PREF_ACTIVE, true)
+                .apply()
+            restoreOrderContext()
+        } else {
+            if (!prefs.getBoolean(PREF_ACTIVE, false)) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            restoreOrderContext()
+        }
 
         prefs.edit()
             .putBoolean(PREF_ACTIVE, true)
-            .putString(PREF_TOKEN, token)
-            .putString(PREF_ORDER_CODE, orderCode)
-            .putString(PREF_TRAVEL_MODE, activeTravelMode)
             .apply()
 
-        startAsForeground(token, orderCode)
+        startAsForeground()
         requestLocationUpdates()
 
         return START_STICKY
     }
 
-    private fun startAsForeground(
-        token: String,
-        orderCode: String,
-    ) {
-        val path = "/repartidor/pedido/" + Uri.encode(token)
+    private fun restoreOrderContext() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        activeToken = prefs.getString(PREF_TOKEN, null)
+        activeOrderCode = prefs.getString(PREF_ORDER_CODE, null)
+        activeTravelMode =
+            prefs.getString(PREF_TRAVEL_MODE, "VEHICLE")
+                ?.uppercase()
+                ?: "VEHICLE"
+    }
+
+    private fun startAsForeground() {
+        val notification = buildNotification()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun buildNotification(): Notification {
+        val token = activeToken
+        val path =
+            if (!token.isNullOrBlank()) {
+                "/repartidor/pedido/" + Uri.encode(token)
+            } else {
+                "/repartidor"
+            }
+
         val contentIntent = Intent(this, MainActivity::class.java)
             .putExtra(MainActivity.EXTRA_PATH, path)
             .addFlags(
@@ -114,11 +171,25 @@ class LocationForegroundService : Service() {
                 PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = Notification.Builder(this, CHANNEL_ID)
+        val title =
+            if (!token.isNullOrBlank()) {
+                "\${activeOrderCode ?: "Alentó"} · Entrega en curso"
+            } else {
+                "Alentó · Repartidor activo"
+            }
+
+        val body =
+            if (!token.isNullOrBlank()) {
+                "Compartiendo tu ubicación y la ruta del domicilio."
+            } else {
+                "Compartiendo tu ubicación con el panel de Alentó."
+            }
+
+        return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_alento)
-            .setContentTitle("$orderCode · Entrega en curso")
-            .setContentText("Compartiendo ubicación con Alentó.")
-            .setSubText("GPS activo · toca para volver al pedido")
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSubText("GPS activo · toca para volver a Alentó")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -126,16 +197,11 @@ class LocationForegroundService : Service() {
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setColor(Color.rgb(226, 26, 34))
             .build()
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+    private fun refreshNotification() {
+        getSystemService(NotificationManager::class.java)
+            .notify(NOTIFICATION_ID, buildNotification())
     }
 
     @SuppressLint("MissingPermission")
@@ -152,28 +218,26 @@ class LocationForegroundService : Service() {
 
         fusedLocationClient.removeLocationUpdates(locationCallback)
 
-        val mode = activeTravelMode.uppercase()
-        val intervalMs = when (mode) {
-            "WALK" -> 10_000L
-            "MOTORCYCLE" -> 6_000L
-            else -> 6_000L
-        }
-        val minimumIntervalMs = when (mode) {
-            "WALK" -> 7_000L
-            else -> 4_000L
-        }
-        val minimumDistanceMeters = when (mode) {
-            "WALK" -> 4f
-            "MOTORCYCLE" -> 8f
-            else -> 10f
-        }
+        val hasOrder = !activeToken.isNullOrBlank()
+        val intervalMs =
+            if (!hasOrder) {
+                10_000L
+            } else {
+                when (activeTravelMode) {
+                    "WALK" -> 8_000L
+                    "MOTORCYCLE" -> 5_000L
+                    else -> 5_000L
+                }
+            }
+
+        val minimumIntervalMs =
+            if (!hasOrder) 7_000L else 4_000L
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
             intervalMs,
         )
             .setMinUpdateIntervalMillis(minimumIntervalMs)
-            .setMinUpdateDistanceMeters(minimumDistanceMeters)
             .setWaitForAccurateLocation(false)
             .build()
 
@@ -182,16 +246,41 @@ class LocationForegroundService : Service() {
             locationCallback,
             Looper.getMainLooper(),
         )
+
+        refreshNotification()
     }
 
-    private fun uploadLocation(location: Location) {
+    private fun uploadAvailabilityLocation(location: Location) {
+        val now = System.currentTimeMillis()
+        val minimumGap =
+            if (activeToken.isNullOrBlank()) 8_000L else 5_000L
+
+        if (now - lastGeneralUploadAt < minimumGap) return
+        lastGeneralUploadAt = now
+
+        networkExecutor.execute {
+            val code = postLocation(
+                BuildConfig.ALENTO_BASE_URL + "/api/repartidor/location",
+                location,
+                includeSessionCookie = true,
+            )
+
+            if (code == 409 || code == 404) {
+                mainHandler.post {
+                    stopTracking()
+                }
+            }
+        }
+    }
+
+    private fun uploadOrderLocation(location: Location) {
         val token = activeToken ?: return
         val now = System.currentTimeMillis()
         val minimumGap =
             if (activeTravelMode == "WALK") 6_000L else 4_000L
 
-        if (now - lastUploadAt < minimumGap) return
-        lastUploadAt = now
+        if (now - lastOrderUploadAt < minimumGap) return
+        lastOrderUploadAt = now
 
         networkExecutor.execute {
             val endpoint =
@@ -200,58 +289,99 @@ class LocationForegroundService : Service() {
                     Uri.encode(token) +
                     "/location"
 
-            val connection =
-                (URL(endpoint).openConnection() as HttpsURLConnection)
+            val code = postLocation(
+                endpoint,
+                location,
+                includeSessionCookie = false,
+            )
 
-            try {
-                connection.requestMethod = "POST"
-                connection.connectTimeout = 10_000
-                connection.readTimeout = 10_000
-                connection.doOutput = true
-                connection.setRequestProperty(
-                    "Content-Type",
-                    "application/json",
-                )
-                connection.setRequestProperty(
-                    "Accept",
-                    "application/json",
-                )
-
-                val body =
-                    "{" +
-                        "\"latitude\":" + location.latitude + "," +
-                        "\"longitude\":" + location.longitude + "," +
-                        "\"accuracy\":" + location.accuracy +
-                        "}"
-
-                connection.outputStream.use { output ->
-                    output.write(body.toByteArray(Charsets.UTF_8))
+            if (code == 401 || code == 404 || code == 409) {
+                mainHandler.post {
+                    clearOrderContext()
+                    requestLocationUpdates()
                 }
-
-                val code = connection.responseCode
-
-                if (code == 401 || code == 404 || code == 409) {
-                    mainExecutor.execute {
-                        stopTracking()
-                    }
-                }
-            } catch (_: Exception) {
-                // Una falla de red no detiene el recorrido.
-                // La siguiente lectura vuelve a intentar.
-            } finally {
-                connection.disconnect()
             }
         }
+    }
+
+    private fun postLocation(
+        endpoint: String,
+        location: Location,
+        includeSessionCookie: Boolean,
+    ): Int? {
+        val connection =
+            (URL(endpoint).openConnection() as HttpsURLConnection)
+
+        return try {
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            connection.doOutput = true
+            connection.setRequestProperty(
+                "Content-Type",
+                "application/json",
+            )
+            connection.setRequestProperty(
+                "Accept",
+                "application/json",
+            )
+            connection.setRequestProperty(
+                "User-Agent",
+                "AlentoDriverAndroid/0.2",
+            )
+
+            if (includeSessionCookie) {
+                val cookies =
+                    CookieManager.getInstance()
+                        .getCookie(BuildConfig.ALENTO_BASE_URL)
+                if (!cookies.isNullOrBlank()) {
+                    connection.setRequestProperty("Cookie", cookies)
+                }
+            }
+
+            val body =
+                "{" +
+                    "\\"latitude\\":" + location.latitude + "," +
+                    "\\"longitude\\":" + location.longitude + "," +
+                    "\\"accuracy\\":" + location.accuracy +
+                    "}"
+
+            connection.outputStream.use { output ->
+                output.write(body.toByteArray(Charsets.UTF_8))
+            }
+
+            connection.responseCode
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun clearOrderContext() {
+        activeToken = null
+        activeOrderCode = null
+        activeTravelMode = "VEHICLE"
+        lastOrderUploadAt = 0L
+
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .edit()
+            .remove(PREF_TOKEN)
+            .remove(PREF_ORDER_CODE)
+            .remove(PREF_TRAVEL_MODE)
+            .apply()
+
+        refreshNotification()
     }
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Entregas en curso",
+            "Ubicación del repartidor",
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description =
-                "Ubicación activa durante los domicilios de Alentó."
+                "Ubicación activa mientras el repartidor está disponible."
             setShowBadge(false)
         }
 
@@ -262,7 +392,10 @@ class LocationForegroundService : Service() {
     private fun stopTracking() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
         activeToken = null
-        lastUploadAt = 0L
+        activeOrderCode = null
+        activeTravelMode = "VEHICLE"
+        lastGeneralUploadAt = 0L
+        lastOrderUploadAt = 0L
 
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .edit()
@@ -282,8 +415,12 @@ class LocationForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
-        const val ACTION_START =
-            "com.alentopizza.repartidor.START_TRACKING"
+        const val ACTION_START_AVAILABILITY =
+            "com.alentopizza.repartidor.START_AVAILABILITY"
+        const val ACTION_SET_ORDER =
+            "com.alentopizza.repartidor.SET_ORDER"
+        const val ACTION_CLEAR_ORDER =
+            "com.alentopizza.repartidor.CLEAR_ORDER"
         const val ACTION_STOP =
             "com.alentopizza.repartidor.STOP_TRACKING"
 
@@ -297,7 +434,7 @@ class LocationForegroundService : Service() {
         private const val PREF_ORDER_CODE = "order_code"
         private const val PREF_TRAVEL_MODE = "travel_mode"
 
-        private const val CHANNEL_ID = "alento_delivery_tracking"
+        private const val CHANNEL_ID = "alento_driver_location"
         private const val NOTIFICATION_ID = 2409
     }
 }
