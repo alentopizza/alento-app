@@ -253,6 +253,61 @@ function formatDistance(meters: number) {
     : `${(meters / 1000).toFixed(1)} km`;
 }
 
+function gpsFreshness(updatedAt: string | null) {
+  if (!updatedAt) {
+    return {
+      ageSeconds: null,
+      label: "Sin señal",
+      tone: "neutral" as const,
+    };
+  }
+
+  const timestamp = new Date(updatedAt).getTime();
+  if (!Number.isFinite(timestamp)) {
+    return {
+      ageSeconds: null,
+      label: "Sin lectura",
+      tone: "neutral" as const,
+    };
+  }
+
+  const ageSeconds = Math.max(
+    0,
+    Math.round((Date.now() - timestamp) / 1000),
+  );
+
+  if (ageSeconds <= 15) {
+    return {
+      ageSeconds,
+      label: "En vivo",
+      tone: "live" as const,
+    };
+  }
+
+  if (ageSeconds <= 45) {
+    return {
+      ageSeconds,
+      label: "Reciente",
+      tone: "recent" as const,
+    };
+  }
+
+  return {
+    ageSeconds,
+    label: "Desactualizado",
+    tone: "stale" as const,
+  };
+}
+
+function gpsAgeLabel(ageSeconds: number | null) {
+  if (ageSeconds == null) return "Sin actualización";
+  if (ageSeconds < 60) return `Hace ${ageSeconds} s`;
+  const minutes = Math.floor(ageSeconds / 60);
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `Hace ${hours} h`;
+}
+
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -745,6 +800,10 @@ export default function AdminDeliveryMapModal({
     [data?.drivers, selectedDriverId],
   );
 
+  const selectedDriverGps = selectedDriver
+    ? gpsFreshness(selectedDriver.updatedAt)
+    : null;
+
   const selectedDriverTrip = useMemo(
     () =>
       selectedDriverId == null
@@ -987,14 +1046,45 @@ export default function AdminDeliveryMapModal({
                   </b>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5">
-                  <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/28">
-                    GPS
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/28">
+                      GPS
+                    </span>
+                    <span
+                      className={
+                        "inline-flex items-center gap-1 text-[7px] font-black " +
+                        (selectedDriverGps?.tone === "live"
+                          ? "text-emerald-300"
+                          : selectedDriverGps?.tone === "recent"
+                            ? "text-amber-200"
+                            : selectedDriverGps?.tone === "stale"
+                              ? "text-[#ff777c]"
+                              : "text-white/35")
+                      }
+                    >
+                      <span
+                        className={
+                          "h-1.5 w-1.5 rounded-full " +
+                          (selectedDriverGps?.tone === "live"
+                            ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.7)]"
+                            : selectedDriverGps?.tone === "recent"
+                              ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,.6)]"
+                              : selectedDriverGps?.tone === "stale"
+                                ? "bg-[#ff6267] shadow-[0_0_8px_rgba(255,98,103,.6)]"
+                                : "bg-white/20")
+                        }
+                      />
+                      {selectedDriverGps?.label ?? "Sin señal"}
+                    </span>
+                  </div>
                   <b className="mt-1 block text-sm">
                     {selectedDriver.accuracy != null
-                      ? `±${Math.round(selectedDriver.accuracy)} m`
-                      : "Activo"}
+                      ? `Precisión ±${Math.round(selectedDriver.accuracy)} m`
+                      : "Precisión pendiente"}
                   </b>
+                  <span className="mt-1 block text-[8px] font-semibold text-white/34">
+                    {gpsAgeLabel(selectedDriverGps?.ageSeconds ?? null)}
+                  </span>
                 </div>
               </div>
 
