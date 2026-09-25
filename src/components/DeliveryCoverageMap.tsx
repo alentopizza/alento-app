@@ -323,11 +323,11 @@ export default function DeliveryCoverageMap({
               Mapa de cobertura visual
             </b>
             <p className="mt-1 text-[11px] leading-5 text-neutral-500">
-              Los círculos muestran el alcance aproximado de cada zona activa alrededor de Alentó.
+              Los círculos muestran los rangos reales usados para cobrar el domicilio según la distancia directa desde Alentó.
             </p>
           </div>
           <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-500">
-            Referencia visual
+            Cobertura real
           </span>
         </div>
       </div>
@@ -379,7 +379,7 @@ export default function DeliveryCoverageMap({
         </div>
 
         <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-[10px] font-semibold leading-4 text-amber-800">
-          Los círculos representan distancia radial y sirven para visualizar la zona. El cobro real y la cobertura final continúan calculándose por la distancia de conducción de Google Routes.
+          La tarifa se determina por estos rangos de distancia directa. Las rutas a pie y en moto se usan únicamente para la operación del domicilio y no modifican el precio.
         </div>
       </div>
 
