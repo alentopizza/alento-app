@@ -36,6 +36,7 @@ type MapDriver = Point & {
   available: boolean;
   accuracy: number | null;
   updatedAt: string | null;
+  source: string | null;
   distanceFromStoreMeters: number | null;
   durationFromStoreSeconds: number | null;
 };
@@ -93,6 +94,7 @@ type MapOrder = {
         longitude: number | null;
         accuracy: number | null;
         updatedAt: string | null;
+        source: string | null;
       }
     | null;
 };
@@ -1103,6 +1105,14 @@ export default function AdminDeliveryMapModal({
                   </b>
                   <span className="mt-1 block text-[8px] font-semibold text-white/34">
                     {gpsAgeLabel(selectedDriverGps?.ageSeconds ?? null)}
+                  </span>
+                  <span className="mt-0.5 block text-[7px] font-black uppercase tracking-[.06em] text-white/24">
+                    Origen ·{" "}
+                    {selectedDriver.source === "ANDROID_NATIVE"
+                      ? "Android nativo"
+                      : selectedDriver.source === "WEB"
+                        ? "Web"
+                        : "Sin identificar"}
                   </span>
                 </div>
               </div>
