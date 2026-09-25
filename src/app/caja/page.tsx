@@ -79,6 +79,14 @@ type ExpenseRow = {
   createdByName: string;
 };
 
+type DriverPayoutOption = {
+  id: number;
+  name: string;
+  walletBalance: number;
+  earnedTotal: number;
+  paidTotal: number;
+};
+
 type Summary = {
   startDate: string;
   endDate: string;
@@ -239,6 +247,9 @@ export default function CashPage() {
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [expenseCategory, setExpenseCategory] = useState("Insumos");
   const [expenseSubcategory, setExpenseSubcategory] = useState("");
+  const [expenseDriverId, setExpenseDriverId] = useState<number | null>(null);
+  const [driverPayoutOptions, setDriverPayoutOptions] = useState<DriverPayoutOption[]>([]);
+  const [driverPayoutLoading, setDriverPayoutLoading] = useState(false);
   const [expenseNote, setExpenseNote] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDate, setExpenseDate] = useState(today);
@@ -330,6 +341,44 @@ export default function CashPage() {
 
     void loadImportStatus();
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!expenseOpen || expenseCategory !== "Domicilios") return;
+
+    let disposed = false;
+    setDriverPayoutLoading(true);
+
+    void fetch("/api/drivers", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.error || "No fue posible cargar los repartidores.",
+          );
+        }
+        if (!disposed) {
+          setDriverPayoutOptions(
+            (data.drivers ?? []) as DriverPayoutOption[],
+          );
+        }
+      })
+      .catch((loadError) => {
+        if (!disposed) {
+          setExpenseMessage(
+            loadError instanceof Error
+              ? loadError.message
+              : "No fue posible cargar los repartidores.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!disposed) setDriverPayoutLoading(false);
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [expenseCategory, expenseOpen]);
 
   const maxMethod = useMemo(
     () =>
@@ -560,6 +609,8 @@ export default function CashPage() {
   function openExpense() {
     setExpenseCategory("Insumos");
     setExpenseSubcategory("");
+    setExpenseDriverId(null);
+    setDriverPayoutOptions([]);
     setExpenseNote("");
     setExpenseAmount("");
     setExpenseDate(localDateInput());
@@ -584,6 +635,10 @@ export default function CashPage() {
         body: JSON.stringify({
           category: expenseCategory,
           subcategory: expenseSubcategory,
+          driverId:
+            expenseCategory === "Domicilios"
+              ? expenseDriverId
+              : null,
           note: expenseNote,
           amount: Number(expenseAmount.replace(/\D/g, "")),
           occurredAt,
@@ -1822,6 +1877,9 @@ export default function CashPage() {
                   onChange={(event) => {
                     setExpenseCategory(event.target.value);
                     setExpenseSubcategory("");
+                    setExpenseDriverId(null);
+                    setExpenseAmount("");
+                    setExpenseMessage("");
                   }}
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
                 >
@@ -1833,27 +1891,95 @@ export default function CashPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
-                  Subtipo
-                </label>
-                <input
-                  list="cash-expense-subcategories"
-                  value={expenseSubcategory}
-                  onChange={(event) => setExpenseSubcategory(event.target.value)}
-                  placeholder={
-                    selectedSubcategories.length
-                      ? "Selecciona o escribe una opción"
-                      : "Opcional"
-                  }
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
-                />
-                <datalist id="cash-expense-subcategories">
-                  {selectedSubcategories.map((subcategory) => (
-                    <option key={subcategory} value={subcategory} />
-                  ))}
-                </datalist>
-              </div>
+              {expenseCategory === "Domicilios" ? (
+                <div>
+                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                    Repartidor
+                  </label>
+                  <select
+                    value={expenseDriverId ?? ""}
+                    disabled={driverPayoutLoading}
+                    onChange={(event) => {
+                      const id = Number(event.target.value);
+                      const driver =
+                        driverPayoutOptions.find((item) => item.id === id) ??
+                        null;
+                      setExpenseDriverId(
+                        Number.isInteger(id) && id > 0 ? id : null,
+                      );
+                      setExpenseSubcategory(driver?.name ?? "");
+                      setExpenseAmount("");
+                      setExpenseMessage("");
+                    }}
+                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-neutral-100"
+                  >
+                    <option value="">
+                      {driverPayoutLoading
+                        ? "Cargando repartidores..."
+                        : "Selecciona un repartidor"}
+                    </option>
+                    {driverPayoutOptions.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.name} · Saldo {formatCOP(driver.walletBalance)}
+                      </option>
+                    ))}
+                  </select>
+
+                  {(() => {
+                    const selectedDriver = driverPayoutOptions.find(
+                      (driver) => driver.id === expenseDriverId,
+                    );
+                    if (!selectedDriver) return null;
+
+                    return (
+                      <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2.5">
+                        <div>
+                          <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-cyan-700/60">
+                            Saldo pendiente
+                          </span>
+                          <b className="mt-0.5 block text-base text-cyan-800">
+                            {formatCOP(selectedDriver.walletBalance)}
+                          </b>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={selectedDriver.walletBalance <= 0}
+                          onClick={() =>
+                            setExpenseAmount(
+                              String(Math.round(selectedDriver.walletBalance)),
+                            )
+                          }
+                          className="h-9 rounded-xl bg-cyan-700 px-3 text-[9px] font-black text-white disabled:bg-neutral-300"
+                        >
+                          Pagar todo
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                    Subtipo
+                  </label>
+                  <input
+                    list="cash-expense-subcategories"
+                    value={expenseSubcategory}
+                    onChange={(event) => setExpenseSubcategory(event.target.value)}
+                    placeholder={
+                      selectedSubcategories.length
+                        ? "Selecciona o escribe una opción"
+                        : "Opcional"
+                    }
+                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                  />
+                  <datalist id="cash-expense-subcategories">
+                    {selectedSubcategories.map((subcategory) => (
+                      <option key={subcategory} value={subcategory} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
 
               <div>
                 <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
@@ -1862,7 +1988,11 @@ export default function CashPage() {
                 <input
                   value={expenseNote}
                   onChange={(event) => setExpenseNote(event.target.value)}
-                  placeholder="Ej. Compra de queso para la semana"
+                  placeholder={
+                    expenseCategory === "Domicilios"
+                      ? "Ej. Pago parcial de cartera"
+                      : "Ej. Compra de queso para la semana"
+                  }
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
                 />
               </div>
@@ -1885,6 +2015,30 @@ export default function CashPage() {
                     {formatCOP(Number(expenseAmount))}
                   </p>
                 )}
+                {expenseCategory === "Domicilios" &&
+                  expenseDriverId != null && (() => {
+                    const selectedDriver = driverPayoutOptions.find(
+                      (driver) => driver.id === expenseDriverId,
+                    );
+                    if (!selectedDriver) return null;
+
+                    const amount = Number(expenseAmount || 0);
+                    const exceeds =
+                      amount > selectedDriver.walletBalance;
+
+                    return (
+                      <p
+                        className={
+                          "mt-1 text-[9px] font-semibold " +
+                          (exceeds ? "text-red-600" : "text-neutral-400")
+                        }
+                      >
+                        {exceeds
+                          ? "El monto supera el saldo disponible."
+                          : "Puedes registrar pagos parciales o pagar el saldo completo."}
+                      </p>
+                    );
+                  })()}
               </div>
 
               {expenseMessage && (
@@ -1906,7 +2060,16 @@ export default function CashPage() {
               <button
                 type="button"
                 onClick={() => void saveExpense()}
-                disabled={expenseSaving}
+                disabled={
+                  expenseSaving ||
+                  (expenseCategory === "Domicilios" &&
+                    (expenseDriverId == null ||
+                      Number(expenseAmount || 0) <= 0 ||
+                      Number(expenseAmount || 0) >
+                        (driverPayoutOptions.find(
+                          (driver) => driver.id === expenseDriverId,
+                        )?.walletBalance ?? 0)))
+                }
                 className="h-11 rounded-xl bg-[var(--brand-red)] font-black text-white disabled:opacity-50"
               >
                 {expenseSaving ? "Guardando..." : "Guardar salida"}
