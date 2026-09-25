@@ -86,7 +86,6 @@ La clave privada nunca debe enviarse al navegador ni guardarse en el repositorio
 - El repartidor abre **Menú > Notificaciones**.
 - Pulsa **Activar push** y concede permiso al navegador.
 - La suscripción del dispositivo se guarda en `DriverPushSubscription`.
-- **Enviar prueba** valida el canal completo.
 - Cuando administración asigna un domicilio al repartidor, Alentó envía un push que abre directamente el pedido.
 - Suscripciones expiradas que respondan 404/410 se eliminan automáticamente.
 
