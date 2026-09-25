@@ -30,6 +30,7 @@ class MainActivity : Activity() {
         val token: String? = null,
         val orderCode: String? = null,
         val travelMode: String? = null,
+        val nativeToken: String? = null,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -191,10 +192,13 @@ class MainActivity : Activity() {
         }
     }
 
-    fun requestNativeAvailabilityTracking() {
+    fun requestNativeAvailabilityTracking(nativeToken: String) {
+        if (nativeToken.isBlank()) return
+
         requestNativeTracking(
             PendingTracking(
                 action = LocationForegroundService.ACTION_START_AVAILABILITY,
+                nativeToken = nativeToken,
             ),
         )
     }
@@ -263,6 +267,9 @@ class MainActivity : Activity() {
         }
         pending.travelMode?.let {
             intent.putExtra(LocationForegroundService.EXTRA_TRAVEL_MODE, it)
+        }
+        pending.nativeToken?.let {
+            intent.putExtra(LocationForegroundService.EXTRA_NATIVE_TOKEN, it)
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
