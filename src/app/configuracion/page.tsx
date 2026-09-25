@@ -38,6 +38,8 @@ type PosSettings = {
   driverManagement: {
     maxConcurrentDeliveries: number;
     acceptanceRadiusMeters: number;
+    earningPercent: number;
+    freeDeliveryEarning: number;
   };
 };
 
@@ -701,6 +703,89 @@ export default function SettingsPage() {
               >
                 +
               </button>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-[#e21a22]/10 bg-[#fff8f8] p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#e21a22]">
+                Ganancia por domicilio cobrado
+              </p>
+              <div className="mt-2 flex items-end gap-3">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={settings.driverManagement.earningPercent}
+                  onChange={(event) =>
+                    setSettings({
+                      ...settings,
+                      driverManagement: {
+                        ...settings.driverManagement,
+                        earningPercent: Math.min(
+                          100,
+                          Math.max(0, Number(event.target.value) || 0),
+                        ),
+                      },
+                    })
+                  }
+                  className="h-12 w-28 rounded-2xl border border-neutral-200 bg-white px-4 text-2xl font-black tabular-nums outline-none"
+                  aria-label="Porcentaje de ganancia del repartidor"
+                />
+                <span className="pb-3 text-xl font-black text-neutral-400">%</span>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-neutral-500">
+                Se calcula sobre el valor de domicilio cobrado al cliente y queda congelado cuando el repartidor marca el pedido como entregado.
+              </p>
+              <div className="mt-3 rounded-xl border border-[#e21a22]/10 bg-white px-3 py-2.5 text-[11px] font-semibold text-neutral-600">
+                Ejemplo con domicilio de $5.000:{" "}
+                <b className="text-[#e21a22]">
+                  {"$" + Math.round(
+                    (5000 * settings.driverManagement.earningPercent) / 100,
+                  ).toLocaleString("es-CO")}
+                </b>{" "}
+                para el repartidor.
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-amber-700">
+                Incentivo para entrega sin costo
+              </p>
+              <div className="mt-2 flex items-end gap-2">
+                <span className="pb-3 text-xl font-black text-neutral-400">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100000}
+                  step={500}
+                  value={settings.driverManagement.freeDeliveryEarning}
+                  onChange={(event) =>
+                    setSettings({
+                      ...settings,
+                      driverManagement: {
+                        ...settings.driverManagement,
+                        freeDeliveryEarning: Math.min(
+                          100000,
+                          Math.max(0, Math.round(Number(event.target.value) || 0)),
+                        ),
+                      },
+                    })
+                  }
+                  className="h-12 w-36 rounded-2xl border border-neutral-200 bg-white px-4 text-2xl font-black tabular-nums outline-none"
+                  aria-label="Incentivo para domicilios gratuitos"
+                />
+              </div>
+              <p className="mt-3 text-xs leading-5 text-neutral-500">
+                Si el cliente tiene domicilio $0 por cercanía, este valor se reconoce al repartidor como incentivo sin alterar el total cobrado al cliente.
+              </p>
+              <div className="mt-3 rounded-xl border border-amber-100 bg-white px-3 py-2.5 text-[11px] font-semibold text-neutral-600">
+                Domicilio gratis → el repartidor gana{" "}
+                <b className="text-amber-700">
+                  {"$" + settings.driverManagement.freeDeliveryEarning.toLocaleString("es-CO")}
+                </b>.
+              </div>
             </div>
           </div>
         </section>
