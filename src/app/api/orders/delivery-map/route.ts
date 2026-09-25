@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { computeDeliveryRoute } from "@/lib/deliveryRoute";
+import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 import { orderCode } from "@/lib/orderCode";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
@@ -70,6 +72,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           total: true,
           deliveryFee: true,
+          deliveryTravelMode: true,
           driverId: true,
           driverLatitude: true,
           driverLongitude: true,
@@ -242,6 +245,9 @@ export async function GET(request: NextRequest) {
           code: orderCode(order.sequenceNumber ?? order.id, order.source),
           customerName: order.customer?.name ?? "Cliente",
           stopNumber: index + 1,
+          travelMode:
+            normalizeDeliveryTravelMode(order.deliveryTravelMode) ??
+            "VEHICLE",
           destination: {
             address:
               order.address?.formattedAddress ||
@@ -259,6 +265,9 @@ export async function GET(request: NextRequest) {
           distanceMeters: number;
           durationSeconds: number | null;
           encodedPolyline: string;
+          travelMode: string;
+          routeTravelMode: string;
+          fallbackToVehicle: boolean;
         }> = [];
 
         if (includeRoutes) {
@@ -269,13 +278,16 @@ export async function GET(request: NextRequest) {
 
           for (const stop of stops) {
             try {
-              const route = await computeDrivingRoute({
-                origin: legOrigin,
-                destination: {
-                  latitude: stop.destination.latitude,
-                  longitude: stop.destination.longitude,
+              const route = await computeDeliveryRoute(
+                {
+                  origin: legOrigin,
+                  destination: {
+                    latitude: stop.destination.latitude,
+                    longitude: stop.destination.longitude,
+                  },
                 },
-              });
+                stop.travelMode,
+              );
 
               legs.push({
                 stopNumber: stop.stopNumber,
@@ -284,6 +296,9 @@ export async function GET(request: NextRequest) {
                 distanceMeters: route.distanceMeters,
                 durationSeconds: route.durationSeconds,
                 encodedPolyline: route.encodedPolyline,
+                travelMode: stop.travelMode,
+                routeTravelMode: route.routeTravelMode,
+                fallbackToVehicle: route.fallbackToVehicle,
               });
             } catch (error) {
               console.error(
@@ -379,6 +394,9 @@ export async function GET(request: NextRequest) {
           customerName: order.customer?.name ?? "Cliente",
           total,
           deliveryFee: Number(order.deliveryFee),
+          deliveryTravelMode:
+            normalizeDeliveryTravelMode(order.deliveryTravelMode) ??
+            (order.status === "OUT_FOR_DELIVERY" ? "VEHICLE" : null),
           paidAmount,
           balance: Math.max(0, total - paidAmount),
           itemCount: order.items.reduce(
