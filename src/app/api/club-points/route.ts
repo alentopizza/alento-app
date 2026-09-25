@@ -86,6 +86,15 @@ export async function GET() {
         platform: true,
         firstDetectedAt: true,
         lastSeenAt: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            countryCode: true,
+            phone: true,
+            email: true,
+          },
+        },
       },
       orderBy: { lastSeenAt: "desc" },
     });
@@ -99,8 +108,19 @@ export async function GET() {
         lastSeenAt: Date;
       }
     >();
+    const appCustomerDetails = new Map<
+      number,
+      {
+        id: number;
+        name: string;
+        countryCode: string;
+        phone: string | null;
+        email: string | null;
+      }
+    >();
 
     for (const installation of installations) {
+      appCustomerDetails.set(installation.customerId, installation.customer);
       const current = appByCustomer.get(installation.customerId);
       if (!current) {
         appByCustomer.set(installation.customerId, {
@@ -145,8 +165,43 @@ export async function GET() {
         };
       });
 
+    const rankByCustomer = new Map(
+      ranking.map((customer) => [customer.id, customer.rank]),
+    );
+
+    const installedCustomers = [...appByCustomer.entries()]
+      .map(([customerId, app]) => {
+        const details = appCustomerDetails.get(customerId);
+        if (!details) return null;
+
+        const pointData = customers.get(customerId);
+        return {
+          ...details,
+          rank: rankByCustomer.get(customerId) ?? 0,
+          points: pointData?.points ?? 0,
+          earnedPoints: pointData?.earnedPoints ?? 0,
+          redeemedPoints: pointData?.redeemedPoints ?? 0,
+          movements: pointData?.movements ?? 0,
+          purchases: pointData?.purchases ?? 0,
+          lastMovementAt: pointData?.lastMovementAt?.toISOString() ?? null,
+          appInstalled: true,
+          appDevices: app.devices,
+          appPlatforms: [...app.platforms],
+          appFirstDetectedAt: app.firstDetectedAt.toISOString(),
+          appLastSeenAt: app.lastSeenAt.toISOString(),
+        };
+      })
+      .filter((customer): customer is NonNullable<typeof customer> => Boolean(customer))
+      .sort(
+        (a, b) =>
+          b.points - a.points ||
+          new Date(b.appLastSeenAt).getTime() -
+            new Date(a.appLastSeenAt).getTime(),
+      );
+
     return NextResponse.json({
       customers: ranking,
+      installedCustomers,
       summary: {
         customersWithPoints: ranking.length,
         pointsInCirculation: ranking.reduce(
@@ -161,11 +216,8 @@ export async function GET() {
           (sum, customer) => sum + customer.redeemedPoints,
           0,
         ),
-        customersWithApp: ranking.filter((customer) => customer.appInstalled).length,
-        appDevices: ranking.reduce(
-          (sum, customer) => sum + customer.appDevices,
-          0,
-        ),
+        customersWithApp: installedCustomers.length,
+        appDevices: installations.length,
       },
     });
   } catch (error) {
