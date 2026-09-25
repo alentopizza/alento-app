@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { computeDeliveryRoute } from "@/lib/deliveryRoute";
+import {
+  normalizeDeliveryTravelMode,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
 
 function finite(value: unknown) {
   const number = Number(value);
@@ -26,6 +30,9 @@ export async function POST(
   const latitude = finite(body?.latitude);
   const longitude = finite(body?.longitude);
   const accuracy = finite(body?.accuracy);
+  const previewTravelMode = normalizeDeliveryTravelMode(
+    body?.deliveryTravelMode,
+  );
 
   if (
     latitude == null ||
@@ -50,6 +57,7 @@ export async function POST(
     select: {
       id: true,
       status: true,
+      deliveryTravelMode: true,
       address: {
         select: {
           formattedAddress: true,
@@ -101,13 +109,36 @@ export async function POST(
     },
   });
 
-  const route = await computeDrivingRoute({
-    origin: { latitude, longitude },
-    destination: {
-      latitude: destinationLatitude,
-      longitude: destinationLongitude,
+  const persistedTravelMode = normalizeDeliveryTravelMode(
+    order.deliveryTravelMode,
+  );
+  const travelMode: DeliveryTravelMode | null =
+    previewTravelMode ??
+    persistedTravelMode ??
+    (order.status === "OUT_FOR_DELIVERY" || order.status === "ARRIVED"
+      ? "VEHICLE"
+      : null);
+
+  if (!travelMode) {
+    return NextResponse.json(
+      {
+        error:
+          "Elige si realizarás la entrega a pie, en moto o en vehículo para calcular la ruta.",
+      },
+      { status: 409 },
+    );
+  }
+
+  const route = await computeDeliveryRoute(
+    {
+      origin: { latitude, longitude },
+      destination: {
+        latitude: destinationLatitude,
+        longitude: destinationLongitude,
+      },
     },
-  });
+    travelMode,
+  );
 
   return NextResponse.json({
     driver: {
@@ -125,6 +156,7 @@ export async function POST(
       latitude: destinationLatitude,
       longitude: destinationLongitude,
     },
+    travelMode,
     route,
   });
 }
