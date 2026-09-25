@@ -8,6 +8,11 @@ import {
   DEFAULT_DRIVER_ACCEPTANCE_RADIUS_METERS,
   normalizeDriverAcceptanceRadiusMeters,
 } from "@/lib/driverAcceptanceZone";
+import {
+  DEFAULT_DRIVER_EARNING_PERCENT,
+  DEFAULT_FREE_DELIVERY_EARNING,
+  normalizeDriverCompensationSettings,
+} from "@/lib/driverCompensation";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -43,6 +48,8 @@ type PosSettings = {
   driverManagement: {
     maxConcurrentDeliveries: number;
     acceptanceRadiusMeters: number;
+    earningPercent: number;
+    freeDeliveryEarning: number;
   };
 };
 
@@ -78,6 +85,8 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
   driverManagement: {
     maxConcurrentDeliveries: DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
     acceptanceRadiusMeters: DEFAULT_DRIVER_ACCEPTANCE_RADIUS_METERS,
+    earningPercent: DEFAULT_DRIVER_EARNING_PERCENT,
+    freeDeliveryEarning: DEFAULT_FREE_DELIVERY_EARNING,
   },
 };
 
@@ -128,6 +137,10 @@ function normalizeSettings(value: unknown): PosSettings {
       }
     : DEFAULT_POS_SETTINGS.customerManagement;
 
+  const compensation = normalizeDriverCompensationSettings({
+    driverManagement: raw.driverManagement,
+  });
+
   const driverManagement =
     raw.driverManagement && typeof raw.driverManagement === "object"
       ? {
@@ -137,6 +150,8 @@ function normalizeSettings(value: unknown): PosSettings {
           acceptanceRadiusMeters: normalizeDriverAcceptanceRadiusMeters(
             raw.driverManagement.acceptanceRadiusMeters,
           ),
+          earningPercent: compensation.earningPercent,
+          freeDeliveryEarning: compensation.freeDeliveryEarning,
         }
       : DEFAULT_POS_SETTINGS.driverManagement;
 
