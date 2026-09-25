@@ -30,6 +30,8 @@ function serializeSession(session: {
   businessDate: string;
   status: string;
   openingBalance: unknown;
+  openingControlledBalance: unknown | null;
+  openingLoanReceivable: unknown | null;
   openedAt: Date;
   openedByName: string;
   netMovement: unknown | null;
@@ -50,6 +52,14 @@ function serializeSession(session: {
   return {
     ...session,
     openingBalance: Number(session.openingBalance),
+    openingControlledBalance:
+      session.openingControlledBalance == null
+        ? null
+        : Number(session.openingControlledBalance),
+    openingLoanReceivable:
+      session.openingLoanReceivable == null
+        ? null
+        : Number(session.openingLoanReceivable),
     netMovement: session.netMovement == null ? null : Number(session.netMovement),
     expectedClosingBalance:
       session.expectedClosingBalance == null
@@ -75,6 +85,32 @@ function serializeSession(session: {
     openedAt: session.openedAt.toISOString(),
     closedAt: session.closedAt?.toISOString() ?? null,
   };
+}
+
+async function loanReceivableAt(asOf: Date) {
+  const loans = await prisma.cashLoan.findMany({
+    where: {
+      issuedAt: { lt: asOf },
+      historicalPaidWithoutRepayment: false,
+    },
+    select: {
+      principal: true,
+      repayments: {
+        where: { paidAt: { lt: asOf } },
+        select: { amount: true },
+      },
+    },
+  });
+
+  return loans.reduce((sum, loan) => {
+    const principal = Number(loan.principal);
+    const repaid = loan.repayments.reduce(
+      (repaymentSum, repayment) =>
+        repaymentSum + Number(repayment.amount),
+      0,
+    );
+    return sum + Math.max(0, principal - repaid);
+  }, 0);
 }
 
 async function dayNetMovement(date: string) {
@@ -178,32 +214,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [session, previousClosed, movement] = await Promise.all([
-      prisma.cashRegisterSession.findUnique({
-        where: { businessDate: date },
-      }),
-      prisma.cashRegisterSession.findFirst({
-        where: {
-          businessDate: { lt: date },
-          status: "CLOSED",
-          actualClosingBalance: { not: null },
-        },
-        orderBy: { businessDate: "desc" },
-        select: {
-          businessDate: true,
-          actualClosingBalance: true,
-        },
-      }),
-      dayNetMovement(date),
-    ]);
+    const { start } = dayBounds(date);
+    const [session, previousClosed, movement, openingLoansReceivable] =
+      await Promise.all([
+        prisma.cashRegisterSession.findUnique({
+          where: { businessDate: date },
+        }),
+        prisma.cashRegisterSession.findFirst({
+          where: {
+            businessDate: { lt: date },
+            status: "CLOSED",
+            actualClosingBalance: { not: null },
+          },
+          orderBy: { businessDate: "desc" },
+          select: {
+            businessDate: true,
+            actualClosingBalance: true,
+            closingLoanReceivable: true,
+          },
+        }),
+        dayNetMovement(date),
+        loanReceivableAt(start),
+      ]);
+
+    const previousControlledClose =
+      previousClosed?.actualClosingBalance != null
+        ? Number(previousClosed.actualClosingBalance) +
+          Number(previousClosed.closingLoanReceivable ?? 0)
+        : null;
 
     return NextResponse.json({
       session: session ? serializeSession(session) : null,
       movement,
-      suggestedOpeningBalance:
-        previousClosed?.actualClosingBalance != null
-          ? Number(previousClosed.actualClosingBalance)
-          : null,
+      openingLoansReceivable,
+      suggestedOpeningBalance: previousControlledClose,
       previousCloseDate: previousClosed?.businessDate ?? null,
     });
   } catch (error) {
@@ -230,35 +274,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (action === "OPEN") {
-      const openingBalance = nonNegativeMoney(
-        body?.openingBalance,
-        "saldo inicial",
+    if (action === "OPEN" || action === "EDIT_OPENING") {
+      const openingControlledBalance = nonNegativeMoney(
+        body?.openingControlledBalance ?? body?.openingBalance,
+        "saldo inicial total",
       );
+      const { start } = dayBounds(businessDate);
+      const openingLoanReceivable = Math.round(
+        await loanReceivableAt(start),
+      );
+
+      if (openingControlledBalance < openingLoanReceivable) {
+        return NextResponse.json(
+          {
+            error:
+              "El saldo inicial total no puede ser menor a los préstamos por cobrar al iniciar el día.",
+          },
+          { status: 400 },
+        );
+      }
+
+      const openingAvailableBalance =
+        openingControlledBalance - openingLoanReceivable;
 
       const existing = await prisma.cashRegisterSession.findUnique({
         where: { businessDate },
         select: { id: true, status: true },
       });
 
-      if (existing) {
-        return NextResponse.json(
-          {
-            error:
-              existing.status === "CLOSED"
-                ? "La caja de esta fecha ya fue cerrada."
-                : "La caja de esta fecha ya está abierta.",
+      if (action === "OPEN") {
+        if (existing) {
+          return NextResponse.json(
+            {
+              error:
+                existing.status === "CLOSED"
+                  ? "La caja de esta fecha ya fue cerrada."
+                  : "La caja de esta fecha ya está abierta.",
+            },
+            { status: 409 },
+          );
+        }
+
+        const session = await prisma.cashRegisterSession.create({
+          data: {
+            businessDate,
+            openingBalance: openingAvailableBalance,
+            openingControlledBalance,
+            openingLoanReceivable,
+            openedByName: staff.name,
+            status: "OPEN",
           },
+        });
+
+        const movement = await dayNetMovement(businessDate);
+
+        return NextResponse.json({
+          session: serializeSession(session),
+          movement,
+          openingLoansReceivable: openingLoanReceivable,
+        });
+      }
+
+      if (!existing) {
+        return NextResponse.json(
+          { error: "Primero debes abrir la caja de este día." },
           { status: 409 },
         );
       }
 
-      const session = await prisma.cashRegisterSession.create({
+      if (existing.status !== "OPEN") {
+        return NextResponse.json(
+          { error: "La apertura ya no se puede editar porque la caja está cerrada." },
+          { status: 409 },
+        );
+      }
+
+      const session = await prisma.cashRegisterSession.update({
+        where: { businessDate },
         data: {
-          businessDate,
-          openingBalance,
-          openedByName: staff.name,
-          status: "OPEN",
+          openingBalance: openingAvailableBalance,
+          openingControlledBalance,
+          openingLoanReceivable,
         },
       });
 
@@ -267,6 +363,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         session: serializeSession(session),
         movement,
+        openingLoansReceivable: openingLoanReceivable,
       });
     }
 
