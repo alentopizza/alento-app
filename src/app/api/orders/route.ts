@@ -191,6 +191,17 @@ export async function POST(request: NextRequest) {
       deliveryFee = money(zone.fee);
       deliveryZoneId = zone.id;
       deliveryZoneName = zone.name?.trim() || "Domicilio";
+
+      if (body.deliveryFeeOverride != null) {
+        const requestedDeliveryFee = Number(body.deliveryFeeOverride);
+        if (!Number.isFinite(requestedDeliveryFee) || requestedDeliveryFee < 0) {
+          return NextResponse.json(
+            { error: "El valor manual del domicilio no es válido." },
+            { status: 400 },
+          );
+        }
+        deliveryFee = money(requestedDeliveryFee);
+      }
     }
 
     const normalizedLines = await Promise.all(lines.map(normalizeOrderLine));
