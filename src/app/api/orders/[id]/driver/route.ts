@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { dispatchDriverAssignedNotification } from "@/lib/notifier";
+import { sendDriverPush } from "@/lib/driverPush";
+import { createDriverOrderToken } from "@/lib/driverTracking";
 import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
 import { orderCode as formatOrderCode } from "@/lib/orderCode";
 
@@ -122,7 +124,30 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
   }
 
-  return NextResponse.json({ order: updated, notification });
+  const pushNotification = await sendDriverPush({
+    driverId: driver.id,
+    title: `Alentó · ${displayOrderCode} asignado`,
+    body: "Te asignaron un domicilio. Toca para revisar destino, productos y cobro.",
+    url: `/repartidor/pedido/${createDriverOrderToken(
+      order.id,
+      driver.id,
+    )}`,
+    tag: `alento-driver-order-${order.id}`,
+  });
+
+  if (!pushNotification.ok && pushNotification.failed > 0) {
+    console.warn("Driver assignment push", {
+      orderId: order.id,
+      driverId: driver.id,
+      reason: pushNotification.reason,
+    });
+  }
+
+  return NextResponse.json({
+    order: updated,
+    notification,
+    pushNotification,
+  });
 }
 
 
