@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -136,7 +136,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         );
       }
 
-      const route = await computeDrivingRoute({
+      const commercialDistanceMeters = directDistanceMeters({
         origin: { latitude: storeLatitude, longitude: storeLongitude },
         destination: { latitude, longitude },
       });
@@ -144,8 +144,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         ?.filter((item) => item.active !== false)
         .find(
           (item) =>
-            route.distanceMeters >= Number(item.minMeters) &&
-            route.distanceMeters <= Number(item.maxMeters),
+            commercialDistanceMeters >= Number(item.minMeters) &&
+            commercialDistanceMeters <= Number(item.maxMeters),
         );
 
       if (!zone) {
