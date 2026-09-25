@@ -9,6 +9,7 @@ const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/k
 
 type Order = {
   id: number;
+  sequenceNumber: number | null;
   source: string;
   status: string;
   fulfillmentType: string;
@@ -16,11 +17,24 @@ type Order = {
   deliveryFee: number;
   discount: number;
   total: number;
+  notes: string | null;
   couponName: string | null;
   deliveryZoneName: string | null;
   createdAt: string;
   customer: { name: string; countryCode: string; phone: string | null } | null;
-  address: { address: string } | null;
+  address: {
+    address: string;
+    formattedAddress: string | null;
+    label: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    notes: string | null;
+  } | null;
+  driver: {
+    name: string;
+    whatsappCountryCode: string;
+    whatsappPhone: string | null;
+  } | null;
   items: { id: number; productName: string; quantity: number; unitPrice: number; lineTotal: number; configuration: unknown; notes?: string | null }[];
   payments: { id?: number; method: string; amount: number; cashReceived: number | null; changeDue: number | null; status: string; reference?: string | null; paidAt?: string | null }[];
 };
@@ -69,8 +83,19 @@ export default function ThermalReceiptPage() {
     if (!order) return;
     const receipt = document.querySelector(".thermal-receipt")?.outerHTML;
     if (!receipt) return;
-    const displayCode = orderCode(order.id, order.source);
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1px dashed #111}.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}</style></head><body>${receipt}</body></html>`;
+    const displayNumber = order.sequenceNumber ?? order.id;
+  const displayCode = orderCode(displayNumber, order.source);
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>
+body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}
+.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1.5px dashed #111}
+.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}
+.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}
+.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}
+.receipt-box{border:2px solid #000;padding:9px 10px;margin-top:8px}.receipt-soft{border:1.5px solid #000;padding:8px 9px;margin-top:8px}
+.receipt-label{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.receipt-value{font-size:13px;font-weight:900;line-height:1.25}
+.receipt-address{font-size:14px;font-weight:900;line-height:1.28;margin-top:4px}.receipt-instructions{border:2px solid #000;padding:7px 8px;margin-top:8px}
+.receipt-call{font-size:16px;font-weight:900;margin-top:3px}.receipt-collect{font-size:20px;font-weight:900;line-height:1.1}
+</style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -101,29 +126,121 @@ export default function ThermalReceiptPage() {
 
       <div className="thermal-receipt">
         <div className="text-center">
-          <img src={LOGO} alt="Alentó Pizza" className="mx-auto h-[22mm] w-[22mm] object-contain grayscale" />
-          <h1 className="mt-1 text-[18px] font-black">ALENTÓ PIZZA</h1>
-          <p className="text-[12px] leading-[15px]">AV CALLE 43 SUR #79A-33</p>
-          <p className="text-[12px] leading-[15px]">WHATSAPP 324 333 4009</p>
+          <img src={LOGO} alt="Alentó Pizza" className="mx-auto h-[17mm] w-[17mm] object-contain grayscale" />
+          <h1 className="mt-1 text-[17px] font-black">ALENTÓ PIZZA</h1>
+          <p className="text-[10px] leading-[13px]">AV CALLE 43 SUR #79A-33 · WHATSAPP 324 333 4009</p>
         </div>
 
         <div className="thermal-rule my-3" />
 
         <div className="text-center">
-          <p className="text-[11px]">{new Date(order.createdAt).toLocaleString("es-CO")}</p>
-          <p className="mt-1 text-[30px] font-black leading-none">{String(order.id).padStart(4, "0")}</p>
-          <p className="mt-1 text-[13px] font-black">{displayCode}</p>
-          <div className="mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[16px] font-black">{fulfillmentLabel(order.fulfillmentType)}</div>
+          <p className="text-[10px]">{new Date(order.createdAt).toLocaleString("es-CO")}</p>
+          <p className="mt-1 text-[27px] font-black leading-none">{displayCode}</p>
+          <div className="mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[14px] font-black">
+            {fulfillmentLabel(order.fulfillmentType)}
+          </div>
         </div>
 
-        <div className="thermal-rule my-3" />
+        {isDelivery ? (
+          <>
+            <div className="receipt-box">
+              <p className="receipt-label">ENTREGA</p>
+              <p className="mt-1 text-[15px] font-black">
+                {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+              </p>
 
-        <div className="text-center">
-          <p className="text-[15px] font-black">{order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}</p>
-          {order.customer?.phone && <p className="text-[12px]">{order.customer.countryCode}{order.customer.phone}</p>}
-          {order.address?.address && <p className="mt-1 text-[11px] font-bold">{order.address.address}</p>}
-          {order.deliveryZoneName && <p className="text-[10px]">{order.deliveryZoneName}</p>}
-        </div>
+              {order.customer?.phone && (
+                <div className="mt-2">
+                  <p className="receipt-label">TELÉFONO / LLAMAR</p>
+                  <p className="receipt-call">
+                    {order.customer.countryCode}{order.customer.phone}
+                  </p>
+                </div>
+              )}
+
+              {deliveryAddress && (
+                <div className="mt-2">
+                  <p className="receipt-label">DIRECCIÓN</p>
+                  <p className="receipt-address">{deliveryAddress}</p>
+                </div>
+              )}
+
+              {(order.address?.neighborhood || order.deliveryZoneName) && (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
+                  <div>
+                    <p className="receipt-label">BARRIO / SECTOR</p>
+                    <p className="font-bold">
+                      {order.address?.neighborhood || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="receipt-label">ZONA</p>
+                    <p className="font-bold">
+                      {order.deliveryZoneName || "—"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {deliveryInstructions ? (
+                <div className="receipt-instructions">
+                  <p className="receipt-label">INDICACIONES DE ENTREGA</p>
+                  <p className="mt-1 text-[13px] font-black leading-[16px]">
+                    {deliveryInstructions.toUpperCase()}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-2 border border-dashed border-black px-2 py-1.5">
+                  <p className="text-[9px] font-bold">
+                    SIN INDICACIONES ADICIONALES DE ENTREGA
+                  </p>
+                </div>
+              )}
+
+              {order.notes && (
+                <div className="mt-2">
+                  <p className="receipt-label">NOTA DEL PEDIDO</p>
+                  <p className="text-[11px] font-bold">{order.notes}</p>
+                </div>
+              )}
+
+              {order.driver && (
+                <div className="mt-2 border-t border-black pt-2 text-[10px]">
+                  <span className="font-black">REPARTIDOR: </span>
+                  <span className="font-bold">{order.driver.name.toUpperCase()}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="receipt-box text-center">
+              <p className="receipt-label">COBRO EN ENTREGA</p>
+              <p className="receipt-collect mt-1">
+                {paidInFull
+                  ? "PAGADO · NO COBRAR"
+                  : `COBRAR $ ${money(pendingBalance)}`}
+              </p>
+              <p className="mt-1 text-[11px] font-black">
+                MEDIO INDICADO: {collectionMethod.toUpperCase()}
+              </p>
+              {!paidInFull && paidTotal > 0 && (
+                <p className="mt-1 text-[10px] font-bold">
+                  YA RECIBIDO $ {money(paidTotal)}
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="receipt-soft text-center">
+            <p className="text-[15px] font-black">
+              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+            </p>
+            {order.customer?.phone && (
+              <p className="mt-1 text-[12px] font-bold">
+                {order.customer.countryCode}{order.customer.phone}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="thermal-rule my-3" />
         <p className="text-[12px] font-black">CHECKLIST DE DESPACHO:</p>
@@ -151,9 +268,30 @@ export default function ThermalReceiptPage() {
         </div>
 
         <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
-          <p className="text-[15px] font-black">{paidInFull ? "PAGADO" : "SALDO PENDIENTE"} - $ {money(paidInFull ? paidTotal : pendingBalance)}</p>
-          {paidPayments.length > 0 ? <div className="mt-1 space-y-1">{paidPayments.map((payment, index) => <p key={payment.id ?? index} className="text-[10px] font-bold">RECIBIDO {payment.method.toUpperCase()} · $ {money(payment.amount)}{payment.reference ? ` · REF ${payment.reference}` : ""}</p>)}</div> : <p className="mt-1 text-[11px] font-bold">AÚN NO SE HA REGISTRADO EL INGRESO</p>}
-          {paidPayments.some((payment) => payment.cashReceived != null) && paidPayments.map((payment, index) => payment.cashReceived != null ? <p key={`cash-${payment.id ?? index}`} className="mt-1 text-[10px]">PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}</p> : null)}
+          <p className="text-[10px] font-black uppercase tracking-[0.08em]">ESTADO DE PAGO</p>
+          <p className="mt-1 text-[15px] font-black">
+            {paidInFull ? `PAGADO $ ${money(paidTotal)}` : `PENDIENTE $ ${money(pendingBalance)}`}
+          </p>
+          {paidPayments.length > 0 ? (
+            <div className="mt-1 space-y-1">
+              {paidPayments.map((payment, index) => (
+                <p key={payment.id ?? index} className="text-[10px] font-bold">
+                  RECIBIDO {payment.method.toUpperCase()} · $ {money(payment.amount)}
+                  {payment.reference ? ` · REF ${payment.reference}` : ""}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-[10px] font-bold">SIN INGRESO REGISTRADO</p>
+          )}
+          {paidPayments.some((payment) => payment.cashReceived != null) &&
+            paidPayments.map((payment, index) =>
+              payment.cashReceived != null ? (
+                <p key={`cash-${payment.id ?? index}`} className="mt-1 text-[10px]">
+                  PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}
+                </p>
+              ) : null,
+            )}
         </div>
 
         {order.couponName && <p className="mt-2 text-center text-[10px] font-bold">CUPÓN: {order.couponName.toUpperCase()}</p>}

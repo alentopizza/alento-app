@@ -63,7 +63,19 @@ async function currentStaffAccess() {
 function loadOrder(id: number) {
   return prisma.order.findUnique({
     where: { id },
-    include: { customer: { include: { addresses: true } }, address: true, items: { include: { product: true }, orderBy: { id: "asc" } }, payments: { orderBy: { id: "asc" } } },
+    include: {
+      customer: { include: { addresses: true } },
+      address: true,
+      driver: {
+        select: {
+          name: true,
+          whatsappCountryCode: true,
+          whatsappPhone: true,
+        },
+      },
+      items: { include: { product: true }, orderBy: { id: "asc" } },
+      payments: { orderBy: { id: "asc" } },
+    },
   });
 }
 

@@ -443,13 +443,22 @@ Formato:
 
 Incluye:
 
-- pedido;
+- código comercial basado en `sequenceNumber`;
 - modalidad;
-- cliente;
+- cliente y teléfono;
+- dirección completa de entrega;
+- barrio/sector y zona cuando existen;
+- **indicaciones/complemento de entrega** desde `CustomerAddress.notes`;
+- repartidor asignado cuando existe;
+- bloque operativo de cobro: `PAGADO · NO COBRAR` o `COBRAR $...`;
+- medio de pago indicado;
 - productos/configuración;
 - notas de Cocina;
+- nota general del pedido cuando existe;
 - totales;
-- información de pago operativa.
+- detalle de pagos realmente recibidos.
+
+Para Domicilio, la impresión se considera una hoja operativa para el repartidor: dirección, indicaciones y cobro deben quedar visualmente por encima del checklist de productos.
 
 No es facturación electrónica fiscal.
 
