@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  cashDateClosedResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -49,6 +54,8 @@ export async function POST(
         { status: 400 },
       );
     }
+
+    await assertCashDateEditable(paidAt);
 
     const result = await prisma.$transaction(async (tx) => {
       const loan = await tx.cashLoan.findUnique({
@@ -106,6 +113,12 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error) {
+      if (error.message === CASH_DATE_CLOSED_ERROR) {
+        return NextResponse.json(
+          { error: cashDateClosedResponseMessage() },
+          { status: 409 },
+        );
+      }
       if (error.message === "LOAN_NOT_FOUND") {
         return NextResponse.json(
           { error: "El préstamo ya no existe." },
