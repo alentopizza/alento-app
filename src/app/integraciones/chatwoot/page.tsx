@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronDown,
   Clock3,
   MapPin,
   MessageSquareText,
-  PackageCheck,
+  Navigation,
   Phone,
-  ReceiptText,
+  Route,
   Star,
   UserRound,
+  WalletCards,
 } from "lucide-react";
 
 const CHATWOOT_ORIGIN = "https://chat.operadoranordecolombia.com";
@@ -47,8 +47,28 @@ type AddressSummary = {
   longitude?: number | null;
 };
 
+type DeliveryContext = {
+  available: boolean;
+  covered: boolean;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+  quotedFee: number | null;
+  zoneName: string | null;
+  origin: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  } | null;
+  destination: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  } | null;
+};
+
 type OrderSummary = {
   id: number;
+  number: number;
   code: string;
   source: string;
   status: string;
@@ -59,6 +79,8 @@ type OrderSummary = {
   total: number;
   notes: string | null;
   deliveryZoneName: string | null;
+  pointsEarned: number;
+  pointsBase: number | null;
   createdAt: string;
   address: AddressSummary | null;
   items: Array<{
@@ -89,6 +111,7 @@ type CustomerPayload = {
     createdAt: string;
     defaultAddress: AddressSummary | null;
   };
+  deliveryContext: DeliveryContext;
   metrics: {
     purchaseCount: number;
     totalSpent: number;
@@ -108,7 +131,24 @@ function money(value: number) {
     style: "currency",
     currency: "COP",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(Number(value || 0));
+}
+
+function points(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function shortDateTime(value: string) {
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Bogota",
+  }).format(new Date(value));
 }
 
 function shortDate(value: string | null) {
@@ -117,16 +157,6 @@ function shortDate(value: string | null) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(value));
-}
-
-function dateTime(value: string | null) {
-  if (!value) return "Sin compras";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
     timeZone: "America/Bogota",
   }).format(new Date(value));
 }
@@ -142,7 +172,16 @@ function signalLabel(value: string) {
   return labels[value] ?? value;
 }
 
-function labelStatus(status: string) {
+function fulfillmentLabel(value: string) {
+  const labels: Record<string, string> = {
+    DELIVERY: "DOMICILIO",
+    PICKUP: "RECOGER EN TIENDA",
+    STORE: "EN LOCAL",
+  };
+  return labels[value] ?? value;
+}
+
+function statusLabel(value: string) {
   const labels: Record<string, string> = {
     DRAFT: "Borrador",
     CONFIRMED: "Confirmado",
@@ -153,38 +192,19 @@ function labelStatus(status: string) {
     ARRIVED: "Llegó",
     DELIVERED: "Entregado",
     COMPLETED: "Completado",
-    CANCELED: "Cancelado",
-  };
-  return labels[status] ?? status;
-}
-
-function fulfillmentLabel(value: string) {
-  const labels: Record<string, string> = {
-    DELIVERY: "Domicilio",
-    PICKUP: "Recoger",
-    STORE: "En local",
-  };
-  return labels[value] ?? value;
-}
-
-function paymentStatusLabel(value: string) {
-  const labels: Record<string, string> = {
-    PAID: "Pagado",
-    PENDING: "Pendiente",
-    PARTIAL: "Parcial",
-    FAILED: "Fallido",
-    REFUNDED: "Reembolsado",
   };
   return labels[value] ?? value;
 }
 
 function initials(value: string) {
-  return value
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("") || "C";
+  return (
+    value
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "C"
+  );
 }
 
 function compactAddress(address: AddressSummary | null) {
@@ -200,23 +220,23 @@ function compactAddress(address: AddressSummary | null) {
   return [base, neighborhood].filter(Boolean).join(", ");
 }
 
-function mapQuery(address: AddressSummary | null) {
-  if (!address) return "";
-  if (
-    typeof address.latitude === "number" &&
-    typeof address.longitude === "number"
-  ) {
-    return `${address.latitude},${address.longitude}`;
-  }
+function durationLabel(seconds: number | null) {
+  if (seconds == null) return "—";
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return `${minutes} min`;
+}
 
-  return [
-    address.address,
-    address.neighborhood,
-    address.city,
-    "Colombia",
-  ]
-    .filter(Boolean)
-    .join(", ");
+function distanceLabel(meters: number | null) {
+  if (meters == null) return "—";
+  if (meters < 1000) return `${meters} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+function itemDetails(value: string) {
+  return value
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 function parseContextMessage(data: unknown): ChatwootContext | null {
@@ -258,7 +278,6 @@ export default function ChatwootDashboardPage() {
 
     window.addEventListener("message", onMessage);
     window.parent.postMessage(FETCH_INFO_MESSAGE, CHATWOOT_ORIGIN);
-
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
@@ -329,57 +348,44 @@ export default function ChatwootDashboardPage() {
     context?.conversation?.meta?.sender?.name ??
     "Cliente";
 
-  const address = data?.customer.defaultAddress ?? null;
-  const locationQuery = mapQuery(address);
-  const mapEmbedUrl = locationQuery
-    ? `https://www.google.com/maps?q=${encodeURIComponent(locationQuery)}&z=16&output=embed`
+  const delivery = data?.deliveryContext ?? null;
+  const routeOrigin = delivery?.origin
+    ? `${delivery.origin.latitude},${delivery.origin.longitude}`
     : "";
-  const mapOpenUrl = locationQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
+  const routeDestination = delivery?.destination
+    ? `${delivery.destination.latitude},${delivery.destination.longitude}`
     : "";
+  const directionsEmbed =
+    routeOrigin && routeDestination
+      ? `https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(
+          routeOrigin,
+        )}&daddr=${encodeURIComponent(routeDestination)}&travelmode=driving`
+      : "";
+  const directionsUrl =
+    routeOrigin && routeDestination
+      ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+          routeOrigin,
+        )}&destination=${encodeURIComponent(
+          routeDestination,
+        )}&travelmode=driving`
+      : "";
 
   return (
-    <main className="cw-panel">
-      <section className="cw-hero">
-        <div className="cw-hero-glow" />
-        <div className="cw-hero-top">
-          <div className="cw-avatar">{initials(displayName)}</div>
-          <div className="cw-person">
-            <div className="cw-kicker">
-              <span />
-              CLIENTE ALENTÓ
-            </div>
-            <h1>{displayName}</h1>
-            <p>
-              <Phone size={12} strokeWidth={2.2} />
-              {phone || "Sin teléfono"}
-              {data ? <em>#{data.customer.id}</em> : null}
-            </p>
-          </div>
+    <main className="chat-panel">
+      <header className="chatwoot-header">
+        <div>
+          <span className="chatwoot-kicker">ATENCIÓN AL CLIENTE</span>
+          <h1>Chatwoot</h1>
         </div>
-
-        {data ? (
-          <div className="cw-hero-badges">
-            <span className={`cw-signal cw-signal-${data.metrics.commercialSignal.toLowerCase()}`}>
-              {signalLabel(data.metrics.commercialSignal)}
-            </span>
-            <span className="cw-points">
-              <Star size={12} fill="currentColor" />
-              {data.metrics.clubPoints} pts
-            </span>
-          </div>
-        ) : null}
-      </section>
+        <span className="alento-badge">ALENTÓ</span>
+      </header>
 
       {loading ? (
-        <div className="cw-state">
-          <span className="cw-loader" />
-          Consultando historial…
-        </div>
+        <div className="state-card">Consultando información del cliente…</div>
       ) : null}
 
       {!loading && message ? (
-        <div className="cw-state">
+        <div className="state-card">
           <UserRound size={18} />
           {message}
         </div>
@@ -387,238 +393,236 @@ export default function ChatwootDashboardPage() {
 
       {data ? (
         <>
-          <section className="cw-metrics">
-            <article>
-              <ReceiptText size={16} />
-              <strong>{data.metrics.purchaseCount}</strong>
-              <span>Pedidos</span>
-            </article>
-            <article>
-              <PackageCheck size={16} />
-              <strong>{money(data.metrics.averageTicket)}</strong>
-              <span>Ticket</span>
-            </article>
-            <article>
-              <Star size={16} />
-              <strong>{money(data.metrics.totalSpent)}</strong>
-              <span>Comprado</span>
-            </article>
-            <article>
-              <Clock3 size={16} />
-              <strong>{data.metrics.daysSinceLastOrder ?? "—"}</strong>
-              <span>Días sin compra</span>
-            </article>
-          </section>
-
-          <section className="cw-card cw-context">
-            <div className="cw-section-head">
-              <div>
-                <span>CONTEXTO COMERCIAL</span>
-                <h2>Lo importante mientras hablas</h2>
+          <section className="customer-card">
+            <div className="customer-main">
+              <div className="avatar">{initials(displayName)}</div>
+              <div className="customer-copy">
+                <span className="eyebrow">CLIENTE #{data.customer.id}</span>
+                <h2>{displayName}</h2>
+                <p>
+                  <Phone size={13} />
+                  {phone || "Sin teléfono"}
+                </p>
               </div>
+              <span className="customer-status">
+                {signalLabel(data.metrics.commercialSignal)}
+              </span>
             </div>
 
-            <div className="cw-context-grid">
+            <div className="customer-stats">
+              <div>
+                <span>Pedidos</span>
+                <strong>{data.metrics.purchaseCount}</strong>
+              </div>
+              <div>
+                <span>Ticket prom.</span>
+                <strong>{money(data.metrics.averageTicket)}</strong>
+              </div>
               <div>
                 <span>Última compra</span>
                 <strong>{shortDate(data.metrics.lastOrderAt)}</strong>
               </div>
-              <div>
-                <span>Frecuencia</span>
-                <strong>
-                  {data.metrics.frequencyDays
-                    ? `Cada ${data.metrics.frequencyDays} días`
-                    : "Por definir"}
-                </strong>
-              </div>
-              <div>
-                <span>Cliente desde</span>
-                <strong>{shortDate(data.metrics.firstOrderAt)}</strong>
-              </div>
-              <div>
-                <span>Estado</span>
-                <strong>{signalLabel(data.metrics.commercialSignal)}</strong>
-              </div>
             </div>
 
             {data.customer.notes ? (
-              <div className="cw-note">
+              <div className="customer-note">
                 <MessageSquareText size={14} />
-                <div>
-                  <span>Nota del cliente</span>
-                  <p>{data.customer.notes}</p>
-                </div>
+                <p>{data.customer.notes}</p>
               </div>
             ) : null}
           </section>
 
-          {address ? (
-            <section className="cw-card cw-location">
-              <div className="cw-section-head cw-map-head">
+          <section className="points-card">
+            <div className="points-icon">
+              <Star size={21} fill="currentColor" />
+            </div>
+            <div>
+              <span>CLUB ALENTÓ</span>
+              <h3>{points(data.metrics.clubPoints)} puntos</h3>
+              <p>Saldo acumulado del cliente</p>
+            </div>
+            {data.orders[0] ? (
+              <div className="points-last">
+                <span>Último pedido</span>
+                <strong>
+                  +{points(data.orders[0].pointsEarned)} pts
+                </strong>
+              </div>
+            ) : null}
+          </section>
+
+          {data.customer.defaultAddress ? (
+            <section className="map-card">
+              <div className="section-title">
                 <div>
-                  <span>UBICACIÓN HABITUAL</span>
-                  <h2>{address.label || "Dirección del cliente"}</h2>
+                  <span>UBICACIÓN DEL CLIENTE</span>
+                  <h3>Ruta desde Alentó</h3>
                 </div>
-                {mapOpenUrl ? (
-                  <a href={mapOpenUrl} target="_blank" rel="noreferrer">
-                    Abrir mapa
+                {directionsUrl ? (
+                  <a href={directionsUrl} target="_blank" rel="noreferrer">
+                    Abrir ruta
                   </a>
                 ) : null}
               </div>
 
-              {mapEmbedUrl ? (
-                <div className="cw-map">
+              <div className="route-metrics">
+                <div>
+                  <Route size={16} />
+                  <span>Distancia</span>
+                  <strong>{distanceLabel(delivery?.distanceMeters ?? null)}</strong>
+                </div>
+                <div>
+                  <Clock3 size={16} />
+                  <span>Tiempo</span>
+                  <strong>{durationLabel(delivery?.durationSeconds ?? null)}</strong>
+                </div>
+                <div>
+                  <WalletCards size={16} />
+                  <span>Domicilio</span>
+                  <strong>
+                    {delivery?.quotedFee == null
+                      ? "—"
+                      : money(delivery.quotedFee)}
+                  </strong>
+                </div>
+              </div>
+
+              {directionsEmbed ? (
+                <div className="route-map">
                   <iframe
-                    title={`Ubicación de ${data.customer.name}`}
-                    src={mapEmbedUrl}
+                    title="Ruta de domicilio"
+                    src={directionsEmbed}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
-                  <div className="cw-map-pin">
-                    <MapPin size={15} fill="currentColor" />
-                  </div>
                 </div>
               ) : null}
 
-              <div className="cw-address">
-                <MapPin size={15} />
+              <div className="route-address">
+                <MapPin size={16} />
                 <div>
-                  <strong>{compactAddress(address)}</strong>
-                  {address.notes ? (
+                  <strong>
+                    {compactAddress(data.customer.defaultAddress)}
+                  </strong>
+                  {data.customer.defaultAddress.notes ? (
                     <p>
-                      <b>Indicaciones:</b> {address.notes}
+                      <b>Indicaciones:</b>{" "}
+                      {data.customer.defaultAddress.notes}
                     </p>
+                  ) : null}
+                  {delivery?.zoneName ? (
+                    <small>{delivery.zoneName}</small>
                   ) : null}
                 </div>
               </div>
             </section>
           ) : null}
 
-          <section className="cw-orders">
-            <div className="cw-section-head">
+          <section className="history">
+            <div className="history-head">
               <div>
                 <span>HISTORIAL DEL CLIENTE</span>
-                <h2>Últimos pedidos</h2>
+                <h3>Pedidos recientes</h3>
               </div>
               <b>{data.orders.length}</b>
             </div>
 
-            {data.orders.length === 0 ? (
-              <div className="cw-state">Este cliente todavía no tiene pedidos.</div>
-            ) : (
-              data.orders.map((order, index) => (
-                <details className="cw-order" key={order.id} open={index === 0}>
-                  <summary>
-                    <div className="cw-order-summary">
-                      <div className="cw-order-code">
-                        <strong>{order.code}</strong>
-                        <span>{dateTime(order.createdAt)}</span>
+            <div className="order-list">
+              {data.orders.map((order) => (
+                <article className="order-card" key={order.id}>
+                  <div className="order-header">
+                    <div>
+                      <div className="order-title-line">
+                        <strong>Pedido #{order.number}</strong>
+                        <span>{fulfillmentLabel(order.fulfillmentType)}</span>
                       </div>
-                      <div className="cw-order-right">
-                        <b>{money(order.total)}</b>
-                        <span className={`cw-status cw-status-${order.status.toLowerCase()}`}>
-                          {labelStatus(order.status)}
-                        </span>
-                      </div>
+                      <p>{shortDateTime(order.createdAt)}</p>
                     </div>
-                    <div className="cw-order-sub">
-                      <span>{fulfillmentLabel(order.fulfillmentType)}</span>
-                      <span>{order.source}</span>
-                      <span>{order.items.length} producto{order.items.length === 1 ? "" : "s"}</span>
-                      <ChevronDown className="cw-chevron" size={16} />
+                    <div className="order-header-right">
+                      <span className="order-status">
+                        {statusLabel(order.status)}
+                      </span>
+                      <span className="order-points">
+                        <Star size={11} fill="currentColor" />
+                        +{points(order.pointsEarned)} pts
+                      </span>
                     </div>
-                  </summary>
+                  </div>
 
-                  <div className="cw-order-body">
-                    <div className="cw-items">
-                      {order.items.map((item, itemIndex) => (
-                        <div
-                          className="cw-item"
-                          key={`${order.id}-${itemIndex}`}
-                        >
-                          <div className="cw-item-line">
-                            <div>
-                              <span className="cw-qty">{item.quantity}×</span>
-                              <strong>{item.productName}</strong>
-                              {item.variantName ? <em>{item.variantName}</em> : null}
-                            </div>
+                  <div className="order-items">
+                    {order.items.map((item, index) => (
+                      <div className="order-item" key={`${order.id}-${index}`}>
+                        <span className="qty-badge">{item.quantity}×</span>
+                        <div className="item-copy">
+                          <div className="item-name-line">
+                            <strong>{item.productName}</strong>
                             <b>{money(item.lineTotal)}</b>
                           </div>
-                          {item.detail ? <p>{item.detail}</p> : null}
-                          {item.notes ? (
-                            <p className="cw-item-note">Nota: {item.notes}</p>
+                          {item.variantName ? (
+                            <p className="variant">{item.variantName}</p>
                           ) : null}
-                        </div>
-                      ))}
-                    </div>
-
-                    {(order.deliveryFee > 0 || order.discount > 0) && (
-                      <div className="cw-totals">
-                        <div>
-                          <span>Productos</span>
-                          <b>{money(order.subtotal)}</b>
-                        </div>
-                        {order.deliveryFee > 0 ? (
-                          <div>
-                            <span>Domicilio</span>
-                            <b>{money(order.deliveryFee)}</b>
-                          </div>
-                        ) : null}
-                        {order.discount > 0 ? (
-                          <div>
-                            <span>Descuento</span>
-                            <b>- {money(order.discount)}</b>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
-
-                    {order.address ? (
-                      <div className="cw-detail-box">
-                        <MapPin size={14} />
-                        <div>
-                          <span>Entrega</span>
-                          <strong>{compactAddress(order.address)}</strong>
-                          {order.address.notes ? (
-                            <p>{order.address.notes}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {order.payments.length > 0 ? (
-                      <div className="cw-payments">
-                        {order.payments.map((payment, paymentIndex) => (
-                          <div
-                            key={`${order.id}-payment-${paymentIndex}`}
-                            className="cw-payment"
-                          >
-                            <div>
-                              <span>{payment.method}</span>
-                              <small>{paymentStatusLabel(payment.status)}</small>
-                            </div>
-                            <b>{money(payment.amount)}</b>
-                            {payment.cashReceived != null ? (
-                              <p>
-                                Recibe {money(payment.cashReceived)} · vueltas{" "}
-                                {money(payment.changeDue || 0)}
+                          {itemDetails(item.detail).map((detail) => {
+                            const separator = detail.indexOf(":");
+                            return separator > 0 ? (
+                              <p className="item-detail" key={detail}>
+                                <b>{detail.slice(0, separator)}:</b>
+                                {detail.slice(separator + 1)}
                               </p>
-                            ) : null}
-                          </div>
-                        ))}
+                            ) : (
+                              <p className="item-detail" key={detail}>
+                                {detail}
+                              </p>
+                            );
+                          })}
+                          {item.notes ? (
+                            <p className="item-note">Nota: {item.notes}</p>
+                          ) : null}
+                        </div>
                       </div>
-                    ) : null}
-
-                    {order.notes ? (
-                      <div className="cw-order-note">
-                        <MessageSquareText size={14} />
-                        <p>{order.notes}</p>
-                      </div>
-                    ) : null}
+                    ))}
                   </div>
-                </details>
-              ))
-            )}
+
+                  {order.address ? (
+                    <div className="order-address">
+                      <Navigation size={14} />
+                      <div>
+                        <strong>{compactAddress(order.address)}</strong>
+                        {order.address.notes ? (
+                          <p>{order.address.notes}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="order-total-box">
+                    <div>
+                      <span>Subtotal</span>
+                      <b>{money(order.subtotal)}</b>
+                    </div>
+                    <div>
+                      <span>Domicilio</span>
+                      <b>{money(order.deliveryFee)}</b>
+                    </div>
+                    <div className={order.discount > 0 ? "discount" : ""}>
+                      <span>Descuento</span>
+                      <b>
+                        {order.discount > 0 ? "- " : ""}
+                        {money(order.discount)}
+                      </b>
+                    </div>
+                    <div className="total-rule" />
+                    <div className="grand-total">
+                      <span>TOTAL</span>
+                      <strong>{money(order.total)}</strong>
+                    </div>
+                    <div className="points-earned">
+                      <span>Puntos de este pedido</span>
+                      <b>+{points(order.pointsEarned)} pts</b>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </section>
         </>
       ) : null}
@@ -632,358 +636,278 @@ export default function ChatwootDashboardPage() {
         :global(body) {
           margin: 0;
           min-height: 100%;
-          background: #f5f4f1;
+          background: #f4f3f0;
           color: #171717;
           font-family: Inter, ui-sans-serif, system-ui, -apple-system,
             BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
-        :global(body) {
-          overflow-x: hidden;
-        }
-
-        .cw-panel {
+        .chat-panel {
           min-height: 100vh;
-          padding: 12px;
+          padding: 10px;
         }
 
-        .cw-hero {
-          position: relative;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 22px;
-          padding: 17px;
+        .chatwoot-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-radius: 18px;
+          padding: 14px 16px;
           background:
-            radial-gradient(circle at 90% 0%, rgba(226,26,34,.45), transparent 35%),
-            linear-gradient(135deg, #0c0d10 0%, #121116 53%, #3a090d 100%);
-          color: #fff;
-          box-shadow: 0 14px 34px rgba(20,12,12,.16);
+            radial-gradient(circle at 95% 15%, rgba(226,26,34,.5), transparent 32%),
+            linear-gradient(135deg, #0c0d10 0%, #111216 58%, #4b090d 100%);
+          color: white;
+          box-shadow: 0 12px 30px rgba(34,18,17,.13);
         }
 
-        .cw-hero-glow {
-          position: absolute;
-          width: 120px;
-          height: 120px;
-          right: -25px;
-          bottom: -50px;
-          border: 1px solid rgba(255,255,255,.06);
-          border-radius: 38px;
-          transform: rotate(20deg);
-          background: rgba(255,255,255,.025);
-        }
-
-        .cw-hero-top {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .cw-avatar {
-          display: grid;
-          width: 50px;
-          height: 50px;
-          flex: 0 0 50px;
-          place-items: center;
-          border: 1px solid rgba(255,255,255,.12);
-          border-radius: 16px;
-          background: rgba(255,255,255,.08);
-          color: #fff;
-          font-size: 15px;
-          font-weight: 900;
-          letter-spacing: -.02em;
-        }
-
-        .cw-person {
-          min-width: 0;
-        }
-
-        .cw-kicker {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          color: rgba(255,255,255,.45);
+        .chatwoot-kicker {
+          color: rgba(255,255,255,.42);
           font-size: 8px;
           font-weight: 900;
-          letter-spacing: .14em;
+          letter-spacing: .16em;
         }
 
-        .cw-kicker span {
-          width: 20px;
-          height: 2px;
-          border-radius: 99px;
-          background: #e21a22;
+        .chatwoot-header h1 {
+          margin: 3px 0 0;
+          font-size: 22px;
+          font-weight: 950;
+          letter-spacing: -.045em;
         }
 
-        h1 {
-          overflow: hidden;
-          margin: 4px 0 0;
-          font-size: 20px;
-          font-weight: 900;
-          line-height: 1.1;
-          letter-spacing: -.035em;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .cw-person p {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          margin: 6px 0 0;
-          color: rgba(255,255,255,.55);
-          font-size: 10px;
-        }
-
-        .cw-person em {
-          border-left: 1px solid rgba(255,255,255,.14);
-          padding-left: 6px;
-          font-style: normal;
-        }
-
-        .cw-hero-badges {
-          position: relative;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 14px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255,255,255,.08);
-        }
-
-        .cw-signal,
-        .cw-points {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
+        .alento-badge {
+          border: 1px solid rgba(255,255,255,.14);
           border-radius: 999px;
-          padding: 6px 9px;
+          background: rgba(255,255,255,.08);
+          padding: 7px 10px;
           font-size: 9px;
-          font-weight: 900;
+          font-weight: 950;
+          letter-spacing: .12em;
         }
 
-        .cw-signal {
-          background: #fff;
-          color: #171717;
-        }
-
-        .cw-signal-frecuente {
-          background: #e21a22;
-          color: #fff;
-        }
-
-        .cw-signal-por_recuperar {
-          background: #fff0d9;
-          color: #9a5a00;
-        }
-
-        .cw-points {
-          border: 1px solid rgba(255,255,255,.12);
-          background: rgba(255,255,255,.07);
-          color: rgba(255,255,255,.78);
-        }
-
-        .cw-state {
+        .state-card {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-top: 10px;
-          border: 1px solid #e4e2dd;
-          border-radius: 17px;
-          background: #fff;
+          margin-top: 9px;
+          border: 1px solid #e2dfda;
+          border-radius: 16px;
+          background: white;
           padding: 18px;
-          color: #6f6c68;
+          color: #77716b;
           font-size: 11px;
           font-weight: 700;
         }
 
-        .cw-loader {
-          width: 14px;
-          height: 14px;
-          border: 2px solid #dedbd6;
-          border-top-color: #e21a22;
-          border-radius: 50%;
-          animation: cw-spin .7s linear infinite;
-        }
-
-        @keyframes cw-spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .cw-metrics {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 7px;
+        .customer-card,
+        .points-card,
+        .map-card,
+        .history {
           margin-top: 9px;
-        }
-
-        .cw-metrics article {
-          position: relative;
-          overflow: hidden;
-          min-width: 0;
-          border: 1px solid #e5e2dc;
-          border-radius: 17px;
+          border: 1px solid #e1ded8;
+          border-radius: 18px;
           background: #fff;
-          padding: 11px 12px;
         }
 
-        .cw-metrics svg {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          color: #d5d1ca;
-        }
-
-        .cw-metrics strong,
-        .cw-metrics span {
-          display: block;
-        }
-
-        .cw-metrics strong {
+        .customer-card {
           overflow: hidden;
-          padding-right: 19px;
-          font-size: 17px;
+        }
+
+        .customer-main {
+          display: grid;
+          grid-template-columns: 48px minmax(0,1fr) auto;
+          gap: 11px;
+          align-items: center;
+          padding: 13px;
+        }
+
+        .avatar {
+          display: grid;
+          width: 48px;
+          height: 48px;
+          place-items: center;
+          border-radius: 15px;
+          background: #111;
+          color: white;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .customer-copy {
+          min-width: 0;
+        }
+
+        .eyebrow,
+        .section-title span,
+        .history-head span,
+        .points-card > div:nth-child(2) > span {
+          color: #9b9791;
+          font-size: 8px;
           font-weight: 900;
-          letter-spacing: -.035em;
+          letter-spacing: .13em;
+        }
+
+        .customer-copy h2 {
+          overflow: hidden;
+          margin: 3px 0 0;
+          font-size: 17px;
+          font-weight: 950;
+          letter-spacing: -.03em;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .cw-metrics span {
-          margin-top: 3px;
-          color: #9a9792;
+        .customer-copy p {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          margin: 4px 0 0;
+          color: #817c76;
+          font-size: 10px;
+        }
+
+        .customer-status {
+          border-radius: 999px;
+          background: #111;
+          padding: 6px 8px;
+          color: white;
           font-size: 8px;
-          font-weight: 800;
-          letter-spacing: .07em;
+          font-weight: 900;
           text-transform: uppercase;
         }
 
-        .cw-card,
-        .cw-orders {
-          margin-top: 9px;
-          border: 1px solid #e5e2dc;
-          border-radius: 19px;
-          background: #fff;
-          padding: 14px;
+        .customer-stats {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          border-top: 1px solid #ebe8e3;
+          background: #faf9f7;
         }
 
-        .cw-section-head {
+        .customer-stats div {
+          min-width: 0;
+          padding: 9px 10px;
+        }
+
+        .customer-stats div + div {
+          border-left: 1px solid #ebe8e3;
+        }
+
+        .customer-stats span,
+        .customer-stats strong {
+          display: block;
+        }
+
+        .customer-stats span {
+          color: #aaa59f;
+          font-size: 7px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .customer-stats strong {
+          overflow: hidden;
+          margin-top: 3px;
+          color: #393632;
+          font-size: 10px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .customer-note {
+          display: flex;
+          gap: 8px;
+          margin: 0 12px 12px;
+          border-radius: 12px;
+          background: #fff5e8;
+          padding: 9px;
+          color: #8e5f22;
+        }
+
+        .customer-note p {
+          margin: 0;
+          font-size: 9px;
+          line-height: 1.45;
+        }
+
+        .points-card {
+          display: grid;
+          grid-template-columns: 42px minmax(0,1fr) auto;
+          gap: 10px;
+          align-items: center;
+          padding: 12px;
+          background:
+            radial-gradient(circle at 95% 15%, rgba(226,26,34,.07), transparent 36%),
+            #fff;
+        }
+
+        .points-icon {
+          display: grid;
+          width: 42px;
+          height: 42px;
+          place-items: center;
+          border-radius: 13px;
+          background: #fff0f1;
+          color: #e21a22;
+        }
+
+        .points-card h3 {
+          margin: 2px 0 0;
+          font-size: 17px;
+          font-weight: 950;
+          letter-spacing: -.035em;
+        }
+
+        .points-card p {
+          margin: 2px 0 0;
+          color: #98938d;
+          font-size: 8px;
+        }
+
+        .points-last {
+          text-align: right;
+        }
+
+        .points-last span,
+        .points-last strong {
+          display: block;
+        }
+
+        .points-last span {
+          color: #aaa59f;
+          font-size: 7px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .points-last strong {
+          margin-top: 3px;
+          color: #e21a22;
+          font-size: 11px;
+          font-weight: 950;
+        }
+
+        .map-card {
+          padding: 12px;
+        }
+
+        .section-title,
+        .history-head {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
           gap: 10px;
         }
 
-        .cw-section-head span {
-          display: block;
-          color: #aaa6a0;
-          font-size: 8px;
-          font-weight: 900;
-          letter-spacing: .13em;
-        }
-
-        .cw-section-head h2 {
+        .section-title h3,
+        .history-head h3 {
           margin: 3px 0 0;
-          color: #191817;
-          font-size: 14px;
-          font-weight: 900;
-          letter-spacing: -.02em;
+          font-size: 15px;
+          font-weight: 950;
+          letter-spacing: -.025em;
         }
 
-        .cw-section-head > b {
-          display: grid;
-          min-width: 28px;
-          height: 28px;
-          place-items: center;
-          border-radius: 9px;
-          background: #f2f0ec;
-          color: #55514c;
-          font-size: 10px;
-        }
-
-        .cw-context-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0,1fr));
-          gap: 1px;
-          margin-top: 12px;
-          overflow: hidden;
-          border: 1px solid #eeeae5;
-          border-radius: 13px;
-          background: #eeeae5;
-        }
-
-        .cw-context-grid div {
-          min-width: 0;
-          background: #faf9f7;
-          padding: 10px;
-        }
-
-        .cw-context-grid span,
-        .cw-context-grid strong {
-          display: block;
-        }
-
-        .cw-context-grid span {
-          color: #aaa6a0;
-          font-size: 8px;
-          font-weight: 800;
-          text-transform: uppercase;
-        }
-
-        .cw-context-grid strong {
-          overflow: hidden;
-          margin-top: 3px;
-          color: #3d3a36;
-          font-size: 10px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .cw-note,
-        .cw-address,
-        .cw-detail-box,
-        .cw-order-note {
-          display: flex;
-          align-items: flex-start;
-          gap: 9px;
-          margin-top: 10px;
-          border-radius: 13px;
-          background: #f8f6f3;
-          padding: 10px;
-          color: #77726c;
-        }
-
-        .cw-note svg,
-        .cw-address svg,
-        .cw-detail-box svg,
-        .cw-order-note svg {
-          flex: 0 0 auto;
-          margin-top: 1px;
-          color: #e21a22;
-        }
-
-        .cw-note span,
-        .cw-detail-box span {
-          color: #a39f99;
-          font-size: 8px;
-          font-weight: 900;
-          letter-spacing: .07em;
-          text-transform: uppercase;
-        }
-
-        .cw-note p,
-        .cw-address p,
-        .cw-detail-box p,
-        .cw-order-note p {
-          margin: 3px 0 0;
-          color: #5c5853;
-          font-size: 10px;
-          line-height: 1.45;
-        }
-
-        .cw-map-head a {
-          border: 1px solid #e4e0da;
+        .section-title a {
+          border: 1px solid #e2ded8;
           border-radius: 10px;
           background: #faf9f7;
           padding: 6px 8px;
@@ -993,339 +917,385 @@ export default function ChatwootDashboardPage() {
           text-decoration: none;
         }
 
-        .cw-map {
-          position: relative;
-          height: 142px;
-          margin-top: 11px;
-          overflow: hidden;
-          border: 1px solid #e6e2dc;
-          border-radius: 15px;
-          background: #efede9;
+        .route-metrics {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: 6px;
+          margin-top: 10px;
         }
 
-        .cw-map iframe {
+        .route-metrics div {
+          position: relative;
+          min-width: 0;
+          border: 1px solid #ebe7e1;
+          border-radius: 13px;
+          background: #faf9f7;
+          padding: 9px;
+        }
+
+        .route-metrics svg {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          color: #d2cec8;
+        }
+
+        .route-metrics span,
+        .route-metrics strong {
+          display: block;
+        }
+
+        .route-metrics span {
+          color: #aaa59f;
+          font-size: 7px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .route-metrics strong {
+          overflow: hidden;
+          margin-top: 4px;
+          padding-right: 12px;
+          font-size: 12px;
+          font-weight: 950;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .route-map {
+          height: 170px;
+          margin-top: 9px;
+          overflow: hidden;
+          border: 1px solid #e1ddd7;
+          border-radius: 14px;
+          background: #eeeae5;
+        }
+
+        .route-map iframe {
           width: 100%;
           height: 100%;
           border: 0;
-          filter: saturate(.75) contrast(.95);
         }
 
-        .cw-map-pin {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          display: grid;
-          width: 31px;
-          height: 31px;
-          place-items: center;
-          transform: translate(-50%,-65%);
-          border: 3px solid #fff;
-          border-radius: 12px 12px 12px 3px;
-          background: #e21a22;
-          color: #fff;
-          box-shadow: 0 8px 18px rgba(76,10,12,.28);
-          rotate: -45deg;
-          pointer-events: none;
-        }
-
-        .cw-map-pin svg {
-          rotate: 45deg;
-        }
-
-        .cw-address strong {
-          display: block;
-          color: #292724;
-          font-size: 11px;
-          line-height: 1.35;
-        }
-
-        .cw-address b {
-          color: #3c3935;
-        }
-
-        .cw-orders {
-          padding: 12px;
-        }
-
-        .cw-orders > .cw-section-head {
-          padding: 2px 2px 8px;
-        }
-
-        .cw-order {
-          overflow: hidden;
-          margin-top: 7px;
-          border: 1px solid #e8e4de;
-          border-radius: 15px;
-          background: #fff;
-        }
-
-        .cw-order summary {
-          position: relative;
-          cursor: pointer;
-          list-style: none;
-          padding: 11px;
-          user-select: none;
-        }
-
-        .cw-order summary::-webkit-details-marker {
-          display: none;
-        }
-
-        .cw-order[open] {
-          border-color: #d9d4cc;
-          box-shadow: 0 7px 20px rgba(36,27,20,.045);
-        }
-
-        .cw-order[open] summary {
-          background: #faf9f7;
-        }
-
-        .cw-order-summary {
+        .route-address {
           display: flex;
-          justify-content: space-between;
-          gap: 10px;
-        }
-
-        .cw-order-code strong,
-        .cw-order-code span,
-        .cw-order-right b {
-          display: block;
-        }
-
-        .cw-order-code strong {
-          color: #1f1e1c;
-          font-size: 11px;
-          font-weight: 900;
-        }
-
-        .cw-order-code span {
-          margin-top: 3px;
-          color: #a09c96;
-          font-size: 8px;
-        }
-
-        .cw-order-right {
-          flex: 0 0 auto;
-          text-align: right;
-        }
-
-        .cw-order-right b {
-          color: #1c1b19;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .cw-status {
-          display: inline-flex;
-          margin-top: 4px;
-          border-radius: 999px;
-          background: #efede9;
-          padding: 3px 6px;
-          color: #6c6761;
-          font-size: 7px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .cw-status-completed,
-        .cw-status-delivered {
-          background: #e9f8ef;
-          color: #187546;
-        }
-
-        .cw-status-out_for_delivery,
-        .cw-status-ready {
-          background: #fff2dc;
-          color: #9d6509;
-        }
-
-        .cw-status-preparing,
-        .cw-status-confirmed {
-          background: #edf5ff;
-          color: #276da5;
-        }
-
-        .cw-order-sub {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          margin-top: 8px;
-          color: #8e8982;
-          font-size: 8px;
-          font-weight: 700;
-        }
-
-        .cw-order-sub span:not(:last-of-type)::after {
-          content: "·";
-          margin-left: 5px;
-          color: #cac5be;
-        }
-
-        .cw-chevron {
-          margin-left: auto;
-          transition: transform .2s ease;
-        }
-
-        .cw-order[open] .cw-chevron {
-          transform: rotate(180deg);
-        }
-
-        .cw-order-body {
-          border-top: 1px solid #eeeae5;
-          padding: 11px;
-        }
-
-        .cw-items {
-          display: grid;
           gap: 8px;
+          margin-top: 9px;
+          border-radius: 12px;
+          background: #f8f6f3;
+          padding: 9px;
+          color: #e21a22;
         }
 
-        .cw-item + .cw-item {
-          padding-top: 8px;
-          border-top: 1px solid #f1efeb;
-        }
-
-        .cw-item-line {
-          display: flex;
-          justify-content: space-between;
-          gap: 8px;
-        }
-
-        .cw-item-line > div {
+        .route-address div {
           min-width: 0;
         }
 
-        .cw-item-line strong {
-          color: #2a2825;
-          font-size: 10px;
-          font-weight: 800;
-        }
-
-        .cw-item-line em {
-          display: inline;
-          margin-left: 4px;
-          color: #928d86;
-          font-size: 8px;
-          font-style: normal;
-        }
-
-        .cw-item-line > b {
-          flex: 0 0 auto;
-          color: #3d3934;
-          font-size: 9px;
-        }
-
-        .cw-qty {
-          margin-right: 5px;
-          color: #e21a22;
-          font-size: 9px;
-          font-weight: 900;
-        }
-
-        .cw-item p {
-          margin: 3px 0 0 19px;
-          color: #817c75;
-          font-size: 8px;
-          line-height: 1.4;
-        }
-
-        .cw-item-note {
-          color: #a05d00 !important;
-        }
-
-        .cw-totals {
-          margin-top: 10px;
-          border-top: 1px solid #efede9;
-          padding-top: 8px;
-        }
-
-        .cw-totals div {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          margin-top: 4px;
-          color: #77726b;
-          font-size: 8px;
-        }
-
-        .cw-totals b {
-          color: #46423d;
-        }
-
-        .cw-detail-box strong {
+        .route-address strong,
+        .route-address p,
+        .route-address small {
           display: block;
-          margin-top: 2px;
-          color: #373430;
-          font-size: 9px;
+        }
+
+        .route-address strong {
+          color: #292724;
+          font-size: 10px;
           line-height: 1.35;
         }
 
-        .cw-payments {
-          display: grid;
-          gap: 6px;
-          margin-top: 9px;
-        }
-
-        .cw-payment {
-          display: grid;
-          grid-template-columns: minmax(0,1fr) auto;
-          gap: 2px 8px;
-          border: 1px solid #e9e6e1;
-          border-radius: 11px;
-          background: #faf9f7;
-          padding: 8px;
-        }
-
-        .cw-payment span,
-        .cw-payment small {
-          display: block;
-        }
-
-        .cw-payment span {
-          color: #45413c;
+        .route-address p {
+          margin: 3px 0 0;
+          color: #68635d;
           font-size: 9px;
+          line-height: 1.4;
+        }
+
+        .route-address small {
+          margin-top: 3px;
+          color: #a29c95;
+          font-size: 8px;
+        }
+
+        .history {
+          padding: 10px;
+        }
+
+        .history-head {
+          padding: 2px 2px 8px;
+        }
+
+        .history-head > b {
+          display: grid;
+          min-width: 28px;
+          height: 28px;
+          place-items: center;
+          border-radius: 9px;
+          background: #111;
+          color: white;
+          font-size: 9px;
+        }
+
+        .order-list {
+          display: grid;
+          gap: 10px;
+        }
+
+        .order-card {
+          overflow: hidden;
+          border: 1px solid #ddd9d3;
+          border-radius: 17px;
+          background: white;
+        }
+
+        .order-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 11px 12px;
+          border-bottom: 1px solid #e8e4de;
+        }
+
+        .order-title-line {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .order-title-line > strong {
+          font-size: 11px;
+          font-weight: 950;
+        }
+
+        .order-title-line > span {
+          border-radius: 999px;
+          background: #111;
+          padding: 4px 7px;
+          color: white;
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: .04em;
+        }
+
+        .order-header p {
+          margin: 4px 0 0;
+          color: #99948d;
+          font-size: 8px;
+        }
+
+        .order-header-right {
+          display: grid;
+          justify-items: end;
+          gap: 4px;
+        }
+
+        .order-status {
+          color: #77716a;
+          font-size: 7px;
           font-weight: 900;
           text-transform: uppercase;
         }
 
-        .cw-payment small {
-          margin-top: 2px;
-          color: #99948d;
-          font-size: 7px;
-          font-weight: 700;
+        .order-points {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          border-radius: 999px;
+          background: #fff0f1;
+          padding: 4px 6px;
+          color: #e21a22;
+          font-size: 8px;
+          font-weight: 950;
         }
 
-        .cw-payment > b {
-          color: #282622;
+        .order-items {
+          display: grid;
+        }
+
+        .order-item {
+          display: grid;
+          grid-template-columns: 34px minmax(0,1fr);
+          gap: 9px;
+          padding: 12px;
+        }
+
+        .order-item + .order-item {
+          border-top: 1px solid #e8e4de;
+        }
+
+        .qty-badge {
+          display: grid;
+          width: 32px;
+          height: 32px;
+          place-items: center;
+          border-radius: 10px;
+          background: #ef1722;
+          color: white;
+          font-size: 9px;
+          font-weight: 950;
+          box-shadow: 0 7px 14px rgba(226,26,34,.18);
+        }
+
+        .item-copy {
+          min-width: 0;
+        }
+
+        .item-name-line {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .item-name-line strong {
+          color: #171717;
           font-size: 10px;
+          font-weight: 950;
         }
 
-        .cw-payment p {
-          grid-column: 1 / -1;
+        .item-name-line > b {
+          flex: 0 0 auto;
+          color: #111;
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .variant {
           margin: 3px 0 0;
-          color: #837e77;
+          color: #aaa49d;
           font-size: 8px;
         }
 
-        .cw-order-note {
-          margin-top: 9px;
+        .item-detail,
+        .item-note {
+          margin: 4px 0 0;
+          color: #625e58;
+          font-size: 8px;
+          line-height: 1.35;
         }
 
-        .cw-order-note p {
-          margin: 0;
+        .item-detail b {
+          margin-right: 3px;
+          color: #2d2a27;
         }
 
-        @media (max-width: 320px) {
-          .cw-panel {
-            padding: 8px;
+        .item-note {
+          color: #995b0a;
+        }
+
+        .order-address {
+          display: flex;
+          gap: 8px;
+          border-top: 1px solid #ebe7e1;
+          background: #faf9f7;
+          padding: 9px 12px;
+          color: #e21a22;
+        }
+
+        .order-address strong {
+          display: block;
+          color: #393632;
+          font-size: 8px;
+          line-height: 1.35;
+        }
+
+        .order-address p {
+          margin: 2px 0 0;
+          color: #8f8982;
+          font-size: 7px;
+        }
+
+        .order-total-box {
+          background: #111;
+          padding: 11px 12px;
+          color: white;
+        }
+
+        .order-total-box > div:not(.total-rule):not(.grand-total):not(.points-earned) {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 4px;
+          color: #bdb8b1;
+          font-size: 8px;
+        }
+
+        .order-total-box b {
+          color: white;
+        }
+
+        .order-total-box .discount,
+        .order-total-box .discount b {
+          color: #ff4c58 !important;
+        }
+
+        .total-rule {
+          height: 1px;
+          margin: 9px 0;
+          background: rgba(255,255,255,.12);
+        }
+
+        .grand-total {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .grand-total span {
+          color: #c4beb7;
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: .1em;
+        }
+
+        .grand-total strong {
+          font-size: 19px;
+          font-weight: 950;
+        }
+
+        .points-earned {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 8px;
+          border-radius: 9px;
+          background: rgba(226,26,34,.13);
+          padding: 7px 8px;
+          color: #ff9ca1;
+          font-size: 8px;
+        }
+
+        .points-earned b {
+          color: #fff;
+          font-size: 9px;
+        }
+
+        @media (max-width: 350px) {
+          .chat-panel {
+            padding: 7px;
           }
 
-          .cw-metrics {
+          .customer-main {
+            grid-template-columns: 42px minmax(0,1fr);
+          }
+
+          .customer-status {
+            grid-column: 1 / -1;
+            justify-self: start;
+          }
+
+          .route-metrics {
             grid-template-columns: 1fr;
           }
 
-          .cw-context-grid {
-            grid-template-columns: 1fr;
+          .points-card {
+            grid-template-columns: 38px minmax(0,1fr);
+          }
+
+          .points-last {
+            grid-column: 1 / -1;
+            text-align: left;
           }
         }
       `}</style>
