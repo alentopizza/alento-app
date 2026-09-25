@@ -13,21 +13,12 @@ import {
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
 import {
+  deliveryTravelModeColor,
   deliveryTravelModeLabel,
   type DeliveryTravelMode,
 } from "@/lib/deliveryTravelMode";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
-const ROUTE_COLORS = [
-  "#e21a22",
-  "#2563eb",
-  "#16a34a",
-  "#f59e0b",
-  "#7c3aed",
-  "#0891b2",
-  "#db2777",
-  "#ea580c",
-];
 
 type Point = {
   latitude: number;
@@ -282,8 +273,6 @@ export default function AdminDeliveryMapModal({
   const markersRef = useRef<GoogleAdvancedMarker[]>([]);
   const routesRef = useRef<GooglePolyline[]>([]);
   const initialFitRef = useRef(false);
-  const colorByLegRef = useRef<Map<string, string>>(new Map());
-
   const [data, setData] = useState<MapPayload | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
@@ -298,20 +287,6 @@ export default function AdminDeliveryMapModal({
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const colorForLeg = useCallback(
-    (driverId: number, orderId: number) => {
-      const key = `${driverId}:${orderId}`;
-      const existing = colorByLegRef.current.get(key);
-      if (existing) return existing;
-
-      const color =
-        ROUTE_COLORS[colorByLegRef.current.size % ROUTE_COLORS.length];
-      colorByLegRef.current.set(key, color);
-      return color;
-    },
-    [],
-  );
 
   const mergePayload = useCallback((next: MapPayload) => {
     setData((current) => {
@@ -403,7 +378,6 @@ export default function AdminDeliveryMapModal({
     if (!open) return;
 
     initialFitRef.current = false;
-    colorByLegRef.current.clear();
     void load(true);
 
     const locationTimer = window.setInterval(() => {
@@ -493,7 +467,7 @@ export default function AdminDeliveryMapModal({
         trip.stops.forEach((stop) => {
           routeStopByOrder.set(stop.orderId, {
             stopNumber: stop.stopNumber,
-            color: colorForLeg(trip.driverId, stop.orderId),
+            color: deliveryTravelModeColor(stop.travelMode),
             driverName: trip.driverName,
           });
         });
@@ -672,7 +646,7 @@ export default function AdminDeliveryMapModal({
           const path = google.maps.geometry!.encoding!.decodePath(
             leg.encodedPolyline,
           );
-          const color = colorForLeg(trip.driverId, leg.orderId);
+          const color = deliveryTravelModeColor(leg.travelMode);
 
           const polyline = new google.maps.Polyline({
             map,
@@ -703,7 +677,6 @@ export default function AdminDeliveryMapModal({
       }
     },
     [
-      colorForLeg,
       expandedLocationCluster,
       selectedDriverId,
       selectedOrderId,
@@ -756,12 +729,12 @@ export default function AdminDeliveryMapModal({
         name: trip.driverName,
         stops: trip.stops.map((stop) => ({
           ...stop,
-          color: colorForLeg(trip.driverId, stop.orderId),
+          color: deliveryTravelModeColor(stop.travelMode),
         })),
         distanceMeters: trip.totalDistanceMeters,
         durationSeconds: trip.totalDurationSeconds,
       })),
-    [colorForLeg, data],
+    [data],
   );
 
   const selectedDriver = useMemo(
