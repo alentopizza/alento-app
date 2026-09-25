@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
+import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
@@ -10,6 +11,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
 
   const body = await request.json().catch(() => ({}));
   const requested = String(body?.status || "").toUpperCase();
+  const requestedTravelMode = normalizeDeliveryTravelMode(
+    body?.deliveryTravelMode,
+  );
+
   if (!["OUT_FOR_DELIVERY", "ARRIVED", "DELIVERED"].includes(requested)) {
     return NextResponse.json({ error: "Estado de reparto inválido." }, { status: 400 });
   }
@@ -23,6 +28,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       fulfillmentType: true,
       total: true,
       customerId: true,
+      deliveryTravelMode: true,
       customer: { select: { name: true, countryCode: true, phone: true } },
       driver: {
         select: {
@@ -46,6 +52,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   if (!order) return NextResponse.json({ error: "La orden ya no está asignada a este repartidor." }, { status: 404 });
 
   if (requested === "OUT_FOR_DELIVERY") {
+    if (!requestedTravelMode) {
+      return NextResponse.json(
+        {
+          error:
+            "Elige cómo vas a realizar la entrega: a pie, en moto o en vehículo.",
+        },
+        { status: 400 },
+      );
+    }
+
     const complete =
       order.items.length > 0 &&
       order.items.every(
@@ -108,16 +124,27 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
         : requested === "OUT_FOR_DELIVERY" && hasDriverLocation
           ? {
               status: "OUT_FOR_DELIVERY",
+              deliveryTravelMode: requestedTravelMode,
               driverLatitude,
               driverLongitude,
               driverLocationAccuracy: order.driver?.driverLocationAccuracy ?? null,
               driverLocationUpdatedAt:
                 order.driver?.driverLocationUpdatedAt ?? new Date(),
             }
-          : {
-              status: requested as "OUT_FOR_DELIVERY" | "ARRIVED",
-            },
-    select: { id: true, status: true, updatedAt: true },
+          : requested === "OUT_FOR_DELIVERY"
+            ? {
+                status: "OUT_FOR_DELIVERY",
+                deliveryTravelMode: requestedTravelMode,
+              }
+            : {
+                status: requested as "ARRIVED",
+              },
+    select: {
+      id: true,
+      status: true,
+      deliveryTravelMode: true,
+      updatedAt: true,
+    },
   });
 
   if (order.customerId && order.customer?.phone) {
