@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const DEVICE_KEY_STORAGE = "alento-pwa-device-key";
 const LAST_SYNC_STORAGE = "alento-pwa-last-sync-at";
+const INSTALLED_SIGNAL_STORAGE = "alento-pwa-installed-signal";
 const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 
 function standaloneMode() {
@@ -46,7 +47,9 @@ export default function PwaCustomerInstallTracker() {
     let cancelled = false;
 
     async function track(force = false) {
-      if (!force && !standaloneMode()) return;
+      const hasInstalledSignal =
+        window.localStorage.getItem(INSTALLED_SIGNAL_STORAGE) === "1";
+      if (!force && !standaloneMode() && !hasInstalledSignal) return;
 
       try {
         const lastSync = Number(
@@ -77,6 +80,9 @@ export default function PwaCustomerInstallTracker() {
     void track();
 
     const handleInstalled = () => {
+      try {
+        window.localStorage.setItem(INSTALLED_SIGNAL_STORAGE, "1");
+      } catch {}
       void track(true);
     };
 
