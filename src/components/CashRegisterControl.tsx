@@ -496,8 +496,21 @@ export default function CashRegisterControl({
                   <span className="rounded-full border border-neutral-200 bg-neutral-100 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-neutral-600">
                     {dateLabel(session.businessDate)}
                   </span>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-700">
-                    Cuadrada
+                  <span
+                    className={
+                      "rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] " +
+                      ((session.difference || 0) === 0
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : (session.difference || 0) > 0
+                          ? "border-sky-200 bg-sky-50 text-sky-700"
+                          : "border-red-200 bg-red-50 text-red-700")
+                    }
+                  >
+                    {(session.difference || 0) === 0
+                      ? "Cuadrada"
+                      : (session.difference || 0) > 0
+                        ? "Sobra " + money(session.difference || 0)
+                        : "Falta " + money(Math.abs(session.difference || 0))}
                   </span>
                 </div>
                 <p className="mt-1 text-[10px] text-neutral-400">
