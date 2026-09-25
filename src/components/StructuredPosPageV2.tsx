@@ -80,6 +80,7 @@ export default function StructuredPosPageV2() {
   const [deliveryQuote, setDeliveryQuote] = useState<DeliveryQuote | null>(null);
   const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
   const [deliveryQuoteError, setDeliveryQuoteError] = useState("");
+  const [deliveryFeeOverrideInput, setDeliveryFeeOverrideInput] = useState<string | null>(null);
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -226,9 +227,21 @@ export default function StructuredPosPageV2() {
     selectedCustomer,
   ]);
 
-  const deliveryFee =
+  useEffect(() => {
+    setDeliveryFeeOverrideInput(null);
+  }, [fulfillmentType, selectedAddress?.id, deliveryQuote?.deliveryFee]);
+
+  const automaticDeliveryFee =
     fulfillmentType === "DELIVERY"
       ? Number(deliveryQuote?.deliveryFee ?? 0)
+      : 0;
+  const deliveryFeeOverride =
+    fulfillmentType === "DELIVERY" && deliveryFeeOverrideInput !== null
+      ? Math.max(0, Math.floor(Number(deliveryFeeOverrideInput || 0)))
+      : null;
+  const deliveryFee =
+    fulfillmentType === "DELIVERY"
+      ? deliveryFeeOverride ?? automaticDeliveryFee
       : 0;
   const orderTotal = subtotal + deliveryFee;
   const validDeliveryQuote =
@@ -875,16 +888,52 @@ export default function StructuredPosPageV2() {
               </div>
 
               {fulfillmentType === "DELIVERY" && (
-                <div className="mt-2 flex justify-between">
-                  <span className="text-neutral-500">Domicilio</span>
-                  <b className="text-[var(--brand-red)]">
-                    {deliveryQuoteLoading
-                      ? "Calculando..."
-                      : deliveryQuote?.covered &&
-                          deliveryQuote.deliveryFee != null
-                        ? formatCOP(deliveryFee)
-                        : "Pendiente"}
-                  </b>
+                <div className="mt-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-neutral-500">Domicilio</span>
+                    {deliveryQuoteLoading ? (
+                      <b className="text-[var(--brand-red)]">Calculando...</b>
+                    ) : deliveryQuote?.covered && deliveryQuote.deliveryFee != null ? (
+                      <div className="flex items-center gap-2">
+                        {deliveryFeeOverride !== null && (
+                          <span className="text-[10px] font-bold text-neutral-400 line-through">
+                            {formatCOP(automaticDeliveryFee)}
+                          </span>
+                        )}
+                        <label className="flex h-9 items-center gap-1 rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 shadow-inner focus-within:border-[var(--brand-red)] focus-within:bg-white">
+                          <Pencil className="h-3 w-3 text-neutral-400" strokeWidth={2.2} />
+                          <span className="text-xs font-black text-neutral-500">$</span>
+                          <input
+                            value={deliveryFeeOverrideInput ?? String(automaticDeliveryFee)}
+                            onFocus={(event) => event.currentTarget.select()}
+                            onChange={(event) => {
+                              setDeliveryFeeOverrideInput(event.target.value.replace(/\D/g, "").slice(0, 9));
+                            }}
+                            inputMode="numeric"
+                            aria-label="Valor de domicilio"
+                            className="w-[72px] bg-transparent text-right text-sm font-black text-[var(--brand-red)] outline-none"
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <b className="text-[var(--brand-red)]">Pendiente</b>
+                    )}
+                  </div>
+
+                  {deliveryQuote?.covered && deliveryQuote.deliveryFee != null && (
+                    <div className="mt-1.5 flex items-center justify-end gap-2 text-[9px] font-semibold text-neutral-400">
+                      <span>Tarifa calculada {formatCOP(automaticDeliveryFee)}</span>
+                      {deliveryFeeOverride !== null && (
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryFeeOverrideInput(null)}
+                          className="font-black text-[var(--brand-red)] hover:underline"
+                        >
+                          Restaurar
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -914,7 +963,15 @@ export default function StructuredPosPageV2() {
         </section>
       </div>
 
-      <OrderCheckoutModal open={checkoutOpen} fulfillmentType={fulfillmentType} customer={selectedCustomer} cart={cart} subtotal={subtotal} onClose={() => setCheckoutOpen(false)} />
+      <OrderCheckoutModal
+        open={checkoutOpen}
+        fulfillmentType={fulfillmentType}
+        customer={selectedCustomer}
+        cart={cart}
+        subtotal={subtotal}
+        deliveryFeeOverride={deliveryFeeOverride}
+        onClose={() => setCheckoutOpen(false)}
+      />
 
       {showCustomerModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4">
