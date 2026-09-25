@@ -94,11 +94,13 @@ export default function CashRegisterControl({
   enabled,
   currentNetMovement,
   onChanged,
+  onSessionStateChange,
 }: {
   businessDate: string;
   enabled: boolean;
   currentNetMovement: number;
   onChanged?: () => void;
+  onSessionStateChange?: (status: "NONE" | "OPEN" | "CLOSED") => void;
 }) {
   const [data, setData] = useState<SessionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -118,6 +120,7 @@ export default function CashRegisterControl({
   async function load() {
     if (!enabled) {
       setData(null);
+      onSessionStateChange?.("NONE");
       return;
     }
 
@@ -133,6 +136,13 @@ export default function CashRegisterControl({
         throw new Error(result.error || "No fue posible cargar la apertura de caja.");
       }
       setData(result);
+      onSessionStateChange?.(
+        result.session?.status === "CLOSED"
+          ? "CLOSED"
+          : result.session?.status === "OPEN"
+            ? "OPEN"
+            : "NONE",
+      );
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -453,7 +463,7 @@ export default function CashRegisterControl({
         </section>
       ) : (
         <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[1.2fr_repeat(5,auto)] xl:items-center">
+          <div className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-white">
                 <LockKeyhole className="h-5 w-5" />
@@ -464,33 +474,37 @@ export default function CashRegisterControl({
                   <span className="rounded-full border border-neutral-200 bg-neutral-100 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-neutral-600">
                     {dateLabel(session.businessDate)}
                   </span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-emerald-700">
+                    Cuadrada
+                  </span>
                 </div>
                 <p className="mt-1 text-[10px] text-neutral-400">
                   Cerró {session.closedByName || "—"} · {dateTimeLabel(session.closedAt)}
                 </p>
-                <p className="mt-1 text-[9px] text-neutral-400">
-                  Efectivo {money(session.closingCash || 0)} · Nequi {money(session.closingNequi || 0)} · DaviPlata {money(session.closingDaviplata || 0)} · Tarjeta {money(session.closingCard || 0)} · Davivienda {money(session.closingDavivienda || 0)} · Préstamos {money(session.closingLoanReceivable || 0)}
+                <p className="mt-1 text-[9px] font-semibold text-neutral-500">
+                  Cierre bloqueado: este día queda solo para consulta.
                 </p>
               </div>
             </div>
 
-            <MiniMetric
-              label="Total inicial"
-              value={money(
-                session.openingControlledBalance ?? session.openingBalance,
-              )}
-            />
-            <MiniMetric label="Flujo" value={money(session.netMovement || 0)} />
-            <MiniMetric label="Disponible teórico" value={money(session.expectedClosingBalance || 0)} />
-            <MiniMetric label="En préstamos" value={money(session.closingLoanReceivable || 0)} />
-            <MiniMetric
-              label="Total controlado"
-              value={money(
-                (session.actualClosingBalance || 0) +
-                  (session.closingLoanReceivable || 0),
-              )}
-              difference={session.difference || 0}
-            />
+            <div className="grid gap-2 sm:grid-cols-3">
+              <MiniMetric
+                label="Disponible al cierre"
+                value={money(session.actualClosingBalance || 0)}
+              />
+              <MiniMetric
+                label="Préstamos por cobrar"
+                value={money(session.closingLoanReceivable || 0)}
+              />
+              <MiniMetric
+                label="Total de Alentó"
+                value={money(
+                  (session.actualClosingBalance || 0) +
+                    (session.closingLoanReceivable || 0),
+                )}
+                strong
+              />
+            </div>
           </div>
         </section>
       )}
