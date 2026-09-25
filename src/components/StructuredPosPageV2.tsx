@@ -61,8 +61,10 @@ function crustPriceForSize(crust: Crust, sizeId: number | null) {
 
 export default function StructuredPosPageV2({
   initialCustomerId = null,
+  chatwootQuickMode = false,
 }: {
   initialCustomerId?: number | null;
+  chatwootQuickMode?: boolean;
 }) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -716,10 +718,23 @@ export default function StructuredPosPageV2({
   }
 
   return (
-    <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
-      <div className="w-full space-y-5">
-        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="min-w-0 space-y-5">
+    <main
+      className={
+        chatwootQuickMode
+          ? "w-full bg-[#f5f3ef] p-0"
+          : "min-h-screen w-full p-3 md:p-5 xl:p-6"
+      }
+    >
+      <div className={chatwootQuickMode ? "w-full space-y-4" : "w-full space-y-5"}>
+        <section
+          className={
+            chatwootQuickMode
+              ? "grid items-start gap-4"
+              : "grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]"
+          }
+        >
+          <div className={chatwootQuickMode ? "min-w-0 space-y-4" : "min-w-0 space-y-5"}>
+{!chatwootQuickMode && (
             <header className="relative min-h-[150px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_77%_42%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_62%_110%,rgba(120,10,14,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_42%,#1a0b0d_67%,#5a090c_100%)]" />
               <div className="absolute inset-y-0 right-0 w-[48%] opacity-60 [background:repeating-linear-gradient(120deg,transparent_0_46px,rgba(255,255,255,.025)_47px_48px)]" />
@@ -755,6 +770,80 @@ export default function StructuredPosPageV2({
                 </div>
               </div>
             </header>
+            )}
+
+            {chatwootQuickMode && (
+              <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_28px_rgba(28,23,20,.06)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                      Pedido para
+                    </p>
+                    <h2 className="mt-1 text-[20px] font-black tracking-[-0.025em] text-neutral-950">
+                      {selectedCustomer?.name || "Cargando cliente..."}
+                    </h2>
+                    {selectedCustomer && (
+                      <p className="mt-1 text-[11px] font-medium text-neutral-500">
+                        {selectedCustomer.countryCode} {selectedCustomer.phone}
+                      </p>
+                    )}
+                  </div>
+                  <span className="rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-[var(--brand-red)]">
+                    Chatwoot
+                  </span>
+                </div>
+
+                <div className="mt-4">
+                  <p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    Tipo de pedido
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {fulfillmentOptions.map((option) => {
+                      const selected = fulfillmentType === option.type;
+                      return (
+                        <button
+                          key={option.type}
+                          type="button"
+                          onClick={() => setFulfillmentType(option.type)}
+                          className={`flex min-h-[58px] items-center justify-center gap-2 rounded-[14px] border px-2 text-center transition ${
+                            selected
+                              ? "border-red-500 bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_8px_18px_rgba(226,26,34,.20)]"
+                              : "border-neutral-200 bg-[#faf9f7] text-neutral-700 hover:border-neutral-300 hover:bg-white"
+                          }`}
+                        >
+                          <option.icon className="h-[18px] w-[18px]" strokeWidth={2.15} />
+                          <b className="text-[11px] leading-4">{option.shortTitle}</b>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {fulfillmentType === "DELIVERY" && selectedCustomer && (
+                  <div className={`mt-3 rounded-[14px] border px-3 py-2.5 ${
+                    hasDeliveryAddress
+                      ? "border-neutral-200 bg-[#faf9f7]"
+                      : "border-amber-200 bg-amber-50"
+                  }`}>
+                    <div className="flex items-start gap-2">
+                      <MapPin className={`mt-0.5 h-4 w-4 shrink-0 ${
+                        hasDeliveryAddress ? "text-[var(--brand-red)]" : "text-amber-600"
+                      }`} />
+                      <div className="min-w-0">
+                        <b className="block truncate text-[11px] text-neutral-900">
+                          {selectedAddress?.address || "Sin dirección registrada"}
+                        </b>
+                        <span className="mt-0.5 block text-[10px] text-neutral-500">
+                          {hasDeliveryAddress
+                            ? "Usaremos la ubicación guardada de este cliente."
+                            : "Agrega una dirección desde la ficha del cliente antes de crear un domicilio."}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <>
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -873,7 +962,13 @@ export default function StructuredPosPageV2({
             </>}
           </div>
 
-          <aside className="overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-[0_18px_42px_rgba(28,23,20,.09)] xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col">
+          <aside
+            className={
+              chatwootQuickMode
+                ? "overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_30px_rgba(28,23,20,.08)]"
+                : "overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-[0_18px_42px_rgba(28,23,20,.09)] xl:sticky xl:top-5 xl:flex xl:h-[calc(100vh-3.5rem)] xl:flex-col"
+            }
+          >
             <div className="relative shrink-0 overflow-hidden border-b border-white/10 bg-[#0b0b0c] px-5 py-4 text-white">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_20%,rgba(226,26,34,.42),transparent_34%),linear-gradient(135deg,#101114,#221215_70%,#650b0f)]" />
               <div className="relative flex items-center justify-between gap-3">
@@ -882,10 +977,15 @@ export default function StructuredPosPageV2({
                     <ShoppingCart className="h-5 w-5" strokeWidth={2.2} />
                   </span>
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">Punto de venta</p>
-                    <h2 className="mt-0.5 text-[20px] font-black tracking-[-0.025em]">Nuevo pedido</h2>
+                    <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
+                      {chatwootQuickMode ? "Resumen" : "Punto de venta"}
+                    </p>
+                    <h2 className="mt-0.5 text-[20px] font-black tracking-[-0.025em]">
+                      {chatwootQuickMode ? "Tu pedido" : "Nuevo pedido"}
+                    </h2>
                   </div>
                 </div>
+{!chatwootQuickMode && (
                 <button
                   type="button"
                   onClick={openNewCustomer}
@@ -893,10 +993,12 @@ export default function StructuredPosPageV2({
                 >
                   + Cliente
                 </button>
+                )}
               </div>
             </div>
 
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4">
+{!chatwootQuickMode && (
               <div className="mb-3 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                 <div className="space-y-3">
                 <div><p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Tipo de pedido</p><div className="grid grid-cols-3 gap-1.5 rounded-[16px] border border-neutral-200 bg-white p-1.5">{fulfillmentOptions.map((option) => { const selected = fulfillmentType === option.type; return <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`flex min-h-[52px] items-center justify-center gap-2 rounded-[12px] px-2 text-center transition ${selected ? "bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_6px_16px_rgba(226,26,34,.22)]" : "text-neutral-700 hover:bg-neutral-50"}`}><option.icon className="h-[17px] w-[17px]" strokeWidth={2.15} /><b className="text-[11px] leading-4">{option.shortTitle}</b></button>; })}</div></div>
@@ -919,6 +1021,7 @@ export default function StructuredPosPageV2({
                   </button>
                 )}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}</div>
               </div>
+              )}
             </div>
 
             <div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-400">Productos</p><h2 className="mt-1 text-[22px] font-black tracking-[-0.025em]">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-xs text-neutral-500">Para {selectedCustomer.name}</p>}</div>{fulfillmentType && <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase text-neutral-500">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</span>}</div>
