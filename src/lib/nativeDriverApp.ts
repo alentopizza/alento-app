@@ -1,11 +1,13 @@
 import type { DeliveryTravelMode } from "@/lib/deliveryTravelMode";
 
 type AlentoNativeBridge = {
-  startTracking: (
+  startAvailabilityTracking: () => boolean;
+  setOrderTracking: (
     token: string,
     orderCode: string,
     travelMode: string,
   ) => boolean;
+  clearOrderTracking: () => void;
   stopTracking: () => void;
   isTracking: () => boolean;
   platform: () => string;
@@ -27,7 +29,23 @@ export function isAlentoNativeDriverApp() {
   }
 }
 
-export function startNativeDriverTracking(input: {
+export function startNativeDriverAvailabilityTracking() {
+  if (typeof window === "undefined" || !window.AlentoNative) {
+    return false;
+  }
+
+  try {
+    return Boolean(window.AlentoNative.startAvailabilityTracking());
+  } catch (error) {
+    console.warn(
+      "Native driver availability tracking could not start",
+      error,
+    );
+    return false;
+  }
+}
+
+export function setNativeDriverOrderTracking(input: {
   token: string;
   orderCode: string;
   travelMode: DeliveryTravelMode;
@@ -38,15 +56,27 @@ export function startNativeDriverTracking(input: {
 
   try {
     return Boolean(
-      window.AlentoNative.startTracking(
+      window.AlentoNative.setOrderTracking(
         input.token,
         input.orderCode,
         input.travelMode,
       ),
     );
   } catch (error) {
-    console.warn("Native driver tracking could not start", error);
+    console.warn("Native driver order tracking could not start", error);
     return false;
+  }
+}
+
+export function clearNativeDriverOrderTracking() {
+  if (typeof window === "undefined" || !window.AlentoNative) {
+    return;
+  }
+
+  try {
+    window.AlentoNative.clearOrderTracking();
+  } catch (error) {
+    console.warn("Native driver order tracking could not clear", error);
   }
 }
 
