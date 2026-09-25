@@ -436,7 +436,7 @@ export default function CashRegisterControl({
           <div className="w-full max-w-[560px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_30px_100px_rgba(0,0,0,.35)]">
             <div className="relative overflow-hidden bg-[#0b0b0c] p-5 text-white sm:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_25%,rgba(226,26,34,.34),transparent_30%),linear-gradient(120deg,#111319,#1a0b0d)]" />
-              <div className="relative flex items-start justify-between gap-4">
+              <div className="relative flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Caja · {dateLabel(businessDate)}</p>
                   <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">Abrir caja</h2>
@@ -530,13 +530,13 @@ export default function CashRegisterControl({
             if (event.target === event.currentTarget && !actionBusy) setCloseModal(false);
           }}
         >
-          <div className="flex max-h-[96dvh] w-full max-w-[980px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f5f2] shadow-[0_30px_100px_rgba(0,0,0,.38)]">
-            <div className="relative overflow-hidden bg-[#0b0b0c] px-5 py-5 text-white sm:px-6">
+          <div className="flex max-h-[96dvh] w-full max-w-[1280px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f5f2] shadow-[0_30px_100px_rgba(0,0,0,.38)]">
+            <div className="relative shrink-0 overflow-hidden bg-[#0b0b0c] px-5 py-4 text-white sm:px-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_30%,rgba(226,26,34,.38),transparent_28%),linear-gradient(120deg,#111319,#1a0b0d)]" />
               <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Cuadre · {dateLabel(businessDate)}</p>
-                  <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">Cerrar caja</h2>
+                  <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">Cerrar caja</h2>
                   <p className="mt-1 text-[11px] text-white/50">Cuenta lo que realmente tienes. Nosotros calculamos la diferencia.</p>
                 </div>
                 <button
@@ -549,7 +549,7 @@ export default function CashRegisterControl({
                 </button>
               </div>
 
-              <div className="relative mt-5 grid grid-cols-3 gap-2">
+              <div className="relative mt-3 grid grid-cols-3 gap-2 xl:absolute xl:right-20 xl:top-1/2 xl:mt-0 xl:w-[530px] xl:-translate-y-1/2">
                 <CloseMetric label="Teórico" value={money(expectedNow)} />
                 <CloseMetric label="Contado" value={money(countedTotal)} />
                 <CloseMetric
@@ -560,13 +560,13 @@ export default function CashRegisterControl({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3.5 sm:p-4">
               {error && (
                 <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">{error}</div>
               )}
 
-              <div className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
-                <section className="rounded-[22px] border border-neutral-200 bg-white p-4 sm:p-5">
+              <div className="grid gap-3 xl:grid-cols-[1.4fr_.9fr]">
+                <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Efectivo</p>
@@ -578,8 +578,8 @@ export default function CashRegisterControl({
                     </div>
                   </div>
 
-                  <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Billetes</p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <p className="mt-3 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Billetes</p>
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
                     {BILLS.map((denomination) => (
                       <DenominationRow
                         key={denomination}
@@ -595,7 +595,7 @@ export default function CashRegisterControl({
                     ))}
                   </div>
 
-                  <p className="mt-5 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Monedas</p>
+                  <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Monedas</p>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {COINS.map((denomination) => (
                       <DenominationRow
@@ -613,7 +613,7 @@ export default function CashRegisterControl({
                   </div>
                 </section>
 
-                <div className="space-y-4">
+                <div className="grid content-start gap-3">
                   <section className="rounded-[22px] border border-neutral-200 bg-white p-4 sm:p-5">
                     <div className="flex items-center gap-3">
                       <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
@@ -625,7 +625,7 @@ export default function CashRegisterControl({
                       </div>
                     </div>
 
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-3 grid grid-cols-2 gap-2.5">
                       <MoneyField label="Nequi" value={nequi} onChange={setNequi} />
                       <MoneyField label="DaviPlata" value={daviplata} onChange={setDaviplata} />
                       <MoneyField label="Tarjeta" value={card} onChange={setCard} />
@@ -633,19 +633,22 @@ export default function CashRegisterControl({
                     </div>
                   </section>
 
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4 sm:p-5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Resumen del cierre</p>
-                    <div className="mt-3 space-y-2 text-[11px]">
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Resumen del cierre</p>
+                      <span className="text-[9px] font-bold text-neutral-400">{dateLabel(businessDate)}</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-[11px]">
                       <SummaryLine label="Saldo inicial" value={money(session.openingBalance)} />
                       <SummaryLine label="Flujo neto del día" value={money(liveMovement)} />
                       <SummaryLine label="Saldo teórico" value={money(expectedNow)} strong />
-                      <div className="my-3 h-px bg-neutral-100" />
+                      <div className="col-span-2 my-0.5 h-px bg-neutral-100" />
                       <SummaryLine label="Efectivo contado" value={money(cashTotal)} />
                       <SummaryLine label="Saldos digitales" value={money(countedTotal - cashTotal)} />
                       <SummaryLine label="Total real" value={money(countedTotal)} strong />
                     </div>
 
-                    <div className={"mt-4 rounded-2xl border p-4 " + (
+                    <div className={"mt-3 rounded-2xl border px-4 py-3 " + (
                       previewDifference === 0
                         ? "border-emerald-200 bg-emerald-50"
                         : previewDifference > 0
@@ -655,7 +658,7 @@ export default function CashRegisterControl({
                       <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-500">
                         {previewDifference === 0 ? "Caja cuadrada" : previewDifference > 0 ? "Sobra" : "Falta"}
                       </span>
-                      <b className={"mt-1 block text-[24px] font-black " + (
+                      <b className={"mt-0.5 block text-[22px] font-black " + (
                         previewDifference === 0
                           ? "text-emerald-700"
                           : previewDifference > 0
@@ -666,11 +669,11 @@ export default function CashRegisterControl({
                       </b>
                     </div>
 
-                    <label className="mt-4 block text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Observación opcional</label>
+                    <label className="mt-3 block text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Observación opcional</label>
                     <textarea
                       value={closeNote}
                       onChange={(event) => setCloseNote(event.target.value)}
-                      rows={2}
+                      rows={1}
                       placeholder="Ej. pendiente confirmar transferencia..."
                       className="mt-2 w-full resize-none rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 text-[11px] outline-none focus:border-neutral-400"
                     />
@@ -679,7 +682,7 @@ export default function CashRegisterControl({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 border-t border-neutral-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div className="flex shrink-0 flex-col gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <p className="text-[10px] text-neutral-400">
                 El cierre queda guardado como fotografía del cuadre de este día.
               </p>
@@ -761,7 +764,7 @@ function CloseMetric({
   tone?: "ok" | "positive" | "negative";
 }) {
   return (
-    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-3">
+    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
       <span className="text-[8px] font-black uppercase tracking-[0.12em] text-white/35">{label}</span>
       <b className={"mt-1 block truncate text-[15px] font-black sm:text-[18px] " + (
         tone === "ok"
@@ -787,7 +790,7 @@ function DenominationRow({
 }) {
   const subtotal = denomination * Number(value || 0);
   return (
-    <label className="grid grid-cols-[1fr_74px_96px] items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2">
+    <label className="grid min-h-[52px] grid-cols-[1fr_68px_88px] items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-1.5 xl:grid-cols-[1fr_74px_98px]">
       <div>
         <span className="text-[9px] font-bold text-neutral-400">$</span>
         <b className="ml-1 text-[12px] text-neutral-800">{denomination.toLocaleString("es-CO")}</b>
@@ -797,7 +800,7 @@ function DenominationRow({
         onChange={(event) => onChange(event.target.value)}
         inputMode="numeric"
         placeholder="0"
-        className="h-9 w-full rounded-lg border border-neutral-200 bg-white px-2 text-center text-[12px] font-black outline-none focus:border-neutral-400"
+        className="h-8 w-full rounded-lg border border-neutral-200 bg-white px-2 text-center text-[12px] font-black outline-none focus:border-neutral-400"
       />
       <span className="truncate text-right text-[10px] font-black text-neutral-500">{money(subtotal)}</span>
     </label>
@@ -816,7 +819,7 @@ function MoneyField({
   return (
     <label className="block">
       <span className="text-[9px] font-black uppercase tracking-[0.11em] text-neutral-400">{label}</span>
-      <div className="mt-1.5 flex h-11 items-center rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 focus-within:border-neutral-400 focus-within:bg-white">
+      <div className="mt-1 flex h-10 items-center rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 focus-within:border-neutral-400 focus-within:bg-white">
         <span className="mr-1.5 text-[12px] font-black text-neutral-400">$</span>
         <input
           value={value}
