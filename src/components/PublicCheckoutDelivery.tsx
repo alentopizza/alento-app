@@ -961,7 +961,7 @@ export default function PublicCheckoutDelivery({
                     <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid grid-cols-3 overflow-hidden rounded-[14px] border border-white/10 bg-[#111]/90 shadow-[0_8px_22px_rgba(0,0,0,.24)] backdrop-blur-xl sm:inset-x-3 sm:top-3">
                       <div className="px-2 py-1.5 sm:px-2.5 sm:py-2">
                         <span className="block text-[6px] font-bold uppercase tracking-[0.11em] text-white/38 sm:text-[7px]">
-                          Ruta
+                          Distancia
                         </span>
                         <b className="mt-px block truncate text-[10px] leading-4 text-white sm:text-[11px]">
                           {formatDistance(quote.distanceMeters)}
