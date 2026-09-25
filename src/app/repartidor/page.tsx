@@ -31,6 +31,7 @@ export default async function DriverHomePage() {
       driverLongitude: true,
       driverLocationAccuracy: true,
       driverLocationUpdatedAt: true,
+      driverLocationSource: true,
     },
   });
 
@@ -47,6 +48,7 @@ export default async function DriverHomePage() {
         driverLocationAccuracy: driver.driverLocationAccuracy,
         driverLocationUpdatedAt:
           driver.driverLocationUpdatedAt?.toISOString() ?? null,
+        driverLocationSource: driver.driverLocationSource,
       }}
     />
   );
