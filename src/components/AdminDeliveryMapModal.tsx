@@ -253,7 +253,15 @@ function formatDistance(meters: number) {
     : `${(meters / 1000).toFixed(1)} km`;
 }
 
-function gpsFreshness(updatedAt: string | null) {
+function gpsFreshness(updatedAt: string | null, nowMs: number) {
+  if (nowMs <= 0) {
+    return {
+      ageSeconds: null,
+      label: "Actualizando",
+      tone: "neutral" as const,
+    };
+  }
+
   if (!updatedAt) {
     return {
       ageSeconds: null,
@@ -273,7 +281,7 @@ function gpsFreshness(updatedAt: string | null) {
 
   const ageSeconds = Math.max(
     0,
-    Math.round((Date.now() - timestamp) / 1000),
+    Math.round((nowMs - timestamp) / 1000),
   );
 
   if (ageSeconds <= 15) {
@@ -342,6 +350,7 @@ export default function AdminDeliveryMapModal({
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [gpsNow, setGpsNow] = useState(0);
 
   const mergePayload = useCallback((next: MapPayload) => {
     setData((current) => {
@@ -428,6 +437,16 @@ export default function AdminDeliveryMapModal({
     },
     [mergePayload],
   );
+
+  useEffect(() => {
+    if (!open) return;
+
+    const tick = () => setGpsNow(Date.now());
+    tick();
+    const gpsTimer = window.setInterval(tick, 1000);
+
+    return () => window.clearInterval(gpsTimer);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -801,7 +820,7 @@ export default function AdminDeliveryMapModal({
   );
 
   const selectedDriverGps = selectedDriver
-    ? gpsFreshness(selectedDriver.updatedAt)
+    ? gpsFreshness(selectedDriver.updatedAt, gpsNow)
     : null;
 
   const selectedDriverTrip = useMemo(
