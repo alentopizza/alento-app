@@ -462,6 +462,12 @@ export default function CustomerDeliveryLiveMap({
         )}
       </div>
 
+      {data?.travelMode && data.travelMode !== "VEHICLE" && (
+        <div className="border-t border-white/10 bg-white/[0.035] px-4 py-2 text-center text-[8px] font-semibold leading-4 text-white/38">
+          La ruta mostrada es orientativa según el modo de entrega elegido por el repartidor.
+        </div>
+      )}
+
       {error && (
         <div className="border-t border-[#e21a22]/15 bg-[#e21a22]/[0.07] px-4 py-2.5 text-[9px] font-semibold text-[#ff8b8f]">
           {error}
