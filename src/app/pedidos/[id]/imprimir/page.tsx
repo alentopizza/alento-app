@@ -91,10 +91,8 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
 .flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}
 .mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}
 .border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}
-.receipt-box{border:2px solid #000;padding:9px 10px;margin-top:8px}.receipt-soft{border:1.5px solid #000;padding:8px 9px;margin-top:8px}
-.receipt-label{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.receipt-value{font-size:13px;font-weight:900;line-height:1.25}
-.receipt-address{font-size:14px;font-weight:900;line-height:1.28;margin-top:4px}.receipt-instructions{border:2px solid #000;padding:7px 8px;margin-top:8px}
-.receipt-call{font-size:16px;font-weight:900;margin-top:3px}.receipt-collect{font-size:20px;font-weight:900;line-height:1.1}
+.receipt-customer{margin-top:10px}.receipt-address{font-size:13px;font-weight:900;line-height:1.25;margin-top:7px}
+.receipt-neighborhood{font-size:11px;font-weight:700;line-height:1.2;margin-top:2px}
 </style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -115,17 +113,8 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
   const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
   const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
   const isDelivery = order.fulfillmentType === "DELIVERY";
-  const deliveryAddress =
-    order.address?.formattedAddress?.trim() ||
-    order.address?.address?.trim() ||
-    "";
-  const deliveryInstructions = order.address?.notes?.trim() || "";
-  const collectionMethod =
-    order.payments.find((payment) =>
-      ["PENDING", "PARTIAL"].includes(payment.status),
-    )?.method?.trim() ||
-    paidPayments[0]?.method?.trim() ||
-    "Pendiente";
+  const deliveryAddress = order.address?.address?.trim() || "";
+  const deliveryNeighborhood = order.address?.neighborhood?.trim() || "";
   const displayNumber = order.sequenceNumber ?? order.id;
   const displayCode = orderCode(displayNumber, order.source);
 
@@ -155,100 +144,40 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
         </div>
 
         {isDelivery ? (
-          <>
-            <div className="receipt-box">
-              <p className="receipt-label">ENTREGA</p>
-              <p className="mt-1 text-[15px] font-black">
-                {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+          <div className="receipt-customer">
+            <p className="text-[15px] font-black">
+              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+            </p>
+
+            {order.customer?.phone && (
+              <p className="mt-1 text-[11px] font-bold">
+                {order.customer.countryCode}{order.customer.phone}
               </p>
+            )}
 
-              {order.customer?.phone && (
-                <div className="mt-2">
-                  <p className="receipt-label">TELÉFONO / LLAMAR</p>
-                  <p className="receipt-call">
-                    {order.customer.countryCode}{order.customer.phone}
-                  </p>
-                </div>
-              )}
+            {deliveryAddress && (
+              <p className="receipt-address">{deliveryAddress}</p>
+            )}
 
-              {deliveryAddress && (
-                <div className="mt-2">
-                  <p className="receipt-label">DIRECCIÓN</p>
-                  <p className="receipt-address">{deliveryAddress}</p>
-                </div>
-              )}
-
-              {(order.address?.neighborhood || order.deliveryZoneName) && (
-                <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
-                  <div>
-                    <p className="receipt-label">BARRIO / SECTOR</p>
-                    <p className="font-bold">
-                      {order.address?.neighborhood || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="receipt-label">ZONA</p>
-                    <p className="font-bold">
-                      {order.deliveryZoneName || "—"}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {deliveryInstructions ? (
-                <div className="receipt-instructions">
-                  <p className="receipt-label">INDICACIONES DE ENTREGA</p>
-                  <p className="mt-1 text-[13px] font-black leading-[16px]">
-                    {deliveryInstructions.toUpperCase()}
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-2 border border-dashed border-black px-2 py-1.5">
-                  <p className="text-[9px] font-bold">
-                    SIN INDICACIONES ADICIONALES DE ENTREGA
-                  </p>
-                </div>
-              )}
-
-              {order.notes && (
-                <div className="mt-2">
-                  <p className="receipt-label">NOTA DEL PEDIDO</p>
-                  <p className="text-[11px] font-bold">{order.notes}</p>
-                </div>
-              )}
-
-              {order.driver && (
-                <div className="mt-2 border-t border-black pt-2 text-[10px]">
-                  <span className="font-black">REPARTIDOR: </span>
-                  <span className="font-bold">{order.driver.name.toUpperCase()}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="receipt-box text-center">
-              <p className="receipt-label">COBRO EN ENTREGA</p>
-              <p className="receipt-collect mt-1">
-                {paidInFull
-                  ? "PAGADO · NO COBRAR"
-                  : `COBRAR $ ${money(pendingBalance)}`}
+            {deliveryNeighborhood && (
+              <p className="receipt-neighborhood">
+                {deliveryNeighborhood.toUpperCase()}
               </p>
-              <p className="mt-1 text-[11px] font-black">
-                MEDIO INDICADO: {collectionMethod.toUpperCase()}
+            )}
+
+            {order.notes && (
+              <p className="mt-2 text-[10px] font-bold">
+                NOTA: {order.notes}
               </p>
-              {!paidInFull && paidTotal > 0 && (
-                <p className="mt-1 text-[10px] font-bold">
-                  YA RECIBIDO $ {money(paidTotal)}
-                </p>
-              )}
-            </div>
-          </>
+            )}
+          </div>
         ) : (
-          <div className="receipt-soft text-center">
+          <div className="receipt-customer text-center">
             <p className="text-[15px] font-black">
               {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
             </p>
             {order.customer?.phone && (
-              <p className="mt-1 text-[12px] font-bold">
+              <p className="mt-1 text-[11px] font-bold">
                 {order.customer.countryCode}{order.customer.phone}
               </p>
             )}
