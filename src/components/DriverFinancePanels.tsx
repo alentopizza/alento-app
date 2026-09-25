@@ -278,6 +278,14 @@ export default function DriverFinancePanels({
           </div>
         </section>
 
+        {data.recentDeliveries.some(
+          (delivery) => delivery.earning == null,
+        ) && (
+          <div className="rounded-[16px] border border-white/10 bg-white/[0.035] px-4 py-3 text-[8px] leading-4 text-white/35">
+            Las entregas marcadas como Histórico ocurrieron antes de activar la cartera de repartidores. Cuentan en desempeño, pero no crean un saldo retroactivo.
+          </div>
+        )}
+
         {error && (
           <div className="rounded-[16px] border border-[#e21a22]/20 bg-[#210b0d] px-4 py-3 text-[9px] font-semibold text-[#ff8b8f]">
             {error}
