@@ -783,6 +783,12 @@ export default function DriverDestinationActions({
                 </div>
               </div>
 
+              {travelMode && travelMode !== "VEHICLE" && (
+                <div className="pointer-events-none absolute left-3 right-3 top-[82px] z-20 rounded-[12px] border border-white/10 bg-[#111]/88 px-3 py-2 text-center text-[8px] font-semibold leading-4 text-white/48 backdrop-blur-md sm:left-4 sm:right-4">
+                  Ruta orientativa. Verifica condiciones del camino y señalización durante el trayecto.
+                </div>
+              )}
+
               {loading && !navigation && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 text-[11px] font-bold text-white/75 backdrop-blur-sm">
                   Calculando ruta...
