@@ -9,9 +9,9 @@ class AlentoNativeBridge(
     fun platform(): String = "android"
 
     @JavascriptInterface
-    fun startAvailabilityTracking(): Boolean {
+    fun startAvailabilityTracking(nativeToken: String): Boolean {
         activity.runOnUiThread {
-            activity.requestNativeAvailabilityTracking()
+            activity.requestNativeAvailabilityTracking(nativeToken)
         }
         return true
     }
