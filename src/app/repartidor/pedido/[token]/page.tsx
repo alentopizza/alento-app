@@ -45,6 +45,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       total: true,
       notes: true,
       deliveryZoneName: true,
+      deliveryTravelMode: true,
       address: {
         select: {
           address: true,
@@ -157,6 +158,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 currentStatus={order.status}
                 canStartDelivery={canStartDelivery}
                 orderCode={orderCode}
+                initialTravelMode={order.deliveryTravelMode}
               />
             )}
 
@@ -248,6 +250,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
           claimOrderId={order.id}
           initiallyAssigned={assigned}
           initialStatus={order.status}
+          initialTravelMode={order.deliveryTravelMode}
           items={order.items.map((item) => ({
             id: item.id,
             productName: item.productName,
