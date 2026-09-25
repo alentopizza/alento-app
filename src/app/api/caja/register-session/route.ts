@@ -419,7 +419,19 @@ export async function POST(request: NextRequest) {
         typeof body?.note === "string" ? body.note.trim().slice(0, 1000) : "";
 
       const movement = await dayNetMovement(businessDate);
-      const openingBalance = Number(session.openingBalance);
+      const { start } = dayBounds(businessDate);
+      const openingLoanReceivable =
+        session.openingLoanReceivable != null
+          ? Number(session.openingLoanReceivable)
+          : Math.round(await loanReceivableAt(start));
+      const openingControlledBalance =
+        session.openingControlledBalance != null
+          ? Number(session.openingControlledBalance)
+          : Number(session.openingBalance);
+      const openingBalance =
+        session.openingControlledBalance != null
+          ? Number(session.openingBalance)
+          : Math.max(0, openingControlledBalance - openingLoanReceivable);
       const expectedClosingBalance = openingBalance + movement.netMovement;
       const actualClosingBalance =
         cashTotal + nequi + daviplata + card + davivienda;
@@ -429,6 +441,9 @@ export async function POST(request: NextRequest) {
         where: { businessDate },
         data: {
           status: "CLOSED",
+          openingBalance: Math.round(openingBalance),
+          openingControlledBalance: Math.round(openingControlledBalance),
+          openingLoanReceivable: Math.round(openingLoanReceivable),
           netMovement: Math.round(movement.netMovement),
           expectedClosingBalance: Math.round(expectedClosingBalance),
           closingCash: cashTotal,
