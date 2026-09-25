@@ -75,6 +75,7 @@ function rankLabel(rank: number) {
 export default function ClubPointsAdmin() {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
   const [customers, setCustomers] = useState<ClubCustomer[]>([]);
+  const [installedCustomers, setInstalledCustomers] = useState<ClubCustomer[]>([]);
   const [summary, setSummary] = useState<ClubSummary>({
     customersWithPoints: 0,
     pointsInCirculation: 0,
@@ -99,6 +100,7 @@ export default function ClubPointsAdmin() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cargar el ranking del Club.");
       setCustomers(data.customers ?? []);
+      setInstalledCustomers(data.installedCustomers ?? []);
       setSummary({
         customersWithPoints: Number(data.summary?.customersWithPoints ?? 0),
         pointsInCirculation: Number(data.summary?.pointsInCirculation ?? 0),
@@ -131,6 +133,7 @@ export default function ClubPointsAdmin() {
 
         setSettings(settingsData.settings);
         setCustomers(rankingData.customers ?? []);
+        setInstalledCustomers(rankingData.installedCustomers ?? []);
         setSummary({
           customersWithPoints: Number(rankingData.summary?.customersWithPoints ?? 0),
           pointsInCirculation: Number(rankingData.summary?.pointsInCirculation ?? 0),
@@ -154,11 +157,14 @@ export default function ClubPointsAdmin() {
 
   const visibleCustomers = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("es");
+    const source =
+      appFilter === "APP"
+        ? installedCustomers
+        : appFilter === "NO_APP"
+          ? customers.filter((customer) => !customer.appInstalled)
+          : customers;
 
-    return customers.filter((customer) => {
-      if (appFilter === "APP" && !customer.appInstalled) return false;
-      if (appFilter === "NO_APP" && customer.appInstalled) return false;
-
+    return source.filter((customer) => {
       if (!value) return true;
       const phone = customer.phone ? customer.countryCode + customer.phone : "";
       const appText = customer.appPlatforms.join(" ");
@@ -166,7 +172,7 @@ export default function ClubPointsAdmin() {
         .toLocaleLowerCase("es")
         .includes(value);
     });
-  }, [appFilter, customers, query]);
+  }, [appFilter, customers, installedCustomers, query]);
 
   const topCustomers = customers.slice(0, 3);
 
@@ -258,7 +264,7 @@ export default function ClubPointsAdmin() {
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard label="Clientes con saldo" value={String(summary.customersWithPoints)} note="Clientes que hoy tienen puntos disponibles." icon={<Users className="h-5 w-5 text-neutral-300" strokeWidth={1.8} />} />
-          <StatCard label="Con app + puntos" value={String(summary.customersWithApp)} note={summary.appDevices + " dispositivo" + (summary.appDevices === 1 ? "" : "s") + " detectado" + (summary.appDevices === 1 ? "" : "s") + "."} red icon={<Smartphone className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
+          <StatCard label="Clientes con app" value={String(summary.customersWithApp)} note={summary.appDevices + " dispositivo" + (summary.appDevices === 1 ? "" : "s") + " detectado" + (summary.appDevices === 1 ? "" : "s") + "."} red icon={<Smartphone className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos en circulación" value={formatPoints(summary.pointsInCirculation)} note="Saldo disponible entre todos los clientes." red icon={<Star className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos acumulados" value={formatPoints(summary.totalEarnedPoints)} note="Total histórico generado por compras válidas." />
           <StatCard label="Regla actual" value={settings.earnRatePercent + "%"} note="Sobre productos elegibles sin descuento." />
@@ -324,7 +330,9 @@ export default function ClubPointsAdmin() {
           <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-5 py-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">Ranking completo</p>
-              <h2 className="mt-1 text-[21px] font-black tracking-[-0.03em] text-neutral-950">Clientes con puntos</h2>
+              <h2 className="mt-1 text-[21px] font-black tracking-[-0.03em] text-neutral-950">
+                {appFilter === "APP" ? "Clientes con app detectada" : "Clientes con puntos"}
+              </h2>
             </div>
             <b className="text-[12px] font-black text-neutral-400">{visibleCustomers.length}</b>
           </div>
@@ -336,8 +344,8 @@ export default function ClubPointsAdmin() {
               {visibleCustomers.map((customer) => (
                 <article key={customer.id} className="grid gap-4 px-5 py-4 transition hover:bg-[#faf9f7] md:grid-cols-[64px_minmax(0,1fr)_140px_150px] md:items-center">
                   <div>
-                    <span className={"inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[12px] font-black " + (customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
-                      #{customer.rank}
+                    <span className={"inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[12px] font-black " + (customer.rank > 0 && customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
+                      {customer.rank > 0 ? "#" + customer.rank : "APP"}
                     </span>
                   </div>
 
