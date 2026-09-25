@@ -23,6 +23,7 @@ export async function GET() {
         driverLongitude: true,
         driverLocationAccuracy: true,
         driverLocationUpdatedAt: true,
+        driverLocationSource: true,
       },
     });
 
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
             driverLongitude: null,
             driverLocationAccuracy: null,
             driverLocationUpdatedAt: null,
+            driverLocationSource: null,
           },
       select: {
         id: true,
@@ -99,6 +101,7 @@ export async function POST(request: NextRequest) {
         driverLongitude: true,
         driverLocationAccuracy: true,
         driverLocationUpdatedAt: true,
+        driverLocationSource: true,
       },
     });
 
