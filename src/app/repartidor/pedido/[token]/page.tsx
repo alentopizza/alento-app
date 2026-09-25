@@ -123,7 +123,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     );
 
   return (
-    <main className="min-h-screen bg-[#080808] px-4 pb-32 pt-5 text-white">
+    <main className="min-h-screen bg-[#080808] px-4 pb-48 pt-5 text-white">
       <LivePageRefresh intervalMs={2500} />
       <div className="mx-auto max-w-[640px] space-y-4">
         <div className="relative">
