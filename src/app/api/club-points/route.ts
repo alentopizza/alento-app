@@ -80,6 +80,48 @@ export async function GET() {
       customers.set(transaction.customerId, current);
     }
 
+    const installations = await prisma.customerAppInstallation.findMany({
+      select: {
+        customerId: true,
+        platform: true,
+        firstDetectedAt: true,
+        lastSeenAt: true,
+      },
+      orderBy: { lastSeenAt: "desc" },
+    });
+
+    const appByCustomer = new Map<
+      number,
+      {
+        devices: number;
+        platforms: Set<string>;
+        firstDetectedAt: Date;
+        lastSeenAt: Date;
+      }
+    >();
+
+    for (const installation of installations) {
+      const current = appByCustomer.get(installation.customerId);
+      if (!current) {
+        appByCustomer.set(installation.customerId, {
+          devices: 1,
+          platforms: new Set([installation.platform]),
+          firstDetectedAt: installation.firstDetectedAt,
+          lastSeenAt: installation.lastSeenAt,
+        });
+        continue;
+      }
+
+      current.devices += 1;
+      current.platforms.add(installation.platform);
+      if (installation.firstDetectedAt < current.firstDetectedAt) {
+        current.firstDetectedAt = installation.firstDetectedAt;
+      }
+      if (installation.lastSeenAt > current.lastSeenAt) {
+        current.lastSeenAt = installation.lastSeenAt;
+      }
+    }
+
     const ranking = [...customers.values()]
       .filter((customer) => customer.points > 0)
       .sort(
@@ -88,11 +130,20 @@ export async function GET() {
           b.earnedPoints - a.earnedPoints ||
           a.name.localeCompare(b.name, "es"),
       )
-      .map((customer, index) => ({
-        ...customer,
-        rank: index + 1,
-        lastMovementAt: customer.lastMovementAt?.toISOString() ?? null,
-      }));
+      .map((customer, index) => {
+        const app = appByCustomer.get(customer.id);
+
+        return {
+          ...customer,
+          rank: index + 1,
+          lastMovementAt: customer.lastMovementAt?.toISOString() ?? null,
+          appInstalled: Boolean(app),
+          appDevices: app?.devices ?? 0,
+          appPlatforms: app ? [...app.platforms] : [],
+          appFirstDetectedAt: app?.firstDetectedAt.toISOString() ?? null,
+          appLastSeenAt: app?.lastSeenAt.toISOString() ?? null,
+        };
+      });
 
     return NextResponse.json({
       customers: ranking,
@@ -108,6 +159,11 @@ export async function GET() {
         ),
         totalRedeemedPoints: [...customers.values()].reduce(
           (sum, customer) => sum + customer.redeemedPoints,
+          0,
+        ),
+        customersWithApp: ranking.filter((customer) => customer.appInstalled).length,
+        appDevices: ranking.reduce(
+          (sum, customer) => sum + customer.appDevices,
           0,
         ),
       },
