@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { orderItemDetailText } from "@/lib/orderPresentation";
 
 function secureEqual(received: string, expected: string) {
   const left = Buffer.from(received);
@@ -102,7 +103,16 @@ export async function GET(request: NextRequest) {
           addresses: {
             orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
             take: 1,
-            select: { address: true, neighborhood: true, city: true },
+            select: {
+              label: true,
+              address: true,
+              formattedAddress: true,
+              neighborhood: true,
+              city: true,
+              notes: true,
+              latitude: true,
+              longitude: true,
+            },
           },
         },
       })
@@ -119,7 +129,16 @@ export async function GET(request: NextRequest) {
           addresses: {
             orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
             take: 1,
-            select: { address: true, neighborhood: true, city: true },
+            select: {
+              label: true,
+              address: true,
+              formattedAddress: true,
+              neighborhood: true,
+              city: true,
+              notes: true,
+              latitude: true,
+              longitude: true,
+            },
           },
         },
       });
@@ -128,21 +147,68 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Cliente no encontrado." }, { status: 404 });
   }
 
-  const [orders, points] = await Promise.all([
+  const orderWhere = {
+    customerId: customer.id,
+    status: { not: "CANCELED" as const },
+  };
+
+  const [ordersForMetrics, recentOrders, points] = await Promise.all([
     prisma.order.findMany({
-      where: { customerId: customer.id, status: { not: "CANCELED" } },
+      where: orderWhere,
       orderBy: { createdAt: "desc" },
+      select: {
+        total: true,
+        createdAt: true,
+      },
+    }),
+    prisma.order.findMany({
+      where: orderWhere,
+      orderBy: { createdAt: "desc" },
+      take: 12,
       select: {
         id: true,
         sequenceNumber: true,
         source: true,
         status: true,
         fulfillmentType: true,
+        subtotal: true,
+        deliveryFee: true,
+        discount: true,
         total: true,
+        notes: true,
+        deliveryZoneName: true,
         createdAt: true,
+        address: {
+          select: {
+            address: true,
+            formattedAddress: true,
+            neighborhood: true,
+            city: true,
+            notes: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
         items: {
           orderBy: { id: "asc" },
-          select: { productName: true, quantity: true },
+          select: {
+            productName: true,
+            variantName: true,
+            quantity: true,
+            lineTotal: true,
+            configuration: true,
+            notes: true,
+          },
+        },
+        payments: {
+          orderBy: { id: "asc" },
+          select: {
+            method: true,
+            amount: true,
+            cashReceived: true,
+            changeDue: true,
+            status: true,
+          },
         },
       },
     }),
@@ -152,12 +218,15 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  const purchaseCount = orders.length;
-  const totalSpent = orders.reduce((sum, order) => sum + Number(order.total), 0);
+  const purchaseCount = ordersForMetrics.length;
+  const totalSpent = ordersForMetrics.reduce(
+    (sum, order) => sum + Number(order.total),
+    0,
+  );
   const averageTicket = purchaseCount ? totalSpent / purchaseCount : 0;
-  const chronological = [...orders].reverse();
+  const chronological = [...ordersForMetrics].reverse();
   const firstOrderAt = chronological[0]?.createdAt ?? null;
-  const lastOrderAt = orders[0]?.createdAt ?? null;
+  const lastOrderAt = ordersForMetrics[0]?.createdAt ?? null;
   const frequencyDays =
     purchaseCount > 1 && firstOrderAt && lastOrderAt
       ? Math.max(
@@ -194,14 +263,37 @@ export async function GET(request: NextRequest) {
       commercialSignal: signal,
       clubPoints: points._sum.points ?? 0,
     },
-    orders: orders.slice(0, 8).map((order) => ({
+    orders: recentOrders.map((order) => ({
       id: order.id,
       code: orderCode(order.source, order.sequenceNumber, order.id),
+      source: order.source,
       status: order.status,
       fulfillmentType: order.fulfillmentType,
+      subtotal: Number(order.subtotal),
+      deliveryFee: Number(order.deliveryFee),
+      discount: Number(order.discount),
       total: Number(order.total),
+      notes: order.notes,
+      deliveryZoneName: order.deliveryZoneName,
       createdAt: order.createdAt,
-      items: order.items,
+      address: order.address,
+      items: order.items.map((item) => ({
+        productName: item.productName,
+        variantName: item.variantName,
+        quantity: item.quantity,
+        lineTotal: Number(item.lineTotal),
+        detail: orderItemDetailText(item.configuration),
+        notes: item.notes,
+      })),
+      payments: order.payments.map((payment) => ({
+        method: payment.method,
+        amount: Number(payment.amount),
+        cashReceived:
+          payment.cashReceived == null ? null : Number(payment.cashReceived),
+        changeDue:
+          payment.changeDue == null ? null : Number(payment.changeDue),
+        status: payment.status,
+      })),
     })),
   });
 
