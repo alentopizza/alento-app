@@ -49,6 +49,16 @@ function fulfillmentLabel(value: string) {
   return "LOCAL";
 }
 
+function compactDeliveryAddress(value: string | null | undefined) {
+  const raw = value?.trim() || "";
+  if (!raw) return "";
+
+  return raw
+    .replace(/,\s*Bogot[aá]\b.*$/i, "")
+    .replace(/\s*,\s*$/, "")
+    .trim();
+}
+
 export default function ThermalReceiptPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -92,7 +102,7 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
 .mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}
 .border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}
 .receipt-customer{margin-top:10px}.receipt-address{font-size:13px;font-weight:900;line-height:1.25;margin-top:7px}
-.receipt-neighborhood{font-size:11px;font-weight:700;line-height:1.2;margin-top:2px}
+.receipt-instructions{font-size:10px;line-height:1.3;margin-top:4px}
 </style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -113,8 +123,12 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
   const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
   const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
   const isDelivery = order.fulfillmentType === "DELIVERY";
-  const deliveryAddress = order.address?.address?.trim() || "";
-  const deliveryNeighborhood = order.address?.neighborhood?.trim() || "";
+  const deliveryAddress = compactDeliveryAddress(order.address?.address);
+  const deliveryInstructions = order.address?.notes?.trim() || "";
+  const pendingPayment =
+    order.payments.find((payment) =>
+      ["PENDING", "PARTIAL"].includes(payment.status),
+    ) ?? null;
   const displayNumber = order.sequenceNumber ?? order.id;
   const displayCode = orderCode(displayNumber, order.source);
 
@@ -159,9 +173,10 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
               <p className="receipt-address">{deliveryAddress}</p>
             )}
 
-            {deliveryNeighborhood && (
-              <p className="receipt-neighborhood">
-                {deliveryNeighborhood.toUpperCase()}
+            {deliveryInstructions && (
+              <p className="receipt-instructions text-[10px] leading-[13px]">
+                <span className="font-bold">Indicaciones:</span>{" "}
+                {deliveryInstructions}
               </p>
             )}
 
@@ -214,26 +229,23 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
           <p className="mt-1 text-[15px] font-black">
             {paidInFull ? `PAGADO $ ${money(paidTotal)}` : `PENDIENTE $ ${money(pendingBalance)}`}
           </p>
-          {paidPayments.length > 0 ? (
-            <div className="mt-1 space-y-1">
-              {paidPayments.map((payment, index) => (
-                <p key={payment.id ?? index} className="text-[10px] font-bold">
-                  RECIBIDO {payment.method.toUpperCase()} · $ {money(payment.amount)}
-                  {payment.reference ? ` · REF ${payment.reference}` : ""}
+          {!paidInFull && (
+            <>
+              {pendingPayment ? (
+                <p className="mt-1 text-[10px] font-bold">
+                  COBRAR {pendingPayment.method.toUpperCase()} · $ {money(pendingBalance)}
                 </p>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-[10px] font-bold">SIN INGRESO REGISTRADO</p>
+              ) : (
+                <p className="mt-1 text-[10px] font-bold">SIN MEDIO DE PAGO REGISTRADO</p>
+              )}
+
+              {pendingPayment?.cashReceived != null && (
+                <p className="mt-1 text-[10px]">
+                  PAGA CON $ {money(pendingPayment.cashReceived)} · VUELTAS $ {money(pendingPayment.changeDue || 0)}
+                </p>
+              )}
+            </>
           )}
-          {paidPayments.some((payment) => payment.cashReceived != null) &&
-            paidPayments.map((payment, index) =>
-              payment.cashReceived != null ? (
-                <p key={`cash-${payment.id ?? index}`} className="mt-1 text-[10px]">
-                  PAGA CON $ {money(payment.cashReceived)} · VUELTAS $ {money(payment.changeDue || 0)}
-                </p>
-              ) : null,
-            )}
         </div>
 
         {order.couponName && <p className="mt-2 text-center text-[10px] font-bold">CUPÓN: {order.couponName.toUpperCase()}</p>}
