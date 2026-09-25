@@ -21,6 +21,7 @@ import {
 } from "@/lib/cashExpenseCatalog";
 import { CASH_INCOME_CATEGORIES } from "@/lib/cashIncomeCatalog";
 import CashLoansPanel from "@/components/CashLoansPanel";
+import CashRegisterControl from "@/components/CashRegisterControl";
 
 type MethodSummary = {
   method: string;
@@ -859,6 +860,13 @@ export default function CashPage() {
             )}
           </div>
         </section>
+
+        <CashRegisterControl
+          businessDate={startDate}
+          enabled={startDate === endDate}
+          currentNetMovement={summary?.netTotal ?? 0}
+          onChanged={() => void load()}
+        />
 
         {loading ? (
           <div className="rounded-[24px] border border-neutral-200 bg-white p-12 text-center text-sm text-neutral-500">
