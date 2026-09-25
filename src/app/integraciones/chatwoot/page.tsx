@@ -730,27 +730,23 @@ export default function ChatwootDashboardPage() {
                         <Star size={11} fill="currentColor" />
                         +{points(order.pointsEarned)} pts
                       </span>
-                      <button
-                        type="button"
-                        className="repeat-order-button"
-                        disabled={
-                          repeatLoadingId === order.id ||
-                          isHistoricalOrder(order)
-                        }
-                        title={
-                          isHistoricalOrder(order)
-                            ? "Los pedidos importados no conservan la configuración estructurada necesaria para repetirlos con seguridad."
-                            : "Repetir este pedido"
-                        }
-                        onClick={() => void prepareRepeat(order.id)}
-                      >
-                        <RotateCcw size={13} />
-                        {isHistoricalOrder(order)
-                          ? "Pedido histórico"
-                          : repeatLoadingId === order.id
+                      {isHistoricalOrder(order) ? (
+                        <span className="historical-order-badge">
+                          Importado
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="repeat-order-button"
+                          disabled={repeatLoadingId === order.id}
+                          onClick={() => void prepareRepeat(order.id)}
+                        >
+                          <RotateCcw size={13} />
+                          {repeatLoadingId === order.id
                             ? "Preparando..."
                             : "Repetir pedido"}
-                      </button>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -956,20 +952,31 @@ export default function ChatwootDashboardPage() {
       ) : null}
 
       {posOpen && data ? (
-        <div className="pos-overlay">
-          <div className="pos-overlay-head">
-            <div>
-              <span>NUEVA ORDEN DESDE CHATWOOT</span>
-              <h2>{data.customer.name}</h2>
+        <div
+          className="pos-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closePos();
+          }}
+        >
+          <aside className="pos-drawer">
+            <div className="pos-overlay-head">
+              <div>
+                <span>NUEVA ORDEN · CHATWOOT</span>
+                <h2>{data.customer.name}</h2>
+                <p>Cliente seleccionado automáticamente</p>
+              </div>
+              <button type="button" onClick={closePos}>
+                <X size={20} />
+                Cerrar
+              </button>
             </div>
-            <button type="button" onClick={closePos}>
-              <X size={21} />
-              Cerrar POS
-            </button>
-          </div>
-          <div className="pos-overlay-body">
-            <StructuredPosPageV2 initialCustomerId={data.customer.id} />
-          </div>
+            <div className="pos-overlay-body">
+              <StructuredPosPageV2
+                initialCustomerId={data.customer.id}
+                chatwootQuickMode
+              />
+            </div>
+          </aside>
         </div>
       ) : null}
 
@@ -2169,6 +2176,16 @@ export default function ChatwootDashboardPage() {
           }
         }
 
+        @media (max-width: 780px) {
+          .pos-drawer {
+            width: 100vw;
+          }
+
+          .pos-overlay-body {
+            padding: 10px;
+          }
+        }
+
         @media (max-width: 560px) {
           .chat-panel {
             padding: 10px;
@@ -2622,30 +2639,63 @@ export default function ChatwootDashboardPage() {
           opacity: .55;
         }
 
+        .historical-order-badge {
+          display: inline-flex;
+          min-height: 30px;
+          align-items: center;
+          border: 1px solid #34353a;
+          border-radius: 9px;
+          background: #202126;
+          padding: 0 8px;
+          color: #77736f;
+          font-size: 9px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
         .pos-overlay {
           position: fixed;
           inset: 0;
           z-index: 280;
-          overflow-y: auto;
+          display: flex;
+          justify-content: flex-end;
+          background: rgba(0,0,0,.58);
+          backdrop-filter: blur(5px);
+        }
+
+        .pos-drawer {
+          display: flex;
+          width: min(760px, 96vw);
+          height: 100dvh;
+          flex-direction: column;
+          overflow: hidden;
+          border-left: 1px solid rgba(255,255,255,.10);
           background: #f5f3ef;
           color: #171717;
+          box-shadow: -28px 0 70px rgba(0,0,0,.34);
+          animation: chatwoot-drawer-in .22s ease-out;
+        }
+
+        @keyframes chatwoot-drawer-in {
+          from { transform: translateX(34px); opacity: .72; }
+          to { transform: translateX(0); opacity: 1; }
         }
 
         .pos-overlay-head {
-          position: sticky;
-          top: 0;
+          position: relative;
           z-index: 20;
           display: flex;
+          flex: 0 0 auto;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
           border-bottom: 1px solid rgba(255,255,255,.08);
           background:
-            radial-gradient(circle at 85% 0%, rgba(226,26,34,.35), transparent 30%),
-            #0d0e10;
-          padding: 14px 20px;
+            radial-gradient(circle at 85% 0%, rgba(226,26,34,.40), transparent 30%),
+            linear-gradient(115deg,#0d0e10,#151116 65%,#4d090d);
+          padding: 16px 18px;
           color: #fff;
-          box-shadow: 0 8px 24px rgba(0,0,0,.18);
+          box-shadow: 0 8px 24px rgba(0,0,0,.16);
         }
 
         .pos-overlay-head span {
@@ -2657,19 +2707,26 @@ export default function ChatwootDashboardPage() {
 
         .pos-overlay-head h2 {
           margin: 3px 0 0;
-          font-size: 20px;
+          font-size: 21px;
           font-weight: 950;
+        }
+
+        .pos-overlay-head p {
+          margin: 3px 0 0;
+          color: rgba(255,255,255,.48);
+          font-size: 10px;
+          font-weight: 650;
         }
 
         .pos-overlay-head button {
           display: inline-flex;
-          min-height: 42px;
+          min-height: 40px;
           align-items: center;
           gap: 7px;
-          border: 1px solid #38393d;
+          border: 1px solid #3b3c41;
           border-radius: 12px;
           background: #191a1d;
-          padding: 0 13px;
+          padding: 0 12px;
           color: #fff;
           cursor: pointer;
           font-size: 11px;
@@ -2677,7 +2734,11 @@ export default function ChatwootDashboardPage() {
         }
 
         .pos-overlay-body {
-          min-height: 100%;
+          min-height: 0;
+          flex: 1;
+          overflow-y: auto;
+          padding: 14px;
+          background: #f5f3ef;
         }
 
         @media (max-width: 900px) {
