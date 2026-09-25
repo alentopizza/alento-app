@@ -369,7 +369,7 @@ export default function ClubPointsAdmin() {
                         </p>
                         {customer.appInstalled && (
                           <p className="mt-1 truncate text-[9px] font-medium text-neutral-400">
-                            {customer.appPlatforms.join(" · ")} · {customer.appDevices} dispositivo{customer.appDevices === 1 ? "" : "s"} · app {shortDate(customer.appLastSeenAt)}
+                            {customer.appPlatforms.join(" · ")} · {customer.appDevices} dispositivo{customer.appDevices === 1 ? "" : "s"} · desde {shortDate(customer.appFirstDetectedAt)} · últ. app {shortDate(customer.appLastSeenAt)}
                           </p>
                         )}
                       </div>
