@@ -63,7 +63,7 @@ class MainActivity : Activity() {
             setGeolocationEnabled(true)
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             mediaPlaybackRequiresUserGesture = false
-            userAgentString = userAgentString + " AlentoDriverAndroid/0.2"
+            userAgentString = userAgentString + " AlentoDriverAndroid/0.3"
         }
 
         webView.addJavascriptInterface(AlentoNativeBridge(this), "AlentoNative")
