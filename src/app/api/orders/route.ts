@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const route = await computeDrivingRoute({
+      const commercialDistanceMeters = directDistanceMeters({
         origin: {
           latitude: storeLatitude,
           longitude: storeLongitude,
@@ -174,8 +174,8 @@ export async function POST(request: NextRequest) {
 
       const zone = activeBands.find(
         (item) =>
-          route.distanceMeters >= item.minMeters &&
-          route.distanceMeters <= item.maxMeters,
+          commercialDistanceMeters >= item.minMeters &&
+          commercialDistanceMeters <= item.maxMeters,
       );
 
       if (!zone) {
