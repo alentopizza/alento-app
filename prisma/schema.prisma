@@ -474,6 +474,8 @@ model CashRegisterSession {
   businessDate           String   @unique
   status                 String   @default("OPEN")
   openingBalance         Decimal  @db.Decimal(14, 2)
+  openingControlledBalance Decimal? @db.Decimal(14, 2)
+  openingLoanReceivable  Decimal? @db.Decimal(14, 2)
   openedAt               DateTime @default(now())
   openedByName           String
   netMovement            Decimal? @db.Decimal(14, 2)
