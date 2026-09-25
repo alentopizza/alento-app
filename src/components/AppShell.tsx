@@ -31,7 +31,7 @@ const items = [
   { href: "/cupones", label: "Cupones", icon: BadgePercent, roles: ["ADMIN"] },
   { href: "/caja", label: "Caja", icon: WalletCards, roles: ["ADMIN", "CASHIER"] },
   { href: "/personalizacion", label: "Personalización", icon: Palette, roles: ["ADMIN"] },
-  { href: "/club-alento", label: "Club Alentó", icon: Star, roles: ["ADMIN"] },
+  { href: "/club-alento", label: "Club Puntos", icon: Star, roles: ["ADMIN"] },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell, roles: ["ADMIN"] },
   { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["ADMIN"] },
   { href: "/usuarios", label: "Usuarios y Roles", icon: ShieldCheck, roles: ["ADMIN"] },
