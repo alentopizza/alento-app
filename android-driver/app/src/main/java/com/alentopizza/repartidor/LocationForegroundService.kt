@@ -17,7 +17,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.webkit.CookieManager
+import android.os.PowerManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -36,6 +36,8 @@ class LocationForegroundService : Service() {
     private var activeToken: String? = null
     private var activeOrderCode: String? = null
     private var activeTravelMode: String = "VEHICLE"
+    private var nativeLocationToken: String? = null
+    private var wakeLock: PowerManager.WakeLock? = null
     private var lastGeneralUploadAt = 0L
     private var lastOrderUploadAt = 0L
 
@@ -101,8 +103,18 @@ class LocationForegroundService : Service() {
                     .apply()
             }
         } else if (action == ACTION_START_AVAILABILITY) {
+            val nativeToken =
+                intent?.getStringExtra(EXTRA_NATIVE_TOKEN)?.trim()
+
+            if (nativeToken.isNullOrBlank()) {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+
+            nativeLocationToken = nativeToken
             prefs.edit()
                 .putBoolean(PREF_ACTIVE, true)
+                .putString(PREF_NATIVE_TOKEN, nativeToken)
                 .apply()
             restoreOrderContext()
         } else {
@@ -118,6 +130,7 @@ class LocationForegroundService : Service() {
             .apply()
 
         startAsForeground()
+        acquireWakeLock()
         requestLocationUpdates()
 
         return START_STICKY
@@ -131,6 +144,8 @@ class LocationForegroundService : Service() {
             prefs.getString(PREF_TRAVEL_MODE, "VEHICLE")
                 ?.uppercase()
                 ?: "VEHICLE"
+        nativeLocationToken =
+            prefs.getString(PREF_NATIVE_TOKEN, nativeLocationToken)
     }
 
     private fun startAsForeground() {
@@ -238,6 +253,7 @@ class LocationForegroundService : Service() {
             intervalMs,
         )
             .setMinUpdateIntervalMillis(minimumIntervalMs)
+            .setMaxUpdateDelayMillis(intervalMs)
             .setWaitForAccurateLocation(false)
             .build()
 
@@ -262,10 +278,15 @@ class LocationForegroundService : Service() {
             val code = postLocation(
                 BuildConfig.ALENTO_BASE_URL + "/api/repartidor/location",
                 location,
-                includeSessionCookie = true,
+                nativeToken = nativeLocationToken,
             )
 
-            if (code == 409 || code == 404) {
+            if (
+                code == 401 ||
+                code == 403 ||
+                code == 404 ||
+                code == 409
+            ) {
                 mainHandler.post {
                     stopTracking()
                 }
@@ -292,7 +313,7 @@ class LocationForegroundService : Service() {
             val code = postLocation(
                 endpoint,
                 location,
-                includeSessionCookie = false,
+                nativeToken = null,
             )
 
             if (code == 401 || code == 404 || code == 409) {
@@ -307,7 +328,7 @@ class LocationForegroundService : Service() {
     private fun postLocation(
         endpoint: String,
         location: Location,
-        includeSessionCookie: Boolean,
+        nativeToken: String?,
     ): Int? {
         val connection =
             (URL(endpoint).openConnection() as HttpsURLConnection)
@@ -330,13 +351,11 @@ class LocationForegroundService : Service() {
                 "AlentoDriverAndroid/0.2",
             )
 
-            if (includeSessionCookie) {
-                val cookies =
-                    CookieManager.getInstance()
-                        .getCookie(BuildConfig.ALENTO_BASE_URL)
-                if (!cookies.isNullOrBlank()) {
-                    connection.setRequestProperty("Cookie", cookies)
-                }
+            if (!nativeToken.isNullOrBlank()) {
+                connection.setRequestProperty(
+                    "X-Alento-Driver-Location-Token",
+                    nativeToken,
+                )
             }
 
             val body =
@@ -370,6 +389,29 @@ class LocationForegroundService : Service() {
         refreshNotification()
     }
 
+    private fun acquireWakeLock() {
+        val existing = wakeLock
+        if (existing?.isHeld == true) return
+
+        val powerManager =
+            getSystemService(PowerManager::class.java)
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "AlentoDriver:ActiveLocation",
+        ).apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    private fun releaseWakeLock() {
+        val lock = wakeLock
+        if (lock?.isHeld == true) {
+            lock.release()
+        }
+        wakeLock = null
+    }
+
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -390,6 +432,7 @@ class LocationForegroundService : Service() {
         activeToken = null
         activeOrderCode = null
         activeTravelMode = "VEHICLE"
+        nativeLocationToken = null
         lastGeneralUploadAt = 0L
         lastOrderUploadAt = 0L
 
@@ -398,12 +441,14 @@ class LocationForegroundService : Service() {
             .clear()
             .apply()
 
+        releaseWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     override fun onDestroy() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        releaseWakeLock()
         networkExecutor.shutdownNow()
         super.onDestroy()
     }
@@ -423,12 +468,14 @@ class LocationForegroundService : Service() {
         const val EXTRA_TOKEN = "token"
         const val EXTRA_ORDER_CODE = "order_code"
         const val EXTRA_TRAVEL_MODE = "travel_mode"
+        const val EXTRA_NATIVE_TOKEN = "native_location_token"
 
         const val PREFS_NAME = "alento_native_tracking"
         const val PREF_ACTIVE = "active"
         private const val PREF_TOKEN = "token"
         private const val PREF_ORDER_CODE = "order_code"
         private const val PREF_TRAVEL_MODE = "travel_mode"
+        private const val PREF_NATIVE_TOKEN = "native_location_token"
 
         private const val CHANNEL_ID = "alento_driver_location"
         private const val NOTIFICATION_ID = 2409
