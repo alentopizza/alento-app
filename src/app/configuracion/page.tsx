@@ -271,7 +271,7 @@ export default function SettingsPage() {
               <div className="min-w-0">
                 <b className="block text-sm">Origen oficial para domicilios</b>
                 <p className="mt-1 text-xs leading-5 text-neutral-500">
-                  Validamos la dirección con Google para guardar coordenadas exactas y usarla como origen de Routes API.
+                  Validamos la dirección con Google para guardar coordenadas exactas. Estas coordenadas son el centro de los rangos de domicilio y también el origen de las rutas operativas.
                 </p>
               </div>
               <button
@@ -313,8 +313,8 @@ export default function SettingsPage() {
                 {storePinAdjusted && (
                   <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-[11px] font-semibold text-blue-800">
                     Ubicación ajustada manualmente. Estas coordenadas serán el
-                    origen exacto usado por Google Routes cuando guardes la
-                    configuración.
+                    punto exacto desde el que se miden los rangos comerciales
+                    y se calculan las rutas cuando guardes la configuración.
                   </div>
                 )}
               </>
@@ -336,7 +336,7 @@ export default function SettingsPage() {
                 Cobertura y tarifas
               </h2>
               <p className="mt-1 max-w-3xl text-sm text-neutral-500">
-                Define cuánto se cobra según la distancia real por carretera calculada desde Alentó. La última zona activa marca el límite máximo de cobertura.
+                Define cuánto se cobra según la distancia directa entre Alentó y el cliente. La ruta a pie o en moto no cambia la tarifa. La última zona activa marca el límite máximo de cobertura.
               </p>
             </div>
 
