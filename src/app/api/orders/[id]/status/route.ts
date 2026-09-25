@@ -13,6 +13,7 @@ import {
 } from "@/lib/orderWorkflow";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { findTemplateForEvent, getNotificationTemplates } from "@/lib/notificationTemplates";
+import { calculateDriverEarning } from "@/lib/driverCompensation";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -34,6 +35,10 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         discount: true,
         discountSource: true,
         total: true,
+        driverId: true,
+        deliveryFee: true,
+        driverEarningAmount: true,
+        driverEarningCreditedAt: true,
         customer: {
           select: {
             name: true,
@@ -116,6 +121,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     const preparedIndex = flow.indexOf("PREPARED");
+    const deliveredIndex = flow.indexOf("DELIVERED");
     const reviewTemplate = requested === "COMPLETED"
       ? findTemplateForEvent(await getNotificationTemplates(), "order.review", fulfillmentType)
       : null;
@@ -137,13 +143,54 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         }
       }
 
+      let earningData: {
+        deliveredAt?: Date;
+        driverEarningAmount?: number;
+        driverEarningBase?: number;
+        driverEarningRatePercent?: number | null;
+        driverEarningKind?: string;
+        driverEarningCreditedAt?: Date;
+      } = {};
+
+      if (
+        fulfillmentType === "DELIVERY" &&
+        order.driverId != null &&
+        order.driverEarningCreditedAt == null &&
+        deliveredIndex >= 0 &&
+        requestedIndex >= deliveredIndex
+      ) {
+        const savedSettings = await tx.appSetting.findUnique({
+          where: { key: "pos_settings" },
+          select: { value: true },
+        });
+        const earning = calculateDriverEarning(
+          Number(order.deliveryFee),
+          savedSettings?.value,
+        );
+        const deliveredAt = new Date();
+
+        earningData = {
+          deliveredAt,
+          driverEarningAmount: earning.amount,
+          driverEarningBase: earning.base,
+          driverEarningRatePercent: earning.ratePercent,
+          driverEarningKind: earning.kind,
+          driverEarningCreditedAt: deliveredAt,
+        };
+      }
+
       const updatedOrder = await tx.order.update({
         where: { id },
-        data: { status: requested },
+        data: {
+          status: requested,
+          ...earningData,
+        },
         select: {
           id: true,
           status: true,
           fulfillmentType: true,
+          deliveredAt: true,
+          driverEarningAmount: true,
           updatedAt: true,
         },
       });
