@@ -26,9 +26,10 @@ class MainActivity : Activity() {
     private var disclosureVisible = false
 
     data class PendingTracking(
-        val token: String,
-        val orderCode: String,
-        val travelMode: String,
+        val action: String,
+        val token: String? = null,
+        val orderCode: String? = null,
+        val travelMode: String? = null,
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +62,7 @@ class MainActivity : Activity() {
             setGeolocationEnabled(true)
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             mediaPlaybackRequiresUserGesture = false
-            userAgentString = userAgentString + " AlentoDriverAndroid/0.1"
+            userAgentString = userAgentString + " AlentoDriverAndroid/0.2"
         }
 
         webView.addJavascriptInterface(AlentoNativeBridge(this), "AlentoNative")
@@ -190,19 +191,32 @@ class MainActivity : Activity() {
         }
     }
 
-    fun requestNativeTracking(
+    fun requestNativeAvailabilityTracking() {
+        requestNativeTracking(
+            PendingTracking(
+                action = LocationForegroundService.ACTION_START_AVAILABILITY,
+            ),
+        )
+    }
+
+    fun requestNativeOrderTracking(
         token: String,
         orderCode: String,
         travelMode: String,
     ) {
         if (token.isBlank()) return
 
-        val pending = PendingTracking(
-            token = token,
-            orderCode = orderCode.ifBlank { "Alentó" },
-            travelMode = travelMode.ifBlank { "VEHICLE" },
+        requestNativeTracking(
+            PendingTracking(
+                action = LocationForegroundService.ACTION_SET_ORDER,
+                token = token,
+                orderCode = orderCode.ifBlank { "Alentó" },
+                travelMode = travelMode.ifBlank { "VEHICLE" },
+            ),
         )
+    }
 
+    private fun requestNativeTracking(pending: PendingTracking) {
         if (!hasLocationPermission()) {
             pendingTracking = pending
             showLocationDisclosure(
@@ -214,6 +228,12 @@ class MainActivity : Activity() {
 
         startTrackingService(pending)
         requestNotificationPermissionIfNeeded()
+    }
+
+    fun clearNativeOrderTracking() {
+        val intent = Intent(this, LocationForegroundService::class.java)
+            .setAction(LocationForegroundService.ACTION_CLEAR_ORDER)
+        startService(intent)
     }
 
     fun stopNativeTracking() {
@@ -233,16 +253,17 @@ class MainActivity : Activity() {
 
     private fun startTrackingService(pending: PendingTracking) {
         val intent = Intent(this, LocationForegroundService::class.java)
-            .setAction(LocationForegroundService.ACTION_START)
-            .putExtra(LocationForegroundService.EXTRA_TOKEN, pending.token)
-            .putExtra(
-                LocationForegroundService.EXTRA_ORDER_CODE,
-                pending.orderCode,
-            )
-            .putExtra(
-                LocationForegroundService.EXTRA_TRAVEL_MODE,
-                pending.travelMode,
-            )
+            .setAction(pending.action)
+
+        pending.token?.let {
+            intent.putExtra(LocationForegroundService.EXTRA_TOKEN, it)
+        }
+        pending.orderCode?.let {
+            intent.putExtra(LocationForegroundService.EXTRA_ORDER_CODE, it)
+        }
+        pending.travelMode?.let {
+            intent.putExtra(LocationForegroundService.EXTRA_TRAVEL_MODE, it)
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
