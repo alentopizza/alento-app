@@ -285,7 +285,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const deliveryFee =
     fulfillmentType === "DELIVERY"
       ? hasDeliveryFeeOverride
-        ? Math.floor(deliveryFeeOverride)
+        ? Math.floor(Number(deliveryFeeOverride))
         : automaticDeliveryFee
       : 0;
   const eligibleSubtotal = eligibility.eligibleSubtotal;
