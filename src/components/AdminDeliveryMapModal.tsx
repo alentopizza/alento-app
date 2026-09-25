@@ -12,6 +12,10 @@ import {
   groupDeliveryLocations,
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
+import {
+  deliveryTravelModeLabel,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
 const ROUTE_COLORS = [
@@ -50,6 +54,7 @@ type MapTripStop = {
   code: string;
   customerName: string;
   stopNumber: number;
+  travelMode: DeliveryTravelMode;
   destination: Point & { address: string };
 };
 
@@ -60,6 +65,9 @@ type MapTripLeg = {
   distanceMeters: number;
   durationSeconds: number | null;
   encodedPolyline: string;
+  travelMode: DeliveryTravelMode;
+  routeTravelMode: DeliveryTravelMode;
+  fallbackToVehicle: boolean;
 };
 
 type MapTrip = {
@@ -80,6 +88,7 @@ type MapOrder = {
   customerName: string;
   total: number;
   deliveryFee: number;
+  deliveryTravelMode: DeliveryTravelMode | null;
   paidAmount: number;
   balance: number;
   itemCount: number;
@@ -1008,7 +1017,7 @@ export default function AdminDeliveryMapModal({
                         key={stop.orderId}
                         className="rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-[8px] font-bold text-white/65"
                       >
-                        {stop.stopNumber}. {stop.code}
+                        {stop.stopNumber}. {stop.code} · {deliveryTravelModeLabel(stop.travelMode)}
                       </span>
                     ))}
                   </div>
@@ -1062,6 +1071,11 @@ export default function AdminDeliveryMapModal({
                                 <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[7px] font-black uppercase text-white/50">
                                   {formatStatus(order.status)}
                                 </span>
+                                {order.deliveryTravelMode && (
+                                  <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-0.5 text-[7px] font-black text-white/45">
+                                    {deliveryTravelModeLabel(order.deliveryTravelMode)}
+                                  </span>
+                                )}
                               </div>
                               <p className="mt-1 truncate text-[10px] font-semibold text-white/72">
                                 {order.customerName}
@@ -1336,7 +1350,7 @@ export default function AdminDeliveryMapModal({
                             className="h-2.5 w-2.5 rounded-full"
                             style={{ backgroundColor: stop.color }}
                           />
-                          {stop.stopNumber}. {stop.code}
+                          {stop.stopNumber}. {stop.code} · {deliveryTravelModeLabel(stop.travelMode)}
                           {index < item.stops.length - 1 && (
                             <span className="ml-0.5 text-white/22">→</span>
                           )}
