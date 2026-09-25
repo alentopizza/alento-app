@@ -458,11 +458,11 @@ export default function AdminDeliveryMapModal({
 
     const locationTimer = window.setInterval(() => {
       void load(false, true);
-    }, 5000);
+    }, 30000);
 
     const routeTimer = window.setInterval(() => {
       void load(true, true);
-    }, 60000);
+    }, 120000);
 
     return () => {
       window.clearInterval(locationTimer);
