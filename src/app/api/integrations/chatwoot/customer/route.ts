@@ -241,7 +241,6 @@ export async function GET(request: NextRequest) {
         items: {
           orderBy: { id: "asc" },
           select: {
-            productId: true,
             productName: true,
             variantName: true,
             quantity: true,
@@ -467,7 +466,6 @@ export async function GET(request: NextRequest) {
         order.clubPoint?.amountBase == null
           ? null
           : Number(order.clubPoint.amountBase),
-      repeatable: order.items.every((item) => item.productId != null),
       createdAt: order.createdAt,
       address: order.address,
       items: order.items.map((item) => ({
