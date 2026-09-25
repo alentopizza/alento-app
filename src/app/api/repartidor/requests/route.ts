@@ -4,6 +4,10 @@ import { requireStaffSession } from "@/lib/auth";
 import { createDriverOrderToken } from "@/lib/driverTracking";
 import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
 import { driverAcceptanceZoneFromSettings } from "@/lib/driverAcceptanceZone";
+import {
+  calculateDriverEarning,
+  normalizeDriverCompensationSettings,
+} from "@/lib/driverCompensation";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -157,6 +161,7 @@ export async function GET() {
     return NextResponse.json({
       store: storeLocation(savedSettings?.value),
       acceptanceZone,
+      compensation: normalizeDriverCompensationSettings(savedSettings?.value),
       capacity: {
         assignedDeliveries,
         maxConcurrentDeliveries,
@@ -180,6 +185,10 @@ export async function GET() {
           status: order.status,
           subtotal: Number(order.subtotal),
           deliveryFee: Number(order.deliveryFee),
+          driverEarningPreview: calculateDriverEarning(
+            Number(order.deliveryFee),
+            savedSettings?.value,
+          ).amount,
           discount: Number(order.discount),
           total: Number(order.total),
           createdAt: order.createdAt.toISOString(),
