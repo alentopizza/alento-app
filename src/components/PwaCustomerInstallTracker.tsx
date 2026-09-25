@@ -71,6 +71,7 @@ export default function PwaCustomerInstallTracker() {
             LAST_SYNC_STORAGE,
             String(Date.now()),
           );
+          window.localStorage.removeItem(INSTALLED_SIGNAL_STORAGE);
         }
       } catch {
         // La detección de PWA nunca debe interrumpir la experiencia del cliente.
