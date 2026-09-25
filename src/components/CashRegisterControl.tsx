@@ -378,7 +378,7 @@ export default function CashRegisterControl({
     <>
       {!session ? (
         <section className="overflow-hidden rounded-[22px] border border-amber-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
                 <CircleDollarSign className="h-6 w-6" strokeWidth={2} />
@@ -390,27 +390,49 @@ export default function CashRegisterControl({
                     {dateLabel(businessDate)}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  Registra el saldo con el que inició el día. Se tendrán en cuenta todos los movimientos de esta fecha.
+                <p className="mt-1 max-w-xl text-[11px] text-neutral-500">
+                  Usa el total del cierre anterior. Los préstamos ya van incluidos y Alentó los separa automáticamente del dinero disponible.
                 </p>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-semibold text-neutral-500">
-                  <span>Flujo del día: <b className={liveMovement >= 0 ? "text-emerald-700" : "text-red-700"}>{money(liveMovement)}</b></span>
-                  {!editingOpening && data?.suggestedOpeningBalance != null && (
-                    <span>
-                      Último cierre: <b className="text-neutral-800">{money(data.suggestedOpeningBalance)}</b>
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={prepareOpen}
-              className="h-12 rounded-2xl bg-neutral-950 px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
-            >
-              Abrir caja
-            </button>
+            {data?.suggestedOpeningBalance != null ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <MiniMetric
+                  label="Total sugerido"
+                  value={money(data.suggestedOpeningBalance)}
+                  strong
+                />
+                <MiniMetric
+                  label="Incluye préstamos"
+                  value={money(openingLoansReceivable)}
+                />
+                <MiniMetric
+                  label="Disponible inicial"
+                  value={money(
+                    Math.max(
+                      0,
+                      data.suggestedOpeningBalance - openingLoansReceivable,
+                    ),
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={prepareOpen}
+                  className="h-12 rounded-2xl bg-neutral-950 px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
+                >
+                  Abrir con cierre anterior
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={prepareOpen}
+                className="h-12 rounded-2xl bg-neutral-950 px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
+              >
+                Abrir caja
+              </button>
+            )}
           </div>
         </section>
       ) : session.status === "OPEN" ? (
