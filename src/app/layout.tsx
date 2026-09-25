@@ -21,6 +21,7 @@ import "./orders-canceled-card.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
+import PwaCustomerInstallTracker from "@/components/PwaCustomerInstallTracker";
 
 const ALENTO_ICON =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         <PwaInstallPrompt />
+        <PwaCustomerInstallTracker />
         <AppShell>{children}</AppShell>
       </body>
     </html>
