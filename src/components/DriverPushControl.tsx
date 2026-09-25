@@ -192,35 +192,6 @@ export default function DriverPushControl() {
     }
   }
 
-  async function testPush() {
-    if (busy || state !== "on") return;
-    setBusy(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/repartidor/push/test", {
-        method: "POST",
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          body.error || "No fue posible enviar la prueba.",
-        );
-      }
-
-      setMessage("Prueba enviada. Debe aparecer en unos segundos.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "No fue posible enviar la prueba.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const active = state === "on";
 
   return (
@@ -295,13 +266,13 @@ export default function DriverPushControl() {
       </div>
 
       {(state === "off" || state === "on") && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3">
           <button
             type="button"
             disabled={busy}
             onClick={() => void (active ? disable() : enable())}
             className={
-              "h-9 rounded-xl text-[9px] font-black transition disabled:opacity-50 " +
+              "h-9 w-full rounded-xl text-[9px] font-black transition disabled:opacity-50 " +
               (active
                 ? "border border-white/10 bg-white/[0.055] text-white/55"
                 : "bg-[#e21a22] text-white")
@@ -312,15 +283,6 @@ export default function DriverPushControl() {
               : active
                 ? "Desactivar"
                 : "Activar push"}
-          </button>
-
-          <button
-            type="button"
-            disabled={busy || !active}
-            onClick={() => void testPush()}
-            className="h-9 rounded-xl border border-white/10 bg-white/[0.055] text-[9px] font-black text-white/70 transition disabled:opacity-30"
-          >
-            Enviar prueba
           </button>
         </div>
       )}
