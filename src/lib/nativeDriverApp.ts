@@ -1,7 +1,7 @@
 import type { DeliveryTravelMode } from "@/lib/deliveryTravelMode";
 
 type AlentoNativeBridge = {
-  startAvailabilityTracking: () => boolean;
+  startAvailabilityTracking: (nativeToken: string) => boolean;
   setOrderTracking: (
     token: string,
     orderCode: string,
@@ -29,13 +29,32 @@ export function isAlentoNativeDriverApp() {
   }
 }
 
-export function startNativeDriverAvailabilityTracking() {
+export async function startNativeDriverAvailabilityTracking() {
   if (typeof window === "undefined" || !window.AlentoNative) {
     return false;
   }
 
   try {
-    return Boolean(window.AlentoNative.startAvailabilityTracking());
+    const response = await fetch(
+      "/api/repartidor/native-location-token",
+      {
+        method: "POST",
+        cache: "no-store",
+      },
+    );
+    const payload = await response.json();
+
+    if (!response.ok || !payload.token) {
+      throw new Error(
+        payload.error || "No fue posible autorizar el GPS nativo.",
+      );
+    }
+
+    return Boolean(
+      window.AlentoNative.startAvailabilityTracking(
+        String(payload.token),
+      ),
+    );
   } catch (error) {
     console.warn(
       "Native driver availability tracking could not start",
