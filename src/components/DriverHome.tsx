@@ -16,6 +16,10 @@ import {
   groupDeliveryLocations,
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
+import {
+  startNativeDriverAvailabilityTracking,
+  stopNativeDriverTracking,
+} from "@/lib/nativeDriverApp";
 
 const LOGO =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -647,11 +651,12 @@ export default function DriverHome({
       void refreshOrders();
     }, 2500);
 
-    if (
-      initialDriver.driverAvailable &&
-      window.localStorage.getItem(HOME_GPS_KEY) === "1"
-    ) {
-      startGps();
+    if (initialDriver.driverAvailable) {
+      startNativeDriverAvailabilityTracking();
+
+      if (window.localStorage.getItem(HOME_GPS_KEY) === "1") {
+        startGps();
+      }
     }
 
     return () => {
@@ -756,8 +761,10 @@ export default function DriverHome({
 
       if (active) {
         window.localStorage.setItem(HOME_GPS_KEY, "1");
+        startNativeDriverAvailabilityTracking();
         startGps();
       } else {
+        stopNativeDriverTracking();
         stopGps(true);
       }
     } catch (err) {
@@ -778,8 +785,6 @@ export default function DriverHome({
     setError("");
 
     try {
-      stopGps(true);
-
       const stateResponse = await fetch("/api/repartidor/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -793,6 +798,9 @@ export default function DriverHome({
             "Finaliza tus domicilios asignados antes de cerrar sesión.",
         );
       }
+
+      stopNativeDriverTracking();
+      stopGps(true);
 
       const response = await fetch("/api/auth/staff/logout", {
         method: "POST",
