@@ -172,9 +172,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       session: session ? serializeSession(session) : null,
       movement,
-      suggestedOpeningBalance: previousClosed?.actualClosingBalance
-        ? Number(previousClosed.actualClosingBalance)
-        : null,
+      suggestedOpeningBalance:
+        previousClosed?.actualClosingBalance != null
+          ? Number(previousClosed.actualClosingBalance)
+          : null,
       previousCloseDate: previousClosed?.businessDate ?? null,
     });
   } catch (error) {
