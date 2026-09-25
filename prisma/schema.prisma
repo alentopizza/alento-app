@@ -111,6 +111,7 @@ model User {
   driverLongitude         Float?
   driverLocationAccuracy  Float?
   driverLocationUpdatedAt DateTime?
+  driverLocationSource    String?
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt
   assignedOrders           Order[]          @relation("OrderDriver")
