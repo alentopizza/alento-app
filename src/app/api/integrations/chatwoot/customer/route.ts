@@ -2,7 +2,11 @@ import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { orderItemDetailText } from "@/lib/orderPresentation";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import {
+  computeDrivingRoute,
+  computeTwoWheelerRoute,
+  computeWalkingRoute,
+} from "@/lib/googleMapsServer";
 
 function secureEqual(received: string, expected: string) {
   const left = Buffer.from(received);
@@ -297,6 +301,17 @@ export async function GET(request: NextRequest) {
       latitude: number;
       longitude: number;
     } | null;
+    walkingRoute: {
+      distanceMeters: number;
+      durationSeconds: number | null;
+      encodedPolyline: string;
+    } | null;
+    motorcycleRoute: {
+      distanceMeters: number;
+      durationSeconds: number | null;
+      encodedPolyline: string;
+      fallbackToDriving: boolean;
+    } | null;
   } = {
     available: false,
     covered: false,
@@ -306,6 +321,8 @@ export async function GET(request: NextRequest) {
     zoneName: null,
     origin: null,
     destination: null,
+    walkingRoute: null,
+    motorcycleRoute: null,
   };
 
   if (
@@ -315,7 +332,7 @@ export async function GET(request: NextRequest) {
     customerLongitude != null
   ) {
     try {
-      const route = await computeDrivingRoute({
+      const routeInput = {
         origin: {
           latitude: storeLatitude,
           longitude: storeLongitude,
@@ -324,18 +341,38 @@ export async function GET(request: NextRequest) {
           latitude: customerLatitude,
           longitude: customerLongitude,
         },
-      });
+      };
+
+      const [drivingResult, walkingResult, motorcycleResult] =
+        await Promise.allSettled([
+          computeDrivingRoute(routeInput),
+          computeWalkingRoute(routeInput),
+          computeTwoWheelerRoute(routeInput),
+        ]);
+
+      if (drivingResult.status !== "fulfilled") {
+        throw drivingResult.reason;
+      }
+
+      const drivingRoute = drivingResult.value;
+      const walkingRoute =
+        walkingResult.status === "fulfilled" ? walkingResult.value : null;
+      const motorcycleBase =
+        motorcycleResult.status === "fulfilled"
+          ? motorcycleResult.value
+          : drivingRoute;
+
       const band = activeDeliveryBands(settings).find(
         (item) =>
-          route.distanceMeters >= item.minMeters &&
-          route.distanceMeters <= item.maxMeters,
+          drivingRoute.distanceMeters >= item.minMeters &&
+          drivingRoute.distanceMeters <= item.maxMeters,
       );
 
       deliveryContext = {
         available: true,
         covered: Boolean(band),
-        distanceMeters: route.distanceMeters,
-        durationSeconds: route.durationSeconds,
+        distanceMeters: drivingRoute.distanceMeters,
+        durationSeconds: drivingRoute.durationSeconds,
         quotedFee: band ? band.fee : null,
         zoneName: band?.name?.trim() || null,
         origin: {
@@ -353,6 +390,11 @@ export async function GET(request: NextRequest) {
             "Cliente",
           latitude: customerLatitude,
           longitude: customerLongitude,
+        },
+        walkingRoute,
+        motorcycleRoute: {
+          ...motorcycleBase,
+          fallbackToDriving: motorcycleResult.status !== "fulfilled",
         },
       };
     } catch (error) {
