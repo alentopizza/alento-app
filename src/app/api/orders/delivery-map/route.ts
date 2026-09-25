@@ -78,7 +78,6 @@ export async function GET(request: NextRequest) {
           driverLongitude: true,
           driverLocationAccuracy: true,
           driverLocationUpdatedAt: true,
-          driverLocationSource: true,
           customer: {
             select: {
               name: true,
@@ -112,7 +111,6 @@ export async function GET(request: NextRequest) {
               driverLongitude: true,
               driverLocationAccuracy: true,
               driverLocationUpdatedAt: true,
-          driverLocationSource: true,
               driverLocationSource: true,
             },
           },
