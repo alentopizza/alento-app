@@ -215,6 +215,9 @@ export default function CashPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cashDayStatus, setCashDayStatus] = useState<
+    "NONE" | "OPEN" | "CLOSED"
+  >("NONE");
   const [isAdmin, setIsAdmin] = useState(false);
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("ALL");
   const [incomeQuery, setIncomeQuery] = useState("");
@@ -708,6 +711,9 @@ export default function CashPage() {
     }
   }
 
+  const singleDaySelected = startDate === endDate;
+  const selectedDayClosed =
+    singleDaySelected && cashDayStatus === "CLOSED";
   const selectedSubcategories = cashExpenseSubcategories(expenseCategory);
 
   return (
@@ -802,8 +808,14 @@ export default function CashPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {tab === "INCOMES" && (
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedDayClosed && (
+              <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
+                Caja cerrada · solo consulta
+              </span>
+            )}
+
+            {!selectedDayClosed && tab === "INCOMES" && (
               <>
                 {isAdmin && !incomeImportCompleted && (
                   <button
@@ -831,7 +843,7 @@ export default function CashPage() {
               </>
             )}
 
-            {tab === "EXPENSES" && (
+            {!selectedDayClosed && tab === "EXPENSES" && (
               <>
                 {isAdmin && !importCompleted && (
                   <button
@@ -863,9 +875,10 @@ export default function CashPage() {
 
         <CashRegisterControl
           businessDate={startDate}
-          enabled={startDate === endDate}
+          enabled={singleDaySelected}
           currentNetMovement={summary?.netTotal ?? 0}
           onChanged={() => void load()}
+          onSessionStateChange={setCashDayStatus}
         />
 
         {loading ? (
@@ -1340,8 +1353,9 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setIncomeDeleteTarget(income)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
-                          title="Eliminar ingreso"
+                          disabled={selectedDayClosed}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
+                          title={selectedDayClosed ? "Caja cerrada" : "Eliminar ingreso"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1359,6 +1373,8 @@ export default function CashPage() {
             ) : tab === "LOANS" ? (
               <CashLoansPanel
                 isAdmin={isAdmin}
+                cashDateLocked={selectedDayClosed}
+                businessDate={startDate}
                 onCashChanged={() => void load()}
               />
             ) : (
@@ -1436,8 +1452,9 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(expense)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100"
-                          title="Eliminar salida"
+                          disabled={selectedDayClosed}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
+                          title={selectedDayClosed ? "Caja cerrada" : "Eliminar salida"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
