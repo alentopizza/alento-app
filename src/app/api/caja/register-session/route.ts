@@ -40,6 +40,7 @@ function serializeSession(session: {
   closingCard: unknown | null;
   closingDavivienda: unknown | null;
   closingDenominations: unknown | null;
+  closingLoanReceivable: unknown | null;
   actualClosingBalance: unknown | null;
   difference: unknown | null;
   closeNote: string | null;
@@ -62,6 +63,10 @@ function serializeSession(session: {
     closingCard: session.closingCard == null ? null : Number(session.closingCard),
     closingDavivienda:
       session.closingDavivienda == null ? null : Number(session.closingDavivienda),
+    closingLoanReceivable:
+      session.closingLoanReceivable == null
+        ? null
+        : Number(session.closingLoanReceivable),
     actualClosingBalance:
       session.actualClosingBalance == null
         ? null
@@ -75,7 +80,7 @@ function serializeSession(session: {
 async function dayNetMovement(date: string) {
   const { start, endExclusive } = dayBounds(date);
 
-  const [payments, incomes, expenses, loans, repayments] =
+  const [payments, incomes, expenses, loans, repayments, loanPortfolio] =
     await prisma.$transaction([
       prisma.payment.aggregate({
         where: {
@@ -104,6 +109,19 @@ async function dayNetMovement(date: string) {
         where: { paidAt: { gte: start, lt: endExclusive } },
         _sum: { amount: true },
       }),
+      prisma.cashLoan.findMany({
+        where: {
+          issuedAt: { lt: endExclusive },
+          historicalPaidWithoutRepayment: false,
+        },
+        select: {
+          principal: true,
+          repayments: {
+            where: { paidAt: { lt: endExclusive } },
+            select: { amount: true },
+          },
+        },
+      }),
     ]);
 
   const received = Number(payments._sum.amount ?? 0);
@@ -111,6 +129,15 @@ async function dayNetMovement(date: string) {
   const expensesTotal = Number(expenses._sum.amount ?? 0);
   const loansTotal = Number(loans._sum.principal ?? 0);
   const recovered = Number(repayments._sum.amount ?? 0);
+  const loansReceivable = loanPortfolio.reduce((sum, loan) => {
+    const principal = Number(loan.principal);
+    const repaid = loan.repayments.reduce(
+      (repaymentSum, repayment) =>
+        repaymentSum + Number(repayment.amount),
+      0,
+    );
+    return sum + Math.max(0, principal - repaid);
+  }, 0);
 
   return {
     received,
@@ -118,6 +145,7 @@ async function dayNetMovement(date: string) {
     expensesTotal,
     loansTotal,
     recovered,
+    loansReceivable,
     netMovement:
       received + otherIncome + recovered - expensesTotal - loansTotal,
   };
@@ -312,6 +340,7 @@ export async function POST(request: NextRequest) {
           closingCard: card,
           closingDavivienda: davivienda,
           closingDenominations: denominationCounts,
+          closingLoanReceivable: Math.round(movement.loansReceivable),
           actualClosingBalance,
           difference: Math.round(difference),
           closeNote: note || null,
