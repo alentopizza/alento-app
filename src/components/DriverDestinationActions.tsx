@@ -14,6 +14,7 @@ import {
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
+import { startNativeDriverTracking } from "@/lib/nativeDriverApp";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -512,6 +513,11 @@ export default function DriverDestinationActions({
         );
       }
 
+      startNativeDriverTracking({
+        token,
+        orderCode,
+        travelMode,
+      });
       setNavigationStatus("OUT_FOR_DELIVERY");
       setDepartureProgress(0);
       router.refresh();
