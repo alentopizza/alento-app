@@ -84,7 +84,7 @@ export default function ThermalReceiptPage() {
     const receipt = document.querySelector(".thermal-receipt")?.outerHTML;
     if (!receipt) return;
     const displayNumber = order.sequenceNumber ?? order.id;
-  const displayCode = orderCode(displayNumber, order.source);
+    const displayCode = orderCode(displayNumber, order.source);
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>
 body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}
 .text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1.5px dashed #111}
@@ -114,7 +114,20 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
   const paidTotal = paidPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
   const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
-  const displayCode = orderCode(order.id, order.source);
+  const isDelivery = order.fulfillmentType === "DELIVERY";
+  const deliveryAddress =
+    order.address?.formattedAddress?.trim() ||
+    order.address?.address?.trim() ||
+    "";
+  const deliveryInstructions = order.address?.notes?.trim() || "";
+  const collectionMethod =
+    order.payments.find((payment) =>
+      ["PENDING", "PARTIAL"].includes(payment.status),
+    )?.method?.trim() ||
+    paidPayments[0]?.method?.trim() ||
+    "Pendiente";
+  const displayNumber = order.sequenceNumber ?? order.id;
+  const displayCode = orderCode(displayNumber, order.source);
 
   return (
     <main className="thermal-page mx-auto min-h-screen bg-white px-[5mm] py-[5mm] text-black">
