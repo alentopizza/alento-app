@@ -35,6 +35,7 @@ type DriverState = {
   driverLongitude: number | null;
   driverLocationAccuracy: number | null;
   driverLocationUpdatedAt: string | null;
+  driverLocationSource: string | null;
 };
 
 type DriverRequestItem = {
@@ -615,6 +616,7 @@ export default function DriverHome({
           driverLongitude: longitude,
           driverLocationAccuracy: accuracy,
           driverLocationUpdatedAt: new Date().toISOString(),
+          driverLocationSource: "WEB",
         }));
 
         const now = Date.now();
@@ -635,6 +637,7 @@ export default function DriverHome({
               driverLongitude: null,
               driverLocationAccuracy: null,
               driverLocationUpdatedAt: null,
+              driverLocationSource: null,
             }));
           }
         }).catch(() => undefined);
@@ -660,6 +663,7 @@ export default function DriverHome({
           driverLongitude: null,
           driverLocationAccuracy: null,
           driverLocationUpdatedAt: null,
+          driverLocationSource: null,
         }));
       },
       {
@@ -731,9 +735,11 @@ export default function DriverHome({
     }, 2500);
 
     if (initialDriver.driverAvailable) {
-      void startNativeDriverAvailabilityTracking();
-
-      if (window.localStorage.getItem(HOME_GPS_KEY) === "1") {
+      if (isAlentoNativeDriverApp()) {
+        window.localStorage.removeItem(HOME_GPS_KEY);
+        stopGps(false);
+        void startNativeDriverAvailabilityTracking();
+      } else if (window.localStorage.getItem(HOME_GPS_KEY) === "1") {
         startGps();
       }
     }
@@ -839,9 +845,14 @@ export default function DriverHome({
       setDriver(data.driver);
 
       if (active) {
-        window.localStorage.setItem(HOME_GPS_KEY, "1");
-        void startNativeDriverAvailabilityTracking();
-        startGps();
+        if (isAlentoNativeDriverApp()) {
+          window.localStorage.removeItem(HOME_GPS_KEY);
+          stopGps(false);
+          void startNativeDriverAvailabilityTracking();
+        } else {
+          window.localStorage.setItem(HOME_GPS_KEY, "1");
+          startGps();
+        }
       } else {
         stopNativeDriverTracking();
         stopGps(true);
@@ -1615,7 +1626,13 @@ export default function DriverHome({
                         : "bg-white/25")
                 }
               />
-              {nativeGps ? "GPS nativo" : "GPS"} · {gpsState.label}
+              {driver.driverLocationSource === "ANDROID_NATIVE"
+                      ? "Android nativo"
+                      : driver.driverLocationSource === "WEB"
+                        ? "Web"
+                        : nativeGps
+                          ? "Android · esperando"
+                          : "GPS"} · {gpsState.label}
               <span className="font-semibold opacity-65">
                 ·{" "}
                 {driver.driverLocationAccuracy != null
@@ -2205,7 +2222,13 @@ export default function DriverHome({
                               : "bg-white/25")
                       }
                     />
-                    {nativeGps ? "GPS nativo" : "GPS"}
+                    {driver.driverLocationSource === "ANDROID_NATIVE"
+                      ? "Android nativo"
+                      : driver.driverLocationSource === "WEB"
+                        ? "Web"
+                        : nativeGps
+                          ? "Android · esperando"
+                          : "GPS"}
                   </span>
                   <b
                     className={
