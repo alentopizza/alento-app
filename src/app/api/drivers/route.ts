@@ -24,13 +24,40 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json({
-    drivers: users.map((user) => ({
-      id: user.id,
-      name: user.name,
-      whatsappCountryCode: user.whatsappCountryCode,
-      whatsappPhone: user.whatsappPhone,
-      ready: Boolean(user.whatsappPhone),
-    })),
-  });
+  const driverRows = await Promise.all(
+    users.map(async (user) => {
+      const [earnings, payouts] = await Promise.all([
+        prisma.order.aggregate({
+          where: {
+            driverId: user.id,
+            fulfillmentType: "DELIVERY",
+            driverEarningCreditedAt: { not: null },
+          },
+          _sum: { driverEarningAmount: true },
+        }),
+        prisma.cashExpense.aggregate({
+          where: { driverId: user.id },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const earnedTotal = Number(
+        earnings._sum.driverEarningAmount ?? 0,
+      );
+      const paidTotal = Number(payouts._sum.amount ?? 0);
+
+      return {
+        id: user.id,
+        name: user.name,
+        whatsappCountryCode: user.whatsappCountryCode,
+        whatsappPhone: user.whatsappPhone,
+        ready: Boolean(user.whatsappPhone),
+        earnedTotal,
+        paidTotal,
+        walletBalance: Math.max(0, earnedTotal - paidTotal),
+      };
+    }),
+  );
+
+  return NextResponse.json({ drivers: driverRows });
 }
