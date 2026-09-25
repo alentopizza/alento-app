@@ -476,7 +476,12 @@ export default function CashRegisterControl({
               </div>
             </div>
 
-            <MiniMetric label="Inicial" value={money(session.openingBalance)} />
+            <MiniMetric
+              label="Total inicial"
+              value={money(
+                session.openingControlledBalance ?? session.openingBalance,
+              )}
+            />
             <MiniMetric label="Flujo" value={money(session.netMovement || 0)} />
             <MiniMetric label="Disponible teórico" value={money(session.expectedClosingBalance || 0)} />
             <MiniMetric label="En préstamos" value={money(session.closingLoanReceivable || 0)} />
