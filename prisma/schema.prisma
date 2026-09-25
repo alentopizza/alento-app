@@ -114,11 +114,27 @@ model User {
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt
   assignedOrders           Order[]          @relation("OrderDriver")
+  pushSubscriptions        DriverPushSubscription[]
   doughPreparations DoughPreparation[]
 
   @@index([active])
   @@index([whatsappPhone])
   @@index([driverAvailable])
+}
+
+model DriverPushSubscription {
+  id            String   @id @default(cuid())
+  userId        Int
+  endpoint      String   @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  lastSuccessAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model CustomerAccount {
