@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import DriverPushControl from "@/components/DriverPushControl";
 import {
   createAlentoMapPinElement,
   createDeliveryClusterPinElement,
@@ -2077,6 +2078,8 @@ export default function DriverHome({
               </p>
             )}
           </div>
+
+          <DriverPushControl />
 
           <button
             type="button"
