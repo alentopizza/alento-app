@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import ChatwootCustomerRouteMap from "@/components/ChatwootCustomerRouteMap";
 import {
   Clock3,
   MapPin,
@@ -63,6 +64,17 @@ type DeliveryContext = {
     address: string;
     latitude: number;
     longitude: number;
+  } | null;
+  walkingRoute: {
+    distanceMeters: number;
+    durationSeconds: number | null;
+    encodedPolyline: string;
+  } | null;
+  motorcycleRoute: {
+    distanceMeters: number;
+    durationSeconds: number | null;
+    encodedPolyline: string;
+    fallbackToDriving: boolean;
   } | null;
 };
 
@@ -359,12 +371,6 @@ export default function ChatwootDashboardPage() {
   const routeDestination = delivery?.destination
     ? `${delivery.destination.latitude},${delivery.destination.longitude}`
     : "";
-  const directionsEmbed =
-    routeOrigin && routeDestination
-      ? `https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(
-          routeOrigin,
-        )}&daddr=${encodeURIComponent(routeDestination)}&travelmode=driving`
-      : "";
   const directionsUrl =
     routeOrigin && routeDestination
       ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
@@ -479,13 +485,19 @@ export default function ChatwootDashboardPage() {
               <div className="route-metrics">
                 <div>
                   <Route size={16} />
-                  <span>Distancia</span>
-                  <strong>{distanceLabel(delivery?.distanceMeters ?? null)}</strong>
+                  <span>A pie</span>
+                  <strong>
+                    {distanceLabel(delivery?.walkingRoute?.distanceMeters ?? null)}
+                    <small>{durationLabel(delivery?.walkingRoute?.durationSeconds ?? null)}</small>
+                  </strong>
                 </div>
                 <div>
                   <Clock3 size={16} />
-                  <span>Tiempo</span>
-                  <strong>{durationLabel(delivery?.durationSeconds ?? null)}</strong>
+                  <span>Moto</span>
+                  <strong>
+                    {distanceLabel(delivery?.motorcycleRoute?.distanceMeters ?? null)}
+                    <small>{durationLabel(delivery?.motorcycleRoute?.durationSeconds ?? null)}</small>
+                  </strong>
                 </div>
                 <div>
                   <WalletCards size={16} />
@@ -494,17 +506,18 @@ export default function ChatwootDashboardPage() {
                     {delivery?.quotedFee == null
                       ? "—"
                       : money(delivery.quotedFee)}
+                    <small>{delivery?.zoneName || "Tarifa actual"}</small>
                   </strong>
                 </div>
               </div>
 
-              {directionsEmbed ? (
+              {delivery?.origin && delivery?.destination ? (
                 <div className="route-map">
-                  <iframe
-                    title="Ruta de domicilio"
-                    src={directionsEmbed}
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
+                  <ChatwootCustomerRouteMap
+                    origin={delivery.origin}
+                    destination={delivery.destination}
+                    walkingRoute={delivery.walkingRoute}
+                    motorcycleRoute={delivery.motorcycleRoute}
                   />
                 </div>
               ) : null}
@@ -999,10 +1012,9 @@ export default function ChatwootDashboardPage() {
           background: #eeeae5;
         }
 
-        .route-map iframe {
+        .route-map > :global(*) {
           width: 100%;
           height: 100%;
-          border: 0;
         }
 
         .route-address {
@@ -1897,6 +1909,18 @@ export default function ChatwootDashboardPage() {
           .route-map {
             height: 200px;
           }
+        }
+
+        .route-metrics strong small {
+          display: block;
+          margin-top: 3px;
+          color: #8e8983;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .route-map {
+          min-height: 245px;
         }
       `}</style>
     </main>
