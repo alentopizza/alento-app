@@ -155,10 +155,24 @@ export async function reverseGeocode(
   };
 }
 
-export async function computeDrivingRoute(input: {
-  origin: { latitude: number; longitude: number };
-  destination: { latitude: number; longitude: number };
-}) {
+export type GoogleRouteTravelMode =
+  | "DRIVE"
+  | "WALK"
+  | "TWO_WHEELER";
+
+export type ComputedGoogleRoute = {
+  distanceMeters: number;
+  durationSeconds: number | null;
+  encodedPolyline: string;
+};
+
+export async function computeRoute(
+  input: {
+    origin: { latitude: number; longitude: number };
+    destination: { latitude: number; longitude: number };
+  },
+  travelMode: GoogleRouteTravelMode,
+): Promise<ComputedGoogleRoute> {
   const points = [input.origin, input.destination];
   for (const point of points) {
     if (
@@ -173,6 +187,32 @@ export async function computeDrivingRoute(input: {
     }
   }
 
+  const routeBody: Record<string, unknown> = {
+    origin: {
+      location: {
+        latLng: {
+          latitude: input.origin.latitude,
+          longitude: input.origin.longitude,
+        },
+      },
+    },
+    destination: {
+      location: {
+        latLng: {
+          latitude: input.destination.latitude,
+          longitude: input.destination.longitude,
+        },
+      },
+    },
+    travelMode,
+    languageCode: "es-419",
+    units: "METRIC",
+  };
+
+  if (travelMode !== "WALK") {
+    routeBody.routingPreference = "TRAFFIC_UNAWARE";
+  }
+
   const response = await fetch(
     "https://routes.googleapis.com/directions/v2:computeRoutes",
     {
@@ -183,28 +223,7 @@ export async function computeDrivingRoute(input: {
         "X-Goog-FieldMask":
           "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline",
       },
-      body: JSON.stringify({
-        origin: {
-          location: {
-            latLng: {
-              latitude: input.origin.latitude,
-              longitude: input.origin.longitude,
-            },
-          },
-        },
-        destination: {
-          location: {
-            latLng: {
-              latitude: input.destination.latitude,
-              longitude: input.destination.longitude,
-            },
-          },
-        },
-        travelMode: "DRIVE",
-        routingPreference: "TRAFFIC_UNAWARE",
-        languageCode: "es-419",
-        units: "METRIC",
-      }),
+      body: JSON.stringify(routeBody),
       cache: "no-store",
     },
   );
@@ -241,4 +260,25 @@ export async function computeDrivingRoute(input: {
     durationSeconds: parseDurationSeconds(route?.duration),
     encodedPolyline: route?.polyline?.encodedPolyline?.trim() || "",
   };
+}
+
+export async function computeDrivingRoute(input: {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+}) {
+  return computeRoute(input, "DRIVE");
+}
+
+export async function computeWalkingRoute(input: {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+}) {
+  return computeRoute(input, "WALK");
+}
+
+export async function computeTwoWheelerRoute(input: {
+  origin: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+}) {
+  return computeRoute(input, "TWO_WHEELER");
 }
