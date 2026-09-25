@@ -24,6 +24,7 @@ type CashRegisterSession = {
   closingCard: number | null;
   closingDavivienda: number | null;
   closingDenominations: Record<string, number> | null;
+  closingLoanReceivable: number | null;
   actualClosingBalance: number | null;
   difference: number | null;
   closeNote: string | null;
@@ -37,6 +38,7 @@ type Movement = {
   expensesTotal: number;
   loansTotal: number;
   recovered: number;
+  loansReceivable: number;
   netMovement: number;
 };
 
@@ -154,6 +156,11 @@ export default function CashRegisterControl({
   const expectedNow = session
     ? session.openingBalance + liveMovement
     : Number(openingBalance || data?.suggestedOpeningBalance || 0) + liveMovement;
+  const loansReceivable =
+    session?.status === "CLOSED" && session.closingLoanReceivable != null
+      ? session.closingLoanReceivable
+      : data?.movement?.loansReceivable ?? 0;
+  const controlledExpected = expectedNow + loansReceivable;
 
   const cashTotal = useMemo(
     () =>
@@ -172,7 +179,8 @@ export default function CashRegisterControl({
     Number(card || 0) +
     Number(davivienda || 0);
 
-  const previewDifference = countedTotal - expectedNow;
+  const controlledTotal = countedTotal + loansReceivable;
+  const previewDifference = controlledTotal - controlledExpected;
 
   function prepareOpen() {
     const suggested = data?.suggestedOpeningBalance;
@@ -356,7 +364,7 @@ export default function CashRegisterControl({
         </section>
       ) : session.status === "OPEN" ? (
         <section className="overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_auto_auto_auto_auto] lg:items-center">
+          <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[1fr_auto_auto_auto_auto_auto] xl:items-center">
             <div className="flex min-w-0 items-center gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
                 <CheckCircle2 className="h-6 w-6" strokeWidth={2} />
@@ -380,6 +388,7 @@ export default function CashRegisterControl({
               value={money(liveMovement)}
               tone={liveMovement >= 0 ? "positive" : "negative"}
             />
+            <MiniMetric label="En préstamos" value={money(loansReceivable)} />
             <MiniMetric label="Esperado ahora" value={money(expectedNow)} strong />
 
             <button
@@ -393,7 +402,7 @@ export default function CashRegisterControl({
         </section>
       ) : (
         <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[1.2fr_repeat(4,auto)] xl:items-center">
+          <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[1.2fr_repeat(5,auto)] xl:items-center">
             <div className="flex min-w-0 items-center gap-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-white">
                 <LockKeyhole className="h-5 w-5" />
@@ -409,17 +418,21 @@ export default function CashRegisterControl({
                   Cerró {session.closedByName || "—"} · {dateTimeLabel(session.closedAt)}
                 </p>
                 <p className="mt-1 text-[9px] text-neutral-400">
-                  Efectivo {money(session.closingCash || 0)} · Nequi {money(session.closingNequi || 0)} · DaviPlata {money(session.closingDaviplata || 0)} · Tarjeta {money(session.closingCard || 0)} · Davivienda {money(session.closingDavivienda || 0)}
+                  Efectivo {money(session.closingCash || 0)} · Nequi {money(session.closingNequi || 0)} · DaviPlata {money(session.closingDaviplata || 0)} · Tarjeta {money(session.closingCard || 0)} · Davivienda {money(session.closingDavivienda || 0)} · Préstamos {money(session.closingLoanReceivable || 0)}
                 </p>
               </div>
             </div>
 
             <MiniMetric label="Inicial" value={money(session.openingBalance)} />
             <MiniMetric label="Flujo" value={money(session.netMovement || 0)} />
-            <MiniMetric label="Teórico" value={money(session.expectedClosingBalance || 0)} />
+            <MiniMetric label="Disponible teórico" value={money(session.expectedClosingBalance || 0)} />
+            <MiniMetric label="En préstamos" value={money(session.closingLoanReceivable || 0)} />
             <MiniMetric
-              label="Contado"
-              value={money(session.actualClosingBalance || 0)}
+              label="Total controlado"
+              value={money(
+                (session.actualClosingBalance || 0) +
+                  (session.closingLoanReceivable || 0),
+              )}
               difference={session.difference || 0}
             />
           </div>
@@ -550,8 +563,8 @@ export default function CashRegisterControl({
               </div>
 
               <div className="relative mt-3 grid grid-cols-3 gap-2 xl:absolute xl:right-20 xl:top-1/2 xl:mt-0 xl:w-[530px] xl:-translate-y-1/2">
-                <CloseMetric label="Teórico" value={money(expectedNow)} />
-                <CloseMetric label="Contado" value={money(countedTotal)} />
+                <CloseMetric label="Teórico total" value={money(controlledExpected)} />
+                <CloseMetric label="Controlado" value={money(controlledTotal)} />
                 <CloseMetric
                   label="Diferencia"
                   value={(previewDifference > 0 ? "+" : "") + money(previewDifference)}
@@ -639,13 +652,18 @@ export default function CashRegisterControl({
                       <span className="text-[9px] font-bold text-neutral-400">{dateLabel(businessDate)}</span>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-[11px]">
-                      <SummaryLine label="Saldo inicial" value={money(session.openingBalance)} />
+                      <SummaryLine label="Saldo inicial disponible" value={money(session.openingBalance)} />
                       <SummaryLine label="Flujo neto del día" value={money(liveMovement)} />
-                      <SummaryLine label="Saldo teórico" value={money(expectedNow)} strong />
+                      <SummaryLine label="Dinero esperado" value={money(expectedNow)} strong />
+                      <SummaryLine label="Préstamos por cobrar" value={money(loansReceivable)} />
                       <div className="col-span-2 my-0.5 h-px bg-neutral-100" />
                       <SummaryLine label="Efectivo contado" value={money(cashTotal)} />
                       <SummaryLine label="Saldos digitales" value={money(countedTotal - cashTotal)} />
-                      <SummaryLine label="Total real" value={money(countedTotal)} strong />
+                      <SummaryLine label="Dinero disponible real" value={money(countedTotal)} />
+                      <SummaryLine label="Préstamos por cobrar" value={money(loansReceivable)} />
+                      <div className="col-span-2 my-0.5 h-px bg-neutral-100" />
+                      <SummaryLine label="Total controlado" value={money(controlledTotal)} strong />
+                      <SummaryLine label="Total teórico" value={money(controlledExpected)} strong />
                     </div>
 
                     <div className={"mt-3 rounded-2xl border px-4 py-3 " + (
@@ -684,7 +702,7 @@ export default function CashRegisterControl({
 
             <div className="flex shrink-0 flex-col gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <p className="text-[10px] text-neutral-400">
-                El cierre queda guardado como fotografía del cuadre de este día.
+                El cierre guarda el dinero disponible y la cartera de préstamos por cobrar de este día.
               </p>
               <div className="flex gap-2">
                 <button
