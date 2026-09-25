@@ -469,6 +469,32 @@ model CashIncome {
   @@index([category, occurredAt])
 }
 
+model CashRegisterSession {
+  id                     Int      @id @default(autoincrement())
+  businessDate           String   @unique
+  status                 String   @default("OPEN")
+  openingBalance         Decimal  @db.Decimal(14, 2)
+  openedAt               DateTime @default(now())
+  openedByName           String
+  netMovement            Decimal? @db.Decimal(14, 2)
+  expectedClosingBalance Decimal? @db.Decimal(14, 2)
+  closingCash            Decimal? @db.Decimal(14, 2)
+  closingNequi           Decimal? @db.Decimal(14, 2)
+  closingDaviplata       Decimal? @db.Decimal(14, 2)
+  closingCard            Decimal? @db.Decimal(14, 2)
+  closingDavivienda      Decimal? @db.Decimal(14, 2)
+  closingDenominations   Json?
+  actualClosingBalance   Decimal? @db.Decimal(14, 2)
+  difference             Decimal? @db.Decimal(14, 2)
+  closeNote              String?
+  closedAt               DateTime?
+  closedByName           String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([status, businessDate])
+}
+
 model CashLoan {
   id                              Int                 @id @default(autoincrement())
   workerName                      String
