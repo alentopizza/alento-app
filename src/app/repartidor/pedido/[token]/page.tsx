@@ -251,6 +251,7 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
           initiallyAssigned={assigned}
           initialStatus={order.status}
           initialTravelMode={order.deliveryTravelMode}
+          orderCode={orderCode}
           items={order.items.map((item) => ({
             id: item.id,
             productName: item.productName,
