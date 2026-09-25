@@ -2,20 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ChatwootCustomerRouteMap from "@/components/ChatwootCustomerRouteMap";
-import StructuredPosPageV2 from "@/components/StructuredPosPageV2";
 import {
   Clock3,
   MapPin,
   MessageSquareText,
   Navigation,
   Phone,
-  Plus,
-  RotateCcw,
   Route,
   Star,
   UserRound,
   WalletCards,
-  X,
 } from "lucide-react";
 
 const CHATWOOT_ORIGIN = "https://chat.operadoranordecolombia.com";
@@ -97,7 +93,6 @@ type OrderSummary = {
   deliveryZoneName: string | null;
   pointsEarned: number;
   pointsBase: number | null;
-  repeatable: boolean;
   createdAt: string;
   address: AddressSummary | null;
   items: Array<{
@@ -114,40 +109,6 @@ type OrderSummary = {
     cashReceived: number | null;
     changeDue: number | null;
     status: string;
-  }>;
-};
-
-type RepeatPreview = {
-  sourceOrderId: number;
-  sourceOrderNumber: number;
-  customer: {
-    id: number;
-    name: string;
-    countryCode: string;
-    phone: string | null;
-  };
-  fulfillmentType: string;
-  address: {
-    id: number;
-    address: string;
-    formattedAddress: string | null;
-    neighborhood: string | null;
-  } | null;
-  paymentMethod: string;
-  subtotal: number;
-  deliveryFee: number;
-  discount: number;
-  total: number;
-  previousDiscount: number;
-  notes: string | null;
-  items: Array<{
-    productId: number;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    lineTotal: number;
-    detail: string;
-    notes: string | null;
   }>;
 };
 
@@ -258,11 +219,7 @@ function initials(value: string) {
   );
 }
 
-function compactAddress(
-  address:
-    | Pick<AddressSummary, "address" | "formattedAddress" | "neighborhood">
-    | null,
-) {
+function compactAddress(address: AddressSummary | null) {
   if (!address) return "";
   const base = (
     address.address?.trim() ||
@@ -298,10 +255,6 @@ function itemDetails(value: string) {
     .filter(Boolean);
 }
 
-function isHistoricalOrder(order: OrderSummary) {
-  return !order.repeatable;
-}
-
 function parseContextMessage(data: unknown): ChatwootContext | null {
   try {
     const payload = typeof data === "string" ? JSON.parse(data) : data;
@@ -321,13 +274,6 @@ export default function ChatwootDashboardPage() {
   const [message, setMessage] = useState(
     "Abre una conversación para consultar el cliente.",
   );
-  const [refreshVersion, setRefreshVersion] = useState(0);
-  const [posOpen, setPosOpen] = useState(false);
-  const [repeatPreview, setRepeatPreview] = useState<RepeatPreview | null>(null);
-  const [repeatLoadingId, setRepeatLoadingId] = useState<number | null>(null);
-  const [repeatCreating, setRepeatCreating] = useState(false);
-  const [repeatError, setRepeatError] = useState("");
-  const [actionNotice, setActionNotice] = useState("");
 
   const dashboardKey = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -410,82 +356,7 @@ export default function ChatwootDashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [phone, dashboardKey, refreshVersion]);
-
-  async function prepareRepeat(orderId: number) {
-    if (repeatLoadingId != null) return;
-    setRepeatLoadingId(orderId);
-    setRepeatError("");
-    setActionNotice("");
-
-    try {
-      const response = await fetch(
-        `/api/integrations/chatwoot/orders/${orderId}/repeat`,
-        {
-          cache: "no-store",
-          headers: {
-            "x-alento-chatwoot-key": dashboardKey,
-          },
-        },
-      );
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          body.error || "No fue posible preparar este pedido.",
-        );
-      }
-      setRepeatPreview(body.preview as RepeatPreview);
-    } catch (error) {
-      setRepeatError(
-        error instanceof Error
-          ? error.message
-          : "No fue posible preparar este pedido.",
-      );
-    } finally {
-      setRepeatLoadingId(null);
-    }
-  }
-
-  async function confirmRepeat() {
-    if (!repeatPreview || repeatCreating) return;
-    setRepeatCreating(true);
-    setRepeatError("");
-
-    try {
-      const response = await fetch(
-        `/api/integrations/chatwoot/orders/${repeatPreview.sourceOrderId}/repeat`,
-        {
-          method: "POST",
-          headers: {
-            "x-alento-chatwoot-key": dashboardKey,
-          },
-        },
-      );
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.error || "No fue posible repetir el pedido.");
-      }
-
-      setRepeatPreview(null);
-      setActionNotice(
-        `${body.order.code} creado correctamente por ${money(body.order.total)}.`,
-      );
-      setRefreshVersion((value) => value + 1);
-    } catch (error) {
-      setRepeatError(
-        error instanceof Error
-          ? error.message
-          : "No fue posible repetir el pedido.",
-      );
-    } finally {
-      setRepeatCreating(false);
-    }
-  }
-
-  function closePos() {
-    setPosOpen(false);
-    setRefreshVersion((value) => value + 1);
-  }
+  }, [phone, dashboardKey]);
 
   const displayName =
     data?.customer.name ??
@@ -540,20 +411,6 @@ export default function ChatwootDashboardPage() {
         )}
       </header>
 
-      {actionNotice ? (
-        <div className="action-notice">
-          <span>{actionNotice}</span>
-          <button type="button" onClick={() => setActionNotice("")}>×</button>
-        </div>
-      ) : null}
-
-      {repeatError && !repeatPreview ? (
-        <div className="action-error">
-          <span>{repeatError}</span>
-          <button type="button" onClick={() => setRepeatError("")}>×</button>
-        </div>
-      ) : null}
-
       {loading ? (
         <div className="state-card">Consultando información del cliente…</div>
       ) : null}
@@ -602,18 +459,6 @@ export default function ChatwootDashboardPage() {
                 <strong>{shortDate(data.metrics.lastOrderAt)}</strong>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setPosOpen(true)}
-              className="create-order-button"
-            >
-              <span className="create-order-icon"><Plus size={20} /></span>
-              <span>
-                <b>Crear orden</b>
-                <small>Cliente listo · elige tipo de pedido y productos</small>
-              </span>
-            </button>
 
             {data.customer.notes ? (
               <div className="customer-note">
@@ -727,23 +572,6 @@ export default function ChatwootDashboardPage() {
                         <Star size={11} fill="currentColor" />
                         +{points(order.pointsEarned)} pts
                       </span>
-                      {isHistoricalOrder(order) ? (
-                        <span className="historical-order-badge">
-                          Importado
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          className="repeat-order-button"
-                          disabled={repeatLoadingId === order.id}
-                          onClick={() => void prepareRepeat(order.id)}
-                        >
-                          <RotateCcw size={13} />
-                          {repeatLoadingId === order.id
-                            ? "Preparando..."
-                            : "Repetir pedido"}
-                        </button>
-                      )}
                     </div>
                   </div>
 
@@ -838,143 +666,6 @@ export default function ChatwootDashboardPage() {
             </div>
           </section>
         </>
-      ) : null}
-
-      {repeatPreview ? (
-        <div className="repeat-overlay">
-          <div className="repeat-modal">
-            <div className="repeat-modal-head">
-              <div>
-                <span>REPETIR PEDIDO #{repeatPreview.sourceOrderNumber}</span>
-                <h2>Confirma antes de crear</h2>
-                <p>
-                  Alentó recalculó productos y domicilio con los valores actuales.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setRepeatPreview(null);
-                  setRepeatError("");
-                }}
-                aria-label="Cerrar"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="repeat-modal-body">
-              <div className="repeat-summary-grid">
-                <div>
-                  <span>Cliente</span>
-                  <strong>{repeatPreview.customer.name}</strong>
-                </div>
-                <div>
-                  <span>Modalidad</span>
-                  <strong>{fulfillmentLabel(repeatPreview.fulfillmentType)}</strong>
-                </div>
-                <div>
-                  <span>Pago</span>
-                  <strong>{repeatPreview.paymentMethod}</strong>
-                </div>
-                <div>
-                  <span>Total actual</span>
-                  <strong>{money(repeatPreview.total)}</strong>
-                </div>
-              </div>
-
-              {repeatPreview.address ? (
-                <div className="repeat-address">
-                  <MapPin size={17} />
-                  <div>
-                    <span>Dirección</span>
-                    <strong>{compactAddress(repeatPreview.address)}</strong>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="repeat-products">
-                {repeatPreview.items.map((item, index) => (
-                  <div className="repeat-product" key={`${item.productId}-${index}`}>
-                    <span>{item.quantity}×</span>
-                    <div>
-                      <strong>{item.productName}</strong>
-                      {item.detail ? <p>{item.detail}</p> : null}
-                      {item.notes ? <small>Nota: {item.notes}</small> : null}
-                    </div>
-                    <b>{money(item.lineTotal)}</b>
-                  </div>
-                ))}
-              </div>
-
-              <div className="repeat-totals">
-                <div><span>Productos</span><b>{money(repeatPreview.subtotal)}</b></div>
-                <div><span>Domicilio</span><b>{money(repeatPreview.deliveryFee)}</b></div>
-                <div className="repeat-total"><span>TOTAL</span><strong>{money(repeatPreview.total)}</strong></div>
-              </div>
-
-              {repeatPreview.previousDiscount > 0 ? (
-                <div className="repeat-warning">
-                  El pedido anterior tenía {money(repeatPreview.previousDiscount)} de descuento.
-                  Ese descuento no se repite automáticamente.
-                </div>
-              ) : null}
-
-              {repeatError ? (
-                <div className="repeat-warning repeat-warning-error">{repeatError}</div>
-              ) : null}
-            </div>
-
-            <div className="repeat-modal-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  setRepeatPreview(null);
-                  setRepeatError("");
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="confirm-repeat"
-                disabled={repeatCreating}
-                onClick={() => void confirmRepeat()}
-              >
-                {repeatCreating ? "Creando..." : "Confirmar y crear pedido"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {posOpen && data ? (
-        <div
-          className="pos-overlay"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closePos();
-          }}
-        >
-          <aside className="pos-drawer">
-            <div className="pos-overlay-head">
-              <div>
-                <span>NUEVA ORDEN · CHATWOOT</span>
-                <h2>{data.customer.name}</h2>
-                <p>Cliente seleccionado automáticamente</p>
-              </div>
-              <button type="button" onClick={closePos}>
-                <X size={20} />
-                Cerrar
-              </button>
-            </div>
-            <div className="pos-overlay-body">
-              <StructuredPosPageV2
-                initialCustomerId={data.customer.id}
-                chatwootQuickMode
-              />
-            </div>
-          </aside>
-        </div>
       ) : null}
 
       <style jsx>{`
@@ -2173,16 +1864,6 @@ export default function ChatwootDashboardPage() {
           }
         }
 
-        @media (max-width: 780px) {
-          .pos-drawer {
-            width: 100vw;
-          }
-
-          .pos-overlay-body {
-            padding: 10px;
-          }
-        }
-
         @media (max-width: 560px) {
           .chat-panel {
             padding: 10px;
@@ -2240,526 +1921,6 @@ export default function ChatwootDashboardPage() {
 
         .route-map {
           min-height: 245px;
-        }
-
-        .action-notice,
-        .action-error {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-top: 14px;
-          border-radius: 16px;
-          padding: 12px 14px;
-          font-size: 13px;
-          font-weight: 800;
-        }
-
-        .action-notice {
-          border: 1px solid rgba(16,185,129,.25);
-          background: rgba(16,185,129,.10);
-          color: #8cf0c8;
-        }
-
-        .action-error {
-          border: 1px solid rgba(239,68,68,.25);
-          background: rgba(239,68,68,.10);
-          color: #ff9ca1;
-        }
-
-        .action-notice button,
-        .action-error button {
-          border: 0;
-          background: transparent;
-          color: inherit;
-          cursor: pointer;
-          font-size: 18px;
-          font-weight: 900;
-        }
-
-        .create-order-button {
-          display: flex;
-          width: 100%;
-          align-items: center;
-          gap: 12px;
-          margin-top: 14px;
-          border: 1px solid rgba(226,26,34,.32);
-          border-radius: 17px;
-          background:
-            linear-gradient(135deg, rgba(226,26,34,.18), rgba(105,10,15,.15)),
-            #0d0e10;
-          padding: 13px 14px;
-          color: #fff;
-          text-align: left;
-          cursor: pointer;
-          transition: border-color .2s ease, transform .2s ease;
-        }
-
-        .create-order-button:hover {
-          border-color: rgba(226,26,34,.72);
-          transform: translateY(-1px);
-        }
-
-        .create-order-icon {
-          display: grid;
-          width: 42px;
-          height: 42px;
-          flex: 0 0 42px;
-          place-items: center;
-          border-radius: 13px;
-          background: #e21a22;
-          box-shadow: 0 8px 18px rgba(226,26,34,.22);
-        }
-
-        .create-order-button b,
-        .create-order-button small {
-          display: block;
-        }
-
-        .create-order-button b {
-          font-size: 15px;
-          font-weight: 950;
-        }
-
-        .create-order-button small {
-          margin-top: 3px;
-          color: #a49e97;
-          font-size: 11px;
-          font-weight: 650;
-        }
-
-        .history {
-          border: 0;
-          background: transparent;
-          box-shadow: none;
-          padding: 0;
-        }
-
-        .history-head {
-          margin-bottom: 14px;
-          border: 1px solid #28292d;
-          border-radius: 20px;
-          background:
-            linear-gradient(110deg, #141518, #101113 62%, #250b0d);
-          padding: 18px 20px;
-        }
-
-        .order-grid {
-          gap: 16px;
-        }
-
-        .repeat-order-button {
-          display: inline-flex;
-          min-height: 34px;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          border: 1px solid #3a3b40;
-          border-radius: 10px;
-          background: #0d0e10;
-          padding: 7px 9px;
-          color: #f4f0ec;
-          cursor: pointer;
-          font-size: 10px;
-          font-weight: 900;
-          white-space: nowrap;
-        }
-
-        .repeat-order-button:hover {
-          border-color: rgba(226,26,34,.65);
-          color: #ff7b82;
-        }
-
-        .repeat-order-button:disabled {
-          cursor: wait;
-          opacity: .55;
-        }
-
-        .repeat-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 300;
-          display: grid;
-          place-items: center;
-          overflow-y: auto;
-          background: rgba(0,0,0,.78);
-          padding: 24px;
-          backdrop-filter: blur(8px);
-        }
-
-        .repeat-modal {
-          width: min(760px, 100%);
-          overflow: hidden;
-          border: 1px solid #38393d;
-          border-radius: 24px;
-          background: #121315;
-          color: #fff;
-          box-shadow: 0 30px 90px rgba(0,0,0,.5);
-        }
-
-        .repeat-modal-head {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 18px;
-          border-bottom: 1px solid #292a2e;
-          padding: 20px 22px;
-          background:
-            radial-gradient(circle at 88% 0%, rgba(226,26,34,.28), transparent 35%),
-            #111214;
-        }
-
-        .repeat-modal-head span {
-          color: #8e8983;
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: .13em;
-        }
-
-        .repeat-modal-head h2 {
-          margin: 4px 0 0;
-          font-size: 24px;
-          font-weight: 950;
-        }
-
-        .repeat-modal-head p {
-          margin: 5px 0 0;
-          color: #8f8983;
-          font-size: 12px;
-        }
-
-        .repeat-modal-head button {
-          display: grid;
-          width: 40px;
-          height: 40px;
-          flex: 0 0 40px;
-          place-items: center;
-          border: 1px solid #3a3b40;
-          border-radius: 12px;
-          background: #191a1d;
-          color: #fff;
-          cursor: pointer;
-        }
-
-        .repeat-modal-body {
-          padding: 20px 22px;
-        }
-
-        .repeat-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0,1fr));
-          gap: 8px;
-        }
-
-        .repeat-summary-grid > div {
-          min-width: 0;
-          border: 1px solid #292a2e;
-          border-radius: 13px;
-          background: #0d0e10;
-          padding: 11px;
-        }
-
-        .repeat-summary-grid span,
-        .repeat-summary-grid strong {
-          display: block;
-        }
-
-        .repeat-summary-grid span {
-          color: #77736f;
-          font-size: 9px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .repeat-summary-grid strong {
-          overflow: hidden;
-          margin-top: 4px;
-          font-size: 12px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .repeat-address {
-          display: flex;
-          align-items: flex-start;
-          gap: 9px;
-          margin-top: 10px;
-          border-radius: 13px;
-          background: #0d0e10;
-          padding: 11px;
-          color: #e21a22;
-        }
-
-        .repeat-address span,
-        .repeat-address strong {
-          display: block;
-        }
-
-        .repeat-address span {
-          color: #77736f;
-          font-size: 9px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .repeat-address strong {
-          margin-top: 3px;
-          color: #eee9e4;
-          font-size: 12px;
-        }
-
-        .repeat-products {
-          display: grid;
-          gap: 1px;
-          margin-top: 12px;
-          overflow: hidden;
-          border: 1px solid #292a2e;
-          border-radius: 15px;
-          background: #292a2e;
-        }
-
-        .repeat-product {
-          display: grid;
-          grid-template-columns: 34px minmax(0,1fr) auto;
-          align-items: start;
-          gap: 10px;
-          background: #17181b;
-          padding: 12px;
-        }
-
-        .repeat-product > span {
-          display: grid;
-          width: 32px;
-          height: 32px;
-          place-items: center;
-          border-radius: 10px;
-          background: #e21a22;
-          font-size: 10px;
-          font-weight: 950;
-        }
-
-        .repeat-product strong {
-          display: block;
-          font-size: 12px;
-        }
-
-        .repeat-product p,
-        .repeat-product small {
-          display: block;
-          margin: 4px 0 0;
-          color: #8f8983;
-          font-size: 10px;
-          line-height: 1.4;
-        }
-
-        .repeat-product > b {
-          font-size: 12px;
-        }
-
-        .repeat-totals {
-          margin-top: 12px;
-          border-radius: 15px;
-          background: #08090a;
-          padding: 13px 14px;
-        }
-
-        .repeat-totals > div {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: 4px;
-          color: #8f8983;
-          font-size: 11px;
-        }
-
-        .repeat-totals b {
-          color: #fff;
-        }
-
-        .repeat-totals .repeat-total {
-          margin-top: 10px;
-          border-top: 1px solid #292a2e;
-          padding-top: 10px;
-          align-items: center;
-        }
-
-        .repeat-total strong {
-          color: #fff;
-          font-size: 22px;
-          font-weight: 950;
-        }
-
-        .repeat-warning {
-          margin-top: 10px;
-          border: 1px solid rgba(245,158,11,.22);
-          border-radius: 12px;
-          background: rgba(245,158,11,.08);
-          padding: 10px 12px;
-          color: #e8bb73;
-          font-size: 11px;
-          line-height: 1.4;
-        }
-
-        .repeat-warning-error {
-          border-color: rgba(239,68,68,.25);
-          background: rgba(239,68,68,.10);
-          color: #ff9ca1;
-        }
-
-        .repeat-modal-actions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 9px;
-          border-top: 1px solid #292a2e;
-          padding: 14px 18px;
-        }
-
-        .repeat-modal-actions button {
-          min-height: 42px;
-          border: 1px solid #38393d;
-          border-radius: 12px;
-          background: #18191c;
-          padding: 0 16px;
-          color: #fff;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .repeat-modal-actions .confirm-repeat {
-          border-color: #e21a22;
-          background: #e21a22;
-        }
-
-        .repeat-modal-actions button:disabled {
-          cursor: wait;
-          opacity: .55;
-        }
-
-        .historical-order-badge {
-          display: inline-flex;
-          min-height: 30px;
-          align-items: center;
-          border: 1px solid #34353a;
-          border-radius: 9px;
-          background: #202126;
-          padding: 0 8px;
-          color: #77736f;
-          font-size: 9px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .pos-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 280;
-          display: flex;
-          justify-content: flex-end;
-          background: rgba(0,0,0,.58);
-          backdrop-filter: blur(5px);
-        }
-
-        .pos-drawer {
-          display: flex;
-          width: min(760px, 96vw);
-          height: 100dvh;
-          flex-direction: column;
-          overflow: hidden;
-          border-left: 1px solid rgba(255,255,255,.10);
-          background: #f5f3ef;
-          color: #171717;
-          box-shadow: -28px 0 70px rgba(0,0,0,.34);
-          animation: chatwoot-drawer-in .22s ease-out;
-        }
-
-        @keyframes chatwoot-drawer-in {
-          from { transform: translateX(34px); opacity: .72; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-
-        .pos-overlay-head {
-          position: relative;
-          z-index: 20;
-          display: flex;
-          flex: 0 0 auto;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          border-bottom: 1px solid rgba(255,255,255,.08);
-          background:
-            radial-gradient(circle at 85% 0%, rgba(226,26,34,.40), transparent 30%),
-            linear-gradient(115deg,#0d0e10,#151116 65%,#4d090d);
-          padding: 16px 18px;
-          color: #fff;
-          box-shadow: 0 8px 24px rgba(0,0,0,.16);
-        }
-
-        .pos-overlay-head span {
-          color: #827d78;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: .12em;
-        }
-
-        .pos-overlay-head h2 {
-          margin: 3px 0 0;
-          font-size: 21px;
-          font-weight: 950;
-        }
-
-        .pos-overlay-head p {
-          margin: 3px 0 0;
-          color: rgba(255,255,255,.48);
-          font-size: 10px;
-          font-weight: 650;
-        }
-
-        .pos-overlay-head button {
-          display: inline-flex;
-          min-height: 40px;
-          align-items: center;
-          gap: 7px;
-          border: 1px solid #3b3c41;
-          border-radius: 12px;
-          background: #191a1d;
-          padding: 0 12px;
-          color: #fff;
-          cursor: pointer;
-          font-size: 11px;
-          font-weight: 900;
-        }
-
-        .pos-overlay-body {
-          min-height: 0;
-          flex: 1;
-          overflow-y: auto;
-          padding: 14px;
-          background: #f5f3ef;
-        }
-
-        @media (max-width: 900px) {
-          .repeat-summary-grid {
-            grid-template-columns: repeat(2, minmax(0,1fr));
-          }
-        }
-
-        @media (max-width: 560px) {
-          .repeat-overlay {
-            padding: 8px;
-          }
-
-          .repeat-summary-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .repeat-modal-actions {
-            flex-direction: column-reverse;
-          }
-
-          .repeat-modal-actions button {
-            width: 100%;
-          }
         }
       `}</style>
     </main>
