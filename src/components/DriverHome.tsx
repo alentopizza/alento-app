@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import DriverPushControl from "@/components/DriverPushControl";
+import DriverFinancePanels from "@/components/DriverFinancePanels";
 import {
   createAlentoMapPinElement,
   createDeliveryClusterPinElement,
@@ -55,6 +56,7 @@ type DriverRequest = {
   status: string;
   subtotal: number;
   deliveryFee: number;
+  driverEarningPreview: number;
   discount: number;
   total: number;
   createdAt: string;
@@ -1381,21 +1383,8 @@ export default function DriverHome({
           <div ref={mapHostRef} className="absolute inset-0 bg-[#efefeb]" />
         </div>
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#080808] px-6 pb-6 pt-28">
-          <div className="w-full max-w-[430px] rounded-[26px] border border-white/10 bg-[#111] p-6 text-center shadow-[0_24px_70px_rgba(0,0,0,.35)]">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e21a22]/12 text-[#ff454b]">
-              {navItems.find((item) => item.id === tab)?.icon}
-            </div>
-            <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-[#ff454b]">
-              {tab === "performance" ? "Desempeño" : "Cartera"}
-            </p>
-            <h2 className="mt-2 text-[22px] font-black">
-              Lo terminamos en la siguiente fase
-            </h2>
-            <p className="mt-2 text-[11px] leading-5 text-white/45">
-              La navegación ya queda creada para mantener la experiencia exclusiva del repartidor.
-            </p>
-          </div>
+        <div className="absolute inset-0 overflow-y-auto bg-[#080808] px-3 pb-8 pt-[86px] sm:px-5">
+          <DriverFinancePanels tab={tab} />
         </div>
       )}
 
@@ -1644,6 +1633,9 @@ export default function DriverHome({
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex h-6 items-center gap-1 rounded-full border border-emerald-300/15 bg-emerald-400/[0.09] px-2 text-[8px] font-black text-emerald-300">
+                          Ganas {money(order.driverEarningPreview)}
+                        </span>
                         {routeSummaries[order.id] ? (
                           <>
                             <span className={
@@ -1869,6 +1861,12 @@ export default function DriverHome({
                     <span className="text-white/42">Domicilio</span>
                     <b className="text-[#ff454b]">
                       {money(selectedOrder.deliveryFee)}
+                    </b>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.07] px-3 py-2">
+                    <span className="text-emerald-100/55">Tu ganancia</span>
+                    <b className="text-emerald-300">
+                      {money(selectedOrder.driverEarningPreview)}
                     </b>
                   </div>
                   {selectedOrder.discount > 0 && (
