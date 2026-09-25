@@ -209,10 +209,14 @@ function initials(value: string) {
 
 function compactAddress(address: AddressSummary | null) {
   if (!address) return "";
-  const base =
+  const base = (
     address.address?.trim() ||
     address.formattedAddress?.trim() ||
-    "";
+    ""
+  )
+    .replace(/,\s*Bogot[aá]\b.*$/i, "")
+    .replace(/\s*,\s*$/, "")
+    .trim();
   const neighborhood = address.neighborhood?.trim() || "";
 
   if (!neighborhood) return base;
@@ -372,12 +376,33 @@ export default function ChatwootDashboardPage() {
 
   return (
     <main className="chat-panel">
-      <header className="chatwoot-header">
-        <div>
+      <header className="chatwoot-header premium-header">
+        <div className="header-brand">
           <span className="chatwoot-kicker">ATENCIÓN AL CLIENTE</span>
           <h1>Chatwoot</h1>
+          <p>Contexto comercial en tiempo real · Alentó Pizza</p>
         </div>
-        <span className="alento-badge">ALENTÓ</span>
+
+        {data ? (
+          <div className="header-club">
+            <div className="header-club-icon">
+              <Star size={22} fill="currentColor" />
+            </div>
+            <div className="header-club-copy">
+              <span>CLUB ALENTÓ</span>
+              <strong>{points(data.metrics.clubPoints)} pts</strong>
+              <small>Saldo actual</small>
+            </div>
+            {data.orders[0] ? (
+              <div className="header-club-last">
+                <span>ÚLTIMO PEDIDO</span>
+                <b>+{points(data.orders[0].pointsEarned)} pts</b>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <span className="alento-badge">ALENTÓ</span>
+        )}
       </header>
 
       {loading ? (
@@ -393,6 +418,7 @@ export default function ChatwootDashboardPage() {
 
       {data ? (
         <>
+          <section className="top-grid">
           <section className="customer-card">
             <div className="customer-main">
               <div className="avatar">{initials(displayName)}</div>
@@ -415,8 +441,12 @@ export default function ChatwootDashboardPage() {
                 <strong>{data.metrics.purchaseCount}</strong>
               </div>
               <div>
-                <span>Ticket prom.</span>
+                <span>Ticket promedio</span>
                 <strong>{money(data.metrics.averageTicket)}</strong>
+              </div>
+              <div>
+                <span>Comprado</span>
+                <strong>{money(data.metrics.totalSpent)}</strong>
               </div>
               <div>
                 <span>Última compra</span>
@@ -428,25 +458,6 @@ export default function ChatwootDashboardPage() {
               <div className="customer-note">
                 <MessageSquareText size={14} />
                 <p>{data.customer.notes}</p>
-              </div>
-            ) : null}
-          </section>
-
-          <section className="points-card">
-            <div className="points-icon">
-              <Star size={21} fill="currentColor" />
-            </div>
-            <div>
-              <span>CLUB ALENTÓ</span>
-              <h3>{points(data.metrics.clubPoints)} puntos</h3>
-              <p>Saldo acumulado del cliente</p>
-            </div>
-            {data.orders[0] ? (
-              <div className="points-last">
-                <span>Último pedido</span>
-                <strong>
-                  +{points(data.orders[0].pointsEarned)} pts
-                </strong>
               </div>
             ) : null}
           </section>
@@ -518,6 +529,8 @@ export default function ChatwootDashboardPage() {
             </section>
           ) : null}
 
+          </section>
+
           <section className="history">
             <div className="history-head">
               <div>
@@ -527,7 +540,7 @@ export default function ChatwootDashboardPage() {
               <b>{data.orders.length}</b>
             </div>
 
-            <div className="order-list">
+            <div className="order-list order-grid">
               {data.orders.map((order) => (
                 <article className="order-card" key={order.id}>
                   <div className="order-header">
@@ -580,6 +593,21 @@ export default function ChatwootDashboardPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="order-meta">
+                    <div>
+                      <span>Pago</span>
+                      <strong>{order.payments[0]?.method || "Sin registro"}</strong>
+                    </div>
+                    <div>
+                      <span>Origen</span>
+                      <strong>{order.source}</strong>
+                    </div>
+                    <div>
+                      <span>Puntos</span>
+                      <strong>+{points(order.pointsEarned)}</strong>
+                    </div>
                   </div>
 
                   {order.address ? (
@@ -1296,6 +1324,578 @@ export default function ChatwootDashboardPage() {
           .points-last {
             grid-column: 1 / -1;
             text-align: left;
+          }
+        }
+
+
+        /* Premium desktop layout */
+        :global(html),
+        :global(body) {
+          background: #08090b;
+          color: #f5f2ee;
+        }
+
+        .chat-panel {
+          min-height: 100vh;
+          padding: 18px;
+          background:
+            radial-gradient(circle at 88% 0%, rgba(126, 8, 14, .30), transparent 28%),
+            radial-gradient(circle at 8% 16%, rgba(226, 26, 34, .08), transparent 24%),
+            #08090b;
+        }
+
+        .premium-header {
+          min-height: 132px;
+          padding: 24px 28px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at 86% 28%, rgba(226,26,34,.54), transparent 27%),
+            linear-gradient(112deg, #101116 0%, #121114 52%, #51090e 100%);
+          box-shadow: 0 24px 64px rgba(0,0,0,.30);
+        }
+
+        .header-brand {
+          min-width: 0;
+        }
+
+        .header-brand h1 {
+          margin: 5px 0 0;
+          font-size: 36px;
+          font-weight: 950;
+          letter-spacing: -.055em;
+        }
+
+        .header-brand p {
+          margin: 7px 0 0;
+          color: rgba(255,255,255,.50);
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .chatwoot-kicker {
+          font-size: 11px;
+          letter-spacing: .17em;
+        }
+
+        .header-club {
+          display: grid;
+          min-width: 390px;
+          grid-template-columns: 54px minmax(0,1fr) auto;
+          align-items: center;
+          gap: 14px;
+          border: 1px solid rgba(255,255,255,.11);
+          border-radius: 22px;
+          background: rgba(5,5,6,.34);
+          padding: 15px 17px;
+          backdrop-filter: blur(12px);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+        }
+
+        .header-club-icon {
+          display: grid;
+          width: 54px;
+          height: 54px;
+          place-items: center;
+          border-radius: 17px;
+          background: #e21a22;
+          color: #fff;
+          box-shadow: 0 10px 24px rgba(226,26,34,.24);
+        }
+
+        .header-club-copy span,
+        .header-club-last span {
+          display: block;
+          color: #9d9893;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .13em;
+        }
+
+        .header-club-copy strong {
+          display: block;
+          margin-top: 3px;
+          color: #fff;
+          font-size: 24px;
+          font-weight: 950;
+          letter-spacing: -.04em;
+        }
+
+        .header-club-copy small {
+          display: block;
+          margin-top: 2px;
+          color: rgba(255,255,255,.42);
+          font-size: 11px;
+        }
+
+        .header-club-last {
+          border-left: 1px solid rgba(255,255,255,.10);
+          padding-left: 15px;
+          text-align: right;
+        }
+
+        .header-club-last b {
+          display: block;
+          margin-top: 5px;
+          color: #ff6972;
+          font-size: 17px;
+          font-weight: 950;
+        }
+
+        .state-card {
+          margin-top: 16px;
+          border-color: #292a2e;
+          background: #121315;
+          color: #aaa5a0;
+          font-size: 15px;
+        }
+
+        .top-grid {
+          display: grid;
+          grid-template-columns: minmax(0, .84fr) minmax(0, 1.16fr);
+          gap: 16px;
+          margin-top: 16px;
+        }
+
+        .customer-card,
+        .map-card,
+        .history {
+          margin-top: 0;
+          border: 1px solid #28292d;
+          border-radius: 24px;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,.025), transparent 22%),
+            #121315;
+          box-shadow: 0 18px 42px rgba(0,0,0,.18);
+        }
+
+        .customer-card {
+          padding: 22px;
+        }
+
+        .customer-main {
+          grid-template-columns: 68px minmax(0,1fr) auto;
+          gap: 16px;
+          padding: 0;
+        }
+
+        .avatar {
+          width: 68px;
+          height: 68px;
+          border: 1px solid #38393d;
+          border-radius: 20px;
+          background: linear-gradient(145deg, #202126, #0f1012);
+          font-size: 19px;
+        }
+
+        .eyebrow,
+        .section-title span,
+        .history-head span {
+          color: #817c77;
+          font-size: 10px;
+          letter-spacing: .13em;
+        }
+
+        .customer-copy h2 {
+          font-size: 28px;
+          color: #fff;
+        }
+
+        .customer-copy p {
+          margin-top: 7px;
+          color: #aaa5a0;
+          font-size: 14px;
+        }
+
+        .customer-status {
+          border: 1px solid rgba(226,26,34,.33);
+          background: rgba(226,26,34,.12);
+          color: #ff7d84;
+          padding: 8px 11px;
+          font-size: 11px;
+        }
+
+        .customer-stats {
+          grid-template-columns: repeat(2, minmax(0,1fr));
+          gap: 9px;
+          margin-top: 22px;
+          border: 0;
+          background: transparent;
+        }
+
+        .customer-stats div,
+        .customer-stats div + div {
+          border: 1px solid #292a2e;
+          border-radius: 16px;
+          background: #0d0e10;
+          padding: 14px;
+        }
+
+        .customer-stats span {
+          color: #77736f;
+          font-size: 10px;
+        }
+
+        .customer-stats strong {
+          margin-top: 5px;
+          color: #f3efeb;
+          font-size: 16px;
+        }
+
+        .customer-note {
+          margin: 14px 0 0;
+          border: 1px solid rgba(255,183,77,.14);
+          border-radius: 16px;
+          background: rgba(255,183,77,.07);
+          padding: 13px;
+          color: #ffb86b;
+        }
+
+        .customer-note p {
+          color: #d0c7bb;
+          font-size: 13px;
+        }
+
+        .map-card {
+          padding: 20px;
+        }
+
+        .section-title h3,
+        .history-head h3 {
+          color: #fff;
+          font-size: 25px;
+        }
+
+        .section-title a {
+          border-color: #3a3b40;
+          background: #1a1b1e;
+          color: #f4f0ec;
+          padding: 9px 12px;
+          font-size: 12px;
+        }
+
+        .route-metrics {
+          gap: 9px;
+          margin-top: 15px;
+        }
+
+        .route-metrics div {
+          border-color: #2c2d31;
+          background: #0d0e10;
+          padding: 14px;
+        }
+
+        .route-metrics span {
+          color: #7b7772;
+          font-size: 10px;
+        }
+
+        .route-metrics strong {
+          margin-top: 7px;
+          color: #fff;
+          font-size: 18px;
+        }
+
+        .route-map {
+          height: 245px;
+          margin-top: 12px;
+          border-color: #2d2e32;
+          border-radius: 18px;
+          background: #0d0e10;
+        }
+
+        .route-address {
+          margin-top: 12px;
+          border: 1px solid #292a2e;
+          border-radius: 16px;
+          background: #0d0e10;
+          padding: 13px 14px;
+        }
+
+        .route-address strong {
+          color: #f2eeea;
+          font-size: 14px;
+        }
+
+        .route-address p {
+          color: #aaa49d;
+          font-size: 12px;
+        }
+
+        .route-address small {
+          color: #77736f;
+          font-size: 11px;
+        }
+
+        .history {
+          margin-top: 16px;
+          padding: 20px;
+        }
+
+        .history-head {
+          padding: 0 2px 16px;
+        }
+
+        .history-head > b {
+          min-width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: #e21a22;
+          font-size: 15px;
+          box-shadow: 0 10px 22px rgba(226,26,34,.18);
+        }
+
+        .order-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0,1fr));
+          align-items: start;
+          gap: 16px;
+        }
+
+        .order-card {
+          margin-top: 0;
+          border: 1px solid #2d2e32;
+          border-radius: 21px;
+          background: #18191c;
+          box-shadow: 0 15px 35px rgba(0,0,0,.16);
+        }
+
+        .order-header {
+          min-height: 84px;
+          padding: 16px 17px;
+          border-color: #292a2e;
+          background: #151619;
+        }
+
+        .order-title-line > strong {
+          color: #fff;
+          font-size: 17px;
+        }
+
+        .order-title-line > span {
+          padding: 6px 9px;
+          background: #050506;
+          font-size: 10px;
+        }
+
+        .order-header p {
+          margin-top: 6px;
+          color: #817c76;
+          font-size: 12px;
+        }
+
+        .order-status {
+          color: #9d9891;
+          font-size: 10px;
+        }
+
+        .order-points {
+          padding: 6px 8px;
+          color: #ff737b;
+          font-size: 11px;
+        }
+
+        .order-items {
+          background: #1b1c1f;
+        }
+
+        .order-item {
+          grid-template-columns: 44px minmax(0,1fr);
+          gap: 12px;
+          padding: 17px;
+        }
+
+        .order-item + .order-item {
+          border-color: #2a2b2f;
+        }
+
+        .qty-badge {
+          width: 42px;
+          height: 42px;
+          border-radius: 13px;
+          font-size: 12px;
+        }
+
+        .item-name-line strong {
+          color: #fff;
+          font-size: 15px;
+        }
+
+        .item-name-line > b {
+          color: #fff;
+          font-size: 14px;
+        }
+
+        .variant {
+          color: #77736f;
+          font-size: 12px;
+        }
+
+        .item-detail,
+        .item-note {
+          margin-top: 6px;
+          color: #aca69f;
+          font-size: 12px;
+        }
+
+        .item-detail b {
+          color: #e7e1da;
+        }
+
+        .order-meta {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0,1fr));
+          gap: 1px;
+          border-top: 1px solid #292a2e;
+          border-bottom: 1px solid #292a2e;
+          background: #292a2e;
+        }
+
+        .order-meta div {
+          min-width: 0;
+          background: #121315;
+          padding: 11px 13px;
+        }
+
+        .order-meta span,
+        .order-meta strong {
+          display: block;
+        }
+
+        .order-meta span {
+          color: #716d68;
+          font-size: 9px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+
+        .order-meta strong {
+          overflow: hidden;
+          margin-top: 3px;
+          color: #d8d2cc;
+          font-size: 11px;
+          font-weight: 850;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .order-address {
+          border-color: #292a2e;
+          background: #141517;
+          padding: 12px 16px;
+        }
+
+        .order-address strong {
+          color: #ddd7d0;
+          font-size: 12px;
+        }
+
+        .order-address p {
+          color: #85807a;
+          font-size: 11px;
+        }
+
+        .order-total-box {
+          padding: 16px 17px;
+          background:
+            radial-gradient(circle at 100% 100%, rgba(226,26,34,.08), transparent 33%),
+            #09090a;
+        }
+
+        .order-total-box > div:not(.total-rule):not(.grand-total):not(.points-earned) {
+          margin-top: 6px;
+          color: #8e8983;
+          font-size: 12px;
+        }
+
+        .total-rule {
+          margin: 13px 0;
+        }
+
+        .grand-total span {
+          font-size: 11px;
+        }
+
+        .grand-total strong {
+          font-size: 29px;
+        }
+
+        .points-earned {
+          margin-top: 13px;
+          border: 1px solid rgba(226,26,34,.14);
+          border-radius: 12px;
+          background: rgba(226,26,34,.10);
+          padding: 9px 10px;
+          color: #d69296;
+          font-size: 11px;
+        }
+
+        .points-earned b {
+          color: #ff747c;
+          font-size: 12px;
+        }
+
+        @media (max-width: 900px) {
+          .premium-header {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .header-club {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .top-grid,
+          .order-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .chat-panel {
+            padding: 10px;
+          }
+
+          .premium-header {
+            min-height: auto;
+            padding: 18px;
+          }
+
+          .header-brand h1 {
+            font-size: 29px;
+          }
+
+          .header-club {
+            grid-template-columns: 46px minmax(0,1fr);
+          }
+
+          .header-club-last {
+            grid-column: 1 / -1;
+            border-top: 1px solid rgba(255,255,255,.10);
+            border-left: 0;
+            padding-top: 10px;
+            padding-left: 0;
+            text-align: left;
+          }
+
+          .customer-main {
+            grid-template-columns: 58px minmax(0,1fr);
+          }
+
+          .customer-status {
+            grid-column: 1 / -1;
+            justify-self: start;
+          }
+
+          .customer-stats,
+          .route-metrics,
+          .order-meta {
+            grid-template-columns: 1fr;
+          }
+
+          .route-map {
+            height: 200px;
           }
         }
       `}</style>
