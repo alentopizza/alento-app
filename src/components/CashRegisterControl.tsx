@@ -14,6 +14,8 @@ type CashRegisterSession = {
   businessDate: string;
   status: "OPEN" | "CLOSED" | string;
   openingBalance: number;
+  openingControlledBalance: number | null;
+  openingLoanReceivable: number | null;
   openedAt: string;
   openedByName: string;
   netMovement: number | null;
@@ -47,6 +49,7 @@ type SessionResponse = {
   movement: Movement;
   suggestedOpeningBalance: number | null;
   previousCloseDate: string | null;
+  openingLoansReceivable: number;
 };
 
 const BILLS = [2000, 5000, 10000, 20000, 50000, 100000] as const;
@@ -102,6 +105,7 @@ export default function CashRegisterControl({
   const [actionBusy, setActionBusy] = useState(false);
   const [error, setError] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [editingOpening, setEditingOpening] = useState(false);
   const [closeModal, setCloseModal] = useState(false);
   const [openingBalance, setOpeningBalance] = useState("");
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -153,9 +157,19 @@ export default function CashRegisterControl({
 
   const session = data?.session ?? null;
   const liveMovement = data?.movement?.netMovement ?? currentNetMovement;
-  const expectedNow = session
-    ? session.openingBalance + liveMovement
-    : Number(openingBalance || data?.suggestedOpeningBalance || 0) + liveMovement;
+  const openingLoansReceivable =
+    session?.openingLoanReceivable ??
+    data?.openingLoansReceivable ??
+    0;
+  const openingControlledBalance = session
+    ? session.openingControlledBalance ?? session.openingBalance
+    : Number(openingBalance || data?.suggestedOpeningBalance || 0);
+  const openingAvailableBalance = session
+    ? session.openingControlledBalance != null
+      ? session.openingBalance
+      : Math.max(0, session.openingBalance - openingLoansReceivable)
+    : Math.max(0, openingControlledBalance - openingLoansReceivable);
+  const expectedNow = openingAvailableBalance + liveMovement;
   const loansReceivable =
     session?.status === "CLOSED" && session.closingLoanReceivable != null
       ? session.closingLoanReceivable
@@ -184,8 +198,23 @@ export default function CashRegisterControl({
 
   function prepareOpen() {
     const suggested = data?.suggestedOpeningBalance;
+    setEditingOpening(false);
     setOpeningBalance(
       suggested != null ? String(Math.round(suggested)) : "",
+    );
+    setError("");
+    setOpenModal(true);
+  }
+
+  function prepareEditOpening() {
+    if (!session || session.status !== "OPEN") return;
+    setEditingOpening(true);
+    setOpeningBalance(
+      String(
+        Math.round(
+          session.openingControlledBalance ?? session.openingBalance,
+        ),
+      ),
     );
     setError("");
     setOpenModal(true);
@@ -204,11 +233,17 @@ export default function CashRegisterControl({
     setCloseModal(true);
   }
 
-  async function openCash() {
+  async function saveOpening() {
     if (actionBusy) return;
     const amount = Number(openingBalance || 0);
     if (!Number.isFinite(amount) || amount < 0) {
-      setError("Ingresa un saldo inicial válido.");
+      setError("Ingresa un saldo inicial total válido.");
+      return;
+    }
+    if (amount < openingLoansReceivable) {
+      setError(
+        "El saldo inicial total no puede ser menor a los préstamos por cobrar al iniciar el día.",
+      );
       return;
     }
 
@@ -219,24 +254,32 @@ export default function CashRegisterControl({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "OPEN",
+          action: editingOpening ? "EDIT_OPENING" : "OPEN",
           businessDate,
-          openingBalance: amount,
+          openingControlledBalance: amount,
         }),
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.error || "No fue posible abrir la caja.");
+        throw new Error(
+          result.error ||
+            (editingOpening
+              ? "No fue posible actualizar la apertura."
+              : "No fue posible abrir la caja."),
+        );
       }
 
       setOpenModal(false);
+      setEditingOpening(false);
       await load();
       onChanged?.();
     } catch (actionError) {
       setError(
         actionError instanceof Error
           ? actionError.message
-          : "No fue posible abrir la caja.",
+          : editingOpening
+            ? "No fue posible actualizar la apertura."
+            : "No fue posible abrir la caja.",
       );
     } finally {
       setActionBusy(false);
@@ -344,7 +387,7 @@ export default function CashRegisterControl({
                 </p>
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-semibold text-neutral-500">
                   <span>Flujo del día: <b className={liveMovement >= 0 ? "text-emerald-700" : "text-red-700"}>{money(liveMovement)}</b></span>
-                  {data?.suggestedOpeningBalance != null && (
+                  {!editingOpening && data?.suggestedOpeningBalance != null && (
                     <span>
                       Último cierre: <b className="text-neutral-800">{money(data.suggestedOpeningBalance)}</b>
                     </span>
@@ -379,25 +422,35 @@ export default function CashRegisterControl({
                 <p className="mt-1 text-[10px] text-neutral-400">
                   Abrió {session.openedByName} · {dateTimeLabel(session.openedAt)}
                 </p>
+                {session.openingControlledBalance == null && (
+                  <p className="mt-1 text-[9px] font-bold text-amber-600">
+                    Apertura anterior al nuevo desglose · se interpreta como total incluyendo préstamos.
+                  </p>
+                )}
               </div>
             </div>
 
-            <MiniMetric label="Saldo inicial" value={money(session.openingBalance)} />
-            <MiniMetric
-              label="Movimiento día"
-              value={money(liveMovement)}
-              tone={liveMovement >= 0 ? "positive" : "negative"}
-            />
-            <MiniMetric label="En préstamos" value={money(loansReceivable)} />
-            <MiniMetric label="Esperado ahora" value={money(expectedNow)} strong />
+            <MiniMetric label="Total inicial" value={money(openingControlledBalance)} />
+            <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
+            <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
+            <MiniMetric label="Disponible esperado" value={money(expectedNow)} strong />
 
-            <button
-              type="button"
-              onClick={prepareClose}
-              className="h-12 rounded-2xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:-translate-y-0.5"
-            >
-              Cerrar caja
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={prepareEditOpening}
+                className="h-12 rounded-2xl border border-neutral-200 bg-white px-4 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Editar apertura
+              </button>
+              <button
+                type="button"
+                onClick={prepareClose}
+                className="h-12 rounded-2xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:-translate-y-0.5"
+              >
+                Cerrar caja
+              </button>
+            </div>
           </div>
         </section>
       ) : (
@@ -452,14 +505,19 @@ export default function CashRegisterControl({
               <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">Caja · {dateLabel(businessDate)}</p>
-                  <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">Abrir caja</h2>
+                  <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">
+                    {editingOpening ? "Editar apertura" : "Abrir caja"}
+                  </h2>
                   <p className="mt-1 text-[11px] leading-5 text-white/50">
-                    Ingresa el valor neto con el que comenzó el día.
+                    Ingresa el valor total al iniciar el día. Los préstamos por cobrar ya están incluidos.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setOpenModal(false)}
+                  onClick={() => {
+                    setOpenModal(false);
+                    setEditingOpening(false);
+                  }}
                   disabled={actionBusy}
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07]"
                 >
@@ -485,7 +543,9 @@ export default function CashRegisterControl({
                 </button>
               )}
 
-              <label className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-500">Saldo inicial / neto anterior</label>
+              <label className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-500">
+                Saldo inicial total · incluye préstamos
+              </label>
               <div className="mt-2 flex h-16 items-center rounded-2xl border border-neutral-200 bg-[#faf9f7] px-4 focus-within:border-neutral-400 focus-within:bg-white">
                 <span className="mr-2 text-xl font-black text-neutral-400">$</span>
                 <input
@@ -498,19 +558,41 @@ export default function CashRegisterControl({
                 />
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Movimiento del día</span>
-                  <b className={"mt-1 block text-[17px] font-black " + (liveMovement >= 0 ? "text-emerald-700" : "text-red-700")}>{money(liveMovement)}</b>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Préstamos al iniciar</span>
+                  <b className="mt-1 block text-[16px] font-black text-neutral-800">
+                    {money(openingLoansReceivable)}
+                  </b>
+                </div>
+                <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Disponible inicial</span>
+                  <b className="mt-1 block text-[16px] font-black text-neutral-800">
+                    {money(
+                      Math.max(
+                        0,
+                        Number(openingBalance || 0) -
+                          openingLoansReceivable,
+                      ),
+                    )}
+                  </b>
                 </div>
                 <div className="rounded-2xl border border-neutral-200 bg-neutral-950 p-4 text-white">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/40">Cierre teórico ahora</span>
-                  <b className="mt-1 block text-[17px] font-black">{money(Number(openingBalance || 0) + liveMovement)}</b>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/40">Disponible esperado</span>
+                  <b className="mt-1 block text-[16px] font-black">
+                    {money(
+                      Math.max(
+                        0,
+                        Number(openingBalance || 0) -
+                          openingLoansReceivable,
+                      ) + liveMovement,
+                    )}
+                  </b>
                 </div>
               </div>
 
               <p className="mt-4 text-[10px] leading-5 text-neutral-500">
-                Aunque abras la caja después de haber vendido, el cierre incluirá todos los cobros, ingresos, abonos, salidas y préstamos registrados en esta fecha.
+                El sistema separa automáticamente el saldo total entre dinero disponible y préstamos por cobrar. Los movimientos del día se aplican únicamente al dinero disponible.
               </p>
             </div>
 
@@ -525,11 +607,17 @@ export default function CashRegisterControl({
               </button>
               <button
                 type="button"
-                onClick={() => void openCash()}
+                onClick={() => void saveOpening()}
                 disabled={actionBusy}
                 className="h-11 flex-1 rounded-xl bg-neutral-950 px-6 text-[11px] font-black text-white disabled:bg-neutral-300 sm:flex-none"
               >
-                {actionBusy ? "Abriendo..." : "Abrir caja"}
+                {actionBusy
+                  ? editingOpening
+                    ? "Guardando..."
+                    : "Abriendo..."
+                  : editingOpening
+                    ? "Guardar apertura"
+                    : "Abrir caja"}
               </button>
             </div>
           </div>
@@ -652,7 +740,9 @@ export default function CashRegisterControl({
                       <span className="text-[9px] font-bold text-neutral-400">{dateLabel(businessDate)}</span>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-[11px]">
-                      <SummaryLine label="Saldo inicial disponible" value={money(session.openingBalance)} />
+                      <SummaryLine label="Saldo inicial total" value={money(openingControlledBalance)} />
+                      <SummaryLine label="Préstamos al iniciar" value={money(openingLoansReceivable)} />
+                      <SummaryLine label="Disponible inicial" value={money(openingAvailableBalance)} />
                       <SummaryLine label="Flujo neto del día" value={money(liveMovement)} />
                       <SummaryLine label="Dinero esperado" value={money(expectedNow)} strong />
                       <SummaryLine label="Préstamos por cobrar" value={money(loansReceivable)} />
