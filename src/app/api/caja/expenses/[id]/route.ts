@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  cashDateClosedResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 export async function DELETE(
   _request: NextRequest,
@@ -26,7 +31,7 @@ export async function DELETE(
   try {
     const existing = await prisma.cashExpense.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, occurredAt: true },
     });
 
     if (!existing) {
@@ -36,9 +41,18 @@ export async function DELETE(
       );
     }
 
+    await assertCashDateEditable(existing.occurredAt);
+
     await prisma.cashExpense.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof Error && error.message === CASH_DATE_CLOSED_ERROR) {
+      return NextResponse.json(
+        { error: cashDateClosedResponseMessage() },
+        { status: 409 },
+      );
+    }
+
     console.error("Cash expense delete error", error);
     return NextResponse.json(
       { error: "No fue posible eliminar la salida." },
