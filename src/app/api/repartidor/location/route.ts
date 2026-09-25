@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { verifyDriverLocationToken } from "@/lib/driverLocationToken";
 
 function finite(value: unknown) {
   const number = Number(value);
@@ -9,7 +10,29 @@ function finite(value: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireStaffSession(["DRIVER", "DISPATCH"]);
+    const nativeToken = request.headers
+      .get("x-alento-driver-location-token")
+      ?.trim();
+
+    let userId: number;
+    let source: "ANDROID_NATIVE" | "WEB";
+
+    if (nativeToken) {
+      const payload = verifyDriverLocationToken(nativeToken);
+      if (!payload) {
+        return NextResponse.json(
+          { error: "Token nativo inválido o vencido." },
+          { status: 401 },
+        );
+      }
+      userId = payload.userId;
+      source = "ANDROID_NATIVE";
+    } else {
+      const session = await requireStaffSession(["DRIVER", "DISPATCH"]);
+      userId = session.userId;
+      source = "WEB";
+    }
+
     const body = await request.json().catch(() => ({}));
     const latitude = finite(body?.latitude);
     const longitude = finite(body?.longitude);
@@ -31,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const driver = await prisma.user.findFirst({
       where: {
-        id: session.userId,
+        id: userId,
         active: true,
         roles: { hasSome: ["DRIVER", "DISPATCH"] },
       },
@@ -61,6 +84,7 @@ export async function POST(request: NextRequest) {
         driverLocationAccuracy:
           accuracy != null && accuracy >= 0 ? accuracy : null,
         driverLocationUpdatedAt: updatedAt,
+        driverLocationSource: source,
       },
     });
 
@@ -71,6 +95,7 @@ export async function POST(request: NextRequest) {
         accuracy:
           accuracy != null && accuracy >= 0 ? accuracy : null,
         updatedAt: updatedAt.toISOString(),
+        source,
       },
     });
   } catch (error) {
