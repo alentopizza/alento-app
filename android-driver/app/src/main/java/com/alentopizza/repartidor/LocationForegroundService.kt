@@ -75,6 +75,7 @@ class LocationForegroundService : Service() {
                 return START_NOT_STICKY
             }
 
+            restoreOrderContext()
             clearOrderContext()
             startAsForeground()
             requestLocationUpdates()
@@ -124,6 +125,9 @@ class LocationForegroundService : Service() {
             }
             restoreOrderContext()
         }
+
+        nativeLocationToken =
+            prefs.getString(PREF_NATIVE_TOKEN, nativeLocationToken)
 
         prefs.edit()
             .putBoolean(PREF_ACTIVE, true)
@@ -348,7 +352,7 @@ class LocationForegroundService : Service() {
             )
             connection.setRequestProperty(
                 "User-Agent",
-                "AlentoDriverAndroid/0.2",
+                "AlentoDriverAndroid/0.3",
             )
 
             if (!nativeToken.isNullOrBlank()) {
