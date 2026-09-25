@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Banknote,
   CheckCircle2,
   CircleDollarSign,
   Landmark,
   LockKeyhole,
-  WalletCards,
   X,
 } from "lucide-react";
 
