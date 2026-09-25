@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  cashDateClosedResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 export async function DELETE(
   _request: NextRequest,
@@ -38,6 +43,8 @@ export async function DELETE(
       );
     }
 
+    await assertCashDateEditable(loan.issuedAt);
+
     if (loan.repayments.length > 0) {
       return NextResponse.json(
         {
@@ -51,6 +58,13 @@ export async function DELETE(
     await prisma.cashLoan.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof Error && error.message === CASH_DATE_CLOSED_ERROR) {
+      return NextResponse.json(
+        { error: cashDateClosedResponseMessage() },
+        { status: 409 },
+      );
+    }
+
     console.error("Cash loan delete error", error);
     return NextResponse.json(
       { error: "No fue posible eliminar el préstamo." },
