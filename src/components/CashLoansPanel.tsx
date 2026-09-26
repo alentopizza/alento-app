@@ -446,10 +446,7 @@ export default function CashLoansPanel({
                     {dateTimeLabel(loan.issuedAt)}
                   </p>
                   <p className="mt-1 truncate text-[11px] text-neutral-500">
-                    {loan.note ||
-                      (loan.source === "GLIDE_IMPORT"
-                        ? "Préstamo histórico"
-                        : "Sin observación")}
+                    {loan.note || "Sin observación"}
                   </p>
                 </div>
 
@@ -531,8 +528,9 @@ export default function CashLoansPanel({
 
               {loan.historicalPaidWithoutRepayment && (
                 <div className="border-t border-neutral-200 bg-amber-50 px-4 py-2.5 text-[9px] text-amber-700">
-                  Histórico PAGADO. Glide no conserva la fecha del pago, por eso
-                  no inventamos un movimiento de devolución en Caja.
+                  Registro anterior a la operación actual. No existe una fecha
+                  verificable de devolución, por eso no se genera un movimiento
+                  sintético en Caja.
                 </div>
               )}
             </article>
