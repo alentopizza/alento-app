@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
-import type { OrderLineConfiguration, PizzaOrderConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
+import type { OrderLineConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
+import {
+  buildPizzaConfiguration,
+  estimatePizzaPrice,
+  isTwoFlavorPizzaProduct,
+  pizzaCrustPrice,
+} from "@/lib/pizzaConfiguration";
 import {
   buildComboConfiguration,
   createComboDraft,
@@ -61,12 +67,11 @@ function formatCOP(value: number) {
 }
 
 function isTwoFlavorPizza(product: CatalogProduct) {
-  return product.type === "PIZZA_TWO_FLAVORS" || product.name.toLowerCase().includes("2 sabores");
+  return isTwoFlavorPizzaProduct(product);
 }
 
 function crustPriceForSize(crust: Crust, sizeId: number | null) {
-  if (!sizeId) return null;
-  return crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null;
+  return pizzaCrustPrice(crust, sizeId);
 }
 
 export default function StructuredPosPageV2() {
@@ -572,58 +577,67 @@ export default function StructuredPosPageV2() {
   }
 
   function pizzaPrice(config: PizzaConfig) {
-    if (!catalog || !config.sizeId) return 0;
-    const size = catalog.sizes.find((item) => item.id === config.sizeId);
-    if (!size) return 0;
-    const flavorPrices = isTwoFlavorPizza(config.product)
-      ? [config.firstFlavorId, config.secondFlavorId].map((id) => catalog.pizzaFlavors.find((flavor) => flavor.id === id)?.basePrice ?? 0)
-      : [config.product.basePrice ?? 0];
-    const crust = catalog.crusts.find((item) => item.id === config.crustId);
-    const crustPrice = crust?.prices.find((price) => price.sizeId === size.id)?.price ?? 0;
-    const modifiersPrice = isTwoFlavorPizza(config.product)
-      ? 0
-      : catalog.modifiers.filter((item) => config.modifierIds.includes(item.id)).reduce((sum, item) => sum + item.basePrice, 0);
-    return size.basePrice + Math.max(...flavorPrices) + crustPrice + modifiersPrice;
+    if (!catalog) return 0;
+    return estimatePizzaPrice({
+      product: config.product,
+      draft: config,
+      sizes: catalog.sizes,
+      flavors: catalog.pizzaFlavors,
+      crusts: catalog.crusts,
+      modifiers: catalog.modifiers,
+    });
   }
 
   function confirmPizza() {
-    if (!pizzaConfig || !catalog || !pizzaConfig.sizeId || !pizzaConfig.crustId) return;
-    const size = catalog.sizes.find((item) => item.id === pizzaConfig.sizeId);
-    const crust = catalog.crusts.find((item) => item.id === pizzaConfig.crustId);
-    if (!size || !crust) return;
-    const twoFlavors = isTwoFlavorPizza(pizzaConfig.product);
-    if (twoFlavors && (!pizzaConfig.firstFlavorId || !pizzaConfig.secondFlavorId)) return setConfigError("Selecciona los dos sabores.");
-    if (twoFlavors && pizzaConfig.firstFlavorId === pizzaConfig.secondFlavorId) return setConfigError("Los dos sabores deben ser diferentes.");
+    if (!pizzaConfig || !catalog) return;
 
-    const flavorIds = twoFlavors ? [pizzaConfig.firstFlavorId!, pizzaConfig.secondFlavorId!] : [pizzaConfig.product.id];
-    const flavors = flavorIds.map((id) => catalog.pizzaFlavors.find((item) => item.id === id)).filter(Boolean) as CatalogProduct[];
-    if (flavors.length !== flavorIds.length) return setConfigError("Uno de los sabores ya no está disponible.");
-    const crustPrice = crust.prices.find((price) => price.sizeId === size.id)?.price;
-    if (crustPrice == null) return setConfigError("Ese borde no está disponible para el tamaño seleccionado.");
-    const modifiers = twoFlavors
-      ? []
-      : catalog.modifiers.filter((modifier) => pizzaConfig.modifierIds.includes(modifier.id));
+    try {
+      const result = buildPizzaConfiguration({
+        product: pizzaConfig.product,
+        draft: pizzaConfig,
+        sizes: catalog.sizes,
+        flavors: catalog.pizzaFlavors,
+        crusts: catalog.crusts,
+        modifiers: catalog.modifiers,
+      });
+      const note = pizzaConfig.note.trim().slice(0, 120);
 
-    const configuration: PizzaOrderConfiguration = {
-      schemaVersion: 1,
-      kind: "PIZZA",
-      productId: pizzaConfig.product.id,
-      productName: pizzaConfig.product.name,
-      size: { id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: size.basePrice },
-      flavors: flavors.map((flavor) => ({ productId: flavor.id, name: flavor.name, portion: twoFlavors ? 0.5 : 1, basePrice: flavor.basePrice ?? 0 })),
-      crust: { id: crust.id, name: crust.name, price: crustPrice },
-      modifiers: modifiers.map((modifier) => ({ productId: modifier.id, name: modifier.name, quantity: 1, unitPrice: modifier.basePrice })),
-    };
+      setCart((current) => {
+        const nextItem = {
+          productId: pizzaConfig.product.id,
+          name: pizzaConfig.product.name,
+          detail: result.summary,
+          unitPrice: result.estimatedUnitPrice,
+          configuration: result.configuration,
+          notes: note || undefined,
+        };
 
-    const detail = [size.name, twoFlavors ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ") : flavors[0]?.name, `Borde ${crust.name}`, ...modifiers.map((modifier) => `+ ${modifier.name}`)].filter(Boolean).join(" · ");
-    const unitPrice = pizzaPrice(pizzaConfig);
+        if (!editingCartKey) {
+          return [
+            ...current,
+            {
+              key: `pizza-${Date.now()}-${Math.random()}`,
+              ...nextItem,
+              quantity: 1,
+            },
+          ];
+        }
 
-    const note = pizzaConfig.note.trim().slice(0, 120);
-    setCart((current) => {
-      if (!editingCartKey) return [...current, { key: `pizza-${Date.now()}-${Math.random()}`, productId: pizzaConfig.product.id, name: pizzaConfig.product.name, detail, unitPrice, quantity: 1, configuration, notes: note || undefined }];
-      return current.map((item) => item.key === editingCartKey ? { ...item, productId: pizzaConfig.product.id, name: pizzaConfig.product.name, detail, unitPrice, configuration, notes: note || undefined } : item);
-    });
-    closePizzaConfig();
+        return current.map((item) =>
+          item.key === editingCartKey
+            ? { ...item, ...nextItem }
+            : item,
+        );
+      });
+
+      closePizzaConfig();
+    } catch (error) {
+      setConfigError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible configurar la pizza.",
+      );
+    }
   }
 
   function comboPrice(config: ComboConfig) {
