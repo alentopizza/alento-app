@@ -77,6 +77,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"PIZZA" | "COMBO">("PIZZA");
+  const [productQuery, setProductQuery] = useState("");
   const [pizza, setPizza] = useState<PizzaDraft | null>(null);
   const [combo, setCombo] = useState<ComboDraft | null>(null);
   const [configError, setConfigError] = useState("");
@@ -116,6 +117,15 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
     products.filter((product) => product.type === "COMBO").forEach((product) => unique.set(product.id, product));
     return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [products]);
+
+  const visibleProducts = useMemo(() => {
+    const source = tab === "PIZZA" ? pizzas : combos;
+    const value = productQuery.trim().toLocaleLowerCase("es");
+    if (!value) return source;
+    return source.filter((product) =>
+      product.name.toLocaleLowerCase("es").includes(value),
+    );
+  }, [combos, pizzas, productQuery, tab]);
 
   function startPizza(product: CatalogProduct) {
     if (!catalog) return;
@@ -389,58 +399,169 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
     );
   }
 
-  return <div className="space-y-3">
-    <div className="flex items-center justify-between gap-3">
+  return <div className="space-y-4">
+    <div className="flex flex-col gap-3 border-b border-neutral-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Agregar pizzas y combos</p>
-        <p className="mt-1 text-[11px] text-neutral-500">Configura el producto antes de agregarlo al pedido.</p>
+        <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+          Agregar productos
+        </p>
+        <h4 className="mt-1 text-[18px] font-black tracking-[-0.02em] text-neutral-950">
+          Pizzas y combos
+        </h4>
+        <p className="mt-1 text-[11px] text-neutral-400">
+          Configura el producto antes de sumarlo al pedido.
+        </p>
       </div>
-      <div className="flex rounded-xl bg-neutral-100 p-1">
-        <button type="button" onClick={() => setTab("PIZZA")} className={`rounded-lg px-3 py-1.5 text-[11px] font-bold ${tab === "PIZZA" ? "bg-white shadow-sm" : "text-neutral-500"}`}>Pizzas</button>
-        <button type="button" onClick={() => setTab("COMBO")} className={`rounded-lg px-3 py-1.5 text-[11px] font-bold ${tab === "COMBO" ? "bg-white shadow-sm" : "text-neutral-500"}`}>Combos</button>
+
+      <div className="flex rounded-2xl border border-neutral-200 bg-[#f7f6f3] p-1">
+        <button
+          type="button"
+          onClick={() => {
+            setTab("PIZZA");
+            setProductQuery("");
+          }}
+          className={`min-w-[86px] rounded-xl px-4 py-2 text-[11px] font-bold transition ${
+            tab === "PIZZA"
+              ? "bg-white text-neutral-950 shadow-sm"
+              : "text-neutral-500 hover:text-neutral-800"
+          }`}
+        >
+          Pizzas
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setTab("COMBO");
+            setProductQuery("");
+          }}
+          className={`min-w-[86px] rounded-xl px-4 py-2 text-[11px] font-bold transition ${
+            tab === "COMBO"
+              ? "bg-white text-neutral-950 shadow-sm"
+              : "text-neutral-500 hover:text-neutral-800"
+          }`}
+        >
+          Combos
+        </button>
       </div>
     </div>
 
+    <div className="relative">
+      <input
+        type="search"
+        value={productQuery}
+        onChange={(event) => setProductQuery(event.target.value)}
+        placeholder={tab === "PIZZA" ? "Buscar pizza..." : "Buscar combo..."}
+        className="alento-input h-11 w-full rounded-2xl bg-[#faf9f7] px-4 pr-10 text-sm"
+      />
+      {productQuery && (
+        <button
+          type="button"
+          onClick={() => setProductQuery("")}
+          className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-200/70 text-xs font-bold text-neutral-500 hover:bg-neutral-200"
+          aria-label="Limpiar búsqueda"
+        >
+          ×
+        </button>
+      )}
+    </div>
+
     {loading ? (
-      <p className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-500">Cargando catálogo...</p>
+      <p className="rounded-2xl bg-neutral-50 p-4 text-xs text-neutral-500">
+        Cargando catálogo...
+      </p>
     ) : error ? (
-      <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</p>
-    ) : (
-      <div className="grid gap-2 sm:grid-cols-2">
-        {(tab === "PIZZA" ? pizzas : combos).map((product) => (
+      <p className="rounded-2xl bg-red-50 p-4 text-xs font-bold text-red-700">
+        {error}
+      </p>
+    ) : visibleProducts.length ? (
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {visibleProducts.map((product) => (
           <button
             type="button"
             key={product.id}
-            onClick={() => tab === "PIZZA" ? startPizza(product) : startCombo(product)}
-            className="flex min-h-[58px] items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left hover:border-neutral-400"
+            onClick={() =>
+              tab === "PIZZA" ? startPizza(product) : startCombo(product)
+            }
+            className="group flex min-h-[76px] items-center justify-between gap-3 rounded-2xl border border-neutral-200 bg-[#fcfbf9] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-[0_8px_20px_rgba(20,18,16,.06)]"
           >
             <div className="min-w-0">
-              <b className="block truncate text-sm">{product.name}</b>
-              <span className="text-[11px] text-neutral-500">{tab === "PIZZA" ? "Configurar tamaño, sabores y borde" : "Configurar contenido del combo"}</span>
+              <b className="block truncate text-[13px] font-bold text-neutral-950">
+                {product.name}
+              </b>
+              <span className="mt-1 block text-[10px] leading-4 text-neutral-400">
+                {tab === "PIZZA"
+                  ? "Tamaño, sabores, borde y extras"
+                  : "Contenido, pizza y acompañantes"}
+              </span>
             </div>
-            <span className="shrink-0 rounded-lg bg-black px-2.5 py-1.5 text-[10px] font-black text-white">Configurar</span>
+            <span className="shrink-0 rounded-xl bg-neutral-950 px-3 py-2 text-[9px] font-black uppercase tracking-[.03em] text-white transition group-hover:bg-[var(--brand-red)]">
+              Configurar
+            </span>
           </button>
         ))}
+      </div>
+    ) : (
+      <div className="rounded-2xl border border-dashed border-neutral-300 bg-[#faf9f7] px-4 py-8 text-center">
+        <b className="text-xs text-neutral-700">
+          No encontramos {tab === "PIZZA" ? "pizzas" : "combos"}
+        </b>
+        <p className="mt-1 text-[10px] text-neutral-400">
+          Prueba con otro nombre o limpia la búsqueda.
+        </p>
       </div>
     )}
 
     {additions.length > 0 && (
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-3">
-        <p className="text-[10px] font-black uppercase tracking-[.08em] text-emerald-700">Por agregar al pedido</p>
-        <div className="mt-2 space-y-2">
+      <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/45 p-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[9px] font-black uppercase tracking-[.1em] text-emerald-700">
+            Por agregar al pedido
+          </p>
+          <span className="rounded-full bg-white px-2.5 py-1 text-[9px] font-bold text-emerald-700 shadow-sm">
+            {additions.reduce((sum, item) => sum + item.quantity, 0)} uds.
+          </span>
+        </div>
+        <div className="mt-2.5 space-y-2">
           {additions.map((item) => (
-            <div key={item.key} className="rounded-xl border border-emerald-100 bg-white p-3">
+            <div
+              key={item.key}
+              className="rounded-2xl border border-emerald-100 bg-white p-3.5 shadow-[0_4px_14px_rgba(16,185,129,.05)]"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <b className="text-sm">{item.name}</b>
-                  <p className="mt-1 text-[11px] leading-4 text-neutral-500">{item.summary}</p>
-                  {item.notes && <p className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10.5px] font-semibold text-amber-900">Nota: {item.notes}</p>}
-                  <b className="mt-1 block text-xs text-[var(--brand-red)]">{money(item.estimatedUnitPrice * item.quantity)}</b>
+                  <b className="text-[13px] font-bold text-neutral-950">
+                    {item.name}
+                  </b>
+                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                    {item.summary}
+                  </p>
+                  {item.notes && (
+                    <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] font-semibold text-amber-900">
+                      Nota: {item.notes}
+                    </p>
+                  )}
+                  <b className="mt-2 block text-[11px] text-[var(--brand-red)]">
+                    {money(item.estimatedUnitPrice * item.quantity)}
+                  </b>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button type="button" onClick={() => changeQuantity(item.key, -1)} className="h-8 w-8 rounded-lg border">−</button>
-                  <b className="w-4 text-center text-sm">{item.quantity}</b>
-                  <button type="button" onClick={() => changeQuantity(item.key, 1)} className="h-8 w-8 rounded-lg border">+</button>
+                <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-neutral-200 bg-[#faf9f7] p-1">
+                  <button
+                    type="button"
+                    onClick={() => changeQuantity(item.key, -1)}
+                    className="h-8 w-8 rounded-lg transition hover:bg-white"
+                  >
+                    −
+                  </button>
+                  <b className="w-5 text-center text-[13px] tabular-nums">
+                    {item.quantity}
+                  </b>
+                  <button
+                    type="button"
+                    onClick={() => changeQuantity(item.key, 1)}
+                    className="h-8 w-8 rounded-lg transition hover:bg-white"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
             </div>
