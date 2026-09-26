@@ -8,6 +8,12 @@ import {
   estimateComboPrice,
   type ComboDraftChoice,
 } from "@/lib/comboConfiguration";
+import {
+  buildPizzaConfiguration,
+  estimatePizzaPrice,
+  isTwoFlavorPizzaProduct,
+  pizzaCrustPrice,
+} from "@/lib/pizzaConfiguration";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
@@ -76,10 +82,10 @@ const money = (value: number) => new Intl.NumberFormat("es-CO", {
 }).format(value);
 
 const isTwoFlavor = (product: CatalogProduct) =>
-  product.type === "PIZZA_TWO_FLAVORS" || product.name.toLowerCase().includes("2 sabores");
+  isTwoFlavorPizzaProduct(product);
 
 const crustPrice = (crust: Crust, sizeId: number | null) =>
-  sizeId ? crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null : null;
+  pizzaCrustPrice(crust, sizeId);
 
 export default function OrderEditStructuredAdder({ additions, onChange }: Props) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -165,98 +171,52 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   }
 
   function pizzaPrice(draft: PizzaDraft) {
-    if (!catalog || !draft.sizeId) return 0;
-    const size = catalog.sizes.find((item) => item.id === draft.sizeId);
-    if (!size) return 0;
-
-    const flavorIds = isTwoFlavor(draft.product)
-      ? [draft.firstFlavorId, draft.secondFlavorId]
-      : [draft.product.id];
-    const flavorPrices = flavorIds.map(
-      (id) => catalog.pizzaFlavors.find((item) => item.id === id)?.basePrice ?? 0,
-    );
-    const selectedCrust = catalog.crusts.find((item) => item.id === draft.crustId);
-    const extras = catalog.modifiers
-      .filter((item) => draft.modifierIds.includes(item.id))
-      .reduce((sum, item) => sum + item.basePrice, 0);
-
-    return size.basePrice
-      + Math.max(0, ...flavorPrices)
-      + (selectedCrust ? crustPrice(selectedCrust, size.id) ?? 0 : 0)
-      + extras;
+    if (!catalog) return 0;
+    return estimatePizzaPrice({
+      product: draft.product,
+      draft,
+      sizes: catalog.sizes,
+      flavors: catalog.pizzaFlavors,
+      crusts: catalog.crusts,
+      modifiers: catalog.modifiers,
+    });
   }
 
   function confirmPizza() {
-    if (!pizza || !catalog || !pizza.sizeId || !pizza.crustId) return;
+    if (!pizza || !catalog) return;
 
-    const size = catalog.sizes.find((item) => item.id === pizza.sizeId);
-    const selectedCrust = catalog.crusts.find((item) => item.id === pizza.crustId);
-    if (!size || !selectedCrust) return setConfigError("La configuración seleccionada ya no está disponible.");
+    try {
+      const result = buildPizzaConfiguration({
+        product: pizza.product,
+        draft: pizza,
+        sizes: catalog.sizes,
+        flavors: catalog.pizzaFlavors,
+        crusts: catalog.crusts,
+        modifiers: catalog.modifiers,
+      });
 
-    const two = isTwoFlavor(pizza.product);
-    let flavorIds: number[];
-    if (two) {
-      const first = pizza.firstFlavorId;
-      const second = pizza.secondFlavorId;
-      if (!first || !second) return setConfigError("Selecciona los dos sabores.");
-      if (first === second) return setConfigError("Los sabores deben ser diferentes.");
-      flavorIds = [first, second];
-    } else {
-      flavorIds = [pizza.product.id];
+      onChange([
+        ...additions,
+        {
+          key: `pizza-${Date.now()}-${Math.random()}`,
+          productId: pizza.product.id,
+          quantity: 1,
+          name: pizza.product.name,
+          summary: result.summary,
+          estimatedUnitPrice: result.estimatedUnitPrice,
+          configuration: result.configuration,
+          notes: pizza.note.trim().slice(0, 120) || undefined,
+        },
+      ]);
+      setPizza(null);
+      setConfigError("");
+    } catch (error) {
+      setConfigError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible configurar la pizza.",
+      );
     }
-
-    const flavors = flavorIds
-      .map((id) => catalog.pizzaFlavors.find((item) => item.id === id))
-      .filter((item): item is CatalogProduct => Boolean(item));
-    if (flavors.length !== flavorIds.length) return setConfigError("Uno de los sabores ya no está disponible.");
-
-    const selectedCrustPrice = crustPrice(selectedCrust, size.id);
-    if (selectedCrustPrice == null) return setConfigError("Ese borde no está disponible para el tamaño seleccionado.");
-
-    const modifiers = catalog.modifiers.filter((item) => pizza.modifierIds.includes(item.id));
-    const configuration: PizzaOrderConfiguration = {
-      schemaVersion: 1,
-      kind: "PIZZA",
-      productId: pizza.product.id,
-      productName: pizza.product.name,
-      size: { id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: size.basePrice },
-      flavors: flavors.map((flavor) => ({
-        productId: flavor.id,
-        name: flavor.name,
-        portion: two ? 0.5 : 1,
-        basePrice: flavor.basePrice ?? 0,
-      })),
-      crust: { id: selectedCrust.id, name: selectedCrust.name, price: selectedCrustPrice },
-      modifiers: modifiers.map((modifier) => ({
-        productId: modifier.id,
-        name: modifier.name,
-        quantity: 1,
-        unitPrice: modifier.basePrice,
-      })),
-    };
-
-    const summary = [
-      size.name,
-      two ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ") : flavors[0]?.name,
-      `Borde ${selectedCrust.name}`,
-      ...modifiers.map((modifier) => `+ ${modifier.name}`),
-    ].filter(Boolean).join(" · ");
-
-    onChange([
-      ...additions,
-      {
-        key: `pizza-${Date.now()}-${Math.random()}`,
-        productId: pizza.product.id,
-        quantity: 1,
-        name: pizza.product.name,
-        summary,
-        estimatedUnitPrice: pizzaPrice(pizza),
-        configuration,
-        notes: pizza.note.trim().slice(0, 120) || undefined,
-      },
-    ]);
-    setPizza(null);
-    setConfigError("");
   }
 
   function startCombo(product: CatalogProduct) {
