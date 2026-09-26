@@ -234,6 +234,40 @@ class MainActivity : Activity() {
         requestNotificationPermissionIfNeeded()
     }
 
+    fun openExternalNavigation(
+        latitude: Double,
+        longitude: Double,
+        travelMode: String,
+    ) {
+        if (!latitude.isFinite() || !longitude.isFinite()) return
+
+        val normalizedMode =
+            if (travelMode.trim().uppercase() == "WALK") "w" else "d"
+        val navigationUri =
+            Uri.parse("google.navigation:q=$latitude,$longitude&mode=$normalizedMode")
+
+        val openedGoogleMaps = runCatching {
+            val mapsIntent = Intent(Intent.ACTION_VIEW, navigationUri)
+                .setPackage("com.google.android.apps.maps")
+            startActivity(mapsIntent)
+        }.isSuccess
+
+        if (openedGoogleMaps) return
+
+        val webTravelMode =
+            if (normalizedMode == "w") "walking" else "driving"
+        val fallbackUri = Uri.parse(
+            "https://www.google.com/maps/dir/?api=1" +
+                "&destination=$latitude,$longitude" +
+                "&travelmode=$webTravelMode" +
+                "&dir_action=navigate",
+        )
+
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, fallbackUri))
+        }
+    }
+
     fun clearNativeOrderTracking() {
         val intent = Intent(this, LocationForegroundService::class.java)
             .setAction(LocationForegroundService.ACTION_CLEAR_ORDER)
