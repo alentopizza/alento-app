@@ -18,6 +18,52 @@ export type CustomerAddressEditorValue = {
   distanceMeters?: number | null;
 };
 
+export type StrictCustomerAddressEditorValue = {
+  address: string;
+  formattedAddress: string;
+  placeId: string;
+  latitude: number | null;
+  longitude: number | null;
+  neighborhood: string;
+  city: string;
+  notes: string;
+};
+
+export function mergeCustomerAddressEditorValue<
+  T extends StrictCustomerAddressEditorValue,
+>(
+  current: T,
+  next: CustomerAddressEditorValue,
+): T {
+  return {
+    ...current,
+    address:
+      next.address !== undefined ? next.address : current.address,
+    formattedAddress:
+      next.formattedAddress !== undefined
+        ? next.formattedAddress
+        : current.formattedAddress,
+    placeId:
+      typeof next.placeId === "string" ? next.placeId : "",
+    latitude:
+      next.latitude !== undefined
+        ? next.latitude
+        : current.latitude,
+    longitude:
+      next.longitude !== undefined
+        ? next.longitude
+        : current.longitude,
+    neighborhood:
+      next.neighborhood !== undefined
+        ? next.neighborhood
+        : current.neighborhood,
+    city:
+      next.city !== undefined ? next.city : current.city,
+    notes:
+      next.notes !== undefined ? next.notes : current.notes,
+  };
+}
+
 export function isValidatedCustomerAddress(
   value: CustomerAddressEditorValue | null | undefined,
 ) {
