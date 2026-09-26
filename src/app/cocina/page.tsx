@@ -105,9 +105,20 @@ function comboKitchenPresentation(configuration: unknown): {
             .join(" · ")
         : "";
 
-      const flavor = isRecord(pizza.flavor)
+      const flavors = Array.isArray(pizza.flavors)
+        ? pizza.flavors
+            .map((flavor) =>
+              isRecord(flavor) ? stringValue(flavor.name) : "",
+            )
+            .filter(Boolean)
+        : [];
+      const legacyFlavor = isRecord(pizza.flavor)
         ? stringValue(pizza.flavor.name)
         : "";
+      const flavor =
+        flavors.length > 1
+          ? flavors.map((name) => `½ ${name}`).join(" + ")
+          : flavors[0] || legacyFlavor;
 
       if (size || flavor) pizzas.push({ size, flavor });
     });
