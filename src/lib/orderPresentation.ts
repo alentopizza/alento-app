@@ -18,6 +18,99 @@ function quantity(value: unknown) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
+
+export type PresentedComboPizza = {
+  sizeName: string;
+  sizeLabel: string;
+  flavor: string;
+};
+
+export type PresentedComboGroup = {
+  label: string;
+  kind: string;
+  values: string[];
+};
+
+export function presentComboOrderConfiguration(
+  configuration: unknown,
+): {
+  pizzas: PresentedComboPizza[];
+  groups: PresentedComboGroup[];
+} | null {
+  if (
+    !isObject(configuration) ||
+    text(configuration.kind).toUpperCase() !== "COMBO"
+  ) {
+    return null;
+  }
+
+  const pizzas: PresentedComboPizza[] = [];
+  if (Array.isArray(configuration.pizzas)) {
+    configuration.pizzas.forEach((pizza) => {
+      if (!isObject(pizza)) return;
+
+      const sizeName = isObject(pizza.size)
+        ? text(pizza.size.name)
+        : "";
+      const diameter = isObject(pizza.size)
+        ? Number(pizza.size.diameterCm)
+        : Number.NaN;
+      const sizeLabel = [
+        sizeName,
+        Number.isFinite(diameter) && diameter > 0
+          ? `${diameter} cm`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      const flavors = Array.isArray(pizza.flavors)
+        ? pizza.flavors.flatMap((flavor) =>
+            isObject(flavor) && text(flavor.name)
+              ? [text(flavor.name)]
+              : [],
+          )
+        : [];
+      const legacyFlavor = isObject(pizza.flavor)
+        ? text(pizza.flavor.name)
+        : "";
+      const flavor =
+        flavors.length > 1
+          ? flavors.map((name) => `½ ${name}`).join(" + ")
+          : flavors[0] || legacyFlavor;
+
+      if (sizeName || flavor) {
+        pizzas.push({ sizeName, sizeLabel, flavor });
+      }
+    });
+  }
+
+  const groups: PresentedComboGroup[] = [];
+  if (Array.isArray(configuration.groups)) {
+    configuration.groups.forEach((group) => {
+      if (!isObject(group)) return;
+
+      const label = text(group.name) || "Opción";
+      const kind = text(group.kind);
+      const values = Array.isArray(group.selections)
+        ? group.selections.flatMap((selection) => {
+            if (!isObject(selection) || !text(selection.name)) return [];
+            const count = quantity(selection.quantity);
+            return [
+              count > 1
+                ? `${count} × ${text(selection.name)}`
+                : text(selection.name),
+            ];
+          })
+        : [];
+
+      if (values.length) groups.push({ label, kind, values });
+    });
+  }
+
+  return pizzas.length || groups.length ? { pizzas, groups } : null;
+}
+
 function fromPosSnapshot(detail: string): PresentedDetail[] {
   const parts = detail.split("·").map((part) => part.trim()).filter(Boolean);
   const result: PresentedDetail[] = [];
@@ -91,44 +184,21 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
   }
 
   if (kind === "COMBO") {
-    const result: PresentedDetail[] = [];
-    if (Array.isArray(configuration.pizzas)) {
-      configuration.pizzas.forEach((pizza, index) => {
-        if (!isObject(pizza)) return;
-        const size = isObject(pizza.size) ? text(pizza.size.name) : "";
-        const flavors = Array.isArray(pizza.flavors)
-          ? pizza.flavors.flatMap((flavor) =>
-              isObject(flavor) && text(flavor.name)
-                ? [`½ ${text(flavor.name)}`]
-                : [],
-            )
-          : [];
-        const legacyFlavor = isObject(pizza.flavor)
-          ? text(pizza.flavor.name)
-          : "";
-        const flavorText =
-          flavors.length > 1
-            ? flavors.join(" + ")
-            : flavors[0]?.replace(/^½\s*/, "") || legacyFlavor;
-        const value = [size, flavorText].filter(Boolean).join(" · ");
-        if (value) result.push({ label: `Pizza ${index + 1}`, value });
-      });
-    }
-    if (Array.isArray(configuration.groups)) {
-      configuration.groups.forEach((group) => {
-        if (!isObject(group)) return;
-        const label = text(group.name) || "Opción";
-        const selections = Array.isArray(group.selections)
-          ? group.selections.flatMap((selection) => {
-              if (!isObject(selection) || !text(selection.name)) return [];
-              const count = quantity(selection.quantity);
-              return [count > 1 ? `${count} × ${text(selection.name)}` : text(selection.name)];
-            })
-          : [];
-        if (selections.length) result.push({ label, value: selections.join(", ") });
-      });
-    }
-    return result;
+    const presented = presentComboOrderConfiguration(configuration);
+    if (!presented) return [];
+
+    return [
+      ...presented.pizzas.map((pizza, index) => ({
+        label: `Pizza ${index + 1}`,
+        value: [pizza.sizeName, pizza.flavor]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+      ...presented.groups.map((group) => ({
+        label: group.label,
+        value: group.values.join(", "),
+      })),
+    ].filter((detail) => detail.value);
   }
 
   if (kind === "STANDARD") {
