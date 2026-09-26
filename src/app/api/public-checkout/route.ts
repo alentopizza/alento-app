@@ -2,21 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCustomerSession } from "@/lib/auth";
 import { reverseGeocode } from "@/lib/googleMapsServer";
-import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  deliveryPricingHttpStatus,
+  resolveDeliveryPricing,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { createOrderTrackingToken } from "@/lib/orderTracking";
 
 const SETTINGS_KEY = "pos_settings";
-
-type DeliveryBand = {
-  id: string;
-  name?: string;
-  minMeters: number;
-  maxMeters: number;
-  fee: number;
-  active?: boolean;
-};
 
 type PaymentMethod = {
   id: string;
@@ -24,12 +19,7 @@ type PaymentMethod = {
   active?: boolean;
 };
 
-type SettingsValue = {
-  store?: {
-    latitude?: number | null;
-    longitude?: number | null;
-  };
-  deliveryBands?: DeliveryBand[];
+type SettingsValue = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
 };
 
@@ -50,24 +40,6 @@ function isCash(method: PaymentMethod) {
     method.id.toLowerCase() === "cash" ||
     method.name.trim().toLowerCase() === "efectivo"
   );
-}
-
-function normalizedBands(value: SettingsValue | null) {
-  return (Array.isArray(value?.deliveryBands) ? value.deliveryBands : [])
-    .filter((band) => band.active !== false)
-    .map((band) => ({
-      ...band,
-      minMeters: Number(band.minMeters),
-      maxMeters: Number(band.maxMeters),
-      fee: Number(band.fee),
-    }))
-    .filter(
-      (band) =>
-        Number.isFinite(band.minMeters) &&
-        Number.isFinite(band.maxMeters) &&
-        Number.isFinite(band.fee),
-    )
-    .sort((a, b) => a.minMeters - b.minMeters);
 }
 
 function activePayments(value: SettingsValue | null) {
@@ -182,67 +154,47 @@ export async function POST(request: NextRequest) {
       const latitude = Number(destination.latitude);
       const longitude = Number(destination.longitude);
 
-      if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude) ||
-        latitude < -90 ||
-        latitude > 90 ||
-        longitude < -180 ||
-        longitude > 180
-      ) {
+      try {
+        const pricing = resolveDeliveryPricing({
+          settings,
+          destination: { latitude, longitude },
+        });
+
+        if (!pricing.covered || !pricing.band) {
+          return NextResponse.json(
+            { error: "La dirección quedó fuera de nuestra cobertura." },
+            { status: 409 },
+          );
+        }
+
+        deliveryFee = pricing.deliveryFee ?? 0;
+        deliveryZoneId = pricing.deliveryZoneId;
+        deliveryZoneName = pricing.deliveryZoneName;
+        resolvedDeliveryLatitude = pricing.destination.latitude;
+        resolvedDeliveryLongitude = pricing.destination.longitude;
+      } catch (pricingError) {
         return NextResponse.json(
-          { error: "Confirma nuevamente la dirección de domicilio." },
-          { status: 400 },
+          {
+            error:
+              pricingError instanceof Error
+                ? pricingError.message
+                : "No fue posible calcular el domicilio.",
+          },
+          { status: deliveryPricingHttpStatus(pricingError) },
         );
       }
-
-      const storeLatitude = Number(settings?.store?.latitude);
-      const storeLongitude = Number(settings?.store?.longitude);
-      if (
-        !Number.isFinite(storeLatitude) ||
-        !Number.isFinite(storeLongitude)
-      ) {
-        return NextResponse.json(
-          { error: "La ubicación de Alentó no está configurada." },
-          { status: 503 },
-        );
-      }
-
-      const commercialDistanceMeters = directDistanceMeters({
-        origin: {
-          latitude: storeLatitude,
-          longitude: storeLongitude,
-        },
-        destination: { latitude, longitude },
-      });
-
-      const bands = normalizedBands(settings);
-      const band = bands.find(
-        (item) =>
-          commercialDistanceMeters >= item.minMeters &&
-          commercialDistanceMeters <= item.maxMeters,
-      );
-
-      if (!band) {
-        return NextResponse.json(
-          { error: "La dirección quedó fuera de nuestra cobertura." },
-          { status: 409 },
-        );
-      }
-
-      deliveryFee = money(band.fee);
-      deliveryZoneId = band.id;
-      deliveryZoneName = band.name?.trim() || "Domicilio";
 
       resolvedDeliveryAddress = text(destination.formattedAddress);
       resolvedDeliveryPlaceId = text(destination.placeId) || null;
-      resolvedDeliveryLatitude = latitude;
-      resolvedDeliveryLongitude = longitude;
 
       if (!resolvedDeliveryAddress) {
-        const geocoded = await reverseGeocode(latitude, longitude);
+        const geocoded = await reverseGeocode(
+          resolvedDeliveryLatitude!,
+          resolvedDeliveryLongitude!,
+        );
         resolvedDeliveryAddress = geocoded.formattedAddress;
-        resolvedDeliveryPlaceId = resolvedDeliveryPlaceId || geocoded.placeId || null;
+        resolvedDeliveryPlaceId =
+          resolvedDeliveryPlaceId || geocoded.placeId || null;
       }
     }
 
