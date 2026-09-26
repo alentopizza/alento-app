@@ -40,12 +40,11 @@ export type ComboPizzaSnapshot = {
     diameterCm: number;
     basePrice: number;
   };
-  flavor: {
-    productId: number;
-    name: string;
-    portion: number;
-    basePrice: number;
-  };
+  // Se conserva "flavor" para compatibilidad con pedidos históricos y
+  // consumidores antiguos. Los combos creados desde el POS también pueden
+  // guardar "flavors" con una o dos mitades.
+  flavor: PizzaFlavorSnapshot;
+  flavors?: PizzaFlavorSnapshot[];
 };
 
 export type ComboSelectionSnapshot = {
