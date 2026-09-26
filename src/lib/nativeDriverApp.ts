@@ -8,6 +8,11 @@ type AlentoNativeBridge = {
     travelMode: string,
   ) => boolean;
   clearOrderTracking: () => void;
+  openExternalNavigation?: (
+    latitude: number,
+    longitude: number,
+    travelMode: string,
+  ) => boolean;
   stopTracking: () => void;
   isTracking: () => boolean;
   platform: () => string;
@@ -83,6 +88,32 @@ export function setNativeDriverOrderTracking(input: {
     );
   } catch (error) {
     console.warn("Native driver order tracking could not start", error);
+    return false;
+  }
+}
+
+export function openNativeDriverExternalNavigation(input: {
+  latitude: number;
+  longitude: number;
+  travelMode: DeliveryTravelMode;
+}) {
+  if (
+    typeof window === "undefined" ||
+    !window.AlentoNative?.openExternalNavigation
+  ) {
+    return false;
+  }
+
+  try {
+    return Boolean(
+      window.AlentoNative.openExternalNavigation(
+        input.latitude,
+        input.longitude,
+        input.travelMode,
+      ),
+    );
+  } catch (error) {
+    console.warn("Native external navigation could not open", error);
     return false;
   }
 }
