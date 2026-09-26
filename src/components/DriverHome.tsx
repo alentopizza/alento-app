@@ -1504,45 +1504,6 @@ export default function DriverHome({
               ) : null}
             </div>
 
-            <div
-              className={
-                "inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[9px] font-black shadow-[0_8px_24px_rgba(0,0,0,.14)] backdrop-blur-xl " +
-                (gpsState.tone === "live"
-                  ? "border-emerald-200 bg-[#07150f]/94 text-emerald-300"
-                  : gpsState.tone === "recent"
-                    ? "border-amber-200 bg-[#1b1404]/94 text-amber-200"
-                    : gpsState.tone === "stale"
-                      ? "border-red-300 bg-[#210b0d]/94 text-[#ff777c]"
-                      : "border-white/15 bg-[#111]/92 text-white/50")
-              }
-            >
-              <span
-                className={
-                  "h-2.5 w-2.5 rounded-full " +
-                  (gpsState.tone === "live"
-                    ? "bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.7)]"
-                    : gpsState.tone === "recent"
-                      ? "bg-amber-300"
-                      : gpsState.tone === "stale"
-                        ? "bg-[#ff6267]"
-                        : "bg-white/25")
-                }
-              />
-              {driver.driverLocationSource === "ANDROID_NATIVE"
-                      ? "Android nativo"
-                      : driver.driverLocationSource === "WEB"
-                        ? "Web"
-                        : nativeGps
-                          ? "Android · esperando"
-                          : "GPS"} · {gpsState.label}
-              <span className="font-semibold opacity-65">
-                ·{" "}
-                {driver.driverLocationAccuracy != null
-                  ? `±${Math.round(driver.driverLocationAccuracy)} m`
-                  : "sin precisión"}{" "}
-                · {gpsAgeLabel(gpsState.ageSeconds)}
-              </span>
-            </div>
           </div>
         </div>
       )}
