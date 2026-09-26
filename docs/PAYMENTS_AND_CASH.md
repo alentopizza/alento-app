@@ -188,14 +188,13 @@ Campos principales:
 - `note`: observación;
 - `amount`: monto;
 - `occurredAt`: fecha/hora real de la salida;
-- `source`: `MANUAL` o `GLIDE_IMPORT`;
-- `createdByName`: colaborador que registró/importó.
+- `source`: origen técnico/auditable del movimiento;
+- `createdByName`: colaborador que registró el movimiento.
 
 Rutas:
 
 - `POST /api/caja/expenses`: registrar salida;
-- `DELETE /api/caja/expenses/[id]`: eliminar una salida registrada por error;
-- `GET/POST /api/caja/expenses/import`: migración histórica ADMIN.
+- `DELETE /api/caja/expenses/[id]`: eliminar una salida registrada por error.
 
 Categorías sugeridas vigentes:
 
@@ -212,19 +211,6 @@ Categorías sugeridas vigentes:
 - Consumo Interno.
 
 Los subtipos son sugerencias, no enums rígidos: el usuario puede escribir un valor nuevo para no bloquear la operación.
-
-### Importación histórica
-
-La migración histórica de salidas es de una sola ejecución y usa CSV con columnas:
-
-`Fecha, Tipo De Gasto, Observación, Monto, Sub Tipo De Gasto`
-
-Al completar la importación se crea el lock:
-
-`cash_expenses_import_v1`
-
-No volver a ejecutar la misma migración después de crear ese lock.
-
 
 ## Otros ingresos de Caja
 
@@ -246,26 +232,15 @@ Campos:
 - `note`: observación;
 - `amount`: monto;
 - `occurredAt`: fecha/hora real de ingreso;
-- `source`: `MANUAL` o `GLIDE_IMPORT`;
-- `createdByName`: responsable del registro/importación.
+- `source`: origen técnico/auditable del movimiento;
+- `createdByName`: responsable del registro.
 
 Rutas:
 
 - `POST /api/caja/incomes`: registrar otro ingreso;
-- `DELETE /api/caja/incomes/[id]`: eliminar un ingreso cargado por error;
-- `GET/POST /api/caja/incomes/import`: migración histórica ADMIN.
+- `DELETE /api/caja/incomes/[id]`: eliminar un ingreso cargado por error.
 
 La categoría `Venta` dentro de este modelo sigue siendo **otro ingreso histórico/manual**, no una venta de pedidos. No se suma a `Ventas` para evitar falsear el total de Orders.
-
-### Importación histórica de otros ingresos
-
-Formato esperado:
-
-`Fecha, Tipo De Ingreso, Observación, Monto`
-
-La migración es de una sola ejecución y crea el lock:
-
-`cash_incomes_import_v1`
 
 El resumen de Caja queda definido como:
 
@@ -308,21 +283,7 @@ Los abonos pueden ser parciales. Métodos vigentes:
 - `PAGO`: el trabajador devuelve el dinero.
 - `DESCUENTO_NOMINA`: se recupera mediante descuento de nómina.
 
-### Histórico Glide
-
-La migración ADMIN acepta:
-
-`Fecha, Trabajador, Monto, Estado Final`
-
-Lock de una sola ejecución:
-
-`cash_loans_import_v1`
-
-Los registros históricos `NO PAGADO` se importan como cartera pendiente real.
-
-Los registros históricos `PAGADO` se importan como préstamos cerrados, pero **sin inventar una fecha de devolución**, porque el archivo fuente solo conserva el estado final. Por esta razón esos préstamos cerrados históricos no generan un movimiento sintético de Caja.
-
-Desde la migración en adelante, todos los nuevos préstamos y sus abonos sí conservan fechas exactas y afectan el flujo neto del período correspondiente.
+Algunos registros anteriores a la operación actual pueden estar marcados como pagados sin una fecha verificable de devolución. Esos registros se conservan para mantener la cartera correcta, pero no generan un movimiento sintético de Caja.
 
 
 ## Cartera de repartidores
@@ -368,7 +329,7 @@ Caja bloquea pagos superiores al saldo disponible. Los pagos pueden ser parciale
 
 Eliminar una salida `DRIVER_PAYMENT` elimina también su efecto sobre la cartera, por lo que el monto vuelve automáticamente al saldo disponible.
 
-Las salidas históricas/importadas de Domicilios que no tengan `driverId` no afectan esta nueva cartera. Los pedidos históricos anteriores a la activación pueden contar como entregas en Desempeño, pero no generan saldo retroactivo si no tienen una ganancia acreditada.
+Las salidas antiguas de Domicilios que no tengan `driverId` no afectan esta nueva cartera. Los pedidos anteriores a la activación pueden contar como entregas en Desempeño, pero no generan saldo retroactivo si no tienen una ganancia acreditada.
 
 
 ## Apertura: disponible + préstamos
@@ -457,4 +418,4 @@ Caja muestra además un historial de aperturas y cierres con:
 - saldo contado;
 - diferencia del cierre.
 
-Las importaciones históricas administrativas siguen siendo un flujo separado y no representan movimientos operativos en vivo.
+Los movimientos operativos de producción se registran únicamente desde sus formularios y flujos normales dentro de Caja.
