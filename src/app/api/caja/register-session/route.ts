@@ -304,10 +304,9 @@ export async function GET(request: NextRequest) {
         )
       : emptyMovement(openingLoansReceivable);
 
-    const previousControlledClose =
+    const previousAvailableClose =
       previousClosed?.actualClosingBalance != null
-        ? Number(previousClosed.actualClosingBalance) +
-          Number(previousClosed.closingLoanReceivable ?? 0)
+        ? Number(previousClosed.actualClosingBalance)
         : null;
 
     return NextResponse.json({
@@ -316,7 +315,8 @@ export async function GET(request: NextRequest) {
       session: session ? serializeSession(session) : null,
       movement,
       openingLoansReceivable,
-      suggestedOpeningBalance: previousControlledClose,
+      suggestedOpeningBalance: previousAvailableClose,
+      suggestedOpeningAvailableBalance: previousAvailableClose,
       previousCloseDate: previousClosed?.businessDate ?? null,
       history: history.map(serializeSession),
     });
@@ -348,10 +348,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === "OPEN") {
-      const openingControlledBalance = nonNegativeMoney(
-        body?.openingControlledBalance ?? body?.openingBalance,
-        "saldo inicial total",
-      );
+      const requestedOpeningAvailable =
+        body?.openingAvailableBalance ??
+        body?.openingBalance ??
+        null;
 
       const [existing, openSession] = await Promise.all([
         prisma.cashRegisterSession.findUnique({
@@ -400,18 +400,22 @@ export async function POST(request: NextRequest) {
         await loanReceivableAt(openedAt),
       );
 
-      if (openingControlledBalance < openingLoanReceivable) {
-        return NextResponse.json(
-          {
-            error:
-              "El saldo inicial total no puede ser menor a los préstamos por cobrar al momento de abrir.",
-          },
-          { status: 400 },
-        );
-      }
-
       const openingAvailableBalance =
-        openingControlledBalance - openingLoanReceivable;
+        requestedOpeningAvailable != null
+          ? nonNegativeMoney(
+              requestedOpeningAvailable,
+              "dinero disponible",
+            )
+          : Math.max(
+              0,
+              nonNegativeMoney(
+                body?.openingControlledBalance,
+                "saldo inicial total",
+              ) - openingLoanReceivable,
+            );
+
+      const openingControlledBalance =
+        openingAvailableBalance + openingLoanReceivable;
 
       const session = await prisma.cashRegisterSession.create({
         data: {
@@ -440,10 +444,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const openingControlledBalance = nonNegativeMoney(
-        body?.openingControlledBalance ?? body?.openingBalance,
-        "saldo inicial total",
-      );
+      const requestedOpeningAvailable =
+        body?.openingAvailableBalance ??
+        body?.openingBalance ??
+        null;
 
       const existing = await prisma.cashRegisterSession.findUnique({
         where: { businessDate },
@@ -471,18 +475,22 @@ export async function POST(request: NextRequest) {
           (await loanReceivableAt(existing.openedAt)),
       );
 
-      if (openingControlledBalance < openingLoanReceivable) {
-        return NextResponse.json(
-          {
-            error:
-              "El saldo inicial total no puede ser menor a los préstamos por cobrar de la apertura.",
-          },
-          { status: 400 },
-        );
-      }
-
       const openingAvailableBalance =
-        openingControlledBalance - openingLoanReceivable;
+        requestedOpeningAvailable != null
+          ? nonNegativeMoney(
+              requestedOpeningAvailable,
+              "dinero disponible",
+            )
+          : Math.max(
+              0,
+              nonNegativeMoney(
+                body?.openingControlledBalance,
+                "saldo inicial total",
+              ) - openingLoanReceivable,
+            );
+
+      const openingControlledBalance =
+        openingAvailableBalance + openingLoanReceivable;
 
       const session = await prisma.cashRegisterSession.update({
         where: { id: existing.id },
