@@ -166,8 +166,11 @@ export default function CashRegisterControl({
 
   useEffect(() => {
     if (!data || data.session || openingBalance) return;
-    if (data.suggestedOpeningBalance != null) {
-      setOpeningBalance(String(Math.round(data.suggestedOpeningBalance)));
+    const suggested =
+      data.suggestedOpeningAvailableBalance ??
+      data.suggestedOpeningBalance;
+    if (suggested != null) {
+      setOpeningBalance(String(Math.round(suggested)));
     }
   }, [data, openingBalance]);
 
@@ -408,7 +411,7 @@ export default function CashRegisterControl({
                   </span>
                 </div>
                 <p className="mt-1 max-w-xl text-[11px] text-neutral-500">
-                  Usa el total del cierre anterior. Los préstamos ya van incluidos y Alentó los separa automáticamente del dinero disponible.
+                  Parte del dinero disponible del cierre anterior. La cartera de préstamos se trae por separado y se suma automáticamente al total de apertura.
                 </p>
               </div>
             </div>
@@ -484,9 +487,9 @@ export default function CashRegisterControl({
               </div>
             </div>
 
-            <MiniMetric label="Total inicial" value={money(openingControlledBalance)} />
-            <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
             <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
+            <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
+            <MiniMetric label="Total apertura" value={money(openingControlledBalance)} />
             <MiniMetric label="Disponible esperado" value={money(expectedNow)} strong />
 
             <div className="flex gap-2">
