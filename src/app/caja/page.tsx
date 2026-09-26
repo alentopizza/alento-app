@@ -769,6 +769,8 @@ export default function CashPage() {
   const singleDaySelected = startDate === endDate;
   const selectedDayClosed =
     singleDaySelected && cashDayStatus === "CLOSED";
+  const cashOperationsOpen =
+    singleDaySelected && cashDayStatus === "OPEN";
   const selectedSubcategories = cashExpenseSubcategories(expenseCategory);
 
   return (
@@ -870,7 +872,7 @@ export default function CashPage() {
               </span>
             )}
 
-            {!selectedDayClosed && tab === "INCOMES" && (
+            {tab === "INCOMES" && (
               <>
                 {isAdmin && !incomeImportCompleted && (
                   <button
@@ -887,18 +889,20 @@ export default function CashPage() {
                     Importar ingresos
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={openIncome}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nuevo ingreso
-                </button>
+                {cashOperationsOpen && (
+                  <button
+                    type="button"
+                    onClick={openIncome}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nuevo ingreso
+                  </button>
+                )}
               </>
             )}
 
-            {!selectedDayClosed && tab === "EXPENSES" && (
+            {tab === "EXPENSES" && (
               <>
                 {isAdmin && !importCompleted && (
                   <button
@@ -915,14 +919,16 @@ export default function CashPage() {
                     Importar salidas
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={openExpense}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nueva salida
-                </button>
+                {cashOperationsOpen && (
+                  <button
+                    type="button"
+                    onClick={openExpense}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nueva salida
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1408,9 +1414,9 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setIncomeDeleteTarget(income)}
-                          disabled={selectedDayClosed}
+                          disabled={!cashOperationsOpen}
                           className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
-                          title={selectedDayClosed ? "Caja cerrada" : "Eliminar ingreso"}
+                          title={!cashOperationsOpen ? "Caja sin sesión operativa abierta" : "Eliminar ingreso"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -1428,7 +1434,7 @@ export default function CashPage() {
             ) : tab === "LOANS" ? (
               <CashLoansPanel
                 isAdmin={isAdmin}
-                cashDateLocked={selectedDayClosed}
+                cashDateLocked={!cashOperationsOpen}
                 businessDate={startDate}
                 onCashChanged={() => void load()}
               />
@@ -1509,9 +1515,9 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(expense)}
-                          disabled={selectedDayClosed}
+                          disabled={!cashOperationsOpen}
                           className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
-                          title={selectedDayClosed ? "Caja cerrada" : "Eliminar salida"}
+                          title={!cashOperationsOpen ? "Caja sin sesión operativa abierta" : "Eliminar salida"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
