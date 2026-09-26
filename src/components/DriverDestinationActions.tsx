@@ -1026,7 +1026,14 @@ export default function DriverDestinationActions({
               </div>
 
               {navigationStatus !== "READY" && (
-                <div className="absolute right-3 top-[82px] z-20 sm:right-4">
+                <div
+                  className={
+                    "absolute right-3 z-20 sm:right-4 " +
+                    (travelMode && travelMode !== "VEHICLE"
+                      ? "top-[126px]"
+                      : "top-[82px]")
+                  }
+                >
                   {cameraFollowing ? (
                     <div className="pointer-events-none flex h-9 items-center gap-2 rounded-full border border-white/10 bg-[#111]/90 px-3 text-[9px] font-bold uppercase tracking-[.07em] text-white/65 shadow-lg backdrop-blur-md">
                       <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
