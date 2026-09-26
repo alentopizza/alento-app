@@ -11,6 +11,7 @@ import CustomerAddressEditor, {
   isValidatedCustomerAddress,
   type CustomerAddressEditorValue,
 } from "@/components/CustomerAddressEditor";
+import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
@@ -1360,74 +1361,20 @@ export default function OrdersCardsDashboardV3() {
 
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
               {customerPanel === "PERSONAL" && customerOrder.customer && (
-                <section className="mx-auto max-w-[830px] rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
-                  <div className="mb-6 border-b border-neutral-100 pb-4">
-                    <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
-                      Información personal
-                    </p>
-                    <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
-                      Datos del cliente
-                    </h3>
-                    <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                      Corrige los datos del mismo cliente sin afectar su historial.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-12">
-                    <label className="block md:col-span-7">
-                      <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                        Nombre
-                      </span>
-                      <input
-                        value={customerName}
-                        onChange={(event) => setCustomerName(event.target.value)}
-                        className="alento-input h-12 w-full rounded-2xl px-4"
-                        placeholder="Nombre del cliente"
-                      />
-                    </label>
-
-                    <div className="grid grid-cols-[105px_1fr] gap-3 md:col-span-5">
-                      <label className="block">
-                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                          Indicativo
-                        </span>
-                        <select
-                          value={customerCountryCode}
-                          onChange={(event) =>
-                            setCustomerCountryCode(event.target.value)
-                          }
-                          className="alento-input h-12 w-full rounded-2xl px-3"
-                        >
-                          <option>+57</option>
-                          <option>+1</option>
-                          <option>+34</option>
-                          <option>+52</option>
-                          <option>+51</option>
-                          <option>+593</option>
-                        </select>
-                      </label>
-
-                      <label className="block">
-                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                          Teléfono
-                        </span>
-                        <input
-                          value={customerPhone}
-                          onChange={(event) =>
-                            setCustomerPhone(event.target.value)
-                          }
-                          inputMode="tel"
-                          className="alento-input h-12 w-full rounded-2xl px-4"
-                          placeholder="Número"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-[11px] leading-5 text-emerald-800">
+                <div className="mx-auto max-w-[830px]">
+                  <CustomerPersonalEditor
+                    name={customerName}
+                    countryCode={customerCountryCode}
+                    phone={customerPhone}
+                    onNameChange={setCustomerName}
+                    onCountryCodeChange={setCustomerCountryCode}
+                    onPhoneChange={setCustomerPhone}
+                    description="Corrige los datos del mismo cliente sin afectar su historial."
+                  />
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-[11px] leading-5 text-emerald-800">
                     Se actualiza el mismo registro, por lo que conserva todos sus pedidos, puntos e historial.
                   </div>
-                </section>
+                </div>
               )}
 
               {customerPanel === "LOCATION" &&
