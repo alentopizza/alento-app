@@ -61,7 +61,7 @@ export function mergeCustomerAddressEditorValue<
       next.city !== undefined ? next.city : current.city,
     notes:
       next.notes !== undefined ? next.notes : current.notes,
-  };
+  } as T;
 }
 
 export function isValidatedCustomerAddress(
