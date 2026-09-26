@@ -45,11 +45,14 @@ type Movement = {
 };
 
 type SessionResponse = {
+  requestedBusinessDate: string;
+  inheritedOpenSession: boolean;
   session: CashRegisterSession | null;
   movement: Movement;
   suggestedOpeningBalance: number | null;
   previousCloseDate: string | null;
   openingLoansReceivable: number;
+  history: CashRegisterSession[];
 };
 
 const BILLS = [2000, 5000, 10000, 20000, 50000, 100000] as const;
@@ -263,7 +266,10 @@ export default function CashRegisterControl({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: editingOpening ? "EDIT_OPENING" : "OPEN",
-          businessDate,
+          businessDate:
+            editingOpening && session
+              ? session.businessDate
+              : businessDate,
           openingControlledBalance: amount,
         }),
       });
@@ -312,7 +318,8 @@ export default function CashRegisterControl({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "CLOSE",
-          businessDate,
+          sessionId: session?.id,
+          businessDate: session?.businessDate ?? businessDate,
           denominations,
           nequi: Number(nequi || 0),
           daviplata: Number(daviplata || 0),
@@ -348,9 +355,9 @@ export default function CashRegisterControl({
             <LockKeyhole className="h-5 w-5" />
           </span>
           <div>
-            <b className="text-sm text-neutral-800">Apertura y cierre por día</b>
+            <b className="text-sm text-neutral-800">Apertura y cierre por sesión</b>
             <p className="mt-0.5 text-[11px] text-neutral-500">
-              Selecciona la misma fecha en Desde y Hasta para abrir o cerrar esa caja.
+              Selecciona un solo día para consultar su apertura. Una sesión puede continuar después de medianoche hasta que se cierre.
             </p>
           </div>
         </div>
@@ -452,6 +459,11 @@ export default function CashRegisterControl({
                 <p className="mt-1 text-[10px] text-neutral-400">
                   Abrió {session.openedByName} · {dateTimeLabel(session.openedAt)}
                 </p>
+                {data?.inheritedOpenSession && (
+                  <p className="mt-1 text-[9px] font-black text-amber-600">
+                    Esta caja sigue abierta desde {dateLabel(session.businessDate)}. Los movimientos después de medianoche continúan dentro de esta misma sesión.
+                  </p>
+                )}
                 {session.openingControlledBalance == null && (
                   <p className="mt-1 text-[9px] font-bold text-amber-600">
                     Apertura anterior al nuevo desglose · se interpreta como total incluyendo préstamos.
@@ -517,7 +529,7 @@ export default function CashRegisterControl({
                   Cerró {session.closedByName || "—"} · {dateTimeLabel(session.closedAt)}
                 </p>
                 <p className="mt-1 text-[9px] font-semibold text-neutral-500">
-                  Cierre bloqueado: este día queda solo para consulta.
+                  Cierre bloqueado: esta sesión queda solo para consulta.
                 </p>
               </div>
             </div>
@@ -540,6 +552,109 @@ export default function CashRegisterControl({
                 strong
               />
             </div>
+          </div>
+        </section>
+      )}
+
+      {(data?.history?.length ?? 0) > 0 && (
+        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                Historial
+              </p>
+              <h3 className="mt-0.5 text-[15px] font-black text-neutral-950">
+                Aperturas y cierres de caja
+              </h3>
+            </div>
+            <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[8px] font-black text-neutral-500">
+              {data?.history.length ?? 0} sesiones
+            </span>
+          </div>
+
+          <div className="divide-y divide-neutral-100">
+            {data?.history.map((item) => {
+              const isOpen = item.status === "OPEN";
+              const difference = Number(item.difference ?? 0);
+
+              return (
+                <div
+                  key={item.id}
+                  className="grid gap-3 px-4 py-3.5 sm:px-5 lg:grid-cols-[150px_1fr_auto_auto] lg:items-center"
+                >
+                  <div>
+                    <span
+                      className={
+                        "inline-flex rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] " +
+                        (isOpen
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-neutral-100 text-neutral-600")
+                      }
+                    >
+                      {isOpen ? "Abierta" : "Cerrada"}
+                    </span>
+                    <b className="mt-1.5 block text-[11px] text-neutral-900">
+                      {dateLabel(item.businessDate)}
+                    </b>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold text-neutral-600">
+                      Apertura · {dateTimeLabel(item.openedAt)}
+                    </p>
+                    <p className="mt-0.5 text-[9px] text-neutral-400">
+                      {item.closedAt
+                        ? "Cierre · " + dateTimeLabel(item.closedAt)
+                        : "Sigue abierta"}
+                    </p>
+                  </div>
+
+                  <div className="lg:text-right">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.09em] text-neutral-400">
+                      Esperado
+                    </span>
+                    <b className="mt-0.5 block text-[12px] text-neutral-800">
+                      {item.expectedClosingBalance == null
+                        ? "—"
+                        : money(item.expectedClosingBalance)}
+                    </b>
+                  </div>
+
+                  <div className="lg:min-w-[130px] lg:text-right">
+                    <span className="block text-[8px] font-black uppercase tracking-[0.09em] text-neutral-400">
+                      Resultado
+                    </span>
+                    {isOpen ? (
+                      <b className="mt-0.5 block text-[12px] text-emerald-700">
+                        En curso
+                      </b>
+                    ) : (
+                      <>
+                        <b className="mt-0.5 block text-[12px] text-neutral-900">
+                          {money(item.actualClosingBalance ?? 0)}
+                        </b>
+                        <span
+                          className={
+                            "mt-0.5 block text-[8px] font-black " +
+                            (difference === 0
+                              ? "text-emerald-600"
+                              : difference > 0
+                                ? "text-sky-600"
+                                : "text-red-600")
+                          }
+                        >
+                          {difference === 0
+                            ? "Cuadrada"
+                            : difference > 0
+                              ? "Sobra " + money(difference)
+                              : "Falta " + money(Math.abs(difference))}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -801,7 +916,7 @@ export default function CashRegisterControl({
                         <b className="text-[12px] font-black text-neutral-800">{money(openingAvailableBalance)}</b>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-4">
-                        <span className="text-[11px] font-medium text-neutral-500">Movimiento del día</span>
+                        <span className="text-[11px] font-medium text-neutral-500">Movimiento de la sesión</span>
                         <b className={"text-[12px] font-black " + (liveMovement >= 0 ? "text-emerald-700" : "text-red-700")}>
                           {liveMovement >= 0 ? "+" : ""}{money(liveMovement)}
                         </b>
@@ -834,7 +949,7 @@ export default function CashRegisterControl({
 
                     <details className="mt-3 rounded-[14px] border border-neutral-200 bg-white px-3 py-2.5">
                       <summary className="cursor-pointer text-[10px] font-black text-neutral-500">
-                        Ver detalle del movimiento del día
+                        Ver detalle del movimiento de la sesión
                       </summary>
                       <div className="mt-3 space-y-2 text-[10px]">
                         <SummaryLine label="Ventas cobradas" value={money(data?.movement?.received ?? 0)} />
