@@ -22,7 +22,9 @@ import { orderCode } from "@/lib/orderCode";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange, subscribeLiveDataChange } from "@/lib/liveDataEvents";
-import CustomerAddressEditor from "@/components/CustomerAddressEditor";
+import CustomerAddressEditor, {
+  mergeCustomerAddressEditorValue,
+} from "@/components/CustomerAddressEditor";
 import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 
 type CustomerAddress = {
@@ -1711,8 +1713,10 @@ export default function CustomersPage() {
                             setAddressEditor((current) =>
                               current
                                 ? {
-                                    ...current,
-                                    ...next,
+                                    ...mergeCustomerAddressEditorValue(
+                                      current,
+                                      next,
+                                    ),
                                     isDefault: true,
                                   }
                                 : current,
