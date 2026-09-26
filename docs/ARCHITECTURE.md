@@ -20,6 +20,23 @@ Alentó App es la plataforma operativa y comercial de Alentó Pizza. Debe centra
 
 La plataforma debe poder adaptarse a otros restaurantes sin reescribir su núcleo.
 
+## Principio obligatorio: reutilización antes de implementación
+
+La aplicación está en producción y no se deben crear flujos paralelos cuando ya existe una fuente de verdad reutilizable.
+
+Antes de implementar cualquier ajuste se debe:
+
+- buscar componentes, helpers, endpoints, validadores, presentadores y reglas existentes;
+- extender la implementación compartida cuando represente la misma acción;
+- conservar contratos y compatibilidad con datos históricos;
+- mantener la validación crítica en servidor;
+- revisar todos los consumidores activos del dato o flujo modificado;
+- preferir cambios incrementales y reversibles sobre refactorizaciones masivas.
+
+Para configuración persistida de pedidos, los lectores deben tolerar versiones históricas. Por ejemplo, los combos antiguos pueden conservar `pizza.flavor`, mientras los nuevos pueden incluir `pizza.flavors`; la capa de presentación compartida debe resolver ambas formas.
+
+Ver `AGENTS.md` para las reglas operativas completas y el mapa de fuentes compartidas vigentes.
+
 ## Stack
 
 - Next.js 15.
