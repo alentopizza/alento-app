@@ -39,15 +39,72 @@ export async function GET(request: NextRequest) {
     const requestedEnd =
       request.nextUrl.searchParams.get("endDate") ?? legacyDate;
 
-    const { startDate, endDate, start, endExclusive } = colombiaRangeBounds(
-      requestedStart,
-      requestedEnd,
-    );
+    const { startDate, endDate, start, endExclusive } =
+      colombiaRangeBounds(requestedStart, requestedEnd);
 
-    const [sales, payments, otherIncomes, expenses, loans, loanRepayments] = await prisma.$transaction([
+    let queryStart = start;
+    let queryEndExclusive = endExclusive;
+    let sessionScope: {
+      id: number;
+      businessDate: string;
+      status: string;
+      openedAt: string;
+      closedAt: string | null;
+      inheritedFromPreviousDay: boolean;
+    } | null = null;
+
+    if (startDate === endDate) {
+      const [exactSession, openSession] = await Promise.all([
+        prisma.cashRegisterSession.findUnique({
+          where: { businessDate: startDate },
+          select: {
+            id: true,
+            businessDate: true,
+            status: true,
+            openedAt: true,
+            closedAt: true,
+          },
+        }),
+        prisma.cashRegisterSession.findFirst({
+          where: { status: "OPEN" },
+          orderBy: { openedAt: "desc" },
+          select: {
+            id: true,
+            businessDate: true,
+            status: true,
+            openedAt: true,
+            closedAt: true,
+          },
+        }),
+      ]);
+
+      const inherited =
+        !exactSession &&
+        startDate === todayBogota() &&
+        openSession != null;
+      const session =
+        exactSession ?? (inherited ? openSession : null);
+
+      if (session) {
+        queryStart = session.openedAt;
+        queryEndExclusive =
+          session.closedAt ?? new Date(Date.now() + 1000);
+        sessionScope = {
+          id: session.id,
+          businessDate: session.businessDate,
+          status: session.status,
+          openedAt: session.openedAt.toISOString(),
+          closedAt: session.closedAt?.toISOString() ?? null,
+          inheritedFromPreviousDay: inherited,
+        };
+      }
+    }
+
+    const [sales, payments, otherIncomes, expenses, loans, loanRepayments] =
+      await prisma.$transaction([
       prisma.order.aggregate({
         where: {
-          createdAt: { gte: start, lt: endExclusive },
+          createdAt: { gte: queryStart, lt: queryEndExclusive },
           status: { notIn: ["DRAFT", "CANCELED"] },
         },
         _sum: { total: true },
@@ -56,7 +113,7 @@ export async function GET(request: NextRequest) {
       prisma.payment.findMany({
         where: {
           status: "PAID",
-          paidAt: { gte: start, lt: endExclusive },
+          paidAt: { gte: queryStart, lt: queryEndExclusive },
           order: { status: { not: "CANCELED" } },
         },
         orderBy: [{ paidAt: "desc" }, { id: "desc" }],
@@ -75,19 +132,19 @@ export async function GET(request: NextRequest) {
       }),
       prisma.cashIncome.findMany({
         where: {
-          occurredAt: { gte: start, lt: endExclusive },
+          occurredAt: { gte: queryStart, lt: queryEndExclusive },
         },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
       }),
       prisma.cashExpense.findMany({
         where: {
-          occurredAt: { gte: start, lt: endExclusive },
+          occurredAt: { gte: queryStart, lt: queryEndExclusive },
         },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
       }),
       prisma.cashLoan.findMany({
         where: {
-          issuedAt: { gte: start, lt: endExclusive },
+          issuedAt: { gte: queryStart, lt: queryEndExclusive },
           historicalPaidWithoutRepayment: false,
         },
         select: {
@@ -99,7 +156,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.cashLoanRepayment.findMany({
         where: {
-          paidAt: { gte: start, lt: endExclusive },
+          paidAt: { gte: queryStart, lt: queryEndExclusive },
         },
         select: {
           id: true,
@@ -186,6 +243,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       startDate,
       endDate,
+      scope: sessionScope ? "SESSION" : "CALENDAR",
+      sessionScope,
       salesTotal,
       orderCount: sales._count._all,
       receivedTotal,
