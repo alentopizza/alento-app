@@ -283,7 +283,13 @@ export default function DriverDestinationActions({
   const [arrivalProgress, setArrivalProgress] = useState(0);
   const [arrivalDragging, setArrivalDragging] = useState(false);
   const [arrivalBusy, setArrivalBusy] = useState(false);
-  const [cameraFollowing, setCameraFollowing] = useState(true);
+  const [cameraFollowing, setCameraFollowingState] = useState(true);
+  const cameraFollowingRef = useRef(true);
+
+  const setCameraFollowing = useCallback((value: boolean) => {
+    cameraFollowingRef.current = value;
+    setCameraFollowingState(value);
+  }, []);
 
   useEffect(() => {
     setNavigationStatus(currentStatus);
@@ -384,7 +390,9 @@ export default function DriverDestinationActions({
         (!Number.isFinite(speed) || speed >= 0.45);
 
       if (gpsHeadingReliable) {
-        return normalizeHeading(gpsHeading);
+        const heading = normalizeHeading(gpsHeading);
+        lastHeadingRef.current = heading;
+        return heading;
       }
 
       if (!previous) return lastHeadingRef.current;
@@ -399,23 +407,29 @@ export default function DriverDestinationActions({
         return lastHeadingRef.current;
       }
 
-      return movementHeadingDegrees(previous, current);
+      const heading = movementHeadingDegrees(previous, current);
+      lastHeadingRef.current = heading;
+      return heading;
     },
     [],
   );
 
   const updateNavigationCamera = useCallback(
-    (
-      position: GeolocationPosition,
-      options?: { forceFollow?: boolean },
-    ) => {
+    (position: GeolocationPosition) => {
       const map = mapRef.current;
       if (!map) return;
 
       const heading = resolveMovementHeading(position);
-      const shouldFollow = options?.forceFollow || cameraFollowing;
 
-      if (!shouldFollow) return;
+      // READY es una vista previa de la ruta completa. El modo "rumbo arriba"
+      // se activa cuando el domicilio realmente está en curso y se conserva
+      // también después de marcar llegada hasta que el pedido se entregue.
+      if (
+        navigationStatus === "READY" ||
+        !cameraFollowingRef.current
+      ) {
+        return;
+      }
 
       const point = {
         lat: position.coords.latitude,
@@ -432,7 +446,7 @@ export default function DriverDestinationActions({
         animateHeading(map, heading);
       }
     },
-    [animateHeading, cameraFollowing, resolveMovementHeading],
+    [animateHeading, navigationStatus, resolveMovementHeading],
   );
 
   const drawMap = useCallback(
@@ -622,7 +636,7 @@ export default function DriverDestinationActions({
             try {
               const next = await requestNavigation(position);
               await drawMap(next);
-              updateNavigationCamera(position, { forceFollow: true });
+              updateNavigationCamera(position);
               if (!disposed) setError("");
             } catch (err) {
               if (!disposed) {
@@ -738,6 +752,7 @@ export default function DriverDestinationActions({
         orderCode,
         travelMode,
       });
+      setCameraFollowing(true);
       setNavigationStatus("OUT_FOR_DELIVERY");
       setDepartureProgress(0);
       router.refresh();
