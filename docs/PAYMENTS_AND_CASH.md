@@ -371,6 +371,34 @@ Eliminar una salida `DRIVER_PAYMENT` elimina también su efecto sobre la cartera
 Las salidas históricas/importadas de Domicilios que no tengan `driverId` no afectan esta nueva cartera. Los pedidos históricos anteriores a la activación pueden contar como entregas en Desempeño, pero no generan saldo retroactivo si no tienen una ganancia acreditada.
 
 
+## Apertura: disponible + préstamos
+
+La apertura se captura desde el **dinero disponible**, no desde el total controlado.
+
+El operador ingresa:
+
+```text
+Dinero disponible
+```
+
+El sistema calcula automáticamente la cartera de préstamos pendiente al momento de abrir y forma:
+
+```text
+Total apertura =
+Dinero disponible
++ Préstamos por cobrar
+```
+
+Persistencia:
+
+- `openingBalance`: dinero disponible;
+- `openingLoanReceivable`: préstamos por cobrar congelados al abrir;
+- `openingControlledBalance`: suma de disponible + préstamos.
+
+El valor sugerido desde el cierre anterior corresponde únicamente al **disponible real al cierre** (`actualClosingBalance`). La cartera de préstamos de la nueva apertura se consulta nuevamente y se suma por separado.
+
+Esto evita pedir al operador que calcule o mezcle manualmente dinero disponible y cartera.
+
 ## Sesiones de caja: apertura → movimientos → cierre
 
 Desde operación en producción, la unidad contable de Caja es una **sesión**, no el cambio de fecha del calendario.
