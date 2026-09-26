@@ -157,37 +157,210 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (body?.action === "change-customer") {
       const customerId = Number(body.customerId);
       if (!Number.isInteger(customerId) || customerId <= 0) {
-        return NextResponse.json({ error: "Selecciona un cliente válido." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Selecciona un cliente válido." },
+          { status: 400 },
+        );
       }
 
       const customer = await prisma.customer.findUnique({
         where: { id: customerId },
-        include: { addresses: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] } },
-      });
-      if (!customer) {
-        return NextResponse.json({ error: "El cliente seleccionado ya no existe." }, { status: 404 });
-      }
-
-      let addressId: number | null = null;
-      if (current.fulfillmentType === "DELIVERY") {
-        const requestedAddressId = Number(body.addressId);
-        const address = customer.addresses.find((item) => item.id === requestedAddressId) ?? customer.addresses[0] ?? null;
-        if (!address) {
-          return NextResponse.json({ error: "El cliente seleccionado necesita una dirección para este domicilio." }, { status: 400 });
-        }
-        addressId = address.id;
-      }
-
-      await prisma.order.update({
-        where: { id: current.id },
-        data: {
-          customerId: customer.id,
-          addressId,
+        include: {
+          addresses: {
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+          },
         },
       });
 
+      if (!customer) {
+        return NextResponse.json(
+          { error: "El cliente seleccionado ya no existe." },
+          { status: 404 },
+        );
+      }
+
+      let addressId: number | null = null;
+      let deliveryFee = current.fulfillmentType === "DELIVERY"
+        ? money(Number(current.deliveryFee))
+        : 0;
+      let deliveryZoneId = current.deliveryZoneId;
+      let deliveryZoneName = current.deliveryZoneName;
+      let total = money(Number(current.total));
+
+      if (current.fulfillmentType === "DELIVERY") {
+        const requestedAddressId = Number(body.addressId);
+        const address =
+          customer.addresses.find(
+            (item) => item.id === requestedAddressId,
+          ) ??
+          customer.addresses[0] ??
+          null;
+
+        if (!address) {
+          return NextResponse.json(
+            {
+              error:
+                "El cliente seleccionado necesita una dirección para este domicilio.",
+            },
+            { status: 400 },
+          );
+        }
+
+        const latitude = Number(address.latitude);
+        const longitude = Number(address.longitude);
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude)
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "La dirección del nuevo cliente debe validarse con Google Maps.",
+            },
+            { status: 409 },
+          );
+        }
+
+        const settingsRow = await prisma.appSetting.findUnique({
+          where: { key: SETTINGS_KEY },
+        });
+        const settings = parseSettings(settingsRow?.value ?? null);
+        const storeLatitude = Number(settings.store?.latitude);
+        const storeLongitude = Number(settings.store?.longitude);
+
+        if (
+          !Number.isFinite(storeLatitude) ||
+          !Number.isFinite(storeLongitude)
+        ) {
+          return NextResponse.json(
+            { error: "La ubicación de Alentó no está configurada." },
+            { status: 503 },
+          );
+        }
+
+        const route = await computeDrivingRoute({
+          origin: {
+            latitude: storeLatitude,
+            longitude: storeLongitude,
+          },
+          destination: { latitude, longitude },
+        });
+
+        const zone = settings.deliveryBands
+          ?.filter((item) => item.active !== false)
+          .find(
+            (item) =>
+              route.distanceMeters >= Number(item.minMeters) &&
+              route.distanceMeters <= Number(item.maxMeters),
+          );
+
+        if (!zone) {
+          return NextResponse.json(
+            {
+              error:
+                "La dirección del nuevo cliente está fuera de cobertura para domicilio.",
+            },
+            { status: 409 },
+          );
+        }
+
+        addressId = address.id;
+        deliveryFee = money(Number(zone.fee ?? 0));
+        deliveryZoneId = zone.id;
+        deliveryZoneName = zone.name?.trim() || "Domicilio";
+        total = Math.max(
+          0,
+          money(
+            Number(current.subtotal) +
+              deliveryFee -
+              Number(current.discount),
+          ),
+        );
+      }
+
+      const paidAmount = current.payments
+        .filter((payment) => payment.status === "PAID")
+        .reduce(
+          (sum, payment) => sum + Number(payment.amount),
+          0,
+        );
+
+      if (total < paidAmount) {
+        return NextResponse.json(
+          {
+            error:
+              `El nuevo total (${total.toLocaleString("es-CO")}) es menor al dinero ya recibido (${paidAmount.toLocaleString("es-CO")}). Registra una devolución antes de cambiar el cliente.`,
+          },
+          { status: 409 },
+        );
+      }
+
+      const outstanding = Math.max(0, total - paidAmount);
+      const pendingPayment =
+        current.payments.find(
+          (payment) =>
+            payment.status === "PENDING" ||
+            payment.status === "PARTIAL",
+        ) ?? null;
+      const fallbackMethod =
+        pendingPayment?.method ||
+        current.payments.find(
+          (payment) => payment.status === "PAID",
+        )?.method ||
+        "Pago";
+
+      await prisma.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: current.id },
+          data: {
+            customerId: customer.id,
+            addressId,
+            deliveryFee,
+            deliveryZoneId,
+            deliveryZoneName,
+            total,
+          },
+        });
+
+        if (outstanding > 0) {
+          if (pendingPayment) {
+            await tx.payment.update({
+              where: { id: pendingPayment.id },
+              data: {
+                amount: outstanding,
+                status: "PENDING",
+                cashReceived: null,
+                changeDue: null,
+              },
+            });
+          } else {
+            await tx.payment.create({
+              data: {
+                orderId: current.id,
+                method: fallbackMethod,
+                amount: outstanding,
+                status: "PENDING",
+              },
+            });
+          }
+        } else if (pendingPayment) {
+          await tx.payment.update({
+            where: { id: pendingPayment.id },
+            data: {
+              amount: 0,
+              status: "CANCELED",
+              cashReceived: null,
+              changeDue: null,
+            },
+          });
+        }
+      });
+
       const updated = await loadOrder(current.id);
-      return NextResponse.json({ order: serializeOrder(updated) });
+      return NextResponse.json({
+        order: serializeOrder(updated),
+      });
     }
 
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
