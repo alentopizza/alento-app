@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { PizzaOrderConfiguration } from "@/lib/orderConfiguration";
 import {
   buildComboConfiguration,
   estimateComboPrice,
