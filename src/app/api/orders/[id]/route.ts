@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
-import { computeDrivingRoute } from "@/lib/googleMapsServer";
+import { directDistanceMeters } from "@/lib/deliveryDistance";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -239,7 +239,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           );
         }
 
-        const route = await computeDrivingRoute({
+        const commercialDistanceMeters = directDistanceMeters({
           origin: {
             latitude: storeLatitude,
             longitude: storeLongitude,
@@ -251,8 +251,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           ?.filter((item) => item.active !== false)
           .find(
             (item) =>
-              route.distanceMeters >= Number(item.minMeters) &&
-              route.distanceMeters <= Number(item.maxMeters),
+              commercialDistanceMeters >= Number(item.minMeters) &&
+              commercialDistanceMeters <= Number(item.maxMeters),
           );
 
         if (!zone) {
@@ -431,7 +431,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         );
       }
 
-      const route = await computeDrivingRoute({
+      const commercialDistanceMeters = directDistanceMeters({
         origin: {
           latitude: storeLatitude,
           longitude: storeLongitude,
@@ -443,8 +443,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         ?.filter((item) => item.active !== false)
         .find(
           (item) =>
-            route.distanceMeters >= Number(item.minMeters) &&
-            route.distanceMeters <= Number(item.maxMeters),
+            commercialDistanceMeters >= Number(item.minMeters) &&
+            commercialDistanceMeters <= Number(item.maxMeters),
         );
 
       if (!zone) {
