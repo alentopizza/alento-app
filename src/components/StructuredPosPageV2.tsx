@@ -15,7 +15,7 @@ import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
 import type { ComboOrderConfiguration, OrderLineConfiguration, PizzaOrderConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
-import GoogleCustomerAddressPicker from "@/components/GoogleCustomerAddressPicker";
+import CustomerAddressEditor from "@/components/CustomerAddressEditor";
 
 type CustomerAddress = { id: number; label: string | null; address: string; formattedAddress?: string | null; placeId?: string | null; latitude?: number | null; longitude?: number | null; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
@@ -1268,114 +1268,23 @@ export default function StructuredPosPageV2() {
                   )}
 
                   {customerModalSection === "LOCATION" && addressEditor && (
-                    <section className="mx-auto max-w-[880px] space-y-4">
-                      <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
-                        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
-                          <div>
-                            <p className="alento-ui-label uppercase text-neutral-400">
-                              Ubicación
-                            </p>
-                            <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
-                              Dirección de entrega
-                            </h3>
-                            <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                              Revisa el punto en el mapa y deja las indicaciones necesarias para el domiciliario.
-                            </p>
-                          </div>
-
-                          {addressEditor.placeId &&
-                          addressEditor.latitude != null &&
-                          addressEditor.longitude != null ? (
-                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
-                              ✓ Validada con Google
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
-                              Requiere validación
-                            </span>
-                          )}
-                        </div>
-
-                        <GoogleCustomerAddressPicker
-                          currentAddress={
-                            addressEditor.placeId &&
-                            addressEditor.latitude != null &&
-                            addressEditor.longitude != null
-                              ? addressEditor.formattedAddress ||
-                                addressEditor.address
-                              : undefined
-                          }
-                          initialSelection={{
-                            formattedAddress:
-                              addressEditor.formattedAddress ||
-                              addressEditor.address,
-                            placeId: addressEditor.placeId,
-                            latitude: addressEditor.latitude,
-                            longitude: addressEditor.longitude,
-                            neighborhood: addressEditor.neighborhood,
-                            city: addressEditor.city,
-                          }}
-                          onSelect={(selection) =>
-                            setAddressEditor((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    address: selection.formattedAddress,
-                                    formattedAddress: selection.formattedAddress,
-                                    placeId: selection.placeId,
-                                    latitude: selection.latitude,
-                                    longitude: selection.longitude,
-                                    neighborhood:
-                                      selection.neighborhood ||
-                                      current.neighborhood,
-                                    city: selection.city || current.city,
-                                    isDefault: true,
-                                  }
-                                : current,
-                            )
-                          }
-                        />
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Barrio
-                          </span>
-                          <input
-                            value={addressEditor.neighborhood}
-                            onChange={(event) =>
-                              setAddressEditor({
-                                ...addressEditor,
-                                neighborhood: event.target.value,
-                              })
-                            }
-                            className="alento-input h-12 w-full rounded-xl px-3.5"
-                            placeholder="Ej. Kennedy"
-                          />
-                          <span className="mt-2 block text-[10px] leading-4 text-neutral-400">
-                            Ayuda a identificar rápidamente la zona del domicilio.
-                          </span>
-                        </label>
-
-                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Indicaciones para entregar
-                          </span>
-                          <textarea
-                            value={addressEditor.notes}
-                            onChange={(event) =>
-                              setAddressEditor({
-                                ...addressEditor,
-                                notes: event.target.value,
-                              })
-                            }
-                            className="alento-input min-h-[82px] w-full resize-none rounded-xl px-3.5 py-3"
-                            placeholder="Casa, torre, apartamento, portería, referencias..."
-                          />
-                        </label>
-                      </div>
-                    </section>
+                    <div className="mx-auto max-w-[880px]">
+                      <CustomerAddressEditor
+                        value={addressEditor}
+                        showDetailsBeforeValidation
+                        onChange={(next) =>
+                          setAddressEditor((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  ...next,
+                                  isDefault: true,
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </div>
                   )}
 
                   {customerError && (
