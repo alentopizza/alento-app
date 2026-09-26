@@ -13,6 +13,9 @@ export type CustomerAddressEditorValue = {
   neighborhood?: string;
   city?: string;
   notes?: string;
+  covered?: boolean;
+  deliveryFee?: number | null;
+  distanceMeters?: number | null;
 };
 
 export function isValidatedCustomerAddress(
@@ -55,6 +58,9 @@ export default function CustomerAddressEditor({
       longitude: selection.longitude,
       neighborhood: selection.neighborhood || value.neighborhood || "",
       city: selection.city || value.city || "Bogotá",
+      covered: selection.covered,
+      deliveryFee: selection.deliveryFee,
+      distanceMeters: selection.distanceMeters,
     });
   };
 
