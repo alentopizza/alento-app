@@ -89,6 +89,9 @@ export default function StructuredPosPageV2() {
   const [deliveryFeeOverrideInput, setDeliveryFeeOverrideInput] = useState<string | null>(null);
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [customerModalSection, setCustomerModalSection] = useState<
+    "PERSONAL" | "LOCATION"
+  >("PERSONAL");
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [name, setName] = useState("");
   const [countryCode, setCountryCode] = useState("+57");
@@ -321,6 +324,7 @@ export default function StructuredPosPageV2() {
 
   function openNewCustomer() {
     setEditingCustomer(null);
+    setCustomerModalSection("PERSONAL");
     resetCustomerForm();
     setAddressEditor({
       id: null,
@@ -338,8 +342,12 @@ export default function StructuredPosPageV2() {
     setShowCustomerModal(true);
   }
 
-  function openEditCustomer(customer: Customer) {
+  function openEditCustomer(
+    customer: Customer,
+    section: "PERSONAL" | "LOCATION" = "PERSONAL",
+  ) {
     setEditingCustomer(customer);
+    setCustomerModalSection(section);
     setName(customer.name);
     setCountryCode(customer.countryCode || "+57");
     setPhone(customer.phone || "");
@@ -385,6 +393,7 @@ export default function StructuredPosPageV2() {
   async function saveCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim() || !phone.trim()) {
+      setCustomerModalSection("PERSONAL");
       return setCustomerError("Nombre y teléfono son obligatorios.");
     }
 
@@ -395,6 +404,7 @@ export default function StructuredPosPageV2() {
         addressEditor.latitude == null ||
         addressEditor.longitude == null)
     ) {
+      setCustomerModalSection("LOCATION");
       return setCustomerError(
         "Valida la dirección del cliente con Google Maps antes de continuar.",
       );
@@ -939,7 +949,7 @@ export default function StructuredPosPageV2() {
                 <div><p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>{selectedCustomer ? <div className="rounded-[16px] border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600"><UserRound className="h-5 w-5" strokeWidth={2} /></span><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-neutral-500"><MapPin className="h-3 w-3 shrink-0" />{selectedAddress.address}</span>}</div></div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Editar cliente"><Pencil className="h-4 w-4" /></button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Cambiar cliente"><UserRound className="h-4 w-4" /></button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && (
                   <button
                     type="button"
-                    onClick={() => openEditCustomer(selectedCustomer)}
+                    onClick={() => openEditCustomer(selectedCustomer, "LOCATION")}
                     className="mt-2.5 flex w-full items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-left transition hover:border-amber-300 hover:bg-amber-50"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-100 bg-white text-[16px] shadow-sm">
@@ -1056,249 +1066,351 @@ export default function StructuredPosPageV2() {
       />
 
       {showCustomerModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-4">
-          <div className="alento-card flex max-h-[94dvh] w-[min(96vw,980px)] max-w-none flex-col overflow-hidden rounded-[30px] bg-white">
-            <div className="flex items-start justify-between border-b px-6 py-5">
-              <div>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/65 p-2 sm:p-4">
+          <div className="alento-card flex max-h-[94dvh] w-[min(98vw,1180px)] max-w-none flex-col overflow-hidden rounded-[30px] bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+            <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-7">
+              <div className="min-w-0">
                 <p className="alento-ui-label uppercase text-neutral-400">Cliente</p>
-                <h2 className="alento-ui-title mt-1">
+                <h2 className="alento-ui-title mt-1 truncate">
                   {editingCustomer ? "Editar cliente" : "Nuevo cliente"}
                 </h2>
+                {editingCustomer && (
+                  <p className="mt-1 truncate text-[11px] font-medium text-neutral-400">
+                    {editingCustomer.name} · {editingCustomer.countryCode} {editingCustomer.phone}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => setShowCustomerModal(false)}
-                className="rounded-xl bg-neutral-100 px-3 py-2 text-sm font-semibold"
+                className="shrink-0 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
               >
                 Cerrar
               </button>
             </div>
 
             <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
-              <div className="alento-scroll min-h-0 flex-1 overflow-y-auto bg-[#f7f6f3] p-4 sm:p-5 lg:p-6">
-                <div className="space-y-4">
-                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
-                    <div className="mb-5 flex items-start gap-3 border-b border-neutral-100 pb-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-[12px] font-bold text-white">
-                        01
+              <div className="flex min-h-0 flex-1 flex-col bg-[#f7f6f3] lg:flex-row">
+                <aside className="shrink-0 border-b border-neutral-200 bg-white p-3 lg:w-[245px] lg:border-b-0 lg:border-r lg:p-4">
+                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerModalSection("PERSONAL");
+                        setCustomerError("");
+                      }}
+                      className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
+                        customerModalSection === "PERSONAL"
+                          ? "border-neutral-950 bg-neutral-950 text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          customerModalSection === "PERSONAL"
+                            ? "bg-white/12 text-white"
+                            : "bg-neutral-100 text-neutral-600"
+                        }`}
+                      >
+                        <UserRound className="h-[18px] w-[18px]" strokeWidth={2} />
+                      </span>
+                      <span className="min-w-0">
+                        <b className="block text-[12px]">Información personal</b>
+                        <span
+                          className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                            customerModalSection === "PERSONAL"
+                              ? "text-white/55"
+                              : "text-neutral-400"
+                          }`}
+                        >
+                          Nombre y contacto
+                        </span>
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerModalSection("LOCATION");
+                        setCustomerError("");
+                      }}
+                      className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
+                        customerModalSection === "LOCATION"
+                          ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white shadow-[0_8px_20px_rgba(226,26,34,.18)]"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          customerModalSection === "LOCATION"
+                            ? "bg-white/14 text-white"
+                            : "bg-red-50 text-[var(--brand-red)]"
+                        }`}
+                      >
+                        <MapPin className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                      </span>
+                      <span className="min-w-0">
+                        <b className="block text-[12px]">Ubicación</b>
+                        <span
+                          className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                            customerModalSection === "LOCATION"
+                              ? "text-white/65"
+                              : "text-neutral-400"
+                          }`}
+                        >
+                          Dirección y mapa
+                        </span>
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="mt-4 hidden rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 lg:block">
+                    <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      Estado de ubicación
+                    </span>
+                    {addressEditor?.placeId &&
+                    addressEditor.latitude != null &&
+                    addressEditor.longitude != null ? (
+                      <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-emerald-700">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                        Validada con Google
                       </div>
-                      <div>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-amber-700">
+                        <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        Pendiente de validar
+                      </div>
+                    )}
+                  </div>
+                </aside>
+
+                <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+                  {customerModalSection === "PERSONAL" && (
+                    <section className="mx-auto max-w-[830px] rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                      <div className="mb-6 border-b border-neutral-100 pb-4">
                         <p className="alento-ui-label uppercase text-neutral-400">
                           Información personal
                         </p>
-                        <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
+                        <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
                           Datos del cliente
                         </h3>
                         <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                          Información básica para identificarlo y contactarlo.
+                          Datos básicos para identificarlo, contactarlo y reconocerlo en futuras compras.
                         </p>
                       </div>
-                    </div>
 
-                    <div className="grid gap-3 md:grid-cols-12">
-                      <label className="block md:col-span-5">
-                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                          Nombre
-                        </span>
-                        <input
-                          value={name}
-                          onChange={(event) => setName(event.target.value)}
-                          className="alento-input h-12 w-full rounded-2xl px-4"
-                          placeholder="Nombre del cliente"
-                        />
-                      </label>
-
-                      <div className="grid grid-cols-[110px_1fr] gap-3 md:col-span-7">
-                        <label className="block">
+                      <div className="grid gap-4 md:grid-cols-12">
+                        <label className="block md:col-span-7">
                           <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Indicativo
-                          </span>
-                          <select
-                            value={countryCode}
-                            onChange={(event) => setCountryCode(event.target.value)}
-                            className="alento-input h-12 w-full rounded-2xl px-3"
-                          >
-                            <option>+57</option>
-                            <option>+1</option>
-                          </select>
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Teléfono
+                            Nombre
                           </span>
                           <input
-                            value={phone}
-                            onChange={(event) => setPhone(event.target.value)}
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
                             className="alento-input h-12 w-full rounded-2xl px-4"
-                            placeholder="Número de teléfono"
+                            placeholder="Nombre del cliente"
+                          />
+                        </label>
+
+                        <div className="grid grid-cols-[105px_1fr] gap-3 md:col-span-5">
+                          <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Indicativo
+                            </span>
+                            <select
+                              value={countryCode}
+                              onChange={(event) => setCountryCode(event.target.value)}
+                              className="alento-input h-12 w-full rounded-2xl px-3"
+                            >
+                              <option>+57</option>
+                              <option>+1</option>
+                            </select>
+                          </label>
+
+                          <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Teléfono
+                            </span>
+                            <input
+                              value={phone}
+                              onChange={(event) => setPhone(event.target.value)}
+                              className="alento-input h-12 w-full rounded-2xl px-4"
+                              placeholder="Número"
+                            />
+                          </label>
+                        </div>
+
+                        <label className="block md:col-span-6">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Correo <span className="font-medium text-neutral-400">(opcional)</span>
+                          </span>
+                          <input
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            className="alento-input h-12 w-full rounded-2xl px-4"
+                            placeholder="correo@ejemplo.com"
+                          />
+                        </label>
+
+                        <label className="block md:col-span-6">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Nota del cliente <span className="font-medium text-neutral-400">(opcional)</span>
+                          </span>
+                          <textarea
+                            value={notes}
+                            onChange={(event) => setNotes(event.target.value)}
+                            className="alento-input min-h-[92px] w-full resize-none rounded-2xl px-4 py-3"
+                            placeholder="Información útil para futuras compras"
                           />
                         </label>
                       </div>
+                    </section>
+                  )}
 
-                      <label className="block md:col-span-6">
-                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                          Correo <span className="font-medium text-neutral-400">(opcional)</span>
-                        </span>
-                        <input
-                          value={email}
-                          onChange={(event) => setEmail(event.target.value)}
-                          className="alento-input h-12 w-full rounded-2xl px-4"
-                          placeholder="correo@ejemplo.com"
-                        />
-                      </label>
-
-                      <label className="block md:col-span-6">
-                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                          Nota del cliente <span className="font-medium text-neutral-400">(opcional)</span>
-                        </span>
-                        <textarea
-                          value={notes}
-                          onChange={(event) => setNotes(event.target.value)}
-                          className="alento-input min-h-[48px] w-full resize-none rounded-2xl px-4 py-3 md:h-12 md:min-h-12"
-                          placeholder="Información útil para futuras compras"
-                        />
-                      </label>
-                    </div>
-                  </section>
-
-                  <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-5">
-                    <div className="flex items-start gap-3 border-b border-neutral-100 pb-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-red)] text-[12px] font-bold text-white">
-                        02
-                      </div>
-                      <div>
-                        <p className="alento-ui-label uppercase text-neutral-400">
-                          Dirección
-                        </p>
-                        <h3 className="mt-1 text-[20px] font-bold tracking-[-0.025em] text-neutral-950">
-                          Dirección de entrega
-                        </h3>
-                        <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                          Cada cliente conserva una sola dirección. Debe quedar validada con Google Maps.
-                        </p>
-                      </div>
-                    </div>
-
-                    {addressEditor && (
-                      <div className="mt-4 rounded-[22px] border border-neutral-200 bg-[#faf9f7] p-4 sm:p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                  {customerModalSection === "LOCATION" && addressEditor && (
+                    <section className="mx-auto max-w-[880px] space-y-4">
+                      <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
                           <div>
-                            <span className="text-[11px] font-bold text-neutral-600">
-                              Estado
-                            </span>
-                            <div className="mt-1">
-                              {addressEditor.placeId &&
-                              addressEditor.latitude != null &&
-                              addressEditor.longitude != null ? (
-                                <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700">
-                                  Validada con Google
-                                </span>
-                              ) : (
-                                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-700">
-                                  Requiere actualización
-                                </span>
-                              )}
-                            </div>
+                            <p className="alento-ui-label uppercase text-neutral-400">
+                              Ubicación
+                            </p>
+                            <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                              Dirección de entrega
+                            </h3>
+                            <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                              Revisa el punto en el mapa y deja las indicaciones necesarias para el domiciliario.
+                            </p>
                           </div>
+
+                          {addressEditor.placeId &&
+                          addressEditor.latitude != null &&
+                          addressEditor.longitude != null ? (
+                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
+                              ✓ Validada con Google
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
+                              Requiere validación
+                            </span>
+                          )}
                         </div>
 
-                        <div className="mt-4">
-                          <GoogleCustomerAddressPicker
-                            currentAddress={
-                              addressEditor.placeId &&
-                              addressEditor.latitude != null &&
-                              addressEditor.longitude != null
-                                ? addressEditor.formattedAddress ||
-                                  addressEditor.address
-                                : undefined
-                            }
-                            onSelect={(selection) =>
-                              setAddressEditor((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      address: selection.formattedAddress,
-                                      formattedAddress:
-                                        selection.formattedAddress,
-                                      placeId: selection.placeId,
-                                      latitude: selection.latitude,
-                                      longitude: selection.longitude,
-                                      neighborhood:
-                                        selection.neighborhood ||
-                                        current.neighborhood,
-                                      city: selection.city || current.city,
-                                      isDefault: true,
-                                    }
-                                  : current,
-                              )
-                            }
-                          />
-                        </div>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <label className="block">
-                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                              Barrio
-                            </span>
-                            <input
-                              value={addressEditor.neighborhood}
-                              onChange={(event) =>
-                                setAddressEditor({
-                                  ...addressEditor,
-                                  neighborhood: event.target.value,
-                                })
-                              }
-                              className="alento-input h-11 w-full rounded-xl px-3"
-                              placeholder="Opcional"
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                              Indicaciones
-                            </span>
-                            <input
-                              value={addressEditor.notes}
-                              onChange={(event) =>
-                                setAddressEditor({
-                                  ...addressEditor,
-                                  notes: event.target.value,
-                                })
-                              }
-                              className="alento-input h-11 w-full rounded-xl px-3"
-                              placeholder="Torre, apto, portería..."
-                            />
-                          </label>
-                        </div>
+                        <GoogleCustomerAddressPicker
+                          currentAddress={
+                            addressEditor.placeId &&
+                            addressEditor.latitude != null &&
+                            addressEditor.longitude != null
+                              ? addressEditor.formattedAddress ||
+                                addressEditor.address
+                              : undefined
+                          }
+                          initialSelection={{
+                            formattedAddress:
+                              addressEditor.formattedAddress ||
+                              addressEditor.address,
+                            placeId: addressEditor.placeId,
+                            latitude: addressEditor.latitude,
+                            longitude: addressEditor.longitude,
+                            neighborhood: addressEditor.neighborhood,
+                            city: addressEditor.city,
+                          }}
+                          onSelect={(selection) =>
+                            setAddressEditor((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    address: selection.formattedAddress,
+                                    formattedAddress: selection.formattedAddress,
+                                    placeId: selection.placeId,
+                                    latitude: selection.latitude,
+                                    longitude: selection.longitude,
+                                    neighborhood:
+                                      selection.neighborhood ||
+                                      current.neighborhood,
+                                    city: selection.city || current.city,
+                                    isDefault: true,
+                                  }
+                                : current,
+                            )
+                          }
+                        />
                       </div>
-                    )}
-                  </section>
-                </div>
 
-                {customerError && (
-                  <p className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
-                    {customerError}
-                  </p>
-                )}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Barrio
+                          </span>
+                          <input
+                            value={addressEditor.neighborhood}
+                            onChange={(event) =>
+                              setAddressEditor({
+                                ...addressEditor,
+                                neighborhood: event.target.value,
+                              })
+                            }
+                            className="alento-input h-12 w-full rounded-xl px-3.5"
+                            placeholder="Ej. Kennedy"
+                          />
+                          <span className="mt-2 block text-[10px] leading-4 text-neutral-400">
+                            Ayuda a identificar rápidamente la zona del domicilio.
+                          </span>
+                        </label>
+
+                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Indicaciones para entregar
+                          </span>
+                          <textarea
+                            value={addressEditor.notes}
+                            onChange={(event) =>
+                              setAddressEditor({
+                                ...addressEditor,
+                                notes: event.target.value,
+                              })
+                            }
+                            className="alento-input min-h-[82px] w-full resize-none rounded-xl px-3.5 py-3"
+                            placeholder="Casa, torre, apartamento, portería, referencias..."
+                          />
+                        </label>
+                      </div>
+                    </section>
+                  )}
+
+                  {customerError && (
+                    <p className="mx-auto mt-4 max-w-[880px] rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                      {customerError}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-end gap-2 border-t bg-white px-5 py-4 sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => setShowCustomerModal(false)}
-                  className="rounded-2xl border px-5 py-3 text-sm font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={savingCustomer}
-                  className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  {savingCustomer
-                    ? "Guardando..."
-                    : editingCustomer
-                      ? "Guardar cliente"
-                      : "Crear cliente"}
-                </button>
+
+              <div className="flex items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-4 sm:px-7">
+                <span className="hidden text-[11px] font-medium text-neutral-400 sm:block">
+                  {customerModalSection === "PERSONAL"
+                    ? "Información personal"
+                    : "Ubicación y entrega"}
+                </span>
+                <div className="ml-auto flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomerModal(false)}
+                    className="rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={savingCustomer}
+                    className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(226,26,34,.16)] disabled:opacity-50"
+                  >
+                    {savingCustomer
+                      ? "Guardando..."
+                      : editingCustomer
+                        ? "Guardar cliente"
+                        : "Crear cliente"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
