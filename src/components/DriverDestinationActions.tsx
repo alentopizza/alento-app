@@ -219,7 +219,6 @@ export default function DriverDestinationActions({
   }, [currentStatus, initialTravelMode]);
 
   const navigationDisabled = [
-    "ARRIVED",
     "DELIVERED",
     "COMPLETED",
     "CANCELED",
@@ -592,10 +591,8 @@ export default function DriverDestinationActions({
         throw new Error(data.error || "No fue posible registrar la llegada.");
       }
 
-      window.localStorage.removeItem(
-        `alento-driver-location-sharing:${token}`,
-      );
-      setOpen(false);
+      setNavigationStatus("ARRIVED");
+      setArrivalProgress(0);
       router.refresh();
       window.setTimeout(() => router.refresh(), 700);
     } catch (err) {
@@ -674,7 +671,7 @@ export default function DriverDestinationActions({
           }
           title={
             navigationDisabled
-              ? "Ya llegaste al destino"
+              ? "Pedido finalizado"
               : "Navegar al cliente"
           }
           className={
