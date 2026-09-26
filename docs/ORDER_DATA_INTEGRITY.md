@@ -169,6 +169,27 @@ Ejemplo conceptual:
 
 El combo no debe convertirse en un producto opaco para inventario. Deben conservarse sus componentes reales.
 
+
+### Compatibilidad de sabores en pizzas dentro de combos
+
+La estructura de combos evolucionó para permitir pizzas de dos sabores.
+
+Los pedidos históricos pueden contener una pizza del combo con un único objeto:
+
+`pizza.flavor`
+
+Los pedidos nuevos pueden contener:
+
+`pizza.flavors`
+
+con uno o dos sabores y su porción correspondiente. Mientras existan pedidos históricos, cualquier pantalla que lea configuraciones de combo debe soportar ambas formas.
+
+La presentación visible no debe leer directamente `pizza.flavor`. Debe utilizar `src/lib/orderPresentation.ts`, que normaliza el formato histórico y el actual. Para dos sabores debe mostrarse de forma explícita, por ejemplo:
+
+`½ Hawaiana + ½ Pepperoni`
+
+Esto aplica a seguimiento del cliente, POS, checkout, Pedidos, Cocina, impresión, Repartidor y cualquier nueva superficie que muestre el contenido de una orden.
+
 ## Producto estándar
 
 Bebidas, antojos u otros productos simples deben conservar al menos:
