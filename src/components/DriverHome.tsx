@@ -10,8 +10,8 @@ import {
   createDeliveryMapPinElement,
   createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
-import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 } from "@/lib/alentoMapMarker";
+import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 import {
   groupDeliveryLocations,
