@@ -1608,25 +1608,21 @@ export default function OrdersCardsDashboardV3() {
                               </div>
                             )}
 
-                          <GoogleCustomerAddressPicker
-                            currentAddress={
-                              replacementAddressSelection?.formattedAddress ||
-                              replacementCustomer.addresses?.[0]
-                                ?.formattedAddress ||
-                              replacementCustomer.addresses?.[0]?.address ||
-                              undefined
-                            }
-                            initialSelection={{
+                          <CustomerAddressEditor
+                            value={{
+                              address:
+                                replacementCustomer.addresses?.[0]?.address ||
+                                "",
                               formattedAddress:
                                 replacementAddressSelection?.formattedAddress ||
                                 replacementCustomer.addresses?.[0]
                                   ?.formattedAddress ||
                                 replacementCustomer.addresses?.[0]?.address ||
-                                undefined,
+                                "",
                               placeId:
                                 replacementAddressSelection?.placeId ||
                                 replacementCustomer.addresses?.[0]?.placeId ||
-                                undefined,
+                                null,
                               latitude:
                                 replacementAddressSelection?.latitude ??
                                 replacementCustomer.addresses?.[0]?.latitude ??
@@ -1639,63 +1635,33 @@ export default function OrdersCardsDashboardV3() {
                                 replacementAddressSelection?.neighborhood ||
                                 replacementCustomer.addresses?.[0]
                                   ?.neighborhood ||
-                                undefined,
+                                "",
                               city:
                                 replacementAddressSelection?.city ||
                                 replacementCustomer.addresses?.[0]?.city ||
-                                undefined,
+                                "Bogotá",
+                              notes: replacementAddressNotes,
+                              covered:
+                                replacementAddressSelection?.covered,
+                              deliveryFee:
+                                replacementAddressSelection?.deliveryFee ??
+                                null,
+                              distanceMeters:
+                                replacementAddressSelection?.distanceMeters ??
+                                null,
                             }}
-                            onSelect={(selection) => {
-                              setReplacementAddressSelection(selection);
+                            eyebrow="Ubicación del nuevo cliente"
+                            title="Dirección para este domicilio"
+                            description="Valida el punto exacto antes de asignar el cliente. La cobertura y la tarifa se calculan con esta ubicación."
+                            onChange={(next) => {
+                              setReplacementAddressNotes(next.notes ?? "");
+                              setReplacementAddressSelection(
+                                addressSelectionFromEditorValue(next),
+                              );
                               setReplacementAddressId(null);
                               setCustomerError("");
                             }}
                           />
-
-                          {replacementAddressSelection && (
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <label className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
-                                <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                                  Barrio
-                                </span>
-                                <input
-                                  value={
-                                    replacementAddressSelection.neighborhood
-                                  }
-                                  onChange={(event) =>
-                                    setReplacementAddressSelection(
-                                      (current) =>
-                                        current
-                                          ? {
-                                              ...current,
-                                              neighborhood:
-                                                event.target.value,
-                                            }
-                                          : current,
-                                    )
-                                  }
-                                  className="alento-input h-12 w-full rounded-xl bg-white px-3.5"
-                                  placeholder="Ej. Kennedy"
-                                />
-                              </label>
-
-                              <label className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
-                                <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                                  Indicaciones para entregar
-                                </span>
-                                <textarea
-                                  value={replacementAddressNotes}
-                                  onChange={(event) =>
-                                    setReplacementAddressNotes(
-                                      event.target.value,
-                                    )
-                                  }
-                                  className="alento-input min-h-[82px] w-full resize-none rounded-xl bg-white px-3.5 py-3"
-                                  placeholder="Casa, torre, apartamento, portería, referencias..."
-                                />
-                              </label>
-                            </div>
-                          )}
                         </div>
                       )}
 
