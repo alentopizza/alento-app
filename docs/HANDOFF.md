@@ -8,8 +8,8 @@ Leer en este orden:
 
 1. `AGENTS.md`
 2. `README.md`
-4. `docs/CURRENT_STATE.md`
-3. `docs/PRODUCTION_READINESS.md`
+3. `docs/CURRENT_STATE.md`
+4. `docs/PRODUCTION_READINESS.md`
 5. `docs/ALENTO_EXCLUSIVE_MODULES.md`
 6. `docs/ROADMAP.md`
 7. `docs/POS.md`
