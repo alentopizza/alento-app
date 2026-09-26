@@ -6,6 +6,7 @@ import type {
   OrderLineConfiguration,
   PizzaOrderConfiguration,
 } from "@/lib/orderConfiguration";
+import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
@@ -118,6 +119,9 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
   const configuration = orderConfiguration(item.configuration);
   const pizza = configuration?.kind === "PIZZA" ? configuration as PizzaOrderConfiguration : null;
   const combo = configuration?.kind === "COMBO" ? configuration as ComboOrderConfiguration : null;
+  const comboPresentation = combo
+    ? presentComboOrderConfiguration(combo)
+    : null;
 
   return (
     <article className="checkout-product-line">
@@ -157,22 +161,34 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
         </div>
       )}
 
-      {combo && (
+      {comboPresentation && (
         <div className="checkout-product-details checkout-combo-details">
-          {combo.pizzas.map((comboPizza, index) => (
-            <div key={`${comboPizza.ruleId}-${index}`} className="checkout-combo-pizza">
+          {comboPresentation.pizzas.map((comboPizza, index) => (
+            <div
+              key={`combo-pizza-${index}`}
+              className="checkout-combo-pizza"
+            >
               <span>Pizza {index + 1}</span>
-              <b>{comboPizza.size.name} · {comboPizza.flavor.name}</b>
+              <b>
+                {[comboPizza.sizeName, comboPizza.flavor]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </b>
             </div>
           ))}
-          {combo.groups.length > 0 && (
+          {comboPresentation.groups.length > 0 && (
             <div className="checkout-product-extras">
               <div>
-                {combo.groups.flatMap((group) => group.selections.map((selection) => (
-                  <em key={`${group.groupId}-${selection.productId}`} className="neutral">
-                    {group.name}: {selection.quantity > 1 ? `${selection.quantity}× ` : ""}{selection.name}
-                  </em>
-                )))}
+                {comboPresentation.groups.flatMap((group, groupIndex) =>
+                  group.values.map((value, valueIndex) => (
+                    <em
+                      key={`${groupIndex}-${valueIndex}-${value}`}
+                      className="neutral"
+                    >
+                      {group.label}: {value}
+                    </em>
+                  )),
+                )}
               </div>
             </div>
           )}
