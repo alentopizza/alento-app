@@ -405,6 +405,8 @@ Mientras exista una sesión `OPEN`:
 - cobros, ingresos, salidas, préstamos y abonos continúan perteneciendo a esa sesión;
 - no se puede abrir una segunda caja antes de cerrar la existente.
 
+En una consulta de **un solo día** sin sesión propia, Caja no hace fallback a `00:00–23:59`: muestra cero movimientos operativos. Esto evita que movimientos posteriores a medianoche, ya consumidos por la sesión anterior, vuelvan a aparecer en el día calendario siguiente. Los rangos de varios días sí permanecen disponibles como reporte calendario.
+
 Fuera de una sesión abierta no se permiten nuevos movimientos operativos. Los intervalos de sesiones cerradas quedan bloqueados y no admiten alteraciones de movimientos.
 
 Al cerrar una sesión que empezó el día anterior, la interfaz vuelve a seleccionar su `businessDate` para conservar visible el cuadre completo.
