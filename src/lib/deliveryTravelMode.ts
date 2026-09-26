@@ -66,6 +66,7 @@ export function googleMapsUrlTravelMode(
 ) {
   const normalized = normalizeDeliveryTravelMode(value);
   if (normalized === "WALK") return "walking";
-  if (normalized === "MOTORCYCLE") return "two-wheeler";
+  // Google Maps universal direction URLs do not reliably support
+  // "two-wheeler". Motorcycle deliveries open as driving externally.
   return "driving";
 }
