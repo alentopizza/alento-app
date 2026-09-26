@@ -96,8 +96,21 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
       configuration.pizzas.forEach((pizza, index) => {
         if (!isObject(pizza)) return;
         const size = isObject(pizza.size) ? text(pizza.size.name) : "";
-        const flavor = isObject(pizza.flavor) ? text(pizza.flavor.name) : "";
-        const value = [size, flavor].filter(Boolean).join(" · ");
+        const flavors = Array.isArray(pizza.flavors)
+          ? pizza.flavors.flatMap((flavor) =>
+              isObject(flavor) && text(flavor.name)
+                ? [`½ ${text(flavor.name)}`]
+                : [],
+            )
+          : [];
+        const legacyFlavor = isObject(pizza.flavor)
+          ? text(pizza.flavor.name)
+          : "";
+        const flavorText =
+          flavors.length > 1
+            ? flavors.join(" + ")
+            : flavors[0]?.replace(/^½\s*/, "") || legacyFlavor;
+        const value = [size, flavorText].filter(Boolean).join(" · ");
         if (value) result.push({ label: `Pizza ${index + 1}`, value });
       });
     }
