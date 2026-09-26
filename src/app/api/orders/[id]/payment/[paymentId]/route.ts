@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  CASH_SESSION_REQUIRED_ERROR,
+  CASH_MOVEMENT_BEFORE_OPEN_ERROR,
+  cashDateClosedResponseMessage,
+  cashSessionRequiredResponseMessage,
+  cashMovementBeforeOpenResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 export async function DELETE(
   _request: NextRequest,
@@ -22,6 +31,10 @@ export async function DELETE(
 
     const payment = order.payments.find((item) => item.id === paymentId);
     if (!payment) return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
+
+    if (payment.status === "PAID" && payment.paidAt) {
+      await assertCashDateEditable(payment.paidAt);
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.payment.delete({ where: { id: payment.id } });
@@ -51,6 +64,27 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true, deletedPaymentId: payment.id });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === CASH_DATE_CLOSED_ERROR) {
+        return NextResponse.json(
+          { error: cashDateClosedResponseMessage() },
+          { status: 409 },
+        );
+      }
+      if (error.message === CASH_SESSION_REQUIRED_ERROR) {
+        return NextResponse.json(
+          { error: cashSessionRequiredResponseMessage() },
+          { status: 409 },
+        );
+      }
+      if (error.message === CASH_MOVEMENT_BEFORE_OPEN_ERROR) {
+        return NextResponse.json(
+          { error: cashMovementBeforeOpenResponseMessage() },
+          { status: 409 },
+        );
+      }
+    }
+
     console.error("Payment delete error", error);
     return NextResponse.json({ error: "No fue posible eliminar el pago." }, { status: 500 });
   }
