@@ -3,27 +3,18 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
-import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  deliveryPricingHttpStatus,
+  resolveDeliveryPricing,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 
 const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
-type DeliveryBand = {
-  id: string;
-  name?: string;
-  minMeters: number;
-  maxMeters: number;
-  fee: number;
-  active?: boolean;
-};
 type PaymentMethod = { id: string; name: string; active?: boolean };
-type PosSettings = {
-  store?: {
-    latitude?: number | null;
-    longitude?: number | null;
-  };
-  deliveryBands?: DeliveryBand[];
+type PosSettings = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
 };
 
@@ -100,107 +91,52 @@ export async function POST(request: NextRequest) {
       customer = await prisma.customer.findUnique({ where: { id: customerId }, include: { addresses: true } });
       if (!customer) return NextResponse.json({ error: "El cliente ya no existe." }, { status: 400 });
       if (fulfillmentType === "DELIVERY") {
-        address = customer.addresses.find((item) => item.id === Number(body.addressId)) ?? customer.addresses[0] ?? null;
-        if (!address) return NextResponse.json({ error: "El domicilio requiere una dirección registrada." }, { status: 400 });
-      }
-    }
-
-    const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
-    const settings = parseSettings(settingsRow?.value ?? null);
-    const paymentMethod = settings.paymentMethods?.find((method) => method.id === String(body.paymentMethodId) && method.active !== false);
-    if (!paymentMethod) return NextResponse.json({ error: "El medio de pago seleccionado ya no está activo." }, { status: 400 });
-
-    let deliveryFee = 0;
-    let deliveryZoneId: string | null = null;
-    let deliveryZoneName: string | null = null;
-
-    if (fulfillmentType === "DELIVERY") {
-      const destinationLatitude = Number(address?.latitude);
-      const destinationLongitude = Number(address?.longitude);
-      const storeLatitude = Number(settings.store?.latitude);
-      const storeLongitude = Number(settings.store?.longitude);
-
-      if (
-        !Number.isFinite(destinationLatitude) ||
-        !Number.isFinite(destinationLongitude)
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "La dirección del cliente debe estar validada con Google Maps para calcular el domicilio.",
+      try {
+        const pricing = resolveDeliveryPricing({
+          settings,
+          destination: {
+            latitude: Number(address?.latitude),
+            longitude: Number(address?.longitude),
           },
-          { status: 400 },
-        );
-      }
+        });
 
-      if (
-        !Number.isFinite(storeLatitude) ||
-        !Number.isFinite(storeLongitude)
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "La sede de Alentó no tiene una ubicación oficial válida para calcular domicilios.",
-          },
-          { status: 503 },
-        );
-      }
-
-      const commercialDistanceMeters = directDistanceMeters({
-        origin: {
-          latitude: storeLatitude,
-          longitude: storeLongitude,
-        },
-        destination: {
-          latitude: destinationLatitude,
-          longitude: destinationLongitude,
-        },
-      });
-
-      const activeBands = (settings.deliveryBands ?? [])
-        .filter((item) => item.active !== false)
-        .map((item) => ({
-          ...item,
-          minMeters: Number(item.minMeters),
-          maxMeters: Number(item.maxMeters),
-          fee: Number(item.fee),
-        }))
-        .filter(
-          (item) =>
-            Number.isFinite(item.minMeters) &&
-            Number.isFinite(item.maxMeters) &&
-            Number.isFinite(item.fee),
-        );
-
-      const zone = activeBands.find(
-        (item) =>
-          commercialDistanceMeters >= item.minMeters &&
-          commercialDistanceMeters <= item.maxMeters,
-      );
-
-      if (!zone) {
-        return NextResponse.json(
-          {
-            error:
-              "La dirección está fuera de la cobertura configurada para domicilios.",
-          },
-          { status: 400 },
-        );
-      }
-
-      deliveryFee = money(zone.fee);
-      deliveryZoneId = zone.id;
-      deliveryZoneName = zone.name?.trim() || "Domicilio";
-
-      if (body.deliveryFeeOverride != null) {
-        const requestedDeliveryFee = Number(body.deliveryFeeOverride);
-        if (!Number.isFinite(requestedDeliveryFee) || requestedDeliveryFee < 0) {
+        if (!pricing.covered || !pricing.band) {
           return NextResponse.json(
-            { error: "El valor manual del domicilio no es válido." },
+            {
+              error:
+                "La dirección está fuera de la cobertura configurada para domicilios.",
+            },
             { status: 400 },
           );
         }
-        deliveryFee = money(requestedDeliveryFee);
+
+        deliveryFee = pricing.deliveryFee ?? 0;
+        deliveryZoneId = pricing.deliveryZoneId;
+        deliveryZoneName = pricing.deliveryZoneName;
+
+        if (body.deliveryFeeOverride != null) {
+          const requestedDeliveryFee = Number(body.deliveryFeeOverride);
+          if (
+            !Number.isFinite(requestedDeliveryFee) ||
+            requestedDeliveryFee < 0
+          ) {
+            return NextResponse.json(
+              { error: "El valor manual del domicilio no es válido." },
+              { status: 400 },
+            );
+          }
+          deliveryFee = money(requestedDeliveryFee);
+        }
+      } catch (pricingError) {
+        return NextResponse.json(
+          {
+            error:
+              pricingError instanceof Error
+                ? pricingError.message
+                : "No fue posible calcular el domicilio.",
+          },
+          { status: deliveryPricingHttpStatus(pricingError) },
+        );
       }
     }
 
