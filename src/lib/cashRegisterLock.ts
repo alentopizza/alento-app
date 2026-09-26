@@ -1,38 +1,53 @@
 import { prisma } from "@/lib/prisma";
 
-export function cashBusinessDate(value: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Bogota",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(value);
-
-  const map = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
-
-  return `${map.year}-${map.month}-${map.day}`;
-}
-
-export async function isCashDateClosed(value: Date) {
-  const businessDate = cashBusinessDate(value);
-  const session = await prisma.cashRegisterSession.findUnique({
-    where: { businessDate },
-    select: { status: true },
-  });
-
-  return session?.status === "CLOSED";
-}
-
 export const CASH_DATE_CLOSED_ERROR = "CASH_DATE_CLOSED";
+export const CASH_SESSION_REQUIRED_ERROR = "CASH_SESSION_REQUIRED";
+export const CASH_MOVEMENT_BEFORE_OPEN_ERROR =
+  "CASH_MOVEMENT_BEFORE_OPEN";
 
 export async function assertCashDateEditable(value: Date) {
-  if (await isCashDateClosed(value)) {
+  const closedSession = await prisma.cashRegisterSession.findFirst({
+    where: {
+      status: "CLOSED",
+      openedAt: { lte: value },
+      closedAt: { gt: value },
+    },
+    select: { id: true },
+  });
+
+  if (closedSession) {
     throw new Error(CASH_DATE_CLOSED_ERROR);
   }
+
+  const openSession = await prisma.cashRegisterSession.findFirst({
+    where: { status: "OPEN" },
+    orderBy: { openedAt: "desc" },
+    select: {
+      id: true,
+      businessDate: true,
+      openedAt: true,
+    },
+  });
+
+  if (!openSession) {
+    throw new Error(CASH_SESSION_REQUIRED_ERROR);
+  }
+
+  if (value < openSession.openedAt) {
+    throw new Error(CASH_MOVEMENT_BEFORE_OPEN_ERROR);
+  }
+
+  return openSession;
 }
 
 export function cashDateClosedResponseMessage() {
-  return "La caja de esta fecha ya está cerrada. El cierre quedó bloqueado y no admite nuevos movimientos.";
+  return "Este movimiento pertenece a una sesión de caja que ya fue cerrada. El cierre está bloqueado y no admite cambios.";
+}
+
+export function cashSessionRequiredResponseMessage() {
+  return "Primero abre la caja. Todo movimiento operativo debe quedar entre una apertura y su cierre.";
+}
+
+export function cashMovementBeforeOpenResponseMessage() {
+  return "La fecha u hora del movimiento es anterior a la apertura actual. Ajusta el momento del movimiento o consulta el historial de caja.";
 }
