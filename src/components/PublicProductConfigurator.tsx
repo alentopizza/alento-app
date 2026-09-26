@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import type { PizzaOrderConfiguration } from "@/lib/orderConfiguration";
-import { buildComboConfiguration } from "@/lib/comboConfiguration";
+import {
+  buildComboConfiguration,
+  estimateComboPrice,
+} from "@/lib/comboConfiguration";
 import {
   buildPizzaConfiguration,
   estimatePizzaPrice,
@@ -522,50 +525,66 @@ export default function PublicProductConfigurator({
 
   const comboPrice = useMemo(() => {
     if (!isCombo) return 0;
-    let regular = 0;
 
-    for (const rule of product.comboPizzaRules ?? []) {
-      const flavorBase = rule.flavors.length
-        ? Math.min(...rule.flavors.map((flavor) => flavor.basePrice))
-        : 0;
-
-      for (let unit = 0; unit < rule.quantity; unit += 1) {
+    const pizzas = (product.comboPizzaRules ?? []).flatMap((rule) =>
+      Array.from({ length: rule.quantity }, (_, unit) => {
         const selection =
-          comboPizzaSelections[comboSelectionKey(rule, unit)] ?? null;
-        const selectedSize = rule.sizes.find(
-          (item) => item.id === selection?.sizeId,
-        );
-        const sizeBase =
-          selectedSize?.basePrice ??
-          (rule.sizes.length
-            ? Math.min(...rule.sizes.map((item) => item.basePrice))
-            : 0);
+          comboPizzaSelections[comboSelectionKey(rule, unit)];
 
-        regular += sizeBase + flavorBase;
-      }
-    }
+        const fallbackSize = [...rule.sizes].sort(
+          (a, b) => a.basePrice - b.basePrice,
+        )[0];
+        const fallbackFlavor = [...rule.flavors].sort(
+          (a, b) => a.basePrice - b.basePrice,
+        )[0];
 
+        return {
+          ruleId: rule.id,
+          sizeId: selection?.sizeId ?? fallbackSize?.id ?? null,
+          flavorCount: 1 as const,
+          firstFlavorId:
+            selection?.flavorId ?? fallbackFlavor?.id ?? null,
+          secondFlavorId: null,
+        };
+      }),
+    );
+
+    const groupSelections: Record<number, number[]> = {};
     for (const group of product.comboGroups ?? []) {
-      const requiredCount = Math.max(0, group.minSelections);
-      const baseOptions = [...group.options]
-        .map(
-          (option) =>
-            (option.basePrice + option.priceDelta) *
-            Math.max(1, option.quantity),
-        )
-        .sort((a, b) => a - b)
-        .slice(0, requiredCount);
+      const selected = comboGroupSelections[group.id] ?? [];
+      const remaining = group.options
+        .filter((option) => !selected.includes(option.productId))
+        .sort(
+          (a, b) =>
+            (a.basePrice + a.priceDelta) *
+              Math.max(1, a.quantity) -
+            (b.basePrice + b.priceDelta) *
+              Math.max(1, b.quantity),
+        );
 
-      regular += baseOptions.reduce((sum, value) => sum + value, 0);
+      const needed = Math.max(
+        0,
+        group.minSelections - selected.length,
+      );
+
+      groupSelections[group.id] = [
+        ...selected,
+        ...remaining
+          .slice(0, needed)
+          .map((option) => option.productId),
+      ];
     }
 
-    return Math.max(0, regular - Number(product.comboDiscount ?? 0));
+    return estimateComboPrice({
+      product,
+      pizzas,
+      groupSelections,
+    });
   }, [
+    comboGroupSelections,
     comboPizzaSelections,
     isCombo,
-    product.comboDiscount,
-    product.comboGroups,
-    product.comboPizzaRules,
+    product,
   ]);
 
   const comboHasAllSizes = useMemo(
