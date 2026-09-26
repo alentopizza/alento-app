@@ -91,6 +91,21 @@ export async function POST(request: NextRequest) {
       customer = await prisma.customer.findUnique({ where: { id: customerId }, include: { addresses: true } });
       if (!customer) return NextResponse.json({ error: "El cliente ya no existe." }, { status: 400 });
       if (fulfillmentType === "DELIVERY") {
+        address = customer.addresses.find((item) => item.id === Number(body.addressId)) ?? customer.addresses[0] ?? null;
+        if (!address) return NextResponse.json({ error: "El domicilio requiere una dirección registrada." }, { status: 400 });
+      }
+    }
+
+    const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
+    const settings = parseSettings(settingsRow?.value ?? null);
+    const paymentMethod = settings.paymentMethods?.find((method) => method.id === String(body.paymentMethodId) && method.active !== false);
+    if (!paymentMethod) return NextResponse.json({ error: "El medio de pago seleccionado ya no está activo." }, { status: 400 });
+
+    let deliveryFee = 0;
+    let deliveryZoneId: string | null = null;
+    let deliveryZoneName: string | null = null;
+
+    if (fulfillmentType === "DELIVERY") {
       try {
         const pricing = resolveDeliveryPricing({
           settings,
