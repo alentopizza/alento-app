@@ -124,7 +124,6 @@ export default function StructuredPosPageV2() {
     latitude: number | null;
     longitude: number | null;
   } | null>(null);
-  const [addressBusy, setAddressBusy] = useState(false);
 
   useEffect(() => {
     async function loadCatalog() {
