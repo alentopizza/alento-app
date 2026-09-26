@@ -97,6 +97,12 @@ export async function GET(request: NextRequest) {
           closedAt: session.closedAt?.toISOString() ?? null,
           inheritedFromPreviousDay: inherited,
         };
+      } else {
+        // A single operational day without its own cash session must not
+        // re-display movements that belong to a session opened the day before.
+        // Multi-day ranges remain calendar-based reporting.
+        queryStart = endExclusive;
+        queryEndExclusive = endExclusive;
       }
     }
 
@@ -243,7 +249,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       startDate,
       endDate,
-      scope: sessionScope ? "SESSION" : "CALENDAR",
+      scope:
+        sessionScope
+          ? "SESSION"
+          : startDate === endDate
+            ? "NO_SESSION"
+            : "CALENDAR",
       sessionScope,
       salesTotal,
       orderCount: sales._count._all,
