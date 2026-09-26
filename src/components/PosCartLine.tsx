@@ -1,6 +1,7 @@
 "use client";
 
 import type { OrderLineConfiguration } from "@/lib/orderConfiguration";
+import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
 
 type PosCartLineItem = {
   key: string;
@@ -39,6 +40,10 @@ function Spec({ label, value }: { label: string; value: string }) {
 
 export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Props) {
   const configuration = item.configuration;
+  const comboPresentation =
+    configuration.kind === "COMBO"
+      ? presentComboOrderConfiguration(configuration)
+      : null;
 
   return (
     <article
@@ -103,33 +108,34 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
         </div>
       )}
 
-      {configuration.kind === "COMBO" && (
+      {comboPresentation && (
         <div className="pos-cart-structured">
           <div className="space-y-1.5">
-            {configuration.pizzas.map((pizza, index) => {
-              const flavors = pizza.flavors?.length
-                ? pizza.flavors
-                : [pizza.flavor];
-              const flavorText =
-                flavors.length > 1
-                  ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
-                  : flavors[0]?.name ?? "";
-              return (
-                <div key={`${pizza.ruleId}-${index}`} className="pos-cart-combo-row">
-                  <span>Pizza {index + 1}</span>
-                  <b>{pizza.size.name} · {flavorText}</b>
-                </div>
-              );
-            })}
+            {comboPresentation.pizzas.map((pizza, index) => (
+              <div
+                key={`combo-pizza-${index}`}
+                className="pos-cart-combo-row"
+              >
+                <span>Pizza {index + 1}</span>
+                <b>
+                  {[pizza.sizeName, pizza.flavor]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </b>
+              </div>
+            ))}
           </div>
 
-          {configuration.groups.length > 0 && (
+          {comboPresentation.groups.length > 0 && (
             <div className="pos-cart-extras">
               <div className="pos-cart-tags">
-                {configuration.groups.flatMap((group) =>
-                  group.selections.map((selection) => (
-                    <span key={`${group.groupId}-${selection.productId}`} className="pos-cart-tag pos-cart-tag-neutral">
-                      {group.name}: {selection.quantity > 1 ? `${selection.quantity}× ` : ""}{selection.name}
+                {comboPresentation.groups.flatMap((group, groupIndex) =>
+                  group.values.map((value, valueIndex) => (
+                    <span
+                      key={`${groupIndex}-${valueIndex}-${value}`}
+                      className="pos-cart-tag pos-cart-tag-neutral"
+                    >
+                      {group.label}: {value}
                     </span>
                   )),
                 )}
