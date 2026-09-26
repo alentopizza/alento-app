@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  assertCashDateEditable,
+  CASH_DATE_CLOSED_ERROR,
+  CASH_SESSION_REQUIRED_ERROR,
+  CASH_MOVEMENT_BEFORE_OPEN_ERROR,
+  cashDateClosedResponseMessage,
+  cashSessionRequiredResponseMessage,
+  cashMovementBeforeOpenResponseMessage,
+} from "@/lib/cashRegisterLock";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -63,6 +72,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     const reference = typeof body.reference === "string" && body.reference.trim() ? body.reference.trim() : null;
+    const paidAt = new Date();
+    await assertCashDateEditable(paidAt);
+
     const remaining = Math.max(0, outstanding - amount);
     const pending = order.payments.find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL") ?? null;
 
@@ -76,7 +88,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           changeDue,
           reference,
           status: "PAID",
-          paidAt: new Date(),
+          paidAt,
         },
       });
 
@@ -119,6 +131,27 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       partial: remaining > 0,
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === CASH_DATE_CLOSED_ERROR) {
+        return NextResponse.json(
+          { error: cashDateClosedResponseMessage() },
+          { status: 409 },
+        );
+      }
+      if (error.message === CASH_SESSION_REQUIRED_ERROR) {
+        return NextResponse.json(
+          { error: cashSessionRequiredResponseMessage() },
+          { status: 409 },
+        );
+      }
+      if (error.message === CASH_MOVEMENT_BEFORE_OPEN_ERROR) {
+        return NextResponse.json(
+          { error: cashMovementBeforeOpenResponseMessage() },
+          { status: 409 },
+        );
+      }
+    }
+
     console.error("Order payment registration error", error);
     return NextResponse.json({ error: "No fue posible registrar el pago." }, { status: 500 });
   }
