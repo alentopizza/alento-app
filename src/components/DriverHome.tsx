@@ -10,6 +10,7 @@ import {
   createDeliveryMapPinElement,
   createDeliveryRouteStopPinElement,
   createDriverMapPinElement,
+import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 } from "@/lib/alentoMapMarker";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 import {
@@ -378,107 +379,9 @@ function textValue(value: unknown) {
 }
 
 function orderItemDetails(configuration: unknown) {
-  if (!isRecord(configuration)) return [];
-
-  const kind = textValue(configuration.kind)?.toUpperCase();
-  const details: string[] = [];
-
-  if (kind === "PIZZA") {
-    const size = isRecord(configuration.size) ? configuration.size : null;
-    const sizeName = textValue(size?.name);
-    const diameter = Number(size?.diameterCm);
-
-    if (sizeName) {
-      details.push(
-        Number.isFinite(diameter) && diameter > 0
-          ? `${sizeName} · ${diameter} cm`
-          : sizeName,
-      );
-    }
-
-    const flavors = Array.isArray(configuration.flavors)
-      ? configuration.flavors
-          .map((item) => (isRecord(item) ? textValue(item.name) : null))
-          .filter((value): value is string => Boolean(value))
-      : [];
-
-    if (flavors.length) {
-      details.push(
-        `${flavors.length > 1 ? "Sabores" : "Sabor"}: ${flavors.join(" + ")}`,
-      );
-    }
-
-    const crust = isRecord(configuration.crust) ? configuration.crust : null;
-    const crustName = textValue(crust?.name);
-    if (crustName) details.push(`Borde: ${crustName}`);
-
-    const modifiers = Array.isArray(configuration.modifiers)
-      ? configuration.modifiers
-          .map((item) => {
-            if (!isRecord(item)) return null;
-            const name = textValue(item.name);
-            if (!name) return null;
-            const quantity = Number(item.quantity);
-            return Number.isFinite(quantity) && quantity > 1
-              ? `${quantity}× ${name}`
-              : name;
-          })
-          .filter((value): value is string => Boolean(value))
-      : [];
-
-    if (modifiers.length) details.push(`Extras: ${modifiers.join(", ")}`);
-  }
-
-  if (kind === "COMBO") {
-    const pizzas = Array.isArray(configuration.pizzas)
-      ? configuration.pizzas
-      : [];
-
-    pizzas.forEach((item, index) => {
-      if (!isRecord(item)) return;
-      const size = isRecord(item.size) ? item.size : null;
-      const flavors = Array.isArray(item.flavors)
-        ? item.flavors
-            .map((flavor) => (isRecord(flavor) ? textValue(flavor.name) : null))
-            .filter((value): value is string => Boolean(value))
-        : [];
-      const legacyFlavor = isRecord(item.flavor) ? textValue(item.flavor.name) : null;
-      const flavorText =
-        flavors.length > 1
-          ? flavors.map((flavor) => `½ ${flavor}`).join(" + ")
-          : flavors[0] ?? legacyFlavor;
-      const parts = [textValue(size?.name), flavorText].filter(Boolean);
-      if (parts.length) details.push(`Pizza ${index + 1}: ${parts.join(" · ")}`);
-    });
-
-    const groups = Array.isArray(configuration.groups)
-      ? configuration.groups
-      : [];
-
-    groups.forEach((group) => {
-      if (!isRecord(group)) return;
-      const groupName = textValue(group.name) || "Incluye";
-      const selections = Array.isArray(group.selections)
-        ? group.selections
-            .map((item) => {
-              if (!isRecord(item)) return null;
-              const name = textValue(item.name);
-              if (!name) return null;
-              const quantity = Number(item.quantity);
-              return Number.isFinite(quantity) && quantity > 1
-                ? `${quantity}× ${name}`
-                : name;
-            })
-            .filter((value): value is string => Boolean(value))
-        : [];
-
-      if (selections.length) {
-        details.push(`${groupName}: ${selections.join(", ")}`);
-      }
-    });
-  }
-
-  return details;
+  return presentOrderItemConfiguration(configuration).map(
+    (detail) => `${detail.label}: ${detail.value}`,
+  );
 }
 
 export default function DriverHome({
