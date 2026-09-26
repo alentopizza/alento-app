@@ -11,7 +11,6 @@ import {
   RefreshCcw,
   Search,
   Trash2,
-  Upload,
   WalletCards,
 } from "lucide-react";
 import { orderCode } from "@/lib/orderCode";
@@ -119,47 +118,6 @@ type Summary = {
   expenses: ExpenseRow[];
 };
 
-type IncomeImportPreview = {
-  summary: {
-    totalRows: number;
-    toImport: number;
-    issues: number;
-    totalAmount: number;
-    categoryCount: number;
-    canImport: boolean;
-  };
-  preview: Array<{
-    rowNumber: number;
-    occurredAt: string;
-    category: string;
-    note: string;
-    amount: number;
-  }>;
-  issues: Array<{ rowNumber: number; reason: string }>;
-  blockers: string[];
-};
-
-type ImportPreview = {
-  summary: {
-    totalRows: number;
-    toImport: number;
-    issues: number;
-    totalAmount: number;
-    categoryCount: number;
-    canImport: boolean;
-  };
-  preview: Array<{
-    rowNumber: number;
-    occurredAt: string;
-    category: string;
-    subcategory: string;
-    note: string;
-    amount: number;
-  }>;
-  issues: Array<{ rowNumber: number; reason: string }>;
-  blockers: string[];
-};
-
 type Tab = "SUMMARY" | "INCOMES" | "LOANS" | "EXPENSES";
 
 function formatCOP(value: number) {
@@ -235,7 +193,6 @@ export default function CashPage() {
   const [cashDayStatus, setCashDayStatus] = useState<
     "NONE" | "OPEN" | "CLOSED"
   >("NONE");
-  const [isAdmin, setIsAdmin] = useState(false);
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("ALL");
   const [incomeQuery, setIncomeQuery] = useState("");
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
@@ -269,19 +226,6 @@ export default function CashPage() {
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const [importOpen, setImportOpen] = useState(false);
-  const [importCompleted, setImportCompleted] = useState(false);
-  const [incomeImportOpen, setIncomeImportOpen] = useState(false);
-  const [incomeImportCompleted, setIncomeImportCompleted] = useState(false);
-  const [incomeImportFile, setIncomeImportFile] = useState<File | null>(null);
-  const [incomeImportPreview, setIncomeImportPreview] = useState<IncomeImportPreview | null>(null);
-  const [incomeImportBusy, setIncomeImportBusy] = useState(false);
-  const [incomeImportMessage, setIncomeImportMessage] = useState("");
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
-  const [importBusy, setImportBusy] = useState(false);
-  const [importMessage, setImportMessage] = useState("");
-
   async function load() {
     setLoading(true);
     try {
@@ -309,47 +253,6 @@ export default function CashPage() {
   useEffect(() => {
     void load();
   }, [startDate, endDate]);
-
-  useEffect(() => {
-    async function loadStaff() {
-      try {
-        const response = await fetch("/api/auth/staff/me", {
-          cache: "no-store",
-        });
-        const data = await response.json();
-        setIsAdmin(Boolean(response.ok && data.user?.isAdmin));
-      } catch {
-        setIsAdmin(false);
-      }
-    }
-
-    void loadStaff();
-  }, []);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-
-    async function loadImportStatus() {
-      try {
-        const [expensesResponse, incomesResponse] = await Promise.all([
-          fetch("/api/caja/expenses/import", { cache: "no-store" }),
-          fetch("/api/caja/incomes/import", { cache: "no-store" }),
-        ]);
-        const [expensesData, incomesData] = await Promise.all([
-          expensesResponse.json(),
-          incomesResponse.json(),
-        ]);
-        if (expensesResponse.ok) {
-          setImportCompleted(Boolean(expensesData.completed));
-        }
-        if (incomesResponse.ok) {
-          setIncomeImportCompleted(Boolean(incomesData.completed));
-        }
-      } catch {}
-    }
-
-    void loadImportStatus();
-  }, [isAdmin]);
 
   useEffect(() => {
     if (!expenseOpen || expenseCategory !== "Domicilios") return;
@@ -541,80 +444,6 @@ export default function CashPage() {
     }
   }
 
-  async function analyzeIncomeImport(file: File) {
-    setIncomeImportBusy(true);
-    setIncomeImportMessage("");
-    setIncomeImportPreview(null);
-
-    try {
-      const body = new FormData();
-      body.set("file", file);
-      body.set("action", "preview");
-      const response = await fetch("/api/caja/incomes/import", {
-        method: "POST",
-        body,
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible analizar los ingresos.",
-        );
-      }
-      setIncomeImportPreview(data);
-    } catch (importError) {
-      setIncomeImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible analizar los ingresos.",
-      );
-    } finally {
-      setIncomeImportBusy(false);
-    }
-  }
-
-  async function confirmIncomeImport() {
-    if (
-      !incomeImportFile ||
-      !incomeImportPreview?.summary.canImport ||
-      incomeImportBusy
-    ) {
-      return;
-    }
-
-    setIncomeImportBusy(true);
-    setIncomeImportMessage("");
-    try {
-      const body = new FormData();
-      body.set("file", incomeImportFile);
-      body.set("action", "import");
-      const response = await fetch("/api/caja/incomes/import", {
-        method: "POST",
-        body,
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible importar los ingresos.",
-        );
-      }
-
-      setIncomeImportCompleted(true);
-      setIncomeImportOpen(false);
-      setIncomeImportFile(null);
-      setIncomeImportPreview(null);
-      setTab("INCOMES");
-      await load();
-    } catch (importError) {
-      setIncomeImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible importar los ingresos.",
-      );
-    } finally {
-      setIncomeImportBusy(false);
-    }
-  }
-
   function openExpense() {
     setExpenseCategory("Insumos");
     setExpenseSubcategory("");
@@ -695,83 +524,6 @@ export default function CashPage() {
       );
     } finally {
       setDeleteBusy(false);
-    }
-  }
-
-  async function analyzeImport(file: File) {
-    setImportBusy(true);
-    setImportMessage("");
-    setImportPreview(null);
-
-    try {
-      const body = new FormData();
-      body.set("file", file);
-      body.set("action", "preview");
-      const response = await fetch("/api/caja/expenses/import", {
-        method: "POST",
-        body,
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible analizar las salidas.",
-        );
-      }
-
-      setImportPreview(data);
-    } catch (importError) {
-      setImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible analizar las salidas.",
-      );
-    } finally {
-      setImportBusy(false);
-    }
-  }
-
-  async function confirmImport() {
-    if (
-      !importFile ||
-      !importPreview?.summary.canImport ||
-      importBusy
-    ) {
-      return;
-    }
-
-    setImportBusy(true);
-    setImportMessage("");
-    try {
-      const body = new FormData();
-      body.set("file", importFile);
-      body.set("action", "import");
-      const response = await fetch("/api/caja/expenses/import", {
-        method: "POST",
-        body,
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible importar las salidas.",
-        );
-      }
-
-      setImportCompleted(true);
-      setImportOpen(false);
-      setImportFile(null);
-      setImportPreview(null);
-      setTab("EXPENSES");
-      await load();
-    } catch (importError) {
-      setImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible importar las salidas.",
-      );
-    } finally {
-      setImportBusy(false);
     }
   }
 
@@ -881,64 +633,26 @@ export default function CashPage() {
               </span>
             )}
 
-            {tab === "INCOMES" && (
-              <>
-                {isAdmin && !incomeImportCompleted && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIncomeImportFile(null);
-                      setIncomeImportPreview(null);
-                      setIncomeImportMessage("");
-                      setIncomeImportOpen(true);
-                    }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Importar ingresos
-                  </button>
-                )}
-                {cashOperationsOpen && (
-                  <button
-                    type="button"
-                    onClick={openIncome}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Nuevo ingreso
-                  </button>
-                )}
-              </>
+            {tab === "INCOMES" && cashOperationsOpen && (
+              <button
+                type="button"
+                onClick={openIncome}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo ingreso
+              </button>
             )}
 
-            {tab === "EXPENSES" && (
-              <>
-                {isAdmin && !importCompleted && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImportFile(null);
-                      setImportPreview(null);
-                      setImportMessage("");
-                      setImportOpen(true);
-                    }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Importar salidas
-                  </button>
-                )}
-                {cashOperationsOpen && (
-                  <button
-                    type="button"
-                    onClick={openExpense}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Nueva salida
-                  </button>
-                )}
-              </>
+            {tab === "EXPENSES" && cashOperationsOpen && (
+              <button
+                type="button"
+                onClick={openExpense}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
+              >
+                <Plus className="h-4 w-4" />
+                Nueva salida
+              </button>
             )}
           </div>
         </section>
@@ -1434,9 +1148,7 @@ export default function CashPage() {
                           {income.note || "Ingreso adicional"}
                         </b>
                         <p className="mt-1 text-[9px] text-neutral-400">
-                          {income.source === "GLIDE_IMPORT"
-                            ? "Histórico importado"
-                            : `Registró: ${income.createdByName}`}
+                          {`Registró: ${income.createdByName}`}
                         </p>
                       </div>
 
@@ -1466,7 +1178,6 @@ export default function CashPage() {
               </section>
             ) : tab === "LOANS" ? (
               <CashLoansPanel
-                isAdmin={isAdmin}
                 cashDateLocked={!cashOperationsOpen}
                 businessDate={startDate}
                 onCashChanged={() => void load()}
@@ -1533,11 +1244,9 @@ export default function CashPage() {
                           {expense.note || "Sin observación"}
                         </p>
                         <p className="mt-1 text-[9px] text-neutral-400">
-                          {expense.source === "GLIDE_IMPORT"
-                            ? "Histórico importado"
-                            : expense.source === "DRIVER_PAYMENT"
-                              ? `Pago a repartidor · Registró: ${expense.createdByName}`
-                              : `Registró: ${expense.createdByName}`}
+                          {expense.source === "DRIVER_PAYMENT"
+                            ? `Pago a repartidor · Registró: ${expense.createdByName}`
+                            : `Registró: ${expense.createdByName}`}
                         </p>
                       </div>
 
@@ -1724,148 +1433,6 @@ export default function CashPage() {
                 {incomeDeleteBusy ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {incomeImportOpen && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
-          <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
-            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-400">
-                Migración única
-              </p>
-              <h2 className="mt-1 text-2xl font-black">
-                Importar otros ingresos
-              </h2>
-              <p className="mt-1 text-[11px] text-white/50">
-                Carga el registro histórico de entradas que no pertenecen a pedidos.
-              </p>
-            </header>
-
-            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5">
-              <label className="block cursor-pointer rounded-[20px] border border-dashed border-neutral-300 bg-white p-6 text-center">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setIncomeImportFile(file);
-                    setIncomeImportPreview(null);
-                    setIncomeImportMessage("");
-                    if (file) void analyzeIncomeImport(file);
-                  }}
-                />
-                <Upload className="mx-auto h-6 w-6 text-neutral-400" />
-                <b className="mt-2 block text-sm">
-                  {incomeImportFile?.name || "Seleccionar AP_Registros_Ingresos.csv"}
-                </b>
-                <span className="mt-1 block text-[10px] text-neutral-400">
-                  Fecha · Tipo De Ingreso · Observación · Monto
-                </span>
-              </label>
-
-              {incomeImportBusy && (
-                <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs font-bold text-neutral-600">
-                  Analizando archivo...
-                </div>
-              )}
-
-              {incomeImportMessage && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
-                  {incomeImportMessage}
-                </div>
-              )}
-
-              {incomeImportPreview && (
-                <>
-                  <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">Registros</span>
-                      <b className="mt-1 block text-lg">{incomeImportPreview.summary.toImport}</b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">Total ingresos</span>
-                      <b className="mt-1 block text-lg text-emerald-700">{formatCOP(incomeImportPreview.summary.totalAmount)}</b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">Tipos</span>
-                      <b className="mt-1 block text-lg">{incomeImportPreview.summary.categoryCount}</b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">Errores</span>
-                      <b className={`mt-1 block text-lg ${incomeImportPreview.summary.issues ? "text-red-600" : "text-emerald-600"}`}>
-                        {incomeImportPreview.summary.issues}
-                      </b>
-                    </div>
-                  </div>
-
-                  {incomeImportPreview.blockers.length > 0 && (
-                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] font-bold text-red-700">
-                      {incomeImportPreview.blockers.map((blocker) => (
-                        <p key={blocker}>• {blocker}</p>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-4 overflow-hidden rounded-[18px] border border-neutral-200 bg-white">
-                    <div className="border-b bg-[#faf9f7] px-4 py-3 text-[10px] font-black uppercase text-neutral-500">
-                      Vista previa
-                    </div>
-                    <div className="divide-y divide-neutral-100">
-                      {incomeImportPreview.preview.slice(0, 8).map((income) => (
-                        <div
-                          key={income.rowNumber}
-                          className="grid gap-2 px-4 py-3 sm:grid-cols-[120px_1fr_auto] sm:items-center"
-                        >
-                          <div>
-                            <b className="text-[11px]">{income.category}</b>
-                            <p className="text-[9px] text-neutral-400">
-                              {dateTimeLabel(income.occurredAt)}
-                            </p>
-                          </div>
-                          <p className="truncate text-[11px] font-bold text-neutral-700">
-                            {income.note || "Sin observación"}
-                          </p>
-                          <b className="text-[11px] text-emerald-700">
-                            {formatCOP(income.amount)}
-                          </b>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <footer className="flex shrink-0 items-center justify-between gap-3 border-t bg-white p-4">
-              <p className="text-[9px] text-neutral-400">
-                La importación se bloquea después de ejecutarse correctamente.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={incomeImportBusy}
-                  onClick={() => setIncomeImportOpen(false)}
-                  className="h-10 rounded-xl border border-neutral-200 px-4 text-xs font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={incomeImportBusy || !incomeImportPreview?.summary.canImport}
-                  onClick={() => void confirmIncomeImport()}
-                  className="h-10 rounded-xl bg-emerald-600 px-4 text-xs font-black text-white disabled:bg-neutral-300"
-                >
-                  {incomeImportBusy
-                    ? "Importando..."
-                    : incomeImportPreview
-                      ? `Importar ${incomeImportPreview.summary.toImport}`
-                      : "Importar"}
-                </button>
-              </div>
-            </footer>
           </div>
         </div>
       )}
@@ -2162,176 +1729,6 @@ export default function CashPage() {
         </div>
       )}
 
-      {importOpen && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
-          <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
-            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.24),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
-                Migración única
-              </p>
-              <h2 className="mt-1 text-2xl font-black">
-                Importar salidas históricas
-              </h2>
-              <p className="mt-1 text-[11px] text-white/50">
-                Carga el CSV preparado desde tu historial de Glide.
-              </p>
-            </header>
-
-            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5">
-              <label className="block cursor-pointer rounded-[20px] border border-dashed border-neutral-300 bg-white p-6 text-center">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setImportFile(file);
-                    setImportPreview(null);
-                    setImportMessage("");
-                    if (file) void analyzeImport(file);
-                  }}
-                />
-                <Upload className="mx-auto h-6 w-6 text-neutral-400" />
-                <b className="mt-2 block text-sm">
-                  {importFile?.name || "Seleccionar CSV de salidas"}
-                </b>
-                <span className="mt-1 block text-[10px] text-neutral-400">
-                  Fecha · Tipo De Gasto · Observación · Monto · Sub Tipo De Gasto
-                </span>
-              </label>
-
-              {importBusy && (
-                <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs font-bold text-neutral-600">
-                  Analizando archivo...
-                </div>
-              )}
-
-              {importMessage && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
-                  {importMessage}
-                </div>
-              )}
-
-              {importPreview && (
-                <>
-                  <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Registros
-                      </span>
-                      <b className="mt-1 block text-lg">
-                        {importPreview.summary.toImport}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Total salidas
-                      </span>
-                      <b className="mt-1 block text-lg text-rose-700">
-                        {formatCOP(importPreview.summary.totalAmount)}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Categorías
-                      </span>
-                      <b className="mt-1 block text-lg">
-                        {importPreview.summary.categoryCount}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Errores
-                      </span>
-                      <b className={`mt-1 block text-lg ${
-                        importPreview.summary.issues
-                          ? "text-red-600"
-                          : "text-emerald-600"
-                      }`}>
-                        {importPreview.summary.issues}
-                      </b>
-                    </div>
-                  </div>
-
-                  {importPreview.blockers.length > 0 && (
-                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] font-bold text-red-700">
-                      {importPreview.blockers.map((blocker) => (
-                        <p key={blocker}>• {blocker}</p>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-4 overflow-hidden rounded-[18px] border border-neutral-200 bg-white">
-                    <div className="border-b bg-[#faf9f7] px-4 py-3 text-[10px] font-black uppercase text-neutral-500">
-                      Vista previa
-                    </div>
-                    <div className="divide-y divide-neutral-100">
-                      {importPreview.preview.slice(0, 8).map((expense) => (
-                        <div
-                          key={expense.rowNumber}
-                          className="grid gap-2 px-4 py-3 sm:grid-cols-[120px_1fr_auto] sm:items-center"
-                        >
-                          <div>
-                            <b className="text-[11px]">
-                              {expense.category}
-                            </b>
-                            <p className="text-[9px] text-neutral-400">
-                              {dateTimeLabel(expense.occurredAt)}
-                            </p>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[11px] font-bold text-neutral-700">
-                              {expense.subcategory || expense.note || "—"}
-                            </p>
-                            {expense.note && expense.subcategory && (
-                              <p className="truncate text-[9px] text-neutral-400">
-                                {expense.note}
-                              </p>
-                            )}
-                          </div>
-                          <b className="text-[11px] text-rose-700">
-                            {formatCOP(expense.amount)}
-                          </b>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <footer className="flex shrink-0 items-center justify-between gap-3 border-t bg-white p-4">
-              <p className="text-[9px] text-neutral-400">
-                La importación se bloquea después de ejecutarse correctamente.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={importBusy}
-                  onClick={() => setImportOpen(false)}
-                  className="h-10 rounded-xl border border-neutral-200 px-4 text-xs font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    importBusy || !importPreview?.summary.canImport
-                  }
-                  onClick={() => void confirmImport()}
-                  className="h-10 rounded-xl bg-[var(--brand-red)] px-4 text-xs font-black text-white disabled:bg-neutral-300"
-                >
-                  {importBusy
-                    ? "Importando..."
-                    : importPreview
-                      ? `Importar ${importPreview.summary.toImport}`
-                      : "Importar"}
-                </button>
-              </div>
-            </footer>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
