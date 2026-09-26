@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { CircleCheck, CookingPot, Pizza, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
+import {
+  presentComboOrderConfiguration,
+  presentOrderItemConfiguration,
+} from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
@@ -63,102 +66,6 @@ function kitchenItemsFor(order: KitchenOrder) {
     .sort((a, b) => kitchenPriority(a) - kitchenPriority(b) || a.id - b.id);
 }
 
-type KitchenComboPizza = {
-  size: string;
-  flavor: string;
-};
-
-type KitchenComboGroup = {
-  label: string;
-  values: string[];
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function stringValue(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function comboKitchenPresentation(configuration: unknown): {
-  pizzas: KitchenComboPizza[];
-  groups: KitchenComboGroup[];
-} | null {
-  if (!isRecord(configuration) || stringValue(configuration.kind).toUpperCase() !== "COMBO") {
-    return null;
-  }
-
-  const pizzas: KitchenComboPizza[] = [];
-  if (Array.isArray(configuration.pizzas)) {
-    configuration.pizzas.forEach((pizza) => {
-      if (!isRecord(pizza)) return;
-
-      const size = isRecord(pizza.size)
-        ? [
-            stringValue(pizza.size.name),
-            Number(pizza.size.diameterCm) > 0
-              ? `${Number(pizza.size.diameterCm)} cm`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(" · ")
-        : "";
-
-      const flavors = Array.isArray(pizza.flavors)
-        ? pizza.flavors
-            .map((flavor) =>
-              isRecord(flavor) ? stringValue(flavor.name) : "",
-            )
-            .filter(Boolean)
-        : [];
-      const legacyFlavor = isRecord(pizza.flavor)
-        ? stringValue(pizza.flavor.name)
-        : "";
-      const flavor =
-        flavors.length > 1
-          ? flavors.map((name) => `½ ${name}`).join(" + ")
-          : flavors[0] || legacyFlavor;
-
-      if (size || flavor) pizzas.push({ size, flavor });
-    });
-  }
-
-  const groups: KitchenComboGroup[] = [];
-  if (Array.isArray(configuration.groups)) {
-    configuration.groups.forEach((group) => {
-      if (!isRecord(group)) return;
-
-      const label = stringValue(group.name) || "Acompañante";
-      const kind = stringValue(group.kind).toLocaleLowerCase("es");
-      const normalizedLabel = label.toLocaleLowerCase("es");
-
-      if (
-        kind.includes("bebida") ||
-        kind.includes("beverage") ||
-        normalizedLabel.includes("bebida") ||
-        normalizedLabel.includes("gaseosa")
-      ) {
-        return;
-      }
-
-      const values = Array.isArray(group.selections)
-        ? group.selections.flatMap((selection) => {
-            if (!isRecord(selection)) return [];
-            const name = stringValue(selection.name);
-            if (!name) return [];
-            const quantity = Math.max(1, Number(selection.quantity) || 1);
-            return [quantity > 1 ? `${quantity} × ${name}` : name];
-          })
-        : [];
-
-      if (values.length) groups.push({ label, values });
-    });
-  }
-
-  return pizzas.length || groups.length ? { pizzas, groups } : null;
-}
-
 function kitchenSpecChipClass(base: string) {
   return `inline-flex min-h-7 items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] shadow-[0_2px_8px_rgba(28,23,20,.04)] ${base}`;
 }
@@ -194,10 +101,25 @@ function KitchenItem({
   busy: boolean;
   onChangePrepared: (value: number) => void;
 }) {
-  const comboPresentation =
+  const rawComboPresentation =
     item.product?.type === "COMBO"
-      ? comboKitchenPresentation(item.configuration)
+      ? presentComboOrderConfiguration(item.configuration)
       : null;
+  const comboPresentation = rawComboPresentation
+    ? {
+        pizzas: rawComboPresentation.pizzas,
+        groups: rawComboPresentation.groups.filter((group) => {
+          const kind = group.kind.toLocaleLowerCase("es");
+          const label = group.label.toLocaleLowerCase("es");
+          return !(
+            kind.includes("bebida") ||
+            kind.includes("beverage") ||
+            label.includes("bebida") ||
+            label.includes("gaseosa")
+          );
+        }),
+      }
+    : null;
 
   const details = comboPresentation
     ? []
@@ -265,9 +187,9 @@ function KitchenItem({
                   </p>
 
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    {pizza.size && (
-                      <span className={sizeChipClass(pizza.size)}>
-                        {pizza.size}
+                    {pizza.sizeLabel && (
+                      <span className={sizeChipClass(pizza.sizeLabel)}>
+                        {pizza.sizeLabel}
                       </span>
                     )}
                     {pizza.flavor && (
