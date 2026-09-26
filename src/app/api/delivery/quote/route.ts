@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeDrivingRoute, reverseGeocode } from "@/lib/googleMapsServer";
-import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  deliveryPricingHttpStatus,
+  finiteCoordinate,
+  normalizeDeliveryBands,
+  resolveDeliveryPricing,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 
 const SETTINGS_KEY = "pos_settings";
-
-const DEFAULT_BANDS = [
-  { id: "band-1", name: "Zona cercana", minMeters: 0, maxMeters: 200, fee: 0, active: true },
-  { id: "band-2", name: "Zona intermedia", minMeters: 201, maxMeters: 500, fee: 5000, active: true },
-];
-
-type Band = {
-  id: string;
-  name?: string;
-  minMeters: number;
-  maxMeters: number;
-  fee: number;
-  active: boolean;
-};
 
 type StoreSettings = {
   address?: string;
@@ -27,37 +19,9 @@ type StoreSettings = {
   longitude?: number | null;
 };
 
-type SettingsValue = {
+type SettingsValue = DeliveryPricingSettings & {
   store?: StoreSettings;
-  deliveryBands?: Band[];
 };
-
-function normalizedBands(value: SettingsValue | null) {
-  const bands = Array.isArray(value?.deliveryBands)
-    ? value!.deliveryBands!
-    : DEFAULT_BANDS;
-
-  return bands
-    .filter((band) => band.active !== false)
-    .map((band) => ({
-      ...band,
-      minMeters: Number(band.minMeters),
-      maxMeters: Number(band.maxMeters),
-      fee: Number(band.fee),
-    }))
-    .filter(
-      (band) =>
-        Number.isFinite(band.minMeters) &&
-        Number.isFinite(band.maxMeters) &&
-        Number.isFinite(band.fee),
-    )
-    .sort((a, b) => a.minMeters - b.minMeters);
-}
-
-function finiteCoordinate(value: unknown) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,14 +31,7 @@ export async function POST(request: NextRequest) {
       where: { key: SETTINGS_KEY },
     });
     const value = (saved?.value ?? null) as SettingsValue | null;
-    const activeBands = normalizedBands(value);
-
-    if (!activeBands.length) {
-      return NextResponse.json(
-        { error: "No hay tarifas de domicilio activas." },
-        { status: 400 },
-      );
-    }
+    const activeBands = normalizeDeliveryBands(value);
 
     // Compatibilidad temporal con herramientas internas antiguas.
     const legacyDistance = finiteCoordinate(body?.distanceMeters);
@@ -99,6 +56,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         covered: Boolean(band),
         distanceMeters: Math.round(legacyDistance),
+        commercialDistanceMeters: Math.round(legacyDistance),
+        routeDistanceMeters: null,
+        durationSeconds: null,
+        encodedPolyline: "",
         deliveryFee: band ? band.fee : null,
         band: band ?? null,
         maxCoverageMeters: Math.max(
@@ -111,51 +72,13 @@ export async function POST(request: NextRequest) {
     const latitude = finiteCoordinate(body?.latitude);
     const longitude = finiteCoordinate(body?.longitude);
 
-    if (
-      latitude == null ||
-      longitude == null ||
-      latitude < -90 ||
-      latitude > 90 ||
-      longitude < -180 ||
-      longitude > 180
-    ) {
-      return NextResponse.json(
-        { error: "Selecciona una ubicación válida para cotizar el domicilio." },
-        { status: 400 },
-      );
-    }
-
-    const storeLatitude = finiteCoordinate(value?.store?.latitude);
-    const storeLongitude = finiteCoordinate(value?.store?.longitude);
-
-    if (storeLatitude == null || storeLongitude == null) {
-      return NextResponse.json(
-        {
-          error:
-            "La sede de Alentó todavía no tiene coordenadas oficiales guardadas.",
-        },
-        { status: 503 },
-      );
-    }
-
-    const origin = {
-      latitude: storeLatitude,
-      longitude: storeLongitude,
-    };
-    const destinationCoordinates = {
-      latitude,
-      longitude,
-    };
-    const commercialDistanceMeters = directDistanceMeters({
-      origin,
-      destination: destinationCoordinates,
+    const pricing = resolveDeliveryPricing({
+      settings: value,
+      destination: {
+        latitude: latitude ?? Number.NaN,
+        longitude: longitude ?? Number.NaN,
+      },
     });
-
-    const band = activeBands.find(
-      (item) =>
-        commercialDistanceMeters >= item.minMeters &&
-        commercialDistanceMeters <= item.maxMeters,
-    );
 
     let route:
       | {
@@ -167,8 +90,8 @@ export async function POST(request: NextRequest) {
 
     try {
       route = await computeDrivingRoute({
-        origin,
-        destination: destinationCoordinates,
+        origin: pricing.origin,
+        destination: pricing.destination,
       });
     } catch (routeError) {
       console.warn(
@@ -184,35 +107,37 @@ export async function POST(request: NextRequest) {
           : "",
       placeId:
         typeof body?.placeId === "string" ? body.placeId.trim() : "",
-      latitude,
-      longitude,
+      latitude: pricing.destination.latitude,
+      longitude: pricing.destination.longitude,
     };
 
     if (!destination.formattedAddress || !destination.placeId) {
-      const geocoded = await reverseGeocode(latitude, longitude);
+      const geocoded = await reverseGeocode(
+        pricing.destination.latitude,
+        pricing.destination.longitude,
+      );
       destination = geocoded;
     }
 
     return NextResponse.json({
-      covered: Boolean(band),
-      distanceMeters: Math.round(commercialDistanceMeters),
-      commercialDistanceMeters: Math.round(commercialDistanceMeters),
+      covered: pricing.covered,
+      distanceMeters: Math.round(pricing.commercialDistanceMeters),
+      commercialDistanceMeters: Math.round(
+        pricing.commercialDistanceMeters,
+      ),
       routeDistanceMeters: route?.distanceMeters ?? null,
       durationSeconds: route?.durationSeconds ?? null,
       encodedPolyline: route?.encodedPolyline ?? "",
-      deliveryFee: band ? band.fee : null,
-      band: band ?? null,
-      maxCoverageMeters: Math.max(
-        0,
-        ...activeBands.map((item) => item.maxMeters),
-      ),
+      deliveryFee: pricing.deliveryFee,
+      band: pricing.band,
+      maxCoverageMeters: pricing.maxCoverageMeters,
       origin: {
         formattedAddress:
           value?.store?.formattedAddress ||
           value?.store?.address ||
           "Alentó Pizza",
-        latitude: storeLatitude,
-        longitude: storeLongitude,
+        latitude: pricing.origin.latitude,
+        longitude: pricing.origin.longitude,
       },
       destination,
     });
@@ -225,7 +150,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "No fue posible calcular el domicilio.",
       },
-      { status: 500 },
+      { status: deliveryPricingHttpStatus(error) },
     );
   }
 }
