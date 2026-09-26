@@ -14,7 +14,11 @@ import {
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
-import { setNativeDriverOrderTracking } from "@/lib/nativeDriverApp";
+import {
+  isAlentoNativeDriverApp,
+  openNativeDriverExternalNavigation,
+  setNativeDriverOrderTracking,
+} from "@/lib/nativeDriverApp";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -862,12 +866,43 @@ export default function DriverDestinationActions({
   }
 
   const googleMapsUrl = navigation
-    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(
+        `${navigation.driver.latitude},${navigation.driver.longitude}`,
+      )}&destination=${encodeURIComponent(
         `${navigation.destination.latitude},${navigation.destination.longitude}`,
       )}&travelmode=${googleMapsUrlTravelMode(
         navigation.travelMode,
       )}&dir_action=navigate`
     : null;
+
+  function openExternalMapsNavigation() {
+    if (!navigation || !googleMapsUrl) return;
+
+    const openedNatively = openNativeDriverExternalNavigation({
+      latitude: navigation.destination.latitude,
+      longitude: navigation.destination.longitude,
+      travelMode: navigation.travelMode,
+    });
+
+    if (openedNatively) return;
+
+    if (isAlentoNativeDriverApp()) {
+      // El APK actual intercepta las navegaciones externas del WebView y las
+      // entrega a Android. location.assign conserva todos los parámetros del
+      // enlace, incluso si el APK instalado todavía no tiene el puente nuevo.
+      window.location.assign(googleMapsUrl);
+      return;
+    }
+
+    const popup = window.open(
+      googleMapsUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    if (!popup) {
+      window.location.assign(googleMapsUrl);
+    }
+  }
 
   return (
     <>
@@ -950,18 +985,17 @@ export default function DriverDestinationActions({
               </div>
 
               <div className="flex items-center gap-2">
-                <a
-                  href={googleMapsUrl ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={openExternalMapsNavigation}
+                  disabled={!googleMapsUrl}
                   aria-label="Abrir ruta en Google Maps"
                   title="Abrir en Google Maps"
-                  aria-disabled={!googleMapsUrl}
                   className={
                     "flex h-10 w-10 items-center justify-center rounded-full border transition " +
                     (googleMapsUrl
                       ? "border-white/10 bg-white/[0.06] text-white hover:bg-white/[0.10]"
-                      : "pointer-events-none border-white/5 bg-white/[0.03] text-white/20")
+                      : "cursor-not-allowed border-white/5 bg-white/[0.03] text-white/20")
                   }
                 >
                   <svg
@@ -978,7 +1012,7 @@ export default function DriverDestinationActions({
                     <path d="M10 14 19 5" />
                     <path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" />
                   </svg>
-                </a>
+                </button>
 
                 <button
                   type="button"
