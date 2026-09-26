@@ -18,21 +18,27 @@ type LocationCandidate = {
   updatedAt: Date;
 };
 
+function finiteNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function locationCandidate(input: {
   latitude: number | null | undefined;
   longitude: number | null | undefined;
   accuracy?: number | null;
   updatedAt: Date | null | undefined;
 }): LocationCandidate | null {
-  const latitude = Number(input.latitude);
-  const longitude = Number(input.longitude);
+  const latitude = finiteNumber(input.latitude);
+  const longitude = finiteNumber(input.longitude);
   const updatedAt = input.updatedAt;
 
   if (
-    !Number.isFinite(latitude) ||
+    latitude == null ||
     latitude < -90 ||
     latitude > 90 ||
-    !Number.isFinite(longitude) ||
+    longitude == null ||
     longitude < -180 ||
     longitude > 180 ||
     !updatedAt
@@ -40,12 +46,12 @@ function locationCandidate(input: {
     return null;
   }
 
-  const accuracy = Number(input.accuracy);
+  const accuracy = finiteNumber(input.accuracy);
 
   return {
     latitude,
     longitude,
-    accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+    accuracy: accuracy != null && accuracy >= 0 ? accuracy : null,
     updatedAt,
   };
 }
@@ -221,14 +227,14 @@ export async function POST(
   const currentDriverLocation = newestLocation(orderLocation, nativeLocation);
 
   if (requested === "ARRIVED") {
-    const destinationLatitude = Number(order.address?.latitude);
-    const destinationLongitude = Number(order.address?.longitude);
+    const destinationLatitude = finiteNumber(order.address?.latitude);
+    const destinationLongitude = finiteNumber(order.address?.longitude);
 
     if (
-      !Number.isFinite(destinationLatitude) ||
+      destinationLatitude == null ||
       destinationLatitude < -90 ||
       destinationLatitude > 90 ||
-      !Number.isFinite(destinationLongitude) ||
+      destinationLongitude == null ||
       destinationLongitude < -180 ||
       destinationLongitude > 180
     ) {
@@ -296,13 +302,13 @@ export async function POST(
     }
   }
 
-  const driverLatitude = Number(order.driver?.driverLatitude);
-  const driverLongitude = Number(order.driver?.driverLongitude);
+  const driverLatitude = finiteNumber(order.driver?.driverLatitude);
+  const driverLongitude = finiteNumber(order.driver?.driverLongitude);
   const hasDriverLocation =
-    Number.isFinite(driverLatitude) &&
+    driverLatitude != null &&
     driverLatitude >= -90 &&
     driverLatitude <= 90 &&
-    Number.isFinite(driverLongitude) &&
+    driverLongitude != null &&
     driverLongitude >= -180 &&
     driverLongitude <= 180;
 
