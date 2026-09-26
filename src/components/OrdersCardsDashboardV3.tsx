@@ -1060,8 +1060,8 @@ export default function OrdersCardsDashboardV3() {
             </button>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[410px_minmax(0,1fr)]">
-            <aside className="alento-scroll min-h-0 overflow-y-auto border-b border-neutral-200 bg-[#faf9f7] p-4 sm:p-5 xl:border-b-0 xl:border-r">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[390px_minmax(0,1fr)]">
+            <aside className="alento-scroll min-h-0 overflow-y-auto border-b border-neutral-200 bg-[#faf9f7] p-4 sm:p-5 md:border-b-0 md:border-r">
               <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
                 <div className="mb-3">
                   <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
@@ -1277,7 +1277,7 @@ export default function OrdersCardsDashboardV3() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-2.5 lg:grid-cols-2">
                       {simpleProducts.map((product) => {
                         const quantity = additions[product.id] ?? 0;
                         return (
