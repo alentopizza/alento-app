@@ -33,6 +33,22 @@ class AlentoNativeBridge(
     }
 
     @JavascriptInterface
+    fun openExternalNavigation(
+        latitude: Double,
+        longitude: Double,
+        travelMode: String,
+    ): Boolean {
+        activity.runOnUiThread {
+            activity.openExternalNavigation(
+                latitude = latitude,
+                longitude = longitude,
+                travelMode = travelMode,
+            )
+        }
+        return true
+    }
+
+    @JavascriptInterface
     fun clearOrderTracking() {
         activity.runOnUiThread {
             activity.clearNativeOrderTracking()
