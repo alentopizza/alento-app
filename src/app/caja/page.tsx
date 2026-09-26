@@ -90,6 +90,15 @@ type DriverPayoutOption = {
 type Summary = {
   startDate: string;
   endDate: string;
+  scope?: "SESSION" | "CALENDAR";
+  sessionScope?: {
+    id: number;
+    businessDate: string;
+    status: string;
+    openedAt: string;
+    closedAt: string | null;
+    inheritedFromPreviousDay: boolean;
+  } | null;
   salesTotal: number;
   orderCount: number;
   receivedTotal: number;
@@ -940,7 +949,31 @@ export default function CashPage() {
           currentNetMovement={summary?.netTotal ?? 0}
           onChanged={() => void load()}
           onSessionStateChange={setCashDayStatus}
+          onSessionClosed={(businessDate) => {
+            setStartDate(businessDate);
+            setEndDate(businessDate);
+          }}
         />
+
+        {summary?.sessionScope && singleDaySelected && (
+          <div className="rounded-[18px] border border-sky-100 bg-sky-50 px-4 py-3 text-[10px] text-sky-800 shadow-sm">
+            <b className="font-black">Resumen por sesión de caja.</b>{" "}
+            Incluye todos los movimientos desde{" "}
+            <b>{dateTimeLabel(summary.sessionScope.openedAt)}</b>{" "}
+            {summary.sessionScope.closedAt ? (
+              <>
+                hasta <b>{dateTimeLabel(summary.sessionScope.closedAt)}</b>.
+              </>
+            ) : (
+              <>hasta este momento.</>
+            )}
+            {summary.sessionScope.inheritedFromPreviousDay && (
+              <span className="ml-1 font-black">
+                La sesión comenzó el {summary.sessionScope.businessDate} y continúa abierta después de medianoche.
+              </span>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="rounded-[24px] border border-neutral-200 bg-white p-12 text-center text-sm text-neutral-500">
