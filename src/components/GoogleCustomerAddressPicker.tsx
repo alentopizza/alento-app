@@ -524,6 +524,7 @@ export default function GoogleCustomerAddressPicker({
 
   useEffect(() => {
     if (
+      editing ||
       !currentAddress ||
       quote ||
       !initialSelection?.placeId ||
@@ -568,6 +569,7 @@ export default function GoogleCustomerAddressPicker({
   }, [
     currentAddress,
     drawMap,
+    editing,
     initialSelection?.city,
     initialSelection?.formattedAddress,
     initialSelection?.latitude,
