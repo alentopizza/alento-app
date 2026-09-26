@@ -50,6 +50,7 @@ type SessionResponse = {
   session: CashRegisterSession | null;
   movement: Movement;
   suggestedOpeningBalance: number | null;
+  suggestedOpeningAvailableBalance?: number | null;
   previousCloseDate: string | null;
   openingLoansReceivable: number;
   history: CashRegisterSession[];
@@ -176,14 +177,19 @@ export default function CashRegisterControl({
     session?.openingLoanReceivable ??
     data?.openingLoansReceivable ??
     0;
-  const openingControlledBalance = session
-    ? session.openingControlledBalance ?? session.openingBalance
-    : Number(openingBalance || data?.suggestedOpeningBalance || 0);
+  const suggestedOpeningAvailable =
+    data?.suggestedOpeningAvailableBalance ??
+    data?.suggestedOpeningBalance ??
+    0;
   const openingAvailableBalance = session
     ? session.openingControlledBalance != null
       ? session.openingBalance
       : Math.max(0, session.openingBalance - openingLoansReceivable)
-    : Math.max(0, openingControlledBalance - openingLoansReceivable);
+    : Number(openingBalance || suggestedOpeningAvailable || 0);
+  const openingControlledBalance = session
+    ? session.openingControlledBalance ??
+      openingAvailableBalance + openingLoansReceivable
+    : openingAvailableBalance + openingLoansReceivable;
   const expectedNow = openingAvailableBalance + liveMovement;
   const loansReceivable =
     session?.status === "CLOSED" && session.closingLoanReceivable != null
@@ -210,7 +216,9 @@ export default function CashRegisterControl({
   const previewDifference = countedTotal - expectedNow;
 
   function prepareOpen() {
-    const suggested = data?.suggestedOpeningBalance;
+    const suggested =
+      data?.suggestedOpeningAvailableBalance ??
+      data?.suggestedOpeningBalance;
     setEditingOpening(false);
     setOpeningBalance(
       suggested != null ? String(Math.round(suggested)) : "",
@@ -225,7 +233,12 @@ export default function CashRegisterControl({
     setOpeningBalance(
       String(
         Math.round(
-          session.openingControlledBalance ?? session.openingBalance,
+          session.openingControlledBalance != null
+            ? session.openingBalance
+            : Math.max(
+                0,
+                session.openingBalance - openingLoansReceivable,
+              ),
         ),
       ),
     );
@@ -250,13 +263,7 @@ export default function CashRegisterControl({
     if (actionBusy) return;
     const amount = Number(openingBalance || 0);
     if (!Number.isFinite(amount) || amount < 0) {
-      setError("Ingresa un saldo inicial total válido.");
-      return;
-    }
-    if (amount < openingLoansReceivable) {
-      setError(
-        "El saldo inicial total no puede ser menor a los préstamos por cobrar al iniciar el día.",
-      );
+      setError("Ingresa un valor de dinero disponible válido.");
       return;
     }
 
@@ -272,7 +279,7 @@ export default function CashRegisterControl({
             editingOpening && session
               ? session.businessDate
               : businessDate,
-          openingControlledBalance: amount,
+          openingAvailableBalance: amount,
         }),
       });
       const result = await response.json();
@@ -409,22 +416,24 @@ export default function CashRegisterControl({
             {data?.suggestedOpeningBalance != null ? (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <MiniMetric
-                  label="Total sugerido"
-                  value={money(data.suggestedOpeningBalance)}
-                  strong
+                  label="Disponible cierre"
+                  value={money(
+                    data.suggestedOpeningAvailableBalance ??
+                      data.suggestedOpeningBalance,
+                  )}
                 />
                 <MiniMetric
-                  label="Incluye préstamos"
+                  label="Préstamos actuales"
                   value={money(openingLoansReceivable)}
                 />
                 <MiniMetric
-                  label="Disponible inicial"
+                  label="Total apertura"
                   value={money(
-                    Math.max(
-                      0,
-                      data.suggestedOpeningBalance - openingLoansReceivable,
-                    ),
+                    (data.suggestedOpeningAvailableBalance ??
+                      data.suggestedOpeningBalance) +
+                      openingLoansReceivable,
                   )}
+                  strong
                 />
                 <button
                   type="button"
@@ -679,7 +688,7 @@ export default function CashRegisterControl({
                     {editingOpening ? "Editar apertura" : "Abrir caja"}
                   </h2>
                   <p className="mt-1 text-[11px] leading-5 text-white/50">
-                    Ingresa el valor total al iniciar el día. Los préstamos por cobrar ya están incluidos.
+                    Ingresa únicamente el dinero disponible. Alentó suma automáticamente los préstamos por cobrar para formar el total de apertura.
                   </p>
                 </div>
                 <button
@@ -704,17 +713,34 @@ export default function CashRegisterControl({
               {data?.suggestedOpeningBalance != null && (
                 <button
                   type="button"
-                  onClick={() => setOpeningBalance(String(Math.round(data.suggestedOpeningBalance || 0)))}
+                  onClick={() =>
+                    setOpeningBalance(
+                      String(
+                        Math.round(
+                          data.suggestedOpeningAvailableBalance ??
+                            data.suggestedOpeningBalance ??
+                            0,
+                        ),
+                      ),
+                    )
+                  }
                   className="mb-4 w-full rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-4 text-left transition hover:border-neutral-300"
                 >
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Cierre anterior · {dateLabel(data.previousCloseDate)}</span>
-                  <b className="mt-1 block text-[20px] font-black text-neutral-950">{money(data.suggestedOpeningBalance)}</b>
-                  <span className="mt-1 block text-[10px] text-neutral-500">Toca para usarlo como saldo inicial.</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Disponible del cierre anterior · {dateLabel(data.previousCloseDate)}</span>
+                  <b className="mt-1 block text-[20px] font-black text-neutral-950">
+                    {money(
+                      data.suggestedOpeningAvailableBalance ??
+                        data.suggestedOpeningBalance,
+                    )}
+                  </b>
+                  <span className="mt-1 block text-[10px] text-neutral-500">
+                    Toca para usar este dinero disponible en la nueva apertura.
+                  </span>
                 </button>
               )}
 
               <label className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-500">
-                Saldo inicial total · incluye préstamos
+                Dinero disponible al abrir
               </label>
               <div className="mt-2 flex h-16 items-center rounded-2xl border border-neutral-200 bg-[#faf9f7] px-4 focus-within:border-neutral-400 focus-within:bg-white">
                 <span className="mr-2 text-xl font-black text-neutral-400">$</span>
@@ -730,39 +756,30 @@ export default function CashRegisterControl({
 
               <div className="mt-4 grid grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Préstamos al iniciar</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Disponible</span>
                   <b className="mt-1 block text-[16px] font-black text-neutral-800">
+                    {money(Number(openingBalance || 0))}
+                  </b>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-amber-700">Préstamos por cobrar</span>
+                  <b className="mt-1 block text-[16px] font-black text-amber-800">
                     {money(openingLoansReceivable)}
                   </b>
                 </div>
-                <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Disponible inicial</span>
-                  <b className="mt-1 block text-[16px] font-black text-neutral-800">
-                    {money(
-                      Math.max(
-                        0,
-                        Number(openingBalance || 0) -
-                          openingLoansReceivable,
-                      ),
-                    )}
-                  </b>
-                </div>
                 <div className="rounded-2xl border border-neutral-200 bg-neutral-950 p-4 text-white">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/40">Disponible esperado</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/40">Total apertura</span>
                   <b className="mt-1 block text-[16px] font-black">
                     {money(
-                      Math.max(
-                        0,
-                        Number(openingBalance || 0) -
-                          openingLoansReceivable,
-                      ) + liveMovement,
+                      Number(openingBalance || 0) +
+                        openingLoansReceivable,
                     )}
                   </b>
                 </div>
               </div>
 
               <p className="mt-4 text-[10px] leading-5 text-neutral-500">
-                El sistema separa automáticamente el saldo total entre dinero disponible y préstamos por cobrar. Los movimientos del día se aplican únicamente al dinero disponible.
+                Solo ingresas el dinero realmente disponible. La cartera de préstamos se trae automáticamente y se suma para mostrar el valor total de Alentó al abrir.
               </p>
             </div>
 
