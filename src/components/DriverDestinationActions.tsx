@@ -49,6 +49,16 @@ type GoogleMapInstance = {
       | number
       | { top: number; right: number; bottom: number; left: number },
   ) => void;
+  panTo?: (point: { lat: number; lng: number }) => void;
+  setCenter?: (point: { lat: number; lng: number }) => void;
+  setZoom?: (zoom: number) => void;
+  setHeading?: (heading: number) => void;
+  getHeading?: () => number | undefined;
+  setTilt?: (tilt: number) => void;
+  addListener?: (
+    eventName: string,
+    handler: () => void,
+  ) => { remove?: () => void };
 };
 
 type GoogleMarkerInstance = {
@@ -96,6 +106,65 @@ type GoogleMapsRuntime = {
     };
   };
 };
+
+type NavigationPosition = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+};
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function radiansToDegrees(value: number) {
+  return (value * 180) / Math.PI;
+}
+
+function movementDistanceMeters(
+  from: NavigationPosition,
+  to: NavigationPosition,
+) {
+  const earthRadius = 6371000;
+  const lat1 = degreesToRadians(from.latitude);
+  const lat2 = degreesToRadians(to.latitude);
+  const deltaLat = degreesToRadians(to.latitude - from.latitude);
+  const deltaLng = degreesToRadians(to.longitude - from.longitude);
+  const sinLat = Math.sin(deltaLat / 2);
+  const sinLng = Math.sin(deltaLng / 2);
+  const a =
+    sinLat * sinLat +
+    Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+
+  return (
+    earthRadius *
+    2 *
+    Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)))
+  );
+}
+
+function movementHeadingDegrees(
+  from: NavigationPosition,
+  to: NavigationPosition,
+) {
+  const lat1 = degreesToRadians(from.latitude);
+  const lat2 = degreesToRadians(to.latitude);
+  const deltaLng = degreesToRadians(to.longitude - from.longitude);
+  const y = Math.sin(deltaLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+  return (radiansToDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function normalizeHeading(value: number) {
+  return ((value % 360) + 360) % 360;
+}
+
+function shortestHeadingDelta(from: number, to: number) {
+  return ((to - from + 540) % 360) - 180;
+}
 
 function getGoogleWindow() {
   return window as typeof window & { google?: GoogleMapsRuntime };
@@ -195,6 +264,10 @@ export default function DriverDestinationActions({
   const routeRef = useRef<GooglePolylineInstance | null>(null);
   const watchRef = useRef<number | null>(null);
   const lastRouteAtRef = useRef(0);
+  const lastPositionRef = useRef<NavigationPosition | null>(null);
+  const lastHeadingRef = useRef<number | null>(null);
+  const headingAnimationRef = useRef<number | null>(null);
+  const mapDragListenerRef = useRef<{ remove?: () => void } | null>(null);
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -210,6 +283,7 @@ export default function DriverDestinationActions({
   const [arrivalProgress, setArrivalProgress] = useState(0);
   const [arrivalDragging, setArrivalDragging] = useState(false);
   const [arrivalBusy, setArrivalBusy] = useState(false);
+  const [cameraFollowing, setCameraFollowing] = useState(true);
 
   useEffect(() => {
     setNavigationStatus(currentStatus);
@@ -232,8 +306,134 @@ export default function DriverDestinationActions({
     markerRefs.current = [];
     routeRef.current?.setMap(null);
     routeRef.current = null;
+    mapDragListenerRef.current?.remove?.();
+    mapDragListenerRef.current = null;
+    if (headingAnimationRef.current != null) {
+      window.cancelAnimationFrame(headingAnimationRef.current);
+      headingAnimationRef.current = null;
+    }
+    lastPositionRef.current = null;
+    lastHeadingRef.current = null;
     mapRef.current = null;
   }, []);
+
+  const animateHeading = useCallback(
+    (map: GoogleMapInstance, targetHeading: number) => {
+      if (!map.setHeading) return;
+
+      const normalizedTarget = normalizeHeading(targetHeading);
+      const currentHeading = normalizeHeading(
+        map.getHeading?.() ?? lastHeadingRef.current ?? normalizedTarget,
+      );
+      const delta = shortestHeadingDelta(
+        currentHeading,
+        normalizedTarget,
+      );
+
+      if (Math.abs(delta) < 1) {
+        map.setHeading(normalizedTarget);
+        lastHeadingRef.current = normalizedTarget;
+        return;
+      }
+
+      if (headingAnimationRef.current != null) {
+        window.cancelAnimationFrame(headingAnimationRef.current);
+      }
+
+      const duration = 320;
+      const startedAt = performance.now();
+
+      const frame = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const heading = normalizeHeading(
+          currentHeading + delta * eased,
+        );
+        map.setHeading?.(heading);
+
+        if (progress < 1) {
+          headingAnimationRef.current =
+            window.requestAnimationFrame(frame);
+        } else {
+          headingAnimationRef.current = null;
+          lastHeadingRef.current = normalizedTarget;
+        }
+      };
+
+      headingAnimationRef.current =
+        window.requestAnimationFrame(frame);
+    },
+    [],
+  );
+
+  const resolveMovementHeading = useCallback(
+    (position: GeolocationPosition) => {
+      const current: NavigationPosition = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+      const previous = lastPositionRef.current;
+      lastPositionRef.current = current;
+
+      const gpsHeading = Number(position.coords.heading);
+      const speed = Number(position.coords.speed);
+      const gpsHeadingReliable =
+        Number.isFinite(gpsHeading) &&
+        gpsHeading >= 0 &&
+        (!Number.isFinite(speed) || speed >= 0.45);
+
+      if (gpsHeadingReliable) {
+        return normalizeHeading(gpsHeading);
+      }
+
+      if (!previous) return lastHeadingRef.current;
+
+      const movement = movementDistanceMeters(previous, current);
+      const minimumMovement = Math.max(
+        3,
+        Math.min(8, Math.max(previous.accuracy, current.accuracy) * 0.35),
+      );
+
+      if (movement < minimumMovement) {
+        return lastHeadingRef.current;
+      }
+
+      return movementHeadingDegrees(previous, current);
+    },
+    [],
+  );
+
+  const updateNavigationCamera = useCallback(
+    (
+      position: GeolocationPosition,
+      options?: { forceFollow?: boolean },
+    ) => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      const heading = resolveMovementHeading(position);
+      const shouldFollow = options?.forceFollow || cameraFollowing;
+
+      if (!shouldFollow) return;
+
+      const point = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+
+      if (map.panTo) map.panTo(point);
+      else map.setCenter?.(point);
+
+      map.setZoom?.(17);
+      map.setTilt?.(45);
+
+      if (heading != null && Number.isFinite(heading)) {
+        animateHeading(map, heading);
+      }
+    },
+    [animateHeading, cameraFollowing, resolveMovementHeading],
+  );
 
   const drawMap = useCallback(
     async (data: NavigationData) => {
@@ -256,6 +456,11 @@ export default function DriverDestinationActions({
           disableDefaultUI: true,
           gestureHandling: "greedy",
         });
+
+        mapDragListenerRef.current =
+          mapRef.current.addListener?.("dragstart", () => {
+            setCameraFollowing(false);
+          }) ?? null;
       }
 
       markerRefs.current.forEach((marker) => {
@@ -323,17 +528,19 @@ export default function DriverDestinationActions({
         });
       }
 
-      map.fitBounds(bounds, {
-        // La navegación debe encuadrar únicamente moto + destino.
-        // Como la ruta se recalcula mientras avanza, el fit se va cerrando
-        // progresivamente hasta acercarse al cliente.
-        top: 160,
-        right: 54,
-        bottom: 96,
-        left: 54,
-      });
+      if (navigationStatus === "READY") {
+        map.setTilt?.(0);
+        map.setHeading?.(0);
+        map.fitBounds(bounds, {
+          // Antes de iniciar la entrega mostramos la ruta completa.
+          top: 160,
+          right: 54,
+          bottom: 96,
+          left: 54,
+        });
+      }
     },
-    [customerName, orderCode],
+    [customerName, navigationStatus, orderCode],
   );
 
   const requestNavigation = useCallback(
@@ -399,6 +606,11 @@ export default function DriverDestinationActions({
               return;
             }
 
+            // La cámara sigue la ubicación y el rumbo en cada actualización
+            // del GPS. La ruta de Google se mantiene limitada a ~8 s para no
+            // aumentar llamadas innecesarias.
+            updateNavigationCamera(position);
+
             const now = Date.now();
             const shouldRoute =
               now - lastRouteAtRef.current >= 8000;
@@ -410,6 +622,7 @@ export default function DriverDestinationActions({
             try {
               const next = await requestNavigation(position);
               await drawMap(next);
+              updateNavigationCamera(position, { forceFollow: true });
               if (!disposed) setError("");
             } catch (err) {
               if (!disposed) {
@@ -462,7 +675,15 @@ export default function DriverDestinationActions({
       lastRouteAtRef.current = 0;
       resetMap();
     };
-  }, [drawMap, navigationDisabled, open, requestNavigation, resetMap, token]);
+  }, [
+    drawMap,
+    navigationDisabled,
+    open,
+    requestNavigation,
+    resetMap,
+    token,
+    updateNavigationCamera,
+  ]);
 
   function updateDepartureFromPointer(clientX: number) {
     const track = departureTrackRef.current;
@@ -662,7 +883,10 @@ export default function DriverDestinationActions({
           type="button"
           disabled={navigationDisabled}
           onClick={() => {
-            if (!navigationDisabled) setOpen(true);
+            if (!navigationDisabled) {
+              setCameraFollowing(true);
+              setOpen(true);
+            }
           }}
           aria-label={
             navigationDisabled
@@ -786,6 +1010,46 @@ export default function DriverDestinationActions({
                 </div>
               </div>
 
+              {navigationStatus !== "READY" && (
+                <div className="absolute right-3 top-[82px] z-20 sm:right-4">
+                  {cameraFollowing ? (
+                    <div className="pointer-events-none flex h-9 items-center gap-2 rounded-full border border-white/10 bg-[#111]/90 px-3 text-[9px] font-bold uppercase tracking-[.07em] text-white/65 shadow-lg backdrop-blur-md">
+                      <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+                      Rumbo activo
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraFollowing(true);
+                        const latest = lastPositionRef.current;
+                        const map = mapRef.current;
+                        if (latest && map) {
+                          const point = {
+                            lat: latest.latitude,
+                            lng: latest.longitude,
+                          };
+                          if (map.panTo) map.panTo(point);
+                          else map.setCenter?.(point);
+                          map.setZoom?.(17);
+                          map.setTilt?.(45);
+                          if (lastHeadingRef.current != null) {
+                            animateHeading(
+                              map,
+                              lastHeadingRef.current,
+                            );
+                          }
+                        }
+                      }}
+                      className="flex h-10 items-center gap-2 rounded-full border border-white/15 bg-black/90 px-3 text-[9px] font-black uppercase tracking-[.07em] text-white shadow-xl backdrop-blur-md"
+                    >
+                      <span className="text-[14px]">➤</span>
+                      Seguir
+                    </button>
+                  )}
+                </div>
+              )}
+
               {travelMode && travelMode !== "VEHICLE" && (
                 <div className="pointer-events-none absolute left-3 right-3 top-[82px] z-20 rounded-[12px] border border-white/10 bg-[#111]/88 px-3 py-2 text-center text-[8px] font-semibold leading-4 text-white/48 backdrop-blur-md sm:left-4 sm:right-4">
                   Ruta orientativa. Verifica condiciones del camino y señalización durante el trayecto.
@@ -827,7 +1091,10 @@ export default function DriverDestinationActions({
                           onClick={() => {
                             setTravelMode(option.value);
                             setNavigation(null);
+                            setCameraFollowing(true);
                             lastRouteAtRef.current = 0;
+                            lastPositionRef.current = null;
+                            lastHeadingRef.current = null;
                           }}
                           className={
                             "rounded-[14px] border px-2 py-2.5 text-center transition " +
