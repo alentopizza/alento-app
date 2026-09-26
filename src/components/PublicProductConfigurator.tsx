@@ -3,6 +3,12 @@
 import { useMemo, useState } from "react";
 import type { PizzaOrderConfiguration } from "@/lib/orderConfiguration";
 import { buildComboConfiguration } from "@/lib/comboConfiguration";
+import {
+  buildPizzaConfiguration,
+  estimatePizzaPrice,
+  isTwoFlavorPizzaProduct,
+  pizzaCrustPrice,
+} from "@/lib/pizzaConfiguration";
 import type { PublicCartItem } from "@/lib/publicCart";
 
 type ProductType =
@@ -123,15 +129,11 @@ function money(value: number) {
 }
 
 function isTwoFlavorPizza(product: Product) {
-  return (
-    product.type === "PIZZA_TWO_FLAVORS" ||
-    product.name.toLowerCase().includes("2 sabores")
-  );
+  return isTwoFlavorPizzaProduct(product);
 }
 
 function crustPriceForSize(crust: Crust, sizeId: number | null) {
-  if (!sizeId) return null;
-  return crust.prices.find((price) => price.sizeId === sizeId)?.price ?? null;
+  return pizzaCrustPrice(crust, sizeId);
 }
 
 function Progress({ current, total }: { current: number; total: number }) {
@@ -488,44 +490,34 @@ export default function PublicProductConfigurator({
   }
 
   const pizzaPrice = useMemo(() => {
-    if (isCombo || !sizeId) return 0;
-    const size = catalog.sizes.find((item) => item.id === sizeId);
-    if (!size) return 0;
+    if (isCombo) return 0;
 
-    const flavorPrices = twoFlavors
-      ? [firstFlavorId, secondFlavorId].map(
-          (id) =>
-            catalog.pizzaFlavors.find((flavor) => flavor.id === id)?.basePrice ??
-            0,
-        )
-      : [product.basePrice ?? 0];
-
-    const crust = catalog.crusts.find((item) => item.id === crustId);
-    const crustPrice =
-      crust?.prices.find((price) => price.sizeId === size.id)?.price ?? 0;
-
-    const extrasPrice = twoFlavors
-      ? 0
-      : catalog.modifiers
-          .filter((modifier) => modifierIds.includes(modifier.id))
-          .reduce((sum, modifier) => sum + modifier.basePrice, 0);
-
-    return (
-      size.basePrice +
-      Math.max(0, ...flavorPrices) +
-      crustPrice +
-      extrasPrice
-    );
+    return estimatePizzaPrice({
+      product,
+      draft: {
+        sizeId,
+        firstFlavorId,
+        secondFlavorId,
+        crustId,
+        modifierIds,
+      },
+      sizes: catalog.sizes,
+      flavors: catalog.pizzaFlavors,
+      crusts: catalog.crusts,
+      modifiers: catalog.modifiers,
+    });
   }, [
-    catalog,
+    catalog.crusts,
+    catalog.modifiers,
+    catalog.pizzaFlavors,
+    catalog.sizes,
     crustId,
     firstFlavorId,
     isCombo,
     modifierIds,
-    product.basePrice,
+    product,
     secondFlavorId,
     sizeId,
-    twoFlavors,
   ]);
 
   const comboPrice = useMemo(() => {
@@ -591,129 +583,53 @@ export default function PublicProductConfigurator({
   function addPizzaToCart() {
     setError("");
 
-    if (!sizeId) {
-      setStep(0);
-      showError("Selecciona el tamaño.");
-      return;
-    }
+    try {
+      const result = buildPizzaConfiguration({
+        product,
+        draft: {
+          sizeId,
+          firstFlavorId,
+          secondFlavorId,
+          crustId,
+          modifierIds,
+        },
+        sizes: catalog.sizes,
+        flavors: catalog.pizzaFlavors,
+        crusts: catalog.crusts,
+        modifiers: catalog.modifiers,
+      });
 
-    if (twoFlavors && !firstFlavorId) {
-      setStep(1);
-      showError("Selecciona el primer sabor.");
-      return;
-    }
-
-    if (twoFlavors && !secondFlavorId) {
-      setStep(2);
-      showError("Selecciona el segundo sabor.");
-      return;
-    }
-
-    if (
-      twoFlavors &&
-      firstFlavorId &&
-      secondFlavorId &&
-      firstFlavorId === secondFlavorId
-    ) {
-      setStep(2);
-      showError("Los dos sabores deben ser diferentes.");
-      return;
-    }
-
-    if (!crustId) {
-      setStep(twoFlavors ? 3 : 1);
-      showError("Selecciona el borde antes de agregar la pizza.");
-      return;
-    }
-
-    const size = catalog.sizes.find((item) => item.id === sizeId);
-    const crust = catalog.crusts.find((item) => item.id === crustId);
-    if (!size || !crust) {
-      showError("La configuración seleccionada ya no está disponible.");
-      return;
-    }
-
-    const crustPrice = crustPriceForSize(crust, size.id);
-    if (crustPrice == null) {
-      showError("Ese borde no está disponible para este tamaño.");
-      return;
-    }
-
-    const flavorIds = twoFlavors
-      ? [firstFlavorId!, secondFlavorId!]
-      : [product.id];
-
-    const flavors = flavorIds
-      .map((id) => catalog.pizzaFlavors.find((item) => item.id === id))
-      .filter((item): item is Product => Boolean(item));
-
-    if (flavors.length !== flavorIds.length) {
-      showError("Uno de los sabores ya no está disponible.");
-      return;
-    }
-
-    const modifiers = twoFlavors
-      ? []
-      : catalog.modifiers.filter((modifier) =>
-          modifierIds.includes(modifier.id),
-        );
-
-    const configuration: PizzaOrderConfiguration = {
-      schemaVersion: 1,
-      kind: "PIZZA",
-      productId: product.id,
-      productName: product.name,
-      size: {
-        id: size.id,
-        name: size.name,
-        diameterCm: size.diameterCm,
-        basePrice: size.basePrice,
-      },
-      flavors: flavors.map((flavor) => ({
-        productId: flavor.id,
-        name: flavor.name,
-        portion: twoFlavors ? 0.5 : 1,
-        basePrice: flavor.basePrice ?? 0,
-      })),
-      crust: {
-        id: crust.id,
-        name: crust.name,
-        price: crustPrice,
-      },
-      modifiers: modifiers.map((modifier) => ({
-        productId: modifier.id,
-        name: modifier.name,
+      onAdd({
+        key:
+          "pizza-" +
+          String(Date.now()) +
+          "-" +
+          Math.random().toString(36).slice(2),
+        productId: product.id,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        detail: result.summary,
+        unitPrice: result.estimatedUnitPrice,
         quantity: 1,
-        unitPrice: modifier.basePrice,
-      })),
-    };
+        configuration: result.configuration,
+        notes: note.trim().slice(0, 120) || undefined,
+      });
+    } catch (configError) {
+      const message =
+        configError instanceof Error
+          ? configError.message
+          : "No fue posible configurar la pizza.";
 
-    const detail = [
-      size.name,
-      twoFlavors
-        ? flavors.map((flavor) => "½ " + flavor.name).join(" + ")
-        : flavors[0]?.name,
-      "Borde " + crust.name,
-      ...modifiers.map((modifier) => "+ " + modifier.name),
-    ]
-      .filter(Boolean)
-      .join(" · ");
+      if (message.includes("tamaño")) setStep(0);
+      else if (message.includes("primer sabor")) setStep(1);
+      else if (message.includes("dos sabores") || message.includes("sabores")) {
+        setStep(twoFlavors ? 2 : step);
+      } else if (message.includes("borde")) {
+        setStep(twoFlavors ? 3 : 1);
+      }
 
-    onAdd({
-      key:
-        "pizza-" +
-        String(Date.now()) +
-        "-" +
-        Math.random().toString(36).slice(2),
-      productId: product.id,
-      name: product.name,
-      imageUrl: product.imageUrl,
-      detail,
-      unitPrice: pizzaPrice,
-      quantity: 1,
-      configuration,
-      notes: note.trim().slice(0, 120) || undefined,
-    });
+      showError(message);
+    }
   }
 
   function addComboToCart() {
