@@ -8,7 +8,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Upload,
   WalletCards,
 } from "lucide-react";
 
@@ -47,30 +46,6 @@ type LoansResponse = {
     outstandingTotal: number;
   };
   loans: Loan[];
-};
-
-type ImportPreview = {
-  summary: {
-    totalRows: number;
-    toImport: number;
-    issues: number;
-    totalAmount: number;
-    paidCount: number;
-    paidAmount: number;
-    openCount: number;
-    outstandingAmount: number;
-    workers: number;
-    canImport: boolean;
-  };
-  preview: Array<{
-    rowNumber: number;
-    issuedAt: string;
-    workerName: string;
-    amount: number;
-    paid: boolean;
-  }>;
-  issues: Array<{ rowNumber: number; reason: string }>;
-  blockers: string[];
 };
 
 function formatCOP(value: number) {
@@ -115,12 +90,10 @@ function dateTimeLabel(value: string) {
 }
 
 export default function CashLoansPanel({
-  isAdmin,
   cashDateLocked,
   businessDate,
   onCashChanged,
 }: {
-  isAdmin: boolean;
   cashDateLocked: boolean;
   businessDate: string;
   onCashChanged: () => void;
@@ -154,13 +127,6 @@ export default function CashLoansPanel({
   const [deleteTarget, setDeleteTarget] = useState<Loan | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const [importCompleted, setImportCompleted] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
-  const [importBusy, setImportBusy] = useState(false);
-  const [importMessage, setImportMessage] = useState("");
-
   async function load() {
     setLoading(true);
     try {
@@ -187,20 +153,6 @@ export default function CashLoansPanel({
   useEffect(() => {
     void load();
   }, []);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    async function loadImportStatus() {
-      try {
-        const response = await fetch("/api/caja/loans/import", {
-          cache: "no-store",
-        });
-        const body = await response.json();
-        if (response.ok) setImportCompleted(Boolean(body.completed));
-      } catch {}
-    }
-    void loadImportStatus();
-  }, [isAdmin]);
 
   const filteredLoans = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -332,69 +284,6 @@ export default function CashLoansPanel({
     }
   }
 
-  async function analyzeImport(file: File) {
-    setImportBusy(true);
-    setImportMessage("");
-    setImportPreview(null);
-
-    try {
-      const formData = new FormData();
-      formData.set("file", file);
-      formData.set("action", "preview");
-      const response = await fetch("/api/caja/loans/import", {
-        method: "POST",
-        body: formData,
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.error || "No fue posible analizar los préstamos.");
-      }
-      setImportPreview(body);
-    } catch (importError) {
-      setImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible analizar los préstamos.",
-      );
-    } finally {
-      setImportBusy(false);
-    }
-  }
-
-  async function confirmImport() {
-    if (!importFile || !importPreview?.summary.canImport || importBusy) return;
-    setImportBusy(true);
-    setImportMessage("");
-
-    try {
-      const formData = new FormData();
-      formData.set("file", importFile);
-      formData.set("action", "import");
-      const response = await fetch("/api/caja/loans/import", {
-        method: "POST",
-        body: formData,
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.error || "No fue posible importar los préstamos.");
-      }
-      setImportCompleted(true);
-      setImportOpen(false);
-      setImportFile(null);
-      setImportPreview(null);
-      await load();
-      onCashChanged();
-    } catch (importError) {
-      setImportMessage(
-        importError instanceof Error
-          ? importError.message
-          : "No fue posible importar los préstamos.",
-      );
-    } finally {
-      setImportBusy(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="rounded-[24px] border border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">
@@ -424,23 +313,7 @@ export default function CashLoansPanel({
                 Caja cerrada · solo consulta
               </span>
             ) : (
-              <>
-                {isAdmin && !importCompleted && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImportFile(null);
-                      setImportPreview(null);
-                      setImportMessage("");
-                      setImportOpen(true);
-                    }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-black text-neutral-700"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Importar histórico
-                  </button>
-                )}
-                <button
+              <button
                   type="button"
                   onClick={() => {
                     setLoanDate(businessDate);
@@ -453,7 +326,6 @@ export default function CashLoansPanel({
                   <Plus className="h-4 w-4" />
                   Nuevo préstamo
                 </button>
-              </>
             )}
           </div>
         </div>
@@ -919,138 +791,7 @@ export default function CashLoansPanel({
         </div>
       )}
 
-      {importOpen && (
-        <div className="fixed inset-0 z-[178] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
-          <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
-            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_12%,rgba(245,158,11,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[.18em] text-amber-400">
-                Migración única
-              </p>
-              <h3 className="mt-1 text-2xl font-black">
-                Importar préstamos históricos
-              </h3>
-              <p className="mt-1 text-[11px] text-white/50">
-                Fecha · Trabajador · Monto · Estado Final
-              </p>
-            </header>
-
-            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5">
-              <label className="block cursor-pointer rounded-[20px] border border-dashed border-neutral-300 bg-white p-6 text-center">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    setImportFile(file);
-                    setImportPreview(null);
-                    setImportMessage("");
-                    if (file) void analyzeImport(file);
-                  }}
-                />
-                <Upload className="mx-auto h-6 w-6 text-neutral-400" />
-                <b className="mt-2 block text-sm">
-                  {importFile?.name || "Seleccionar prestamos.csv"}
-                </b>
-              </label>
-
-              {importBusy && (
-                <div className="mt-4 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-xs font-bold text-neutral-600">
-                  Analizando archivo...
-                </div>
-              )}
-
-              {importMessage && (
-                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
-                  {importMessage}
-                </div>
-              )}
-
-              {importPreview && (
-                <>
-                  <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Préstamos
-                      </span>
-                      <b className="mt-1 block text-lg">
-                        {importPreview.summary.toImport}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                      <span className="text-[8px] font-black uppercase text-neutral-400">
-                        Total
-                      </span>
-                      <b className="mt-1 block text-lg">
-                        {formatCOP(importPreview.summary.totalAmount)}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-rose-100 bg-rose-50 p-3">
-                      <span className="text-[8px] font-black uppercase text-rose-500">
-                        Pendiente
-                      </span>
-                      <b className="mt-1 block text-lg text-rose-700">
-                        {formatCOP(importPreview.summary.outstandingAmount)}
-                      </b>
-                    </div>
-                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                      <span className="text-[8px] font-black uppercase text-emerald-500">
-                        Pagado histórico
-                      </span>
-                      <b className="mt-1 block text-lg text-emerald-700">
-                        {formatCOP(importPreview.summary.paidAmount)}
-                      </b>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] leading-4 text-amber-800">
-                    Los registros PAGADO no tienen fecha de devolución en Glide.
-                    Se importarán como cerrados, sin inventar una fecha ni un
-                    ingreso histórico de caja. Los NO PAGADO sí quedan como
-                    cartera pendiente real.
-                  </div>
-
-                  {importPreview.blockers.length > 0 && (
-                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] font-bold text-red-700">
-                      {importPreview.blockers.map((blocker) => (
-                        <p key={blocker}>• {blocker}</p>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="mt-4 overflow-hidden rounded-[18px] border border-neutral-200 bg-white">
-                    <div className="border-b bg-[#faf9f7] px-4 py-3 text-[10px] font-black uppercase text-neutral-500">
-                      Vista previa
-                    </div>
-                    <div className="divide-y divide-neutral-100">
-                      {importPreview.preview.map((loan) => (
-                        <div
-                          key={loan.rowNumber}
-                          className="grid gap-2 px-4 py-3 sm:grid-cols-[130px_1fr_auto] sm:items-center"
-                        >
-                          <div>
-                            <b className="text-[11px]">{loan.workerName}</b>
-                            <p className="text-[9px] text-neutral-400">
-                              {dateTimeLabel(loan.issuedAt)}
-                            </p>
-                          </div>
-                          <span
-                            className={`w-fit rounded-full border px-2 py-0.5 text-[9px] font-black ${
-                              loan.paid
-                                ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                                : "border-amber-100 bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {loan.paid ? "PAGADO" : "PENDIENTE"}
-                          </span>
-                          <b className="text-[11px]">
-                            {formatCOP(loan.amount)}
-                          </b>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
+    </>
               )}
             </div>
 
