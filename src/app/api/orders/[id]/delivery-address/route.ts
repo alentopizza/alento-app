@@ -3,26 +3,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { computeDrivingRoute } from "@/lib/googleMapsServer";
-import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  deliveryPricingHttpStatus,
+  resolveDeliveryPricing,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 
 const SETTINGS_KEY = "pos_settings";
 
-type DeliveryBand = {
-  id: string;
-  name?: string;
-  minMeters: number;
-  maxMeters: number;
-  fee: number;
-  active?: boolean;
-};
-
-type PosSettings = {
-  store?: {
-    latitude?: number | null;
-    longitude?: number | null;
-  };
-  deliveryBands?: DeliveryBand[];
-};
+type PosSettings = DeliveryPricingSettings;
 
 function parseSettings(value: Prisma.JsonValue | null): PosSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -120,37 +109,28 @@ export async function PATCH(
     where: { key: SETTINGS_KEY },
   });
   const settings = parseSettings(settingsRow?.value ?? null);
-  const storeLatitude = Number(settings.store?.latitude);
-  const storeLongitude = Number(settings.store?.longitude);
-
-  if (
-    !Number.isFinite(storeLatitude) ||
-    !Number.isFinite(storeLongitude)
-  ) {
-    return NextResponse.json(
-      { error: "La ubicación de Alentó no está configurada." },
-      { status: 503 },
-    );
-  }
 
   try {
-    const origin = {
-      latitude: storeLatitude,
-      longitude: storeLongitude,
-    };
-    const destination = { latitude, longitude };
-    const commercialDistanceMeters = directDistanceMeters({
-      origin,
-      destination,
-    });
-
-    const zone = (settings.deliveryBands ?? [])
-      .filter((item) => item.active !== false)
-      .find(
-        (item) =>
-          commercialDistanceMeters >= Number(item.minMeters) &&
-          commercialDistanceMeters <= Number(item.maxMeters),
+    let pricing;
+    try {
+      pricing = resolveDeliveryPricing({
+        settings,
+        destination: { latitude, longitude },
+      });
+    } catch (pricingError) {
+      return NextResponse.json(
+        {
+          error:
+            pricingError instanceof Error
+              ? pricingError.message
+              : "No fue posible calcular el domicilio.",
+        },
+        { status: deliveryPricingHttpStatus(pricingError) },
       );
+    }
+
+    const origin = pricing.origin;
+    const destination = pricing.destination;
 
     let route:
       | {
@@ -175,14 +155,14 @@ export async function PATCH(
       );
     }
 
-    if (!zone) {
+    if (!pricing.covered || !pricing.band) {
       return NextResponse.json(
         { error: "La nueva dirección está fuera de cobertura para domicilio." },
         { status: 409 },
       );
     }
 
-    const deliveryFee = money(Number(zone.fee ?? 0));
+    const deliveryFee = pricing.deliveryFee ?? 0;
     const total = Math.max(
       0,
       money(Number(order.subtotal) + deliveryFee - Number(order.discount)),
@@ -281,8 +261,8 @@ export async function PATCH(
         data: {
           addressId,
           deliveryFee,
-          deliveryZoneId: zone.id,
-          deliveryZoneName: zone.name?.trim() || "Domicilio",
+          deliveryZoneId: pricing.deliveryZoneId,
+          deliveryZoneName: pricing.deliveryZoneName,
           total,
         },
       });
@@ -333,7 +313,9 @@ export async function PATCH(
     return NextResponse.json({
       order: result,
       route: {
-        commercialDistanceMeters: Math.round(commercialDistanceMeters),
+        commercialDistanceMeters: Math.round(
+          pricing.commercialDistanceMeters,
+        ),
         distanceMeters: route?.distanceMeters ?? null,
         durationSeconds: route?.durationSeconds ?? null,
       },
