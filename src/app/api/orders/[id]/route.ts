@@ -3,26 +3,17 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
-import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  deliveryPricingHttpStatus,
+  resolveDeliveryPricing,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 
 const SETTINGS_KEY = "pos_settings";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
-type DeliveryBand = {
-  id: string;
-  name?: string;
-  minMeters: number;
-  maxMeters: number;
-  fee: number;
-  active?: boolean;
-};
 type PaymentMethod = { id: string; name: string; active?: boolean };
-type PosSettings = {
-  store?: {
-    latitude?: number | null;
-    longitude?: number | null;
-  };
-  deliveryBands?: DeliveryBand[];
+type PosSettings = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
 };
 type ExistingLinePatch = { id: number; quantity: number; notes?: unknown };
@@ -206,56 +197,33 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           );
         }
 
-        const latitude = Number(address.latitude);
-        const longitude = Number(address.longitude);
-
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude)
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "La dirección del nuevo cliente debe validarse con Google Maps.",
-            },
-            { status: 409 },
-          );
-        }
-
         const settingsRow = await prisma.appSetting.findUnique({
           where: { key: SETTINGS_KEY },
         });
         const settings = parseSettings(settingsRow?.value ?? null);
-        const storeLatitude = Number(settings.store?.latitude);
-        const storeLongitude = Number(settings.store?.longitude);
 
-        if (
-          !Number.isFinite(storeLatitude) ||
-          !Number.isFinite(storeLongitude)
-        ) {
+        let pricing;
+        try {
+          pricing = resolveDeliveryPricing({
+            settings,
+            destination: {
+              latitude: Number(address.latitude),
+              longitude: Number(address.longitude),
+            },
+          });
+        } catch (pricingError) {
           return NextResponse.json(
-            { error: "La ubicación de Alentó no está configurada." },
-            { status: 503 },
+            {
+              error:
+                pricingError instanceof Error
+                  ? pricingError.message
+                  : "No fue posible calcular el domicilio.",
+            },
+            { status: deliveryPricingHttpStatus(pricingError) },
           );
         }
 
-        const commercialDistanceMeters = directDistanceMeters({
-          origin: {
-            latitude: storeLatitude,
-            longitude: storeLongitude,
-          },
-          destination: { latitude, longitude },
-        });
-
-        const zone = settings.deliveryBands
-          ?.filter((item) => item.active !== false)
-          .find(
-            (item) =>
-              commercialDistanceMeters >= Number(item.minMeters) &&
-              commercialDistanceMeters <= Number(item.maxMeters),
-          );
-
-        if (!zone) {
+        if (!pricing.covered || !pricing.band) {
           return NextResponse.json(
             {
               error:
@@ -266,9 +234,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         }
 
         addressId = address.id;
-        deliveryFee = money(Number(zone.fee ?? 0));
-        deliveryZoneId = zone.id;
-        deliveryZoneName = zone.name?.trim() || "Domicilio";
+        deliveryFee = pricing.deliveryFee ?? 0;
+        deliveryZoneId = pricing.deliveryZoneId;
+        deliveryZoneName = pricing.deliveryZoneName;
         total = Math.max(
           0,
           money(
@@ -403,51 +371,28 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         );
       }
 
-      const latitude = Number(address.latitude);
-      const longitude = Number(address.longitude);
-      const storeLatitude = Number(settings.store?.latitude);
-      const storeLongitude = Number(settings.store?.longitude);
-
-      if (
-        !Number.isFinite(latitude) ||
-        !Number.isFinite(longitude)
-      ) {
+      let pricing;
+      try {
+        pricing = resolveDeliveryPricing({
+          settings,
+          destination: {
+            latitude: Number(address.latitude),
+            longitude: Number(address.longitude),
+          },
+        });
+      } catch (pricingError) {
         return NextResponse.json(
           {
             error:
-              "La dirección del cliente debe validarse con Google Maps antes de editar este domicilio.",
+              pricingError instanceof Error
+                ? pricingError.message
+                : "No fue posible calcular el domicilio.",
           },
-          { status: 409 },
+          { status: deliveryPricingHttpStatus(pricingError) },
         );
       }
 
-      if (
-        !Number.isFinite(storeLatitude) ||
-        !Number.isFinite(storeLongitude)
-      ) {
-        return NextResponse.json(
-          { error: "La ubicación de Alentó no está configurada." },
-          { status: 503 },
-        );
-      }
-
-      const commercialDistanceMeters = directDistanceMeters({
-        origin: {
-          latitude: storeLatitude,
-          longitude: storeLongitude,
-        },
-        destination: { latitude, longitude },
-      });
-
-      const zone = settings.deliveryBands
-        ?.filter((item) => item.active !== false)
-        .find(
-          (item) =>
-            commercialDistanceMeters >= Number(item.minMeters) &&
-            commercialDistanceMeters <= Number(item.maxMeters),
-        );
-
-      if (!zone) {
+      if (!pricing.covered || !pricing.band) {
         return NextResponse.json(
           { error: "La dirección quedó fuera de cobertura para domicilio." },
           { status: 409 },
@@ -460,7 +405,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         current.addressId === address.id;
       deliveryFee = sameDeliveryAddress
         ? money(Number(current.deliveryFee))
-        : money(Number(zone.fee ?? 0));
+        : pricing.deliveryFee ?? 0;
 
       if (body.deliveryFeeOverride != null) {
         const requestedDeliveryFee = Number(body.deliveryFeeOverride);
@@ -473,8 +418,8 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         deliveryFee = money(requestedDeliveryFee);
       }
 
-      deliveryZoneId = zone.id;
-      deliveryZoneName = zone.name?.trim() || "Domicilio";
+      deliveryZoneId = pricing.deliveryZoneId;
+      deliveryZoneName = pricing.deliveryZoneName;
     }
 
     const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
