@@ -369,3 +369,64 @@ Caja bloquea pagos superiores al saldo disponible. Los pagos pueden ser parciale
 Eliminar una salida `DRIVER_PAYMENT` elimina también su efecto sobre la cartera, por lo que el monto vuelve automáticamente al saldo disponible.
 
 Las salidas históricas/importadas de Domicilios que no tengan `driverId` no afectan esta nueva cartera. Los pedidos históricos anteriores a la activación pueden contar como entregas en Desempeño, pero no generan saldo retroactivo si no tienen una ganancia acreditada.
+
+
+## Sesiones de caja: apertura → movimientos → cierre
+
+Desde operación en producción, la unidad contable de Caja es una **sesión**, no el cambio de fecha del calendario.
+
+Regla:
+
+```text
+Apertura (openedAt)
+→ todos los movimientos operativos
+→ Cierre (closedAt)
+```
+
+Una sesión puede cruzar medianoche. Ejemplo:
+
+```text
+25/09 17:34  Apertura
+25/09 23:58  Venta
+26/09 00:17  Salida
+26/09 01:10  Cobro
+26/09 01:25  Cierre
+```
+
+Los cuatro movimientos pertenecen a la misma sesión iniciada el 25/09.
+
+`businessDate` identifica la fecha operativa en que se abrió la caja, pero **no limita los movimientos a 00:00–23:59**.
+
+Para una sesión abierta, el resumen y el cierre calculan:
+
+```text
+openedAt <= movimiento < momento del cierre
+```
+
+Para una sesión cerrada:
+
+```text
+openedAt <= movimiento < closedAt
+```
+
+Mientras exista una sesión `OPEN`:
+
+- al pasar medianoche no se crea automáticamente otra caja;
+- la pantalla de Caja del día actual recupera la sesión que sigue abierta;
+- cobros, ingresos, salidas, préstamos y abonos continúan perteneciendo a esa sesión;
+- no se puede abrir una segunda caja antes de cerrar la existente.
+
+Fuera de una sesión abierta no se permiten nuevos movimientos operativos. Los intervalos de sesiones cerradas quedan bloqueados y no admiten alteraciones de movimientos.
+
+Al cerrar una sesión que empezó el día anterior, la interfaz vuelve a seleccionar su `businessDate` para conservar visible el cuadre completo.
+
+Caja muestra además un historial de aperturas y cierres con:
+
+- fecha operativa;
+- hora real de apertura;
+- hora real de cierre;
+- saldo esperado;
+- saldo contado;
+- diferencia del cierre.
+
+Las importaciones históricas administrativas siguen siendo un flujo separado y no representan movimientos operativos en vivo.
