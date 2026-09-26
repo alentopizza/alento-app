@@ -474,7 +474,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
         {error}
       </p>
     ) : visibleProducts.length ? (
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid gap-2.5 lg:grid-cols-2">
         {visibleProducts.map((product) => (
           <button
             type="button"
