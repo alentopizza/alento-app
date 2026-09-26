@@ -4,7 +4,11 @@ import { requireStaffSession } from "@/lib/auth";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
+  CASH_SESSION_REQUIRED_ERROR,
+  CASH_MOVEMENT_BEFORE_OPEN_ERROR,
   cashDateClosedResponseMessage,
+  cashSessionRequiredResponseMessage,
+  cashMovementBeforeOpenResponseMessage,
 } from "@/lib/cashRegisterLock";
 
 function clean(value: unknown) {
@@ -162,6 +166,26 @@ export async function POST(request: NextRequest) {
           ).toLocaleString("es-CO")}.`,
           available,
         },
+        { status: 409 },
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === CASH_SESSION_REQUIRED_ERROR
+    ) {
+      return NextResponse.json(
+        { error: cashSessionRequiredResponseMessage() },
+        { status: 409 },
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === CASH_MOVEMENT_BEFORE_OPEN_ERROR
+    ) {
+      return NextResponse.json(
+        { error: cashMovementBeforeOpenResponseMessage() },
         { status: 409 },
       );
     }
