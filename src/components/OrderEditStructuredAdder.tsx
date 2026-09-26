@@ -2,6 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ComboOrderConfiguration, PizzaOrderConfiguration } from "@/lib/orderConfiguration";
+import {
+  buildComboConfiguration,
+  createComboDraft,
+  estimateComboPrice,
+  type ComboDraftChoice,
+} from "@/lib/comboConfiguration";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
@@ -41,14 +47,11 @@ type PizzaDraft = {
   modifierIds: number[];
   note: string;
 };
-type ComboPizzaChoice = {
-  ruleId: number;
-  sizeId: number | null;
-  flavorCount: 1 | 2;
-  firstFlavorId: number | null;
-  secondFlavorId: number | null;
+type ComboDraft = {
+  product: CatalogProduct;
+  pizzas: ComboDraftChoice[];
+  groupSelections: Record<number, number[]>;
 };
-type ComboDraft = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
 export type StructuredEditAddition = {
   key: string;
@@ -257,28 +260,9 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   }
 
   function startCombo(product: CatalogProduct) {
-    const choices: ComboPizzaChoice[] = [];
-    for (const rule of product.comboPizzaRules ?? []) {
-      for (let index = 0; index < rule.quantity; index += 1) {
-        choices.push({
-          ruleId: rule.id,
-          sizeId: rule.sizes[0]?.id ?? null,
-          flavorCount: 1,
-          firstFlavorId: rule.flavors[0]?.id ?? null,
-          secondFlavorId: null,
-        });
-      }
-    }
-
-    const groupSelections: Record<number, number[]> = {};
-    for (const group of product.comboGroups ?? []) {
-      groupSelections[group.id] = group.options
-        .slice(0, group.minSelections)
-        .map((option) => option.productId);
-    }
-
+    const draft = createComboDraft(product);
     setConfigError("");
-    setCombo({ product, pizzas: choices, groupSelections });
+    setCombo({ product, ...draft });
   }
 
   function toggleComboOption(group: ComboGroup, productId: number) {
@@ -292,177 +276,44 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   }
 
   function comboPrice(draft: ComboDraft) {
-    let regular = 0;
-    for (const choice of draft.pizzas) {
-      const rule = (draft.product.comboPizzaRules ?? []).find(
-        (item) => item.id === choice.ruleId,
-      );
-      if (!rule) continue;
-
-      const sizePrice =
-        rule.sizes.find((item) => item.id === choice.sizeId)?.basePrice ?? 0;
-      const flavorIds =
-        choice.flavorCount === 2
-          ? [choice.firstFlavorId, choice.secondFlavorId]
-          : [choice.firstFlavorId];
-      const flavorPrices = flavorIds.map(
-        (id) =>
-          rule.flavors.find((item) => item.id === id)?.basePrice ?? 0,
-      );
-
-      regular +=
-        sizePrice +
-        (flavorPrices.length ? Math.max(...flavorPrices) : 0);
-    }
-    for (const group of draft.product.comboGroups ?? []) {
-      for (const productId of draft.groupSelections[group.id] ?? []) {
-        const option = group.options.find(
-          (item) => item.productId === productId,
-        );
-        if (option) {
-          regular +=
-            (option.basePrice + option.priceDelta) *
-            Math.max(1, option.quantity);
-        }
-      }
-    }
-    return Math.max(
-      0,
-      regular - (draft.product.comboDiscount ?? 0),
-    );
+    return estimateComboPrice({
+      product: draft.product,
+      pizzas: draft.pizzas,
+      groupSelections: draft.groupSelections,
+    });
   }
 
   function confirmCombo() {
     if (!combo) return;
 
-    if (
-      combo.pizzas.some(
-        (item) =>
-          !item.sizeId ||
-          !item.firstFlavorId ||
-          (item.flavorCount === 2 && !item.secondFlavorId),
-      )
-    ) {
-      return setConfigError("Completa las pizzas del combo.");
-    }
-
-    if (
-      combo.pizzas.some(
-        (item) =>
-          item.flavorCount === 2 &&
-          item.firstFlavorId === item.secondFlavorId,
-      )
-    ) {
-      return setConfigError(
-        "Los dos sabores de una pizza deben ser diferentes.",
-      );
-    }
-
-    for (const group of combo.product.comboGroups ?? []) {
-      const count = (combo.groupSelections[group.id] ?? []).length;
-      if (count < group.minSelections || count > group.maxSelections) {
-        return setConfigError(`Completa la selección de ${group.name}.`);
-      }
-    }
-
-    const pizzaSnapshots: ComboOrderConfiguration["pizzas"] = [];
-    for (const choice of combo.pizzas) {
-      const rule = (combo.product.comboPizzaRules ?? []).find((item) => item.id === choice.ruleId);
-      if (!rule) return setConfigError("Una regla del combo ya no está disponible. Vuelve a seleccionar el combo.");
-
-      const size = rule.sizes.find(
-        (item) => item.id === choice.sizeId,
-      );
-      const flavorIds =
-        choice.flavorCount === 2
-          ? [choice.firstFlavorId!, choice.secondFlavorId!]
-          : [choice.firstFlavorId!];
-      const selectedFlavors = flavorIds.map((flavorId) =>
-        rule.flavors.find((item) => item.id === flavorId),
-      );
-
-      if (!size || selectedFlavors.some((flavor) => !flavor)) {
-        return setConfigError(
-          "Un tamaño o sabor del combo ya no está disponible.",
-        );
-      }
-
-      const flavors = selectedFlavors.map((flavor) => ({
-        productId: flavor!.id,
-        name: flavor!.name,
-        portion: choice.flavorCount === 2 ? 0.5 : 1,
-        basePrice: flavor!.basePrice,
-      }));
-
-      pizzaSnapshots.push({
-        ruleId: rule.id,
-        size: {
-          id: size.id,
-          name: size.name,
-          diameterCm: size.diameterCm,
-          basePrice: size.basePrice,
-        },
-        flavor: flavors[0],
-        flavors,
+    try {
+      const result = buildComboConfiguration({
+        product: combo.product,
+        pizzas: combo.pizzas,
+        groupSelections: combo.groupSelections,
       });
+
+      onChange([
+        ...additions,
+        {
+          key: `combo-${Date.now()}-${Math.random()}`,
+          productId: combo.product.id,
+          quantity: 1,
+          name: combo.product.name,
+          summary: result.summary,
+          estimatedUnitPrice: result.estimatedUnitPrice,
+          configuration: result.configuration,
+        },
+      ]);
+      setCombo(null);
+      setConfigError("");
+    } catch (error) {
+      setConfigError(
+        error instanceof Error
+          ? error.message
+          : "No fue posible configurar el combo.",
+      );
     }
-
-    const groups: ComboOrderConfiguration["groups"] = [];
-    for (const group of combo.product.comboGroups ?? []) {
-      const selections: ComboOrderConfiguration["groups"][number]["selections"] = [];
-      for (const productId of combo.groupSelections[group.id] ?? []) {
-        const option = group.options.find((item) => item.productId === productId);
-        if (!option) return setConfigError(`Una opción de ${group.name} ya no está disponible.`);
-        selections.push({
-          optionId: option.id,
-          productId: option.productId,
-          name: option.productName,
-          quantity: Math.max(1, option.quantity),
-          unitPrice: option.basePrice,
-          priceDelta: option.priceDelta,
-        });
-      }
-      groups.push({ groupId: group.id, kind: group.kind, name: group.name, selections });
-    }
-
-    const configuration: ComboOrderConfiguration = {
-      schemaVersion: 1,
-      kind: "COMBO",
-      comboProductId: combo.product.id,
-      comboName: combo.product.name,
-      comboDiscount: combo.product.comboDiscount ?? 0,
-      pizzas: pizzaSnapshots,
-      groups,
-    };
-
-    const summary = [
-      ...pizzaSnapshots.map((item, index) => {
-        const flavors = item.flavors?.length
-          ? item.flavors
-          : [item.flavor];
-        const flavorText =
-          flavors.length > 1
-            ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
-            : flavors[0]?.name ?? "";
-        return `Pizza ${index + 1}: ${item.size.name} ${flavorText}`;
-      }),
-      ...groups.map((group) => `${group.name}: ${group.selections.map((item) => item.name).join(", ")}`),
-    ].join(" · ");
-
-    onChange([
-      ...additions,
-      {
-        key: `combo-${Date.now()}-${Math.random()}`,
-        productId: combo.product.id,
-        quantity: 1,
-        name: combo.product.name,
-        summary,
-        estimatedUnitPrice: comboPrice(combo),
-        configuration,
-      },
-    ]);
-    setCombo(null);
-    setConfigError("");
   }
 
   function changeQuantity(key: string, delta: number) {
@@ -715,7 +566,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
               const rule = (combo.product.comboPizzaRules ?? []).find((item) => item.id === choice.ruleId);
               if (!rule) return null;
               const updateChoice = (
-                patch: Partial<ComboPizzaChoice>,
+                patch: Partial<ComboDraftChoice>,
               ) => {
                 const items = [...combo.pizzas];
                 items[index] = { ...items[index], ...patch };
