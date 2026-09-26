@@ -184,21 +184,67 @@ async function normalizeComboLine(
       const raw = pizzasRaw[pizzaCursor++];
       if (!isRecord(raw)) throw new Error(`${product.name}: pizza de combo inválida.`);
       const rawSize = isRecord(raw.size) ? raw.size : raw;
-      const rawFlavor = isRecord(raw.flavor) ? raw.flavor : raw;
       const sizeId = numberId(rawSize.id ?? raw.sizeId);
-      const flavorId = numberId(rawFlavor.productId ?? raw.flavorId);
+      const rawFlavors =
+        Array.isArray(raw.flavors) && raw.flavors.length
+          ? raw.flavors
+          : [isRecord(raw.flavor) ? raw.flavor : raw];
+
+      if (rawFlavors.length < 1 || rawFlavors.length > 2) {
+        throw new Error(`${product.name}: una pizza del combo debe tener uno o dos sabores.`);
+      }
+
+      const flavorIds = rawFlavors.map((rawFlavor) =>
+        isRecord(rawFlavor)
+          ? numberId(rawFlavor.productId ?? rawFlavor.flavorId)
+          : null,
+      );
+
+      if (
+        flavorIds.some((id) => !id) ||
+        new Set(flavorIds).size !== flavorIds.length
+      ) {
+        throw new Error(`${product.name}: los sabores de una pizza del combo no son válidos.`);
+      }
+
       const sizeOption = rule.sizes.find((item) => item.sizeId === sizeId);
-      const flavorOption = rule.flavors.find((item) => item.productId === flavorId);
-      if (!sizeOption || !flavorOption || !sizeOption.size.active || !flavorOption.product.active) {
+      const flavorOptions = (flavorIds as number[]).map((flavorId) =>
+        rule.flavors.find((item) => item.productId === flavorId),
+      );
+
+      if (
+        !sizeOption ||
+        !sizeOption.size.active ||
+        flavorOptions.some(
+          (flavorOption) => !flavorOption || !flavorOption.product.active,
+        )
+      ) {
         throw new Error(`${product.name}: una pizza contiene tamaño o sabor no permitido.`);
       }
+
       const sizePrice = money(Number(sizeOption.size.basePrice));
-      const flavorPrice = money(Number(flavorOption.product.basePrice ?? 0));
+      const flavorSnapshots = flavorOptions.map((flavorOption, flavorIndex) => ({
+        productId: flavorOption!.product.id,
+        name: flavorOption!.product.name,
+        portion: flavorOptions.length === 2 ? 0.5 : 1,
+        basePrice: money(Number(flavorOption!.product.basePrice ?? 0)),
+        position: flavorIndex + 1,
+      }));
+      const flavorPrice = Math.max(
+        ...flavorSnapshots.map((flavor) => Number(flavor.basePrice)),
+      );
+
       regularPrice += sizePrice + flavorPrice;
       pizzaSnapshots.push({
         ruleId: rule.id,
-        size: { id: sizeOption.size.id, name: sizeOption.size.name, diameterCm: sizeOption.size.diameterCm, basePrice: sizePrice },
-        flavor: { productId: flavorOption.product.id, name: flavorOption.product.name, portion: 1, basePrice: flavorPrice },
+        size: {
+          id: sizeOption.size.id,
+          name: sizeOption.size.name,
+          diameterCm: sizeOption.size.diameterCm,
+          basePrice: sizePrice,
+        },
+        flavor: flavorSnapshots[0],
+        flavors: flavorSnapshots,
       });
     }
   }
