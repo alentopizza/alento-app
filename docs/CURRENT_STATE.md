@@ -183,6 +183,8 @@ Incluye:
 - eliminación masiva de clientes sin pedidos;
 - permiso de eliminación masiva controlado desde Configuración.
 
+La única importación/exportación de datos operativa y soportada en producción es la de **Clientes**. Los flujos temporales usados para cargar pedidos, ingresos, salidas y préstamos al iniciar el sistema fueron retirados.
+
 Ver `docs/CUSTOMERS.md`.
 
 ## Menú — cerrado
