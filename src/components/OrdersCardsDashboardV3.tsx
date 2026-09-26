@@ -307,6 +307,59 @@ export default function OrdersCardsDashboardV3() {
     return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, [catalog]);
 
+  const editPreview = useMemo(() => {
+    if (!editing) {
+      return { itemCount: 0, addedCount: 0, productsSubtotal: 0 };
+    }
+
+    const current = editing.items.reduce(
+      (summary, item) => {
+        const quantity = Math.max(
+          0,
+          quantities[item.id] ?? item.quantity,
+        );
+        summary.itemCount += quantity;
+        summary.productsSubtotal += Number(item.unitPrice) * quantity;
+        return summary;
+      },
+      { itemCount: 0, productsSubtotal: 0 },
+    );
+
+    const simpleAdded = simpleProducts.reduce(
+      (summary, product) => {
+        const quantity = Math.max(0, additions[product.id] ?? 0);
+        summary.addedCount += quantity;
+        summary.productsSubtotal += Number(product.basePrice ?? 0) * quantity;
+        return summary;
+      },
+      { addedCount: 0, productsSubtotal: 0 },
+    );
+
+    const structuredAdded = structuredAdditions.reduce(
+      (summary, item) => {
+        summary.addedCount += item.quantity;
+        summary.productsSubtotal += item.estimatedUnitPrice * item.quantity;
+        return summary;
+      },
+      { addedCount: 0, productsSubtotal: 0 },
+    );
+
+    return {
+      itemCount: current.itemCount,
+      addedCount: simpleAdded.addedCount + structuredAdded.addedCount,
+      productsSubtotal:
+        current.productsSubtotal +
+        simpleAdded.productsSubtotal +
+        structuredAdded.productsSubtotal,
+    };
+  }, [
+    additions,
+    editing,
+    quantities,
+    simpleProducts,
+    structuredAdditions,
+  ]);
+
   async function unassignDriver(order: Order) {
     if (!order.driver || busy === order.id) return;
 
@@ -966,6 +1019,364 @@ export default function OrdersCardsDashboardV3() {
       onClose={() => setDeliveryMapOpen(false)}
     />
 
-    {editing && <div className="fixed inset-0 z-[105] flex items-center justify-center bg-black/60 p-4" onClick={() => setEditing(null)}><div onClick={(event) => event.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl"><div className="flex items-center justify-between bg-black px-5 py-4 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Editar pedido</p><h3 className="text-xl font-black">{displayOrderCode(editing)}</h3></div><button onClick={() => setEditing(null)} className="h-9 w-9 rounded-xl bg-white/10"><Icon name="close" /></button></div><div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-5"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Modalidad</p><div className="mt-2 grid grid-cols-3 gap-2">{(["DELIVERY", "PICKUP", "STORE"] as FulfillmentType[]).map((type) => <button key={type} onClick={() => setFulfillment(type)} className={`rounded-xl border px-2 py-3 text-xs font-black ${fulfillment === type ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{fulfillmentLabel(type)}</button>)}</div>{fulfillment === "DELIVERY" && <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3"><p className="text-[10px] font-black uppercase tracking-[.1em] text-emerald-600">Domicilio automático</p><p className="mt-1 text-xs leading-5 text-emerald-800">La tarifa se recalcula al guardar usando la dirección validada del cliente, Google Routes y las bandas activas de Configuración.</p></div>}<div className="mt-5 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Productos actuales</p><div className="mt-2 space-y-2">{editing.items.map((item) => <div key={item.id} className="rounded-xl border bg-white p-3"><div className="flex items-center justify-between gap-3"><div><b className="text-sm">{item.productName}</b><p className="text-xs text-neutral-500">{money(item.unitPrice)} c/u</p></div><div className="flex items-center gap-2"><button onClick={() => setQuantities((current) => ({ ...current, [item.id]: Math.max(0, (current[item.id] ?? item.quantity) - 1) }))} className="h-8 w-8 rounded-lg border"><Icon name="minus" /></button><b className="w-5 text-center text-sm">{quantities[item.id] ?? item.quantity}</b><button onClick={() => setQuantities((current) => ({ ...current, [item.id]: (current[item.id] ?? item.quantity) + 1 }))} className="h-8 w-8 rounded-lg border"><Icon name="plus" /></button></div></div>{isPizzaItem(item) && <div className="mt-2"><div className="mb-1 flex items-center justify-between"><label className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Nota para cocina</label><span className="text-[9px] text-neutral-400">{(itemNotes[item.id] ?? "").length}/120</span></div><input value={itemNotes[item.id] ?? ""} maxLength={120} onChange={(event) => setItemNotes((current) => ({ ...current, [item.id]: event.target.value }))} className="alento-input w-full rounded-lg px-3 py-2 text-xs" placeholder="Ej. Ligera en salsa" /></div>}</div>)}</div></div><div className="mt-5 rounded-2xl border border-neutral-200 p-4"><OrderEditStructuredAdder additions={structuredAdditions} onChange={setStructuredAdditions} /></div><div className="mt-5 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Agregar bebidas y otros</p><p className="mt-1 text-[11px] text-neutral-400">Productos simples que no necesitan configuración.</p><div className="mt-3 grid gap-2 sm:grid-cols-2">{simpleProducts.map((product) => <div key={product.id} className="flex items-center justify-between rounded-xl border bg-white p-3"><div className="min-w-0"><b className="block truncate text-sm">{product.name}</b><p className="text-xs text-neutral-500">{money(product.basePrice)}</p></div><div className="flex items-center gap-2"><button onClick={() => setAdditions((current) => ({ ...current, [product.id]: Math.max(0, (current[product.id] ?? 0) - 1) }))} className="h-8 w-8 rounded-lg border"><Icon name="minus" /></button><b className="w-4 text-center text-sm">{additions[product.id] ?? 0}</b><button onClick={() => setAdditions((current) => ({ ...current, [product.id]: (current[product.id] ?? 0) + 1 }))} className="h-8 w-8 rounded-lg border"><Icon name="plus" /></button></div></div>)}</div></div>{editError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{editError}</p>}</div><div className="grid grid-cols-2 gap-2 border-t p-4"><button onClick={() => setEditing(null)} className="h-11 rounded-xl border font-bold">Cancelar</button><button onClick={() => void saveEdit()} disabled={saving} className="h-11 rounded-xl bg-[var(--brand-red)] font-black text-white disabled:opacity-50">{saving ? "Guardando..." : "Guardar cambios"}</button></div></div></div>}
+    {editing && (
+      <div
+        className="fixed inset-0 z-[105] flex items-center justify-center bg-black/70 p-2 backdrop-blur-[4px] sm:p-4"
+        onClick={() => {
+          if (!saving) setEditing(null);
+        }}
+      >
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="flex max-h-[94dvh] w-[min(98vw,1320px)] max-w-none flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#f6f3ee] shadow-[0_34px_110px_rgba(0,0,0,.34)]"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_30%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white sm:px-7 sm:py-5">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
+                Editar pedido
+              </p>
+              <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
+                <h3 className="text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
+                  {displayOrderCode(editing)}
+                </h3>
+                <span className="mb-1 rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.06em] text-white/65">
+                  {fulfillmentLabel(fulfillment)}
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-white/48">
+                Ajusta modalidad, cantidades o agrega productos sin perder el contexto del pedido.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!saving) setEditing(null);
+              }}
+              disabled={saving}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-white/65 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+              aria-label="Cerrar edición"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[410px_minmax(0,1fr)]">
+            <aside className="alento-scroll min-h-0 overflow-y-auto border-b border-neutral-200 bg-[#faf9f7] p-4 sm:p-5 xl:border-b-0 xl:border-r">
+              <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
+                <div className="mb-3">
+                  <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                    Modalidad
+                  </p>
+                  <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
+                    Tipo de pedido
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {(["DELIVERY", "PICKUP", "STORE"] as FulfillmentType[]).map(
+                    (type) => {
+                      const active = fulfillment === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setFulfillment(type)}
+                          className={`min-h-[52px] rounded-2xl border px-2 text-[11px] font-bold transition ${
+                            active
+                              ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)] shadow-[0_6px_16px_rgba(226,26,34,.08)]"
+                              : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50"
+                          }`}
+                        >
+                          {fulfillmentLabel(type)}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+
+                {fulfillment === "DELIVERY" && (
+                  <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50/75 px-3.5 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-[13px]">
+                        ✓
+                      </span>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-[.1em] text-emerald-700">
+                          Domicilio automático
+                        </p>
+                        <p className="mt-0.5 text-[10px] leading-4 text-emerald-800/80">
+                          La tarifa y la ruta se recalculan al guardar.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
+                <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                      Productos actuales
+                    </p>
+                    <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
+                      Contenido del pedido
+                    </h4>
+                  </div>
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-bold text-neutral-500">
+                    {editPreview.itemCount} uds.
+                  </span>
+                </div>
+
+                <div className="mt-3 space-y-2.5">
+                  {editing.items.map((item) => {
+                    const currentQuantity =
+                      quantities[item.id] ?? item.quantity;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-2xl border p-3 transition ${
+                          currentQuantity === 0
+                            ? "border-red-100 bg-red-50/40 opacity-65"
+                            : "border-neutral-200 bg-[#fcfbf9]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-[13px] font-bold text-neutral-950">
+                              {item.productName}
+                            </b>
+                            <p className="mt-0.5 text-[11px] font-medium text-neutral-400">
+                              {money(item.unitPrice)} c/u
+                            </p>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQuantities((current) => ({
+                                  ...current,
+                                  [item.id]: Math.max(
+                                    0,
+                                    (current[item.id] ?? item.quantity) - 1,
+                                  ),
+                                }))
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-100"
+                              aria-label={`Restar ${item.productName}`}
+                            >
+                              <Icon name="minus" />
+                            </button>
+                            <b className="w-6 text-center text-[13px] tabular-nums text-neutral-950">
+                              {currentQuantity}
+                            </b>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQuantities((current) => ({
+                                  ...current,
+                                  [item.id]:
+                                    (current[item.id] ?? item.quantity) + 1,
+                                }))
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-700 transition hover:bg-neutral-100"
+                              aria-label={`Sumar ${item.productName}`}
+                            >
+                              <Icon name="plus" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {isPizzaItem(item) && currentQuantity > 0 && (
+                          <div className="mt-3 border-t border-neutral-100 pt-2.5">
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <label className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">
+                                Nota para cocina
+                              </label>
+                              <span className="text-[9px] text-neutral-400">
+                                {(itemNotes[item.id] ?? "").length}/120
+                              </span>
+                            </div>
+                            <input
+                              value={itemNotes[item.id] ?? ""}
+                              maxLength={120}
+                              onChange={(event) =>
+                                setItemNotes((current) => ({
+                                  ...current,
+                                  [item.id]: event.target.value,
+                                }))
+                              }
+                              className="alento-input w-full rounded-xl bg-white px-3 py-2.5 text-xs"
+                              placeholder="Ej. Ligera en salsa"
+                            />
+                          </div>
+                        )}
+
+                        {currentQuantity === 0 && (
+                          <p className="mt-2 text-[10px] font-bold text-red-600">
+                            Se eliminará del pedido al guardar.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-neutral-200 bg-neutral-950 p-4 text-white shadow-[0_10px_26px_rgba(0,0,0,.10)]">
+                <p className="text-[9px] font-black uppercase tracking-[.12em] text-white/40">
+                  Resumen de edición
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-white/[0.07] p-3">
+                    <span className="block text-[9px] uppercase text-white/40">
+                      Nuevos
+                    </span>
+                    <b className="mt-1 block text-lg tabular-nums">
+                      {editPreview.addedCount}
+                    </b>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.07] p-3">
+                    <span className="block text-[9px] uppercase text-white/40">
+                      Productos
+                    </span>
+                    <b className="mt-1 block text-[15px] tracking-[-0.02em]">
+                      {money(editPreview.productsSubtotal)}
+                    </b>
+                  </div>
+                </div>
+                <p className="mt-3 text-[10px] leading-4 text-white/45">
+                  El total final, domicilio y saldos se recalculan al guardar los cambios.
+                </p>
+              </section>
+            </aside>
+
+            <section className="alento-scroll min-h-0 overflow-y-auto bg-[#f6f3ee] p-4 sm:p-5 lg:p-6">
+              <div className="mx-auto max-w-[820px] space-y-4">
+                <div className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.045)] sm:p-5">
+                  <OrderEditStructuredAdder
+                    additions={structuredAdditions}
+                    onChange={setStructuredAdditions}
+                  />
+                </div>
+
+                {simpleProducts.length > 0 && (
+                  <div className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.045)] sm:p-5">
+                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-100 pb-4">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                          Bebidas y otros
+                        </p>
+                        <h4 className="mt-1 text-[18px] font-black tracking-[-0.02em] text-neutral-950">
+                          Productos rápidos
+                        </h4>
+                        <p className="mt-1 text-[11px] text-neutral-400">
+                          Se agregan directamente, sin configuración adicional.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                      {simpleProducts.map((product) => {
+                        const quantity = additions[product.id] ?? 0;
+                        return (
+                          <div
+                            key={product.id}
+                            className={`flex min-h-[72px] items-center justify-between gap-3 rounded-2xl border p-3.5 transition ${
+                              quantity > 0
+                                ? "border-red-100 bg-red-50/35"
+                                : "border-neutral-200 bg-[#fcfbf9]"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <b className="block truncate text-[13px] font-bold text-neutral-950">
+                                {product.name}
+                              </b>
+                              <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+                                {money(product.basePrice)}
+                              </p>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdditions((current) => ({
+                                    ...current,
+                                    [product.id]: Math.max(
+                                      0,
+                                      (current[product.id] ?? 0) - 1,
+                                    ),
+                                  }))
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-neutral-100"
+                              >
+                                <Icon name="minus" />
+                              </button>
+                              <b className="w-6 text-center text-[13px] tabular-nums">
+                                {quantity}
+                              </b>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdditions((current) => ({
+                                    ...current,
+                                    [product.id]:
+                                      (current[product.id] ?? 0) + 1,
+                                  }))
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-neutral-100"
+                              >
+                                <Icon name="plus" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {editError && (
+                  <p className="rounded-2xl border border-red-100 bg-red-50 p-3.5 text-xs font-bold text-red-700">
+                    {editError}
+                  </p>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-200 bg-white px-4 py-3.5 sm:px-6">
+            <div className="hidden min-w-0 sm:block">
+              <p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">
+                Cambios del pedido
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-neutral-500">
+                Revisa cantidades y productos antes de guardar.
+              </p>
+            </div>
+            <div className="ml-auto grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[360px]">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                disabled={saving}
+                className="h-11 rounded-xl border border-neutral-300 bg-white px-5 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveEdit()}
+                disabled={saving}
+                className="h-11 rounded-xl bg-[var(--brand-red)] px-6 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] transition hover:brightness-105 disabled:opacity-50"
+              >
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
   </main>;
 }
