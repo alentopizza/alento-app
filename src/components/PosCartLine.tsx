@@ -106,12 +106,21 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
       {configuration.kind === "COMBO" && (
         <div className="pos-cart-structured">
           <div className="space-y-1.5">
-            {configuration.pizzas.map((pizza, index) => (
-              <div key={`${pizza.ruleId}-${index}`} className="pos-cart-combo-row">
-                <span>Pizza {index + 1}</span>
-                <b>{pizza.size.name} · {pizza.flavor.name}</b>
-              </div>
-            ))}
+            {configuration.pizzas.map((pizza, index) => {
+              const flavors = pizza.flavors?.length
+                ? pizza.flavors
+                : [pizza.flavor];
+              const flavorText =
+                flavors.length > 1
+                  ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
+                  : flavors[0]?.name ?? "";
+              return (
+                <div key={`${pizza.ruleId}-${index}`} className="pos-cart-combo-row">
+                  <span>Pizza {index + 1}</span>
+                  <b>{pizza.size.name} · {flavorText}</b>
+                </div>
+              );
+            })}
           </div>
 
           {configuration.groups.length > 0 && (
