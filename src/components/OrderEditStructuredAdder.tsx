@@ -41,7 +41,13 @@ type PizzaDraft = {
   modifierIds: number[];
   note: string;
 };
-type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
+type ComboPizzaChoice = {
+  ruleId: number;
+  sizeId: number | null;
+  flavorCount: 1 | 2;
+  firstFlavorId: number | null;
+  secondFlavorId: number | null;
+};
 type ComboDraft = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
 export type StructuredEditAddition = {
@@ -257,7 +263,9 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
         choices.push({
           ruleId: rule.id,
           sizeId: rule.sizes[0]?.id ?? null,
-          flavorId: rule.flavors[0]?.id ?? null,
+          flavorCount: 1,
+          firstFlavorId: rule.flavors[0]?.id ?? null,
+          secondFlavorId: null,
         });
       }
     }
@@ -286,25 +294,68 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   function comboPrice(draft: ComboDraft) {
     let regular = 0;
     for (const choice of draft.pizzas) {
-      const rule = (draft.product.comboPizzaRules ?? []).find((item) => item.id === choice.ruleId);
+      const rule = (draft.product.comboPizzaRules ?? []).find(
+        (item) => item.id === choice.ruleId,
+      );
       if (!rule) continue;
-      regular += (rule.sizes.find((item) => item.id === choice.sizeId)?.basePrice ?? 0)
-        + (rule.flavors.find((item) => item.id === choice.flavorId)?.basePrice ?? 0);
+
+      const sizePrice =
+        rule.sizes.find((item) => item.id === choice.sizeId)?.basePrice ?? 0;
+      const flavorIds =
+        choice.flavorCount === 2
+          ? [choice.firstFlavorId, choice.secondFlavorId]
+          : [choice.firstFlavorId];
+      const flavorPrices = flavorIds.map(
+        (id) =>
+          rule.flavors.find((item) => item.id === id)?.basePrice ?? 0,
+      );
+
+      regular +=
+        sizePrice +
+        (flavorPrices.length ? Math.max(...flavorPrices) : 0);
     }
     for (const group of draft.product.comboGroups ?? []) {
       for (const productId of draft.groupSelections[group.id] ?? []) {
-        const option = group.options.find((item) => item.productId === productId);
-        if (option) regular += (option.basePrice + option.priceDelta) * Math.max(1, option.quantity);
+        const option = group.options.find(
+          (item) => item.productId === productId,
+        );
+        if (option) {
+          regular +=
+            (option.basePrice + option.priceDelta) *
+            Math.max(1, option.quantity);
+        }
       }
     }
-    return Math.max(0, regular - (draft.product.comboDiscount ?? 0));
+    return Math.max(
+      0,
+      regular - (draft.product.comboDiscount ?? 0),
+    );
   }
 
   function confirmCombo() {
     if (!combo) return;
 
-    if (combo.pizzas.some((item) => !item.sizeId || !item.flavorId)) {
+    if (
+      combo.pizzas.some(
+        (item) =>
+          !item.sizeId ||
+          !item.firstFlavorId ||
+          (item.flavorCount === 2 && !item.secondFlavorId),
+      )
+    ) {
       return setConfigError("Completa las pizzas del combo.");
+    }
+
+    if (
+      combo.pizzas.some(
+        (item) =>
+          item.flavorCount === 2 &&
+          item.firstFlavorId === item.secondFlavorId,
+      )
+    ) {
+      return setConfigError(
+        "Los dos sabores de una pizza deben ser diferentes.",
+      );
     }
 
     for (const group of combo.product.comboGroups ?? []) {
@@ -319,11 +370,29 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
       const rule = (combo.product.comboPizzaRules ?? []).find((item) => item.id === choice.ruleId);
       if (!rule) return setConfigError("Una regla del combo ya no está disponible. Vuelve a seleccionar el combo.");
 
-      const size = rule.sizes.find((item) => item.id === choice.sizeId);
-      const flavor = rule.flavors.find((item) => item.id === choice.flavorId);
-      if (!size || !flavor) {
-        return setConfigError("Un tamaño o sabor del combo ya no está disponible.");
+      const size = rule.sizes.find(
+        (item) => item.id === choice.sizeId,
+      );
+      const flavorIds =
+        choice.flavorCount === 2
+          ? [choice.firstFlavorId!, choice.secondFlavorId!]
+          : [choice.firstFlavorId!];
+      const selectedFlavors = flavorIds.map((flavorId) =>
+        rule.flavors.find((item) => item.id === flavorId),
+      );
+
+      if (!size || selectedFlavors.some((flavor) => !flavor)) {
+        return setConfigError(
+          "Un tamaño o sabor del combo ya no está disponible.",
+        );
       }
+
+      const flavors = selectedFlavors.map((flavor) => ({
+        productId: flavor!.id,
+        name: flavor!.name,
+        portion: choice.flavorCount === 2 ? 0.5 : 1,
+        basePrice: flavor!.basePrice,
+      }));
 
       pizzaSnapshots.push({
         ruleId: rule.id,
@@ -333,12 +402,8 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
           diameterCm: size.diameterCm,
           basePrice: size.basePrice,
         },
-        flavor: {
-          productId: flavor.id,
-          name: flavor.name,
-          portion: 1,
-          basePrice: flavor.basePrice,
-        },
+        flavor: flavors[0],
+        flavors,
       });
     }
 
@@ -371,7 +436,16 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
     };
 
     const summary = [
-      ...pizzaSnapshots.map((item, index) => `Pizza ${index + 1}: ${item.size.name} ${item.flavor.name}`),
+      ...pizzaSnapshots.map((item, index) => {
+        const flavors = item.flavors?.length
+          ? item.flavors
+          : [item.flavor];
+        const flavorText =
+          flavors.length > 1
+            ? flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
+            : flavors[0]?.name ?? "";
+        return `Pizza ${index + 1}: ${item.size.name} ${flavorText}`;
+      }),
       ...groups.map((group) => `${group.name}: ${group.selections.map((item) => item.name).join(", ")}`),
     ].join(" · ");
 
@@ -640,13 +714,121 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
             {combo.pizzas.map((choice, index) => {
               const rule = (combo.product.comboPizzaRules ?? []).find((item) => item.id === choice.ruleId);
               if (!rule) return null;
-              return <section key={`${choice.ruleId}-${index}`} className="rounded-2xl border bg-[#faf9f7] p-4">
-                <h4 className="font-black">Pizza {index + 1}</h4>
-                <p className="mb-2 mt-3 text-[10px] font-black uppercase text-neutral-400">Tamaño</p>
-                <div className="flex flex-wrap gap-2">{rule.sizes.map((size) => <button type="button" key={size.id} onClick={() => { const items = [...combo.pizzas]; items[index] = { ...items[index], sizeId: size.id }; setCombo({ ...combo, pizzas: items }); }} className={`rounded-xl border px-4 py-2 text-sm ${choice.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}>{size.name}</button>)}</div>
-                <p className="mb-2 mt-3 text-[10px] font-black uppercase text-neutral-400">Sabor</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{rule.flavors.map((flavor) => <button type="button" key={flavor.id} onClick={() => { const items = [...combo.pizzas]; items[index] = { ...items[index], flavorId: flavor.id }; setCombo({ ...combo, pizzas: items }); }} className={`rounded-xl border p-3 text-left text-sm ${choice.flavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div>
-              </section>;
+              const updateChoice = (
+                patch: Partial<ComboPizzaChoice>,
+              ) => {
+                const items = [...combo.pizzas];
+                items[index] = { ...items[index], ...patch };
+                setCombo({ ...combo, pizzas: items });
+                setConfigError("");
+              };
+
+              return (
+                <section
+                  key={`${choice.ruleId}-${index}`}
+                  className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-black">Pizza {index + 1}</h4>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-neutral-500">
+                      Incluida
+                    </span>
+                  </div>
+
+                  <p className="mb-2 mt-3 text-[10px] font-black uppercase tracking-[.06em] text-neutral-400">
+                    Tamaño
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {rule.sizes.map((size) => (
+                      <button
+                        type="button"
+                        key={size.id}
+                        onClick={() => updateChoice({ sizeId: size.id })}
+                        className={`rounded-xl border px-4 py-2 text-sm ${choice.sizeId === size.id ? "border-black bg-black text-white" : "border-neutral-300 bg-white"}`}
+                      >
+                        {size.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mb-2 mt-4 text-[10px] font-black uppercase tracking-[.06em] text-neutral-400">
+                    ¿Cuántos sabores?
+                  </p>
+                  <div className="flex gap-2">
+                    {([1, 2] as const).map((count) => (
+                      <button
+                        type="button"
+                        key={count}
+                        onClick={() =>
+                          updateChoice({
+                            flavorCount: count,
+                            secondFlavorId:
+                              count === 1
+                                ? null
+                                : choice.secondFlavorId,
+                          })
+                        }
+                        className={`rounded-xl border px-4 py-2 text-sm font-bold ${choice.flavorCount === count ? "border-black bg-black text-white" : "border-neutral-300 bg-white"}`}
+                      >
+                        {count === 1 ? "1 sabor" : "2 sabores"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mb-2 mt-4 text-[10px] font-black uppercase tracking-[.06em] text-neutral-400">
+                    {choice.flavorCount === 2 ? "Sabor 1" : "Sabor"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {rule.flavors.map((flavor) => (
+                      <button
+                        type="button"
+                        key={flavor.id}
+                        onClick={() =>
+                          updateChoice({
+                            firstFlavorId: flavor.id,
+                            secondFlavorId:
+                              choice.secondFlavorId === flavor.id
+                                ? null
+                                : choice.secondFlavorId,
+                          })
+                        }
+                        className={`rounded-xl border p-3 text-left text-sm ${choice.firstFlavorId === flavor.id ? "border-black bg-black text-white" : "border-neutral-300 bg-white"}`}
+                      >
+                        {flavor.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {choice.flavorCount === 2 && (
+                    <>
+                      <p className="mb-2 mt-4 text-[10px] font-black uppercase tracking-[.06em] text-neutral-400">
+                        Sabor 2
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {rule.flavors.map((flavor) => {
+                          const disabled =
+                            choice.firstFlavorId === flavor.id;
+                          return (
+                            <button
+                              type="button"
+                              key={flavor.id}
+                              disabled={disabled}
+                              onClick={() =>
+                                updateChoice({
+                                  secondFlavorId: flavor.id,
+                                })
+                              }
+                              className={`rounded-xl border p-3 text-left text-sm ${choice.secondFlavorId === flavor.id ? "border-black bg-black text-white" : disabled ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-300" : "border-neutral-300 bg-white"}`}
+                            >
+                              {flavor.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </section>
+              );
             })}
 
             {(combo.product.comboGroups ?? []).map((group) => {
