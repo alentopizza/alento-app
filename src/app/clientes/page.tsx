@@ -14,6 +14,7 @@ import {
   Tag,
   Upload,
   UserPlus,
+  UserRound,
   Users,
 } from "lucide-react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
@@ -304,6 +305,7 @@ export default function CustomersPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("ALL");
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [editSection, setEditSection] = useState<"PERSONAL" | "LOCATION">("PERSONAL");
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
@@ -327,7 +329,6 @@ export default function CustomersPage() {
     latitude: number | null;
     longitude: number | null;
   } | null>(null);
-  const [addressBusy, setAddressBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -487,8 +488,12 @@ export default function CustomersPage() {
     window.setTimeout(() => frame.remove(), 30000);
   }
 
-  function openEdit(customer: Customer | CustomerDetail) {
+  function openEdit(
+    customer: Customer | CustomerDetail,
+    section: "PERSONAL" | "LOCATION" = "PERSONAL",
+  ) {
     setEditing(customer);
+    setEditSection(section);
     setName(customer.name);
     setCountryCode(customer.countryCode || "+57");
     setPhone(customer.phone || "");
@@ -532,12 +537,20 @@ export default function CustomersPage() {
   function closeEdit() {
     if (saving) return;
     setEditing(null);
+    setEditSection("PERSONAL");
     setMessage("");
   }
 
   async function saveCustomer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editing) return;
+
+    if (!name.trim() || !phone.trim()) {
+      setEditSection("PERSONAL");
+      setMessage("Nombre y teléfono son obligatorios.");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -548,78 +561,61 @@ export default function CustomersPage() {
         body: JSON.stringify({ name, countryCode, phone, email, notes }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible actualizar el cliente.");
-      setEditing(null);
-      emitLiveDataChange(["customers", "account"]);
-      await loadCustomers();
-      if (selected?.id === editing.id) {
-        await openCustomer({ ...editing, ...data.customer, metrics: editing.metrics });
-      }
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No fue posible actualizar el cliente.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function mergeEditedCustomerAddresses(customer: {
-    addresses: CustomerAddress[];
-  }) {
-    setEditing((current) =>
-      current ? { ...current, addresses: customer.addresses } : current,
-    );
-    setSelected((current) =>
-      current ? { ...current, addresses: customer.addresses } : current,
-    );
-  }
-
-  async function saveCustomerAddress() {
-    if (
-      !editing ||
-      !addressEditor?.formattedAddress.trim() ||
-      !addressEditor.placeId.trim() ||
-      addressEditor.latitude == null ||
-      addressEditor.longitude == null
-    ) {
-      setMessage("Selecciona y valida la dirección con Google Maps.");
-      return;
-    }
-
-    setAddressBusy(true);
-    setMessage("");
-
-    try {
-      const response = await fetch(
-        `/api/customers/${editing.id}/addresses`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...addressEditor,
-            address: addressEditor.formattedAddress,
-            isDefault: true,
-          }),
-        },
-      );
-      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible guardar la dirección.",
-        );
+        throw new Error(data.error || "No fue posible actualizar el cliente.");
       }
 
-      mergeEditedCustomerAddresses(data.customer);
+      const hasValidatedAddress =
+        Boolean(addressEditor?.formattedAddress.trim()) &&
+        Boolean(addressEditor?.placeId.trim()) &&
+        addressEditor?.latitude != null &&
+        addressEditor?.longitude != null;
+
+      if (hasValidatedAddress && addressEditor) {
+        const addressResponse = await fetch(
+          `/api/customers/${editing.id}/addresses`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...addressEditor,
+              address: addressEditor.formattedAddress,
+              isDefault: true,
+            }),
+          },
+        );
+        const addressData = await addressResponse.json();
+
+        if (!addressResponse.ok) {
+          setEditSection("LOCATION");
+          throw new Error(
+            addressData.error || "No fue posible guardar la dirección.",
+          );
+        }
+      }
+
       emitLiveDataChange(["customers", "account"]);
       await loadCustomers(true);
+
+      if (selected?.id === editing.id) {
+        await openCustomer({
+          ...editing,
+          ...data.customer,
+          metrics: editing.metrics,
+        });
+      }
+
+      setEditing(null);
+      setEditSection("PERSONAL");
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "No fue posible guardar la dirección.",
+          : "No fue posible actualizar el cliente.",
       );
     } finally {
-      setAddressBusy(false);
+      setSaving(false);
     }
   }
 
@@ -1571,198 +1567,350 @@ export default function CustomersPage() {
         )}
 
         {editing && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px] md:p-5">
-            <div className="flex max-h-[94dvh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
-              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_28%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white md:px-7 md:py-5">
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">Cliente #{editing.id}</p>
-                  <h2 className="mt-1 text-[24px] font-black tracking-[-0.03em] md:text-[28px]">Editar cliente</h2>
-                  <p className="mt-1 text-[11px] text-white/48">Datos, ubicación de entrega e información útil en un solo lugar.</p>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-2 backdrop-blur-[4px] sm:p-4">
+            <div className="alento-card flex max-h-[94dvh] w-[min(98vw,1180px)] max-w-none flex-col overflow-hidden rounded-[30px] bg-white shadow-[0_30px_90px_rgba(0,0,0,.30)]">
+              <div className="flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4 sm:px-7">
+                <div className="min-w-0">
+                  <p className="alento-ui-label uppercase text-neutral-400">
+                    Cliente #{editing.id}
+                  </p>
+                  <h2 className="alento-ui-title mt-1 truncate">Editar cliente</h2>
+                  <p className="mt-1 truncate text-[11px] font-medium text-neutral-400">
+                    {editing.name} · {editing.countryCode} {editing.phone}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-xl text-white/65 transition hover:bg-white/10 hover:text-white"
-                  aria-label="Cerrar edición"
+                  className="shrink-0 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50"
                 >
-                  ×
+                  Cerrar
                 </button>
               </div>
 
               <form onSubmit={saveCustomer} className="flex min-h-0 flex-1 flex-col">
-                <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5">
-                    <div className="flex items-center gap-3 border-b border-neutral-100 pb-4">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-[11px] font-black text-white">01</span>
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-[.12em] text-neutral-400">Información personal</p>
-                        <h3 className="mt-0.5 text-[17px] font-black text-neutral-950">Datos del cliente</h3>
-                      </div>
+                <div className="flex min-h-0 flex-1 flex-col bg-[#f7f6f3] lg:flex-row">
+                  <aside className="shrink-0 border-b border-neutral-200 bg-white p-3 lg:w-[245px] lg:border-b-0 lg:border-r lg:p-4">
+                    <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditSection("PERSONAL");
+                          setMessage("");
+                        }}
+                        className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
+                          editSection === "PERSONAL"
+                            ? "border-neutral-950 bg-neutral-950 text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                            : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                            editSection === "PERSONAL"
+                              ? "bg-white/12 text-white"
+                              : "bg-neutral-100 text-neutral-600"
+                          }`}
+                        >
+                          <UserRound className="h-[18px] w-[18px]" strokeWidth={2} />
+                        </span>
+                        <span className="min-w-0">
+                          <b className="block text-[12px]">Información personal</b>
+                          <span
+                            className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                              editSection === "PERSONAL"
+                                ? "text-white/55"
+                                : "text-neutral-400"
+                            }`}
+                          >
+                            Nombre y contacto
+                          </span>
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditSection("LOCATION");
+                          setMessage("");
+                        }}
+                        className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
+                          editSection === "LOCATION"
+                            ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white shadow-[0_8px_20px_rgba(226,26,34,.18)]"
+                            : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                            editSection === "LOCATION"
+                              ? "bg-white/14 text-white"
+                              : "bg-red-50 text-[var(--brand-red)]"
+                          }`}
+                        >
+                          <MapPin className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                        </span>
+                        <span className="min-w-0">
+                          <b className="block text-[12px]">Ubicación</b>
+                          <span
+                            className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                              editSection === "LOCATION"
+                                ? "text-white/65"
+                                : "text-neutral-400"
+                            }`}
+                          >
+                            Dirección y mapa
+                          </span>
+                        </span>
+                      </button>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Nombre <span className="text-[var(--brand-red)]">*</span></label>
-                        <input value={name} onChange={(e) => setName(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Nombre del cliente" />
-                      </div>
-
-                      <div className="grid grid-cols-[110px_1fr] gap-2">
-                        <div>
-                          <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Indicativo</label>
-                          <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="alento-input h-12 w-full rounded-xl px-3">
-                            <option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Teléfono <span className="text-[var(--brand-red)]">*</span></label>
-                          <input value={phone} onChange={(e) => setPhone(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Número de teléfono" />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Correo <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label>
-                        <input value={email} onChange={(e) => setEmail(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="correo@ejemplo.com" />
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[.04em] text-neutral-500">Nota del cliente <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label>
-                        <input value={notes} onChange={(e) => setNotes(e.target.value)} className="alento-input h-12 w-full rounded-xl px-4" placeholder="Información útil para futuras compras" />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5">
-                    <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-[11px] font-black text-white">02</span>
-                        <div>
-                          <p className="text-[8px] font-black uppercase tracking-[.12em] text-neutral-400">Ubicación de entrega</p>
-                          <h3 className="mt-0.5 text-[17px] font-black text-neutral-950">Dirección del cliente</h3>
-                          <p className="mt-1 text-[10px] leading-4 text-neutral-400">
-                            Busca una referencia en Google y ajusta el pin si necesitas mayor precisión.
-                          </p>
-                        </div>
-                      </div>
+                    <div className="mt-4 hidden rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 lg:block">
+                      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                        Estado de ubicación
+                      </span>
                       {addressEditor?.placeId &&
                       addressEditor.latitude != null &&
                       addressEditor.longitude != null ? (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-700">
-                          Validada
-                        </span>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-emerald-700">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Validada con Google
+                        </div>
                       ) : (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-700">
-                          Actualizar
-                        </span>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-amber-700">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Pendiente de validar
+                        </div>
                       )}
                     </div>
+                  </aside>
 
-                    {addressEditor && (
-                      <div className="mt-4">
-                        <GoogleCustomerAddressPicker
-                          currentAddress={
-                            addressEditor.placeId &&
-                            addressEditor.latitude != null &&
-                            addressEditor.longitude != null
-                              ? addressEditor.formattedAddress ||
-                                addressEditor.address
-                              : undefined
-                          }
-                          initialSelection={{
-                            formattedAddress:
-                              addressEditor.formattedAddress ||
-                              addressEditor.address,
-                            placeId: addressEditor.placeId,
-                            latitude: addressEditor.latitude,
-                            longitude: addressEditor.longitude,
-                            neighborhood: addressEditor.neighborhood,
-                            city: addressEditor.city,
-                          }}
-                          onSelect={(selection) =>
-                            setAddressEditor((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    address: selection.formattedAddress,
-                                    formattedAddress:
-                                      selection.formattedAddress,
-                                    placeId: selection.placeId,
-                                    latitude: selection.latitude,
-                                    longitude: selection.longitude,
-                                    neighborhood:
-                                      selection.neighborhood ||
-                                      current.neighborhood,
-                                    city: selection.city || current.city,
-                                    isDefault: true,
-                                  }
-                                : current,
-                            )
-                          }
-                        />
-
-                        <div className="mt-3 grid gap-2 md:grid-cols-2">
-                          <input
-                            value={addressEditor.neighborhood}
-                            onChange={(event) =>
-                              setAddressEditor({
-                                ...addressEditor,
-                                neighborhood: event.target.value,
-                              })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Barrio (opcional)"
-                          />
-                          <input
-                            value={addressEditor.notes}
-                            onChange={(event) =>
-                              setAddressEditor({
-                                ...addressEditor,
-                                notes: event.target.value,
-                              })
-                            }
-                            className="alento-input rounded-xl px-3 py-2.5"
-                            placeholder="Indicaciones (opcional)"
-                          />
-                        </div>
-
-                        <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-[10px] leading-4 text-neutral-500">
-                            Guarda esta ubicación cuando el pin esté exactamente donde recibe el cliente.
+                  <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+                    {editSection === "PERSONAL" && (
+                      <section className="mx-auto max-w-[830px] rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                        <div className="mb-6 border-b border-neutral-100 pb-4">
+                          <p className="alento-ui-label uppercase text-neutral-400">
+                            Información personal
                           </p>
-                          <button
-                            type="button"
-                            disabled={addressBusy}
-                            onClick={() => void saveCustomerAddress()}
-                            className="h-10 shrink-0 rounded-xl bg-neutral-950 px-4 text-[10px] font-black uppercase tracking-[.04em] text-white disabled:opacity-50"
-                          >
-                            {addressBusy ? "Guardando..." : "Guardar dirección"}
-                          </button>
+                          <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                            Datos del cliente
+                          </h3>
+                          <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                            Datos básicos para identificarlo, contactarlo y reconocerlo en futuras compras.
+                          </p>
                         </div>
-                      </div>
-                    )}
-                  </section>
 
-                  {message && (
-                    <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-bold text-red-700">
-                      {message}
-                    </div>
-                  )}
+                        <div className="grid gap-4 md:grid-cols-12">
+                          <label className="block md:col-span-7">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Nombre
+                            </span>
+                            <input
+                              value={name}
+                              onChange={(event) => setName(event.target.value)}
+                              className="alento-input h-12 w-full rounded-2xl px-4"
+                              placeholder="Nombre del cliente"
+                            />
+                          </label>
+
+                          <div className="grid grid-cols-[105px_1fr] gap-3 md:col-span-5">
+                            <label className="block">
+                              <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                                Indicativo
+                              </span>
+                              <select
+                                value={countryCode}
+                                onChange={(event) => setCountryCode(event.target.value)}
+                                className="alento-input h-12 w-full rounded-2xl px-3"
+                              >
+                                <option>+57</option>
+                                <option>+1</option>
+                                <option>+34</option>
+                                <option>+52</option>
+                                <option>+51</option>
+                                <option>+593</option>
+                              </select>
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                                Teléfono
+                              </span>
+                              <input
+                                value={phone}
+                                onChange={(event) => setPhone(event.target.value)}
+                                className="alento-input h-12 w-full rounded-2xl px-4"
+                                placeholder="Número"
+                              />
+                            </label>
+                          </div>
+
+                          <label className="block md:col-span-6">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Correo <span className="font-medium text-neutral-400">(opcional)</span>
+                            </span>
+                            <input
+                              value={email}
+                              onChange={(event) => setEmail(event.target.value)}
+                              className="alento-input h-12 w-full rounded-2xl px-4"
+                              placeholder="correo@ejemplo.com"
+                            />
+                          </label>
+
+                          <label className="block md:col-span-6">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Nota del cliente <span className="font-medium text-neutral-400">(opcional)</span>
+                            </span>
+                            <textarea
+                              value={notes}
+                              onChange={(event) => setNotes(event.target.value)}
+                              className="alento-input min-h-[92px] w-full resize-none rounded-2xl px-4 py-3"
+                              placeholder="Información útil para futuras compras"
+                            />
+                          </label>
+                        </div>
+                      </section>
+                    )}
+
+                    {editSection === "LOCATION" && addressEditor && (
+                      <section className="mx-auto max-w-[880px] space-y-4">
+                        <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                          <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
+                            <div>
+                              <p className="alento-ui-label uppercase text-neutral-400">
+                                Ubicación
+                              </p>
+                              <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                                Dirección de entrega
+                              </h3>
+                              <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                                Revisa el punto en el mapa y deja las indicaciones necesarias para el domiciliario.
+                              </p>
+                            </div>
+
+                            {addressEditor.placeId &&
+                            addressEditor.latitude != null &&
+                            addressEditor.longitude != null ? (
+                              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
+                                ✓ Validada con Google
+                              </span>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
+                                Requiere validación
+                              </span>
+                            )}
+                          </div>
+
+                          <GoogleCustomerAddressPicker
+                            currentAddress={
+                              addressEditor.placeId &&
+                              addressEditor.latitude != null &&
+                              addressEditor.longitude != null
+                                ? addressEditor.formattedAddress ||
+                                  addressEditor.address
+                                : undefined
+                            }
+                            initialSelection={{
+                              formattedAddress:
+                                addressEditor.formattedAddress ||
+                                addressEditor.address,
+                              placeId: addressEditor.placeId,
+                              latitude: addressEditor.latitude,
+                              longitude: addressEditor.longitude,
+                              neighborhood: addressEditor.neighborhood,
+                              city: addressEditor.city,
+                            }}
+                            onSelect={(selection) =>
+                              setAddressEditor((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      address: selection.formattedAddress,
+                                      formattedAddress: selection.formattedAddress,
+                                      placeId: selection.placeId,
+                                      latitude: selection.latitude,
+                                      longitude: selection.longitude,
+                                      neighborhood:
+                                        selection.neighborhood ||
+                                        current.neighborhood,
+                                      city: selection.city || current.city,
+                                      isDefault: true,
+                                    }
+                                  : current,
+                              )
+                            }
+                          />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Barrio
+                            </span>
+                            <input
+                              value={addressEditor.neighborhood}
+                              onChange={(event) =>
+                                setAddressEditor({
+                                  ...addressEditor,
+                                  neighborhood: event.target.value,
+                                })
+                              }
+                              className="alento-input h-12 w-full rounded-xl px-3.5"
+                              placeholder="Ej. Kennedy"
+                            />
+                            <span className="mt-2 block text-[10px] leading-4 text-neutral-400">
+                              Ayuda a identificar rápidamente la zona del domicilio.
+                            </span>
+                          </label>
+
+                          <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                            <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                              Indicaciones para entregar
+                            </span>
+                            <textarea
+                              value={addressEditor.notes}
+                              onChange={(event) =>
+                                setAddressEditor({
+                                  ...addressEditor,
+                                  notes: event.target.value,
+                                })
+                              }
+                              className="alento-input min-h-[82px] w-full resize-none rounded-xl px-3.5 py-3"
+                              placeholder="Casa, torre, apartamento, portería, referencias..."
+                            />
+                          </label>
+                        </div>
+                      </section>
+                    )}
+
+                    {message && (
+                      <p className="mx-auto mt-4 max-w-[880px] rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                        {message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:justify-end md:px-6">
-                  <button
-                    type="button"
-                    onClick={closeEdit}
-                    className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-sm font-bold text-neutral-700"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="h-11 rounded-xl bg-[var(--brand-red)] px-6 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:bg-neutral-300"
-                  >
-                    {saving ? "Guardando..." : "Guardar cliente"}
-                  </button>
+                <div className="flex items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-4 sm:px-7">
+                  <span className="hidden text-[11px] font-medium text-neutral-400 sm:block">
+                    {editSection === "PERSONAL"
+                      ? "Información personal"
+                      : "Ubicación y entrega"}
+                  </span>
+                  <div className="ml-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={closeEdit}
+                      className="rounded-2xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-700"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_18px_rgba(226,26,34,.16)] disabled:opacity-50"
+                    >
+                      {saving ? "Guardando..." : "Guardar cliente"}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
