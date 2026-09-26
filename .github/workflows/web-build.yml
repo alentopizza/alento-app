@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,15 +25,15 @@ jobs:
       WEB_PUSH_VAPID_SUBJECT: mailto:build@example.com
       WEB_PUSH_VAPID_PUBLIC_KEY: build-placeholder
       WEB_PUSH_VAPID_PRIVATE_KEY: build-placeholder
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: npm install
