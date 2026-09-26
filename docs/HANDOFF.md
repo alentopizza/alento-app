@@ -6,26 +6,27 @@ Este documento permite que una nueva persona, desarrollador o IA retome Alentó 
 
 Leer en este orden:
 
-1. `README.md`
-2. `docs/CURRENT_STATE.md`
+1. `AGENTS.md`
+2. `README.md`
+4. `docs/CURRENT_STATE.md`
 3. `docs/PRODUCTION_READINESS.md`
-4. `docs/ALENTO_EXCLUSIVE_MODULES.md`
-5. `docs/ROADMAP.md`
-6. `docs/POS.md`
-7. `docs/ORDERS.md`
-8. `docs/KITCHEN.md`
-9. `docs/CUSTOMERS.md`
-10. `docs/MENU.md`
-11. `docs/ARCHITECTURE.md`
-12. `docs/ORDER_DATA_INTEGRITY.md`
-13. `docs/ORDER_NUMBERING.md`
-14. `docs/PAYMENTS.md`
-15. `docs/PAYMENTS_AND_CASH.md`
-16. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-17. `docs/DEPLOYMENT.md`
-18. `docs/MAPS_VISUAL_SYSTEM.md`
-19. `prisma/schema.prisma`
-20. archivos del módulo que se vaya a modificar.
+5. `docs/ALENTO_EXCLUSIVE_MODULES.md`
+6. `docs/ROADMAP.md`
+7. `docs/POS.md`
+8. `docs/ORDERS.md`
+9. `docs/KITCHEN.md`
+10. `docs/CUSTOMERS.md`
+11. `docs/MENU.md`
+12. `docs/ARCHITECTURE.md`
+13. `docs/ORDER_DATA_INTEGRITY.md`
+14. `docs/ORDER_NUMBERING.md`
+15. `docs/PAYMENTS.md`
+16. `docs/PAYMENTS_AND_CASH.md`
+17. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+18. `docs/DEPLOYMENT.md`
+19. `docs/MAPS_VISUAL_SYSTEM.md`
+20. `prisma/schema.prisma`
+21. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -46,19 +47,22 @@ Si documentación y código discrepan, verificar el comportamiento real y actual
 
 ## Protocolo de cambio seguro
 
-Antes de modificar cualquier módulo:
+Alentó App está en producción. Antes de modificar cualquier módulo:
 
-1. leer el documento canónico del módulo;
-2. revisar los archivos de UI, API, tipos y helpers directamente relacionados;
-3. revisar `prisma/schema.prisma` si el cambio toca persistencia;
-4. buscar referencias del tipo, campo, estado o función que se va a cambiar;
-5. revisar los commits recientes del área para detectar decisiones todavía en transición.
+1. leer `AGENTS.md` y el documento canónico del módulo;
+2. buscar primero si la acción, regla, componente, endpoint, parser, validador o helper ya existe;
+3. identificar y reutilizar la fuente de verdad existente antes de crear un flujo nuevo;
+4. revisar los archivos de UI, API, tipos y helpers directamente relacionados;
+5. revisar `prisma/schema.prisma` si el cambio toca persistencia;
+6. buscar referencias del tipo, campo, estado o función que se va a cambiar;
+7. revisar los commits recientes del área para detectar decisiones todavía en transición;
+8. definir explícitamente qué comportamiento actual debe permanecer intacto.
 
 Durante la implementación:
 
-- preferir una solución de sistema sobre parches aislados;
+- preferir una solución de sistema sobre parches aislados, pero aplicar cambios incrementales que no arriesguen la operación actual;
 - si existe una forma más simple, mantenible o coherente con la arquitectura, explicarla y usarla salvo que contradiga una decisión explícita;
-- mantener una única fuente de verdad para tipos y reglas compartidas cuando sea posible;
+- mantener una única fuente de verdad para tipos y reglas compartidas; si existe una implementación reutilizable, extenderla en vez de crear un flujo paralelo;
 - no duplicar helpers, tipos globales o lógica de Google Maps/autenticación si ya existe un módulo compartido;
 - si una decisión afecta varias superficies, actualizar todas en el mismo bloque: UI, API, persistencia, documentación y estados derivados.
 
