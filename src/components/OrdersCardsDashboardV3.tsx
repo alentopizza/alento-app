@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, UserRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
@@ -83,6 +83,33 @@ const isPizzaItem = (item: OrderItem) => Boolean(
   && !Array.isArray(item.configuration)
   && String((item.configuration as { kind?: unknown }).kind).toUpperCase() === "PIZZA"
 );
+
+function addressSelectionFromCustomerAddress(
+  address: CustomerAddress | null | undefined,
+  deliveryFee: number | null = null,
+): GoogleCustomerAddressSelection | null {
+  if (
+    !address?.placeId ||
+    address.latitude == null ||
+    address.longitude == null ||
+    !Number.isFinite(Number(address.latitude)) ||
+    !Number.isFinite(Number(address.longitude))
+  ) {
+    return null;
+  }
+
+  return {
+    formattedAddress: address.formattedAddress || address.address,
+    placeId: address.placeId,
+    latitude: Number(address.latitude),
+    longitude: Number(address.longitude),
+    neighborhood: address.neighborhood || "",
+    city: address.city || "Bogotá",
+    covered: true,
+    deliveryFee,
+    distanceMeters: null,
+  };
+}
 
 function statusTone(status: OrderStatus) {
   if (status === "PREPARING") return "bg-amber-500";
@@ -220,16 +247,22 @@ export default function OrdersCardsDashboardV3() {
     detail?: string;
   } | null>(null);
   const [customerOrder, setCustomerOrder] = useState<Order | null>(null);
-  const [customerMode, setCustomerMode] = useState<"EDIT" | "CHANGE">("EDIT");
+  const [customerPanel, setCustomerPanel] = useState<
+    "PERSONAL" | "LOCATION" | "CHANGE"
+  >("PERSONAL");
   const [customerName, setCustomerName] = useState("");
   const [customerCountryCode, setCustomerCountryCode] = useState("+57");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddressSelection, setCustomerAddressSelection] =
     useState<GoogleCustomerAddressSelection | null>(null);
+  const [customerAddressNotes, setCustomerAddressNotes] = useState("");
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerMatches, setCustomerMatches] = useState<CustomerSearchResult[]>([]);
   const [replacementCustomer, setReplacementCustomer] = useState<CustomerSearchResult | null>(null);
   const [replacementAddressId, setReplacementAddressId] = useState<number | null>(null);
+  const [replacementAddressSelection, setReplacementAddressSelection] =
+    useState<GoogleCustomerAddressSelection | null>(null);
+  const [replacementAddressNotes, setReplacementAddressNotes] = useState("");
   const [customerSaving, setCustomerSaving] = useState(false);
   const [customerError, setCustomerError] = useState("");
   const [staffAccess, setStaffAccess] = useState<{ isAdmin: boolean; permissions: string[] }>({ isAdmin: false, permissions: [] });
@@ -612,33 +645,36 @@ export default function OrdersCardsDashboardV3() {
 
   function openCustomerManager(order: Order) {
     setCustomerOrder(order);
-    setCustomerMode(order.customer ? "EDIT" : "CHANGE");
+    setCustomerPanel(order.customer ? "PERSONAL" : "CHANGE");
     setCustomerName(order.customer?.name ?? "");
     setCustomerCountryCode(order.customer?.countryCode || "+57");
     setCustomerPhone(order.customer?.phone ?? "");
     setCustomerAddressSelection(
-      order.fulfillmentType === "DELIVERY" &&
-        order.address?.placeId &&
-        order.address.latitude != null &&
-        order.address.longitude != null
-        ? {
-            formattedAddress:
-              order.address.formattedAddress || order.address.address,
-            placeId: order.address.placeId,
-            latitude: Number(order.address.latitude),
-            longitude: Number(order.address.longitude),
-            neighborhood: order.address.neighborhood || "",
-            city: order.address.city || "Bogotá",
-            covered: true,
-            deliveryFee: Number(order.deliveryFee),
-            distanceMeters: null,
-          }
+      order.fulfillmentType === "DELIVERY"
+        ? addressSelectionFromCustomerAddress(
+            order.address,
+            Number(order.deliveryFee),
+          )
         : null,
     );
+    setCustomerAddressNotes(order.address?.notes ?? "");
     setCustomerQuery("");
     setCustomerMatches([]);
     setReplacementCustomer(null);
     setReplacementAddressId(null);
+    setReplacementAddressSelection(null);
+    setReplacementAddressNotes("");
+    setCustomerError("");
+  }
+
+  function chooseReplacementCustomer(customer: CustomerSearchResult) {
+    const address = customer.addresses?.[0] ?? null;
+    const selection = addressSelectionFromCustomerAddress(address);
+
+    setReplacementCustomer(customer);
+    setReplacementAddressId(selection ? address?.id ?? null : null);
+    setReplacementAddressSelection(selection);
+    setReplacementAddressNotes(address?.notes ?? "");
     setCustomerError("");
   }
 
@@ -646,24 +682,42 @@ export default function OrdersCardsDashboardV3() {
     setCustomerQuery(value);
     setReplacementCustomer(null);
     setReplacementAddressId(null);
+    setReplacementAddressSelection(null);
+    setReplacementAddressNotes("");
+
     const term = value.trim();
     if (term.length < 2) {
       setCustomerMatches([]);
       return;
     }
+
     try {
-      const response = await fetch(`/api/customers?q=${encodeURIComponent(term)}`, { cache: "no-store" });
+      const response = await fetch(
+        `/api/customers?q=${encodeURIComponent(term)}`,
+        { cache: "no-store" },
+      );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible buscar clientes.");
-      setCustomerMatches((data.customers ?? []) as CustomerSearchResult[]);
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible buscar clientes.");
+      }
+
+      setCustomerMatches(
+        (data.customers ?? []) as CustomerSearchResult[],
+      );
     } catch (searchError) {
-      setCustomerError(searchError instanceof Error ? searchError.message : "No fue posible buscar clientes.");
+      setCustomerError(
+        searchError instanceof Error
+          ? searchError.message
+          : "No fue posible buscar clientes.",
+      );
     }
   }
 
   async function saveCurrentCustomer() {
     if (!customerOrder?.customer) return;
     if (!customerName.trim() || !customerPhone.replace(/\D/g, "")) {
+      setCustomerPanel("PERSONAL");
       setCustomerError("Nombre y teléfono son obligatorios.");
       return;
     }
@@ -686,6 +740,7 @@ export default function OrdersCardsDashboardV3() {
 
       if (customerOrder.fulfillmentType === "DELIVERY") {
         if (!customerAddressSelection) {
+          setCustomerPanel("LOCATION");
           throw new Error(
             "Selecciona y valida la dirección del domicilio con Google Maps.",
           );
@@ -698,7 +753,7 @@ export default function OrdersCardsDashboardV3() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ...customerAddressSelection,
-              notes: customerOrder.address?.notes ?? "",
+              notes: customerAddressNotes,
             }),
           },
         );
@@ -724,32 +779,107 @@ export default function OrdersCardsDashboardV3() {
 
   async function changeOrderCustomer() {
     if (!customerOrder || !replacementCustomer) {
-      setCustomerError("Selecciona el cliente que deseas asignar al pedido.");
+      setCustomerPanel("CHANGE");
+      setCustomerError(
+        "Selecciona el cliente que deseas asignar al pedido.",
+      );
       return;
     }
-    if (customerOrder.fulfillmentType === "DELIVERY" && !replacementAddressId) {
-      setCustomerError("Selecciona una dirección del nuevo cliente para este domicilio.");
-      return;
-    }
+
     setCustomerSaving(true);
     setCustomerError("");
+
     try {
-      const response = await fetch(`/api/orders/${customerOrder.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "change-customer",
-          customerId: replacementCustomer.id,
-          addressId: customerOrder.fulfillmentType === "DELIVERY" ? replacementAddressId : null,
-        }),
-      });
+      let addressId = replacementAddressId;
+
+      if (customerOrder.fulfillmentType === "DELIVERY") {
+        if (replacementAddressSelection) {
+          const addressResponse = await fetch(
+            `/api/customers/${replacementCustomer.id}/addresses`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...replacementAddressSelection,
+                label: "Casa",
+                notes: replacementAddressNotes,
+                isDefault: true,
+              }),
+            },
+          );
+          const addressData = await addressResponse.json();
+
+          if (!addressResponse.ok) {
+            throw new Error(
+              addressData.error ||
+                "No fue posible guardar la dirección del nuevo cliente.",
+            );
+          }
+
+          const savedAddress = addressData.customer?.addresses?.[0];
+          if (!savedAddress?.id) {
+            throw new Error(
+              "La dirección se guardó, pero no fue posible usarla en el pedido.",
+            );
+          }
+
+          addressId = Number(savedAddress.id);
+          setReplacementAddressId(addressId);
+          setReplacementCustomer((current) =>
+            current
+              ? {
+                  ...current,
+                  addresses: addressData.customer.addresses ?? [],
+                }
+              : current,
+          );
+        }
+
+        if (!addressId) {
+          setCustomerPanel("CHANGE");
+          throw new Error(
+            "Este cliente necesita una dirección validada con Google Maps para el domicilio.",
+          );
+        }
+      }
+
+      const response = await fetch(
+        `/api/orders/${customerOrder.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "change-customer",
+            customerId: replacementCustomer.id,
+            addressId:
+              customerOrder.fulfillmentType === "DELIVERY"
+                ? addressId
+                : null,
+          }),
+        },
+      );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible cambiar el cliente del pedido.");
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible cambiar el cliente del pedido.",
+        );
+      }
+
       await load(true);
-      emitLiveDataChange(["orders", "customers", "club", "account"]);
+      emitLiveDataChange([
+        "orders",
+        "customers",
+        "club",
+        "account",
+      ]);
       setCustomerOrder(null);
     } catch (saveError) {
-      setCustomerError(saveError instanceof Error ? saveError.message : "No fue posible cambiar el cliente del pedido.");
+      setCustomerError(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible cambiar el cliente del pedido.",
+      );
     } finally {
       setCustomerSaving(false);
     }
