@@ -370,14 +370,6 @@ function requestStatusBadgeClass(status: string) {
   return "bg-white/[0.07] text-white/55";
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function textValue(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
 function orderItemDetails(configuration: unknown) {
   return presentOrderItemConfiguration(configuration).map(
     (detail) => `${detail.label}: ${detail.value}`,
