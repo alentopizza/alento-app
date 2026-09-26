@@ -437,10 +437,17 @@ function orderItemDetails(configuration: unknown) {
     pizzas.forEach((item, index) => {
       if (!isRecord(item)) return;
       const size = isRecord(item.size) ? item.size : null;
-      const flavor = isRecord(item.flavor) ? item.flavor : null;
-      const parts = [textValue(size?.name), textValue(flavor?.name)].filter(
-        Boolean,
-      );
+      const flavors = Array.isArray(item.flavors)
+        ? item.flavors
+            .map((flavor) => (isRecord(flavor) ? textValue(flavor.name) : null))
+            .filter((value): value is string => Boolean(value))
+        : [];
+      const legacyFlavor = isRecord(item.flavor) ? textValue(item.flavor.name) : null;
+      const flavorText =
+        flavors.length > 1
+          ? flavors.map((flavor) => `½ ${flavor}`).join(" + ")
+          : flavors[0] ?? legacyFlavor;
+      const parts = [textValue(size?.name), flavorText].filter(Boolean);
       if (parts.length) details.push(`Pizza ${index + 1}: ${parts.join(" · ")}`);
     });
 
