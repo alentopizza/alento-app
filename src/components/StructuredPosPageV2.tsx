@@ -37,7 +37,13 @@ type DeliveryQuote = {
   deliveryFee: number | null;
 };
 type PizzaConfig = { product: CatalogProduct; sizeId: number | null; firstFlavorId: number | null; secondFlavorId: number | null; crustId: number | null; modifierIds: number[]; note: string };
-type ComboPizzaChoice = { ruleId: number; sizeId: number | null; flavorId: number | null };
+type ComboPizzaChoice = {
+  ruleId: number;
+  sizeId: number | null;
+  flavorCount: 1 | 2;
+  firstFlavorId: number | null;
+  secondFlavorId: number | null;
+};
 type ComboConfig = { product: CatalogProduct; pizzas: ComboPizzaChoice[]; groupSelections: Record<number, number[]> };
 
 const fulfillmentOptions = [
@@ -494,7 +500,15 @@ export default function StructuredPosPageV2() {
     if (product.type === "COMBO") {
       const pizzas: ComboPizzaChoice[] = [];
       for (const rule of product.comboPizzaRules ?? []) {
-        for (let index = 0; index < rule.quantity; index += 1) pizzas.push({ ruleId: rule.id, sizeId: rule.sizes[0]?.id ?? null, flavorId: rule.flavors[0]?.id ?? null });
+        for (let index = 0; index < rule.quantity; index += 1) {
+          pizzas.push({
+            ruleId: rule.id,
+            sizeId: rule.sizes[0]?.id ?? null,
+            flavorCount: 1,
+            firstFlavorId: rule.flavors[0]?.id ?? null,
+            secondFlavorId: null,
+          });
+        }
       }
       const groupSelections: Record<number, number[]> = {};
       for (const group of product.comboGroups ?? []) groupSelections[group.id] = group.options.slice(0, group.minSelections).map((option) => option.productId);
@@ -530,7 +544,16 @@ export default function StructuredPosPageV2() {
       setEditingCartKey(item.key);
       setComboConfig({
         product,
-        pizzas: item.configuration.pizzas.map((pizza) => ({ ruleId: pizza.ruleId, sizeId: pizza.size.id, flavorId: pizza.flavor.productId })),
+        pizzas: item.configuration.pizzas.map((pizza) => {
+          const flavors = pizza.flavors?.length ? pizza.flavors : [pizza.flavor];
+          return {
+            ruleId: pizza.ruleId,
+            sizeId: pizza.size.id,
+            flavorCount: flavors.length >= 2 ? 2 : 1,
+            firstFlavorId: flavors[0]?.productId ?? null,
+            secondFlavorId: flavors[1]?.productId ?? null,
+          };
+        }),
         groupSelections,
       });
     }
@@ -607,8 +630,15 @@ export default function StructuredPosPageV2() {
     for (const choice of config.pizzas) {
       const rule = config.product.comboPizzaRules?.find((item) => item.id === choice.ruleId);
       const size = rule?.sizes.find((item) => item.id === choice.sizeId);
-      const flavor = rule?.flavors.find((item) => item.id === choice.flavorId);
-      regular += (size?.basePrice ?? 0) + (flavor?.basePrice ?? 0);
+      const flavorIds =
+        choice.flavorCount === 2
+          ? [choice.firstFlavorId, choice.secondFlavorId]
+          : [choice.firstFlavorId];
+      const flavorPrices = flavorIds
+        .map((id) => rule?.flavors.find((item) => item.id === id)?.basePrice ?? 0);
+      regular +=
+        (size?.basePrice ?? 0) +
+        (flavorPrices.length ? Math.max(...flavorPrices) : 0);
     }
     for (const group of config.product.comboGroups ?? []) {
       for (const productId of config.groupSelections[group.id] ?? []) {
@@ -635,13 +665,56 @@ export default function StructuredPosPageV2() {
       const count = (comboConfig.groupSelections[group.id] ?? []).length;
       if (count < group.minSelections || count > group.maxSelections) return setConfigError(`Completa la selección de ${group.name}.`);
     }
-    if (comboConfig.pizzas.some((pizza) => !pizza.sizeId || !pizza.flavorId)) return setConfigError("Completa todas las pizzas del combo.");
+    if (
+      comboConfig.pizzas.some(
+        (pizza) =>
+          !pizza.sizeId ||
+          !pizza.firstFlavorId ||
+          (pizza.flavorCount === 2 && !pizza.secondFlavorId),
+      )
+    ) {
+      return setConfigError("Completa todas las pizzas del combo.");
+    }
+    if (
+      comboConfig.pizzas.some(
+        (pizza) =>
+          pizza.flavorCount === 2 &&
+          pizza.firstFlavorId === pizza.secondFlavorId,
+      )
+    ) {
+      return setConfigError("Los dos sabores de una pizza deben ser diferentes.");
+    }
 
     const pizzas = comboConfig.pizzas.map((choice) => {
       const rule = comboConfig.product.comboPizzaRules?.find((item) => item.id === choice.ruleId)!;
       const size = rule.sizes.find((item) => item.id === choice.sizeId)!;
-      const flavor = rule.flavors.find((item) => item.id === choice.flavorId)!;
-      return { ruleId: rule.id, size: { id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: size.basePrice }, flavor: { productId: flavor.id, name: flavor.name, portion: 1, basePrice: flavor.basePrice } };
+      const flavorIds =
+        choice.flavorCount === 2
+          ? [choice.firstFlavorId!, choice.secondFlavorId!]
+          : [choice.firstFlavorId!];
+      const selectedFlavors = flavorIds.map((id) =>
+        rule.flavors.find((item) => item.id === id),
+      );
+      if (selectedFlavors.some((flavor) => !flavor)) {
+        throw new Error("Una de las especialidades ya no está permitida para este combo.");
+      }
+      const flavors = selectedFlavors.map((flavor) => ({
+        productId: flavor!.id,
+        name: flavor!.name,
+        portion: choice.flavorCount === 2 ? 0.5 : 1,
+        basePrice: flavor!.basePrice,
+      }));
+      return {
+        ruleId: rule.id,
+        size: {
+          id: size.id,
+          name: size.name,
+          diameterCm: size.diameterCm,
+          basePrice: size.basePrice,
+        },
+        flavor: flavors[0],
+        flavors,
+      };
     });
 
     const groups = (comboConfig.product.comboGroups ?? []).map((group) => ({
@@ -655,7 +728,16 @@ export default function StructuredPosPageV2() {
     }));
 
     const configuration: ComboOrderConfiguration = { schemaVersion: 1, kind: "COMBO", comboProductId: comboConfig.product.id, comboName: comboConfig.product.name, comboDiscount: comboConfig.product.comboDiscount ?? 0, pizzas, groups };
-    const detail = [...pizzas.map((pizza, index) => `Pizza ${index + 1}: ${pizza.size.name} ${pizza.flavor.name}`), ...groups.map((group) => `${group.name}: ${group.selections.map((selection) => `${selection.quantity > 1 ? `${selection.quantity}× ` : ""}${selection.name}`).join(", ")}`)].join(" · ");
+    const detail = [
+      ...pizzas.map((pizza, index) => {
+        const flavorText =
+          pizza.flavors.length > 1
+            ? pizza.flavors.map((flavor) => `½ ${flavor.name}`).join(" + ")
+            : pizza.flavors[0]?.name ?? pizza.flavor.name;
+        return `Pizza ${index + 1}: ${pizza.size.name} ${flavorText}`;
+      }),
+      ...groups.map((group) => `${group.name}: ${group.selections.map((selection) => `${selection.quantity > 1 ? `${selection.quantity}× ` : ""}${selection.name}`).join(", ")}`),
+    ].join(" · ");
     const unitPrice = comboPrice(comboConfig);
 
     setCart((current) => {
@@ -1225,7 +1307,237 @@ export default function StructuredPosPageV2() {
 
       {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">{editingCartKey ? "Editar pizza" : "Configurar pizza"}</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2></div><button onClick={closePizzaConfig} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5"><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between"><h3 className="font-black">Tamaño</h3><span className="text-[11px] text-neutral-400">Define precio base y borde</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.sizes.map((size) => <button key={size.id} onClick={() => updatePizzaSize(size.id)} className={`rounded-xl border p-3 text-left ${pizzaConfig.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}><b>{size.name}</b><span className="block text-xs opacity-70">{size.diameterCm} cm</span></button>)}</div></section>{isTwoFlavorPizza(pizzaConfig.product) && <><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 1</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, firstFlavorId: flavor.id, secondFlavorId: pizzaConfig.secondFlavorId === flavor.id ? null : pizzaConfig.secondFlavorId })} className={`rounded-xl border p-3 text-left ${pizzaConfig.firstFlavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 2</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} disabled={pizzaConfig.firstFlavorId === flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.secondFlavorId === flavor.id ? "bg-black text-white" : pizzaConfig.firstFlavorId === flavor.id ? "bg-neutral-100 text-neutral-300" : "bg-white"}`}>{flavor.name}</button>)}</div></section></>}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Borde</h3><span className="text-[11px] font-semibold text-neutral-400">Precio para {catalog.sizes.find((size) => size.id === pizzaConfig.sizeId)?.name ?? "tamaño seleccionado"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.crusts.map((crust) => { const price = crustPriceForSize(crust, pizzaConfig.sizeId); const selected = pizzaConfig.crustId === crust.id; const unavailable = price == null; return <button key={crust.id} disabled={unavailable} onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })} className={`flex min-h-[58px] items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : unavailable ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-300" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-sm">{crust.name}</b><span className={`mt-0.5 block text-xs ${selected ? "text-white/65" : unavailable ? "text-neutral-300" : "text-neutral-500"}`}>{unavailable ? "No disponible" : price === 0 ? "Incluido" : `+ ${formatCOP(price)}`}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${selected ? "border-white/30 bg-white text-black" : "border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span></button>; })}</div></section>{!isTwoFlavorPizza(pizzaConfig.product) && (<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Ingredientes extra</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{pizzaConfig.modifierIds.length ? `${pizzaConfig.modifierIds.length} seleccionado${pizzaConfig.modifierIds.length === 1 ? "" : "s"}` : "Opcional"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.modifiers.map((modifier) => { const selected = pizzaConfig.modifierIds.includes(modifier.id); return <button key={modifier.id} onClick={() => setPizzaConfig({ ...pizzaConfig, modifierIds: selected ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id) : [...pizzaConfig.modifierIds, modifier.id] })} className={`flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_4px_12px_rgba(229,28,17,0.08)]" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-[13px]">{modifier.name}</b><span className={`mt-0.5 block text-[11px] ${selected ? "font-semibold text-[var(--brand-red)]" : "text-neutral-500"}`}>+ {formatCOP(modifier.basePrice)}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${selected ? "bg-[var(--brand-red)] text-white" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : "+"}</span></button>; })}</div></section>)}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="flex items-center justify-between gap-3"><div><h3 className="font-black">Nota para cocina</h3><p className="mt-0.5 text-[11px] text-neutral-400">Opcional · instrucción corta para esta pizza</p></div><span className="text-[10px] font-semibold text-neutral-400">{pizzaConfig.note.length}/120</span></div><input value={pizzaConfig.note} maxLength={120} onChange={(event) => setPizzaConfig({ ...pizzaConfig, note: event.target.value })} className="alento-input mt-2 w-full rounded-xl bg-white px-3.5 py-3 text-sm" placeholder="Ej. Ligera en salsa" /></section>{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><b className="text-2xl text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</b><button onClick={confirmPizza} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">{editingCartKey ? "Guardar cambios" : "Agregar al pedido"}</button></div></div></div>}
 
-      {comboConfig && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">{editingCartKey ? "Editar combo" : "Configurar combo"}</p><h2 className="text-2xl font-black">{comboConfig.product.name}</h2></div><button onClick={closeComboConfig} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{comboConfig.pizzas.map((choice, index) => { const rule = comboConfig.product.comboPizzaRules?.find((item) => item.id === choice.ruleId); if (!rule) return null; return <section key={`${choice.ruleId}-${index}`} className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><div className="mb-3 flex items-center justify-between"><h3 className="font-black">Pizza {index + 1}</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">Incluida en el combo</span></div><p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Tamaño</p><div className="flex flex-wrap gap-2">{rule.sizes.map((size) => <button key={size.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], sizeId: size.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border px-4 py-2 text-sm ${choice.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}>{size.name}</button>)}</div><p className="mb-1.5 mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Sabor</p><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{rule.flavors.map((flavor) => <button key={flavor.id} onClick={() => { const pizzas = [...comboConfig.pizzas]; pizzas[index] = { ...pizzas[index], flavorId: flavor.id }; setComboConfig({ ...comboConfig, pizzas }); }} className={`rounded-xl border p-3 text-left text-sm ${choice.flavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section>; })}{comboConfig.product.comboGroups?.map((group) => { const selectedIds = comboConfig.groupSelections[group.id] ?? []; const choiceText = group.minSelections === group.maxSelections ? `Elige ${group.minSelections}` : `Elige ${group.minSelections} a ${group.maxSelections}`; return <section key={group.id} className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">{group.name}</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{selectedIds.length}/{group.maxSelections} · {choiceText}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{group.options.map((option) => { const selected = selectedIds.includes(option.productId); return <button key={option.id} onClick={() => toggleComboOption(group, option.productId)} className={`flex min-h-[52px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div><b className="text-[13px]">{option.productName}</b>{option.quantity > 1 && <span className={`block text-[11px] ${selected ? "text-white/65" : "text-neutral-400"}`}>Incluye {option.quantity}</span>}</div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${selected ? "bg-white text-black" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span></button>; })}</div></section>; })}{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><div><b className="block text-2xl text-[var(--brand-red)]">{formatCOP(comboPrice(comboConfig))}</b>{(comboConfig.product.comboDiscount ?? 0) > 0 && <span className="text-xs font-bold text-emerald-600">Ahorra {formatCOP(comboConfig.product.comboDiscount ?? 0)}</span>}</div><button onClick={confirmCombo} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">{editingCartKey ? "Guardar cambios" : "Agregar combo"}</button></div></div></div>}
+      {comboConfig && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+          <div className="alento-card flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-[26px]">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <div>
+                <p className="text-[10px] font-black uppercase text-neutral-400">
+                  {editingCartKey ? "Editar combo" : "Configurar combo"}
+                </p>
+                <h2 className="text-2xl font-black">{comboConfig.product.name}</h2>
+              </div>
+              <button onClick={closeComboConfig} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">
+                Cerrar
+              </button>
+            </div>
+
+            <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+              {comboConfig.pizzas.map((choice, index) => {
+                const rule = comboConfig.product.comboPizzaRules?.find(
+                  (item) => item.id === choice.ruleId,
+                );
+                if (!rule) return null;
+
+                const updateChoice = (patch: Partial<ComboPizzaChoice>) => {
+                  const pizzas = [...comboConfig.pizzas];
+                  pizzas[index] = { ...pizzas[index], ...patch };
+                  setComboConfig({ ...comboConfig, pizzas });
+                  setConfigError("");
+                };
+
+                return (
+                  <section
+                    key={`${choice.ruleId}-${index}`}
+                    className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <h3 className="font-black">Pizza {index + 1}</h3>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">
+                        Incluida en el combo
+                      </span>
+                    </div>
+
+                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                      Tamaño
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {rule.sizes.map((size) => (
+                        <button
+                          key={size.id}
+                          type="button"
+                          onClick={() => updateChoice({ sizeId: size.id })}
+                          className={`rounded-xl border px-4 py-2 text-sm ${
+                            choice.sizeId === size.id ? "bg-black text-white" : "bg-white"
+                          }`}
+                        >
+                          {size.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                      ¿Cuántos sabores?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {([1, 2] as const).map((count) => (
+                        <button
+                          key={count}
+                          type="button"
+                          onClick={() =>
+                            updateChoice({
+                              flavorCount: count,
+                              secondFlavorId: count === 1 ? null : choice.secondFlavorId,
+                            })
+                          }
+                          className={`rounded-xl border px-4 py-2 text-sm font-bold ${
+                            choice.flavorCount === count
+                              ? "border-black bg-black text-white"
+                              : "border-neutral-300 bg-white"
+                          }`}
+                        >
+                          {count === 1 ? "1 sabor" : "2 sabores"}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="mb-1.5 mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                      {choice.flavorCount === 2 ? "Sabor 1" : "Sabor"}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                      {rule.flavors.map((flavor) => (
+                        <button
+                          key={flavor.id}
+                          type="button"
+                          onClick={() =>
+                            updateChoice({
+                              firstFlavorId: flavor.id,
+                              secondFlavorId:
+                                choice.secondFlavorId === flavor.id
+                                  ? null
+                                  : choice.secondFlavorId,
+                            })
+                          }
+                          className={`rounded-xl border p-3 text-left text-sm ${
+                            choice.firstFlavorId === flavor.id
+                              ? "bg-black text-white"
+                              : "bg-white"
+                          }`}
+                        >
+                          {flavor.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {choice.flavorCount === 2 && (
+                      <>
+                        <p className="mb-1.5 mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                          Sabor 2
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                          {rule.flavors.map((flavor) => {
+                            const disabled = choice.firstFlavorId === flavor.id;
+                            return (
+                              <button
+                                key={flavor.id}
+                                type="button"
+                                disabled={disabled}
+                                onClick={() => updateChoice({ secondFlavorId: flavor.id })}
+                                className={`rounded-xl border p-3 text-left text-sm ${
+                                  choice.secondFlavorId === flavor.id
+                                    ? "bg-black text-white"
+                                    : disabled
+                                      ? "cursor-not-allowed bg-neutral-100 text-neutral-300"
+                                      : "bg-white"
+                                }`}
+                              >
+                                {flavor.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </section>
+                );
+              })}
+
+              {comboConfig.product.comboGroups?.map((group) => {
+                const selectedIds = comboConfig.groupSelections[group.id] ?? [];
+                const choiceText =
+                  group.minSelections === group.maxSelections
+                    ? `Elige ${group.minSelections}`
+                    : `Elige ${group.minSelections} a ${group.maxSelections}`;
+                return (
+                  <section
+                    key={group.id}
+                    className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h3 className="font-black">{group.name}</h3>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">
+                        {selectedIds.length}/{group.maxSelections} · {choiceText}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                      {group.options.map((option) => {
+                        const selected = selectedIds.includes(option.productId);
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => toggleComboOption(group, option.productId)}
+                            className={`flex min-h-[52px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${
+                              selected
+                                ? "border-black bg-black text-white"
+                                : "border-neutral-300 bg-white hover:border-neutral-500"
+                            }`}
+                          >
+                            <div>
+                              <b className="text-[13px]">{option.productName}</b>
+                              {option.quantity > 1 && (
+                                <span
+                                  className={`block text-[11px] ${
+                                    selected ? "text-white/65" : "text-neutral-400"
+                                  }`}
+                                >
+                                  Incluye {option.quantity}
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
+                                selected
+                                  ? "bg-white text-black"
+                                  : "border border-neutral-300 text-neutral-400"
+                              }`}
+                            >
+                              {selected ? "✓" : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+
+              {configError && (
+                <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t p-4">
+              <div>
+                <b className="block text-2xl text-[var(--brand-red)]">
+                  {formatCOP(comboPrice(comboConfig))}
+                </b>
+                {(comboConfig.product.comboDiscount ?? 0) > 0 && (
+                  <span className="text-xs font-bold text-emerald-600">
+                    Ahorra {formatCOP(comboConfig.product.comboDiscount ?? 0)}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={confirmCombo}
+                className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white"
+              >
+                {editingCartKey ? "Guardar cambios" : "Agregar combo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
