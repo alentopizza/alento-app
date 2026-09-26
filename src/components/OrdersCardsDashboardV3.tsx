@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
-import GoogleCustomerAddressPicker, {
-  type GoogleCustomerAddressSelection,
-} from "@/components/GoogleCustomerAddressPicker";
+import type { GoogleCustomerAddressSelection } from "@/components/GoogleCustomerAddressPicker";
+import CustomerAddressEditor, {
+  isValidatedCustomerAddress,
+  type CustomerAddressEditorValue,
+} from "@/components/CustomerAddressEditor";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
@@ -108,6 +110,25 @@ function addressSelectionFromCustomerAddress(
     covered: true,
     deliveryFee,
     distanceMeters: null,
+  };
+}
+
+function addressSelectionFromEditorValue(
+  value: CustomerAddressEditorValue,
+): GoogleCustomerAddressSelection | null {
+  if (!isValidatedCustomerAddress(value)) return null;
+
+  return {
+    formattedAddress:
+      value.formattedAddress || value.address || "",
+    placeId: value.placeId!,
+    latitude: Number(value.latitude),
+    longitude: Number(value.longitude),
+    neighborhood: value.neighborhood || "",
+    city: value.city || "Bogotá",
+    covered: value.covered ?? false,
+    deliveryFee: value.deliveryFee ?? null,
+    distanceMeters: value.distanceMeters ?? null,
   };
 }
 
@@ -1412,100 +1433,57 @@ export default function OrdersCardsDashboardV3() {
               {customerPanel === "LOCATION" &&
                 customerOrder.customer &&
                 customerOrder.fulfillmentType === "DELIVERY" && (
-                  <section className="mx-auto max-w-[880px] space-y-4">
-                    <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
-                      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
-                        <div>
-                          <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
-                            Ubicación
-                          </p>
-                          <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
-                            Dirección de entrega
-                          </h3>
-                          <p className="mt-1 text-[12px] leading-5 text-neutral-400">
-                            El mapa, la tarifa y la ruta se recalculan al guardar.
-                          </p>
-                        </div>
-
-                        {customerAddressSelection ? (
-                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
-                            ✓ Validada con Google
-                          </span>
-                        ) : (
-                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
-                            Requiere validación
-                          </span>
-                        )}
-                      </div>
-
-                      <GoogleCustomerAddressPicker
-                        currentAddress={
+                  <div className="mx-auto max-w-[880px]">
+                    <CustomerAddressEditor
+                      value={{
+                        address:
+                          customerOrder.address?.address || "",
+                        formattedAddress:
+                          customerAddressSelection?.formattedAddress ||
                           customerOrder.address?.formattedAddress ||
                           customerOrder.address?.address ||
-                          undefined
-                        }
-                        initialSelection={{
-                          formattedAddress:
-                            customerOrder.address?.formattedAddress ||
-                            customerOrder.address?.address ||
-                            undefined,
-                          placeId:
-                            customerOrder.address?.placeId || undefined,
-                          latitude:
-                            customerOrder.address?.latitude ?? null,
-                          longitude:
-                            customerOrder.address?.longitude ?? null,
-                          neighborhood:
-                            customerOrder.address?.neighborhood || undefined,
-                          city:
-                            customerOrder.address?.city || undefined,
-                        }}
-                        onSelect={(selection) => {
-                          setCustomerAddressSelection(selection);
-                          setCustomerError("");
-                        }}
-                      />
-                    </div>
-
-                    {customerAddressSelection && (
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Barrio
-                          </span>
-                          <input
-                            value={customerAddressSelection.neighborhood}
-                            onChange={(event) =>
-                              setCustomerAddressSelection((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      neighborhood: event.target.value,
-                                    }
-                                  : current,
-                              )
-                            }
-                            className="alento-input h-12 w-full rounded-xl px-3.5"
-                            placeholder="Ej. Kennedy"
-                          />
-                        </label>
-
-                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
-                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
-                            Indicaciones para entregar
-                          </span>
-                          <textarea
-                            value={customerAddressNotes}
-                            onChange={(event) =>
-                              setCustomerAddressNotes(event.target.value)
-                            }
-                            className="alento-input min-h-[82px] w-full resize-none rounded-xl px-3.5 py-3"
-                            placeholder="Casa, torre, apartamento, portería, referencias..."
-                          />
-                        </label>
-                      </div>
-                    )}
-                  </section>
+                          "",
+                        placeId:
+                          customerAddressSelection?.placeId ||
+                          customerOrder.address?.placeId ||
+                          null,
+                        latitude:
+                          customerAddressSelection?.latitude ??
+                          customerOrder.address?.latitude ??
+                          null,
+                        longitude:
+                          customerAddressSelection?.longitude ??
+                          customerOrder.address?.longitude ??
+                          null,
+                        neighborhood:
+                          customerAddressSelection?.neighborhood ||
+                          customerOrder.address?.neighborhood ||
+                          "",
+                        city:
+                          customerAddressSelection?.city ||
+                          customerOrder.address?.city ||
+                          "Bogotá",
+                        notes: customerAddressNotes,
+                        covered:
+                          customerAddressSelection?.covered,
+                        deliveryFee:
+                          customerAddressSelection?.deliveryFee ??
+                          Number(customerOrder.deliveryFee),
+                        distanceMeters:
+                          customerAddressSelection?.distanceMeters ??
+                          null,
+                      }}
+                      description="El mapa, la tarifa y la ruta se recalculan al guardar."
+                      showDetailsBeforeValidation
+                      onChange={(next) => {
+                        setCustomerAddressNotes(next.notes ?? "");
+                        setCustomerAddressSelection(
+                          addressSelectionFromEditorValue(next),
+                        );
+                        setCustomerError("");
+                      }}
+                    />
+                  </div>
                 )}
 
               {customerPanel === "CHANGE" && (
