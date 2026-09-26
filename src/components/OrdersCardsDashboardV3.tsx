@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { MapPin, UserRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
+import OrderStatusSelector from "@/components/OrderStatusSelector";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
 import type { GoogleCustomerAddressSelection } from "@/components/GoogleCustomerAddressPicker";
 import CustomerAddressEditor, {
@@ -15,7 +15,7 @@ import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
-import { fulfillmentLabel, nextStatus, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
+import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
 
 type CustomerAddress = {
@@ -151,16 +151,6 @@ function fulfillmentTone(type: FulfillmentType) {
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
-function nextLabel(order: Order) {
-  const next = nextStatus(order.status, order.fulfillmentType);
-  if (!next) return null;
-  if (next === "OUT_FOR_DELIVERY") return "EN CAMINO";
-  if (next === "ARRIVED") return "HA LLEGADO";
-  if (next === "DELIVERED") return "ENTREGADO";
-  if (next === "COMPLETED") return "FINALIZAR";
-  return statusLabel(next).toUpperCase();
-}
-
 function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" }) {
   const c = "h-[17px] w-[17px]";
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>;
@@ -268,6 +258,14 @@ export default function OrdersCardsDashboardV3() {
     message: string;
     detail?: string;
   } | null>(null);
+  const [statusOrder, setStatusOrder] = useState<Order | null>(null);
+  const [statusDrivers, setStatusDrivers] = useState<
+    Array<{ id: number; name: string; ready: boolean }>
+  >([]);
+  const [statusSelectedDriverId, setStatusSelectedDriverId] =
+    useState<number | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusDriverSaving, setStatusDriverSaving] = useState(false);
   const [customerOrder, setCustomerOrder] = useState<Order | null>(null);
   const [customerPanel, setCustomerPanel] = useState<
     "PERSONAL" | "LOCATION" | "CHANGE"
@@ -451,20 +449,196 @@ export default function OrdersCardsDashboardV3() {
     }
   }
 
-  async function advance(order: Order) {
-    const next = nextStatus(order.status, order.fulfillmentType);
-    if (!next || ["PREPARING", "PREPARED", "CONFIRMED"].includes(order.status)) return;
-    setBusy(order.id);
+  async function openStatusManager(order: Order) {
+    setStatusOrder(order);
+    setStatusSelectedDriverId(order.driver?.id ?? null);
+
     try {
-      const response = await fetch(`/api/orders/${order.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: next }) });
+      const response = await fetch("/api/drivers", {
+        cache: "no-store",
+      });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible actualizar el estado.");
+      if (response.ok) {
+        setStatusDrivers(data.drivers ?? []);
+      }
+    } catch {
+      setStatusDrivers([]);
+    }
+  }
+
+  async function selectManagedStatus(status: OrderStatus) {
+    if (!statusOrder || statusSaving || status === statusOrder.status) return;
+
+    setStatusSaving(true);
+    try {
+      const response = await fetch(
+        `/api/orders/${statusOrder.id}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible actualizar el estado.",
+        );
+      }
+
+      setStatusOrder(null);
       await load(true);
-      emitLiveDataChange(["orders", "customers", "club", "account"]);
+      emitLiveDataChange([
+        "orders",
+        "customers",
+        "club",
+        "account",
+      ]);
     } catch (actionError) {
-      window.alert(actionError instanceof Error ? actionError.message : "No fue posible actualizar el estado.");
+      setFeedbackModal({
+        tone: "error",
+        title: "No fue posible actualizar el estado",
+        message:
+          actionError instanceof Error
+            ? actionError.message
+            : "No fue posible actualizar el estado del pedido.",
+      });
     } finally {
-      setBusy(null);
+      setStatusSaving(false);
+    }
+  }
+
+  async function assignManagedDriver() {
+    if (
+      !statusOrder ||
+      !statusSelectedDriverId ||
+      statusDriverSaving
+    ) {
+      return;
+    }
+
+    const driverId = statusSelectedDriverId;
+    const driver = statusDrivers.find((item) => item.id === driverId);
+    setStatusDriverSaving(true);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${statusOrder.id}/driver`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ driverId }),
+        },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible asignar el repartidor.",
+        );
+      }
+
+      setStatusOrder((current) =>
+        current
+          ? {
+              ...current,
+              status: data.order?.status ?? current.status,
+              driver: {
+                id: driverId,
+                name: driver?.name || "Repartidor",
+              },
+            }
+          : current,
+      );
+
+      await load(true);
+      emitLiveDataChange(["orders"]);
+
+      setFeedbackModal(
+        data.notification?.ok === false
+          ? {
+              tone: "warning",
+              title: driver
+                ? `${driver.name} quedó asignado`
+                : "Repartidor asignado",
+              message:
+                "La asignación se guardó, pero la notificación no pudo enviarse.",
+              detail: data.notification.reason,
+            }
+          : {
+              tone: "success",
+              title: driver
+                ? `${driver.name} quedó asignado`
+                : "Repartidor asignado",
+              message:
+                "La asignación se guardó correctamente.",
+            },
+      );
+    } catch (actionError) {
+      setFeedbackModal({
+        tone: "error",
+        title: "No fue posible asignar el repartidor",
+        message:
+          actionError instanceof Error
+            ? actionError.message
+            : "No fue posible asignar el repartidor.",
+      });
+    } finally {
+      setStatusDriverSaving(false);
+    }
+  }
+
+  async function unassignManagedDriver() {
+    if (
+      !statusOrder?.driver ||
+      statusDriverSaving
+    ) {
+      return;
+    }
+
+    const accepted = window.confirm(
+      `¿Desasignar a ${statusOrder.driver.name} de ${displayOrderCode(statusOrder)}?`,
+    );
+    if (!accepted) return;
+
+    setStatusDriverSaving(true);
+    try {
+      const response = await fetch(
+        `/api/orders/${statusOrder.id}/driver`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible desasignar el repartidor.",
+        );
+      }
+
+      setStatusOrder((current) =>
+        current
+          ? {
+              ...current,
+              status: data.order?.status ?? current.status,
+              driver: null,
+            }
+          : current,
+      );
+      setStatusSelectedDriverId(null);
+      await load(true);
+      emitLiveDataChange(["orders"]);
+    } catch (actionError) {
+      setFeedbackModal({
+        tone: "error",
+        title: "No fue posible desasignar",
+        message:
+          actionError instanceof Error
+            ? actionError.message
+            : "No fue posible desasignar el repartidor.",
+      });
+    } finally {
+      setStatusDriverSaving(false);
     }
   }
 
@@ -997,8 +1171,6 @@ export default function OrdersCardsDashboardV3() {
         <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{visible.map((order) => {
           const fullyPaid = paidInFull(order);
           const busyOrder = busy === order.id;
-          const kitchenManaged = ["CONFIRMED", "PREPARING", "PREPARED"].includes(order.status);
-          const actionLabel = nextLabel(order);
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
@@ -1078,7 +1250,22 @@ export default function OrdersCardsDashboardV3() {
                     aria-label="Cancelar pedido"
                   ><Icon name="cancel" /></button>
                 ) : null}
-                <div className="ml-auto min-w-0 flex-1">{kitchenManaged ? <Link href="/cocina" className="flex h-9 items-center justify-center rounded-lg bg-black px-2 text-[10px] font-black text-white">COCINA</Link> : actionLabel ? <button disabled={busyOrder} onClick={() => void advance(order)} className="h-9 w-full rounded-lg bg-[var(--brand-red)] px-2 text-[10px] font-black text-white disabled:opacity-50">{busyOrder ? "..." : actionLabel}</button> : <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">CERRADO</span>}</div>
+                <div className="ml-auto min-w-0 flex-1">
+                  {["CANCELED", "COMPLETED"].includes(order.status) ? (
+                    <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">
+                      CERRADO
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busyOrder}
+                      onClick={() => void openStatusManager(order)}
+                      className="h-9 w-full rounded-lg bg-black px-2 text-[10px] font-black text-white disabled:opacity-50"
+                    >
+                      ESTADOS
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </article>;
@@ -1103,7 +1290,7 @@ export default function OrdersCardsDashboardV3() {
           <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
         </section>
       </div>
-      <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CONFIRMED", "PREPARING", "PREPARED"].includes(selected.status) ? <Link href="/cocina" className="flex h-11 items-center justify-center rounded-xl bg-black text-sm font-black text-white">Cocina</Link> : nextLabel(selected) ? <button onClick={() => void advance(selected)} className="h-11 rounded-xl bg-[var(--brand-red)] text-sm font-black text-white">{nextLabel(selected)}</button> : <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span>}</div></footer>
+      <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CANCELED", "COMPLETED"].includes(selected.status) ? <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span> : <button type="button" onClick={() => void openStatusManager(selected)} className="h-11 rounded-xl bg-black text-sm font-black text-white">ESTADOS</button>}</div></footer>
     </aside></div>}
 
     {confirmAction && <ActionConfirmModal
@@ -1150,6 +1337,29 @@ export default function OrdersCardsDashboardV3() {
       }}
       onConfirm={() => void executeConfirmedAction()}
     />}
+
+    {statusOrder && (
+      <OrderStatusSelector
+        orderCode={displayOrderCode(statusOrder)}
+        currentStatus={statusOrder.status}
+        fulfillmentType={statusOrder.fulfillmentType}
+        pendingBalance={balance(statusOrder)}
+        busy={statusSaving}
+        drivers={statusDrivers}
+        assignedDriverId={statusOrder.driver?.id ?? null}
+        selectedDriverId={statusSelectedDriverId}
+        driverBusy={statusDriverSaving}
+        onDriverChange={setStatusSelectedDriverId}
+        onConfirmDriver={() => void assignManagedDriver()}
+        onUnassignDriver={() => void unassignManagedDriver()}
+        onClose={() => {
+          if (!statusSaving && !statusDriverSaving) {
+            setStatusOrder(null);
+          }
+        }}
+        onSelect={(status) => void selectManagedStatus(status)}
+      />
+    )}
 
     {feedbackModal && (
       <FeedbackModal
