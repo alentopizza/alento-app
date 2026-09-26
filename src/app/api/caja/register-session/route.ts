@@ -264,10 +264,11 @@ export async function GET(request: NextRequest) {
         }),
         prisma.cashRegisterSession.findFirst({
           where: {
+            businessDate: { lt: date },
             status: "CLOSED",
             actualClosingBalance: { not: null },
           },
-          orderBy: { closedAt: "desc" },
+          orderBy: { businessDate: "desc" },
           select: {
             businessDate: true,
             actualClosingBalance: true,
