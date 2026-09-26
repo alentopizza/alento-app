@@ -27,7 +27,9 @@ import {
   type ComboDraftChoice,
 } from "@/lib/comboConfiguration";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
-import CustomerAddressEditor from "@/components/CustomerAddressEditor";
+import CustomerAddressEditor, {
+  mergeCustomerAddressEditorValue,
+} from "@/components/CustomerAddressEditor";
 import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 
 type CustomerAddress = { id: number; label: string | null; address: string; formattedAddress?: string | null; placeId?: string | null; latitude?: number | null; longitude?: number | null; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
@@ -1159,8 +1161,10 @@ export default function StructuredPosPageV2() {
                           setAddressEditor((current) =>
                             current
                               ? {
-                                  ...current,
-                                  ...next,
+                                  ...mergeCustomerAddressEditorValue(
+                                    current,
+                                    next,
+                                  ),
                                   isDefault: true,
                                 }
                               : current,
