@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type {
-  ComboOrderConfiguration,
-  PizzaOrderConfiguration,
-} from "@/lib/orderConfiguration";
+import type { PizzaOrderConfiguration } from "@/lib/orderConfiguration";
+import { buildComboConfiguration } from "@/lib/comboConfiguration";
 import type { PublicCartItem } from "@/lib/publicCart";
 
 type ProductType =
@@ -728,103 +726,55 @@ export default function PublicProductConfigurator({
       }
     }
 
-    const pizzas: ComboOrderConfiguration["pizzas"] = [];
-    const groups: ComboOrderConfiguration["groups"] = [];
-    const detailParts: string[] = [];
+    try {
+      const pizzas = (product.comboPizzaRules ?? []).flatMap((rule) =>
+        Array.from({ length: rule.quantity }, (_, unit) => {
+          const selected =
+            comboPizzaSelections[comboSelectionKey(rule, unit)];
 
-    for (const rule of product.comboPizzaRules ?? []) {
-      for (let unit = 0; unit < rule.quantity; unit += 1) {
-        const selected =
-          comboPizzaSelections[comboSelectionKey(rule, unit)];
-        const size = rule.sizes.find((item) => item.id === selected?.sizeId);
-        const flavor = rule.flavors.find(
-          (item) => item.id === selected?.flavorId,
-        );
-        if (!size || !flavor) {
-          showError("Falta completar una pizza del combo.");
-          return;
-        }
+          return {
+            ruleId: rule.id,
+            sizeId: selected?.sizeId ?? null,
+            flavorCount: 1 as const,
+            firstFlavorId: selected?.flavorId ?? null,
+            secondFlavorId: null,
+          };
+        }),
+      );
 
-        pizzas.push({
-          ruleId: rule.id,
-          size: {
-            id: size.id,
-            name: size.name,
-            diameterCm: size.diameterCm,
-            basePrice: size.basePrice,
-          },
-          flavor: {
-            productId: flavor.id,
-            name: flavor.name,
-            portion: 1,
-            basePrice: flavor.basePrice,
-          },
-        });
-        detailParts.push(size.name + " · " + flavor.name);
-      }
-    }
-
-    for (const group of product.comboGroups ?? []) {
-      const selectedIds = comboGroupSelections[group.id] ?? [];
-      const selectedOptions = selectedIds
-        .map((productId) =>
-          group.options.find((option) => option.productId === productId),
-        )
-        .filter(Boolean) as NonNullable<
-          Product["comboGroups"]
-        >[number]["options"];
-
-      groups.push({
-        groupId: group.id,
-        kind: group.kind,
-        name: group.name,
-        selections: selectedOptions.map((option) => ({
-          optionId: option.id,
-          productId: option.productId,
-          name: option.productName,
-          quantity: Math.max(1, option.quantity),
-          unitPrice: option.basePrice,
-          priceDelta: option.priceDelta,
-        })),
+      const result = buildComboConfiguration({
+        product,
+        pizzas,
+        groupSelections: comboGroupSelections,
       });
 
-      if (selectedOptions.length) {
-        detailParts.push(
-          group.name +
-            ": " +
-            selectedOptions.map((option) => option.productName).join(", "),
-        );
-      }
+      onAdd({
+        key:
+          "combo-" +
+          String(Date.now()) +
+          "-" +
+          Math.random().toString(36).slice(2),
+        productId: product.id,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        detail: result.summary,
+        unitPrice: result.estimatedUnitPrice,
+        quantity: 1,
+        configuration: result.configuration,
+        notes:
+          (product.comboPizzaRules ?? []).some(
+            (rule) => rule.quantity > 0,
+          )
+            ? note.trim().slice(0, 120) || undefined
+            : undefined,
+      });
+    } catch (configError) {
+      showError(
+        configError instanceof Error
+          ? configError.message
+          : "No fue posible configurar el combo.",
+      );
     }
-
-    const configuration: ComboOrderConfiguration = {
-      schemaVersion: 1,
-      kind: "COMBO",
-      comboProductId: product.id,
-      comboName: product.name,
-      comboDiscount: Number(product.comboDiscount ?? 0),
-      pizzas,
-      groups,
-    };
-
-    onAdd({
-      key:
-        "combo-" +
-        String(Date.now()) +
-        "-" +
-        Math.random().toString(36).slice(2),
-      productId: product.id,
-      name: product.name,
-      imageUrl: product.imageUrl,
-      detail: detailParts.join(" · "),
-      unitPrice: comboPrice,
-      quantity: 1,
-      configuration,
-      notes:
-        (product.comboPizzaRules ?? []).some((rule) => rule.quantity > 0)
-          ? note.trim().slice(0, 120) || undefined
-          : undefined,
-    });
   }
 
   function renderPizzaStep() {
