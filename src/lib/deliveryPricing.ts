@@ -155,3 +155,10 @@ export function resolveDeliveryPricing(input: {
     maxCoverageMeters: Math.max(0, ...bands.map((item) => item.maxMeters)),
   };
 }
+
+
+export function deliveryPricingHttpStatus(error: unknown) {
+  if (!(error instanceof DeliveryPricingError)) return 500;
+  if (error.code === "STORE_LOCATION_MISSING") return 503;
+  return 400;
+}
