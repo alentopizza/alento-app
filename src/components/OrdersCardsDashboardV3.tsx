@@ -1142,7 +1142,645 @@ export default function OrdersCardsDashboardV3() {
 
     {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
 
-    {customerOrder && <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px] md:p-5" onClick={() => { if (!customerSaving) setCustomerOrder(null); }}><div onClick={(event) => event.stopPropagation()} className="flex max-h-[94dvh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]"><div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_28%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white md:px-7 md:py-5"><div><p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">Cliente del pedido</p><h3 className="mt-1 text-[24px] font-black tracking-[-0.03em] md:text-[28px]">{displayOrderCode(customerOrder)}</h3><p className="mt-1 text-[11px] text-white/48">Actualiza datos, corrige la dirección o cambia el cliente sin salir del pedido.</p></div><button onClick={() => { if (!customerSaving) setCustomerOrder(null); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-white/65 transition hover:bg-white/10 hover:text-white" aria-label="Cerrar edición del cliente"><Icon name="close" /></button></div><div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 md:p-6"><div className="grid grid-cols-2 gap-2 rounded-[18px] border border-neutral-200 bg-white p-1.5 shadow-[0_10px_26px_rgba(28,23,20,.045)]"><button onClick={() => { setCustomerMode("EDIT"); setCustomerError(""); }} disabled={!customerOrder.customer} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "EDIT" ? "bg-white shadow-sm" : "text-neutral-500"} disabled:opacity-40`}>Actualizar datos</button><button onClick={() => { setCustomerMode("CHANGE"); setCustomerError(""); }} className={`rounded-xl px-3 py-2.5 text-xs font-black ${customerMode === "CHANGE" ? "bg-white shadow-sm" : "text-neutral-500"}`}>Cambiar cliente</button></div>{customerMode === "EDIT" && customerOrder.customer ? <div className="mt-4 space-y-4 rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Mantiene el mismo historial</p><p className="mt-1 text-xs text-neutral-500">Úsalo cuando la misma persona cambió de número o necesitas corregir su nombre.</p></div><div><label className="mb-1.5 block text-xs font-black">Nombre</label><input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className="alento-input w-full rounded-xl px-4 py-3" /></div><div className="grid gap-3 sm:grid-cols-[110px_1fr]"><div><label className="mb-1.5 block text-xs font-black">Indicativo</label><select value={customerCountryCode} onChange={(event) => setCustomerCountryCode(event.target.value)} className="alento-input w-full rounded-xl px-3 py-3"><option>+57</option><option>+1</option><option>+34</option><option>+52</option><option>+51</option><option>+593</option></select></div><div><label className="mb-1.5 block text-xs font-black">Teléfono</label><input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} inputMode="tel" className="alento-input w-full rounded-xl px-4 py-3" /></div></div>{customerOrder.fulfillmentType === "DELIVERY" && <div className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3"><div className="mb-3"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Dirección de este domicilio</p><p className="mt-1 text-[11px] leading-4 text-neutral-500">Si el cliente se equivocó, corrige la ubicación aquí. La tarifa y la ruta se recalculan al guardar.</p></div><GoogleCustomerAddressPicker currentAddress={customerOrder.address?.formattedAddress || customerOrder.address?.address || undefined} initialSelection={{ formattedAddress: customerOrder.address?.formattedAddress || customerOrder.address?.address || undefined, placeId: customerOrder.address?.placeId || undefined, latitude: customerOrder.address?.latitude ?? null, longitude: customerOrder.address?.longitude ?? null, neighborhood: customerOrder.address?.neighborhood || undefined, city: customerOrder.address?.city || undefined }} onSelect={(selection) => { setCustomerAddressSelection(selection); setCustomerError(""); }} /></div>}<div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">El cliente conserva sus pedidos anteriores y futuros porque se actualiza el mismo registro.</div></div> : <div className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)] md:p-5"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Buscar otro cliente</p><p className="mt-1 text-xs text-neutral-500">Busca por nombre, teléfono o correo y asígnalo únicamente a este pedido.</p></div><input value={customerQuery} onChange={(event) => void searchReplacementCustomers(event.target.value)} placeholder="Ej. Ivan, 3243755611..." className="alento-input mt-3 w-full rounded-xl px-4 py-3" />{customerMatches.length > 0 && <div className="mt-3 space-y-2">{customerMatches.map((customer) => <button key={customer.id} onClick={() => { setReplacementCustomer(customer); setReplacementAddressId(customer.addresses?.[0]?.id ?? null); setCustomerError(""); }} className={`w-full rounded-xl border p-3 text-left ${replacementCustomer?.id === customer.id ? "border-[var(--brand-red)] bg-red-50" : "border-neutral-200 bg-white"}`}><div className="flex items-center justify-between gap-3"><div className="min-w-0"><b className="block truncate text-sm">{customer.name}</b><p className="mt-0.5 text-xs text-neutral-500">{customer.countryCode} {customer.phone || "Sin teléfono"}</p></div>{replacementCustomer?.id === customer.id && <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black uppercase text-white">Seleccionado</span>}</div></button>)}</div>}{replacementCustomer && customerOrder.fulfillmentType === "DELIVERY" && <div className="mt-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4"><p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-400">Dirección para este domicilio</p>{replacementCustomer.addresses.length === 0 ? <p className="mt-2 text-xs font-semibold text-red-600">Este cliente no tiene una dirección registrada.</p> : <div className="mt-2 space-y-2">{replacementCustomer.addresses.map((address) => <button key={address.id} onClick={() => setReplacementAddressId(address.id)} className={`w-full rounded-xl border bg-white p-3 text-left text-sm ${replacementAddressId === address.id ? "border-[var(--brand-red)] ring-1 ring-[var(--brand-red)]" : "border-neutral-200"}`}>{address.address}</button>)}</div>}</div>}</div>}{customerError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{customerError}</p>}</div><div className="grid shrink-0 grid-cols-2 gap-2 border-t border-neutral-200 bg-white px-4 py-3 md:px-6"><button onClick={() => setCustomerOrder(null)} disabled={customerSaving} className="h-11 rounded-xl border border-neutral-200 bg-white font-bold text-neutral-700 disabled:opacity-50">Cancelar</button><button onClick={() => customerMode === "EDIT" ? void saveCurrentCustomer() : void changeOrderCustomer()} disabled={customerSaving || (customerMode === "CHANGE" && !replacementCustomer)} className="h-11 rounded-xl bg-[var(--brand-red)] font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:opacity-50">{customerSaving ? "Guardando..." : customerMode === "EDIT" ? "Guardar cliente" : "Asignar cliente"}</button></div></div></div>}
+    {customerOrder && (
+      <div
+        className="fixed inset-0 z-[115] flex items-center justify-center bg-black/70 p-2 backdrop-blur-[4px] sm:p-4"
+        onClick={() => {
+          if (!customerSaving) setCustomerOrder(null);
+        }}
+      >
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="flex max-h-[94dvh] w-[min(98vw,1180px)] max-w-none flex-col overflow-hidden rounded-[30px] border border-white/10 bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)]"
+        >
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_28%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white sm:px-7 sm:py-5">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
+                Cliente del pedido
+              </p>
+              <h3 className="mt-1 text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
+                {displayOrderCode(customerOrder)}
+              </h3>
+              <p className="mt-1 text-[11px] text-white/48">
+                Actualiza datos, ubicación o asigna otro cliente sin salir del pedido.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!customerSaving) setCustomerOrder(null);
+              }}
+              disabled={customerSaving}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-white/65 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+              aria-label="Cerrar edición del cliente"
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col bg-[#f7f6f3] lg:flex-row">
+            <aside className="shrink-0 border-b border-neutral-200 bg-white p-3 lg:w-[245px] lg:border-b-0 lg:border-r lg:p-4">
+              <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
+                <button
+                  type="button"
+                  disabled={!customerOrder.customer}
+                  onClick={() => {
+                    setCustomerPanel("PERSONAL");
+                    setCustomerError("");
+                  }}
+                  className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    customerPanel === "PERSONAL"
+                      ? "border-neutral-950 bg-neutral-950 text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      customerPanel === "PERSONAL"
+                        ? "bg-white/12 text-white"
+                        : "bg-neutral-100 text-neutral-600"
+                    }`}
+                  >
+                    <UserRound className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block text-[11px] sm:text-[12px]">
+                      Información personal
+                    </b>
+                    <span
+                      className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                        customerPanel === "PERSONAL"
+                          ? "text-white/55"
+                          : "text-neutral-400"
+                      }`}
+                    >
+                      Nombre y contacto
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    !customerOrder.customer ||
+                    customerOrder.fulfillmentType !== "DELIVERY"
+                  }
+                  onClick={() => {
+                    setCustomerPanel("LOCATION");
+                    setCustomerError("");
+                  }}
+                  className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                    customerPanel === "LOCATION"
+                      ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white shadow-[0_8px_20px_rgba(226,26,34,.18)]"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      customerPanel === "LOCATION"
+                        ? "bg-white/14 text-white"
+                        : "bg-red-50 text-[var(--brand-red)]"
+                    }`}
+                  >
+                    <MapPin className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block text-[11px] sm:text-[12px]">
+                      Ubicación
+                    </b>
+                    <span
+                      className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                        customerPanel === "LOCATION"
+                          ? "text-white/65"
+                          : "text-neutral-400"
+                      }`}
+                    >
+                      Dirección y mapa
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerPanel("CHANGE");
+                    setCustomerError("");
+                  }}
+                  className={`flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+                    customerPanel === "CHANGE"
+                      ? "border-neutral-950 bg-neutral-950 text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      customerPanel === "CHANGE"
+                        ? "bg-white/12 text-white"
+                        : "bg-neutral-100 text-neutral-600"
+                    }`}
+                  >
+                    <Users className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block text-[11px] sm:text-[12px]">
+                      Cambiar cliente
+                    </b>
+                    <span
+                      className={`mt-0.5 hidden text-[10px] leading-4 lg:block ${
+                        customerPanel === "CHANGE"
+                          ? "text-white/55"
+                          : "text-neutral-400"
+                      }`}
+                    >
+                      Buscar y asignar
+                    </span>
+                  </span>
+                </button>
+              </div>
+
+              {customerOrder.fulfillmentType === "DELIVERY" && (
+                <div className="mt-4 hidden rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 lg:block">
+                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    Estado de ubicación
+                  </span>
+                  {customerPanel === "CHANGE" ? (
+                    replacementCustomer ? (
+                      replacementAddressSelection || replacementAddressId ? (
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-emerald-700">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Lista para el domicilio
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-amber-700">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Falta dirección
+                        </div>
+                      )
+                    ) : (
+                      <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-neutral-500">
+                        <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                        Selecciona un cliente
+                      </div>
+                    )
+                  ) : customerAddressSelection ? (
+                    <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-emerald-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Validada con Google
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center gap-2 text-[11px] font-bold text-amber-700">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      Pendiente de validar
+                    </div>
+                  )}
+                </div>
+              )}
+            </aside>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+              {customerPanel === "PERSONAL" && customerOrder.customer && (
+                <section className="mx-auto max-w-[830px] rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                  <div className="mb-6 border-b border-neutral-100 pb-4">
+                    <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                      Información personal
+                    </p>
+                    <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                      Datos del cliente
+                    </h3>
+                    <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                      Corrige los datos del mismo cliente sin afectar su historial.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-12">
+                    <label className="block md:col-span-7">
+                      <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                        Nombre
+                      </span>
+                      <input
+                        value={customerName}
+                        onChange={(event) => setCustomerName(event.target.value)}
+                        className="alento-input h-12 w-full rounded-2xl px-4"
+                        placeholder="Nombre del cliente"
+                      />
+                    </label>
+
+                    <div className="grid grid-cols-[105px_1fr] gap-3 md:col-span-5">
+                      <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                          Indicativo
+                        </span>
+                        <select
+                          value={customerCountryCode}
+                          onChange={(event) =>
+                            setCustomerCountryCode(event.target.value)
+                          }
+                          className="alento-input h-12 w-full rounded-2xl px-3"
+                        >
+                          <option>+57</option>
+                          <option>+1</option>
+                          <option>+34</option>
+                          <option>+52</option>
+                          <option>+51</option>
+                          <option>+593</option>
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                          Teléfono
+                        </span>
+                        <input
+                          value={customerPhone}
+                          onChange={(event) =>
+                            setCustomerPhone(event.target.value)
+                          }
+                          inputMode="tel"
+                          className="alento-input h-12 w-full rounded-2xl px-4"
+                          placeholder="Número"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-[11px] leading-5 text-emerald-800">
+                    Se actualiza el mismo registro, por lo que conserva todos sus pedidos, puntos e historial.
+                  </div>
+                </section>
+              )}
+
+              {customerPanel === "LOCATION" &&
+                customerOrder.customer &&
+                customerOrder.fulfillmentType === "DELIVERY" && (
+                  <section className="mx-auto max-w-[880px] space-y-4">
+                    <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                            Ubicación
+                          </p>
+                          <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                            Dirección de entrega
+                          </h3>
+                          <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                            El mapa, la tarifa y la ruta se recalculan al guardar.
+                          </p>
+                        </div>
+
+                        {customerAddressSelection ? (
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
+                            ✓ Validada con Google
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
+                            Requiere validación
+                          </span>
+                        )}
+                      </div>
+
+                      <GoogleCustomerAddressPicker
+                        currentAddress={
+                          customerOrder.address?.formattedAddress ||
+                          customerOrder.address?.address ||
+                          undefined
+                        }
+                        initialSelection={{
+                          formattedAddress:
+                            customerOrder.address?.formattedAddress ||
+                            customerOrder.address?.address ||
+                            undefined,
+                          placeId:
+                            customerOrder.address?.placeId || undefined,
+                          latitude:
+                            customerOrder.address?.latitude ?? null,
+                          longitude:
+                            customerOrder.address?.longitude ?? null,
+                          neighborhood:
+                            customerOrder.address?.neighborhood || undefined,
+                          city:
+                            customerOrder.address?.city || undefined,
+                        }}
+                        onSelect={(selection) => {
+                          setCustomerAddressSelection(selection);
+                          setCustomerError("");
+                        }}
+                      />
+                    </div>
+
+                    {customerAddressSelection && (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Barrio
+                          </span>
+                          <input
+                            value={customerAddressSelection.neighborhood}
+                            onChange={(event) =>
+                              setCustomerAddressSelection((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      neighborhood: event.target.value,
+                                    }
+                                  : current,
+                              )
+                            }
+                            className="alento-input h-12 w-full rounded-xl px-3.5"
+                            placeholder="Ej. Kennedy"
+                          />
+                        </label>
+
+                        <label className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_8px_24px_rgba(20,18,16,.035)]">
+                          <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                            Indicaciones para entregar
+                          </span>
+                          <textarea
+                            value={customerAddressNotes}
+                            onChange={(event) =>
+                              setCustomerAddressNotes(event.target.value)
+                            }
+                            className="alento-input min-h-[82px] w-full resize-none rounded-xl px-3.5 py-3"
+                            placeholder="Casa, torre, apartamento, portería, referencias..."
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </section>
+                )}
+
+              {customerPanel === "CHANGE" && (
+                <section className="mx-auto max-w-[880px] space-y-4">
+                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                    <div className="border-b border-neutral-100 pb-4">
+                      <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                        Cambiar cliente
+                      </p>
+                      <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
+                        Buscar otro cliente
+                      </h3>
+                      <p className="mt-1 text-[12px] leading-5 text-neutral-400">
+                        El cliente seleccionado quedará asociado únicamente a este pedido.
+                      </p>
+                    </div>
+
+                    <div className="mt-4">
+                      <input
+                        value={customerQuery}
+                        onChange={(event) =>
+                          void searchReplacementCustomers(event.target.value)
+                        }
+                        placeholder="Nombre, teléfono o correo"
+                        className="alento-input h-12 w-full rounded-2xl px-4"
+                      />
+                    </div>
+
+                    {customerMatches.length > 0 && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {customerMatches.map((customer) => {
+                          const selectedCustomer =
+                            replacementCustomer?.id === customer.id;
+                          const validAddress =
+                            addressSelectionFromCustomerAddress(
+                              customer.addresses?.[0],
+                            );
+                          return (
+                            <button
+                              type="button"
+                              key={customer.id}
+                              onClick={() =>
+                                chooseReplacementCustomer(customer)
+                              }
+                              className={`rounded-2xl border p-3.5 text-left transition ${
+                                selectedCustomer
+                                  ? "border-[var(--brand-red)] bg-red-50 shadow-[0_6px_16px_rgba(226,26,34,.08)]"
+                                  : "border-neutral-200 bg-[#fcfbf9] hover:border-neutral-300"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <b className="block truncate text-[13px] text-neutral-950">
+                                    {customer.name}
+                                  </b>
+                                  <p className="mt-1 text-[11px] text-neutral-500">
+                                    {customer.countryCode}{" "}
+                                    {customer.phone || "Sin teléfono"}
+                                  </p>
+                                  {customerOrder.fulfillmentType ===
+                                    "DELIVERY" && (
+                                    <span
+                                      className={`mt-2 inline-flex rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
+                                        validAddress
+                                          ? "bg-emerald-100 text-emerald-700"
+                                          : "bg-amber-100 text-amber-700"
+                                      }`}
+                                    >
+                                      {validAddress
+                                        ? "Dirección registrada"
+                                        : "Sin dirección validada"}
+                                    </span>
+                                  )}
+                                </div>
+                                {selectedCustomer && (
+                                  <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black uppercase text-white">
+                                    Seleccionado
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {replacementCustomer && (
+                    <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
+                      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                            Cliente seleccionado
+                          </p>
+                          <h4 className="mt-1 text-[18px] font-black text-neutral-950">
+                            {replacementCustomer.name}
+                          </h4>
+                          <p className="mt-1 text-[11px] text-neutral-500">
+                            {replacementCustomer.countryCode}{" "}
+                            {replacementCustomer.phone || "Sin teléfono"}
+                          </p>
+                        </div>
+                        {customerOrder.fulfillmentType === "DELIVERY" &&
+                          (replacementAddressSelection ||
+                          replacementAddressId ? (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase text-emerald-700">
+                              ✓ Ubicación lista
+                            </span>
+                          ) : (
+                            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-700">
+                              Agrega una dirección
+                            </span>
+                          ))}
+                      </div>
+
+                      {customerOrder.fulfillmentType === "DELIVERY" && (
+                        <div className="mt-4 space-y-4">
+                          {!replacementAddressSelection &&
+                            !replacementAddressId && (
+                              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[11px] leading-5 text-amber-900">
+                                Este cliente no tiene una dirección validada. Puedes crearla aquí mismo antes de asignarlo al pedido.
+                              </div>
+                            )}
+
+                          <GoogleCustomerAddressPicker
+                            currentAddress={
+                              replacementAddressSelection?.formattedAddress ||
+                              replacementCustomer.addresses?.[0]
+                                ?.formattedAddress ||
+                              replacementCustomer.addresses?.[0]?.address ||
+                              undefined
+                            }
+                            initialSelection={{
+                              formattedAddress:
+                                replacementAddressSelection?.formattedAddress ||
+                                replacementCustomer.addresses?.[0]
+                                  ?.formattedAddress ||
+                                replacementCustomer.addresses?.[0]?.address ||
+                                undefined,
+                              placeId:
+                                replacementAddressSelection?.placeId ||
+                                replacementCustomer.addresses?.[0]?.placeId ||
+                                undefined,
+                              latitude:
+                                replacementAddressSelection?.latitude ??
+                                replacementCustomer.addresses?.[0]?.latitude ??
+                                null,
+                              longitude:
+                                replacementAddressSelection?.longitude ??
+                                replacementCustomer.addresses?.[0]?.longitude ??
+                                null,
+                              neighborhood:
+                                replacementAddressSelection?.neighborhood ||
+                                replacementCustomer.addresses?.[0]
+                                  ?.neighborhood ||
+                                undefined,
+                              city:
+                                replacementAddressSelection?.city ||
+                                replacementCustomer.addresses?.[0]?.city ||
+                                undefined,
+                            }}
+                            onSelect={(selection) => {
+                              setReplacementAddressSelection(selection);
+                              setReplacementAddressId(null);
+                              setCustomerError("");
+                            }}
+                          />
+
+                          {replacementAddressSelection && (
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <label className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
+                                <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                                  Barrio
+                                </span>
+                                <input
+                                  value={
+                                    replacementAddressSelection.neighborhood
+                                  }
+                                  onChange={(event) =>
+                                    setReplacementAddressSelection(
+                                      (current) =>
+                                        current
+                                          ? {
+                                              ...current,
+                                              neighborhood:
+                                                event.target.value,
+                                            }
+                                          : current,
+                                    )
+                                  }
+                                  className="alento-input h-12 w-full rounded-xl bg-white px-3.5"
+                                  placeholder="Ej. Kennedy"
+                                />
+                              </label>
+
+                              <label className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
+                                <span className="mb-1.5 block text-[11px] font-bold text-neutral-600">
+                                  Indicaciones para entregar
+                                </span>
+                                <textarea
+                                  value={replacementAddressNotes}
+                                  onChange={(event) =>
+                                    setReplacementAddressNotes(
+                                      event.target.value,
+                                    )
+                                  }
+                                  className="alento-input min-h-[82px] w-full resize-none rounded-xl bg-white px-3.5 py-3"
+                                  placeholder="Casa, torre, apartamento, portería, referencias..."
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {customerOrder.fulfillmentType !== "DELIVERY" && (
+                        <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-[11px] text-emerald-800">
+                          Este pedido no necesita dirección. Puedes asignar el cliente directamente.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {customerError && (
+                <p className="mx-auto mt-4 max-w-[880px] rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                  {customerError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-200 bg-white px-5 py-4 sm:px-7">
+            <span className="hidden text-[11px] font-medium text-neutral-400 sm:block">
+              {customerPanel === "PERSONAL"
+                ? "Información personal"
+                : customerPanel === "LOCATION"
+                  ? "Ubicación y entrega"
+                  : "Asignar otro cliente"}
+            </span>
+            <div className="ml-auto grid w-full grid-cols-2 gap-2 sm:w-auto sm:min-w-[360px]">
+              <button
+                type="button"
+                onClick={() => setCustomerOrder(null)}
+                disabled={customerSaving}
+                className="h-11 rounded-xl border border-neutral-300 bg-white px-5 text-sm font-semibold text-neutral-700 disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  customerPanel === "CHANGE"
+                    ? void changeOrderCustomer()
+                    : void saveCurrentCustomer()
+                }
+                disabled={
+                  customerSaving ||
+                  (customerPanel === "CHANGE" && !replacementCustomer) ||
+                  (customerPanel !== "CHANGE" && !customerOrder.customer)
+                }
+                className="h-11 rounded-xl bg-[var(--brand-red)] px-6 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.20)] disabled:opacity-50"
+              >
+                {customerSaving
+                  ? "Guardando..."
+                  : customerPanel === "CHANGE"
+                    ? "Asignar cliente"
+                    : "Guardar cliente"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     <AdminDeliveryMapModal
       open={deliveryMapOpen}
