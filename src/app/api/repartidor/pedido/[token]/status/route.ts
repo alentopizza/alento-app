@@ -4,11 +4,82 @@ import { readDriverOrderToken } from "@/lib/driverTracking";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 import { calculateDriverEarning } from "@/lib/driverCompensation";
+import {
+  DRIVER_LOCATION_MAX_AGE_MS,
+  distanceMetersBetween,
+} from "@/lib/driverAcceptanceZone";
 
-export async function POST(request: NextRequest, context: { params: Promise<{ token: string }> }) {
+const ARRIVAL_RADIUS_METERS = 150;
+
+type LocationCandidate = {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  updatedAt: Date;
+};
+
+function locationCandidate(input: {
+  latitude: number | null | undefined;
+  longitude: number | null | undefined;
+  accuracy?: number | null;
+  updatedAt: Date | null | undefined;
+}): LocationCandidate | null {
+  const latitude = Number(input.latitude);
+  const longitude = Number(input.longitude);
+  const updatedAt = input.updatedAt;
+
+  if (
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180 ||
+    !updatedAt
+  ) {
+    return null;
+  }
+
+  const accuracy = Number(input.accuracy);
+
+  return {
+    latitude,
+    longitude,
+    accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+    updatedAt,
+  };
+}
+
+function newestLocation(
+  ...locations: Array<LocationCandidate | null>
+): LocationCandidate | null {
+  return (
+    locations
+      .filter((location): location is LocationCandidate => Boolean(location))
+      .sort(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+      )[0] ?? null
+  );
+}
+
+function formatDistance(meters: number) {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ token: string }> },
+) {
   const { token } = await context.params;
   const parsed = readDriverOrderToken(token);
-  if (!parsed) return NextResponse.json({ error: "Enlace de reparto inválido." }, { status: 401 });
+
+  if (!parsed) {
+    return NextResponse.json(
+      { error: "Enlace de reparto inválido." },
+      { status: 401 },
+    );
+  }
 
   const body = await request.json().catch(() => ({}));
   const requested = String(body?.status || "").toUpperCase();
@@ -17,11 +88,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   );
 
   if (!["OUT_FOR_DELIVERY", "ARRIVED", "DELIVERED"].includes(requested)) {
-    return NextResponse.json({ error: "Estado de reparto inválido." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Estado de reparto inválido." },
+      { status: 400 },
+    );
   }
 
   const order = await prisma.order.findFirst({
-    where: { id: parsed.orderId, driverId: parsed.driverId, fulfillmentType: "DELIVERY" },
+    where: {
+      id: parsed.orderId,
+      driverId: parsed.driverId,
+      fulfillmentType: "DELIVERY",
+    },
     select: {
       id: true,
       sequenceNumber: true,
@@ -31,7 +109,23 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       deliveryFee: true,
       customerId: true,
       deliveryTravelMode: true,
-      customer: { select: { name: true, countryCode: true, phone: true } },
+      driverLatitude: true,
+      driverLongitude: true,
+      driverLocationAccuracy: true,
+      driverLocationUpdatedAt: true,
+      address: {
+        select: {
+          latitude: true,
+          longitude: true,
+        },
+      },
+      customer: {
+        select: {
+          name: true,
+          countryCode: true,
+          phone: true,
+        },
+      },
       driver: {
         select: {
           driverAvailable: true,
@@ -51,7 +145,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     },
   });
 
-  if (!order) return NextResponse.json({ error: "La orden ya no está asignada a este repartidor." }, { status: 404 });
+  if (!order) {
+    return NextResponse.json(
+      { error: "La orden ya no está asignada a este repartidor." },
+      { status: 404 },
+    );
+  }
 
   if (requested === "OUT_FOR_DELIVERY") {
     if (!requestedTravelMode) {
@@ -85,8 +184,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     if (!order.driver?.driverAvailable) {
       return NextResponse.json(
         {
-          error:
-            "Debes estar Activo para iniciar el domicilio.",
+          error: "Debes estar Activo para iniciar el domicilio.",
         },
         { status: 409 },
       );
@@ -99,7 +197,103 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
     (requested === "DELIVERED" && order.status === "ARRIVED");
 
   if (!allowed) {
-    return NextResponse.json({ error: "El pedido aún no está listo para esta acción o ya fue actualizado." }, { status: 409 });
+    return NextResponse.json(
+      {
+        error:
+          "El pedido aún no está listo para esta acción o ya fue actualizado.",
+      },
+      { status: 409 },
+    );
+  }
+
+  const orderLocation = locationCandidate({
+    latitude: order.driverLatitude,
+    longitude: order.driverLongitude,
+    accuracy: order.driverLocationAccuracy,
+    updatedAt: order.driverLocationUpdatedAt,
+  });
+  const nativeLocation = locationCandidate({
+    latitude: order.driver?.driverLatitude,
+    longitude: order.driver?.driverLongitude,
+    accuracy: order.driver?.driverLocationAccuracy,
+    updatedAt: order.driver?.driverLocationUpdatedAt,
+  });
+  const currentDriverLocation = newestLocation(orderLocation, nativeLocation);
+
+  if (requested === "ARRIVED") {
+    const destinationLatitude = Number(order.address?.latitude);
+    const destinationLongitude = Number(order.address?.longitude);
+
+    if (
+      !Number.isFinite(destinationLatitude) ||
+      destinationLatitude < -90 ||
+      destinationLatitude > 90 ||
+      !Number.isFinite(destinationLongitude) ||
+      destinationLongitude < -180 ||
+      destinationLongitude > 180
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "No se puede validar la llegada porque el punto de entrega no tiene coordenadas válidas.",
+        },
+        { status: 409 },
+      );
+    }
+
+    if (!currentDriverLocation) {
+      return NextResponse.json(
+        {
+          error:
+            "No tenemos una ubicación GPS reciente. Espera unos segundos con la ubicación activa e intenta marcar Llegué nuevamente.",
+        },
+        { status: 409 },
+      );
+    }
+
+    const locationAgeMs =
+      Date.now() - currentDriverLocation.updatedAt.getTime();
+
+    if (
+      !Number.isFinite(locationAgeMs) ||
+      locationAgeMs < 0 ||
+      locationAgeMs > DRIVER_LOCATION_MAX_AGE_MS
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Tu ubicación GPS está desactualizada. Espera unos segundos a que se actualice antes de marcar Llegué.",
+        },
+        { status: 409 },
+      );
+    }
+
+    const distanceMeters = Math.round(
+      distanceMetersBetween(
+        {
+          latitude: currentDriverLocation.latitude,
+          longitude: currentDriverLocation.longitude,
+        },
+        {
+          latitude: destinationLatitude,
+          longitude: destinationLongitude,
+        },
+      ),
+    );
+
+    if (distanceMeters > ARRIVAL_RADIUS_METERS) {
+      return NextResponse.json(
+        {
+          error: `Aún estás a ${formatDistance(distanceMeters)} del punto de entrega. Solo puedes marcar Llegué cuando estés a ${ARRIVAL_RADIUS_METERS} m o menos del cliente.`,
+          arrivalValidation: {
+            allowed: false,
+            distanceMeters,
+            radiusMeters: ARRIVAL_RADIUS_METERS,
+          },
+        },
+        { status: 409 },
+      );
+    }
   }
 
   const driverLatitude = Number(order.driver?.driverLatitude);
@@ -151,7 +345,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
               deliveryTravelMode: requestedTravelMode,
               driverLatitude,
               driverLongitude,
-              driverLocationAccuracy: order.driver?.driverLocationAccuracy ?? null,
+              driverLocationAccuracy:
+                order.driver?.driverLocationAccuracy ?? null,
               driverLocationUpdatedAt:
                 order.driver?.driverLocationUpdatedAt ?? new Date(),
             }
@@ -185,7 +380,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       previousStatus: order.status,
       status: requested,
     });
-    if (!result.ok) console.warn("Driver status notification", { orderId: order.id, reason: result.reason });
+
+    if (!result.ok) {
+      console.warn("Driver status notification", {
+        orderId: order.id,
+        reason: result.reason,
+      });
+    }
   }
 
   return NextResponse.json({ order: updated });
