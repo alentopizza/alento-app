@@ -98,12 +98,14 @@ export default function CashRegisterControl({
   currentNetMovement,
   onChanged,
   onSessionStateChange,
+  onSessionClosed,
 }: {
   businessDate: string;
   enabled: boolean;
   currentNetMovement: number;
   onChanged?: () => void;
   onSessionStateChange?: (status: "NONE" | "OPEN" | "CLOSED") => void;
+  onSessionClosed?: (businessDate: string) => void;
 }) {
   const [data, setData] = useState<SessionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -334,6 +336,7 @@ export default function CashRegisterControl({
       }
 
       setCloseModal(false);
+      onSessionClosed?.(result.session?.businessDate ?? session?.businessDate ?? businessDate);
       await load();
       onChanged?.();
     } catch (actionError) {
