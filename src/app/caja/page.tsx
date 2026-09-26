@@ -89,7 +89,7 @@ type DriverPayoutOption = {
 type Summary = {
   startDate: string;
   endDate: string;
-  scope?: "SESSION" | "CALENDAR";
+  scope?: "SESSION" | "NO_SESSION" | "CALENDAR";
   sessionScope?: {
     id: number;
     businessDate: string;
