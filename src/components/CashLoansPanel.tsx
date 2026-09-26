@@ -792,39 +792,5 @@ export default function CashLoansPanel({
       )}
 
     </>
-              )}
-            </div>
-
-            <footer className="flex shrink-0 items-center justify-between gap-3 border-t bg-white p-4">
-              <p className="text-[9px] text-neutral-400">
-                La importación se bloquea después de ejecutarse.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={importBusy}
-                  onClick={() => setImportOpen(false)}
-                  className="h-10 rounded-xl border border-neutral-200 px-4 text-xs font-bold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={importBusy || !importPreview?.summary.canImport}
-                  onClick={() => void confirmImport()}
-                  className="h-10 rounded-xl bg-neutral-950 px-4 text-xs font-black text-white disabled:bg-neutral-300"
-                >
-                  {importBusy
-                    ? "Importando..."
-                    : importPreview
-                      ? `Importar ${importPreview.summary.toImport}`
-                      : "Importar"}
-                </button>
-              </div>
-            </footer>
-          </div>
-        </div>
-      )}
-    </>
   );
 }
