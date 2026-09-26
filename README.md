@@ -35,6 +35,14 @@ Actualmente `alentopizza.com` continúa ocupado por la solución construida en G
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
+## Regla obligatoria de implementación
+
+Alentó App está en producción. Antes de crear cualquier componente, endpoint, helper, parser, validador o flujo nuevo, se debe buscar si ya existe una implementación reutilizable.
+
+La regla del proyecto es: **misma acción o regla de negocio = misma fuente de verdad**. Las pantallas pueden cambiar presentación, permisos o contexto, pero no deben duplicar la lógica. También se debe mantener compatibilidad con datos históricos y evitar refactorizaciones masivas que pongan en riesgo la operación actual.
+
+Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`](AGENTS.md). Este archivo debe revisarse antes de implementar cambios.
+
 ## Estado de desarrollo
 
 **Punto de venta, Pedidos, Cocina, Clientes y Menú están cerrados para la etapa operativa actual.**
