@@ -29,13 +29,14 @@ export default function KitchenOrderAlerts({
   orderIds: number[];
 }) {
   const [pushState, setPushState] =
-    useState<WebPushCapability>("off");
+    useState<WebPushCapability>("loading");
   const [publicKey, setPublicKey] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
   const audioContextRef = useRef<AudioContext | null>(null);
+  const soundEnabledRef = useRef(false);
   const initializedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const alertedOrderIdsRef = useRef<Set<number>>(new Set());
@@ -62,7 +63,7 @@ export default function KitchenOrderAlerts({
       }
 
       if (orderId) alertedOrderIdsRef.current.add(orderId);
-      if (!soundEnabled) return;
+      if (!soundEnabledRef.current) return;
 
       const context = await ensureAudioContext();
       if (!context || context.state !== "running") return;
@@ -101,7 +102,7 @@ export default function KitchenOrderAlerts({
         oscillator.stop(now + at + 0.18);
       });
     },
-    [ensureAudioContext, soundEnabled],
+    [ensureAudioContext],
   );
 
   useEffect(() => {
@@ -117,6 +118,7 @@ export default function KitchenOrderAlerts({
 
         const storedSound =
           window.localStorage.getItem(SOUND_KEY) === "1";
+        soundEnabledRef.current = storedSound;
         setSoundEnabled(storedSound);
       } catch (error) {
         if (!disposed) {
@@ -270,6 +272,7 @@ export default function KitchenOrderAlerts({
         setPushState("on");
       }
 
+      soundEnabledRef.current = true;
       setSoundEnabled(true);
       window.localStorage.setItem(SOUND_KEY, "1");
 
@@ -299,6 +302,7 @@ export default function KitchenOrderAlerts({
         () => undefined,
       );
       setPushState("off");
+      soundEnabledRef.current = false;
       setSoundEnabled(false);
       window.localStorage.removeItem(SOUND_KEY);
       setMessage("Alertas desactivadas en este dispositivo.");
