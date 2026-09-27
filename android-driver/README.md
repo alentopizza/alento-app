@@ -2,13 +2,13 @@
 
 Aplicación Android ligera para el módulo de repartidores de Alentó Pizza.
 
-## Objetivo de la V1
+## APK oficial 004 · objetivo
 
 La interfaz sigue viviendo en:
 
 `https://alentopizza.com/repartidor`
 
-La APK añade capacidades nativas que una PWA no puede garantizar:
+La APK 004 añade capacidades nativas que una PWA no puede garantizar:
 
 - WebView con sesión persistente.
 - Geolocalización precisa.
@@ -16,6 +16,8 @@ La APK añade capacidades nativas que una PWA no puede garantizar:
 - Seguimiento mientras Google Maps está abierto.
 - Seguimiento con pantalla apagada, sujeto a la administración de batería del fabricante.
 - Notificación permanente mientras el repartidor esté **Activo**; cambia de contenido durante una entrega.
+- Firebase Cloud Messaging para recibir notificaciones Push aun con la APK cerrada o en segundo plano.
+- Registro de aperturas de campañas manuales desde el centro de Notificaciones.
 - Al tocar la notificación, vuelve directamente al pedido.
 - Al entregar, el servicio deja de actualizar ese pedido pero sigue reportando la ubicación general del repartidor. Solo se detiene al pasar a **Inactivo**.
 - Si un pedido ya no acepta ubicación, se elimina únicamente el contexto de ese pedido. Si el backend indica que el repartidor está Inactivo, el servicio se detiene.
@@ -37,7 +39,7 @@ La aplicación web inicia el seguimiento general al pasar el repartidor a **Acti
 
 ## Privacidad y permisos
 
-La V1 **no solicita ACCESS_BACKGROUND_LOCATION**. El seguimiento se inicia desde una acción visible del repartidor y se mantiene mediante un Foreground Service de ubicación mientras permanezca Activo.
+La APK 004 **no solicita ACCESS_BACKGROUND_LOCATION**. El seguimiento se inicia desde una acción visible del repartidor y se mantiene mediante un Foreground Service de ubicación mientras permanezca Activo.
 
 El servicio de ubicación se inicia desde la pantalla visible del pedido y se ejecuta como Foreground Service de tipo `location`, con una notificación permanente mientras comparte ubicación.
 
@@ -79,4 +81,18 @@ app/build/outputs/apk/debug/app-debug.apk
 
 ## Producción
 
-Esta V1 usa un icono vectorial provisional. Antes de publicar en Play Store conviene sustituirlo por los assets oficiales del icono de Alentó y generar una firma release bajo control del propietario de Alentó.
+La APK 004 usa la geometría del icono oficial de Alentó suministrado para la aplicación.
+
+El canal Push Android requiere configurar estas variables en el servidor:
+
+- `FIREBASE_ANDROID_API_KEY`
+- `FIREBASE_ANDROID_APP_ID`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_MESSAGING_SENDER_ID`
+- `FIREBASE_SERVICE_ACCOUNT_JSON`
+
+Las cuatro primeras corresponden a la configuración pública de la app Android en Firebase. `FIREBASE_SERVICE_ACCOUNT_JSON` es privado y debe permanecer únicamente en el servidor.
+
+La app obtiene la configuración pública después de autenticar al repartidor; no es necesario recompilar la APK cuando cambian esos valores en el servidor.
+
+Para publicación oficial en Play Store todavía se debe generar y custodiar una firma release bajo control del propietario de Alentó.
