@@ -1,5 +1,6 @@
 "use client";
 
+import { Bell } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   disableWebPush,
@@ -323,85 +324,56 @@ export default function KitchenOrderAlerts({
   const pushActive = pushState === "on";
   const active = soundEnabled || pushActive;
 
+  const controlTitle =
+    pushState === "loading"
+      ? "Comprobando alertas de Cocina"
+      : active
+        ? message || "Alertas de Cocina activas. Toca para desactivar."
+        : message || "Alertas de Cocina desactivadas. Toca para activar.";
+
   return (
-    <div
+    <button
+      type="button"
+      disabled={busy || pushState === "loading"}
+      onClick={() =>
+        void (active ? disableAlerts() : enableAlerts())
+      }
+      aria-label={controlTitle}
+      title={controlTitle}
       className={
-        "flex min-h-[68px] min-w-[180px] items-center gap-3 rounded-[19px] border px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm " +
+        "group relative flex h-[68px] w-[92px] shrink-0 items-center justify-center rounded-[19px] border shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-wait disabled:opacity-55 " +
         (active
-          ? "border-emerald-300/25 bg-emerald-400/[0.10]"
-          : "border-white/14 bg-white/[0.08]")
+          ? "border-emerald-300/30 bg-emerald-400/[0.12] hover:bg-emerald-400/[0.16]"
+          : "border-white/14 bg-white/[0.08] hover:bg-white/[0.12]")
       }
     >
       <span
         className={
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg " +
+          "flex h-11 w-11 items-center justify-center rounded-[14px] border transition " +
           (active
-            ? "bg-emerald-400/15 text-emerald-300"
-            : "bg-white/[0.08] text-white/70")
+            ? "border-emerald-300/20 bg-emerald-400/[0.13] text-emerald-300"
+            : "border-white/10 bg-white/[0.07] text-white/75")
         }
       >
-        🔔
+        <Bell
+          className="h-[24px] w-[24px]"
+          strokeWidth={2.15}
+        />
       </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="text-[8px] font-black uppercase tracking-[0.12em] text-white/45">
-          Alertas cocina
-        </p>
-        <b
-          className={
-            "mt-0.5 block text-[11px] " +
-            (active ? "text-emerald-300" : "text-white")
-          }
-        >
-          {pushState === "loading"
-            ? "Comprobando..."
-            : pushActive && soundEnabled
-              ? "Push + sonido activos"
-              : soundEnabled
-                ? pushState === "denied"
-                  ? "Sonido activo · Push bloqueado"
-                  : pushState === "unconfigured"
-                    ? "Sonido activo · Push sin configurar"
-                    : pushState === "unsupported"
-                      ? "Sonido activo · sin Push"
-                      : "Sonido activo"
-                : pushActive
-                  ? "Push activo · sonido apagado"
-                  : pushState === "denied"
-                    ? "Notificaciones bloqueadas"
-                    : pushState === "unsupported"
-                      ? "Push no disponible"
-                      : pushState === "unconfigured"
-                        ? "Push sin configurar"
-                        : "Alertas desactivadas"}
-        </b>
-
-        {message && (
-          <p className="mt-1 max-w-[230px] text-[8px] leading-3 text-white/42">
-            {message}
-          </p>
-        )}
-
-        <button
-          type="button"
-          disabled={busy || pushState === "loading"}
-          onClick={() =>
-            void (active ? disableAlerts() : enableAlerts())
-          }
-          className={
-            "mt-2 h-7 rounded-lg px-3 text-[8px] font-black uppercase tracking-[0.06em] transition disabled:opacity-40 " +
-            (active
-              ? "border border-white/10 bg-white/[0.06] text-white/55"
-              : "bg-[#e21a22] text-white")
-          }
-        >
-          {busy
-            ? "Procesando..."
+      <span
+        aria-hidden="true"
+        className={
+          "absolute right-3 top-3 h-2.5 w-2.5 rounded-full border border-[#151516] " +
+          (pushState === "loading" || busy
+            ? "animate-pulse bg-amber-300"
             : active
-              ? "Desactivar"
-              : "Activar alertas"}
-        </button>
-      </div>
-    </div>
+              ? "bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.72)]"
+              : pushState === "denied"
+                ? "bg-red-400"
+                : "bg-white/25")
+        }
+      />
+    </button>
   );
-}
+}}
