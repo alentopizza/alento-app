@@ -117,6 +117,7 @@ model User {
   assignedOrders           Order[]          @relation("OrderDriver")
   driverCashExpenses       CashExpense[]     @relation("DriverCashExpenses")
   pushSubscriptions        DriverPushSubscription[]
+  nativePushDevices        NativePushDevice[]
   doughPreparations DoughPreparation[]
 
   @@index([active])
@@ -137,6 +138,65 @@ model DriverPushSubscription {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model NativePushDevice {
+  id            String   @id @default(cuid())
+  userId        Int
+  deviceKey     String   @unique
+  fcmToken      String   @unique
+  platform      String   @default("ANDROID")
+  appVersion    String?
+  active        Boolean  @default(true)
+  lastSeenAt    DateTime @default(now())
+  lastSuccessAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@index([lastSeenAt])
+}
+
+model PushCampaign {
+  id                   String   @id @default(cuid())
+  title                String
+  subtitle             String?
+  body                 String
+  imageUrl             String?
+  audience             String
+  channels             String[] @default([])
+  actionType           String   @default("APP")
+  actionValue          String?
+  status               String   @default("DRAFT")
+  createdById          Int?
+  createdByName        String
+  webTargetCount       Int      @default(0)
+  nativeTargetCount    Int      @default(0)
+  webDeliveredCount    Int      @default(0)
+  nativeDeliveredCount Int      @default(0)
+  failedCount          Int      @default(0)
+  openedCount          Int      @default(0)
+  sentAt               DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  opens                 PushCampaignOpen[]
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model PushCampaignOpen {
+  id           String       @id @default(cuid())
+  campaignId   String
+  userId       Int?
+  channel      String
+  recipientKey String
+  openedAt     DateTime     @default(now())
+  campaign     PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, channel, recipientKey])
+  @@index([campaignId, openedAt])
 }
 
 model CustomerAccount {
