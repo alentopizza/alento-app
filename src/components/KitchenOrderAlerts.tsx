@@ -376,4 +376,4 @@ export default function KitchenOrderAlerts({
       />
     </button>
   );
-}}
+}
