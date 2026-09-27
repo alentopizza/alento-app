@@ -69,6 +69,13 @@ class AlentoNativeBridge(
     }
 
     @JavascriptInterface
+    fun unregisterPush() {
+        activity.runOnUiThread {
+            activity.unregisterNativePush()
+        }
+    }
+
+    @JavascriptInterface
     fun clearOrderTracking() {
         activity.runOnUiThread {
             activity.clearNativeOrderTracking()
