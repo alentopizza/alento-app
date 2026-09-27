@@ -44,14 +44,34 @@ self.addEventListener("push", (event) => {
     badge:
       payload.icon ||
       "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png",
-    tag: payload.tag || "alento-driver",
+    tag: payload.tag || "alento-staff",
     data: {
-      url: payload.url || "/repartidor",
+      url: payload.url || "/",
+      kind: payload.kind || null,
+      orderId: payload.orderId || null,
     },
     renotify: true,
+    requireInteraction: Boolean(payload.requireInteraction),
+    silent: false,
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clients) =>
+          Promise.all(
+            clients.map((client) =>
+              client.postMessage({
+                type: "ALENTO_PUSH",
+                payload,
+              }),
+            ),
+          ),
+        ),
+    ]),
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
