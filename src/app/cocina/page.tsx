@@ -314,6 +314,10 @@ export default function KitchenPage() {
     return () => window.clearInterval(timer);
   }, [loadOrders]);
 
+  const handleIncomingPush = useCallback(() => {
+    void loadOrders(true);
+  }, [loadOrders]);
+
   const kitchenOrders = useMemo(
     () => orders
       .filter((order) => ["PREPARING", "CONFIRMED"].includes(order.status))
@@ -370,7 +374,7 @@ export default function KitchenPage() {
             <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
               <KitchenOrderAlerts
                 orderIds={kitchenOrders.map((order) => order.id)}
-                onIncomingPush={() => void loadOrders(true)}
+                onIncomingPush={handleIncomingPush}
               />
 
               <Link
