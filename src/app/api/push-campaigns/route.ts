@@ -17,7 +17,6 @@ import {
   rolesForPushAudience,
   type PushActionType,
   type PushAudience,
-  type PushChannel,
 } from "@/lib/pushCampaigns";
 
 export const runtime = "nodejs";
