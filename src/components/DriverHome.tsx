@@ -18,6 +18,7 @@ import {
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
 import {
+  configureNativeDriverPush,
   isAlentoNativeDriverApp,
   startNativeDriverAvailabilityTracking,
   stopNativeDriverTracking,
@@ -422,7 +423,12 @@ export default function DriverHome({
   );
 
   useEffect(() => {
-    setNativeGps(isAlentoNativeDriverApp());
+    const nativeApp = isAlentoNativeDriverApp();
+    setNativeGps(nativeApp);
+
+    if (nativeApp) {
+      void configureNativeDriverPush();
+    }
 
     const tick = () => setGpsNow(Date.now());
     tick();
