@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
+import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
@@ -292,6 +293,31 @@ export async function POST(request: NextRequest) {
         console.warn("Chatwoot order notification", {
           orderId: order.id,
           reason: notification.reason,
+        });
+      }
+    }
+
+    if (hasKitchenPreparation) {
+      try {
+        const kitchenPush = await sendKitchenOrderCreatedPush({
+          orderId: order.id,
+          orderCode: code,
+          fulfillmentType: order.fulfillmentType,
+        });
+
+        if (!kitchenPush.ok) {
+          console.warn("Kitchen new-order push", {
+            orderId: order.id,
+            reason: kitchenPush.reason,
+          });
+        }
+      } catch (pushError) {
+        console.warn("Kitchen new-order push failed", {
+          orderId: order.id,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
         });
       }
     }
