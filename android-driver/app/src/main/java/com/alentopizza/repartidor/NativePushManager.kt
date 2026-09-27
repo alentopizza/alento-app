@@ -153,6 +153,27 @@ object NativePushManager {
         }
     }
 
+    fun unregister(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val authToken = prefs.getString(PREF_AUTH_TOKEN, null)?.trim()
+        val deviceKey = ensureDeviceKey(context)
+
+        if (!authToken.isNullOrBlank()) {
+            executor.execute {
+                deleteJson(
+                    endpoint = BuildConfig.ALENTO_BASE_URL +
+                        "/api/repartidor/native-push/register",
+                    nativeToken = authToken,
+                    body = JSONObject().put("deviceKey", deviceKey),
+                )
+            }
+        }
+
+        prefs.edit()
+            .remove(PREF_AUTH_TOKEN)
+            .apply()
+    }
+
     fun recordOpen(context: Context, campaignId: String) {
         if (campaignId.isBlank()) return
 
@@ -187,6 +208,38 @@ object NativePushManager {
             .apply()
 
         return generated
+    }
+
+    private fun deleteJson(
+        endpoint: String,
+        nativeToken: String,
+        body: JSONObject,
+    ): Int? {
+        val connection =
+            (URL(endpoint).openConnection() as HttpsURLConnection)
+
+        return try {
+            connection.requestMethod = "DELETE"
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty(
+                "X-Alento-Driver-Location-Token",
+                nativeToken,
+            )
+
+            connection.outputStream.use { output ->
+                output.write(body.toString().toByteArray(Charsets.UTF_8))
+            }
+
+            connection.responseCode
+        } catch (_: Exception) {
+            null
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun postJson(
