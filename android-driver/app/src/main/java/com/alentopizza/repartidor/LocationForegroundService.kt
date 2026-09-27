@@ -352,7 +352,7 @@ class LocationForegroundService : Service() {
             )
             connection.setRequestProperty(
                 "User-Agent",
-                "AlentoDriverAndroid/0.3",
+                "AlentoDriverAndroid/${BuildConfig.VERSION_NAME}",
             )
 
             if (!nativeToken.isNullOrBlank()) {
