@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   CircleDollarSign,
+  Eye,
   Landmark,
   LockKeyhole,
   X,
@@ -115,6 +116,8 @@ export default function CashRegisterControl({
   const [openModal, setOpenModal] = useState(false);
   const [editingOpening, setEditingOpening] = useState(false);
   const [closeModal, setCloseModal] = useState(false);
+  const [historySession, setHistorySession] =
+    useState<CashRegisterSession | null>(null);
   const [openingBalance, setOpeningBalance] = useState("");
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [nequi, setNequi] = useState("");
@@ -217,6 +220,36 @@ export default function CashRegisterControl({
     Number(davivienda || 0);
 
   const previewDifference = countedTotal - expectedNow;
+
+  function openingSnapshot(item: CashRegisterSession) {
+    const openingLoans = Number(item.openingLoanReceivable ?? 0);
+    const openingAvailable =
+      item.openingControlledBalance != null
+        ? Number(item.openingBalance ?? 0)
+        : Math.max(
+            0,
+            Number(item.openingBalance ?? 0) - openingLoans,
+          );
+    const openingTotal =
+      item.openingControlledBalance != null
+        ? Number(item.openingControlledBalance)
+        : openingAvailable + openingLoans;
+
+    return {
+      openingLoans,
+      openingAvailable,
+      openingTotal,
+    };
+  }
+
+  function denominationCount(
+    item: CashRegisterSession,
+    denomination: number,
+  ) {
+    const raw = item.closingDenominations?.[String(denomination)];
+    const count = Number(raw ?? 0);
+    return Number.isFinite(count) && count >= 0 ? count : 0;
+  }
 
   function prepareOpen() {
     const suggested =
@@ -549,23 +582,33 @@ export default function CashRegisterControl({
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <MiniMetric
-                label="Disponible al cierre"
-                value={money(session.actualClosingBalance || 0)}
-              />
-              <MiniMetric
-                label="Préstamos por cobrar"
-                value={money(session.closingLoanReceivable || 0)}
-              />
-              <MiniMetric
-                label="Total de Alentó"
-                value={money(
-                  (session.actualClosingBalance || 0) +
-                    (session.closingLoanReceivable || 0),
-                )}
-                strong
-              />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="grid gap-2 sm:grid-cols-3">
+                <MiniMetric
+                  label="Disponible al cierre"
+                  value={money(session.actualClosingBalance || 0)}
+                />
+                <MiniMetric
+                  label="Préstamos por cobrar"
+                  value={money(session.closingLoanReceivable || 0)}
+                />
+                <MiniMetric
+                  label="Total de Alentó"
+                  value={money(
+                    (session.actualClosingBalance || 0) +
+                      (session.closingLoanReceivable || 0),
+                  )}
+                  strong
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistorySession(session)}
+                className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[10px] font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                <Eye className="h-4 w-4" strokeWidth={2} />
+                Ver detalle
+              </button>
             </div>
           </div>
         </section>
@@ -593,9 +636,19 @@ export default function CashRegisterControl({
               const difference = Number(item.difference ?? 0);
 
               return (
-                <div
+                <button
+                  type="button"
                   key={item.id}
-                  className="grid gap-3 px-4 py-3.5 sm:px-5 lg:grid-cols-[150px_1fr_auto_auto] lg:items-center"
+                  disabled={isOpen}
+                  onClick={() => {
+                    if (!isOpen) setHistorySession(item);
+                  }}
+                  className={
+                    "grid w-full gap-3 px-4 py-3.5 text-left sm:px-5 lg:grid-cols-[150px_1fr_auto_auto] lg:items-center " +
+                    (isOpen
+                      ? "cursor-default"
+                      : "cursor-pointer transition hover:bg-neutral-50 active:bg-neutral-100")
+                  }
                 >
                   <div>
                     <span
@@ -667,12 +720,323 @@ export default function CashRegisterControl({
                       </>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </section>
       )}
+
+      {historySession && historySession.status === "CLOSED" && (() => {
+        const snapshot = openingSnapshot(historySession);
+        const cashAtClose = Number(historySession.closingCash ?? 0);
+        const accountsAtClose =
+          Number(historySession.closingNequi ?? 0) +
+          Number(historySession.closingDaviplata ?? 0) +
+          Number(historySession.closingCard ?? 0) +
+          Number(historySession.closingDavivienda ?? 0);
+        const countedAtClose =
+          Number(
+            historySession.actualClosingBalance ??
+              cashAtClose + accountsAtClose,
+          );
+        const expectedAtClose = Number(
+          historySession.expectedClosingBalance ?? 0,
+        );
+        const differenceAtClose = Number(
+          historySession.difference ??
+            countedAtClose - expectedAtClose,
+        );
+
+        return (
+          <div
+            className="fixed inset-0 z-[105] flex items-center justify-center bg-black/70 p-2 backdrop-blur-[3px] sm:p-4"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setHistorySession(null);
+              }
+            }}
+          >
+            <div className="flex max-h-[96dvh] w-full max-w-[1180px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f5f2] shadow-[0_30px_100px_rgba(0,0,0,.38)]">
+              <div className="relative shrink-0 overflow-hidden bg-[#0b0b0c] px-5 py-4 text-white sm:px-6">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_30%,rgba(226,26,34,.34),transparent_28%),linear-gradient(120deg,#111319,#1a0b0d)]" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">
+                      Historial de caja · solo consulta
+                    </p>
+                    <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">
+                      {dateLabel(historySession.businessDate)}
+                    </h2>
+                    <p className="mt-1 text-[11px] text-white/50">
+                      Abrió {historySession.openedByName} · {dateTimeLabel(historySession.openedAt)}
+                      {" · "}
+                      Cerró {historySession.closedByName || "—"} · {dateTimeLabel(historySession.closedAt)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setHistorySession(null)}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07]"
+                    aria-label="Cerrar detalle de caja"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="relative mt-3 grid grid-cols-3 gap-2 lg:absolute lg:right-20 lg:top-1/2 lg:mt-0 lg:w-[500px] lg:-translate-y-1/2">
+                  <CloseMetric
+                    label="Esperado"
+                    value={money(expectedAtClose)}
+                  />
+                  <CloseMetric
+                    label="Contado"
+                    value={money(countedAtClose)}
+                  />
+                  <CloseMetric
+                    label="Diferencia"
+                    value={
+                      (differenceAtClose > 0 ? "+" : "") +
+                      money(differenceAtClose)
+                    }
+                    tone={
+                      differenceAtClose === 0
+                        ? "ok"
+                        : differenceAtClose > 0
+                          ? "positive"
+                          : "negative"
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto p-3.5 sm:p-4">
+                <section className="mb-3 rounded-[22px] border border-neutral-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                        Apertura registrada
+                      </p>
+                      <h3 className="mt-1 text-[18px] font-black text-neutral-950">
+                        Con qué inició esta sesión
+                      </h3>
+                    </div>
+                    <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[9px] font-bold text-neutral-500">
+                      {dateTimeLabel(historySession.openedAt)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    <ReadOnlyMetric
+                      label="Disponible inicial"
+                      value={money(snapshot.openingAvailable)}
+                    />
+                    <ReadOnlyMetric
+                      label="Préstamos iniciales"
+                      value={money(snapshot.openingLoans)}
+                      tone="amber"
+                    />
+                    <ReadOnlyMetric
+                      label="Total apertura"
+                      value={money(snapshot.openingTotal)}
+                      strong
+                    />
+                  </div>
+
+                  {historySession.openingControlledBalance == null && (
+                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[9px] font-semibold text-amber-700">
+                      Esta apertura pertenece al formato anterior: no guardaba el disponible y los préstamos por separado.
+                    </p>
+                  )}
+                </section>
+
+                <div className="grid gap-3 xl:grid-cols-[1.35fr_.85fr]">
+                  <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                          Efectivo registrado al cierre
+                        </p>
+                        <h3 className="mt-1 text-[19px] font-black text-neutral-950">
+                          Billetes y monedas
+                        </h3>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-neutral-400">
+                          Total efectivo
+                        </span>
+                        <b className="mt-1 block text-[18px] font-black text-neutral-950">
+                          {money(cashAtClose)}
+                        </b>
+                      </div>
+                    </div>
+
+                    <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                      Billetes
+                    </p>
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                      {BILLS.map((denomination) => (
+                        <ReadOnlyDenominationRow
+                          key={denomination}
+                          denomination={denomination}
+                          count={denominationCount(
+                            historySession,
+                            denomination,
+                          )}
+                        />
+                      ))}
+                    </div>
+
+                    <p className="mt-4 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                      Monedas
+                    </p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {COINS.map((denomination) => (
+                        <ReadOnlyDenominationRow
+                          key={denomination}
+                          denomination={denomination}
+                          count={denominationCount(
+                            historySession,
+                            denomination,
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </section>
+
+                  <div className="grid content-start gap-3">
+                    <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
+                          <Landmark className="h-5 w-5" />
+                        </span>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                            Cuentas registradas
+                          </p>
+                          <h3 className="mt-0.5 text-[18px] font-black">
+                            Saldos digitales y datáfono
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <ReadOnlyMetric
+                          label="Nequi"
+                          value={money(historySession.closingNequi ?? 0)}
+                        />
+                        <ReadOnlyMetric
+                          label="DaviPlata"
+                          value={money(historySession.closingDaviplata ?? 0)}
+                        />
+                        <ReadOnlyMetric
+                          label="Tarjeta"
+                          value={money(historySession.closingCard ?? 0)}
+                        />
+                        <ReadOnlyMetric
+                          label="Davivienda"
+                          value={money(historySession.closingDavivienda ?? 0)}
+                        />
+                      </div>
+
+                      <div className="mt-3 rounded-[16px] border border-neutral-200 bg-neutral-950 px-4 py-3 text-white">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-white/45">
+                          Total en cuentas
+                        </span>
+                        <b className="mt-1 block text-[18px] font-black">
+                          {money(accountsAtClose)}
+                        </b>
+                      </div>
+                    </section>
+
+                    <section className="rounded-[22px] border border-neutral-200 bg-white p-4">
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">
+                        Resumen del cierre
+                      </p>
+                      <div className="mt-3 space-y-2.5">
+                        <SummaryLine
+                          label="Efectivo"
+                          value={money(cashAtClose)}
+                        />
+                        <SummaryLine
+                          label="Cuentas"
+                          value={money(accountsAtClose)}
+                        />
+                        <SummaryLine
+                          label="Total contado"
+                          value={money(countedAtClose)}
+                          strong
+                        />
+                        <div className="h-px bg-neutral-200" />
+                        <SummaryLine
+                          label="Esperado"
+                          value={money(expectedAtClose)}
+                        />
+                        <SummaryLine
+                          label="Diferencia"
+                          value={
+                            (differenceAtClose > 0 ? "+" : "") +
+                            money(differenceAtClose)
+                          }
+                          strong
+                        />
+                      </div>
+
+                      <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-amber-700">
+                          Préstamos por cobrar al cierre
+                        </span>
+                        <b className="mt-1 block text-[16px] font-black text-amber-800">
+                          {money(historySession.closingLoanReceivable ?? 0)}
+                        </b>
+                        <p className="mt-1 text-[9px] leading-4 text-amber-700/75">
+                          No forman parte del efectivo o las cuentas disponibles.
+                        </p>
+                      </div>
+
+                      <div className="mt-3 rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-emerald-700">
+                          Disponible que pasa a la siguiente apertura
+                        </span>
+                        <b className="mt-1 block text-[18px] font-black text-emerald-800">
+                          {money(countedAtClose)}
+                        </b>
+                        <p className="mt-1 text-[9px] leading-4 text-emerald-700/75">
+                          Este es el valor disponible que el sistema propone al abrir la siguiente caja.
+                        </p>
+                      </div>
+
+                      {historySession.closeNote && (
+                        <div className="mt-3 rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-3">
+                          <span className="text-[8px] font-black uppercase tracking-[0.11em] text-neutral-400">
+                            Observación del cierre
+                          </span>
+                          <p className="mt-1 text-[10px] font-semibold leading-4 text-neutral-700">
+                            {historySession.closeNote}
+                          </p>
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-200 bg-white px-4 py-3 sm:px-5">
+                <p className="hidden text-[9px] text-neutral-400 sm:block">
+                  Sesión cerrada · este detalle es únicamente de consulta.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setHistorySession(null)}
+                  className="ml-auto h-11 rounded-xl bg-neutral-950 px-6 text-[11px] font-black text-white"
+                >
+                  Cerrar detalle
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {openModal && (
         <div
@@ -1110,6 +1474,83 @@ function CloseMetric({
               ? "text-red-300"
               : "text-white"
       )}>{value}</b>
+    </div>
+  );
+}
+
+function ReadOnlyMetric({
+  label,
+  value,
+  tone,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  tone?: "amber";
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={
+        "rounded-[16px] border px-3 py-3 " +
+        (tone === "amber"
+          ? "border-amber-200 bg-amber-50"
+          : strong
+            ? "border-neutral-900 bg-neutral-950 text-white"
+            : "border-neutral-200 bg-[#faf9f7]")
+      }
+    >
+      <span
+        className={
+          "text-[8px] font-black uppercase tracking-[0.11em] " +
+          (tone === "amber"
+            ? "text-amber-700"
+            : strong
+              ? "text-white/45"
+              : "text-neutral-400")
+        }
+      >
+        {label}
+      </span>
+      <b
+        className={
+          "mt-1 block text-[15px] font-black " +
+          (tone === "amber"
+            ? "text-amber-800"
+            : strong
+              ? "text-white"
+              : "text-neutral-900")
+        }
+      >
+        {value}
+      </b>
+    </div>
+  );
+}
+
+function ReadOnlyDenominationRow({
+  denomination,
+  count,
+}: {
+  denomination: number;
+  count: number;
+}) {
+  const subtotal = denomination * count;
+
+  return (
+    <div className="grid min-h-[52px] grid-cols-[1fr_68px_96px] items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-1.5">
+      <div>
+        <span className="text-[9px] font-bold text-neutral-400">$</span>
+        <b className="ml-1 text-[12px] text-neutral-800">
+          {denomination.toLocaleString("es-CO")}
+        </b>
+      </div>
+      <div className="flex h-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-[12px] font-black text-neutral-700">
+        {count}
+      </div>
+      <span className="truncate text-right text-[10px] font-black text-neutral-500">
+        {money(subtotal)}
+      </span>
     </div>
   );
 }
