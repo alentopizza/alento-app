@@ -329,6 +329,10 @@ class MainActivity : Activity() {
         )
     }
 
+    fun unregisterNativePush() {
+        NativePushManager.unregister(this)
+    }
+
     fun clearNativeOrderTracking() {
         val intent = Intent(this, LocationForegroundService::class.java)
             .setAction(LocationForegroundService.ACTION_CLEAR_ORDER)
