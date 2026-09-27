@@ -49,6 +49,7 @@ class MainActivity : Activity() {
             loadFromIntent(intent)
         } else {
             webView.restoreState(savedInstanceState)
+            handlePushIntent(intent)
         }
     }
 
@@ -63,7 +64,7 @@ class MainActivity : Activity() {
             setGeolocationEnabled(true)
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             mediaPlaybackRequiresUserGesture = false
-            userAgentString = userAgentString + " AlentoDriverAndroid/0.3"
+            userAgentString = userAgentString + " AlentoDriverAndroid/0.4"
         }
 
         webView.addJavascriptInterface(AlentoNativeBridge(this), "AlentoNative")
@@ -162,8 +163,45 @@ class MainActivity : Activity() {
     }
 
     private fun loadFromIntent(sourceIntent: Intent) {
+        if (handlePushIntent(sourceIntent)) return
+
         val requestedPath = sourceIntent.getStringExtra(EXTRA_PATH)
         loadDriverPath(requestedPath ?: "/repartidor")
+    }
+
+    private fun handlePushIntent(sourceIntent: Intent): Boolean {
+        val campaignId =
+            sourceIntent.getStringExtra(EXTRA_PUSH_CAMPAIGN_ID)
+                ?.trim()
+                .orEmpty()
+        val target =
+            sourceIntent.getStringExtra(EXTRA_PUSH_TARGET)
+                ?.trim()
+                .orEmpty()
+
+        if (campaignId.isNotBlank()) {
+            NativePushManager.recordOpen(this, campaignId)
+        }
+
+        if (target.isBlank()) {
+            return campaignId.isNotBlank()
+        }
+
+        if (target.startsWith("https://") || target.startsWith("http://")) {
+            runCatching {
+                startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse(target)),
+                )
+            }
+            return true
+        }
+
+        if (target.startsWith("/") && !target.startsWith("//")) {
+            webView.loadUrl(BuildConfig.ALENTO_BASE_URL + target)
+            return true
+        }
+
+        return campaignId.isNotBlank()
     }
 
     private fun loadDriverPath(path: String) {
@@ -266,6 +304,25 @@ class MainActivity : Activity() {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, fallbackUri))
         }
+    }
+
+    fun configureNativePush(
+        nativeToken: String,
+        apiKey: String,
+        appId: String,
+        projectId: String,
+        senderId: String,
+    ): Boolean {
+        requestNotificationPermissionIfNeeded()
+
+        return NativePushManager.configure(
+            context = this,
+            nativeToken = nativeToken,
+            apiKey = apiKey,
+            appId = appId,
+            projectId = projectId,
+            senderId = senderId,
+        )
     }
 
     fun clearNativeOrderTracking() {
@@ -402,6 +459,8 @@ class MainActivity : Activity() {
 
     companion object {
         const val EXTRA_PATH = "alento_path"
+        const val EXTRA_PUSH_TARGET = "alento_push_target"
+        const val EXTRA_PUSH_CAMPAIGN_ID = "alento_push_campaign_id"
         private const val REQUEST_LOCATION = 2409
         private const val REQUEST_NOTIFICATIONS = 2410
     }
