@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStaffSession } from "@/lib/auth";
 import { createDriverLocationToken } from "@/lib/driverLocationToken";
+import { nativePushClientConfig } from "@/lib/nativePush";
 
 export async function POST() {
   try {
@@ -8,6 +9,7 @@ export async function POST() {
 
     return NextResponse.json({
       token: createDriverLocationToken(session.userId),
+      push: nativePushClientConfig(),
     });
   } catch (error) {
     const forbidden =
