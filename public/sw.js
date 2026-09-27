@@ -45,10 +45,13 @@ self.addEventListener("push", (event) => {
       payload.icon ||
       "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png",
     tag: payload.tag || "alento-staff",
+    image: payload.image || undefined,
     data: {
-      url: payload.url || "/",
+      url: payload.url || null,
       kind: payload.kind || null,
       orderId: payload.orderId || null,
+      campaignId: payload.campaignId || null,
+      recipientKey: payload.recipientKey || null,
     },
     renotify: true,
     requireInteraction: Boolean(payload.requireInteraction),
@@ -77,34 +80,52 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const target = new URL(
-    event.notification?.data?.url || "/repartidor",
-    self.location.origin,
-  ).href;
+  const data = event.notification?.data || {};
+  const rawUrl = data.url || null;
+  const target = rawUrl
+    ? new URL(rawUrl, self.location.origin).href
+    : null;
 
-  event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then(async (clients) => {
-        for (const client of clients) {
-          if (!client.url.startsWith(self.location.origin)) continue;
+  const recordOpen =
+    data.campaignId && data.recipientKey
+      ? fetch(
+          `/api/push-campaigns/${encodeURIComponent(
+            data.campaignId,
+          )}/open`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              channel: "WEB",
+              recipientKey: data.recipientKey,
+            }),
+          },
+        ).catch(() => undefined)
+      : Promise.resolve();
 
-          if ("navigate" in client) {
-            try {
-              await client.navigate(target);
-            } catch {}
-          }
+  const openTarget = self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then(async (clients) => {
+      for (const client of clients) {
+        if (!client.url.startsWith(self.location.origin)) continue;
 
-          if ("focus" in client) {
-            return client.focus();
-          }
+        if (target && "navigate" in client) {
+          try {
+            await client.navigate(target);
+          } catch {}
         }
 
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(target);
+        if ("focus" in client) {
+          return client.focus();
         }
+      }
 
-        return undefined;
-      }),
-  );
+      if (target && self.clients.openWindow) {
+        return self.clients.openWindow(target);
+      }
+
+      return undefined;
+    });
+
+  event.waitUntil(Promise.all([recordOpen, openTarget]));
 });
