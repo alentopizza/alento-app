@@ -65,8 +65,10 @@ object NativePushManager {
 
         FirebaseMessaging.getInstance().token
             .addOnCompleteListener { task ->
+                if (!task.isSuccessful) return@addOnCompleteListener
+
                 val token = task.result
-                if (task.isSuccessful && !token.isNullOrBlank()) {
+                if (!token.isNullOrBlank()) {
                     onNewToken(context, token)
                 }
             }
