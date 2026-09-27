@@ -184,7 +184,11 @@ class MainActivity : Activity() {
         }
 
         if (target.isBlank()) {
-            return campaignId.isNotBlank()
+            if (campaignId.isNotBlank()) {
+                loadDriverPath("/repartidor")
+                return true
+            }
+            return false
         }
 
         if (target.startsWith("https://") || target.startsWith("http://")) {
