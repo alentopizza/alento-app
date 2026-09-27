@@ -40,13 +40,16 @@ class AlentoNativeBridge(
         projectId: String,
         senderId: String,
     ): Boolean {
-        return activity.configureNativePush(
-            nativeToken = nativeToken,
-            apiKey = apiKey,
-            appId = appId,
-            projectId = projectId,
-            senderId = senderId,
-        )
+        activity.runOnUiThread {
+            activity.configureNativePush(
+                nativeToken = nativeToken,
+                apiKey = apiKey,
+                appId = appId,
+                projectId = projectId,
+                senderId = senderId,
+            )
+        }
+        return true
     }
 
     @JavascriptInterface
