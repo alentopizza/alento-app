@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import PushCampaignManager from "@/components/PushCampaignManager";
 
 type TemplateConfig = {
   id: string;
@@ -19,6 +20,45 @@ type TemplateConfig = {
   button?: { type: "tracking" | "driver_tracking" | "static"; label: string; value?: string } | null;
   delayMinutes?: number;
 };
+
+type NotificationArea = "PUSH" | "WHATSAPP";
+
+function NotificationAreaTabs({
+  value,
+  onChange,
+}: {
+  value: NotificationArea;
+  onChange: (value: NotificationArea) => void;
+}) {
+  return (
+    <div className="flex w-fit rounded-2xl border border-neutral-200 bg-white p-1 shadow-sm">
+      <button
+        type="button"
+        onClick={() => onChange("PUSH")}
+        className={
+          "rounded-xl px-4 py-2.5 text-[11px] font-black transition " +
+          (value === "PUSH"
+            ? "bg-neutral-950 text-white"
+            : "text-neutral-500 hover:bg-neutral-50")
+        }
+      >
+        Push APK / PWA
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("WHATSAPP")}
+        className={
+          "rounded-xl px-4 py-2.5 text-[11px] font-black transition " +
+          (value === "WHATSAPP"
+            ? "bg-neutral-950 text-white"
+            : "text-neutral-500 hover:bg-neutral-50")
+        }
+      >
+        Automatizaciones WhatsApp
+      </button>
+    </div>
+  );
+}
 
 type Filter = "ALL" | "CUSTOMER" | "DRIVER" | "ACTIVE" | "INACTIVE";
 
@@ -113,6 +153,7 @@ function TemplateImage({ template }: { template: TemplateConfig }) {
 }
 
 export default function NotificationsPage() {
+  const [area, setArea] = useState<NotificationArea>("PUSH");
   const [templates, setTemplates] = useState<TemplateConfig[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -248,9 +289,21 @@ export default function NotificationsPage() {
     { id: "INACTIVE", label: "Inactivas", count: templates.length - activeCount },
   ];
 
+  if (area === "PUSH") {
+    return (
+      <main className="min-h-screen p-4 lg:p-5">
+        <div className="space-y-4">
+          <NotificationAreaTabs value={area} onChange={setArea} />
+          <PushCampaignManager />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen p-4 lg:p-5">
       <div className="space-y-4">
+        <NotificationAreaTabs value={area} onChange={setArea} />
         <header className="rounded-[26px] bg-[radial-gradient(circle_at_88%_14%,rgba(229,28,17,.30),transparent_24%),linear-gradient(135deg,#09090a,#171719)] px-6 py-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.18)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
