@@ -61,3 +61,38 @@ export async function POST(request: NextRequest) {
     },
   });
 }
+
+
+export async function DELETE(request: NextRequest) {
+  const nativeToken = request.headers
+    .get("x-alento-driver-location-token")
+    ?.trim();
+  const payload = verifyDriverLocationToken(nativeToken);
+
+  if (!payload) {
+    return NextResponse.json(
+      { error: "Token nativo inválido o vencido." },
+      { status: 401 },
+    );
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const deviceKey = String(body?.deviceKey || "").trim();
+
+  if (!deviceKey) {
+    return NextResponse.json(
+      { error: "Dispositivo inválido." },
+      { status: 400 },
+    );
+  }
+
+  await prisma.nativePushDevice.updateMany({
+    where: {
+      userId: payload.userId,
+      deviceKey,
+    },
+    data: { active: false },
+  });
+
+  return NextResponse.json({ ok: true });
+}
