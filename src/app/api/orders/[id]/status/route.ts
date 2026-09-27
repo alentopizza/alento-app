@@ -14,6 +14,8 @@ import {
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { findTemplateForEvent, getNotificationTemplates } from "@/lib/notificationTemplates";
 import { calculateDriverEarning } from "@/lib/driverCompensation";
+import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
+import { orderCode } from "@/lib/orderCode";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -28,6 +30,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       select: {
         id: true,
         sequenceNumber: true,
+        source: true,
         customerId: true,
         status: true,
         fulfillmentType: true,
@@ -260,6 +263,34 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       return updatedOrder;
     });
+
+    if (requested === "PREPARING") {
+      try {
+        const kitchenPush = await sendKitchenOrderCreatedPush({
+          orderId: order.id,
+          orderCode: orderCode(
+            order.sequenceNumber ?? order.id,
+            order.source,
+          ),
+          fulfillmentType: order.fulfillmentType,
+        });
+
+        if (!kitchenPush.ok) {
+          console.warn("Kitchen preparing push", {
+            orderId: order.id,
+            reason: kitchenPush.reason,
+          });
+        }
+      } catch (pushError) {
+        console.warn("Kitchen preparing push failed", {
+          orderId: order.id,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
+        });
+      }
+    }
 
     let notification:
       | Awaited<ReturnType<typeof dispatchOrderStatusNotification>>
