@@ -94,6 +94,9 @@ type GoogleLatLngBoundsInstance = {
 type GoogleMapsRuntime = {
   maps: {
     importLibrary: (library: string) => Promise<unknown>;
+    RenderingType?: {
+      VECTOR: string;
+    };
     Map: new (
       element: HTMLElement,
       options: Record<string, unknown>,
@@ -168,6 +171,62 @@ function normalizeHeading(value: number) {
 
 function shortestHeadingDelta(from: number, to: number) {
   return ((to - from + 540) % 360) - 180;
+}
+
+function pointAheadOfPosition(
+  position: NavigationPosition,
+  heading: number,
+  distanceMeters: number,
+) {
+  const earthRadius = 6371000;
+  const angularDistance = distanceMeters / earthRadius;
+  const bearing = degreesToRadians(heading);
+  const latitude = degreesToRadians(position.latitude);
+  const longitude = degreesToRadians(position.longitude);
+
+  const targetLatitude = Math.asin(
+    Math.sin(latitude) * Math.cos(angularDistance) +
+      Math.cos(latitude) *
+        Math.sin(angularDistance) *
+        Math.cos(bearing),
+  );
+
+  const targetLongitude =
+    longitude +
+    Math.atan2(
+      Math.sin(bearing) *
+        Math.sin(angularDistance) *
+        Math.cos(latitude),
+      Math.cos(angularDistance) -
+        Math.sin(latitude) * Math.sin(targetLatitude),
+    );
+
+  return {
+    lat: radiansToDegrees(targetLatitude),
+    lng: radiansToDegrees(targetLongitude),
+  };
+}
+
+function cameraLookAheadMeters(
+  travelMode: DeliveryTravelMode | null,
+  speedMetersPerSecond: number | null,
+) {
+  const speed =
+    speedMetersPerSecond != null &&
+    Number.isFinite(speedMetersPerSecond) &&
+    speedMetersPerSecond > 0
+      ? speedMetersPerSecond
+      : 0;
+
+  if (travelMode === "WALK") {
+    return Math.min(28, Math.max(16, 14 + speed * 4));
+  }
+
+  if (travelMode === "MOTORCYCLE") {
+    return Math.min(85, Math.max(42, 38 + speed * 3.5));
+  }
+
+  return Math.min(95, Math.max(48, 42 + speed * 4));
 }
 
 function getGoogleWindow() {
@@ -270,6 +329,8 @@ export default function DriverDestinationActions({
   const lastRouteAtRef = useRef(0);
   const lastPositionRef = useRef<NavigationPosition | null>(null);
   const lastHeadingRef = useRef<number | null>(null);
+  const routeHeadingRef = useRef<number | null>(null);
+  const lastSpeedRef = useRef<number | null>(null);
   const headingAnimationRef = useRef<number | null>(null);
   const mapDragListenerRef = useRef<{ remove?: () => void } | null>(null);
 
@@ -324,6 +385,8 @@ export default function DriverDestinationActions({
     }
     lastPositionRef.current = null;
     lastHeadingRef.current = null;
+    routeHeadingRef.current = null;
+    lastSpeedRef.current = null;
     mapRef.current = null;
   }, []);
 
@@ -384,36 +447,79 @@ export default function DriverDestinationActions({
         accuracy: position.coords.accuracy,
       };
       const previous = lastPositionRef.current;
-      lastPositionRef.current = current;
 
-      const gpsHeading = Number(position.coords.heading);
-      const speed = Number(position.coords.speed);
+      const rawHeading = position.coords.heading;
+      const rawSpeed = position.coords.speed;
+      const gpsHeading =
+        typeof rawHeading === "number" &&
+        Number.isFinite(rawHeading)
+          ? rawHeading
+          : null;
+      const speed =
+        typeof rawSpeed === "number" && Number.isFinite(rawSpeed)
+          ? Math.max(0, rawSpeed)
+          : null;
+
+      lastSpeedRef.current = speed;
+
       const gpsHeadingReliable =
-        Number.isFinite(gpsHeading) &&
+        gpsHeading != null &&
         gpsHeading >= 0 &&
-        (!Number.isFinite(speed) || speed >= 0.45);
+        (speed == null || speed >= 0.8);
 
       if (gpsHeadingReliable) {
         const heading = normalizeHeading(gpsHeading);
+        lastPositionRef.current = current;
         lastHeadingRef.current = heading;
         return heading;
       }
 
-      if (!previous) return lastHeadingRef.current;
+      if (!previous) {
+        lastPositionRef.current = current;
+        return lastHeadingRef.current ?? routeHeadingRef.current;
+      }
 
       const movement = movementDistanceMeters(previous, current);
       const minimumMovement = Math.max(
-        3,
-        Math.min(8, Math.max(previous.accuracy, current.accuracy) * 0.35),
+        4,
+        Math.min(
+          10,
+          Math.max(previous.accuracy, current.accuracy) * 0.4,
+        ),
       );
 
+      // No movemos el punto de referencia hasta recorrer una distancia útil.
+      // Así varios avances pequeños se acumulan y no se pierden por ruido GPS.
       if (movement < minimumMovement) {
-        return lastHeadingRef.current;
+        return lastHeadingRef.current ?? routeHeadingRef.current;
       }
 
-      const heading = movementHeadingDegrees(previous, current);
-      lastHeadingRef.current = heading;
-      return heading;
+      const movementHeading = movementHeadingDegrees(previous, current);
+      lastPositionRef.current = current;
+
+      const previousHeading =
+        lastHeadingRef.current ?? routeHeadingRef.current;
+      if (previousHeading == null) {
+        lastHeadingRef.current = movementHeading;
+        return movementHeading;
+      }
+
+      const delta = shortestHeadingDelta(
+        previousHeading,
+        movementHeading,
+      );
+      const blend =
+        Math.abs(delta) >= 80
+          ? 0.7
+          : Math.abs(delta) >= 40
+            ? 0.52
+            : 0.34;
+      const filteredHeading = normalizeHeading(
+        previousHeading + delta * blend,
+      );
+
+      lastHeadingRef.current = filteredHeading;
+      return filteredHeading;
     },
     [],
   );
@@ -435,13 +541,28 @@ export default function DriverDestinationActions({
         return;
       }
 
-      const point = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
+      const currentPosition: NavigationPosition = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
       };
+      const cameraTarget =
+        heading != null && Number.isFinite(heading)
+          ? pointAheadOfPosition(
+              currentPosition,
+              heading,
+              cameraLookAheadMeters(
+                travelMode,
+                lastSpeedRef.current,
+              ),
+            )
+          : {
+              lat: currentPosition.latitude,
+              lng: currentPosition.longitude,
+            };
 
-      if (map.panTo) map.panTo(point);
-      else map.setCenter?.(point);
+      if (map.panTo) map.panTo(cameraTarget);
+      else map.setCenter?.(cameraTarget);
 
       map.setZoom?.(17);
       map.setTilt?.(45);
@@ -450,7 +571,12 @@ export default function DriverDestinationActions({
         animateHeading(map, heading);
       }
     },
-    [animateHeading, navigationStatus, resolveMovementHeading],
+    [
+      animateHeading,
+      navigationStatus,
+      resolveMovementHeading,
+      travelMode,
+    ],
   );
 
   const drawMap = useCallback(
@@ -471,8 +597,13 @@ export default function DriverDestinationActions({
           },
           zoom: 15,
           mapId: ALENTO_DELIVERY_MAP_ID,
+          ...(google.maps.RenderingType?.VECTOR
+            ? { renderingType: google.maps.RenderingType.VECTOR }
+            : {}),
           disableDefaultUI: true,
           gestureHandling: "greedy",
+          headingInteractionEnabled: false,
+          tiltInteractionEnabled: false,
         });
 
         mapDragListenerRef.current =
@@ -544,6 +675,31 @@ export default function DriverDestinationActions({
         path.forEach((point) => {
           bounds.extend({ lat: point.lat(), lng: point.lng() });
         });
+
+        const routeOrigin: NavigationPosition = {
+          latitude: data.driver.latitude,
+          longitude: data.driver.longitude,
+          accuracy: Math.max(1, data.driver.accuracy ?? 1),
+        };
+        const forwardPoint = path.find((point) => {
+          const candidate: NavigationPosition = {
+            latitude: point.lat(),
+            longitude: point.lng(),
+            accuracy: 1,
+          };
+          return movementDistanceMeters(routeOrigin, candidate) >= 12;
+        });
+
+        if (forwardPoint) {
+          routeHeadingRef.current = movementHeadingDegrees(
+            routeOrigin,
+            {
+              latitude: forwardPoint.lat(),
+              longitude: forwardPoint.lng(),
+              accuracy: 1,
+            },
+          );
+        }
       }
 
       if (navigationStatus === "READY") {
@@ -556,9 +712,17 @@ export default function DriverDestinationActions({
           bottom: 96,
           left: 54,
         });
+      } else if (
+        cameraFollowingRef.current &&
+        lastHeadingRef.current == null &&
+        routeHeadingRef.current != null
+      ) {
+        map.setZoom?.(17);
+        map.setTilt?.(45);
+        animateHeading(map, routeHeadingRef.current);
       }
     },
-    [customerName, navigationStatus, orderCode],
+    [animateHeading, customerName, navigationStatus, orderCode],
   );
 
   const requestNavigation = useCallback(
@@ -1081,19 +1245,29 @@ export default function DriverDestinationActions({
                         const latest = lastPositionRef.current;
                         const map = mapRef.current;
                         if (latest && map) {
-                          const point = {
-                            lat: latest.latitude,
-                            lng: latest.longitude,
-                          };
+                          const heading =
+                            lastHeadingRef.current ??
+                            routeHeadingRef.current;
+                          const point =
+                            heading != null
+                              ? pointAheadOfPosition(
+                                  latest,
+                                  heading,
+                                  cameraLookAheadMeters(
+                                    travelMode,
+                                    lastSpeedRef.current,
+                                  ),
+                                )
+                              : {
+                                  lat: latest.latitude,
+                                  lng: latest.longitude,
+                                };
                           if (map.panTo) map.panTo(point);
                           else map.setCenter?.(point);
                           map.setZoom?.(17);
                           map.setTilt?.(45);
-                          if (lastHeadingRef.current != null) {
-                            animateHeading(
-                              map,
-                              lastHeadingRef.current,
-                            );
+                          if (heading != null) {
+                            animateHeading(map, heading);
                           }
                         }
                       }}
@@ -1151,6 +1325,8 @@ export default function DriverDestinationActions({
                             lastRouteAtRef.current = 0;
                             lastPositionRef.current = null;
                             lastHeadingRef.current = null;
+                            routeHeadingRef.current = null;
+                            lastSpeedRef.current = null;
                           }}
                           className={
                             "rounded-[14px] border px-2 py-2.5 text-center transition " +
