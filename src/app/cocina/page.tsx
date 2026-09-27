@@ -379,18 +379,19 @@ export default function KitchenPage() {
 
               <Link
                 href="/masa"
-                className="group inline-flex h-[68px] items-center gap-3 rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] px-5 text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
+                aria-label="Abrir preparaciones"
                 title="Abrir preparaciones"
+                className="group inline-flex h-[68px] w-[92px] shrink-0 items-center justify-center rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08]">
-                  <Pizza className="h-[22px] w-[22px]" strokeWidth={2.15} />
-                </span>
-                <span className="hidden text-[13px] font-black sm:inline">
-                  Preparaciones
+                <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/15 bg-white/[0.08]">
+                  <Pizza
+                    className="h-[25px] w-[25px]"
+                    strokeWidth={2.15}
+                  />
                 </span>
               </Link>
 
-              <div className="flex h-[68px] min-w-[92px] flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+              <div className="flex h-[68px] w-[92px] shrink-0 flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
                 <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
                   Cocina
                 </span>
