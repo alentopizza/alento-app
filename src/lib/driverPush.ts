@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export type DriverPushResult = {
   ok: boolean;
+  targeted: number;
   sent: number;
   failed: number;
   skipped: number;
@@ -19,6 +20,8 @@ type PushMessageInput = {
   orderId?: number;
   kind?: string;
   requireInteraction?: boolean;
+  campaignId?: string;
+  imageUrl?: string | null;
 };
 
 function vapidConfig() {
@@ -95,6 +98,7 @@ async function sendPushToUserIds(
   if (!config) {
     return {
       ok: false,
+      targeted: 0,
       sent: 0,
       failed: 0,
       skipped: 1,
@@ -109,6 +113,7 @@ async function sendPushToUserIds(
   if (!uniqueUserIds.length) {
     return {
       ok: false,
+      targeted: 0,
       sent: 0,
       failed: 0,
       skipped: 1,
@@ -138,6 +143,7 @@ async function sendPushToUserIds(
   if (!subscriptions.length) {
     return {
       ok: false,
+      targeted: 0,
       sent: 0,
       failed: 0,
       skipped: 1,
@@ -145,25 +151,30 @@ async function sendPushToUserIds(
     };
   }
 
-  const payload = JSON.stringify({
-    title: input.title,
-    body: input.body,
-    url: input.url,
-    tag: input.tag || "alento-staff",
-    icon:
-      input.icon ||
-      "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png",
-    orderId: input.orderId,
-    kind: input.kind,
-    requireInteraction: input.requireInteraction ?? false,
-  });
-
   let sent = 0;
   let failed = 0;
 
   await Promise.all(
     subscriptions.map(async (subscription) => {
       try {
+        const payload = JSON.stringify({
+          title: input.title,
+          body: input.body,
+          url: input.url,
+          tag: input.tag || "alento-staff",
+          icon:
+            input.icon ||
+            "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png",
+          image: input.imageUrl || undefined,
+          orderId: input.orderId,
+          kind: input.kind,
+          campaignId: input.campaignId,
+          recipientKey: input.campaignId
+            ? `web:${subscription.id}`
+            : undefined,
+          requireInteraction: input.requireInteraction ?? false,
+        });
+
         await webPush.sendNotification(
           {
             endpoint: subscription.endpoint,
@@ -209,6 +220,7 @@ async function sendPushToUserIds(
 
   return {
     ok: sent > 0,
+    targeted: subscriptions.length,
     sent,
     failed,
     skipped: 0,
@@ -237,6 +249,8 @@ export async function sendStaffPushToRoles(input: {
   orderId?: number;
   kind?: string;
   requireInteraction?: boolean;
+  campaignId?: string;
+  imageUrl?: string | null;
 }): Promise<DriverPushResult> {
   const users = await prisma.user.findMany({
     where: { active: true },
