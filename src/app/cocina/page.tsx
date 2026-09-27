@@ -3,7 +3,7 @@
 import Link from "next/link";
 import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
 import { CircleCheck, CookingPot, Pizza, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   presentComboOrderConfiguration,
   presentOrderItemConfiguration,
@@ -290,7 +290,7 @@ export default function KitchenPage() {
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  async function loadOrders(silent = false) {
+  const loadOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
     try {
@@ -303,13 +303,16 @@ export default function KitchenPage() {
     } finally {
       if (!silent) setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void loadOrders();
-    const timer = window.setInterval(() => void loadOrders(true), 15000);
+    const timer = window.setInterval(
+      () => void loadOrders(true),
+      15000,
+    );
     return () => window.clearInterval(timer);
-  }, []);
+  }, [loadOrders]);
 
   const kitchenOrders = useMemo(
     () => orders
@@ -367,6 +370,7 @@ export default function KitchenPage() {
             <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
               <KitchenOrderAlerts
                 orderIds={kitchenOrders.map((order) => order.id)}
+                onIncomingPush={() => void loadOrders(true)}
               />
 
               <Link
