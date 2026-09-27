@@ -5,7 +5,6 @@ import {
   BellRing,
   CheckCircle2,
   Eye,
-  ImagePlus,
   RefreshCcw,
   Send,
   Smartphone,
