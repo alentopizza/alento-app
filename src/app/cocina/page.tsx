@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
 import { CircleCheck, CookingPot, Pizza, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -363,7 +364,11 @@ export default function KitchenPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 self-end md:self-auto">
+            <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
+              <KitchenOrderAlerts
+                orderIds={kitchenOrders.map((order) => order.id)}
+              />
+
               <Link
                 href="/masa"
                 className="group inline-flex h-[68px] items-center gap-3 rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] px-5 text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
