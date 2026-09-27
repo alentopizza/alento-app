@@ -11,8 +11,8 @@ android {
         applicationId = "com.alentopizza.repartidor"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
 
         buildConfigField(
             "String",
@@ -37,4 +37,5 @@ kotlin {
 
 dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.firebase:firebase-messaging:24.1.1")
 }
