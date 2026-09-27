@@ -33,6 +33,23 @@ class AlentoNativeBridge(
     }
 
     @JavascriptInterface
+    fun configurePush(
+        nativeToken: String,
+        apiKey: String,
+        appId: String,
+        projectId: String,
+        senderId: String,
+    ): Boolean {
+        return activity.configureNativePush(
+            nativeToken = nativeToken,
+            apiKey = apiKey,
+            appId = appId,
+            projectId = projectId,
+            senderId = senderId,
+        )
+    }
+
+    @JavascriptInterface
     fun openExternalNavigation(
         latitude: Double,
         longitude: Double,
