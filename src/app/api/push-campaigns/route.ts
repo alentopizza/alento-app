@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
         roles,
         title,
         body: subtitle ? `${subtitle} · ${message}` : message,
-        url: actionValue || "/",
+        url: actionValue,
         tag: `alento-campaign-${campaign.id}`,
         kind: "CUSTOM_CAMPAIGN",
         campaignId: campaign.id,
