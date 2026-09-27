@@ -71,6 +71,7 @@ type GoogleMarkerInstance = {
 
 type GoogleAdvancedMarkerInstance = {
   map: GoogleMapInstance | null;
+  position?: { lat: number; lng: number };
 };
 
 type GoogleMarkerLibrary = {
@@ -324,6 +325,7 @@ export default function DriverDestinationActions({
   const arrivalTrackRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRefs = useRef<Array<GoogleMarkerInstance | GoogleAdvancedMarkerInstance>>([]);
+  const driverMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
   const routeRef = useRef<GooglePolylineInstance | null>(null);
   const watchRef = useRef<number | null>(null);
   const lastRouteAtRef = useRef(0);
@@ -375,6 +377,7 @@ export default function DriverDestinationActions({
       else marker.map = null;
     });
     markerRefs.current = [];
+    driverMarkerRef.current = null;
     routeRef.current?.setMap(null);
     routeRef.current = null;
     mapDragListenerRef.current?.remove?.();
@@ -546,6 +549,13 @@ export default function DriverDestinationActions({
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
+
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.position = {
+          lat: currentPosition.latitude,
+          lng: currentPosition.longitude,
+        };
+      }
       const cameraTarget =
         heading != null && Number.isFinite(heading)
           ? pointAheadOfPosition(
@@ -631,6 +641,7 @@ export default function DriverDestinationActions({
         content: createDriverMapPinElement(),
         zIndex: 30,
       });
+      driverMarkerRef.current = driverMarker;
       markerRefs.current.push(driverMarker);
 
       const customerMarker = new AdvancedMarkerElement({
