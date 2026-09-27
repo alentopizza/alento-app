@@ -25,8 +25,10 @@ function createAudioContext() {
 
 export default function KitchenOrderAlerts({
   orderIds,
+  onIncomingPush,
 }: {
   orderIds: number[];
+  onIncomingPush?: () => void;
 }) {
   const [pushState, setPushState] =
     useState<WebPushCapability>("loading");
@@ -207,6 +209,8 @@ export default function KitchenOrderAlerts({
         return;
       }
 
+      onIncomingPush?.();
+
       const orderId = Number(data.payload.orderId);
       void playAlert(
         Number.isInteger(orderId) && orderId > 0
@@ -226,7 +230,7 @@ export default function KitchenOrderAlerts({
         onMessage,
       );
     };
-  }, [playAlert]);
+  }, [onIncomingPush, playAlert]);
 
   async function enableAlerts() {
     if (busy) return;
