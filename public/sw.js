@@ -106,6 +106,13 @@ self.addEventListener("notificationclick", (event) => {
   const openTarget = self.clients
     .matchAll({ type: "window", includeUncontrolled: true })
     .then(async (clients) => {
+      const externalTarget =
+        target && new URL(target).origin !== self.location.origin;
+
+      if (externalTarget && self.clients.openWindow) {
+        return self.clients.openWindow(target);
+      }
+
       for (const client of clients) {
         if (!client.url.startsWith(self.location.origin)) continue;
 
