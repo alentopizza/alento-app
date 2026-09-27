@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
-import { driverPushPublicKey } from "@/lib/driverPush";
+import {
+  driverPushPublicKey,
+  removeStaffPushSubscription,
+  upsertStaffPushSubscription,
+} from "@/lib/driverPush";
 
 function authError(error: unknown) {
   const forbidden =
@@ -46,11 +49,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await prisma.driverPushSubscription.deleteMany({
-      where: {
-        userId: session.userId,
-        endpoint,
-      },
+    await removeStaffPushSubscription({
+      userId: session.userId,
+      endpoint,
     });
 
     return NextResponse.json({ ok: true });
@@ -83,26 +84,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const subscription = await prisma.driverPushSubscription.upsert({
-    where: { endpoint },
-    update: {
-      userId: session.userId,
-      p256dh,
-      auth,
-      userAgent: request.headers.get("user-agent")?.slice(0, 500) || null,
-    },
-    create: {
-      userId: session.userId,
-      endpoint,
-      p256dh,
-      auth,
-      userAgent: request.headers.get("user-agent")?.slice(0, 500) || null,
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const subscription = await upsertStaffPushSubscription({
+    userId: session.userId,
+    endpoint,
+    p256dh,
+    auth,
+    userAgent: request.headers.get("user-agent"),
   });
 
   return NextResponse.json({ ok: true, subscription });
