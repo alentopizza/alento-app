@@ -8,6 +8,13 @@ type AlentoNativeBridge = {
     travelMode: string,
   ) => boolean;
   clearOrderTracking: () => void;
+  configurePush?: (
+    nativeToken: string,
+    apiKey: string,
+    appId: string,
+    projectId: string,
+    senderId: string,
+  ) => boolean;
   openExternalNavigation?: (
     latitude: number,
     longitude: number,
@@ -34,30 +41,97 @@ export function isAlentoNativeDriverApp() {
   }
 }
 
+type NativeDriverAuthorization = {
+  token: string;
+  push?: {
+    configured?: boolean;
+    apiKey?: string;
+    appId?: string;
+    projectId?: string;
+    senderId?: string;
+  };
+};
+
+async function nativeDriverAuthorization(): Promise<NativeDriverAuthorization> {
+  const response = await fetch(
+    "/api/repartidor/native-location-token",
+    {
+      method: "POST",
+      cache: "no-store",
+    },
+  );
+  const payload = await response.json();
+
+  if (!response.ok || !payload.token) {
+    throw new Error(
+      payload.error || "No fue posible autorizar la APK.",
+    );
+  }
+
+  return {
+    token: String(payload.token),
+    push:
+      payload.push && typeof payload.push === "object"
+        ? payload.push
+        : undefined,
+  };
+}
+
+function configurePushFromAuthorization(
+  authorization: NativeDriverAuthorization,
+) {
+  if (
+    typeof window === "undefined" ||
+    !window.AlentoNative?.configurePush ||
+    !authorization.push?.configured
+  ) {
+    return false;
+  }
+
+  const push = authorization.push;
+
+  try {
+    return Boolean(
+      window.AlentoNative.configurePush(
+        authorization.token,
+        String(push.apiKey || ""),
+        String(push.appId || ""),
+        String(push.projectId || ""),
+        String(push.senderId || ""),
+      ),
+    );
+  } catch (error) {
+    console.warn("Native Android push could not configure", error);
+    return false;
+  }
+}
+
+export async function configureNativeDriverPush() {
+  if (typeof window === "undefined" || !window.AlentoNative) {
+    return false;
+  }
+
+  try {
+    const authorization = await nativeDriverAuthorization();
+    return configurePushFromAuthorization(authorization);
+  } catch (error) {
+    console.warn("Native Android push authorization failed", error);
+    return false;
+  }
+}
+
 export async function startNativeDriverAvailabilityTracking() {
   if (typeof window === "undefined" || !window.AlentoNative) {
     return false;
   }
 
   try {
-    const response = await fetch(
-      "/api/repartidor/native-location-token",
-      {
-        method: "POST",
-        cache: "no-store",
-      },
-    );
-    const payload = await response.json();
-
-    if (!response.ok || !payload.token) {
-      throw new Error(
-        payload.error || "No fue posible autorizar el GPS nativo.",
-      );
-    }
+    const authorization = await nativeDriverAuthorization();
+    configurePushFromAuthorization(authorization);
 
     return Boolean(
       window.AlentoNative.startAvailabilityTracking(
-        String(payload.token),
+        authorization.token,
       ),
     );
   } catch (error) {
