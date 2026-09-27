@@ -239,43 +239,6 @@ export default function KitchenOrderAlerts({
     setMessage("");
 
     try {
-      if (pushState === "unconfigured") {
-        throw new Error(
-          "Web Push no está configurado en el servidor.",
-        );
-      }
-
-      if (pushState !== "on") {
-        if (!publicKey) {
-          const result = await loadWebPushState(PUSH_ENDPOINT);
-          setPublicKey(result.publicKey);
-
-          if (!result.publicKey) {
-            setPushState(result.state);
-            throw new Error(
-              "Web Push no está configurado en el servidor.",
-            );
-          }
-        }
-
-        const result = await enableWebPush(
-          PUSH_ENDPOINT,
-          publicKey ||
-            (await loadWebPushState(PUSH_ENDPOINT)).publicKey,
-        );
-
-        if (!result.enabled) {
-          setPushState(result.denied ? "denied" : "off");
-          throw new Error(
-            result.denied
-              ? "Las notificaciones están bloqueadas en este dispositivo."
-              : "No se activaron las notificaciones.",
-          );
-        }
-
-        setPushState("on");
-      }
-
       soundEnabledRef.current = true;
       setSoundEnabled(true);
       window.localStorage.setItem(SOUND_KEY, "1");
@@ -283,12 +246,54 @@ export default function KitchenOrderAlerts({
       await ensureAudioContext();
       await playAlert();
 
+      if (
+        pushState === "unsupported" ||
+        pushState === "unconfigured" ||
+        pushState === "denied"
+      ) {
+        setMessage(
+          pushState === "denied"
+            ? "Sonido activo. El Push está bloqueado en este dispositivo."
+            : pushState === "unconfigured"
+              ? "Sonido activo. Falta configurar Web Push en el servidor."
+              : "Sonido activo. Este dispositivo no soporta Web Push.",
+        );
+        return;
+      }
+
+      if (pushState !== "on") {
+        const pushConfig = publicKey
+          ? { state: pushState, publicKey }
+          : await loadWebPushState(PUSH_ENDPOINT);
+
+        if (pushConfig.publicKey) {
+          setPublicKey(pushConfig.publicKey);
+
+          const result = await enableWebPush(
+            PUSH_ENDPOINT,
+            pushConfig.publicKey,
+          );
+
+          if (!result.enabled) {
+            setPushState(result.denied ? "denied" : "off");
+            setMessage(
+              result.denied
+                ? "Sonido activo. Las notificaciones Push están bloqueadas."
+                : "Sonido activo. No se activó Push.",
+            );
+            return;
+          }
+
+          setPushState("on");
+        }
+      }
+
       setMessage("Push y sonido activos para nuevos pedidos.");
     } catch (error) {
       setMessage(
         error instanceof Error
-          ? error.message
-          : "No fue posible activar las alertas.",
+          ? `Sonido activado, pero hubo un problema: ${error.message}`
+          : "Sonido activado, pero no fue posible activar Push.",
       );
     } finally {
       setBusy(false);
@@ -315,7 +320,8 @@ export default function KitchenOrderAlerts({
     }
   }
 
-  const active = pushState === "on" && soundEnabled;
+  const pushActive = pushState === "on";
+  const active = soundEnabled || pushActive;
 
   return (
     <div
@@ -349,13 +355,25 @@ export default function KitchenOrderAlerts({
         >
           {pushState === "loading"
             ? "Comprobando..."
-            : active
+            : pushActive && soundEnabled
               ? "Push + sonido activos"
-              : pushState === "denied"
-                ? "Notificaciones bloqueadas"
-                : pushState === "unsupported"
-                  ? "Push no disponible"
-                  : "Alertas desactivadas"}
+              : soundEnabled
+                ? pushState === "denied"
+                  ? "Sonido activo · Push bloqueado"
+                  : pushState === "unconfigured"
+                    ? "Sonido activo · Push sin configurar"
+                    : pushState === "unsupported"
+                      ? "Sonido activo · sin Push"
+                      : "Sonido activo"
+                : pushActive
+                  ? "Push activo · sonido apagado"
+                  : pushState === "denied"
+                    ? "Notificaciones bloqueadas"
+                    : pushState === "unsupported"
+                      ? "Push no disponible"
+                      : pushState === "unconfigured"
+                        ? "Push sin configurar"
+                        : "Alertas desactivadas"}
         </b>
 
         {message && (
@@ -366,11 +384,7 @@ export default function KitchenOrderAlerts({
 
         <button
           type="button"
-          disabled={
-            busy ||
-            pushState === "unsupported" ||
-            pushState === "unconfigured"
-          }
+          disabled={busy || pushState === "loading"}
           onClick={() =>
             void (active ? disableAlerts() : enableAlerts())
           }
