@@ -30,25 +30,45 @@ class AlentoFirebaseMessagingService : FirebaseMessagingService() {
 
         createChannel()
 
-        val intent = Intent(this, MainActivity::class.java)
-            .addFlags(
-                Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP,
-            )
-            .putExtra(MainActivity.EXTRA_PUSH_TARGET, target)
-            .putExtra(MainActivity.EXTRA_PUSH_CAMPAIGN_ID, campaignId)
-
         val requestCode =
             if (campaignId.isNotBlank()) campaignId.hashCode()
             else System.currentTimeMillis().toInt()
 
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or
-                PendingIntent.FLAG_IMMUTABLE,
-        )
+        val pendingIntent =
+            if (target.isBlank() && campaignId.isNotBlank()) {
+                val intent = Intent(this, PushOpenReceiver::class.java)
+                    .putExtra(
+                        MainActivity.EXTRA_PUSH_CAMPAIGN_ID,
+                        campaignId,
+                    )
+
+                PendingIntent.getBroadcast(
+                    this,
+                    requestCode,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                        PendingIntent.FLAG_IMMUTABLE,
+                )
+            } else {
+                val intent = Intent(this, MainActivity::class.java)
+                    .addFlags(
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP,
+                    )
+                    .putExtra(MainActivity.EXTRA_PUSH_TARGET, target)
+                    .putExtra(
+                        MainActivity.EXTRA_PUSH_CAMPAIGN_ID,
+                        campaignId,
+                    )
+
+                PendingIntent.getActivity(
+                    this,
+                    requestCode,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                        PendingIntent.FLAG_IMMUTABLE,
+                )
+            }
 
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_alento)
