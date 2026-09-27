@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isAlentoNativeDriverApp } from "@/lib/nativeDriverApp";
 import {
   disableWebPush,
   enableWebPush,
@@ -15,6 +16,11 @@ export default function DriverPushControl() {
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [nativeApp, setNativeApp] = useState(false);
+
+  useEffect(() => {
+    setNativeApp(isAlentoNativeDriverApp());
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -104,6 +110,8 @@ export default function DriverPushControl() {
   }
 
   const active = state === "on";
+
+  if (nativeApp) return null;
 
   return (
     <div className="mt-2.5 rounded-[18px] border border-white/[0.07] bg-white/[0.035] p-3.5">
