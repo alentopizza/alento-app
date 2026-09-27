@@ -161,6 +161,9 @@ export default function PushCampaignManager() {
     void load();
   }, []);
 
+  const androidAudienceAvailable =
+    audience === "DRIVERS" || audience === "ALL_STAFF";
+
   useEffect(() => {
     if (!androidAudienceAvailable) {
       setChannels((current) =>
@@ -176,9 +179,6 @@ export default function PushCampaignManager() {
     else if (audience === "POS") setActionValue("/interno");
     else if (audience === "ADMIN") setActionValue("/interno");
   }, [actionType, audience]);
-
-  const androidAudienceAvailable =
-    audience === "DRIVERS" || audience === "ALL_STAFF";
 
   const totalDelivered = useMemo(
     () =>
