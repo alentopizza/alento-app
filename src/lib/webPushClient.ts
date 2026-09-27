@@ -1,6 +1,7 @@
 "use client";
 
 export type WebPushCapability =
+  | "loading"
   | "unsupported"
   | "unconfigured"
   | "denied"
