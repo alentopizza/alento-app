@@ -1,37 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  disableWebPush,
+  enableWebPush,
+  loadWebPushState,
+  type WebPushCapability,
+} from "@/lib/webPushClient";
 
-type PushState =
-  | "loading"
-  | "unsupported"
-  | "unconfigured"
-  | "denied"
-  | "off"
-  | "on";
-
-function applicationServerKey(value: string) {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const base64 = (value + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  const raw = window.atob(base64);
-  const output = new Uint8Array(raw.length);
-
-  for (let index = 0; index < raw.length; index += 1) {
-    output[index] = raw.charCodeAt(index);
-  }
-
-  return output;
-}
-
-async function registration() {
-  if (!("serviceWorker" in navigator)) {
-    throw new Error("Este navegador no soporta service workers.");
-  }
-
-  return navigator.serviceWorker.ready;
-}
+type PushState = WebPushCapability;
 
 export default function DriverPushControl() {
   const [state, setState] = useState<PushState>("loading");
@@ -43,43 +20,15 @@ export default function DriverPushControl() {
     let disposed = false;
 
     async function load() {
-      if (
-        !("serviceWorker" in navigator) ||
-        !("PushManager" in window) ||
-        !("Notification" in window)
-      ) {
-        if (!disposed) setState("unsupported");
-        return;
-      }
-
       try {
-        const response = await fetch("/api/repartidor/push", {
-          cache: "no-store",
-        });
-        const body = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            body.error || "No fue posible consultar las notificaciones.",
-          );
-        }
-
-        if (!body.configured || !body.publicKey) {
-          if (!disposed) setState("unconfigured");
-          return;
-        }
-
-        const sw = await registration();
-        const subscription = await sw.pushManager.getSubscription();
+        const result = await loadWebPushState(
+          "/api/repartidor/push",
+        );
 
         if (disposed) return;
 
-        setPublicKey(String(body.publicKey));
-        if (Notification.permission === "denied") {
-          setState("denied");
-        } else {
-          setState(subscription ? "on" : "off");
-        }
+        setPublicKey(result.publicKey);
+        setState(result.state);
       } catch (error) {
         if (!disposed) {
           setMessage(
@@ -105,43 +54,19 @@ export default function DriverPushControl() {
     setMessage("");
 
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setState(permission === "denied" ? "denied" : "off");
+      const result = await enableWebPush(
+        "/api/repartidor/push",
+        publicKey,
+      );
+
+      if (!result.enabled) {
+        setState(result.denied ? "denied" : "off");
         setMessage(
-          permission === "denied"
+          result.denied
             ? "Las notificaciones están bloqueadas en este dispositivo."
             : "No se activaron las notificaciones.",
         );
         return;
-      }
-
-      const sw = await registration();
-      let subscription = await sw.pushManager.getSubscription();
-
-      if (!subscription) {
-        subscription = await sw.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: applicationServerKey(publicKey),
-        });
-      }
-
-      const payload = subscription.toJSON();
-      const response = await fetch("/api/repartidor/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "subscribe",
-          subscription: payload,
-        }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        await subscription.unsubscribe().catch(() => undefined);
-        throw new Error(
-          body.error || "No fue posible guardar este dispositivo.",
-        );
       }
 
       setState("on");
@@ -164,21 +89,7 @@ export default function DriverPushControl() {
     setMessage("");
 
     try {
-      const sw = await registration();
-      const subscription = await sw.pushManager.getSubscription();
-
-      if (subscription) {
-        await fetch("/api/repartidor/push", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "unsubscribe",
-            endpoint: subscription.endpoint,
-          }),
-        });
-        await subscription.unsubscribe();
-      }
-
+      await disableWebPush("/api/repartidor/push");
       setState("off");
       setMessage("Notificaciones desactivadas en este dispositivo.");
     } catch (error) {
