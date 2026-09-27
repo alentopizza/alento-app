@@ -1,3 +1,4 @@
+import type { UserRole } from "@prisma/client";
 import webPush from "web-push";
 import { prisma } from "@/lib/prisma";
 
@@ -7,6 +8,17 @@ export type DriverPushResult = {
   failed: number;
   skipped: number;
   reason?: string;
+};
+
+type PushMessageInput = {
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+  icon?: string;
+  orderId?: number;
+  kind?: string;
+  requireInteraction?: boolean;
 };
 
 function vapidConfig() {
@@ -22,6 +34,10 @@ export function driverPushPublicKey() {
   return vapidConfig()?.publicKey ?? null;
 }
 
+export function staffPushPublicKey() {
+  return driverPushPublicKey();
+}
+
 function pushStatusCode(error: unknown) {
   if (!error || typeof error !== "object") return null;
   if (!("statusCode" in error)) return null;
@@ -29,13 +45,52 @@ function pushStatusCode(error: unknown) {
   return Number.isFinite(value) ? value : null;
 }
 
-export async function sendDriverPush(input: {
-  driverId: number;
-  title: string;
-  body: string;
-  url: string;
-  tag?: string;
-}): Promise<DriverPushResult> {
+export async function upsertStaffPushSubscription(input: {
+  userId: number;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string | null;
+}) {
+  return prisma.driverPushSubscription.upsert({
+    where: { endpoint: input.endpoint },
+    update: {
+      userId: input.userId,
+      p256dh: input.p256dh,
+      auth: input.auth,
+      userAgent: input.userAgent?.slice(0, 500) || null,
+    },
+    create: {
+      userId: input.userId,
+      endpoint: input.endpoint,
+      p256dh: input.p256dh,
+      auth: input.auth,
+      userAgent: input.userAgent?.slice(0, 500) || null,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export async function removeStaffPushSubscription(input: {
+  userId: number;
+  endpoint: string;
+}) {
+  await prisma.driverPushSubscription.deleteMany({
+    where: {
+      userId: input.userId,
+      endpoint: input.endpoint,
+    },
+  });
+}
+
+async function sendPushToUserIds(
+  userIds: number[],
+  input: PushMessageInput,
+): Promise<DriverPushResult> {
   const config = vapidConfig();
   if (!config) {
     return {
@@ -47,6 +102,20 @@ export async function sendDriverPush(input: {
     };
   }
 
+  const uniqueUserIds = [...new Set(userIds)].filter(
+    (userId) => Number.isInteger(userId) && userId > 0,
+  );
+
+  if (!uniqueUserIds.length) {
+    return {
+      ok: false,
+      sent: 0,
+      failed: 0,
+      skipped: 1,
+      reason: "No hay usuarios destinatarios.",
+    };
+  }
+
   webPush.setVapidDetails(
     config.subject,
     config.publicKey,
@@ -54,9 +123,12 @@ export async function sendDriverPush(input: {
   );
 
   const subscriptions = await prisma.driverPushSubscription.findMany({
-    where: { userId: input.driverId },
+    where: {
+      userId: { in: uniqueUserIds },
+    },
     select: {
       id: true,
+      userId: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -69,7 +141,7 @@ export async function sendDriverPush(input: {
       sent: 0,
       failed: 0,
       skipped: 1,
-      reason: "El repartidor no tiene dispositivos suscritos.",
+      reason: "No hay dispositivos suscritos.",
     };
   }
 
@@ -77,9 +149,13 @@ export async function sendDriverPush(input: {
     title: input.title,
     body: input.body,
     url: input.url,
-    tag: input.tag || "alento-driver",
+    tag: input.tag || "alento-staff",
     icon:
+      input.icon ||
       "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png",
+    orderId: input.orderId,
+    kind: input.kind,
+    requireInteraction: input.requireInteraction ?? false,
   });
 
   let sent = 0;
@@ -117,12 +193,14 @@ export async function sendDriverPush(input: {
             .delete({ where: { id: subscription.id } })
             .catch(() => undefined);
         } else {
-          console.warn("Driver push failed", {
-            driverId: input.driverId,
+          console.warn("Staff push failed", {
+            userId: subscription.userId,
             subscriptionId: subscription.id,
             statusCode,
             error:
-              error instanceof Error ? error.message : "Unknown push error",
+              error instanceof Error
+                ? error.message
+                : "Unknown push error",
           });
         }
       }
@@ -138,4 +216,40 @@ export async function sendDriverPush(input: {
       ? {}
       : { reason: "No fue posible entregar la notificación push." }),
   };
+}
+
+export async function sendDriverPush(input: {
+  driverId: number;
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+}): Promise<DriverPushResult> {
+  return sendPushToUserIds([input.driverId], input);
+}
+
+export async function sendStaffPushToRoles(input: {
+  roles: UserRole[];
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+  orderId?: number;
+  kind?: string;
+  requireInteraction?: boolean;
+}): Promise<DriverPushResult> {
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      roles: true,
+    },
+  });
+
+  const roleSet = new Set<UserRole>(input.roles);
+  const userIds = users
+    .filter((user) => user.roles.some((role) => roleSet.has(role)))
+    .map((user) => user.id);
+
+  return sendPushToUserIds(userIds, input);
 }
