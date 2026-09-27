@@ -50,6 +50,21 @@ export async function POST(
       );
     }
 
+    const device = await prisma.nativePushDevice.findFirst({
+      where: {
+        userId: payload.userId,
+        deviceKey,
+      },
+      select: { id: true },
+    });
+
+    if (!device) {
+      return NextResponse.json(
+        { error: "Dispositivo Android no registrado." },
+        { status: 404 },
+      );
+    }
+
     userId = payload.userId;
     recipientKey = `native:${deviceKey}`;
   } else if (channel === "WEB") {
@@ -60,6 +75,21 @@ export async function POST(
         { status: 400 },
       );
     }
+
+    const subscriptionId = supplied.slice(4);
+    const subscription = await prisma.driverPushSubscription.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true, userId: true },
+    });
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "Suscripción web no registrada." },
+        { status: 404 },
+      );
+    }
+
+    userId = subscription.userId;
     recipientKey = supplied;
   } else {
     return NextResponse.json(
