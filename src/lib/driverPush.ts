@@ -1,6 +1,7 @@
 import type { UserRole } from "@prisma/client";
 import webPush from "web-push";
 import { prisma } from "@/lib/prisma";
+import { sendNativePushToUserIds } from "@/lib/nativePush";
 
 export type DriverPushResult = {
   ok: boolean;
@@ -237,7 +238,37 @@ export async function sendDriverPush(input: {
   url: string;
   tag?: string;
 }): Promise<DriverPushResult> {
-  return sendPushToUserIds([input.driverId], input);
+  const [web, native] = await Promise.all([
+    sendPushToUserIds([input.driverId], input),
+    sendNativePushToUserIds({
+      userIds: [input.driverId],
+      title: input.title,
+      body: input.body,
+      path: input.url,
+    }),
+  ]);
+
+  const sent = web.sent + native.sent;
+  const failed = web.failed + native.failed;
+  const targeted = web.targeted + native.targeted;
+  const skipped = web.skipped + native.skipped;
+
+  return {
+    ok: sent > 0,
+    targeted,
+    sent,
+    failed,
+    skipped,
+    ...(sent > 0
+      ? {}
+      : {
+          reason:
+            [web.reason, native.reason]
+              .filter(Boolean)
+              .join(" · ") ||
+            "No fue posible entregar la notificación.",
+        }),
+  };
 }
 
 export async function sendStaffPushToRoles(input: {
