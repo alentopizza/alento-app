@@ -48,6 +48,9 @@ Antes de implementar algo relacionado con estos temas, revisar primero estas fue
 - Flujo y etiquetas de estados: `src/lib/orderWorkflow.ts`.
 - Selector operativo de estados: `src/components/OrderStatusSelector.tsx`.
 - Tokens de seguimiento: `src/lib/orderTracking.ts`.
+- Web Push del personal: `src/lib/driverPush.ts` como motor server-side compartido y `src/lib/webPushClient.ts` como cliente compartido.
+- Alertas de nuevos pedidos en Cocina: `src/lib/kitchenPush.ts` + `src/components/KitchenOrderAlerts.tsx`.
+
 
 Esta lista no reemplaza la búsqueda en el repositorio: es un punto de partida.
 
