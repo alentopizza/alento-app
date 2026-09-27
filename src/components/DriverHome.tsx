@@ -22,6 +22,7 @@ import {
   isAlentoNativeDriverApp,
   startNativeDriverAvailabilityTracking,
   stopNativeDriverTracking,
+  unregisterNativeDriverPush,
 } from "@/lib/nativeDriverApp";
 
 const LOGO =
@@ -797,6 +798,7 @@ export default function DriverHome({
         );
       }
 
+      unregisterNativeDriverPush();
       stopNativeDriverTracking();
       stopGps(true);
 
