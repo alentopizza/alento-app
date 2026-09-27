@@ -15,6 +15,10 @@ object NativePushManager {
     private const val PREF_AUTH_TOKEN = "auth_token"
     private const val PREF_DEVICE_KEY = "device_key"
     private const val PREF_FCM_TOKEN = "fcm_token"
+    private const val PREF_API_KEY = "firebase_api_key"
+    private const val PREF_APP_ID = "firebase_app_id"
+    private const val PREF_PROJECT_ID = "firebase_project_id"
+    private const val PREF_SENDER_ID = "firebase_sender_id"
 
     private val executor = Executors.newSingleThreadExecutor()
 
@@ -39,19 +43,24 @@ object NativePushManager {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(PREF_AUTH_TOKEN, nativeToken)
+            .putString(PREF_API_KEY, apiKey)
+            .putString(PREF_APP_ID, appId)
+            .putString(PREF_PROJECT_ID, projectId)
+            .putString(PREF_SENDER_ID, senderId)
             .apply()
 
         ensureDeviceKey(context)
 
-        if (FirebaseApp.getApps(context).isEmpty()) {
-            val options = FirebaseOptions.Builder()
-                .setApiKey(apiKey)
-                .setApplicationId(appId)
-                .setProjectId(projectId)
-                .setGcmSenderId(senderId)
-                .build()
-
-            FirebaseApp.initializeApp(context, options)
+        if (
+            !initializeFirebase(
+                context = context,
+                apiKey = apiKey,
+                appId = appId,
+                projectId = projectId,
+                senderId = senderId,
+            )
+        ) {
+            return false
         }
 
         FirebaseMessaging.getInstance().token
@@ -63,6 +72,52 @@ object NativePushManager {
             }
 
         return true
+    }
+
+    fun initializeFromStoredConfig(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val apiKey = prefs.getString(PREF_API_KEY, null)?.trim().orEmpty()
+        val appId = prefs.getString(PREF_APP_ID, null)?.trim().orEmpty()
+        val projectId = prefs.getString(PREF_PROJECT_ID, null)?.trim().orEmpty()
+        val senderId = prefs.getString(PREF_SENDER_ID, null)?.trim().orEmpty()
+
+        if (
+            apiKey.isBlank() ||
+            appId.isBlank() ||
+            projectId.isBlank() ||
+            senderId.isBlank()
+        ) {
+            return false
+        }
+
+        return initializeFirebase(
+            context = context,
+            apiKey = apiKey,
+            appId = appId,
+            projectId = projectId,
+            senderId = senderId,
+        )
+    }
+
+    private fun initializeFirebase(
+        context: Context,
+        apiKey: String,
+        appId: String,
+        projectId: String,
+        senderId: String,
+    ): Boolean {
+        if (FirebaseApp.getApps(context).isNotEmpty()) return true
+
+        return runCatching {
+            val options = FirebaseOptions.Builder()
+                .setApiKey(apiKey)
+                .setApplicationId(appId)
+                .setProjectId(projectId)
+                .setGcmSenderId(senderId)
+                .build()
+
+            FirebaseApp.initializeApp(context, options) != null
+        }.getOrDefault(false)
     }
 
     fun onNewToken(context: Context, token: String) {
