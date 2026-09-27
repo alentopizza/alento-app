@@ -11,6 +11,7 @@ import {
   Smartphone,
   UploadCloud,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 type Campaign = {
@@ -77,6 +78,28 @@ function actionLabel(campaign: Campaign) {
   return "Aplicación";
 }
 
+function CampaignMetric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="rounded-xl bg-[#faf9f7] px-2 py-2 text-center">
+      <Icon className="mx-auto h-3.5 w-3.5 text-neutral-400" />
+      <b className="mt-1 block text-[11px] text-neutral-900">
+        {String(value)}
+      </b>
+      <span className="text-[7px] font-black uppercase tracking-[.08em] text-neutral-400">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function PushCampaignManager() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [delivery, setDelivery] = useState<DeliveryState>({
@@ -140,12 +163,23 @@ export default function PushCampaignManager() {
   }, []);
 
   useEffect(() => {
+    if (!androidAudienceAvailable) {
+      setChannels((current) =>
+        current.filter((channel) => channel !== "ANDROID"),
+      );
+    }
+  }, [androidAudienceAvailable]);
+
+  useEffect(() => {
     if (actionType !== "SECTION") return;
     if (audience === "DRIVERS") setActionValue("/repartidor");
     else if (audience === "KITCHEN") setActionValue("/cocina");
     else if (audience === "POS") setActionValue("/interno");
     else if (audience === "ADMIN") setActionValue("/interno");
   }, [actionType, audience]);
+
+  const androidAudienceAvailable =
+    audience === "DRIVERS" || audience === "ALL_STAFF";
 
   const totalDelivered = useMemo(
     () =>
@@ -475,9 +509,15 @@ export default function PushCampaignManager() {
                   </button>
                   <button
                     type="button"
+                    disabled={!androidAudienceAvailable}
                     onClick={() => toggleChannel("ANDROID")}
+                    title={
+                      androidAudienceAvailable
+                        ? "Enviar a la APK oficial de Repartidor"
+                        : "La APK 004 pertenece únicamente a Repartidores"
+                    }
                     className={
-                      "h-11 rounded-xl border text-[10px] font-black " +
+                      "h-11 rounded-xl border text-[10px] font-black disabled:cursor-not-allowed disabled:opacity-35 " +
                       (channels.includes("ANDROID")
                         ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]"
                         : "border-neutral-200 bg-white text-neutral-500")
@@ -719,25 +759,26 @@ export default function PushCampaignManager() {
                   </div>
 
                   <div className="grid grid-cols-4 gap-1.5 lg:min-w-[360px]">
-                    {[
-                      ["Objetivo", target, Smartphone],
-                      ["Entregas", delivered, CheckCircle2],
-                      ["Fallos", campaign.failedCount, X],
-                      ["Vistas", `${campaign.openedCount} · ${openRate}%`, Eye],
-                    ].map(([label, value, Icon]) => (
-                      <div
-                        key={String(label)}
-                        className="rounded-xl bg-[#faf9f7] px-2 py-2 text-center"
-                      >
-                        <Icon className="mx-auto h-3.5 w-3.5 text-neutral-400" />
-                        <b className="mt-1 block text-[11px] text-neutral-900">
-                          {String(value)}
-                        </b>
-                        <span className="text-[7px] font-black uppercase tracking-[.08em] text-neutral-400">
-                          {String(label)}
-                        </span>
-                      </div>
-                    ))}
+                    <CampaignMetric
+                      label="Objetivo"
+                      value={target}
+                      icon={Smartphone}
+                    />
+                    <CampaignMetric
+                      label="Entregas"
+                      value={delivered}
+                      icon={CheckCircle2}
+                    />
+                    <CampaignMetric
+                      label="Fallos"
+                      value={campaign.failedCount}
+                      icon={X}
+                    />
+                    <CampaignMetric
+                      label="Vistas"
+                      value={`${campaign.openedCount} · ${openRate}%`}
+                      icon={Eye}
+                    />
                   </div>
                 </article>
               );
