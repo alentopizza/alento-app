@@ -72,11 +72,18 @@ export default function KitchenOrderAlerts({
       if (!context || context.state !== "running") return;
 
       const now = context.currentTime;
-      const sequence = [
-        { at: 0, frequency: 880 },
-        { at: 0.22, frequency: 1040 },
-        { at: 0.44, frequency: 880 },
+      const alertBursts = [0, 1.5, 3, 4.5];
+      const alertPattern = [
+        { offset: 0, frequency: 880 },
+        { offset: 0.22, frequency: 1040 },
+        { offset: 0.44, frequency: 880 },
       ];
+      const sequence = alertBursts.flatMap((burstAt) =>
+        alertPattern.map(({ offset, frequency }) => ({
+          at: burstAt + offset,
+          frequency,
+        })),
+      );
 
       sequence.forEach(({ at, frequency }) => {
         const oscillator = context.createOscillator();
