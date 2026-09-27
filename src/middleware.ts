@@ -33,6 +33,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
   }
   if (pathname.startsWith("/api/coupons/")) return ["ADMIN"];
 
+  if (pathname.startsWith("/api/cocina/push")) return ["ADMIN", "KITCHEN"];
   if (pathname.startsWith("/api/caja")) return ["ADMIN", "CASHIER"];
   if (pathname.startsWith("/api/customers")) return ["ADMIN", "POS", "CASHIER"];
   if (pathname.startsWith("/api/delivery")) return ["ADMIN", "POS", "CASHIER"];
