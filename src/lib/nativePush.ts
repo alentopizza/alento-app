@@ -131,8 +131,8 @@ export async function upsertNativePushDevice(input: {
   });
 }
 
-export async function sendNativePushToRoles(input: {
-  roles: UserRole[];
+export async function sendNativePushToUserIds(input: {
+  userIds: number[];
   title: string;
   subtitle?: string | null;
   body: string;
@@ -151,17 +151,9 @@ export async function sendNativePushToRoles(input: {
     };
   }
 
-  const users = await prisma.user.findMany({
-    where: { active: true },
-    select: {
-      id: true,
-      roles: true,
-    },
-  });
-  const roleSet = new Set<UserRole>(input.roles);
-  const userIds = users
-    .filter((user) => user.roles.some((role) => roleSet.has(role)))
-    .map((user) => user.id);
+  const userIds = [...new Set(input.userIds)].filter(
+    (userId) => Number.isInteger(userId) && userId > 0,
+  );
 
   if (!userIds.length) {
     return {
@@ -170,7 +162,7 @@ export async function sendNativePushToRoles(input: {
       sent: 0,
       failed: 0,
       skipped: 1,
-      reason: "No hay usuarios Android para esta audiencia.",
+      reason: "No hay usuarios Android para esta notificación.",
     };
   }
 
@@ -261,4 +253,37 @@ export async function sendNativePushToRoles(input: {
       ? {}
       : { reason: "Firebase no aceptó ninguna notificación." }),
   };
+}
+
+export async function sendNativePushToRoles(input: {
+  roles: UserRole[];
+  title: string;
+  subtitle?: string | null;
+  body: string;
+  path: string;
+  campaignId?: string;
+  imageUrl?: string | null;
+}): Promise<NativePushResult> {
+  const users = await prisma.user.findMany({
+    where: { active: true },
+    select: {
+      id: true,
+      roles: true,
+    },
+  });
+
+  const roleSet = new Set<UserRole>(input.roles);
+  const userIds = users
+    .filter((user) => user.roles.some((role) => roleSet.has(role)))
+    .map((user) => user.id);
+
+  return sendNativePushToUserIds({
+    userIds,
+    title: input.title,
+    subtitle: input.subtitle,
+    body: input.body,
+    path: input.path,
+    campaignId: input.campaignId,
+    imageUrl: input.imageUrl,
+  });
 }
