@@ -15,6 +15,7 @@ type AlentoNativeBridge = {
     projectId: string,
     senderId: string,
   ) => boolean;
+  unregisterPush?: () => void;
   openExternalNavigation?: (
     latitude: number,
     longitude: number,
@@ -189,6 +190,21 @@ export function openNativeDriverExternalNavigation(input: {
   } catch (error) {
     console.warn("Native external navigation could not open", error);
     return false;
+  }
+}
+
+export function unregisterNativeDriverPush() {
+  if (
+    typeof window === "undefined" ||
+    !window.AlentoNative?.unregisterPush
+  ) {
+    return;
+  }
+
+  try {
+    window.AlentoNative.unregisterPush();
+  } catch (error) {
+    console.warn("Native Android push could not unregister", error);
   }
 }
 
