@@ -18,15 +18,16 @@ Leer en este orden:
 10. `docs/CUSTOMERS.md`
 11. `docs/MENU.md`
 12. `docs/ARCHITECTURE.md`
-13. `docs/ORDER_DATA_INTEGRITY.md`
-14. `docs/ORDER_NUMBERING.md`
-15. `docs/PAYMENTS.md`
-16. `docs/PAYMENTS_AND_CASH.md`
-17. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-18. `docs/DEPLOYMENT.md`
-19. `docs/MAPS_VISUAL_SYSTEM.md`
-20. `prisma/schema.prisma`
-21. archivos del módulo que se vaya a modificar.
+13. `docs/PUSH_NOTIFICATIONS.md`
+14. `docs/ORDER_DATA_INTEGRITY.md`
+15. `docs/ORDER_NUMBERING.md`
+16. `docs/PAYMENTS.md`
+17. `docs/PAYMENTS_AND_CASH.md`
+18. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+19. `docs/DEPLOYMENT.md`
+20. `docs/MAPS_VISUAL_SYSTEM.md`
+21. `prisma/schema.prisma`
+22. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
