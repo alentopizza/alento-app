@@ -17,13 +17,6 @@ import {
   groupDeliveryLocations,
   spreadDeliveryClusterPoint,
 } from "@/lib/deliveryMapClusters";
-import {
-  configureNativeDriverPush,
-  isAlentoNativeDriverApp,
-  startNativeDriverAvailabilityTracking,
-  stopNativeDriverTracking,
-  unregisterNativeDriverPush,
-} from "@/lib/nativeDriverApp";
 
 const LOGO =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -416,7 +409,6 @@ export default function DriverHome({
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [gpsNow, setGpsNow] = useState(0);
-  const [nativeGps, setNativeGps] = useState(false);
 
   const gpsState = gpsFreshness(
     driver.driverLocationUpdatedAt,
@@ -424,13 +416,6 @@ export default function DriverHome({
   );
 
   useEffect(() => {
-    const nativeApp = isAlentoNativeDriverApp();
-    setNativeGps(nativeApp);
-
-    if (nativeApp) {
-      void configureNativeDriverPush();
-    }
-
     const tick = () => setGpsNow(Date.now());
     tick();
     const timer = window.setInterval(tick, 1000);
@@ -644,13 +629,8 @@ export default function DriverHome({
     }, 2500);
 
     if (initialDriver.driverAvailable) {
-      if (isAlentoNativeDriverApp()) {
-        window.localStorage.removeItem(HOME_GPS_KEY);
-        stopGps(false);
-        void startNativeDriverAvailabilityTracking();
-      } else if (window.localStorage.getItem(HOME_GPS_KEY) === "1") {
-        startGps();
-      }
+      window.localStorage.setItem(HOME_GPS_KEY, "1");
+      startGps();
     }
 
     return () => {
@@ -754,16 +734,9 @@ export default function DriverHome({
       setDriver(data.driver);
 
       if (active) {
-        if (isAlentoNativeDriverApp()) {
-          window.localStorage.removeItem(HOME_GPS_KEY);
-          stopGps(false);
-          void startNativeDriverAvailabilityTracking();
-        } else {
-          window.localStorage.setItem(HOME_GPS_KEY, "1");
-          startGps();
-        }
+        window.localStorage.setItem(HOME_GPS_KEY, "1");
+        startGps();
       } else {
-        stopNativeDriverTracking();
         stopGps(true);
       }
     } catch (err) {
@@ -798,8 +771,6 @@ export default function DriverHome({
         );
       }
 
-      unregisterNativeDriverPush();
-      stopNativeDriverTracking();
       stopGps(true);
 
       const response = await fetch("/api/auth/staff/logout", {
@@ -2093,13 +2064,9 @@ export default function DriverHome({
                               : "bg-white/25")
                       }
                     />
-                    {driver.driverLocationSource === "ANDROID_NATIVE"
-                      ? "Android nativo"
-                      : driver.driverLocationSource === "WEB"
-                        ? "Web"
-                        : nativeGps
-                          ? "Android · esperando"
-                          : "GPS"}
+                    {driver.driverLocationSource === "WEB"
+                      ? "PWA"
+                      : "PWA · esperando"}
                   </span>
                   <b
                     className={
