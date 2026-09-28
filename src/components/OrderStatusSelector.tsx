@@ -80,9 +80,11 @@ export default function OrderStatusSelector({
   const hasPendingPayment = pendingBalance > 0;
 
   const nextStatus =
-    currentIndex >= 0 && currentIndex < statuses.length - 1
-      ? statuses[currentIndex + 1]
-      : null;
+    currentStatus === "CONFIRMED"
+      ? statuses[0] ?? null
+      : currentIndex >= 0 && currentIndex < statuses.length - 1
+        ? statuses[currentIndex + 1]
+        : null;
 
   const nextBlocked =
     nextStatus === "COMPLETED" && hasPendingPayment;
