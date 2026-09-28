@@ -31,6 +31,47 @@ function applicationServerKey(value: string) {
   return output;
 }
 
+function subscriptionUsesPublicKey(
+  subscription: PushSubscription,
+  publicKey: string,
+) {
+  const currentKey = subscription.options.applicationServerKey;
+  if (!currentKey) return true;
+
+  const current = new Uint8Array(currentKey);
+  const expected = applicationServerKey(publicKey);
+
+  if (current.length !== expected.length) return false;
+
+  for (let index = 0; index < current.length; index += 1) {
+    if (current[index] !== expected[index]) return false;
+  }
+
+  return true;
+}
+
+async function syncSubscription(
+  endpoint: string,
+  subscription: PushSubscription,
+) {
+  const payload = subscription.toJSON();
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "subscribe",
+      subscription: payload,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(
+      body.error || "No fue posible sincronizar este dispositivo.",
+    );
+  }
+}
+
 export async function getWebPushRegistration() {
   if (!("serviceWorker" in navigator)) {
     throw new Error("Este navegador no soporta service workers.");
@@ -66,17 +107,34 @@ export async function loadWebPushState(endpoint: string) {
   const registration = await getWebPushRegistration();
   const subscription =
     await registration.pushManager.getSubscription();
+  const publicKey = String(body.publicKey);
 
   if (Notification.permission === "denied") {
     return {
       state: "denied" as const,
-      publicKey: String(body.publicKey),
+      publicKey,
     };
+  }
+
+  if (
+    subscription &&
+    !subscriptionUsesPublicKey(subscription, publicKey)
+  ) {
+    return {
+      state: "off" as const,
+      publicKey,
+    };
+  }
+
+  if (subscription && Notification.permission === "granted") {
+    await syncSubscription(endpoint, subscription).catch(
+      () => undefined,
+    );
   }
 
   return {
     state: subscription ? ("on" as const) : ("off" as const),
-    publicKey: String(body.publicKey),
+    publicKey,
   };
 }
 
@@ -97,6 +155,14 @@ export async function enableWebPush(
   let subscription =
     await registration.pushManager.getSubscription();
 
+  if (
+    subscription &&
+    !subscriptionUsesPublicKey(subscription, publicKey)
+  ) {
+    await subscription.unsubscribe().catch(() => undefined);
+    subscription = null;
+  }
+
   if (!subscription) {
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -104,22 +170,11 @@ export async function enableWebPush(
     });
   }
 
-  const payload = subscription.toJSON();
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "subscribe",
-      subscription: payload,
-    }),
-  });
-  const body = await response.json();
-
-  if (!response.ok) {
+  try {
+    await syncSubscription(endpoint, subscription);
+  } catch (error) {
     await subscription.unsubscribe().catch(() => undefined);
-    throw new Error(
-      body.error || "No fue posible guardar este dispositivo.",
-    );
+    throw error;
   }
 
   return { enabled: true, denied: false };
