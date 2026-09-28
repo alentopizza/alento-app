@@ -1,0 +1,958 @@
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  DollarSign,
+  Search,
+  UserRound,
+  WalletCards,
+  X,
+} from "lucide-react";
+
+type ShiftUser = {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+};
+
+type Shift = {
+  id: number;
+  startsAt: string;
+  endsAt: string;
+  amount: number;
+  status: string;
+  paidAt: string | null;
+  notes: string | null;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    active: boolean;
+  };
+};
+
+type Summary = {
+  shifts: number;
+  total: number;
+  paid: number;
+  pending: number;
+};
+
+type Editor = {
+  id?: number;
+  userId: number | "";
+  startsAt: string;
+  endsAt: string;
+  amount: string;
+  notes: string;
+};
+
+const EMPLOYEE_COLORS = [
+  "bg-sky-500",
+  "bg-fuchsia-500",
+  "bg-amber-500",
+  "bg-lime-600",
+  "bg-orange-600",
+  "bg-violet-500",
+  "bg-emerald-600",
+  "bg-rose-500",
+];
+
+function money(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function monthKey(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+  ].join("-");
+}
+
+function monthTitle(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-CO", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(year, month - 1, 1));
+}
+
+function dayKey(value: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function timeLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function localInputValue(value: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+function bogotaIso(value: string) {
+  if (!value) return "";
+  return new Date(`${value}:00-05:00`).toISOString();
+}
+
+function employeeColor(userId: number) {
+  return EMPLOYEE_COLORS[Math.abs(userId) % EMPLOYEE_COLORS.length];
+}
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "T"
+  );
+}
+
+export default function ShiftsManager() {
+  const [month, setMonth] = useState(() => monthKey(new Date()));
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [users, setUsers] = useState<ShiftUser[]>([]);
+  const [summary, setSummary] = useState<Summary>({
+    shifts: 0,
+    total: 0,
+    paid: 0,
+    pending: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [userFilter, setUserFilter] = useState("ALL");
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function load() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `/api/turnos?month=${encodeURIComponent(month)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible cargar los turnos.");
+      }
+
+      setShifts(data.shifts ?? []);
+      setUsers(data.users ?? []);
+      setSummary(
+        data.summary ?? {
+          shifts: 0,
+          total: 0,
+          paid: 0,
+          pending: 0,
+        },
+      );
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "No fue posible cargar los turnos.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [month]);
+
+  const filteredShifts = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("es");
+
+    return shifts.filter((shift) => {
+      if (statusFilter !== "ALL" && shift.status !== statusFilter) {
+        return false;
+      }
+
+      if (
+        userFilter !== "ALL" &&
+        shift.user.id !== Number(userFilter)
+      ) {
+        return false;
+      }
+
+      if (
+        normalized &&
+        !(
+          shift.user.name +
+          " " +
+          (shift.notes ?? "")
+        )
+          .toLocaleLowerCase("es")
+          .includes(normalized)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [query, shifts, statusFilter, userFilter]);
+
+  const shiftsByDay = useMemo(() => {
+    const map = new Map<string, Shift[]>();
+
+    for (const shift of filteredShifts) {
+      const key = dayKey(shift.startsAt);
+      const current = map.get(key) ?? [];
+      current.push(shift);
+      map.set(key, current);
+    }
+
+    return map;
+  }, [filteredShifts]);
+
+  const calendarDays = useMemo(() => {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const first = new Date(year, monthNumber - 1, 1);
+    const last = new Date(year, monthNumber, 0);
+    const mondayIndex = (first.getDay() + 6) % 7;
+    const totalCells = Math.ceil((mondayIndex + last.getDate()) / 7) * 7;
+    const result: Array<{
+      date: Date;
+      key: string;
+      inMonth: boolean;
+    }> = [];
+
+    for (let index = 0; index < totalCells; index += 1) {
+      const date = new Date(
+        year,
+        monthNumber - 1,
+        1 - mondayIndex + index,
+      );
+      result.push({
+        date,
+        key: [
+          date.getFullYear(),
+          String(date.getMonth() + 1).padStart(2, "0"),
+          String(date.getDate()).padStart(2, "0"),
+        ].join("-"),
+        inMonth: date.getMonth() === monthNumber - 1,
+      });
+    }
+
+    return result;
+  }, [month]);
+
+  function moveMonth(offset: number) {
+    const [year, currentMonth] = month.split("-").map(Number);
+    setMonth(monthKey(new Date(year, currentMonth - 1 + offset, 1)));
+  }
+
+  function openCreate() {
+    setNotice("");
+    setError("");
+    setEditor({
+      userId: "",
+      startsAt: "",
+      endsAt: "",
+      amount: "",
+      notes: "",
+    });
+  }
+
+  function openEdit(shift: Shift) {
+    setNotice("");
+    setError("");
+    setEditor({
+      id: shift.id,
+      userId: shift.user.id,
+      startsAt: localInputValue(shift.startsAt),
+      endsAt: localInputValue(shift.endsAt),
+      amount: String(Math.round(shift.amount)),
+      notes: shift.notes ?? "",
+    });
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!editor || saving) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        editor.id ? `/api/turnos/${editor.id}` : "/api/turnos",
+        {
+          method: editor.id ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: editor.userId,
+            startsAt: bogotaIso(editor.startsAt),
+            endsAt: bogotaIso(editor.endsAt),
+            amount: Number(editor.amount),
+            notes: editor.notes,
+          }),
+        },
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible guardar el turno.");
+      }
+
+      setEditor(null);
+      setNotice(editor.id ? "Turno actualizado." : "Turno creado.");
+      await load();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible guardar el turno.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function togglePayment(shift: Shift) {
+    if (busyId) return;
+    setBusyId(shift.id);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/turnos/${shift.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "toggle-payment" }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible cambiar el estado de pago.",
+        );
+      }
+
+      setNotice(
+        data.shift?.status === "PAID"
+          ? "Turno marcado como pagado."
+          : "Turno marcado como pendiente.",
+      );
+      await load();
+    } catch (paymentError) {
+      setError(
+        paymentError instanceof Error
+          ? paymentError.message
+          : "No fue posible cambiar el pago.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function removeShift() {
+    if (!editor?.id || saving) return;
+
+    const accepted = window.confirm(
+      "¿Eliminar este turno? Esta acción no se puede deshacer.",
+    );
+    if (!accepted) return;
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/turnos/${editor.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible eliminar el turno.");
+      }
+
+      setEditor(null);
+      setNotice("Turno eliminado.");
+      await load();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "No fue posible eliminar el turno.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen p-3 md:p-5 xl:p-6">
+      <div className="space-y-4">
+        <header className="overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_88%_14%,rgba(226,26,34,.38),transparent_28%),linear-gradient(135deg,#09090a,#171719)] px-6 py-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.16)]">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[.2em] text-red-300/70">
+                Personal
+              </p>
+              <h1 className="mt-1 text-[32px] font-black tracking-[-.04em]">
+                Turnos
+              </h1>
+              <p className="mt-1 text-[12px] text-white/55">
+                Programa al equipo, controla el valor de cada turno y su estado de pago.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={openCreate}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white shadow-[0_12px_28px_rgba(226,26,34,.28)]"
+            >
+              <CalendarDays className="h-4 w-4" />
+              + Crear turno
+            </button>
+          </div>
+        </header>
+
+        {error && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-semibold text-red-700">
+            {error}
+          </div>
+        )}
+        {notice && (
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] font-semibold text-emerald-700">
+            {notice}
+          </div>
+        )}
+
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Turnos del mes"
+            value={String(summary.shifts)}
+            note={monthTitle(month)}
+            icon={<CalendarDays className="h-5 w-5" />}
+          />
+          <SummaryCard
+            label="Valor programado"
+            value={money(summary.total)}
+            note="Costo total de los turnos del mes."
+            icon={<DollarSign className="h-5 w-5" />}
+          />
+          <SummaryCard
+            label="Pagado"
+            value={money(summary.paid)}
+            note="Turnos marcados como pagados."
+            icon={<WalletCards className="h-5 w-5" />}
+            positive
+          />
+          <SummaryCard
+            label="Pendiente"
+            value={money(summary.pending)}
+            note="Valor que todavía falta pagar."
+            icon={<Clock3 className="h-5 w-5" />}
+            alert
+          />
+        </section>
+
+        <section className="rounded-[24px] border border-neutral-200 bg-white p-3 shadow-[0_10px_30px_rgba(28,23,20,.04)]">
+          <div className="grid gap-2 xl:grid-cols-[1fr_220px_180px_auto]">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar trabajador o nota..."
+                className="alento-input h-11 w-full rounded-xl pl-11 pr-4 text-[12px]"
+              />
+            </div>
+
+            <select
+              value={userFilter}
+              onChange={(event) => setUserFilter(event.target.value)}
+              className="alento-input h-11 rounded-xl px-3 text-[11px] font-semibold"
+            >
+              <option value="ALL">Todos los trabajadores</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="alento-input h-11 rounded-xl px-3 text-[11px] font-semibold"
+            >
+              <option value="ALL">Todos los pagos</option>
+              <option value="PENDING">Pendientes</option>
+              <option value="PAID">Pagados</option>
+            </select>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => moveMonth(-1)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white"
+                aria-label="Mes anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="min-w-[150px] text-center">
+                <b className="block text-[12px] capitalize text-neutral-900">
+                  {monthTitle(month)}
+                </b>
+              </div>
+              <button
+                type="button"
+                onClick={() => moveMonth(1)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white"
+                aria-label="Mes siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_12px_34px_rgba(28,23,20,.045)]">
+          <div className="grid grid-cols-7 border-b border-neutral-200 bg-[#faf9f7]">
+            {["lun.", "mar.", "mié.", "jue.", "vie.", "sáb.", "dom."].map(
+              (day) => (
+                <div
+                  key={day}
+                  className="border-r border-neutral-200 px-2 py-2.5 text-center text-[9px] font-black uppercase tracking-[.08em] text-neutral-400 last:border-r-0"
+                >
+                  {day}
+                </div>
+              ),
+            )}
+          </div>
+
+          {loading ? (
+            <div className="flex min-h-[520px] items-center justify-center text-sm font-semibold text-neutral-400">
+              Cargando calendario...
+            </div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day, index) => {
+                const dayShifts = shiftsByDay.get(day.key) ?? [];
+                const today = day.key === dayKey(new Date().toISOString());
+
+                return (
+                  <div
+                    key={day.key}
+                    className={
+                      "min-h-[138px] border-b border-r border-neutral-200 p-1.5 last:border-r-0 " +
+                      (!day.inMonth
+                        ? "bg-neutral-50/65"
+                        : today
+                          ? "bg-red-50/45"
+                          : "bg-white")
+                    }
+                  >
+                    <div className="mb-1 flex justify-end">
+                      <span
+                        className={
+                          "flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-bold " +
+                          (today
+                            ? "bg-[var(--brand-red)] text-white"
+                            : day.inMonth
+                              ? "text-neutral-700"
+                              : "text-neutral-300")
+                        }
+                      >
+                        {day.date.getDate()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      {dayShifts.map((shift) => (
+                        <button
+                          type="button"
+                          key={shift.id}
+                          onClick={() => openEdit(shift)}
+                          className={
+                            "block w-full overflow-hidden rounded-lg px-2 py-1.5 text-left text-white shadow-sm transition hover:brightness-95 " +
+                            employeeColor(shift.user.id)
+                          }
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <b className="truncate text-[9px]">
+                              {shift.user.name}
+                            </b>
+                            <span
+                              className={
+                                "h-1.5 w-1.5 shrink-0 rounded-full " +
+                                (shift.status === "PAID"
+                                  ? "bg-emerald-200"
+                                  : "bg-amber-200")
+                              }
+                            />
+                          </div>
+                          <span className="mt-0.5 block truncate text-[7px] font-semibold text-white/80">
+                            {timeLabel(shift.startsAt)}–{timeLabel(shift.endsAt)} · {money(shift.amount)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(28,23,20,.04)]">
+          <div className="flex items-end justify-between gap-3 border-b border-neutral-100 pb-3">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[.14em] text-neutral-400">
+                Consolidado
+              </p>
+              <h2 className="mt-1 text-xl font-black">Turnos de {monthTitle(month)}</h2>
+            </div>
+            <b className="text-[12px] text-neutral-400">
+              {filteredShifts.length}
+            </b>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {filteredShifts.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-[11px] text-neutral-400">
+                No hay turnos para los filtros seleccionados.
+              </div>
+            ) : (
+              filteredShifts.map((shift) => (
+                <article
+                  key={shift.id}
+                  className="grid gap-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 md:grid-cols-[1.2fr_1fr_150px_130px_120px] md:items-center"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white " +
+                        employeeColor(shift.user.id)
+                      }
+                    >
+                      {initials(shift.user.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <b className="block truncate text-[12px] text-neutral-950">
+                        {shift.user.name}
+                      </b>
+                      <span className="text-[9px] text-neutral-400">
+                        {dayKey(shift.startsAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] text-neutral-600">
+                    {timeLabel(shift.startsAt)} – {timeLabel(shift.endsAt)}
+                  </div>
+
+                  <b className="text-[12px] text-neutral-900">
+                    {money(shift.amount)}
+                  </b>
+
+                  <button
+                    type="button"
+                    disabled={busyId === shift.id}
+                    onClick={() => void togglePayment(shift)}
+                    className={
+                      "h-9 rounded-xl px-3 text-[9px] font-black disabled:opacity-50 " +
+                      (shift.status === "PAID"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-amber-100 text-amber-700")
+                    }
+                  >
+                    {busyId === shift.id
+                      ? "Guardando..."
+                      : shift.status === "PAID"
+                        ? "PAGADO"
+                        : "PENDIENTE"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openEdit(shift)}
+                    className="h-9 rounded-xl border border-neutral-200 bg-white px-3 text-[9px] font-black text-neutral-600"
+                  >
+                    Editar
+                  </button>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+
+      {editor && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/65 p-3 backdrop-blur-[3px]">
+          <form
+            onSubmit={save}
+            className="flex max-h-[94dvh] w-full max-w-[650px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)]"
+          >
+            <header className="relative overflow-hidden bg-[radial-gradient(circle_at_90%_15%,rgba(226,26,34,.36),transparent_28%),linear-gradient(135deg,#09090a,#1a1112)] px-5 py-5 text-white">
+              <button
+                type="button"
+                onClick={() => !saving && setEditor(null)}
+                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[.07]"
+                aria-label="Cerrar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/40">
+                {editor.id ? "Editar turno" : "Nuevo turno"}
+              </p>
+              <h2 className="mt-1 text-[26px] font-black tracking-[-.035em]">
+                Registro de turno
+              </h2>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="grid gap-4">
+                <label>
+                  <span className="text-[11px] font-bold text-neutral-700">
+                    Trabajador
+                  </span>
+                  <div className="relative mt-2">
+                    <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <select
+                      required
+                      value={editor.userId}
+                      onChange={(event) =>
+                        setEditor({
+                          ...editor,
+                          userId: event.target.value
+                            ? Number(event.target.value)
+                            : "",
+                        })
+                      }
+                      className="alento-input h-12 w-full rounded-xl pl-11 pr-4 text-sm"
+                    >
+                      <option value="">Selecciona trabajador</option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label>
+                    <span className="text-[11px] font-bold text-neutral-700">
+                      Fecha y hora de entrada
+                    </span>
+                    <input
+                      required
+                      type="datetime-local"
+                      value={editor.startsAt}
+                      onChange={(event) =>
+                        setEditor({
+                          ...editor,
+                          startsAt: event.target.value,
+                        })
+                      }
+                      className="alento-input mt-2 h-12 w-full rounded-xl px-3 text-sm"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="text-[11px] font-bold text-neutral-700">
+                      Fecha y hora de salida
+                    </span>
+                    <input
+                      required
+                      type="datetime-local"
+                      value={editor.endsAt}
+                      onChange={(event) =>
+                        setEditor({
+                          ...editor,
+                          endsAt: event.target.value,
+                        })
+                      }
+                      className="alento-input mt-2 h-12 w-full rounded-xl px-3 text-sm"
+                    />
+                  </label>
+                </div>
+
+                <label>
+                  <span className="text-[11px] font-bold text-neutral-700">
+                    Valor del turno
+                  </span>
+                  <div className="relative mt-2">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-neutral-400">
+                      $
+                    </span>
+                    <input
+                      required
+                      min={0}
+                      step={100}
+                      type="number"
+                      value={editor.amount}
+                      onChange={(event) =>
+                        setEditor({
+                          ...editor,
+                          amount: event.target.value,
+                        })
+                      }
+                      placeholder="0"
+                      className="alento-input h-12 w-full rounded-xl pl-8 pr-4 text-lg font-black"
+                    />
+                  </div>
+                </label>
+
+                <label>
+                  <span className="text-[11px] font-bold text-neutral-700">
+                    Nota · opcional
+                  </span>
+                  <textarea
+                    value={editor.notes}
+                    maxLength={240}
+                    onChange={(event) =>
+                      setEditor({
+                        ...editor,
+                        notes: event.target.value,
+                      })
+                    }
+                    className="alento-input mt-2 min-h-[84px] w-full resize-none rounded-xl px-4 py-3 text-sm"
+                    placeholder="Ej. turno de cierre, reemplazo, festivo..."
+                  />
+                </label>
+              </div>
+            </div>
+
+            <footer className="flex flex-col gap-2 border-t border-neutral-100 bg-[#faf9f7] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                {editor.id && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void removeShift()}
+                    className="h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-[10px] font-black text-red-700"
+                  >
+                    Eliminar turno
+                  </button>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setEditor(null)}
+                  className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[11px] font-black text-neutral-600"
+                >
+                  Cancelar
+                </button>
+                <button
+                  disabled={saving}
+                  className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white disabled:opacity-50"
+                >
+                  {saving
+                    ? "Guardando..."
+                    : editor.id
+                      ? "Guardar cambios"
+                      : "Crear turno"}
+                </button>
+              </div>
+            </footer>
+          </form>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  note,
+  icon,
+  positive = false,
+  alert = false,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  icon: React.ReactNode;
+  positive?: boolean;
+  alert?: boolean;
+}) {
+  return (
+    <article className="rounded-[22px] border border-neutral-200 bg-white p-5 shadow-[0_10px_28px_rgba(28,23,20,.04)]">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-black uppercase tracking-[.13em] text-neutral-400">
+          {label}
+        </span>
+        <span
+          className={
+            "flex h-9 w-9 items-center justify-center rounded-xl " +
+            (positive
+              ? "bg-emerald-50 text-emerald-600"
+              : alert
+                ? "bg-amber-50 text-amber-600"
+                : "bg-neutral-100 text-neutral-500")
+          }
+        >
+          {icon}
+        </span>
+      </div>
+      <b
+        className={
+          "mt-3 block text-[25px] font-black tracking-[-.04em] " +
+          (positive
+            ? "text-emerald-700"
+            : alert
+              ? "text-amber-700"
+              : "text-neutral-950")
+        }
+      >
+        {value}
+      </b>
+      <p className="mt-1 text-[10px] text-neutral-400">{note}</p>
+    </article>
+  );
+}
