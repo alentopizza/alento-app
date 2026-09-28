@@ -48,12 +48,27 @@ type DeliveryDevice = {
   };
 };
 
+type CustomerDeliveryDevice = {
+  id: string;
+  userAgent: string | null;
+  lastSuccessAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: number;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  } | null;
+};
+
 type DeliveryState = {
   webConfigured: boolean;
   webDevices: number;
   staffWebDevices?: number;
   customerWebDevices?: number;
   devices: DeliveryDevice[];
+  customerDevices?: CustomerDeliveryDevice[];
 };
 
 const audienceOptions = [
@@ -787,50 +802,99 @@ export default function PushCampaignManager() {
             </div>
 
             <div className="mt-3 space-y-2">
-              {delivery.devices.length === 0 ? (
+              {delivery.devices.length === 0 &&
+              (delivery.customerDevices?.length ?? 0) === 0 ? (
                 <div className="rounded-2xl border border-dashed border-neutral-200 px-3 py-5 text-center text-[10px] text-neutral-400">
-                  No hay dispositivos registrados.
+                  No hay suscripciones Push registradas.
                 </div>
               ) : (
-                delivery.devices.map((device) => (
-                  <div
-                    key={device.id}
-                    className="rounded-2xl border border-neutral-200 bg-[#faf9f7] px-3 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <b className="block truncate text-[11px] text-neutral-900">
-                          {device.user.name}
-                        </b>
-                        <span className="mt-0.5 block text-[9px] text-neutral-500">
-                          {deviceLabel(device.userAgent)}
+                <>
+                  {(delivery.customerDevices ?? []).map((device) => (
+                    <div
+                      key={"customer-" + device.id}
+                      className="rounded-2xl border border-neutral-200 bg-[#faf9f7] px-3 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <b className="block truncate text-[11px] text-neutral-900">
+                            {device.customer?.name || "Cliente sin sesión vinculada"}
+                          </b>
+                          <span className="mt-0.5 block text-[9px] text-neutral-500">
+                            {deviceLabel(device.userAgent)}
+                          </span>
+                        </div>
+                        <span
+                          className={
+                            "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
+                            (audience === "CUSTOMERS"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-neutral-100 text-neutral-500")
+                          }
+                        >
+                          {audience === "CUSTOMERS"
+                            ? "En audiencia"
+                            : "Cliente"}
                         </span>
                       </div>
-                      <span
-                        className={
-                          "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
-                          (deviceMatchesAudience(device, audience)
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-neutral-100 text-neutral-500")
-                        }
-                      >
-                        {deviceMatchesAudience(device, audience)
-                          ? "En audiencia"
-                          : "Fuera de audiencia"}
-                      </span>
+                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
+                        <span>Cliente</span>
+                        {device.customer?.phone && (
+                          <>
+                            <span>·</span>
+                            <span>{device.customer.phone}</span>
+                          </>
+                        )}
+                        <span>·</span>
+                        <span>
+                          Última entrega:{" "}
+                          {device.lastSuccessAt
+                            ? moneylessDate(device.lastSuccessAt)
+                            : "sin confirmar"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
-                      <span>{device.user.roles.join(", ") || "Sin rol"}</span>
-                      <span>·</span>
-                      <span>
-                        Última entrega:{" "}
-                        {device.lastSuccessAt
-                          ? moneylessDate(device.lastSuccessAt)
-                          : "sin confirmar"}
-                      </span>
+                  ))}
+
+                  {delivery.devices.map((device) => (
+                    <div
+                      key={"staff-" + device.id}
+                      className="rounded-2xl border border-neutral-200 bg-[#faf9f7] px-3 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <b className="block truncate text-[11px] text-neutral-900">
+                            {device.user.name}
+                          </b>
+                          <span className="mt-0.5 block text-[9px] text-neutral-500">
+                            {deviceLabel(device.userAgent)}
+                          </span>
+                        </div>
+                        <span
+                          className={
+                            "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
+                            (deviceMatchesAudience(device, audience)
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-neutral-100 text-neutral-500")
+                          }
+                        >
+                          {deviceMatchesAudience(device, audience)
+                            ? "En audiencia"
+                            : "Staff"}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
+                        <span>{device.user.roles.join(", ") || "Sin rol"}</span>
+                        <span>·</span>
+                        <span>
+                          Última entrega:{" "}
+                          {device.lastSuccessAt
+                            ? moneylessDate(device.lastSuccessAt)
+                            : "sin confirmar"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                </>
               )}
             </div>
           </section>
