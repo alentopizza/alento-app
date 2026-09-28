@@ -42,7 +42,7 @@ function NotificationAreaTabs({
             : "text-neutral-500 hover:bg-neutral-50")
         }
       >
-        Push APK / PWA
+        Push PWA
       </button>
       <button
         type="button"
