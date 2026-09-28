@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -118,6 +118,11 @@ type Summary = {
   expenses: ExpenseRow[];
 };
 
+type CashLoanChange = {
+  loanDisbursedDelta?: number;
+  loanRecoveredDelta?: number;
+};
+
 type Tab = "SUMMARY" | "INCOMES" | "LOANS" | "EXPENSES";
 
 function formatCOP(value: number) {
@@ -225,29 +230,71 @@ export default function CashPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const summaryRequestRef = useRef(0);
 
-  async function load() {
-    setLoading(true);
+  async function load(silent = false) {
+    const requestId = ++summaryRequestRef.current;
+
+    if (!silent) setLoading(true);
+
     try {
       const params = new URLSearchParams({ startDate, endDate });
-      const response = await fetch(`/api/caja/summary?${params.toString()}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `/api/caja/summary?${params.toString()}`,
+        { cache: "no-store" },
+      );
       const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || "No fue posible cargar Caja.");
       }
+
+      if (requestId !== summaryRequestRef.current) return;
+
       setSummary(data);
       setError("");
     } catch (loadError) {
+      if (requestId !== summaryRequestRef.current) return;
+
       setError(
         loadError instanceof Error
           ? loadError.message
           : "No fue posible cargar Caja.",
       );
     } finally {
-      setLoading(false);
+      if (!silent && requestId === summaryRequestRef.current) {
+        setLoading(false);
+      }
     }
+  }
+
+  function handleLoanCashChanged(change: CashLoanChange = {}) {
+    const disbursedDelta = Number(change.loanDisbursedDelta ?? 0);
+    const recoveredDelta = Number(change.loanRecoveredDelta ?? 0);
+
+    if (disbursedDelta !== 0 || recoveredDelta !== 0) {
+      setSummary((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          loanDisbursedTotal: Math.max(
+            0,
+            current.loanDisbursedTotal + disbursedDelta,
+          ),
+          loanRecoveredTotal: Math.max(
+            0,
+            current.loanRecoveredTotal + recoveredDelta,
+          ),
+          netTotal:
+            current.netTotal -
+            disbursedDelta +
+            recoveredDelta,
+        };
+      });
+    }
+
+    return load(true);
   }
 
   useEffect(() => {
@@ -406,7 +453,7 @@ export default function CashPage() {
 
       setIncomeOpen(false);
       setTab("INCOMES");
-      await load();
+      await load(true);
     } catch (saveError) {
       setIncomeMessage(
         saveError instanceof Error
@@ -432,7 +479,7 @@ export default function CashPage() {
         throw new Error(data.error || "No fue posible eliminar el ingreso.");
       }
       setIncomeDeleteTarget(null);
-      await load();
+      await load(true);
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -489,7 +536,7 @@ export default function CashPage() {
 
       setExpenseOpen(false);
       setTab("EXPENSES");
-      await load();
+      await load(true);
     } catch (saveError) {
       setExpenseMessage(
         saveError instanceof Error
@@ -515,7 +562,7 @@ export default function CashPage() {
         throw new Error(data.error || "No fue posible eliminar la salida.");
       }
       setDeleteTarget(null);
-      await load();
+      await load(true);
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
@@ -661,7 +708,19 @@ export default function CashPage() {
           businessDate={startDate}
           enabled={singleDaySelected}
           currentNetMovement={summary?.netTotal ?? 0}
-          onChanged={() => void load()}
+          currentMovement={
+            summary
+              ? {
+                  received: summary.receivedTotal,
+                  otherIncome: summary.otherIncomeTotal,
+                  expensesTotal: summary.expensesTotal,
+                  loansTotal: summary.loanDisbursedTotal,
+                  recovered: summary.loanRecoveredTotal,
+                  netMovement: summary.netTotal,
+                }
+              : null
+          }
+          onChanged={() => void load(true)}
           onSessionStateChange={setCashDayStatus}
           onSessionClosed={(businessDate) => {
             setStartDate(businessDate);
@@ -818,7 +877,7 @@ export default function CashPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => void load()}
+                        onClick={() => void load(true)}
                         className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-500"
                         title="Actualizar"
                       >
@@ -1180,7 +1239,7 @@ export default function CashPage() {
               <CashLoansPanel
                 cashDateLocked={!cashOperationsOpen}
                 businessDate={startDate}
-                onCashChanged={() => void load()}
+                onCashChanged={handleLoanCashChanged}
               />
             ) : (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
