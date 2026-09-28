@@ -20,6 +20,7 @@ type OrderStatusSelectorProps = {
   selectedDriverId?: number | null;
   driverBusy?: boolean;
   showDriverManagement?: boolean;
+  externalProvider?: string | null;
   onDriverChange?: (driverId: number | null) => void;
   onConfirmDriver?: () => void;
   onUnassignDriver?: () => void;
@@ -69,6 +70,7 @@ export default function OrderStatusSelector({
   selectedDriverId = null,
   driverBusy = false,
   showDriverManagement = true,
+  externalProvider = null,
   onDriverChange,
   onConfirmDriver,
   onUnassignDriver,
@@ -305,6 +307,12 @@ export default function OrderStatusSelector({
             <p className="alento-ui-label uppercase text-neutral-500">
               Siguiente paso
             </p>
+
+            {externalProvider === "Rappi" && currentStatus === "CONFIRMED" && (
+              <div className="mt-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-[11px] font-semibold leading-4 text-orange-900">
+                Al continuar, Alentó aceptará este pedido directamente en Rappi y lo pasará a preparación.
+              </div>
+            )}
 
             {nextStatus ? (
               <button
