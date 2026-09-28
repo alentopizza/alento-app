@@ -348,30 +348,24 @@ export default function KitchenOrderAlerts({
       aria-label={controlTitle}
       title={controlTitle}
       className={
-        "group relative flex h-[68px] w-[92px] shrink-0 items-center justify-center rounded-[19px] border shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-wait disabled:opacity-55 " +
+        "group relative flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-wait disabled:opacity-55 " +
         (active
           ? "border-emerald-300/30 bg-emerald-400/[0.12] hover:bg-emerald-400/[0.16]"
           : "border-white/14 bg-white/[0.08] hover:bg-white/[0.12]")
       }
     >
-      <span
+      <Bell
         className={
-          "flex h-11 w-11 items-center justify-center rounded-[14px] border transition " +
-          (active
-            ? "border-emerald-300/20 bg-emerald-400/[0.13] text-emerald-300"
-            : "border-white/10 bg-white/[0.07] text-white/75")
+          "h-[22px] w-[22px] transition " +
+          (active ? "text-emerald-300" : "text-white/78")
         }
-      >
-        <Bell
-          className="h-[24px] w-[24px]"
-          strokeWidth={2.15}
-        />
-      </span>
+        strokeWidth={2.15}
+      />
 
       <span
         aria-hidden="true"
         className={
-          "absolute right-3 top-3 h-2.5 w-2.5 rounded-full border border-[#151516] " +
+          "absolute right-2.5 top-2.5 h-2 w-2 rounded-full border border-[#151516] " +
           (pushState === "loading" || busy
             ? "animate-pulse bg-amber-300"
             : active
