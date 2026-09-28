@@ -821,7 +821,7 @@ export default function ShiftsManager() {
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/65 p-3 backdrop-blur-[3px]">
           <form
             onSubmit={save}
-            className="flex max-h-[94dvh] w-full max-w-[650px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)]"
+            className="flex max-h-[94dvh] w-full max-w-[920px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)]"
           >
             <header className="relative overflow-hidden bg-[radial-gradient(circle_at_90%_15%,rgba(226,26,34,.36),transparent_28%),linear-gradient(135deg,#09090a,#1a1112)] px-5 py-5 text-white">
               <button
@@ -885,13 +885,13 @@ export default function ShiftsManager() {
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-2xl border border-neutral-200 bg-white p-3.5">
                       <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-500">
                         Entrada
                       </p>
 
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px]">
                         <label>
                           <span className="text-[10px] font-bold text-neutral-600">
                             Fecha
