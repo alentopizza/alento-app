@@ -25,7 +25,7 @@ export type RappiConfig = {
   storeId: string;
   clientId: string;
   clientSecret: string;
-  webhookSecret: string;
+  webhookSecrets: string[];
   autoAccept: boolean;
   rejectCancelType: string;
 };
@@ -50,7 +50,12 @@ export function rappiConfig(): RappiConfig {
     storeId: process.env.RAPPI_STORE_ID?.trim() || "",
     clientId: process.env.RAPPI_CLIENT_ID?.trim() || "",
     clientSecret: process.env.RAPPI_CLIENT_SECRET?.trim() || "",
-    webhookSecret: process.env.RAPPI_WEBHOOK_SECRET?.trim() || "",
+    webhookSecrets: [
+      process.env.RAPPI_WEBHOOK_SECRET?.trim() || "",
+      ...(process.env.RAPPI_WEBHOOK_SECRETS || "")
+        .split(",")
+        .map((value) => value.trim()),
+    ].filter((value, index, values) => Boolean(value) && values.indexOf(value) === index),
     autoAccept: envBoolean(process.env.RAPPI_AUTO_ACCEPT, false),
     rejectCancelType: process.env.RAPPI_REJECT_CANCEL_TYPE?.trim() || "",
   };
@@ -70,7 +75,8 @@ export function rappiIntegrationStatus() {
         config.clientId &&
         config.clientSecret,
     ),
-    webhookConfigured: Boolean(config.enabled && config.webhookSecret),
+    webhookConfigured: Boolean(config.enabled && config.webhookSecrets.length > 0),
+    webhookSecretCount: config.webhookSecrets.length,
     rejectConfigured: Boolean(config.rejectCancelType),
   };
 }
@@ -311,8 +317,8 @@ export function verifyRappiWebhookSignature(
   rawBody: string,
   signatureHeader: string | null,
 ) {
-  const secret = rappiConfig().webhookSecret;
-  if (!secret || !signatureHeader) return false;
+  const secrets = rappiConfig().webhookSecrets;
+  if (!secrets.length || !signatureHeader) return false;
 
   const parts = new Map<string, string>();
   signatureHeader.split(",").forEach((piece) => {
@@ -330,15 +336,19 @@ export function verifyRappiWebhookSignature(
     return false;
   }
 
-  const expected = createHmac("sha256", secret)
-    .update(`${timestamp}.${rawBody}`, "utf8")
-    .digest("hex");
-
-  const expectedBuffer = Buffer.from(expected, "hex");
   const signatureBuffer = Buffer.from(signature, "hex");
 
-  if (expectedBuffer.length !== signatureBuffer.length) return false;
-  return timingSafeEqual(expectedBuffer, signatureBuffer);
+  return secrets.some((secret) => {
+    const expected = createHmac("sha256", secret)
+      .update(`${timestamp}.${rawBody}`, "utf8")
+      .digest("hex");
+    const expectedBuffer = Buffer.from(expected, "hex");
+
+    return (
+      expectedBuffer.length === signatureBuffer.length &&
+      timingSafeEqual(expectedBuffer, signatureBuffer)
+    );
+  });
 }
 
 export function extractRappiOrders(value: unknown): unknown[] {
