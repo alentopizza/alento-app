@@ -1,4 +1,4 @@
-# Despliegue y Prisma
+# Despliegue productivo y Prisma
 
 Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `alentopizza/alento-app`.
 
@@ -7,7 +7,7 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 - Proyecto EasyPanel: `app_alento`.
 - Aplicación: `alento-app`.
 - Puerto interno: `3000`.
-- Dominio: `https://pos.alentopizza.com/`.
+- Dominio productivo: `https://pos.alentopizza.com/`.
 - Base de datos: PostgreSQL `alento-db`.
 
 
@@ -267,7 +267,7 @@ Esto escribe el OTP en logs para pruebas.
 Nunca habilitarlo en producción.
 
 
-## Hardening previo a producción estable
+## Hardening de la operación productiva
 
 La revisión vigente está en `docs/PRODUCTION_READINESS.md`.
 
@@ -281,7 +281,7 @@ prisma db push && next start -p 3000
 
 es útil durante la etapa de construcción, pero no es la estrategia recomendada para operación estable porque un reinicio/redeploy puede intentar modificar el schema.
 
-Antes de retirar ese `db push` del arranque:
+Antes de retirar ese `db push` del arranque productivo:
 
 1. tomar backup/snapshot de PostgreSQL;
 2. verificar que producción está sincronizada;
@@ -299,7 +299,7 @@ EasyPanel puede usar:
 
 como comprobación simple de disponibilidad.
 
-### Validación antes de cada deploy productivo
+### Validación obligatoria antes de cada deploy productivo
 
 Mientras no exista CI:
 
