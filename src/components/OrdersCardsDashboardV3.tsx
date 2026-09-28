@@ -1351,22 +1351,91 @@ export default function OrdersCardsDashboardV3() {
     {selected && <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-[3px]" onClick={() => setSelected(null)}><aside onClick={(event) => event.stopPropagation()} className="order-detail-drawer absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden bg-[#f5f2ee] shadow-[-24px_0_70px_rgba(0,0,0,.24)]">
       <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--brand-red)] bg-[radial-gradient(circle_at_90%_20%,rgba(229,28,17,.22),transparent_28%),linear-gradient(135deg,#0b0b0c,#171718)] px-5 py-5 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Detalle del pedido</p><h2 className="mt-1 text-2xl font-black">{displayOrderCode(selected)}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="order-detail-date text-xs text-white/55">{dateTime(selected.createdAt)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${fulfillmentTone(selected.fulfillmentType)}`}>{fulfillmentLabel(selected.fulfillmentType)}</span>{selected.fulfillmentType === "DELIVERY" && <span className="order-detail-delivery-fee">{selected.deliveryZoneName || (Number(selected.deliveryFee) > 0 ? money(selected.deliveryFee) : "Sin costo")}</span>}</div></div><button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]"><Icon name="close" /></button></header>
       <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 flex flex-wrap items-center gap-2"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div><button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
-  onClick={() => openCustomerManager(selected)}
-  disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
-  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-700 shadow-[0_6px_18px_rgba(28,23,20,.08)] transition-all duration-150 hover:-translate-y-[1px] hover:border-[var(--brand-red)] hover:text-[var(--brand-red)] hover:shadow-[0_10px_24px_rgba(28,23,20,.12)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-neutral-200 disabled:hover:text-neutral-700"
->
-  <Icon name="edit" />
-  <span>Editar cliente</span>
-</button></div></div></section>
+        {isRappiOrder(selected) && (
+          <section className="mb-3 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[.1em] text-orange-600">Canal externo</p>
+                <h3 className="mt-1 text-lg font-black text-orange-950">Rappi #{selected.integration?.externalOrderId || "—"}</h3>
+              </div>
+              <span className="rounded-full border border-orange-200 bg-white px-3 py-1 text-[9px] font-black uppercase tracking-[0.06em] text-orange-700">
+                {selected.integration?.remoteStatus || "NEW_ORDER"}
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 text-[11px] text-orange-950 sm:grid-cols-2">
+              <div className="rounded-xl border border-orange-100 bg-white/70 px-3 py-2">
+                <span className="block text-[9px] font-black uppercase tracking-[0.06em] text-orange-500">Tienda Rappi</span>
+                <b>{selected.integration?.externalStoreId || "Sin dato"}</b>
+              </div>
+              <div className="rounded-xl border border-orange-100 bg-white/70 px-3 py-2">
+                <span className="block text-[9px] font-black uppercase tracking-[0.06em] text-orange-500">Preparación</span>
+                <b>{selected.integration?.cookingTime ? `${selected.integration.cookingTime} min` : "Según Rappi"}</b>
+              </div>
+            </div>
+            {(selected.integration?.courierName || selected.integration?.courierPhone) && (
+              <div className="mt-2 rounded-xl border border-orange-100 bg-white/70 px-3 py-2 text-[11px] text-orange-950">
+                <span className="block text-[9px] font-black uppercase tracking-[0.06em] text-orange-500">RappiTendero</span>
+                <b>{selected.integration?.courierName || "Asignado"}</b>
+                {selected.integration?.courierPhone ? <span> · {selected.integration.courierPhone}</span> : null}
+                {selected.integration?.courierEtaSeconds != null ? <span> · ETA {Math.max(1, Math.round(selected.integration.courierEtaSeconds / 60))} min</span> : null}
+              </div>
+            )}
+          </section>
+        )}
+        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Cliente</p>
+              <h3 className="order-customer-detail-name mt-1">{orderCustomerName(selected)}</h3>
+              <div className="order-customer-detail-meta">
+                <p>{orderCustomerPhone(selected)}</p>
+                {orderDeliveryAddress(selected) && <p>{orderDeliveryAddress(selected)}</p>}
+              </div>
+              {selected.fulfillmentType === "DELIVERY" && selected.driver && !isRappiOrder(selected) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span>
+                  </div>
+                  <button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button>
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span>
+              {isRappiOrder(selected) ? (
+                <span className="inline-flex h-10 items-center rounded-2xl border border-orange-200 bg-orange-50 px-4 text-[10px] font-black uppercase tracking-[0.05em] text-orange-700">
+                  Datos de Rappi
+                </span>
+              ) : (
+                <button
+                  onClick={() => openCustomerManager(selected)}
+                  disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
+                  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-700 shadow-[0_6px_18px_rgba(28,23,20,.08)] transition-all duration-150 hover:-translate-y-[1px] hover:border-[var(--brand-red)] hover:text-[var(--brand-red)] hover:shadow-[0_10px_24px_rgba(28,23,20,.12)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-neutral-200 disabled:hover:text-neutral-700"
+                >
+                  <Icon name="edit" />
+                  <span>Editar cliente</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
-          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
-          <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
+        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && !isRappiOrder(selected) && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
+          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{isRappiOrder(selected) ? "Cobro administrado por Rappi · no se registra manualmente en Caja" : received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b>{!isRappiOrder(selected) && <button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button>}</div></div></div>; })}</div>
+          {isRappiOrder(selected) ? (
+            <div className="mt-3 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2.5">
+              <span className="block text-[10px] font-bold uppercase text-violet-600">Liquidación externa</span>
+              <b className="mt-1 block text-sm text-violet-950">Rappi administra el cobro de {money(selected.total)}</b>
+              <p className="mt-1 text-[11px] text-violet-700">La conciliación financiera se integrará contra los movimientos que entregue Rappi.</p>
+            </div>
+          ) : (
+            <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
+          )}
         </section>
       </div>
-      <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CANCELED", "COMPLETED"].includes(selected.status) ? <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span> : <button type="button" onClick={() => void openStatusManager(selected)} className="h-11 rounded-xl bg-black text-sm font-black text-white">ESTADOS</button>}</div></footer>
+      <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={isRappiOrder(selected) || ["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CANCELED", "COMPLETED"].includes(selected.status) ? <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span> : <button type="button" onClick={() => void openStatusManager(selected)} className="h-11 rounded-xl bg-black text-sm font-black text-white">ESTADOS</button>}</div></footer>
     </aside></div>}
 
     {confirmAction && <ActionConfirmModal
@@ -1419,12 +1488,13 @@ export default function OrdersCardsDashboardV3() {
         orderCode={displayOrderCode(statusOrder)}
         currentStatus={statusOrder.status}
         fulfillmentType={statusOrder.fulfillmentType}
-        pendingBalance={balance(statusOrder)}
+        pendingBalance={isRappiOrder(statusOrder) ? 0 : balance(statusOrder)}
         busy={statusSaving}
         drivers={statusDrivers}
         assignedDriverId={statusOrder.driver?.id ?? null}
         selectedDriverId={statusSelectedDriverId}
         driverBusy={statusDriverSaving}
+        showDriverManagement={!isRappiOrder(statusOrder)}
         onDriverChange={setStatusSelectedDriverId}
         onConfirmDriver={() => void assignManagedDriver()}
         onUnassignDriver={() => void unassignManagedDriver()}
