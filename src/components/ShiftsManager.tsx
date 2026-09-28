@@ -250,6 +250,43 @@ export default function ShiftsManager() {
     return map;
   }, [filteredShifts]);
 
+  const workerTotals = useMemo(() => {
+    const grouped = new Map<
+      number,
+      {
+        userId: number;
+        name: string;
+        shifts: number;
+        total: number;
+        paid: number;
+        pending: number;
+      }
+    >();
+
+    for (const shift of shifts) {
+      const current = grouped.get(shift.user.id) ?? {
+        userId: shift.user.id,
+        name: shift.user.name,
+        shifts: 0,
+        total: 0,
+        paid: 0,
+        pending: 0,
+      };
+
+      current.shifts += 1;
+      current.total += shift.amount;
+      if (shift.status === "PAID") current.paid += shift.amount;
+      else current.pending += shift.amount;
+
+      grouped.set(shift.user.id, current);
+    }
+
+    return [...grouped.values()].sort(
+      (a, b) => b.total - a.total || a.name.localeCompare(b.name, "es"),
+    );
+  }, [shifts]);
+
+
   const calendarDays = useMemo(() => {
     const [year, monthNumber] = month.split("-").map(Number);
     const first = new Date(year, monthNumber - 1, 1);
@@ -655,7 +692,49 @@ export default function ShiftsManager() {
             </b>
           </div>
 
-          <div className="mt-3 space-y-2">
+          {workerTotals.length > 0 && (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {workerTotals.map((worker) => (
+                <div
+                  key={worker.userId}
+                  className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white " +
+                        employeeColor(worker.userId)
+                      }
+                    >
+                      {initials(worker.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <b className="block truncate text-[11px] text-neutral-950">
+                        {worker.name}
+                      </b>
+                      <span className="text-[8px] text-neutral-400">
+                        {worker.shifts} turno{worker.shifts === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <b className="mt-3 block text-[18px] font-black text-neutral-950">
+                    {money(worker.total)}
+                  </b>
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[8px] font-semibold">
+                    <span className="text-emerald-700">
+                      Pagado {money(worker.paid)}
+                    </span>
+                    <span className="text-amber-700">
+                      Pendiente {money(worker.pending)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-4 space-y-2">
             {filteredShifts.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-[11px] text-neutral-400">
                 No hay turnos para los filtros seleccionados.
