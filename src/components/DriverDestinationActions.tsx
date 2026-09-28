@@ -14,11 +14,6 @@ import {
   createDeliveryMapPinElement,
   createDriverMapPinElement,
 } from "@/lib/alentoMapMarker";
-import {
-  isAlentoNativeDriverApp,
-  openNativeDriverExternalNavigation,
-  setNativeDriverOrderTracking,
-} from "@/lib/nativeDriverApp";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -926,11 +921,6 @@ export default function DriverDestinationActions({
         );
       }
 
-      setNativeDriverOrderTracking({
-        token,
-        orderCode,
-        travelMode,
-      });
       setCameraFollowing(true);
       setNavigationStatus("OUT_FOR_DELIVERY");
       setDepartureProgress(0);
@@ -1052,22 +1042,6 @@ export default function DriverDestinationActions({
 
   function openExternalMapsNavigation() {
     if (!navigation || !googleMapsUrl) return;
-
-    const openedNatively = openNativeDriverExternalNavigation({
-      latitude: navigation.destination.latitude,
-      longitude: navigation.destination.longitude,
-      travelMode: navigation.travelMode,
-    });
-
-    if (openedNatively) return;
-
-    if (isAlentoNativeDriverApp()) {
-      // El APK actual intercepta las navegaciones externas del WebView y las
-      // entrega a Android. location.assign conserva todos los parámetros del
-      // enlace, incluso si el APK instalado todavía no tiene el puente nuevo.
-      window.location.assign(googleMapsUrl);
-      return;
-    }
 
     const popup = window.open(
       googleMapsUrl,
