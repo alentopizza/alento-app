@@ -246,6 +246,9 @@ export async function GET(request: NextRequest) {
     await requireCashSession();
 
     const date = request.nextUrl.searchParams.get("date");
+    const includeMovement =
+      request.nextUrl.searchParams.get("includeMovement") !== "0";
+
     if (!validDate(date)) {
       return NextResponse.json(
         { error: "La fecha de caja no es válida." },
@@ -298,12 +301,13 @@ export async function GET(request: NextRequest) {
         )
       : Math.round(await loanReceivableAt(now));
 
-    const movement = session
-      ? await movementBetween(
-          session.openedAt,
-          session.closedAt ?? now,
-        )
-      : emptyMovement(openingLoansReceivable);
+    const movement =
+      session && includeMovement
+        ? await movementBetween(
+            session.openedAt,
+            session.closedAt ?? now,
+          )
+        : emptyMovement(openingLoansReceivable);
 
     const previousAvailableClose =
       previousClosed?.actualClosingBalance != null
