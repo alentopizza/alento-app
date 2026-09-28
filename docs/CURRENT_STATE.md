@@ -4,7 +4,7 @@
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
-## Corte de producción 2026-09-23
+## Operación productiva vigente
 
 La revisión funcional actual está en `docs/PRODUCTION_READINESS.md`.
 
@@ -21,7 +21,7 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`;
 - la integración POS con Rappi ya está preparada en código, pero permanece deshabilitada hasta recibir credenciales y completar homologación.
 
-Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
+Pendientes de hardening y mejora productiva más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
 
 ## Módulos cerrados
 
@@ -81,9 +81,9 @@ Las integraciones externas no bloquean el núcleo. Chatwoot y el ecosistema What
 - Proyecto EasyPanel: `app_alento`.
 - Servicio: `alento-app`.
 - Base: `alento-db`.
-- URL temporal: `https://pos.alentopizza.com/`.
+- URL productiva: `https://pos.alentopizza.com/`.
 
-`alentopizza.com` continúa servido por Glide mientras se completa la migración futura.
+`pos.alentopizza.com` es el sistema operativo en producción. `alentopizza.com` continúa servido por Glide para la superficie comercial mientras se decide/migra esa parte.
 
 ## Punto de venta — cerrado
 
