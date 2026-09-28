@@ -82,7 +82,8 @@ Ya están implementados, entre otros:
 - impresión térmica de 80 mm;
 - eliminación física controlada de pedidos y pagos;
 - consecutivo comercial global independiente del `Order.id`;
-- códigos visibles como `POS-0001` y, en el futuro, `WEB-0002` compartiendo la misma secuencia.
+- códigos visibles como `POS-0001`, `WEB-0002` y `RAPPI-0003` compartiendo la misma secuencia;
+- integración POS con Rappi preparada en código y deshabilitada hasta homologación.
 
 ## Numeración de pedidos
 
@@ -157,6 +158,7 @@ Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
 - Acceso temporal actual del POS: `https://pos.alentopizza.com/`.
+- Webhook Rappi vigente mientras se mantenga esta infraestructura: `https://pos.alentopizza.com/api/integrations/rappi/webhook`.
 - Dominio comercial principal actual: `alentopizza.com`, todavía servido por Glide.
 
 Los dominios/subdominios actuales deben entenderse como una etapa de transición. La arquitectura objetivo es un solo dominio principal.
@@ -223,6 +225,7 @@ Documentos principales:
 - [`docs/ORDERS.md`](docs/ORDERS.md): comportamiento operativo de pedidos.
 - [`docs/PAYMENTS.md`](docs/PAYMENTS.md): intención de pago, abonos parciales y cuenta dividida.
 - [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md): pagos reales y Caja.
+- [`docs/RAPPI_INTEGRATION.md`](docs/RAPPI_INTEGRATION.md): integración POS con Rappi, variables, webhooks y homologación.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel y Prisma.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): continuidad del proyecto.
 
@@ -273,7 +276,7 @@ Prioridades vigentes:
 8. GPS en vivo del repartidor y tracking cartográfico;
 9. sustituir Glide y migrar `alentopizza.com`;
 10. parametrización/replicabilidad;
-11. integraciones externas al final.
+11. homologar y activar Rappi cuando el proveedor entregue credenciales; otras integraciones externas permanecen futuras.
 
 ## Rutas principales vigentes
 
