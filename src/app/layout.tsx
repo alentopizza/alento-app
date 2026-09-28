@@ -21,7 +21,6 @@ import "./orders-canceled-card.css";
 import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
-import PwaCustomerInstallTracker from "@/components/PwaCustomerInstallTracker";
 import CustomerPushPrompt from "@/components/CustomerPushPrompt";
 
 const ALENTO_ICON =
@@ -66,7 +65,6 @@ export default function RootLayout({
       <body>
         <PwaRegister />
         <PwaInstallPrompt />
-        <PwaCustomerInstallTracker />
         <CustomerPushPrompt />
         <AppShell>{children}</AppShell>
       </body>
