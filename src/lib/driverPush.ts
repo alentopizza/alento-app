@@ -57,6 +57,57 @@ function pushStatusCode(error: unknown) {
   return Number.isFinite(value) ? value : null;
 }
 
+
+export async function migrateLegacyCustomerPushSubscriptions() {
+  const legacy = await prisma.customerPushSubscription.findMany({
+    select: {
+      id: true,
+      customerId: true,
+      endpoint: true,
+      p256dh: true,
+      auth: true,
+      userAgent: true,
+      lastSuccessAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!legacy.length) return 0;
+
+  for (const subscription of legacy) {
+    await prisma.driverPushSubscription.upsert({
+      where: { endpoint: subscription.endpoint },
+      update: {
+        userId: null,
+        customerId: subscription.customerId,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+        userAgent: subscription.userAgent,
+        lastSuccessAt: subscription.lastSuccessAt,
+      },
+      create: {
+        id: subscription.id,
+        userId: null,
+        customerId: subscription.customerId,
+        endpoint: subscription.endpoint,
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
+        userAgent: subscription.userAgent,
+        lastSuccessAt: subscription.lastSuccessAt,
+        createdAt: subscription.createdAt,
+        updatedAt: subscription.updatedAt,
+      },
+    });
+  }
+
+  await prisma.customerPushSubscription.deleteMany({
+    where: { id: { in: legacy.map((item) => item.id) } },
+  });
+
+  return legacy.length;
+}
+
 export async function upsertPushSubscription(input: {
   owner: PushOwner;
   endpoint: string;
@@ -293,6 +344,8 @@ export async function sendStaffPushToRoles(input: {
 export async function sendCustomerPush(
   input: PushMessageInput,
 ): Promise<DriverPushResult> {
+  await migrateLegacyCustomerPushSubscriptions();
+
   const subscriptions = await prisma.driverPushSubscription.findMany({
     where: {
       userId: null,
