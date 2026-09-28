@@ -1,6 +1,7 @@
 import type { UserRole } from "@prisma/client";
 
 export type PushAudience =
+  | "CUSTOMERS"
   | "ALL_STAFF"
   | "DRIVERS"
   | "KITCHEN"
@@ -18,6 +19,7 @@ export type PushActionType =
 export function rolesForPushAudience(
   audience: PushAudience,
 ): UserRole[] {
+  if (audience === "CUSTOMERS") return [];
   if (audience === "DRIVERS") return ["DRIVER", "DISPATCH"];
   if (audience === "KITCHEN") return ["KITCHEN"];
   if (audience === "ADMIN") return ["ADMIN"];
@@ -34,6 +36,7 @@ export function rolesForPushAudience(
 }
 
 export function defaultPushPath(audience: PushAudience) {
+  if (audience === "CUSTOMERS") return "/";
   if (audience === "DRIVERS") return "/repartidor";
   if (audience === "KITCHEN") return "/cocina";
   if (audience === "ADMIN") return "/interno";
@@ -83,6 +86,7 @@ export function isPushAudience(
   value: unknown,
 ): value is PushAudience {
   return [
+    "CUSTOMERS",
     "ALL_STAFF",
     "DRIVERS",
     "KITCHEN",
