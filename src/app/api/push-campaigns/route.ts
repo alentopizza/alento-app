@@ -6,13 +6,8 @@ import {
   staffPushPublicKey,
 } from "@/lib/driverPush";
 import {
-  nativePushClientConfig,
-  sendNativePushToRoles,
-} from "@/lib/nativePush";
-import {
   isPushActionType,
   isPushAudience,
-  isPushChannel,
   normalizePushAction,
   rolesForPushAudience,
   type PushActionType,
@@ -50,24 +45,19 @@ export async function GET() {
     return authError(error);
   }
 
-  const [campaigns, webDevices, androidDevices] = await Promise.all([
+  const [campaigns, webDevices] = await Promise.all([
     prisma.pushCampaign.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
     prisma.driverPushSubscription.count(),
-    prisma.nativePushDevice.count({
-      where: { active: true },
-    }),
   ]);
 
   return NextResponse.json({
     campaigns,
     delivery: {
       webConfigured: Boolean(staffPushPublicKey()),
-      androidConfigured: nativePushClientConfig().configured,
       webDevices,
-      androidDevices,
     },
   });
 }
@@ -87,9 +77,6 @@ export async function POST(request: NextRequest) {
   const imageUrl = text(body?.imageUrl, 1000) || null;
   const audience = String(body?.audience || "") as PushAudience;
   const actionType = String(body?.actionType || "") as PushActionType;
-  const channels = Array.isArray(body?.channels)
-    ? [...new Set(body.channels.map(String))].filter(isPushChannel)
-    : [];
 
   if (!title) {
     return NextResponse.json(
@@ -115,13 +102,6 @@ export async function POST(request: NextRequest) {
   if (!isPushActionType(actionType)) {
     return NextResponse.json(
       { error: "Selecciona qué debe abrir la notificación." },
-      { status: 400 },
-    );
-  }
-
-  if (!channels.length) {
-    return NextResponse.json(
-      { error: "Selecciona PWA, APK o ambos canales." },
       { status: 400 },
     );
   }
@@ -153,7 +133,7 @@ export async function POST(request: NextRequest) {
       body: message,
       imageUrl,
       audience,
-      channels,
+      channels: ["WEB"],
       actionType,
       actionValue: actionValue || null,
       status: "SENDING",
@@ -164,73 +144,43 @@ export async function POST(request: NextRequest) {
 
   const absoluteImage = absoluteImageUrl(request, imageUrl);
   let webTargetCount = 0;
-  let nativeTargetCount = 0;
   let webDeliveredCount = 0;
-  let nativeDeliveredCount = 0;
   let failedCount = 0;
 
-  if (channels.includes("WEB")) {
-    try {
-      const result = await sendStaffPushToRoles({
-        roles,
-        title,
-        body: subtitle ? `${subtitle} · ${message}` : message,
-        url: actionValue,
-        tag: `alento-campaign-${campaign.id}`,
-        kind: "CUSTOM_CAMPAIGN",
-        campaignId: campaign.id,
-        imageUrl: absoluteImage,
-        requireInteraction: true,
-      });
+  try {
+    const result = await sendStaffPushToRoles({
+      roles,
+      title,
+      body: subtitle ? `${subtitle} · ${message}` : message,
+      url: actionValue,
+      tag: `alento-campaign-${campaign.id}`,
+      kind: "CUSTOM_CAMPAIGN",
+      campaignId: campaign.id,
+      imageUrl: absoluteImage,
+      requireInteraction: true,
+    });
 
-      webTargetCount = result.targeted;
-      webDeliveredCount = result.sent;
-      failedCount += result.failed;
-    } catch (error) {
-      failedCount += 1;
-      console.warn("Manual web push campaign failed", {
-        campaignId: campaign.id,
-        error:
-          error instanceof Error ? error.message : "Unknown error",
-      });
-    }
+    webTargetCount = result.targeted;
+    webDeliveredCount = result.sent;
+    failedCount += result.failed;
+  } catch (error) {
+    failedCount += 1;
+    console.warn("Manual PWA push campaign failed", {
+      campaignId: campaign.id,
+      error:
+        error instanceof Error ? error.message : "Unknown error",
+    });
   }
 
-  if (channels.includes("ANDROID")) {
-    try {
-      const result = await sendNativePushToRoles({
-        roles,
-        title,
-        subtitle,
-        body: message,
-        path: actionValue || "/repartidor",
-        campaignId: campaign.id,
-        imageUrl: absoluteImage,
-      });
-
-      nativeTargetCount = result.targeted;
-      nativeDeliveredCount = result.sent;
-      failedCount += result.failed;
-    } catch (error) {
-      failedCount += 1;
-      console.warn("Manual Android push campaign failed", {
-        campaignId: campaign.id,
-        error:
-          error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-
-  const delivered = webDeliveredCount + nativeDeliveredCount;
   const updated = await prisma.pushCampaign.update({
     where: { id: campaign.id },
     data: {
       webTargetCount,
-      nativeTargetCount,
+      nativeTargetCount: 0,
       webDeliveredCount,
-      nativeDeliveredCount,
+      nativeDeliveredCount: 0,
       failedCount,
-      status: delivered > 0 ? "SENT" : "FAILED",
+      status: webDeliveredCount > 0 ? "SENT" : "FAILED",
       sentAt: new Date(),
     },
   });
@@ -239,9 +189,8 @@ export async function POST(request: NextRequest) {
     {
       campaign: updated,
       delivery: {
-        delivered,
+        delivered: webDeliveredCount,
         webDelivered: webDeliveredCount,
-        nativeDelivered: nativeDeliveredCount,
       },
     },
     { status: 201 },
