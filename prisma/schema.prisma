@@ -472,6 +472,7 @@ model Order {
   payments         Payment[]
   clubPoint        ClubPointTransaction?
   notificationJobs NotificationJob[]
+  integration      OrderIntegration?
 
   @@index([customerId])
   @@index([addressId])
@@ -522,6 +523,40 @@ model Payment {
 
   @@index([orderId])
   @@index([status, paidAt])
+}
+
+model OrderIntegration {
+  id                   Int      @id @default(autoincrement())
+  orderId              Int      @unique
+  provider             String
+  externalOrderId      String
+  externalStoreId      String?
+  customerName         String?
+  customerPhone        String?
+  deliveryAddress      String?
+  deliveryNeighborhood String?
+  deliveryCity         String?
+  paymentMethod        String?
+  cookingTime          Int?
+  remoteStatus         String?
+  courierId            String?
+  courierName          String?
+  courierPhone         String?
+  courierEtaSeconds    Int?
+  courierLatitude      Float?
+  courierLongitude     Float?
+  acceptedAt           DateTime?
+  readyAt              DateTime?
+  canceledAt           DateTime?
+  rawPayload           Json?
+  lastEvent            Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalOrderId])
+  @@index([provider, externalStoreId])
+  @@index([remoteStatus])
 }
 
 model CashExpense {
