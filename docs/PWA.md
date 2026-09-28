@@ -59,34 +59,23 @@ El comportamiento exacto depende del navegador y sistema operativo.
 Este bloque no requiere cambios de Prisma ni migraciones.
 
 
-## Web Push para repartidores
+## Web Push
 
-La PWA también puede registrar dispositivos de colaboradores con rol `DRIVER` o `DISPATCH`.
+La PWA usa el mismo motor Web Push para clientes y personal interno.
 
-### Configuración
+Documentación completa:
 
-Genera un par VAPID una sola vez:
+- `docs/PUSH_NOTIFICATIONS.md`
 
-```bash
-npm run push:keys
-```
+Puntos clave:
 
-Configura en producción:
+- endpoint único: `/api/push`;
+- scope cliente: `?scope=customer`;
+- scope interno: `?scope=staff`;
+- una sola PushSubscription puede pertenecer a ambas audiencias;
+- las notificaciones de pedidos se envían exclusivamente al `customerId` propietario;
+- al tocar una notificación transaccional se abre el seguimiento seguro del pedido.
 
-```env
-WEB_PUSH_VAPID_SUBJECT=mailto:admin@alentopizza.com
-WEB_PUSH_VAPID_PUBLIC_KEY=
-WEB_PUSH_VAPID_PRIVATE_KEY=
-```
-
-La clave privada nunca debe enviarse al navegador ni guardarse en el repositorio.
-
-### Flujo inicial
-
-- El repartidor abre **Menú > Notificaciones**.
-- Pulsa **Activar push** y concede permiso al navegador.
-- La suscripción del dispositivo se guarda en `DriverPushSubscription`.
-- Cuando administración asigna un domicilio al repartidor, Alentó envía un push que abre directamente el pedido.
-- Suscripciones expiradas que respondan 404/410 se eliminan automáticamente.
+El sistema ya no rastrea “instalaciones PWA de clientes” como métrica de negocio. El alcance útil se mide por suscripciones Push reales desde el módulo Notificaciones.
 
 En iPhone/iPad, Web Push requiere usar Alentó como web app añadida a la pantalla de inicio y conceder permiso desde esa instalación.
