@@ -21,7 +21,7 @@ export default function DriverPushControl() {
     async function load() {
       try {
         const result = await loadWebPushState(
-          "/api/repartidor/push",
+          "/api/push",
         );
 
         if (disposed) return;
@@ -54,7 +54,7 @@ export default function DriverPushControl() {
 
     try {
       const result = await enableWebPush(
-        "/api/repartidor/push",
+        "/api/push",
         publicKey,
       );
 
@@ -88,7 +88,7 @@ export default function DriverPushControl() {
     setMessage("");
 
     try {
-      await disableWebPush("/api/repartidor/push");
+      await disableWebPush("/api/push");
       setState("off");
       setMessage("Notificaciones desactivadas en este dispositivo.");
     } catch (error) {
