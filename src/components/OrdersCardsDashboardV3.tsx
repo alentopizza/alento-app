@@ -40,6 +40,29 @@ type CustomerSearchResult = {
 };
 type OrderItem = { id: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
 type Payment = { id: number; method: string; amount: number | string; cashReceived: number | string | null; changeDue: number | string | null; status: string; reference?: string | null; paidAt?: string | null; createdAt?: string };
+type OrderIntegration = {
+  provider: string;
+  externalOrderId: string;
+  externalStoreId?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  deliveryAddress?: string | null;
+  deliveryNeighborhood?: string | null;
+  deliveryCity?: string | null;
+  paymentMethod?: string | null;
+  cookingTime?: number | null;
+  remoteStatus?: string | null;
+  courierId?: string | null;
+  courierName?: string | null;
+  courierPhone?: string | null;
+  courierEtaSeconds?: number | null;
+  courierLatitude?: number | null;
+  courierLongitude?: number | null;
+  acceptedAt?: string | null;
+  readyAt?: string | null;
+  canceledAt?: string | null;
+};
+
 type Order = {
   id: number;
   sequenceNumber: number | null;
@@ -58,6 +81,7 @@ type Order = {
   address: CustomerAddress | null;
   driver: { id: number; name: string } | null;
   driverAssignedAt?: string | null;
+  integration?: OrderIntegration | null;
   items: OrderItem[];
   payments: Payment[];
 };
@@ -78,6 +102,15 @@ const activePayments = (order: Order) => order.payments.filter((payment) => paym
 const paidPayments = (order: Order) => order.payments.filter((payment) => payment.status === "PAID");
 const paidAmount = (order: Order) => paidPayments(order).reduce((sum, payment) => sum + Number(payment.amount), 0);
 const balance = (order: Order) => Math.max(0, Number(order.total) - paidAmount(order));
+const isRappiOrder = (order: Order) => order.source === "RAPPI";
+const orderCustomerName = (order: Order) =>
+  order.customer?.name || order.integration?.customerName || "Cliente Rappi";
+const orderCustomerPhone = (order: Order) =>
+  order.customer?.phone
+    ? `${order.customer.countryCode} ${order.customer.phone}`
+    : order.integration?.customerPhone || "Sin teléfono";
+const orderDeliveryAddress = (order: Order) =>
+  order.address?.address || order.integration?.deliveryAddress || "";
 const paidInFull = (order: Order) => balance(order) <= 0 && Number(order.total) > 0;
 const paymentHint = (order: Order) => activePayments(order).find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL")?.method ?? paidPayments(order).at(-1)?.method ?? "Pago";
 const isPizzaItem = (item: OrderItem) => Boolean(
@@ -348,7 +381,7 @@ export default function OrdersCardsDashboardV3() {
     if (filter === "CANCELED" && order.status !== "CANCELED") return false;
     const value = query.trim().toLowerCase();
     if (!value) return true;
-    return [displayOrderCode(order), order.customer?.name, order.customer?.phone, order.driver?.name, statusLabel(order.status), fulfillmentLabel(order.fulfillmentType), paymentHint(order)].filter(Boolean).some((field) => String(field).toLowerCase().includes(value));
+    return [displayOrderCode(order), orderCustomerName(order), orderCustomerPhone(order), order.integration?.externalOrderId, order.integration?.courierName, order.integration?.remoteStatus, order.driver?.name, statusLabel(order.status), fulfillmentLabel(order.fulfillmentType), paymentHint(order)].filter(Boolean).some((field) => String(field).toLowerCase().includes(value));
   }), [orders, filter, query]);
 
   const simpleProducts = useMemo(() => {
