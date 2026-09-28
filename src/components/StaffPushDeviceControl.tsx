@@ -106,6 +106,50 @@ export default function StaffPushDeviceControl({
     }
   }
 
+  async function testPush() {
+    if (busy || !active) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test" }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          body.error || body.reason || "No fue posible enviar la prueba.",
+        );
+      }
+
+      const delivered = Number(body.delivered ?? 0);
+      const targeted = Number(body.targeted ?? 0);
+      const failed = Number(body.failed ?? 0);
+
+      setMessage(
+        delivered > 0
+          ? `Prueba enviada: ${delivered} de ${targeted} suscripción(es) aceptadas.`
+          : targeted === 0
+            ? "Este usuario no tiene suscripciones Push registradas."
+            : `La prueba no fue aceptada por el servicio Push${failed ? ` · ${failed} fallo(s)` : ""}.`,
+      );
+
+      onChanged?.();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No fue posible enviar la prueba.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function disable() {
     if (busy) return;
 
@@ -211,23 +255,36 @@ export default function StaffPushDeviceControl({
       )}
 
       {(state === "off" || state === "on") && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void (active ? disable() : enable())}
-          className={
-            "mt-3 h-10 w-full rounded-xl text-[10px] font-black transition disabled:opacity-50 " +
-            (active
-              ? "border border-neutral-200 bg-white text-neutral-600"
-              : "bg-neutral-950 text-white")
-          }
-        >
-          {busy
-            ? "Procesando..."
-            : active
-              ? "Desactivar en este dispositivo"
-              : "Activar este dispositivo"}
-        </button>
+        <div className="mt-3 grid gap-2">
+          {active && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void testPush()}
+              className="h-10 w-full rounded-xl bg-neutral-950 text-[10px] font-black text-white transition disabled:opacity-50"
+            >
+              {busy ? "Procesando..." : "Enviar prueba Push"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void (active ? disable() : enable())}
+            className={
+              "h-10 w-full rounded-xl text-[10px] font-black transition disabled:opacity-50 " +
+              (active
+                ? "border border-neutral-200 bg-white text-neutral-600"
+                : "bg-neutral-950 text-white")
+            }
+          >
+            {busy
+              ? "Procesando..."
+              : active
+                ? "Desactivar en este dispositivo"
+                : "Activar este dispositivo"}
+          </button>
+        </div>
       )}
     </section>
   );
