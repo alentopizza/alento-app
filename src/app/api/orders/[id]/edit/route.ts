@@ -75,6 +75,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const current = await loadOrder(id);
     if (!current) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (current.source === "RAPPI") {
+      return NextResponse.json(
+        { error: "Los productos y datos comerciales de un pedido Rappi se conservan tal como fueron enviados por Rappi." },
+        { status: 409 },
+      );
+    }
 
     if (!["CONFIRMED", "PREPARING"].includes(current.status)) {
       return NextResponse.json({ error: "Solo se puede editar un pedido antes de marcarlo como Listo." }, { status: 409 });
