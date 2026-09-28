@@ -580,6 +580,11 @@ export default function CashPage() {
   const cashOperationsOpen =
     singleDaySelected && cashDayStatus === "OPEN";
   const selectedSubcategories = cashExpenseSubcategories(expenseCategory);
+  const selectedSummary =
+    summary?.startDate === startDate &&
+    summary?.endDate === endDate
+      ? summary
+      : null;
 
   return (
     <main className="min-h-screen w-full bg-[#f4f4f2] p-3 md:p-5 xl:p-6">
@@ -707,16 +712,16 @@ export default function CashPage() {
         <CashRegisterControl
           businessDate={startDate}
           enabled={singleDaySelected}
-          currentNetMovement={summary?.netTotal ?? 0}
+          currentNetMovement={selectedSummary?.netTotal ?? 0}
           currentMovement={
-            summary
+            selectedSummary
               ? {
-                  received: summary.receivedTotal,
-                  otherIncome: summary.otherIncomeTotal,
-                  expensesTotal: summary.expensesTotal,
-                  loansTotal: summary.loanDisbursedTotal,
-                  recovered: summary.loanRecoveredTotal,
-                  netMovement: summary.netTotal,
+                  received: selectedSummary.receivedTotal,
+                  otherIncome: selectedSummary.otherIncomeTotal,
+                  expensesTotal: selectedSummary.expensesTotal,
+                  loansTotal: selectedSummary.loanDisbursedTotal,
+                  recovered: selectedSummary.loanRecoveredTotal,
+                  netMovement: selectedSummary.netTotal,
                 }
               : null
           }
