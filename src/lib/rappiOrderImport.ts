@@ -36,6 +36,7 @@ export type ParsedRappiOrder = {
   deliveryAddress: string | null;
   deliveryNeighborhood: string | null;
   deliveryCity: string | null;
+  deliveryNotes: string | null;
   deliveryMethod: string | null;
   paymentMethod: string | null;
   cookingTime: number | null;
@@ -268,6 +269,9 @@ export function parseRappiOrder(value: unknown): ParsedRappiOrder {
       firstText(
         customer?.name,
         customer?.full_name,
+        [firstText(customer?.first_name), firstText(customer?.last_name)]
+          .filter(Boolean)
+          .join(" "),
         root.customer_name,
       ) || null,
     customerPhone:
@@ -285,6 +289,13 @@ export function parseRappiOrder(value: unknown): ParsedRappiOrder {
     deliveryNeighborhood:
       firstText(delivery?.neighborhood, delivery?.district) || null,
     deliveryCity: firstText(delivery?.city) || null,
+    deliveryNotes:
+      firstText(
+        delivery?.complement,
+        delivery?.instructions,
+        delivery?.notes,
+        root.delivery_notes,
+      ) || null,
     deliveryMethod,
     paymentMethod:
       firstText(
@@ -484,9 +495,7 @@ export async function importRappiOrder(
         discount: parsed.discount,
         discountSource: parsed.discount > 0 ? "RAPPI" : "NONE",
         total: parsed.total,
-        notes: parsed.deliveryAddress
-          ? `Dirección Rappi: ${parsed.deliveryAddress}`
-          : null,
+        notes: parsed.deliveryNotes,
         items: {
           create: parsed.items.map((item) => {
             const variant = item.sku
