@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import {
+  sendCustomerPush,
   sendStaffPushToRoles,
   staffPushPublicKey,
 } from "@/lib/driverPush";
-import { customerPushPublicKey, sendCustomerPush } from "@/lib/customerPush";
 import {
   isPushActionType,
   isPushAudience,
@@ -79,7 +79,8 @@ export async function GET() {
         },
       },
     }),
-    prisma.customerPushSubscription.findMany({
+    prisma.driverPushSubscription.findMany({
+      where: { userId: null },
       orderBy: { updatedAt: "desc" },
       take: 100,
       select: {
@@ -109,7 +110,7 @@ export async function GET() {
   return NextResponse.json({
     campaigns,
     delivery: {
-      webConfigured: Boolean(staffPushPublicKey() || customerPushPublicKey()),
+      webConfigured: Boolean(staffPushPublicKey()),
       webDevices: subscriptions.length + customerSubscriptions.length,
       staffWebDevices: subscriptions.length,
       customerWebDevices: customerSubscriptions.length,
