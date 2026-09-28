@@ -63,8 +63,6 @@ export async function migrateLegacyCustomerPushSubscriptions() {
     select: {
       id: true,
       customerId: true,
-      staffOptIn: true,
-      customerOptIn: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -81,8 +79,8 @@ export async function migrateLegacyCustomerPushSubscriptions() {
     await prisma.driverPushSubscription.upsert({
       where: { endpoint: subscription.endpoint },
       update: {
-        userId: null,
         customerId: subscription.customerId,
+        customerOptIn: true,
         p256dh: subscription.p256dh,
         auth: subscription.auth,
         userAgent: subscription.userAgent,
@@ -92,6 +90,8 @@ export async function migrateLegacyCustomerPushSubscriptions() {
         id: subscription.id,
         userId: null,
         customerId: subscription.customerId,
+        staffOptIn: false,
+        customerOptIn: true,
         endpoint: subscription.endpoint,
         p256dh: subscription.p256dh,
         auth: subscription.auth,
