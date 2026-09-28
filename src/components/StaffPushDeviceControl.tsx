@@ -9,7 +9,7 @@ import {
   type WebPushCapability,
 } from "@/lib/webPushClient";
 
-const ENDPOINT = "/api/staff/push";
+const ENDPOINT = "/api/push";
 
 type StaffPushUser = {
   id: number;
