@@ -4,6 +4,7 @@ import { readDriverOrderToken } from "@/lib/driverTracking";
 import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 import { calculateDriverEarning } from "@/lib/driverCompensation";
+import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import {
   DRIVER_LOCATION_MAX_AGE_MS,
   distanceMetersBetween,
@@ -374,13 +375,48 @@ export async function POST(
     },
   });
 
+  const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+
+  if (order.customerId) {
+    try {
+      const customerPush = await sendCustomerOrderStatusPush({
+        customerId: order.customerId,
+        orderId: order.id,
+        orderCode: code,
+        status: requested as "OUT_FOR_DELIVERY" | "ARRIVED" | "DELIVERED",
+        fulfillmentType: order.fulfillmentType,
+      });
+
+      if (!customerPush.ok && customerPush.targeted > 0) {
+        console.warn("Driver customer status push", {
+          orderId: order.id,
+          customerId: order.customerId,
+          from: order.status,
+          to: requested,
+          reason: customerPush.reason,
+        });
+      }
+    } catch (pushError) {
+      console.warn("Driver customer status push failed", {
+        orderId: order.id,
+        customerId: order.customerId,
+        from: order.status,
+        to: requested,
+        error:
+          pushError instanceof Error
+            ? pushError.message
+            : "Unknown push error",
+      });
+    }
+  }
+
   if (order.customerId && order.customer?.phone) {
     const result = await dispatchOrderStatusNotification({
       orderId: order.id,
       customerId: order.customerId,
       customerName: order.customer.name,
       phone: `${order.customer.countryCode || "+57"}${order.customer.phone}`,
-      orderCode: `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`,
+      orderCode: code,
       total: Number(order.total),
       fulfillmentType: order.fulfillmentType,
       previousStatus: order.status,
