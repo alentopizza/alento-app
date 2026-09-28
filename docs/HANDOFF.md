@@ -31,6 +31,14 @@ Leer en este orden:
 
 Después revisar commits recientes de `main`.
 
+## Producción vigente
+
+- Dominio productivo canónico: `https://alentopizza.com/`.
+- La raíz `/` es la experiencia pública.
+- Las superficies internas protegidas viven en el mismo dominio: `/interno`, `/pedidos`, `/cocina`, `/caja`, etc.
+- La APK Repartidor 004 también usa `https://alentopizza.com` como `ALENTO_BASE_URL`.
+- No tratar `pos.alentopizza.com` ni Glide como arquitectura productiva vigente aunque sobrevivan referencias históricas en documentos antiguos.
+
 ## Fuente de verdad
 
 Orden de prioridad:
