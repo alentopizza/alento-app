@@ -36,6 +36,7 @@ El sistema está en operación real. Cada ajuste debe priorizar continuidad y co
 ## 3. Fuentes compartidas vigentes
 
 Antes de implementar algo relacionado con estos temas, revisar primero estas fuentes:
+- Caja: el movimiento vivo de la sesión (ventas cobradas, otros ingresos, salidas, préstamos y abonos) debe reutilizar `/api/caja/summary`. `CashRegisterControl` administra apertura/cierre y snapshots; no debe mantener una segunda copia independiente del movimiento vivo.
 
 - Cobertura y tarifa de domicilio: `src/lib/deliveryPricing.ts`.
 - Distancias/rutas auxiliares: librerías de delivery existentes en `src/lib`.
