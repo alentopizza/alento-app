@@ -26,9 +26,7 @@ type Campaign = {
   status: string;
   createdByName: string;
   webTargetCount: number;
-  nativeTargetCount: number;
   webDeliveredCount: number;
-  nativeDeliveredCount: number;
   failedCount: number;
   openedCount: number;
   sentAt: string | null;
@@ -37,9 +35,7 @@ type Campaign = {
 
 type DeliveryState = {
   webConfigured: boolean;
-  androidConfigured: boolean;
   webDevices: number;
-  androidDevices: number;
 };
 
 const audienceOptions = [
@@ -103,9 +99,7 @@ export default function PushCampaignManager() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [delivery, setDelivery] = useState<DeliveryState>({
     webConfigured: false,
-    androidConfigured: false,
     webDevices: 0,
-    androidDevices: 0,
   });
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -118,7 +112,7 @@ export default function PushCampaignManager() {
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [audience, setAudience] = useState("DRIVERS");
-  const [channels, setChannels] = useState<string[]>(["WEB", "ANDROID"]);
+  const [channels, setChannels] = useState<string[]>(["WEB"]);
   const [actionType, setActionType] = useState("APP");
   const [actionValue, setActionValue] = useState("/repartidor");
 
@@ -141,9 +135,7 @@ export default function PushCampaignManager() {
       setDelivery(
         data.delivery ?? {
           webConfigured: false,
-          androidConfigured: false,
           webDevices: 0,
-          androidDevices: 0,
         },
       );
     } catch (loadError) {
@@ -161,17 +153,6 @@ export default function PushCampaignManager() {
     void load();
   }, []);
 
-  const androidAudienceAvailable =
-    audience === "DRIVERS" || audience === "ALL_STAFF";
-
-  useEffect(() => {
-    if (!androidAudienceAvailable) {
-      setChannels((current) =>
-        current.filter((channel) => channel !== "ANDROID"),
-      );
-    }
-  }, [androidAudienceAvailable]);
-
   useEffect(() => {
     if (actionType !== "SECTION") return;
     if (audience === "DRIVERS") setActionValue("/repartidor");
@@ -184,9 +165,7 @@ export default function PushCampaignManager() {
     () =>
       campaigns.reduce(
         (sum, campaign) =>
-          sum +
-          campaign.webDeliveredCount +
-          campaign.nativeDeliveredCount,
+          sum + campaign.webDeliveredCount,
         0,
       ),
     [campaigns],
@@ -200,14 +179,6 @@ export default function PushCampaignManager() {
       ),
     [campaigns],
   );
-
-  function toggleChannel(channel: string) {
-    setChannels((current) =>
-      current.includes(channel)
-        ? current.filter((item) => item !== channel)
-        : [...current, channel],
-    );
-  }
 
   async function uploadImage(file: File) {
     setUploading(true);
@@ -312,7 +283,7 @@ export default function PushCampaignManager() {
               Centro Push
             </p>
             <h1 className="mt-1 text-[28px] font-black tracking-[-.04em]">
-              Notificaciones APK + PWA
+              Notificaciones PWA
             </h1>
             <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-white/55">
               Envía mensajes manuales al equipo y conserva métricas de
@@ -493,36 +464,13 @@ export default function PushCampaignManager() {
                 <span className="text-[11px] font-bold text-neutral-700">
                   Canales
                 </span>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                <div className="mt-1.5 grid grid-cols-1 gap-2">
                   <button
                     type="button"
-                    onClick={() => toggleChannel("WEB")}
-                    className={
-                      "h-11 rounded-xl border text-[10px] font-black " +
-                      (channels.includes("WEB")
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-200 bg-white text-neutral-500")
-                    }
+                    disabled
+                    className="h-11 rounded-xl border border-neutral-950 bg-neutral-950 text-[10px] font-black text-white"
                   >
                     PWA · {delivery.webDevices}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!androidAudienceAvailable}
-                    onClick={() => toggleChannel("ANDROID")}
-                    title={
-                      androidAudienceAvailable
-                        ? "Enviar a la APK oficial de Repartidor"
-                        : "La APK 004 pertenece únicamente a Repartidores"
-                    }
-                    className={
-                      "h-11 rounded-xl border text-[10px] font-black disabled:cursor-not-allowed disabled:opacity-35 " +
-                      (channels.includes("ANDROID")
-                        ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]"
-                        : "border-neutral-200 bg-white text-neutral-500")
-                    }
-                  >
-                    APK · {delivery.androidDevices}
                   </button>
                 </div>
               </div>
@@ -632,9 +580,9 @@ export default function PushCampaignManager() {
 
           <section className="rounded-[26px] border border-neutral-200 bg-white p-4">
             <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
-              Estado de canales
+              Estado de canal
             </p>
-            <div className="mt-3 grid gap-2">
+            <div className="mt-3">
               <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3">
                 <span className="flex items-center gap-2 text-[11px] font-bold">
                   <BellRing className="h-4 w-4" />
@@ -651,25 +599,6 @@ export default function PushCampaignManager() {
                   {delivery.webConfigured
                     ? `${delivery.webDevices} dispositivos`
                     : "Sin configurar"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3">
-                <span className="flex items-center gap-2 text-[11px] font-bold">
-                  <Smartphone className="h-4 w-4" />
-                  APK Repartidor 004
-                </span>
-                <span
-                  className={
-                    "rounded-full px-2 py-1 text-[9px] font-black " +
-                    (delivery.androidConfigured
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-amber-100 text-amber-700")
-                  }
-                >
-                  {delivery.androidConfigured
-                    ? `${delivery.androidDevices} dispositivos`
-                    : "Firebase pendiente"}
                 </span>
               </div>
             </div>
@@ -709,11 +638,8 @@ export default function PushCampaignManager() {
         ) : (
           <div className="mt-4 space-y-2">
             {campaigns.map((campaign) => {
-              const target =
-                campaign.webTargetCount + campaign.nativeTargetCount;
-              const delivered =
-                campaign.webDeliveredCount +
-                campaign.nativeDeliveredCount;
+              const target = campaign.webTargetCount;
+              const delivered = campaign.webDeliveredCount;
               const openRate =
                 delivered > 0
                   ? Math.round((campaign.openedCount / delivered) * 100)
@@ -751,7 +677,7 @@ export default function PushCampaignManager() {
                       <span>·</span>
                       <span>{campaign.createdByName}</span>
                       <span>·</span>
-                      <span>{campaign.channels.join(" + ")}</span>
+                      <span>PWA</span>
                       <span>·</span>
                       <span>{actionLabel(campaign)}</span>
                     </div>
