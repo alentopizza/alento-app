@@ -452,18 +452,26 @@ export async function importRappiOrder(
   const existing = await orderFromIntegration(parsed.externalOrderId);
 
   if (existing) {
+    const incomingEvent = options?.eventName?.trim() || "";
+    const preserveProgress =
+      Boolean(existing.acceptedAt) ||
+      Boolean(existing.readyAt) ||
+      Boolean(existing.canceledAt);
+
     await prisma.orderIntegration.update({
       where: { id: existing.id },
       data: {
         rawPayload: jsonValue(value),
-        lastEvent: options?.eventName
+        lastEvent: incomingEvent
           ? jsonValue({
-              event: options.eventName,
+              event: incomingEvent,
               payload: value,
             })
           : undefined,
         remoteStatus:
-          options?.eventName?.trim() || existing.remoteStatus,
+          preserveProgress && ["NEW_ORDER", "MANUAL_SYNC"].includes(incomingEvent)
+            ? existing.remoteStatus
+            : incomingEvent || existing.remoteStatus,
       },
     });
 
