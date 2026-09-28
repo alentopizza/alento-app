@@ -1,6 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { sendRappiOrderCreatedPush } from "@/lib/kitchenPush";
+import {
+  sendRappiKitchenOrderCreatedPush,
+  sendRappiOrderCreatedPush,
+} from "@/lib/kitchenPush";
 import { orderCode } from "@/lib/orderCode";
 import {
   rappiConfig,
@@ -388,29 +391,40 @@ async function sendImportedOrderAlert(order: {
   source: string;
   fulfillmentType: "DELIVERY" | "PICKUP" | "STORE";
 }) {
-  try {
-    const result = await sendRappiOrderCreatedPush({
-      orderId: order.id,
-      orderCode: orderCode(
-        order.sequenceNumber ?? order.id,
-        order.source,
-      ),
-      fulfillmentType: order.fulfillmentType,
-    });
+  const payload = {
+    orderId: order.id,
+    orderCode: orderCode(
+      order.sequenceNumber ?? order.id,
+      order.source,
+    ),
+    fulfillmentType: order.fulfillmentType,
+  };
 
-    if (!result.ok) {
-      console.warn("Rappi order operations push", {
+  const results = await Promise.allSettled([
+    sendRappiOrderCreatedPush(payload),
+    sendRappiKitchenOrderCreatedPush(payload),
+  ]);
+
+  results.forEach((result, index) => {
+    const channel = index === 0 ? "operations" : "kitchen";
+    if (result.status === "rejected") {
+      console.warn(`Rappi order ${channel} push failed`, {
         orderId: order.id,
-        reason: result.reason,
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : "Unknown push error",
+      });
+      return;
+    }
+
+    if (!result.value.ok) {
+      console.warn(`Rappi order ${channel} push`, {
+        orderId: order.id,
+        reason: result.value.reason,
       });
     }
-  } catch (error) {
-    console.warn("Rappi order operations push failed", {
-      orderId: order.id,
-      error:
-        error instanceof Error ? error.message : "Unknown push error",
-    });
-  }
+  });
 }
 
 async function autoAcceptIfEnabled(input: {
