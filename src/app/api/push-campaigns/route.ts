@@ -45,13 +45,25 @@ export async function GET() {
     return authError(error);
   }
 
-  const [campaigns, webDevices] = await Promise.all([
+  const [campaignRows, webDevices] = await Promise.all([
     prisma.pushCampaign.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
+      include: {
+        opens: {
+          where: { channel: "WEB" },
+          select: { id: true },
+        },
+      },
     }),
     prisma.driverPushSubscription.count(),
   ]);
+
+  const campaigns = campaignRows.map(({ opens, ...campaign }) => ({
+    ...campaign,
+    channels: ["WEB"],
+    openedCount: opens.length,
+  }));
 
   return NextResponse.json({
     campaigns,
