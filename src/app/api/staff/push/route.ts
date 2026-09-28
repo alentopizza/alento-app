@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireStaffSession } from "@/lib/auth";
 import {
   removeStaffPushSubscription,
+  sendDriverPush,
   staffPushPublicKey,
   upsertStaffPushSubscription,
 } from "@/lib/driverPush";
@@ -46,6 +47,24 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const action = String(body?.action || "").trim().toLowerCase();
+
+  if (action === "test") {
+    const result = await sendDriverPush({
+      driverId: session.userId,
+      title: "Prueba Push",
+      body: "Las notificaciones PWA de Alentó están funcionando en este usuario.",
+      url: "/notificaciones",
+      tag: "alento-push-test",
+    });
+
+    return NextResponse.json({
+      ok: result.ok,
+      targeted: result.targeted,
+      delivered: result.sent,
+      failed: result.failed,
+      reason: result.reason ?? null,
+    });
+  }
 
   if (action === "unsubscribe") {
     const endpoint = String(body?.endpoint || "").trim();
