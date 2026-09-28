@@ -130,6 +130,19 @@ function bogotaIso(value: string) {
   return new Date(`${value}:00-05:00`).toISOString();
 }
 
+function datePart(value: string) {
+  return value.includes("T") ? value.split("T")[0] : "";
+}
+
+function timePart(value: string) {
+  return value.includes("T") ? value.split("T")[1] : "";
+}
+
+function combineDateTime(date: string, time: string) {
+  if (!date && !time) return "";
+  return `${date || ""}T${time || ""}`;
+}
+
 function employeeColor(userId: number) {
   return EMPLOYEE_COLORS[Math.abs(userId) % EMPLOYEE_COLORS.length];
 }
@@ -859,43 +872,137 @@ export default function ShiftsManager() {
                   </div>
                 </label>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label>
-                    <span className="text-[11px] font-bold text-neutral-700">
-                      Fecha y hora de entrada
-                    </span>
-                    <input
-                      required
-                      type="datetime-local"
-                      value={editor.startsAt}
-                      onChange={(event) =>
-                        setEditor({
-                          ...editor,
-                          startsAt: event.target.value,
-                        })
-                      }
-                      className="alento-input mt-2 h-12 w-full rounded-xl px-3 text-sm"
-                    />
-                  </label>
+                <section className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="h-4 w-4 text-[var(--brand-red)]" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[.12em] text-neutral-500">
+                        Horario
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-neutral-400">
+                        Selecciona primero la fecha y luego la hora.
+                      </p>
+                    </div>
+                  </div>
 
-                  <label>
-                    <span className="text-[11px] font-bold text-neutral-700">
-                      Fecha y hora de salida
-                    </span>
-                    <input
-                      required
-                      type="datetime-local"
-                      value={editor.endsAt}
-                      onChange={(event) =>
-                        setEditor({
-                          ...editor,
-                          endsAt: event.target.value,
-                        })
-                      }
-                      className="alento-input mt-2 h-12 w-full rounded-xl px-3 text-sm"
-                    />
-                  </label>
-                </div>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-3.5">
+                      <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-500">
+                        Entrada
+                      </p>
+
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
+                        <label>
+                          <span className="text-[10px] font-bold text-neutral-600">
+                            Fecha
+                          </span>
+                          <input
+                            required
+                            type="date"
+                            value={datePart(editor.startsAt)}
+                            onChange={(event) => {
+                              const nextDate = event.target.value;
+                              const nextStart = combineDateTime(
+                                nextDate,
+                                timePart(editor.startsAt),
+                              );
+                              const shouldCopyDate =
+                                !datePart(editor.endsAt) ||
+                                datePart(editor.endsAt) ===
+                                  datePart(editor.startsAt);
+
+                              setEditor({
+                                ...editor,
+                                startsAt: nextStart,
+                                endsAt: shouldCopyDate
+                                  ? combineDateTime(
+                                      nextDate,
+                                      timePart(editor.endsAt),
+                                    )
+                                  : editor.endsAt,
+                              });
+                            }}
+                            className="alento-input mt-1.5 h-12 w-full rounded-xl px-3 text-sm font-semibold"
+                          />
+                        </label>
+
+                        <label>
+                          <span className="text-[10px] font-bold text-neutral-600">
+                            Hora
+                          </span>
+                          <input
+                            required
+                            type="time"
+                            step={300}
+                            value={timePart(editor.startsAt)}
+                            onChange={(event) =>
+                              setEditor({
+                                ...editor,
+                                startsAt: combineDateTime(
+                                  datePart(editor.startsAt),
+                                  event.target.value,
+                                ),
+                              })
+                            }
+                            className="alento-input mt-1.5 h-12 w-full rounded-xl px-3 text-sm font-black"
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-neutral-200 bg-white p-3.5">
+                      <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-500">
+                        Salida
+                      </p>
+
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
+                        <label>
+                          <span className="text-[10px] font-bold text-neutral-600">
+                            Fecha
+                          </span>
+                          <input
+                            required
+                            type="date"
+                            value={datePart(editor.endsAt)}
+                            onChange={(event) =>
+                              setEditor({
+                                ...editor,
+                                endsAt: combineDateTime(
+                                  event.target.value,
+                                  timePart(editor.endsAt),
+                                ),
+                              })
+                            }
+                            className="alento-input mt-1.5 h-12 w-full rounded-xl px-3 text-sm font-semibold"
+                          />
+                        </label>
+
+                        <label>
+                          <span className="text-[10px] font-bold text-neutral-600">
+                            Hora
+                          </span>
+                          <input
+                            required
+                            type="time"
+                            step={300}
+                            value={timePart(editor.endsAt)}
+                            onChange={(event) =>
+                              setEditor({
+                                ...editor,
+                                endsAt: combineDateTime(
+                                  datePart(editor.endsAt) ||
+                                    datePart(editor.startsAt),
+                                  event.target.value,
+                                ),
+                              })
+                            }
+                            className="alento-input mt-1.5 h-12 w-full rounded-xl px-3 text-sm font-black"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
                 <label>
                   <span className="text-[11px] font-bold text-neutral-700">
