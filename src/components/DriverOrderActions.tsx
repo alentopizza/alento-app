@@ -8,10 +8,6 @@ import {
   normalizeDeliveryTravelMode,
   type DeliveryTravelMode,
 } from "@/lib/deliveryTravelMode";
-import {
-  clearNativeDriverOrderTracking,
-  setNativeDriverOrderTracking,
-} from "@/lib/nativeDriverApp";
 
 type ChecklistItem = {
   id: number;
@@ -334,17 +330,9 @@ export default function DriverOrderActions({
 
       if (next === "OUT_FOR_DELIVERY") {
         setCheckedIds([]);
-        if (travelMode) {
-          setNativeDriverOrderTracking({
-            token,
-            orderCode,
-            travelMode,
-          });
-        }
       }
 
       if (next === "DELIVERED") {
-        clearNativeDriverOrderTracking();
         if (locationWatchRef.current != null) {
           navigator.geolocation.clearWatch(locationWatchRef.current);
           locationWatchRef.current = null;
