@@ -7,44 +7,71 @@ import {
   upsertPushSubscription,
 } from "@/lib/driverPush";
 
-export async function GET() {
+type PushScope = "staff" | "customer";
+
+function resolveScope(request: NextRequest): PushScope {
+  return request.nextUrl.searchParams.get("scope") === "staff"
+    ? "staff"
+    : "customer";
+}
+
+export async function GET(request: NextRequest) {
+  const scope = resolveScope(request);
   const [staffSession, customerSession] = await Promise.all([
     getStaffSession(),
     getCustomerSession(),
   ]);
+
+  if (scope === "staff" && !staffSession) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
 
   const publicKey = pushPublicKey();
 
   return NextResponse.json({
     configured: Boolean(publicKey),
     publicKey,
-    user: staffSession
-      ? {
-          id: staffSession.userId,
-          name: staffSession.name,
-          email: staffSession.email,
-          roles: staffSession.roles,
-        }
-      : null,
-    customerId: customerSession?.customerId ?? null,
+    scope,
+    user:
+      scope === "staff" && staffSession
+        ? {
+            id: staffSession.userId,
+            name: staffSession.name,
+            email: staffSession.email,
+            roles: staffSession.roles,
+          }
+        : null,
+    customerId:
+      scope === "customer"
+        ? customerSession?.customerId ?? null
+        : null,
   });
 }
 
 export async function POST(request: NextRequest) {
+  const scope = resolveScope(request);
   const [staffSession, customerSession] = await Promise.all([
     getStaffSession(),
     getCustomerSession(),
   ]);
 
-  const owner = staffSession
-    ? ({ kind: "staff", userId: staffSession.userId } as const)
-    : ({ kind: "customer", customerId: customerSession?.customerId ?? null } as const);
+  if (scope === "staff" && !staffSession) {
+    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  }
+
+  const owner =
+    scope === "staff"
+      ? ({ kind: "staff", userId: staffSession!.userId } as const)
+      : ({
+          kind: "customer",
+          customerId: customerSession?.customerId ?? null,
+        } as const);
 
   const body = await request.json().catch(() => ({}));
   const action = String(body?.action || "").trim().toLowerCase();
 
   if (action === "test") {
-    if (!staffSession) {
+    if (scope !== "staff" || !staffSession) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 });
     }
 
