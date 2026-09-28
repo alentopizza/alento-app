@@ -23,3 +23,20 @@ export async function sendKitchenOrderCreatedPush(input: {
     requireInteraction: true,
   });
 }
+
+export async function sendRappiOrderCreatedPush(input: {
+  orderId: number;
+  orderCode: string;
+  fulfillmentType: FulfillmentType;
+}) {
+  return sendStaffPushToRoles({
+    roles: ["ADMIN", "POS", "CASHIER", "KITCHEN"],
+    title: "🛵 Nuevo pedido de Rappi",
+    body: `${input.orderCode} · ${fulfillmentText(input.fulfillmentType)}`,
+    url: "/pedidos",
+    tag: `alento-rappi-order-${input.orderId}`,
+    orderId: input.orderId,
+    kind: "RAPPI_ORDER",
+    requireInteraction: true,
+  });
+}
