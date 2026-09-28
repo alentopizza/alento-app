@@ -52,21 +52,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const record = await prisma.notificationImage.create({
-    data: {
-      filename: file.name.slice(0, 180) || "push",
-      contentType: file.type,
-      data: Buffer.from(await file.arrayBuffer()),
-      sizeBytes: file.size,
-    },
-    select: { id: true },
-  });
+  try {
+    const record = await prisma.notificationImage.create({
+      data: {
+        filename: file.name.slice(0, 180) || "push",
+        contentType: file.type,
+        data: Buffer.from(await file.arrayBuffer()),
+        sizeBytes: file.size,
+      },
+      select: { id: true },
+    });
 
-  return NextResponse.json(
-    {
-      ok: true,
-      url: `/api/notification-images/${record.id}`,
-    },
-    { status: 201 },
-  );
+    return NextResponse.json(
+      {
+        ok: true,
+        url: `/api/notification-images/${record.id}`,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.warn("Push campaign image upload failed", {
+      error:
+        error instanceof Error ? error.message : "Unknown upload error",
+    });
+
+    return NextResponse.json(
+      {
+        error:
+          "No fue posible guardar la imagen de la notificación. Intenta nuevamente.",
+      },
+      { status: 500 },
+    );
+  }
 }
