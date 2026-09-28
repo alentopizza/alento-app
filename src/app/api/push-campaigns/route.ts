@@ -5,6 +5,7 @@ import {
   sendStaffPushToRoles,
   staffPushPublicKey,
 } from "@/lib/driverPush";
+import { customerPushPublicKey, sendCustomerPush } from "@/lib/customerPush";
 import {
   isPushActionType,
   isPushAudience,
@@ -45,7 +46,7 @@ export async function GET() {
     return authError(error);
   }
 
-  const [campaignRows, subscriptions] = await Promise.all([
+  const [campaignRows, subscriptions, customerSubscriptions] = await Promise.all([
     prisma.pushCampaign.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -78,6 +79,25 @@ export async function GET() {
         },
       },
     }),
+    prisma.customerPushSubscription.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        userAgent: true,
+        lastSuccessAt: true,
+        createdAt: true,
+        updatedAt: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const campaigns = campaignRows.map(({ opens, ...campaign }) => ({
@@ -89,9 +109,12 @@ export async function GET() {
   return NextResponse.json({
     campaigns,
     delivery: {
-      webConfigured: Boolean(staffPushPublicKey()),
-      webDevices: subscriptions.length,
+      webConfigured: Boolean(staffPushPublicKey() || customerPushPublicKey()),
+      webDevices: subscriptions.length + customerSubscriptions.length,
+      staffWebDevices: subscriptions.length,
+      customerWebDevices: customerSubscriptions.length,
       devices: subscriptions,
+      customerDevices: customerSubscriptions,
     },
   });
 }
@@ -182,8 +205,8 @@ export async function POST(request: NextRequest) {
   let failedCount = 0;
 
   try {
-    const result = await sendStaffPushToRoles({
-      roles,
+    const result = audience === "CUSTOMERS"
+      ? await sendCustomerPush({
       title,
       body: subtitle ? `${subtitle} · ${message}` : message,
       url: actionValue,
@@ -192,7 +215,18 @@ export async function POST(request: NextRequest) {
       campaignId: campaign.id,
       imageUrl: absoluteImage,
       requireInteraction: true,
-    });
+    })
+      : await sendStaffPushToRoles({
+          roles,
+          title,
+          body: subtitle ? `${subtitle} · ${message}` : message,
+          url: actionValue,
+          tag: `alento-campaign-${campaign.id}`,
+          kind: "CUSTOM_CAMPAIGN",
+          campaignId: campaign.id,
+          imageUrl: absoluteImage,
+          requireInteraction: true,
+        });
 
     webTargetCount = result.targeted;
     webDeliveredCount = result.sent;
