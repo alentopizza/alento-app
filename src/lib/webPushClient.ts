@@ -50,6 +50,20 @@ function subscriptionUsesPublicKey(
   return true;
 }
 
+async function removeStoredSubscription(
+  endpoint: string,
+  subscriptionEndpoint: string,
+) {
+  await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "unsubscribe",
+      endpoint: subscriptionEndpoint,
+    }),
+  }).catch(() => undefined);
+}
+
 async function syncSubscription(
   endpoint: string,
   subscription: PushSubscription,
@@ -159,6 +173,7 @@ export async function enableWebPush(
     subscription &&
     !subscriptionUsesPublicKey(subscription, publicKey)
   ) {
+    await removeStoredSubscription(endpoint, subscription.endpoint);
     await subscription.unsubscribe().catch(() => undefined);
     subscription = null;
   }
