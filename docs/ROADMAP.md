@@ -14,7 +14,7 @@ Inventario/Costos     ⏳ FUTURO
 Experiencia pública   ✅ CHECKOUT + SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA
 Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
 Producción             🟡 HARDENING Y VALIDACIÓN
-Integraciones externas 🔒 OPCIONALES / ALENTÓ-ESPECÍFICAS
+Integraciones externas 🟡 RAPPI PREPARADA / HOMOLOGACIÓN PENDIENTE
 ```
 
 Los módulos cerrados pueden recibir correcciones de bugs y pequeños ajustes de UX, pero no deben reabrirse como fase de diseño sin una solicitud explícita.
@@ -137,24 +137,37 @@ Roles iniciales propuestos:
 - sustitución de Glide;
 - migración de `alentopizza.com`;
 - parametrización para replicar/comercializar;
-- integraciones externas al final.
+- homologación y activación de Rappi;
+- otras integraciones externas después.
 
 ---
 
 # Integraciones
 
-Estado: **ÚLTIMA FASE DEL DESARROLLO**
+## Rappi
 
-No existe integración activa con Rappi/DiDi en el código actual.
+Estado: **PREPARADA EN CÓDIGO / PENDIENTE DE HOMOLOGACIÓN**.
 
-No reintroducir la implementación experimental sin:
+La integración POS oficial de Rappi ya cuenta con:
 
-- credenciales/API oficial;
-- flujo aprobado por proveedor;
-- estrategia de catálogo;
-- estrategia de estados;
-- conciliación financiera;
-- pruebas aisladas.
+- OAuth del servidor;
+- Store ID `900489414`;
+- webhook firmado;
+- importación idempotente;
+- aceptación del pedido;
+- aviso de pedido listo;
+- cancelaciones/eventos operativos;
+- alertas Push/sonido;
+- integración visual con Pedidos y Cocina;
+- aislamiento del cobro Rappi respecto de Caja.
+
+Permanece deshabilitada con `RAPPI_ENABLED=false` hasta recibir credenciales y completar pruebas con el ambiente asignado por Rappi.
+
+Referencia: `docs/RAPPI_INTEGRATION.md`.
+
+## Otras integraciones
+
+DiDi y otros proveedores continúan como integraciones futuras. No implementar nuevos conectores sin API oficial, credenciales, estrategia de catálogo/estados, conciliación y pruebas aisladas.
 
 ---
 
