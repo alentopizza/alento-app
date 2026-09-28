@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
+import { sendCustomerOrderCreatedPush } from "@/lib/customerOrderPush";
 import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
@@ -314,6 +315,35 @@ export async function POST(request: NextRequest) {
       } catch (pushError) {
         console.warn("Kitchen new-order push failed", {
           orderId: order.id,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
+        });
+      }
+    }
+
+    if (customer?.id) {
+      try {
+        const customerPush = await sendCustomerOrderCreatedPush({
+          customerId: customer.id,
+          orderId: order.id,
+          orderCode: code,
+          status: order.status,
+          fulfillmentType: order.fulfillmentType,
+        });
+
+        if (!customerPush.ok && customerPush.targeted > 0) {
+          console.warn("Customer order created push", {
+            orderId: order.id,
+            customerId: customer.id,
+            reason: customerPush.reason,
+          });
+        }
+      } catch (pushError) {
+        console.warn("Customer order created push failed", {
+          orderId: order.id,
+          customerId: customer.id,
           error:
             pushError instanceof Error
               ? pushError.message
