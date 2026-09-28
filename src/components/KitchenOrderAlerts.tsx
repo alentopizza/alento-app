@@ -9,7 +9,7 @@ import {
   type WebPushCapability,
 } from "@/lib/webPushClient";
 
-const PUSH_ENDPOINT = "/api/cocina/push";
+const PUSH_ENDPOINT = "/api/push";
 const SOUND_KEY = "alento-kitchen-order-sound";
 
 type AudioWindow = Window & {
