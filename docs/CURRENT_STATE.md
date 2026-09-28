@@ -81,9 +81,9 @@ Las integraciones externas no bloquean el núcleo. Chatwoot y el ecosistema What
 - Proyecto EasyPanel: `app_alento`.
 - Servicio: `alento-app`.
 - Base: `alento-db`.
-- URL productiva: `https://pos.alentopizza.com/`.
+- URL productiva canónica: `https://alentopizza.com/`.
 
-`pos.alentopizza.com` es el sistema operativo en producción. `alentopizza.com` continúa servido por Glide para la superficie comercial mientras se decide/migra esa parte.
+La experiencia pública y el sistema interno protegido operan en la misma aplicación productiva bajo `alentopizza.com`.
 
 ## Punto de venta — cerrado
 
@@ -301,10 +301,10 @@ Estado vigente:
 - pagos Rappi aislados de la Caja física;
 - integración deshabilitada por defecto con `RAPPI_ENABLED=false`.
 
-Mientras Alentó App siga operando en `pos.alentopizza.com`, el webhook a registrar con Rappi es:
+El webhook productivo a registrar con Rappi es:
 
 ```text
-https://pos.alentopizza.com/api/integrations/rappi/webhook
+https://alentopizza.com/api/integrations/rappi/webhook
 ```
 
 La activación depende de que Rappi entregue `client_id`, `client_secret`, secreto(s) de webhook y los valores de homologación necesarios.
@@ -344,7 +344,7 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 La base de producción no tiene baseline formal de Prisma Migrate.
 
-El start actual todavía ejecuta `prisma db push`. Antes de producción estable debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
+El start actual todavía ejecuta `prisma db push`. Como endurecimiento de producción debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
 
 No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
@@ -364,7 +364,6 @@ Pendientes estratégicos conocidos:
 - rentabilidad;
 - mejoras futuras de Menú: tipos de producto y modificadores;
 - validación productiva de la experiencia pública ya implementada;
-- sustitución de Glide donde todavía aplique;
 - homologación y activación de Rappi;
 - DiDi y otras integraciones externas solo como extensiones opcionales.
 
