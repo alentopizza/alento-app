@@ -51,8 +51,8 @@ Antes de implementar algo relacionado con estos temas, revisar primero estas fue
 - Tokens de seguimiento: `src/lib/orderTracking.ts`.
 - Web Push del personal: `src/lib/driverPush.ts` como motor server-side compartido y `src/lib/webPushClient.ts` como cliente compartido.
 - Alertas de nuevos pedidos en Cocina: `src/lib/kitchenPush.ts` + `src/components/KitchenOrderAlerts.tsx`.
-- Push nativo APK Repartidor: `src/lib/nativePush.ts` + `android-driver/.../NativePushManager.kt` + `AlentoFirebaseMessagingService.kt`.
-- Campañas manuales APK/PWA: `src/lib/pushCampaigns.ts` + `src/components/PushCampaignManager.tsx` + `/api/push-campaigns`.
+- Campañas manuales PWA: `src/lib/pushCampaigns.ts` + `src/components/PushCampaignManager.tsx` + `/api/push-campaigns`.
+- Repartidor oficial: PWA en `/repartidor`; ubicación vía `navigator.geolocation.watchPosition()` y `/api/repartidor/location`. No crear un camino Android/nativo paralelo.
 - Arquitectura canónica de notificaciones Push: `docs/PUSH_NOTIFICATIONS.md`.
 
 
