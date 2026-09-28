@@ -112,7 +112,7 @@ export default function PushCampaignManager() {
   const [body, setBody] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [audience, setAudience] = useState("DRIVERS");
-  const [channels, setChannels] = useState<string[]>(["WEB"]);
+  const channels = ["WEB"];
   const [actionType, setActionType] = useState("APP");
   const [actionValue, setActionValue] = useState("/repartidor");
 
