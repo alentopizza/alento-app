@@ -28,13 +28,37 @@ function firstText(...values: unknown[]) {
 }
 
 function webhookEvent(body: JsonObject) {
-  return firstText(
+  const explicit = firstText(
     body.event,
     body.event_type,
     body.eventType,
     body.type,
     body.name,
   );
+  if (explicit) return explicit;
+
+  const detail = asObject(body.order_detail) ?? asObject(body.orderDetail);
+  const action = firstText(body.action).toLowerCase();
+
+  if (action === "scheduled" && Array.isArray(detail?.items)) {
+    return "NEW_ORDER_SCHEDULED";
+  }
+  if (action === "cancelled" && detail?.place_at) {
+    return "NEW_ORDER_SCHEDULED_CANCELLED";
+  }
+  if (Array.isArray(detail?.items)) {
+    return "NEW_ORDER";
+  }
+  if (
+    body.order_id != null &&
+    body.eta_in_millis != null &&
+    body.lat != null &&
+    body.lng != null
+  ) {
+    return "ORDER_RT_TRACKING";
+  }
+
+  return "";
 }
 
 function orderPayload(body: JsonObject) {
@@ -62,11 +86,7 @@ function isPing(body: JsonObject, eventName: string) {
 }
 
 function isNewOrderEvent(eventName: string) {
-  const normalized = eventName.trim().toUpperCase();
-  return (
-    normalized === "NEW_ORDER" ||
-    normalized === "NEW_ORDER_SCHEDULED"
-  );
+  return eventName.trim().toUpperCase() === "NEW_ORDER";
 }
 
 function isCancellationEvent(eventName: string) {
@@ -128,6 +148,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (eventName.toUpperCase() === "NEW_ORDER_SCHEDULED") {
+      // Rappi envía este aviso con precios provisionales en cero. No se crea
+      // una orden operativa hasta que llegue NEW_ORDER con valores definitivos.
+      return NextResponse.json({
+        ok: true,
+        event: eventName,
+        scheduled: true,
+        imported: false,
+      });
+    }
+
     if (isNewOrderEvent(eventName)) {
       const result = await importRappiOrder(orderPayload(body), {
         eventName,
