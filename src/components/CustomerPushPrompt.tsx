@@ -1,16 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { enableWebPush, loadWebPushState } from "@/lib/webPushClient";
 
 const DISMISSED_KEY = "alento-customer-push-prompt-dismissed";
 
 export default function CustomerPushPrompt() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [publicKey, setPublicKey] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    const internalPrefixes = [
+      "/interno",
+      "/repartidor",
+      "/cocina",
+      "/notificaciones",
+      "/pedidos",
+      "/caja",
+      "/usuarios",
+      "/clientes",
+      "/preparacion",
+    ];
+    if (internalPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+      setVisible(false);
+      return;
+    }
+
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
@@ -28,7 +46,7 @@ export default function CustomerPushPrompt() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [pathname]);
 
   async function enable() {
     if (!publicKey || busy) return;
