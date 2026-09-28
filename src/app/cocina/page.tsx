@@ -381,17 +381,15 @@ export default function KitchenPage() {
                 href="/masa"
                 aria-label="Abrir preparaciones"
                 title="Abrir preparaciones"
-                className="group inline-flex h-[52px] w-[72px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
+                className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/15 bg-white/[0.08]">
-                  <Pizza
-                    className="h-[20px] w-[20px]"
-                    strokeWidth={2.15}
-                  />
-                </span>
+                <Pizza
+                  className="h-[22px] w-[22px]"
+                  strokeWidth={2.15}
+                />
               </Link>
 
-              <div className="flex h-[52px] w-[72px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+              <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
                 <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
                   Cocina
                 </span>
