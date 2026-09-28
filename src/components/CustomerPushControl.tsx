@@ -16,7 +16,7 @@ export default function CustomerPushControl() {
 
   async function refresh() {
     try {
-      const result = await loadWebPushState("/api/customer/push");
+      const result = await loadWebPushState("/api/push");
       setPublicKey(result.publicKey);
       setState(result.state);
     } catch (error) {
@@ -35,11 +35,11 @@ export default function CustomerPushControl() {
     setMessage("");
     try {
       if (state === "on") {
-        await disableWebPush("/api/customer/push");
+        await disableWebPush("/api/push");
         setState("off");
         setMessage("Notificaciones desactivadas en este dispositivo.");
       } else if (publicKey) {
-        const result = await enableWebPush("/api/customer/push", publicKey);
+        const result = await enableWebPush("/api/push", publicKey);
         setState(result.enabled ? "on" : result.denied ? "denied" : "off");
         setMessage(result.enabled ? "Notificaciones activas." : "No se activaron las notificaciones.");
       }
