@@ -515,8 +515,9 @@ export async function importRappiOrder(
   );
 
   const config = rappiConfig();
-  const result = await prisma.$transaction(async (tx) => {
-    const sequence = await tx.orderSequence.upsert({
+  const createImportedOrder = () =>
+    prisma.$transaction(async (tx) => {
+      const sequence = await tx.orderSequence.upsert({
       where: { id: 1 },
       create: { id: 1, current: 1 },
       update: { current: { increment: 1 } },
@@ -606,7 +607,28 @@ export async function importRappiOrder(
         integration: true,
       },
     });
-  });
+    });
+
+  let result: Awaited<ReturnType<typeof createImportedOrder>>;
+  try {
+    result = await createImportedOrder();
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const raced = await orderFromIntegration(parsed.externalOrderId);
+      if (raced) {
+        return {
+          created: false,
+          autoAccepted: Boolean(raced.acceptedAt),
+          order: raced.order,
+          parsed,
+        };
+      }
+    }
+    throw error;
+  }
 
   let autoAccepted = false;
   try {
