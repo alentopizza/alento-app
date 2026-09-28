@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import StaffPushDeviceControl from "@/components/StaffPushDeviceControl";
 import {
   BellRing,
   CheckCircle2,
@@ -33,9 +34,24 @@ type Campaign = {
   createdAt: string;
 };
 
+type DeliveryDevice = {
+  id: string;
+  userAgent: string | null;
+  lastSuccessAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    roles: string[];
+  };
+};
+
 type DeliveryState = {
   webConfigured: boolean;
   webDevices: number;
+  devices: DeliveryDevice[];
 };
 
 const audienceOptions = [
@@ -73,6 +89,50 @@ function actionLabel(campaign: Campaign) {
   return "Aplicación";
 }
 
+function deviceMatchesAudience(
+  device: DeliveryDevice,
+  audience: string,
+) {
+  const roles = new Set(device.user.roles);
+  if (audience === "ALL_STAFF") return roles.size > 0;
+  if (audience === "DRIVERS") {
+    return roles.has("DRIVER") || roles.has("DISPATCH");
+  }
+  if (audience === "KITCHEN") return roles.has("KITCHEN");
+  if (audience === "ADMIN") return roles.has("ADMIN");
+  if (audience === "POS") {
+    return roles.has("POS") || roles.has("CASHIER");
+  }
+  return false;
+}
+
+function deviceLabel(userAgent: string | null) {
+  const ua = userAgent || "";
+  const platform =
+    /iPhone|iPad|iPod/i.test(ua)
+      ? "iPhone/iPad"
+      : /Android/i.test(ua)
+        ? "Android"
+        : /Windows/i.test(ua)
+          ? "Windows"
+          : /Macintosh|Mac OS X/i.test(ua)
+            ? "Mac"
+            : "Dispositivo";
+
+  const browser =
+    /Edg\//i.test(ua)
+      ? "Edge"
+      : /CriOS|Chrome\//i.test(ua)
+        ? "Chrome"
+        : /Firefox\//i.test(ua)
+          ? "Firefox"
+          : /Safari\//i.test(ua)
+            ? "Safari"
+            : "Navegador";
+
+  return `${platform} · ${browser}`;
+}
+
 function CampaignMetric({
   label,
   value,
@@ -100,6 +160,7 @@ export default function PushCampaignManager() {
   const [delivery, setDelivery] = useState<DeliveryState>({
     webConfigured: false,
     webDevices: 0,
+    devices: [],
   });
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -136,6 +197,7 @@ export default function PushCampaignManager() {
         data.delivery ?? {
           webConfigured: false,
           webDevices: 0,
+          devices: [],
         },
       );
     } catch (loadError) {
@@ -178,6 +240,14 @@ export default function PushCampaignManager() {
         0,
       ),
     [campaigns],
+  );
+
+  const audienceDevices = useMemo(
+    () =>
+      delivery.devices.filter((device) =>
+        deviceMatchesAudience(device, audience),
+      ),
+    [delivery.devices, audience],
   );
 
   async function uploadImage(file: File) {
@@ -242,11 +312,16 @@ export default function PushCampaignManager() {
         );
       }
 
+      const targeted = Number(data.delivery?.targeted ?? 0);
       const delivered = Number(data.delivery?.delivered ?? 0);
+      const failed = Number(data.delivery?.failed ?? 0);
+
       setNotice(
-        delivered > 0
-          ? `Notificación enviada a ${delivered} dispositivo(s).`
-          : "La campaña se guardó, pero no había dispositivos disponibles.",
+        targeted === 0
+          ? `La campaña se guardó, pero no hay suscripciones PWA para ${audienceLabel(audience)}.`
+          : delivered > 0
+            ? `Push enviado: ${delivered} de ${targeted} suscripción(es) aceptadas${failed > 0 ? ` · ${failed} fallo(s)` : ""}.`
+            : `Se encontraron ${targeted} suscripción(es), pero el servicio Push no aceptó el envío.`,
       );
 
       setTitle("");
@@ -597,10 +672,76 @@ export default function PushCampaignManager() {
                   }
                 >
                   {delivery.webConfigured
-                    ? `${delivery.webDevices} dispositivos`
+                    ? `${audienceDevices.length} para esta audiencia`
                     : "Sin configurar"}
                 </span>
               </div>
+            </div>
+          </section>
+
+          <StaffPushDeviceControl onChanged={() => void load()} />
+
+          <section className="rounded-[26px] border border-neutral-200 bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+                  Suscripciones registradas
+                </p>
+                <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                  Son suscripciones Web Push, no instalaciones PWA confirmadas.
+                </p>
+              </div>
+              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-black text-neutral-600">
+                {delivery.webDevices}
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {delivery.devices.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-neutral-200 px-3 py-5 text-center text-[10px] text-neutral-400">
+                  No hay dispositivos registrados.
+                </div>
+              ) : (
+                delivery.devices.map((device) => (
+                  <div
+                    key={device.id}
+                    className="rounded-2xl border border-neutral-200 bg-[#faf9f7] px-3 py-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <b className="block truncate text-[11px] text-neutral-900">
+                          {device.user.name}
+                        </b>
+                        <span className="mt-0.5 block text-[9px] text-neutral-500">
+                          {deviceLabel(device.userAgent)}
+                        </span>
+                      </div>
+                      <span
+                        className={
+                          "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
+                          (deviceMatchesAudience(device, audience)
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-neutral-100 text-neutral-500")
+                        }
+                      >
+                        {deviceMatchesAudience(device, audience)
+                          ? "En audiencia"
+                          : "Fuera de audiencia"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
+                      <span>{device.user.roles.join(", ") || "Sin rol"}</span>
+                      <span>·</span>
+                      <span>
+                        Última entrega:{" "}
+                        {device.lastSuccessAt
+                          ? moneylessDate(device.lastSuccessAt)
+                          : "sin confirmar"}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </section>
         </aside>
