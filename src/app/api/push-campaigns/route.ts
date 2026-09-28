@@ -59,6 +59,7 @@ export async function GET() {
     }),
     prisma.driverPushSubscription.findMany({
       where: {
+        staffOptIn: true,
         user: { active: true },
       },
       orderBy: { updatedAt: "desc" },
@@ -80,7 +81,7 @@ export async function GET() {
       },
     }),
     prisma.driverPushSubscription.findMany({
-      where: { userId: null },
+      where: { customerOptIn: true },
       orderBy: { updatedAt: "desc" },
       take: 100,
       select: {
