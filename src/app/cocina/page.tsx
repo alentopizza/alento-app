@@ -33,6 +33,12 @@ type KitchenOrder = {
   fulfillmentType: FulfillmentType;
   createdAt: string;
   customer: { name: string } | null;
+  integration?: {
+    externalOrderId: string;
+    customerName?: string | null;
+    remoteStatus?: string | null;
+    acceptedAt?: string | null;
+  } | null;
   items: KitchenOrderItem[];
 };
 
@@ -437,6 +443,10 @@ export default function KitchenPage() {
             {kitchenOrders.map((order) => {
               const minutes = ageMinutes(order.createdAt);
               const kitchenItems = kitchenItemsFor(order);
+              const rappiPending =
+                order.source === "RAPPI" &&
+                order.status === "CONFIRMED" &&
+                !order.integration?.acceptedAt;
 
               return (
                 <article key={order.id} className="self-start overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
@@ -444,14 +454,21 @@ export default function KitchenPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
+                        {order.source === "RAPPI" && (
+                          <span className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.04em] text-orange-700">
+                            Rappi #{order.integration?.externalOrderId || "—"}
+                          </span>
+                        )}
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
                         <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-amber-700">
-                          {statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
+                          {rappiPending
+                            ? "Pendiente de aceptar"
+                            : statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
                         </span>
                       </div>
-                      {order.customer?.name && (
+                      {(order.customer?.name || order.integration?.customerName) && (
                         <p className="mt-1 truncate text-[11px] font-medium leading-4 tracking-[-0.005em] text-neutral-500 [font-synthesis:none]">
-                          {order.customer.name}
+                          {order.customer?.name || order.integration?.customerName}
                         </p>
                       )}
                     </div>
@@ -467,11 +484,16 @@ export default function KitchenPage() {
                   </div>
 
                   <div className="space-y-2 p-3.5">
+                    {rappiPending && (
+                      <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-[11px] font-bold text-orange-900">
+                        Pedido Rappi pendiente de aceptación. Ábrelo en Pedidos y pásalo a Preparación antes de marcar productos.
+                      </div>
+                    )}
                     {kitchenItems.map((item) => (
                       <KitchenItem
                         key={item.id}
                         item={{ ...item, preparedQuantity: Number(item.preparedQuantity ?? 0) }}
-                        busy={busyKey === `${order.id}:${item.id}`}
+                        busy={rappiPending || busyKey === `${order.id}:${item.id}`}
                         onChangePrepared={(value) => void changePrepared(order, item, value)}
                       />
                     ))}

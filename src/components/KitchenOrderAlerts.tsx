@@ -9,8 +9,8 @@ import {
   type WebPushCapability,
 } from "@/lib/webPushClient";
 
-const PUSH_ENDPOINT = "/api/cocina/push";
-const SOUND_KEY = "alento-kitchen-order-sound";
+const DEFAULT_PUSH_ENDPOINT = "/api/cocina/push";
+const DEFAULT_SOUND_KEY = "alento-kitchen-order-sound";
 
 type AudioWindow = Window & {
   webkitAudioContext?: typeof AudioContext;
@@ -27,9 +27,17 @@ function createAudioContext() {
 export default function KitchenOrderAlerts({
   orderIds,
   onIncomingPush,
+  pushEndpoint = DEFAULT_PUSH_ENDPOINT,
+  storageKey = DEFAULT_SOUND_KEY,
+  notificationKind = "KITCHEN_ORDER",
+  label = "Cocina",
 }: {
   orderIds: number[];
   onIncomingPush?: () => void;
+  pushEndpoint?: string;
+  storageKey?: string;
+  notificationKind?: string;
+  label?: string;
 }) {
   const [pushState, setPushState] =
     useState<WebPushCapability>("loading");
@@ -120,14 +128,14 @@ export default function KitchenOrderAlerts({
 
     async function load() {
       try {
-        const result = await loadWebPushState(PUSH_ENDPOINT);
+        const result = await loadWebPushState(pushEndpoint);
         if (disposed) return;
 
         setPushState(result.state);
         setPublicKey(result.publicKey);
 
         const storedSound =
-          window.localStorage.getItem(SOUND_KEY) === "1";
+          window.localStorage.getItem(storageKey) === "1";
         soundEnabledRef.current = storedSound;
         setSoundEnabled(storedSound);
       } catch (error) {
@@ -147,7 +155,7 @@ export default function KitchenOrderAlerts({
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [pushEndpoint, storageKey]);
 
   useEffect(() => {
     if (!soundEnabled) return;
@@ -212,7 +220,7 @@ export default function KitchenOrderAlerts({
 
       if (
         data?.type !== "ALENTO_PUSH" ||
-        data.payload?.kind !== "KITCHEN_ORDER"
+        data.payload?.kind !== notificationKind
       ) {
         return;
       }
@@ -238,7 +246,7 @@ export default function KitchenOrderAlerts({
         onMessage,
       );
     };
-  }, [onIncomingPush, playAlert]);
+  }, [notificationKind, onIncomingPush, playAlert]);
 
   async function enableAlerts() {
     if (busy) return;
@@ -249,7 +257,7 @@ export default function KitchenOrderAlerts({
     try {
       soundEnabledRef.current = true;
       setSoundEnabled(true);
-      window.localStorage.setItem(SOUND_KEY, "1");
+      window.localStorage.setItem(storageKey, "1");
 
       await ensureAudioContext();
       await playAlert();
@@ -272,13 +280,13 @@ export default function KitchenOrderAlerts({
       if (pushState !== "on") {
         const pushConfig = publicKey
           ? { state: pushState, publicKey }
-          : await loadWebPushState(PUSH_ENDPOINT);
+          : await loadWebPushState(pushEndpoint);
 
         if (pushConfig.publicKey) {
           setPublicKey(pushConfig.publicKey);
 
           const result = await enableWebPush(
-            PUSH_ENDPOINT,
+            pushEndpoint,
             pushConfig.publicKey,
           );
 
@@ -296,7 +304,7 @@ export default function KitchenOrderAlerts({
         }
       }
 
-      setMessage("Push y sonido activos para nuevos pedidos.");
+      setMessage(`Push y sonido activos para nuevos pedidos de ${label}.`);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -315,13 +323,13 @@ export default function KitchenOrderAlerts({
     setMessage("");
 
     try {
-      await disableWebPush(PUSH_ENDPOINT).catch(
+      await disableWebPush(pushEndpoint).catch(
         () => undefined,
       );
       setPushState("off");
       soundEnabledRef.current = false;
       setSoundEnabled(false);
-      window.localStorage.removeItem(SOUND_KEY);
+      window.localStorage.removeItem(storageKey);
       setMessage("Alertas desactivadas en este dispositivo.");
     } finally {
       setBusy(false);
@@ -333,10 +341,10 @@ export default function KitchenOrderAlerts({
 
   const controlTitle =
     pushState === "loading"
-      ? "Comprobando alertas de Cocina"
+      ? `Comprobando alertas de ${label}`
       : active
-        ? message || "Alertas de Cocina activas. Toca para desactivar."
-        : message || "Alertas de Cocina desactivadas. Toca para activar.";
+        ? message || `Alertas de ${label} activas. Toca para desactivar.`
+        : message || `Alertas de ${label} desactivadas. Toca para activar.`;
 
   return (
     <button

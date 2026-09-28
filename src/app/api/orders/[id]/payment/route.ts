@@ -35,6 +35,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       include: { payments: { orderBy: { id: "asc" } } },
     });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (order.source === "RAPPI") {
+      return NextResponse.json(
+        { error: "El cobro de este pedido es administrado por Rappi y no debe registrarse manualmente en Caja." },
+        { status: 409 },
+      );
+    }
     if (order.status === "CANCELED") return NextResponse.json({ error: "No se puede registrar pago en un pedido cancelado." }, { status: 409 });
 
     const paidAmount = order.payments

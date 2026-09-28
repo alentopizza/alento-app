@@ -16,6 +16,7 @@ import { findTemplateForEvent, getNotificationTemplates } from "@/lib/notificati
 import { calculateDriverEarning } from "@/lib/driverCompensation";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import { orderCode } from "@/lib/orderCode";
+import { rappiReadyForPickup, rappiTakeOrder } from "@/lib/rappi";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -53,6 +54,15 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         payments: {
           where: { status: "PAID" },
           select: { amount: true },
+        },
+        integration: {
+          select: {
+            externalOrderId: true,
+            externalStoreId: true,
+            cookingTime: true,
+            acceptedAt: true,
+            readyAt: true,
+          },
         },
         items: {
           select: {
@@ -112,14 +122,84 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       );
     }
 
-    if (requested === "COMPLETED") {
+    if (requested === "COMPLETED" && order.source !== "RAPPI") {
       const paidAmount = order.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
       const pending = Math.max(0, Number(order.total) - paidAmount);
 
       if (pending > 0) {
         return NextResponse.json(
-          { error: `El pedido tiene un saldo pendiente de $${pending.toLocaleString("es-CO")}. Registra el pago completo antes de finalizar.` },
+          { error: `El pedido tiene un saldo pendiente de ${pending.toLocaleString("es-CO")}. Registra el pago completo antes de finalizar.` },
           { status: 409 },
+        );
+      }
+    }
+
+    if (order.source === "RAPPI") {
+      const integration = order.integration;
+      if (!integration?.externalOrderId) {
+        return NextResponse.json(
+          { error: "El pedido Rappi no tiene metadata de integración y no puede sincronizarse." },
+          { status: 409 },
+        );
+      }
+
+      if (current === "CONFIRMED" && requested !== "PREPARING") {
+        return NextResponse.json(
+          { error: "Acepta primero el pedido Rappi antes de avanzar a otra etapa." },
+          { status: 409 },
+        );
+      }
+
+      try {
+        if (requested === "PREPARING" && !integration.acceptedAt) {
+          await rappiTakeOrder({
+            storeId: integration.externalStoreId,
+            orderId: integration.externalOrderId,
+            cookingTime: integration.cookingTime,
+          });
+
+          await prisma.orderIntegration.update({
+            where: { orderId: order.id },
+            data: {
+              acceptedAt: new Date(),
+              remoteStatus: "TAKEN",
+            },
+          });
+        }
+
+        if (requested === "READY" && !integration.readyAt) {
+          await rappiReadyForPickup({
+            storeId: integration.externalStoreId,
+            orderId: integration.externalOrderId,
+          });
+
+          await prisma.orderIntegration.update({
+            where: { orderId: order.id },
+            data: {
+              readyAt: new Date(),
+              remoteStatus: "READY_FOR_PICKUP",
+            },
+          });
+        }
+      } catch (rappiError) {
+        console.error("Rappi order status sync failed", {
+          orderId: order.id,
+          externalOrderId: integration.externalOrderId,
+          requested,
+          error:
+            rappiError instanceof Error
+              ? rappiError.message
+              : "Unknown Rappi error",
+        });
+
+        return NextResponse.json(
+          {
+            error:
+              rappiError instanceof Error
+                ? `Rappi no confirmó el cambio: ${rappiError.message}`
+                : "Rappi no confirmó el cambio de estado.",
+          },
+          { status: 502 },
         );
       }
     }

@@ -20,6 +20,8 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
 ];
 
 function apiRoles(pathname: string, method: string): string[] | null {
+  if (pathname.startsWith("/api/integrations")) return ["ADMIN"];
+  if (pathname.startsWith("/api/pedidos")) return ["ADMIN", "POS", "CASHIER"];
   if (pathname.startsWith("/api/users")) return ["ADMIN"];
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
   if (pathname.startsWith("/api/public-home-admin")) return ["ADMIN"];
@@ -156,6 +158,15 @@ async function refreshStaffSessionToken(session: {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Los webhooks de integraciones externas no usan sesión de colaborador.
+  // Cada proveedor debe validar su propia firma antes de procesar el payload.
+  if (
+    pathname === "/api/integrations/rappi/webhook" &&
+    request.method === "POST"
+  ) {
+    return NextResponse.next();
+  }
+
   // Cotización pública del checkout: no requiere sesión de colaborador.
   // La tarifa y la distancia se calculan server-side, por lo que no exponemos
   // permisos internos ni confiamos en valores enviados por el navegador.
@@ -229,6 +240,8 @@ export const config = {
     "/configuracion/:path*",
     "/personalizacion/:path*",
     "/usuarios/:path*",
+    "/api/integrations/:path*",
+    "/api/pedidos/:path*",
     "/api/users/:path*",
     "/api/menu-admin/:path*",
     "/api/public-home-admin/:path*",

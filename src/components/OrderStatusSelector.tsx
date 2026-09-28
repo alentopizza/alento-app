@@ -19,6 +19,8 @@ type OrderStatusSelectorProps = {
   assignedDriverId?: number | null;
   selectedDriverId?: number | null;
   driverBusy?: boolean;
+  showDriverManagement?: boolean;
+  externalProvider?: string | null;
   onDriverChange?: (driverId: number | null) => void;
   onConfirmDriver?: () => void;
   onUnassignDriver?: () => void;
@@ -67,6 +69,8 @@ export default function OrderStatusSelector({
   assignedDriverId = null,
   selectedDriverId = null,
   driverBusy = false,
+  showDriverManagement = true,
+  externalProvider = null,
   onDriverChange,
   onConfirmDriver,
   onUnassignDriver,
@@ -80,9 +84,11 @@ export default function OrderStatusSelector({
   const hasPendingPayment = pendingBalance > 0;
 
   const nextStatus =
-    currentIndex >= 0 && currentIndex < statuses.length - 1
-      ? statuses[currentIndex + 1]
-      : null;
+    currentStatus === "CONFIRMED"
+      ? statuses[0] ?? null
+      : currentIndex >= 0 && currentIndex < statuses.length - 1
+        ? statuses[currentIndex + 1]
+        : null;
 
   const nextBlocked =
     nextStatus === "COMPLETED" && hasPendingPayment;
@@ -224,7 +230,7 @@ export default function OrderStatusSelector({
               </div>
             )}
 
-            {fulfillmentType === "DELIVERY" && driverEditable && (
+            {showDriverManagement && fulfillmentType === "DELIVERY" && driverEditable && (
               <div
                 className={
                   "rounded-[16px] border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 " +
@@ -301,6 +307,12 @@ export default function OrderStatusSelector({
             <p className="alento-ui-label uppercase text-neutral-500">
               Siguiente paso
             </p>
+
+            {externalProvider === "Rappi" && currentStatus === "CONFIRMED" && (
+              <div className="mt-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-[11px] font-semibold leading-4 text-orange-900">
+                Al continuar, Alentó aceptará este pedido directamente en Rappi y lo pasará a preparación.
+              </div>
+            )}
 
             {nextStatus ? (
               <button

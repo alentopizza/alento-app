@@ -28,6 +28,12 @@ export async function DELETE(
       include: { payments: { orderBy: { id: "asc" } } },
     });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (order.source === "RAPPI") {
+      return NextResponse.json(
+        { error: "Los movimientos de cobro Rappi no se eliminan manualmente." },
+        { status: 409 },
+      );
+    }
 
     const payment = order.payments.find((item) => item.id === paymentId);
     if (!payment) return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });

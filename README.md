@@ -1,8 +1,8 @@
 # Alentó App
 
-Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración y la experiencia pública de pedidos en desarrollo.
+Aplicación productiva propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración, reparto y la experiencia pública de pedidos.
 
-El proyecto busca reemplazar gradualmente Glide y consolidar en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
+Alentó App consolida en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
 
 ## Visión de producto
 
@@ -31,7 +31,7 @@ alentopizza.com/interno
 └── Configuración
 ```
 
-Actualmente `alentopizza.com` continúa ocupado por la solución construida en Glide. Alentó App se mantiene en infraestructura temporal mientras se completa y valida. Cuando el sistema esté listo para producción, el dominio principal debe migrarse a Alentó App.
+Alentó App opera en producción en `https://alentopizza.com/`. El mismo dominio sirve la experiencia pública y las superficies internas protegidas por ruta, sesión y rol.
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Integraciones externas permanece reservada para la última fase del desarrollo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. La integración oficial con Rappi ya está preparada pero permanece deshabilitada hasta homologación; DiDi y otros conectores externos continúan como fases futuras.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -82,7 +82,8 @@ Ya están implementados, entre otros:
 - impresión térmica de 80 mm;
 - eliminación física controlada de pedidos y pagos;
 - consecutivo comercial global independiente del `Order.id`;
-- códigos visibles como `POS-0001` y, en el futuro, `WEB-0002` compartiendo la misma secuencia.
+- códigos visibles como `POS-0001`, `WEB-0002` y `RAPPI-0003` compartiendo la misma secuencia;
+- integración POS con Rappi preparada en código y deshabilitada hasta homologación.
 
 ## Numeración de pedidos
 
@@ -156,10 +157,11 @@ Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Acceso temporal actual del POS: `https://pos.alentopizza.com/`.
-- Dominio comercial principal actual: `alentopizza.com`, todavía servido por Glide.
+- Dominio productivo canónico de Alentó App: `https://alentopizza.com/`.
+- Webhook Rappi preparado: `https://alentopizza.com/api/integrations/rappi/webhook`.
+- La experiencia pública y las superficies internas protegidas forman parte de la misma aplicación.
 
-Los dominios/subdominios actuales deben entenderse como una etapa de transición. La arquitectura objetivo es un solo dominio principal.
+No tratar `pos.alentopizza.com` ni Glide como arquitectura productiva vigente.
 
 ## Tipos de pedido
 
@@ -223,6 +225,7 @@ Documentos principales:
 - [`docs/ORDERS.md`](docs/ORDERS.md): comportamiento operativo de pedidos.
 - [`docs/PAYMENTS.md`](docs/PAYMENTS.md): intención de pago, abonos parciales y cuenta dividida.
 - [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md): pagos reales y Caja.
+- [`docs/RAPPI_INTEGRATION.md`](docs/RAPPI_INTEGRATION.md): integración POS con Rappi, variables, webhooks y homologación.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel y Prisma.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): continuidad del proyecto.
 
@@ -271,9 +274,8 @@ Prioridades vigentes:
 6. inventario, recetas, costos y rentabilidad;
 7. endurecimiento adicional de autenticación y auditoría;
 8. GPS en vivo del repartidor y tracking cartográfico;
-9. sustituir Glide y migrar `alentopizza.com`;
-10. parametrización/replicabilidad;
-11. integraciones externas al final.
+9. parametrización/replicabilidad;
+10. homologar y activar Rappi cuando el proveedor entregue credenciales; otras integraciones externas permanecen futuras.
 
 ## Rutas principales vigentes
 
@@ -323,9 +325,9 @@ Rutas de menú:
 - `/interno/menu`: administración interna del catálogo.
 
 
-## Preparación para producción
+## Operación en producción
 
-Antes de un go-live leer:
+Alentó App ya está en producción. Para cambios productivos leer:
 
 - `docs/PRODUCTION_READINESS.md` — revisión funcional proceso por proceso y checklist de salida.
 - `docs/ALENTO_EXCLUSIVE_MODULES.md` — límites entre el núcleo reutilizable y los módulos exclusivos de Alentó Pizza.

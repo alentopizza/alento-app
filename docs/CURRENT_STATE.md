@@ -1,10 +1,10 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-23.
+Última actualización: 2026-09-27.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
-## Corte de producción 2026-09-23
+## Operación productiva vigente
 
 La revisión funcional actual está en `docs/PRODUCTION_READINESS.md`.
 
@@ -18,9 +18,10 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - el domicilio se calcula automáticamente con Google Routes tanto al crear como al editar;
 - Caja básica y pagos parciales/mixtos están implementados;
 - Club acumula y muestra puntos, pero el canje transaccional sigue pendiente;
-- `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+- `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`;
+- la integración POS con Rappi ya está preparada en código, pero permanece deshabilitada hasta recibir credenciales y completar homologación.
 
-Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
+Pendientes de hardening y mejora productiva más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
 
 ## Módulos cerrados
 
@@ -80,9 +81,9 @@ Las integraciones externas no bloquean el núcleo. Chatwoot y el ecosistema What
 - Proyecto EasyPanel: `app_alento`.
 - Servicio: `alento-app`.
 - Base: `alento-db`.
-- URL temporal: `https://pos.alentopizza.com/`.
+- URL productiva canónica: `https://alentopizza.com/`.
 
-`alentopizza.com` continúa servido por Glide mientras se completa la migración futura.
+La experiencia pública y el sistema interno protegido operan en la misma aplicación productiva bajo `alentopizza.com`.
 
 ## Punto de venta — cerrado
 
@@ -279,11 +280,36 @@ POS-0002
 WEB-0003
 ```
 
-## Integraciones — pospuestas
+## Integraciones externas
 
-Rappi, DiDi y otras integraciones externas no forman parte del código operativo activo.
+### Rappi — preparada / pendiente de homologación
 
-La implementación experimental fue retirada.
+La integración POS oficial con Rappi ya está implementada en una rama dedicada y documentada en `docs/RAPPI_INTEGRATION.md`.
+
+Estado vigente:
+
+- Store ID: `900489414`;
+- solicitud técnica registrada con Rappi;
+- cliente OAuth preparado;
+- recepción por webhook firmada;
+- importación idempotente de órdenes;
+- aceptación desde Alentó;
+- `ready-for-pickup`;
+- cancelaciones y eventos de RappiTendero;
+- alertas Push/sonido;
+- visualización en Pedidos y Cocina;
+- pagos Rappi aislados de la Caja física;
+- integración deshabilitada por defecto con `RAPPI_ENABLED=false`.
+
+El webhook productivo a registrar con Rappi es:
+
+```text
+https://alentopizza.com/api/integrations/rappi/webhook
+```
+
+La activación depende de que Rappi entregue `client_id`, `client_secret`, secreto(s) de webhook y los valores de homologación necesarios.
+
+DiDi y otras integraciones continúan como trabajo futuro opcional.
 
 **Las integraciones exclusivas de Alentó se mantienen separadas del criterio de cierre del núcleo genérico.**
 
@@ -318,7 +344,7 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 La base de producción no tiene baseline formal de Prisma Migrate.
 
-El start actual todavía ejecuta `prisma db push`. Antes de producción estable debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
+El start actual todavía ejecuta `prisma db push`. Como endurecimiento de producción debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
 
 No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
@@ -338,8 +364,8 @@ Pendientes estratégicos conocidos:
 - rentabilidad;
 - mejoras futuras de Menú: tipos de producto y modificadores;
 - validación productiva de la experiencia pública ya implementada;
-- sustitución de Glide donde todavía aplique;
-- integraciones externas solo como extensiones opcionales.
+- homologación y activación de Rappi;
+- DiDi y otras integraciones externas solo como extensiones opcionales.
 
 ## Experiencia pública — estado vigente 2026-09-23
 

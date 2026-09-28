@@ -296,11 +296,11 @@ Las siguientes integraciones son opcionales/exclusivas de Alentó y se documenta
 
 ---
 
-## Criterio de salida recomendado
+## Criterio de estabilidad productiva
 
-No declarar “producción estable” solo porque el build arranca.
+El sistema ya está en producción; no considerar una versión estable solo porque el build arranca.
 
-Para el go-live funcional de Alentó:
+Para mantener y endurecer la operación productiva de Alentó:
 
 1. completar la lista manual anterior;
 2. backup de base;

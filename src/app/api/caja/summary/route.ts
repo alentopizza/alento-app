@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
               fulfillmentType: true,
               total: true,
               customer: { select: { name: true } },
+              integration: { select: { customerName: true } },
             },
           },
         },
@@ -293,7 +294,10 @@ export async function GET(request: NextRequest) {
           source: payment.order.source,
           fulfillmentType: payment.order.fulfillmentType,
           total: Number(payment.order.total),
-          customerName: payment.order.customer?.name ?? "Cliente ocasional",
+          customerName:
+            payment.order.customer?.name ??
+            payment.order.integration?.customerName ??
+            "Cliente ocasional",
         },
       })),
       otherIncomes: otherIncomes.map((income) => ({

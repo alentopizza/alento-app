@@ -25,6 +25,10 @@ export async function PATCH(
         select: {
           id: true,
           status: true,
+          source: true,
+          integration: {
+            select: { acceptedAt: true },
+          },
           items: {
             select: {
               id: true,
@@ -37,6 +41,9 @@ export async function PATCH(
       });
       if (!order) throw new Error("ORDER_NOT_FOUND");
       if (!["CONFIRMED", "PREPARING"].includes(order.status)) throw new Error("ORDER_NOT_IN_KITCHEN");
+      if (order.source === "RAPPI" && !order.integration?.acceptedAt) {
+        throw new Error("RAPPI_NOT_ACCEPTED");
+      }
 
       const item = order.items.find((candidate) => candidate.id === itemId);
       if (!item) throw new Error("ITEM_NOT_FOUND");
@@ -74,6 +81,7 @@ export async function PATCH(
       if (error.message === "ORDER_NOT_FOUND") return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
       if (error.message === "ITEM_NOT_FOUND") return NextResponse.json({ error: "Producto no encontrado en el pedido." }, { status: 404 });
       if (error.message === "ORDER_NOT_IN_KITCHEN") return NextResponse.json({ error: "El pedido ya no se encuentra en Cocina." }, { status: 409 });
+      if (error.message === "RAPPI_NOT_ACCEPTED") return NextResponse.json({ error: "Acepta primero el pedido Rappi desde Pedidos antes de iniciar la preparación." }, { status: 409 });
     }
     console.error("Kitchen item preparation error", error);
     return NextResponse.json({ error: "No fue posible actualizar la preparación del producto." }, { status: 500 });

@@ -52,10 +52,10 @@ Ver `AGENTS.md` para las reglas operativas completas y el mapa de fuentes compar
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Acceso temporal actual: `pos.alentopizza.com`.
-- `alentopizza.com` continúa ocupado por Glide durante la transición.
+- Dominio productivo canónico: `alentopizza.com`.
+- La experiencia pública y las superficies internas protegidas viven en la misma aplicación.
 
-## Arquitectura objetivo de dominio
+## Arquitectura de dominio vigente
 
 La decisión de producto es utilizar un solo dominio principal.
 
@@ -413,7 +413,7 @@ Ya existen:
 - administración de usuarios;
 - login opcional de clientes por WhatsApp OTP.
 
-Antes de migrar el dominio principal todavía deben completarse endurecimientos como:
+Aunque el dominio principal ya está en producción, continúan pendientes endurecimientos como:
 
 - recuperación de contraseña;
 - auditoría;
