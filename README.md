@@ -31,7 +31,7 @@ alentopizza.com/interno
 └── Configuración
 ```
 
-Actualmente `alentopizza.com` continúa ocupado por la solución construida en Glide. Alentó App se mantiene en infraestructura temporal mientras se completa y valida. Cuando el sistema esté listo para producción, el dominio principal debe migrarse a Alentó App.
+Alentó App ya opera en producción en `https://pos.alentopizza.com/`. El dominio comercial `alentopizza.com` continúa servido por Glide mientras se decide/migra la experiencia pública al sistema propio. `pos.alentopizza.com` no es un entorno temporal de pruebas: es el servicio productivo actual.
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
@@ -157,11 +157,11 @@ Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Acceso temporal actual del POS: `https://pos.alentopizza.com/`.
+- Servicio productivo actual de Alentó App/POS: `https://pos.alentopizza.com/`.
 - Webhook Rappi vigente mientras se mantenga esta infraestructura: `https://pos.alentopizza.com/api/integrations/rappi/webhook`.
 - Dominio comercial principal actual: `alentopizza.com`, todavía servido por Glide.
 
-Los dominios/subdominios actuales deben entenderse como una etapa de transición. La arquitectura objetivo es un solo dominio principal.
+La operación productiva actual usa `pos.alentopizza.com`. La arquitectura futura puede consolidarse bajo un solo dominio principal, pero cualquier cambio de dominio debe tratarse como una migración productiva controlada.
 
 ## Tipos de pedido
 
@@ -326,9 +326,9 @@ Rutas de menú:
 - `/interno/menu`: administración interna del catálogo.
 
 
-## Preparación para producción
+## Operación en producción
 
-Antes de un go-live leer:
+Alentó App ya está en producción. Para cambios productivos leer:
 
 - `docs/PRODUCTION_READINESS.md` — revisión funcional proceso por proceso y checklist de salida.
 - `docs/ALENTO_EXCLUSIVE_MODULES.md` — límites entre el núcleo reutilizable y los módulos exclusivos de Alentó Pizza.
