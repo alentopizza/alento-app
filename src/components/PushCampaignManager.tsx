@@ -65,6 +65,9 @@ const audienceOptions = [
   { id: "ALL_STAFF", label: "Todo el equipo" },
 ];
 
+const ALENTO_PUSH_ICON =
+  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+
 const sectionOptions = [
   { value: "/repartidor", label: "Repartidor" },
   { value: "/cocina", label: "Cocina" },
@@ -72,6 +75,63 @@ const sectionOptions = [
   { value: "/interno", label: "Punto de venta" },
   { value: "/caja", label: "Caja" },
 ];
+
+
+async function optimizePushImage(file: File) {
+  if (!file.type.startsWith("image/")) return file;
+
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    bitmap.close();
+    return file;
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", 0.84),
+  );
+
+  if (!blob) return file;
+
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "push";
+  return new File([blob], `${baseName}.webp`, {
+    type: "image/webp",
+    lastModified: Date.now(),
+  });
+}
+
+async function readJsonResponse(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  const text = await response.text().catch(() => "");
+  const preview = text.replace(/\s+/g, " ").slice(0, 180);
+
+  throw new Error(
+    response.status === 413
+      ? "La imagen es demasiado pesada para el servidor. Prueba con otra imagen."
+      : response.status >= 500
+        ? "El servidor no pudo procesar la imagen. Intenta nuevamente."
+        : preview.startsWith("<!DOCTYPE") || preview.startsWith("<html")
+          ? "La imagen no pudo cargarse porque el servidor devolvió una página de error."
+          : preview || "No fue posible cargar la imagen.",
+  );
+}
 
 function moneylessDate(value: string | null) {
   if (!value) return "—";
@@ -265,20 +325,33 @@ export default function PushCampaignManager() {
     setNotice("");
 
     try {
+      const optimizedFile = await optimizePushImage(file);
+
+      if (optimizedFile.size > 4 * 1024 * 1024) {
+        throw new Error(
+          "La imagen sigue siendo demasiado pesada después de optimizarla. Prueba con otra imagen.",
+        );
+      }
+
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", optimizedFile);
       const response = await fetch("/api/push-campaigns/image", {
         method: "POST",
         body: form,
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
 
       if (!response.ok) {
         throw new Error(data.error || "No fue posible cargar la imagen.");
       }
 
-      setImageUrl(String(data.url || ""));
-      setNotice("Imagen lista para esta notificación.");
+      const nextUrl = String(data.url || "");
+      if (!nextUrl) {
+        throw new Error("El servidor no devolvió la imagen cargada.");
+      }
+
+      setImageUrl(nextUrl);
+      setNotice("Imagen optimizada y lista para esta notificación.");
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
@@ -642,8 +715,12 @@ export default function PushCampaignManager() {
                 />
               )}
               <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white">
-                  <BellRing className="h-5 w-5 text-[var(--brand-red)]" />
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white">
+                  <img
+                    src={ALENTO_PUSH_ICON}
+                    alt="Alentó Pizza"
+                    className="h-10 w-10 rounded-xl object-cover"
+                  />
                 </span>
                 <div className="min-w-0">
                   <b className="block truncate text-[13px]">
@@ -669,7 +746,11 @@ export default function PushCampaignManager() {
             <div className="mt-3">
               <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3">
                 <span className="flex items-center gap-2 text-[11px] font-bold">
-                  <BellRing className="h-4 w-4" />
+                  <img
+                    src={ALENTO_PUSH_ICON}
+                    alt=""
+                    className="h-5 w-5 rounded-md object-cover"
+                  />
                   PWA Web Push
                 </span>
                 <span
