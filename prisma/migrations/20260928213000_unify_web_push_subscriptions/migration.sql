@@ -42,6 +42,5 @@ BEGIN
         "lastSuccessAt" = COALESCE(EXCLUDED."lastSuccessAt", "DriverPushSubscription"."lastSuccessAt"),
         "updatedAt" = EXCLUDED."updatedAt"
     ';
-    EXECUTE 'DROP TABLE "CustomerPushSubscription"';
   END IF;
 END $$;
