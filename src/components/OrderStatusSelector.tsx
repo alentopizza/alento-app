@@ -19,6 +19,7 @@ type OrderStatusSelectorProps = {
   assignedDriverId?: number | null;
   selectedDriverId?: number | null;
   driverBusy?: boolean;
+  showDriverManagement?: boolean;
   onDriverChange?: (driverId: number | null) => void;
   onConfirmDriver?: () => void;
   onUnassignDriver?: () => void;
@@ -67,6 +68,7 @@ export default function OrderStatusSelector({
   assignedDriverId = null,
   selectedDriverId = null,
   driverBusy = false,
+  showDriverManagement = true,
   onDriverChange,
   onConfirmDriver,
   onUnassignDriver,
@@ -226,7 +228,7 @@ export default function OrderStatusSelector({
               </div>
             )}
 
-            {fulfillmentType === "DELIVERY" && driverEditable && (
+            {showDriverManagement && fulfillmentType === "DELIVERY" && driverEditable && (
               <div
                 className={
                   "rounded-[16px] border border-neutral-200 bg-[#faf9f7] px-3.5 py-3 " +
