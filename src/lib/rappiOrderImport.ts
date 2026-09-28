@@ -518,12 +518,12 @@ export async function importRappiOrder(
   const createImportedOrder = () =>
     prisma.$transaction(async (tx) => {
       const sequence = await tx.orderSequence.upsert({
-      where: { id: 1 },
-      create: { id: 1, current: 1 },
-      update: { current: { increment: 1 } },
-    });
+        where: { id: 1 },
+        create: { id: 1, current: 1 },
+        update: { current: { increment: 1 } },
+      });
 
-    return tx.order.create({
+      return tx.order.create({
       data: {
         sequenceNumber: sequence.current,
         status: "CONFIRMED",
@@ -601,12 +601,12 @@ export async function importRappiOrder(
           },
         },
       },
-      include: {
-        items: true,
-        payments: true,
-        integration: true,
-      },
-    });
+        include: {
+          items: true,
+          payments: true,
+          integration: true,
+        },
+      });
     });
 
   let result: Awaited<ReturnType<typeof createImportedOrder>>;
