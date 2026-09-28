@@ -9,17 +9,13 @@ Estado al 2026-09-27: preparada en código, solicitud técnica registrada con Ra
 - Endpoint receptor: `/api/integrations/rappi/webhook`
 - Endpoint administrativo: `/api/integrations/rappi`
 
-Alentó App opera actualmente en producción en `pos.alentopizza.com`. Por tanto, el URL productivo que se debe entregar a Rappi es:
-
-```text
-https://pos.alentopizza.com/api/integrations/rappi/webhook
-```
-
-Si en el futuro `alentopizza.com` deja de estar servido por Glide y se migra definitivamente a Alentó App, el webhook podrá migrarse de forma controlada a:
+Alentó App opera en producción en `alentopizza.com`. El URL productivo que se debe entregar a Rappi es:
 
 ```text
 https://alentopizza.com/api/integrations/rappi/webhook
 ```
+
+Este es el endpoint canónico de la instancia productiva actual.
 
 No entregar a Rappi el dominio principal antes de esa migración porque actualmente no termina en esta aplicación.
 
@@ -173,7 +169,7 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
 
 ## Checklist cuando lleguen las credenciales
 
-1. Confirmar dominio/API asignados por Rappi para pruebas y registrar `https://pos.alentopizza.com/api/integrations/rappi/webhook`, que es el endpoint de la instancia productiva actual de Alentó App.
+1. Confirmar dominio/API asignados por Rappi para pruebas y registrar `https://alentopizza.com/api/integrations/rappi/webhook`, endpoint canónico de la instancia productiva de Alentó App.
 2. Cargar `RAPPI_CLIENT_ID` y `RAPPI_CLIENT_SECRET` como secretos del servidor.
 3. Mantener `RAPPI_ENVIRONMENT=sandbox`.
 4. Configurar la URL pública del webhook para los eventos acordados.
