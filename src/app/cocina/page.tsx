@@ -349,29 +349,29 @@ export default function KitchenPage() {
   return (
     <main className="w-full p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
-        <section className="relative min-h-[176px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
           <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
           <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
           <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-          <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-6 py-6 md:flex-row md:items-center md:px-8 xl:px-10">
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
             <div className="max-w-2xl">
               <div className="flex items-center gap-3">
-                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
                   Producción
                 </p>
               </div>
-              <h1 className="mt-2 text-[42px] font-black leading-none tracking-[-0.045em] md:text-[48px]">
+              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
                 Cocina
               </h1>
-              <p className="mt-2 text-[14px] font-medium text-white/68 md:text-[15px]">
+              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
                 Lo que entra, lo que se prepara y lo que ya puede salir.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
               <KitchenOrderAlerts
                 orderIds={kitchenOrders.map((order) => order.id)}
                 onIncomingPush={handleIncomingPush}
@@ -381,21 +381,21 @@ export default function KitchenPage() {
                 href="/masa"
                 aria-label="Abrir preparaciones"
                 title="Abrir preparaciones"
-                className="group inline-flex h-[68px] w-[92px] shrink-0 items-center justify-center rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
+                className="group inline-flex h-[52px] w-[72px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/15 bg-white/[0.08]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-white/15 bg-white/[0.08]">
                   <Pizza
-                    className="h-[25px] w-[25px]"
+                    className="h-[20px] w-[20px]"
                     strokeWidth={2.15}
                   />
                 </span>
               </Link>
 
-              <div className="flex h-[68px] w-[92px] shrink-0 flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">
+              <div className="flex h-[52px] w-[72px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
                   Cocina
                 </span>
-                <b className="mt-1 text-[30px] font-black leading-none tabular-nums text-white">
+                <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
                   {kitchenOrders.length}
                 </b>
               </div>
