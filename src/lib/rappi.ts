@@ -332,7 +332,7 @@ export function verifyRappiWebhookSignature(
 
   const timestamp = parts.get("t");
   const signature = parts.get("sign");
-  if (!timestamp || !signature || !/^[a-f0-9]+$/i.test(signature)) {
+  if (!timestamp || !signature || !/^[a-f0-9]{64}$/i.test(signature)) {
     return false;
   }
 
