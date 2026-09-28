@@ -15,6 +15,7 @@ import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { findTemplateForEvent, getNotificationTemplates } from "@/lib/notificationTemplates";
 import { calculateDriverEarning } from "@/lib/driverCompensation";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
+import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import { orderCode } from "@/lib/orderCode";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -300,8 +301,42 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       reason: "El pedido no tiene un cliente con teléfono.",
     };
 
+    const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
+
+    if (order.customerId) {
+      try {
+        const customerPush = await sendCustomerOrderStatusPush({
+          customerId: order.customerId,
+          orderId: order.id,
+          orderCode: code,
+          status: requested,
+          fulfillmentType: order.fulfillmentType,
+        });
+
+        if (!customerPush.ok && customerPush.targeted > 0) {
+          console.warn("Customer order status push", {
+            orderId: order.id,
+            customerId: order.customerId,
+            from: current,
+            to: requested,
+            reason: customerPush.reason,
+          });
+        }
+      } catch (pushError) {
+        console.warn("Customer order status push failed", {
+          orderId: order.id,
+          customerId: order.customerId,
+          from: current,
+          to: requested,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
+        });
+      }
+    }
+
     if (order.customerId && order.customer?.phone) {
-      const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
       notification = await dispatchOrderStatusNotification({
         orderId: order.id,
         customerId: order.customerId,
