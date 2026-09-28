@@ -45,7 +45,7 @@ export async function GET() {
     return authError(error);
   }
 
-  const [campaignRows, webDevices] = await Promise.all([
+  const [campaignRows, subscriptions] = await Promise.all([
     prisma.pushCampaign.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -56,7 +56,28 @@ export async function GET() {
         },
       },
     }),
-    prisma.driverPushSubscription.count(),
+    prisma.driverPushSubscription.findMany({
+      where: {
+        user: { active: true },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        userAgent: true,
+        lastSuccessAt: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            roles: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const campaigns = campaignRows.map(({ opens, ...campaign }) => ({
@@ -69,7 +90,8 @@ export async function GET() {
     campaigns,
     delivery: {
       webConfigured: Boolean(staffPushPublicKey()),
-      webDevices,
+      webDevices: subscriptions.length,
+      devices: subscriptions,
     },
   });
 }
@@ -199,7 +221,9 @@ export async function POST(request: NextRequest) {
     {
       campaign: updated,
       delivery: {
+        targeted: webTargetCount,
         delivered: webDeliveredCount,
+        failed: failedCount,
         webDelivered: webDeliveredCount,
       },
     },
