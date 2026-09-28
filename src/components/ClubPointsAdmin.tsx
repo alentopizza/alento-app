@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Settings, Smartphone, Star, Trophy, Users, X } from "lucide-react";
+import { Search, Settings, Star, Trophy, Users, X } from "lucide-react";
 
 type ClubSettings = {
   earnRatePercent: number;
@@ -22,11 +22,6 @@ type ClubCustomer = {
   movements: number;
   purchases: number;
   lastMovementAt: string | null;
-  appInstalled: boolean;
-  appDevices: number;
-  appPlatforms: string[];
-  appFirstDetectedAt: string | null;
-  appLastSeenAt: string | null;
 };
 
 type ClubSummary = {
@@ -34,11 +29,7 @@ type ClubSummary = {
   pointsInCirculation: number;
   totalEarnedPoints: number;
   totalRedeemedPoints: number;
-  customersWithApp: number;
-  appDevices: number;
 };
-
-type AppFilter = "ALL" | "APP" | "NO_APP";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -75,21 +66,17 @@ function rankLabel(rank: number) {
 export default function ClubPointsAdmin() {
   const [settings, setSettings] = useState<ClubSettings | null>(null);
   const [customers, setCustomers] = useState<ClubCustomer[]>([]);
-  const [installedCustomers, setInstalledCustomers] = useState<ClubCustomer[]>([]);
   const [summary, setSummary] = useState<ClubSummary>({
     customersWithPoints: 0,
     pointsInCirculation: 0,
     totalEarnedPoints: 0,
     totalRedeemedPoints: 0,
-    customersWithApp: 0,
-    appDevices: 0,
   });
   const [loading, setLoading] = useState(true);
   const [rankingLoading, setRankingLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [appFilter, setAppFilter] = useState<AppFilter>("ALL");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -100,14 +87,11 @@ export default function ClubPointsAdmin() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cargar el ranking del Club.");
       setCustomers(data.customers ?? []);
-      setInstalledCustomers(data.installedCustomers ?? []);
       setSummary({
         customersWithPoints: Number(data.summary?.customersWithPoints ?? 0),
         pointsInCirculation: Number(data.summary?.pointsInCirculation ?? 0),
         totalEarnedPoints: Number(data.summary?.totalEarnedPoints ?? 0),
         totalRedeemedPoints: Number(data.summary?.totalRedeemedPoints ?? 0),
-        customersWithApp: Number(data.summary?.customersWithApp ?? 0),
-        appDevices: Number(data.summary?.appDevices ?? 0),
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "No fue posible cargar el ranking del Club.");
@@ -133,14 +117,11 @@ export default function ClubPointsAdmin() {
 
         setSettings(settingsData.settings);
         setCustomers(rankingData.customers ?? []);
-        setInstalledCustomers(rankingData.installedCustomers ?? []);
         setSummary({
           customersWithPoints: Number(rankingData.summary?.customersWithPoints ?? 0),
           pointsInCirculation: Number(rankingData.summary?.pointsInCirculation ?? 0),
           totalEarnedPoints: Number(rankingData.summary?.totalEarnedPoints ?? 0),
           totalRedeemedPoints: Number(rankingData.summary?.totalRedeemedPoints ?? 0),
-          customersWithApp: Number(rankingData.summary?.customersWithApp ?? 0),
-          appDevices: Number(rankingData.summary?.appDevices ?? 0),
         });
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "No fue posible cargar Club Alentó.");
@@ -157,22 +138,24 @@ export default function ClubPointsAdmin() {
 
   const visibleCustomers = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("es");
-    const source =
-      appFilter === "APP"
-        ? installedCustomers
-        : appFilter === "NO_APP"
-          ? customers.filter((customer) => !customer.appInstalled)
-          : customers;
 
-    return source.filter((customer) => {
+    return customers.filter((customer) => {
       if (!value) return true;
-      const phone = customer.phone ? customer.countryCode + customer.phone : "";
-      const appText = customer.appPlatforms.join(" ");
-      return (customer.name + " " + phone + " " + (customer.email ?? "") + " " + appText)
+      const phone = customer.phone
+        ? customer.countryCode + customer.phone
+        : "";
+
+      return (
+        customer.name +
+        " " +
+        phone +
+        " " +
+        (customer.email ?? "")
+      )
         .toLocaleLowerCase("es")
         .includes(value);
     });
-  }, [appFilter, customers, installedCustomers, query]);
+  }, [customers, query]);
 
   const topCustomers = customers.slice(0, 3);
 
@@ -262,9 +245,8 @@ export default function ClubPointsAdmin() {
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Clientes con saldo" value={String(summary.customersWithPoints)} note="Clientes que hoy tienen puntos disponibles." icon={<Users className="h-5 w-5 text-neutral-300" strokeWidth={1.8} />} />
-          <StatCard label="Clientes con app" value={String(summary.customersWithApp)} note={summary.appDevices + " dispositivo" + (summary.appDevices === 1 ? "" : "s") + " detectado" + (summary.appDevices === 1 ? "" : "s") + "."} red icon={<Smartphone className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos en circulación" value={formatPoints(summary.pointsInCirculation)} note="Saldo disponible entre todos los clientes." red icon={<Star className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos acumulados" value={formatPoints(summary.totalEarnedPoints)} note="Total histórico generado por compras válidas." />
           <StatCard label="Regla actual" value={settings.earnRatePercent + "%"} note="Sobre productos elegibles sin descuento." />
@@ -302,27 +284,11 @@ export default function ClubPointsAdmin() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar cliente, teléfono, correo o plataforma..."
+                placeholder="Buscar cliente, teléfono o correo..."
                 className="h-12 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-12 pr-4 text-sm font-medium outline-none transition focus:border-neutral-400 focus:bg-white"
               />
             </div>
 
-            <div className="flex gap-1.5 overflow-x-auto rounded-[14px] border border-neutral-200 bg-[#faf9f7] p-1">
-              {([
-                ["ALL", "Todos"],
-                ["APP", "Con app"],
-                ["NO_APP", "Sin app"],
-              ] as [AppFilter, string][]).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setAppFilter(value)}
-                  className={"h-10 whitespace-nowrap rounded-[11px] px-4 text-[11px] font-black transition " + (appFilter === value ? "bg-neutral-950 text-white shadow-sm" : "text-neutral-600 hover:bg-white")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -331,7 +297,7 @@ export default function ClubPointsAdmin() {
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">Ranking completo</p>
               <h2 className="mt-1 text-[21px] font-black tracking-[-0.03em] text-neutral-950">
-                {appFilter === "APP" ? "Clientes con app detectada" : "Clientes con puntos"}
+                Clientes con puntos
               </h2>
             </div>
             <b className="text-[12px] font-black text-neutral-400">{visibleCustomers.length}</b>
@@ -345,7 +311,7 @@ export default function ClubPointsAdmin() {
                 <article key={customer.id} className="grid gap-4 px-5 py-4 transition hover:bg-[#faf9f7] md:grid-cols-[64px_minmax(0,1fr)_140px_150px] md:items-center">
                   <div>
                     <span className={"inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[12px] font-black " + (customer.rank > 0 && customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
-                      {customer.rank > 0 ? "#" + customer.rank : "APP"}
+                      {"#" + customer.rank}
                     </span>
                   </div>
 
@@ -357,21 +323,10 @@ export default function ClubPointsAdmin() {
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-2">
                           <h3 className="truncate text-[14px] font-bold text-neutral-950">{customer.name}</h3>
-                          {customer.appInstalled && (
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.06em] text-[var(--brand-red)]">
-                              <Smartphone className="h-2.5 w-2.5" strokeWidth={2.4} />
-                              App
-                            </span>
-                          )}
                         </div>
                         <p className="mt-0.5 truncate text-[10px] text-neutral-400">
                           {customer.phone ? customer.countryCode + customer.phone : customer.email || "Sin teléfono"}
                         </p>
-                        {customer.appInstalled && (
-                          <p className="mt-1 truncate text-[9px] font-medium text-neutral-400">
-                            {customer.appPlatforms.join(" · ")} · {customer.appDevices} dispositivo{customer.appDevices === 1 ? "" : "s"} · desde {shortDate(customer.appFirstDetectedAt)} · últ. app {shortDate(customer.appLastSeenAt)}
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -438,12 +393,6 @@ function TopCard({ customer }: { customer: ClubCustomer }) {
       <div className="relative mt-5">
         <h3 className="truncate text-[18px] font-black tracking-[-0.025em]">{customer.name}</h3>
         {customer.phone && <p className={"mt-1 text-[11px] font-medium " + (leader ? "text-white/45" : "text-neutral-400")}>{customer.countryCode}{customer.phone}</p>}
-        {customer.appInstalled && (
-          <div className={"mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.06em] " + (leader ? "border border-white/10 bg-white/[0.07] text-white/70" : "border border-red-100 bg-red-50 text-[var(--brand-red)]")}>
-            <Smartphone className="h-3 w-3" strokeWidth={2.3} />
-            App · {customer.appPlatforms.join(" / ")}
-          </div>
-        )}
       </div>
 
       <div className="relative mt-5 flex items-end justify-between gap-3">
