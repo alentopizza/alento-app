@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Alentó Repartidor</string>
-    <string name="location_disclosure_title">Ubicación durante tus entregas</string>
-    <string name="location_disclosure_body">Alentó usa tu ubicación mientras estés marcado como repartidor Activo, incluso si abres Maps o apagas la pantalla. Esto permite ver tu ubicación en el panel de entregas. Durante un domicilio también alimenta el seguimiento del cliente. El GPS se detiene cuando te pones Inactivo.</string>
-</resources>
