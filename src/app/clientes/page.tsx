@@ -804,23 +804,24 @@ export default function CustomersPage() {
   return (
     <main className="min-h-screen w-full bg-[#f4f4f2] p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
-        <section className="relative min-h-[150px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_40%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_68%_110%,rgba(132,12,16,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
-          <Users className="absolute right-[30%] top-[-28px] h-48 w-48 rotate-[-10deg] text-white/[0.035]" strokeWidth={1.15} />
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <Users className="absolute right-[30%] top-[-18px] h-36 w-36 rotate-[-10deg] text-white/[0.03]" strokeWidth={1.15} />
           <div className="absolute inset-y-0 right-0 w-[46%] opacity-65 [background:repeating-linear-gradient(120deg,transparent_0_54px,rgba(255,255,255,.022)_55px_56px)]" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-          <div className="relative flex min-h-[150px] flex-col justify-between gap-5 px-6 py-5 md:flex-row md:items-center md:px-8 xl:px-10">
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
             <div className="max-w-3xl">
               <div className="flex items-center gap-3">
-                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
                   Relación con clientes
                 </p>
               </div>
-              <h1 className="mt-2 text-[38px] font-black leading-none tracking-[-0.045em] md:text-[44px]">
+              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
                 Clientes
               </h1>
-              <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
+              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
                 Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.
               </p>
             </div>
@@ -829,29 +830,30 @@ export default function CustomersPage() {
               <button
                 type="button"
                 onClick={() => setImportOpen(true)}
-                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/14 bg-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.04em] text-white transition hover:bg-white/[0.13]"
+                aria-label="Importar clientes"
+                title="Importar clientes"
+                className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
               >
-                <Upload className="h-4 w-4" strokeWidth={2.2} />
-                Importar
+                <Upload className="h-[22px] w-[22px]" strokeWidth={2.2} />
               </button>
+
               <button
                 type="button"
                 onClick={() => void exportCustomers()}
-                className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/14 bg-white/[0.08] px-4 text-[10px] font-black uppercase tracking-[0.04em] text-white transition hover:bg-white/[0.13]"
+                aria-label="Exportar clientes"
+                title="Exportar clientes"
+                className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
               >
-                <Download className="h-4 w-4" strokeWidth={2.2} />
-                Exportar
+                <Download className="h-[22px] w-[22px]" strokeWidth={2.2} />
               </button>
-              <div className="flex h-[66px] min-w-[118px] items-center gap-3 rounded-[18px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                <Users className="h-6 w-6 text-white/80" strokeWidth={2} />
-                <div>
-                  <span className="block text-[8px] font-black uppercase tracking-[0.16em] text-white/45">
-                    Clientes
-                  </span>
-                  <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">
-                    {customers.length}
-                  </b>
-                </div>
+
+              <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
+                  Clientes
+                </span>
+                <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
+                  {customers.length}
+                </b>
               </div>
             </div>
           </div>
