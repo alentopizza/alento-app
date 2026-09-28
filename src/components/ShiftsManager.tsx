@@ -218,6 +218,18 @@ export default function ShiftsManager() {
     void load();
   }, [month]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(() => setError(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [error]);
+
   const filteredShifts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("es");
 
@@ -503,42 +515,65 @@ export default function ShiftsManager() {
           </div>
         </header>
 
-        {error && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-semibold text-red-700">
-            {error}
-          </div>
-        )}
-        {notice && (
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[11px] font-semibold text-emerald-700">
-            {notice}
+        {(error || notice) && (
+          <div className="fixed right-4 top-4 z-[220] max-w-[360px] animate-[fadeIn_.18s_ease-out]">
+            <div
+              className={
+                "flex items-start gap-2.5 rounded-2xl border px-3.5 py-3 shadow-[0_18px_50px_rgba(0,0,0,.18)] backdrop-blur " +
+                (error
+                  ? "border-red-200 bg-red-50/95 text-red-700"
+                  : "border-emerald-200 bg-emerald-50/95 text-emerald-700")
+              }
+            >
+              <span
+                className={
+                  "mt-0.5 h-2 w-2 shrink-0 rounded-full " +
+                  (error ? "bg-red-500" : "bg-emerald-500")
+                }
+              />
+              <p className="min-w-0 flex-1 text-[10px] font-bold leading-4">
+                {error || notice}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                }}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-current/55 hover:bg-black/5 hover:text-current"
+                aria-label="Cerrar notificación"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             label="Turnos del mes"
             value={String(summary.shifts)}
             note={monthTitle(month)}
-            icon={<CalendarDays className="h-5 w-5" />}
+            icon={<CalendarDays className="h-4 w-4" />}
           />
           <SummaryCard
             label="Valor programado"
             value={money(summary.total)}
             note="Costo total de los turnos del mes."
-            icon={<DollarSign className="h-5 w-5" />}
+            icon={<DollarSign className="h-4 w-4" />}
           />
           <SummaryCard
             label="Pagado"
             value={money(summary.paid)}
             note="Turnos marcados como pagados."
-            icon={<WalletCards className="h-5 w-5" />}
+            icon={<WalletCards className="h-4 w-4" />}
             positive
           />
           <SummaryCard
             label="Pendiente"
             value={money(summary.pending)}
             note="Valor que todavía falta pagar."
-            icon={<Clock3 className="h-5 w-5" />}
+            icon={<Clock3 className="h-4 w-4" />}
             alert
           />
         </section>
@@ -1108,14 +1143,14 @@ function SummaryCard({
   alert?: boolean;
 }) {
   return (
-    <article className="rounded-[22px] border border-neutral-200 bg-white p-5 shadow-[0_10px_28px_rgba(28,23,20,.04)]">
+    <article className="rounded-[18px] border border-neutral-200 bg-white px-4 py-3.5 shadow-[0_8px_22px_rgba(28,23,20,.035)]">
       <div className="flex items-center justify-between">
         <span className="text-[9px] font-black uppercase tracking-[.13em] text-neutral-400">
           {label}
         </span>
         <span
           className={
-            "flex h-9 w-9 items-center justify-center rounded-xl " +
+            "flex h-8 w-8 items-center justify-center rounded-[10px] " +
             (positive
               ? "bg-emerald-50 text-emerald-600"
               : alert
@@ -1128,7 +1163,7 @@ function SummaryCard({
       </div>
       <b
         className={
-          "mt-3 block text-[25px] font-black tracking-[-.04em] " +
+          "mt-2 block text-[22px] font-black leading-none tracking-[-.04em] " +
           (positive
             ? "text-emerald-700"
             : alert
@@ -1138,7 +1173,7 @@ function SummaryCard({
       >
         {value}
       </b>
-      <p className="mt-1 text-[10px] text-neutral-400">{note}</p>
+      <p className="mt-1.5 text-[9px] leading-4 text-neutral-400">{note}</p>
     </article>
   );
 }
