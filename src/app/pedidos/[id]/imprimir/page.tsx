@@ -258,7 +258,9 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
           </p>
           {isRappi ? (
             <p className="mt-1 text-[10px] font-bold">
-              NO COBRAR EN TIENDA · {order.integration?.paymentMethod?.toUpperCase() || "GESTIONADO POR RAPPI"}
+              {order.integration?.paymentMethod?.toLowerCase() === "cash"
+                ? "PAGO EN EFECTIVO · VERIFICAR INSTRUCCIÓN EN RAPPI"
+                : `PAGO GESTIONADO POR RAPPI · ${order.integration?.paymentMethod?.toUpperCase() || "SIN MEDIO INFORMADO"}`}
             </p>
           ) : !paidInFull && (
             <>
