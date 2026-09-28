@@ -1,8 +1,8 @@
 # Alentó App
 
-Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración y la experiencia pública de pedidos en desarrollo.
+Aplicación productiva propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración, reparto y la experiencia pública de pedidos.
 
-El proyecto busca reemplazar gradualmente Glide y consolidar en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
+Alentó App consolida en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
 
 ## Visión de producto
 
@@ -31,7 +31,7 @@ alentopizza.com/interno
 └── Configuración
 ```
 
-Alentó App ya opera en producción en `https://pos.alentopizza.com/`. El dominio comercial `alentopizza.com` continúa servido por Glide mientras se decide/migra la experiencia pública al sistema propio. `pos.alentopizza.com` no es un entorno temporal de pruebas: es el servicio productivo actual.
+Alentó App opera en producción en `https://alentopizza.com/`. El mismo dominio sirve la experiencia pública y las superficies internas protegidas por ruta, sesión y rol.
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
@@ -157,11 +157,11 @@ Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Servicio productivo actual de Alentó App/POS: `https://pos.alentopizza.com/`.
-- Webhook Rappi vigente mientras se mantenga esta infraestructura: `https://pos.alentopizza.com/api/integrations/rappi/webhook`.
-- Dominio comercial principal actual: `alentopizza.com`, todavía servido por Glide.
+- Dominio productivo canónico de Alentó App: `https://alentopizza.com/`.
+- Webhook Rappi preparado: `https://alentopizza.com/api/integrations/rappi/webhook`.
+- La experiencia pública y las superficies internas protegidas forman parte de la misma aplicación.
 
-La operación productiva actual usa `pos.alentopizza.com`. La arquitectura futura puede consolidarse bajo un solo dominio principal, pero cualquier cambio de dominio debe tratarse como una migración productiva controlada.
+No tratar `pos.alentopizza.com` ni Glide como arquitectura productiva vigente.
 
 ## Tipos de pedido
 
@@ -274,9 +274,8 @@ Prioridades vigentes:
 6. inventario, recetas, costos y rentabilidad;
 7. endurecimiento adicional de autenticación y auditoría;
 8. GPS en vivo del repartidor y tracking cartográfico;
-9. sustituir Glide y migrar `alentopizza.com`;
-10. parametrización/replicabilidad;
-11. homologar y activar Rappi cuando el proveedor entregue credenciales; otras integraciones externas permanecen futuras.
+9. parametrización/replicabilidad;
+10. homologar y activar Rappi cuando el proveedor entregue credenciales; otras integraciones externas permanecen futuras.
 
 ## Rutas principales vigentes
 
