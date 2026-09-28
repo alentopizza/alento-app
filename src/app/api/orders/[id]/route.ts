@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
+import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
@@ -140,6 +141,30 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           data: { status: "CANCELED" },
         });
       });
+
+      if (current.customerId) {
+        try {
+          await sendCustomerOrderStatusPush({
+            customerId: current.customerId,
+            orderId: current.id,
+            orderCode: `${current.source}-${String(
+              current.sequenceNumber ?? current.id,
+            ).padStart(4, "0")}`,
+            status: "CANCELED",
+            fulfillmentType: current.fulfillmentType,
+          });
+        } catch (pushError) {
+          console.warn("Customer cancellation push failed", {
+            orderId: current.id,
+            customerId: current.customerId,
+            error:
+              pushError instanceof Error
+                ? pushError.message
+                : "Unknown push error",
+          });
+        }
+      }
+
       return NextResponse.json({ order: { ...serializeOrder(current), status: updated.status } });
     }
 
@@ -540,6 +565,35 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     });
 
     const updated = await loadOrder(current.id);
+
+    if (
+      updated?.customerId &&
+      updated.status !== current.status
+    ) {
+      try {
+        await sendCustomerOrderStatusPush({
+          customerId: updated.customerId,
+          orderId: updated.id,
+          orderCode: `${updated.source}-${String(
+            updated.sequenceNumber ?? updated.id,
+          ).padStart(4, "0")}`,
+          status: updated.status,
+          fulfillmentType: updated.fulfillmentType,
+        });
+      } catch (pushError) {
+        console.warn("Customer edited-order status push failed", {
+          orderId: updated.id,
+          customerId: updated.customerId,
+          from: current.status,
+          to: updated.status,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
+        });
+      }
+    }
+
     return NextResponse.json({ order: serializeOrder(updated) });
   } catch (error) {
     console.error("Order update error", error);
