@@ -1202,6 +1202,7 @@ export default function OrdersCardsDashboardV3() {
 
       {loading ? <div className="rounded-2xl border bg-white p-8 text-center text-sm text-neutral-500">Cargando pedidos...</div> : error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">{error}</div> : visible.length === 0 ? <div className="rounded-2xl border border-dashed bg-white p-10 text-center text-sm text-neutral-400">No hay pedidos para mostrar.</div> :
         <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{visible.map((order) => {
+          const rappi = isRappiOrder(order);
           const fullyPaid = paidInFull(order);
           const busyOrder = busy === order.id;
           const receivedTotal = paidAmount(order);
@@ -1212,11 +1213,53 @@ export default function OrdersCardsDashboardV3() {
               <div className="[font-synthesis:none]">
                 <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
                 <div className="mt-0.5 flex items-end justify-between gap-3">
-                  <h2 className="min-w-0 text-[21px] font-bold leading-6 tracking-[-0.035em] text-neutral-950">{displayOrderCode(order)}</h2>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="min-w-0 text-[21px] font-bold leading-6 tracking-[-0.035em] text-neutral-950">{displayOrderCode(order)}</h2>
+                      {rappi && (
+                        <span className="rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-orange-700">
+                          Rappi #{order.integration?.externalOrderId || "—"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <b className="shrink-0 pb-[1px] text-[16px] font-semibold leading-5 tabular-nums tracking-[-0.015em] text-[var(--brand-red)]">{money(order.total)}</b>
                 </div>
               </div>
-              <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4"><div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">{(order.customer?.name || "C").trim().charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="order-customer-name truncate">{order.customer?.name || "Cliente ocasional"}</p><div className="order-customer-meta"><p className="order-customer-line">{order.customer?.phone ? `${order.customer.countryCode} ${order.customer.phone}` : "Sin teléfono"}</p>{order.fulfillmentType === "DELIVERY" && order.address?.address && <p className="order-customer-line order-customer-address">{order.address.address}</p>}</div></div></div>
+              <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4">
+                <div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">
+                  {orderCustomerName(order).trim().charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="order-customer-name truncate">{orderCustomerName(order)}</p>
+                  <div className="order-customer-meta">
+                    <p className="order-customer-line">{orderCustomerPhone(order)}</p>
+                    {order.fulfillmentType === "DELIVERY" && orderDeliveryAddress(order) && (
+                      <p className="order-customer-line order-customer-address">{orderDeliveryAddress(order)}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {rappi && (
+                <div className="mt-2.5 rounded-xl border border-orange-200 bg-orange-50/70 px-3.5 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[9px] font-black uppercase tracking-[0.08em] text-orange-700">Rappi</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.04em] text-orange-600">
+                      {order.integration?.remoteStatus || "NEW_ORDER"}
+                    </span>
+                  </div>
+                  {order.integration?.courierName ? (
+                    <p className="mt-1 truncate text-[11px] font-bold text-orange-950">
+                      RappiTendero: {order.integration.courierName}
+                      {order.integration.courierEtaSeconds != null
+                        ? ` · ETA ${Math.max(1, Math.round(order.integration.courierEtaSeconds / 60))} min`
+                        : ""}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[11px] font-medium text-orange-900/70">Esperando información del RappiTendero.</p>
+                  )}
+                </div>
+              )}
               {order.fulfillmentType === "DELIVERY" && order.driver && (
                 <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
                   <div className="flex min-w-0 items-center gap-2">
@@ -1248,24 +1291,24 @@ export default function OrdersCardsDashboardV3() {
               <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
                 <button
                   type="button"
-                  onClick={() => { if (!fullyPaid) void openPayment(order); }}
-                  disabled={fullyPaid}
-                  className={`order-payment-status ${fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"} block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100`}
+                  onClick={() => { if (!fullyPaid && !rappi) void openPayment(order); }}
+                  disabled={fullyPaid || rappi}
+                  className={`order-payment-status block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100 ${rappi ? "border-violet-200 bg-violet-50" : fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"}`}
                 >
-                  <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : "text-rose-700"}`}>
-                    {fullyPaid ? "Pagado" : "Pago pendiente"}
+                  <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${rappi ? "text-violet-700" : fullyPaid ? "text-emerald-700" : "text-rose-700"}`}>
+                    {rappi ? "Cobro administrado por Rappi" : fullyPaid ? "Pagado" : "Pago pendiente"}
                   </span>
-                  <b className={`mt-1 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] ${fullyPaid ? "text-emerald-900" : "text-rose-900"}`}>
-                    {money(fullyPaid ? receivedTotal : pendingTotal)}
+                  <b className={`mt-1 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] ${rappi ? "text-violet-950" : fullyPaid ? "text-emerald-900" : "text-rose-900"}`}>
+                    {money(rappi ? order.total : fullyPaid ? receivedTotal : pendingTotal)}
                   </b>
                 </button>
               </div>
               <div className="mt-3 flex items-center gap-1.5 border-t border-neutral-100 pt-2.5" onClick={(event) => event.stopPropagation()}>
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
-                <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
+                <button onClick={() => void openEdit(order)} disabled={rappi || ["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title={rappi ? "Los pedidos Rappi se editan desde Rappi" : "Editar"}><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
                 {["CANCELED", "COMPLETED"].includes(order.status) ? (
-                  canDeleteOrders ? (
+                  canDeleteOrders && !rappi ? (
                     <button
                       onClick={() => setConfirmAction({ kind: "delete-order", order })}
                       disabled={busyOrder}
@@ -1274,7 +1317,7 @@ export default function OrdersCardsDashboardV3() {
                       aria-label="Eliminar pedido definitivamente"
                     ><Icon name="trash" /></button>
                   ) : null
-                ) : canCancelOrders ? (
+                ) : canCancelOrders && (!rappi || (order.status === "CONFIRMED" && !order.integration?.acceptedAt)) ? (
                   <button
                     onClick={() => setConfirmAction({ kind: "cancel-order", order })}
                     disabled={busyOrder}
