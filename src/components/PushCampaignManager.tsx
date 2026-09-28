@@ -51,10 +51,13 @@ type DeliveryDevice = {
 type DeliveryState = {
   webConfigured: boolean;
   webDevices: number;
+  staffWebDevices?: number;
+  customerWebDevices?: number;
   devices: DeliveryDevice[];
 };
 
 const audienceOptions = [
+  { id: "CUSTOMERS", label: "Clientes" },
   { id: "DRIVERS", label: "Repartidores" },
   { id: "KITCHEN", label: "Cocina" },
   { id: "POS", label: "POS / Caja" },
@@ -217,7 +220,8 @@ export default function PushCampaignManager() {
 
   useEffect(() => {
     if (actionType !== "SECTION") return;
-    if (audience === "DRIVERS") setActionValue("/repartidor");
+    if (audience === "CUSTOMERS") setActionValue("/");
+    else if (audience === "DRIVERS") setActionValue("/repartidor");
     else if (audience === "KITCHEN") setActionValue("/cocina");
     else if (audience === "POS") setActionValue("/interno");
     else if (audience === "ADMIN") setActionValue("/interno");
@@ -249,6 +253,11 @@ export default function PushCampaignManager() {
       ),
     [delivery.devices, audience],
   );
+
+  const audienceDeviceCount =
+    audience === "CUSTOMERS"
+      ? delivery.customerWebDevices ?? 0
+      : audienceDevices.length;
 
   async function uploadImage(file: File) {
     setUploading(true);
@@ -545,7 +554,7 @@ export default function PushCampaignManager() {
                     disabled
                     className="h-11 rounded-xl border border-neutral-950 bg-neutral-950 text-[10px] font-black text-white"
                   >
-                    PWA · {delivery.webDevices}
+                    PWA · {audienceDeviceCount}
                   </button>
                 </div>
               </div>
@@ -672,7 +681,7 @@ export default function PushCampaignManager() {
                   }
                 >
                   {delivery.webConfigured
-                    ? `${audienceDevices.length} para esta audiencia`
+                    ? `${audienceDeviceCount} para esta audiencia`
                     : "Sin configurar"}
                 </span>
               </div>
