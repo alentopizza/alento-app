@@ -30,13 +30,31 @@ export async function sendRappiOrderCreatedPush(input: {
   fulfillmentType: FulfillmentType;
 }) {
   return sendStaffPushToRoles({
-    roles: ["ADMIN", "POS", "CASHIER", "KITCHEN"],
+    roles: ["ADMIN", "POS", "CASHIER"],
     title: "🛵 Nuevo pedido de Rappi",
     body: `${input.orderCode} · ${fulfillmentText(input.fulfillmentType)}`,
     url: "/pedidos",
     tag: `alento-rappi-order-${input.orderId}`,
     orderId: input.orderId,
     kind: "RAPPI_ORDER",
+    requireInteraction: true,
+  });
+}
+
+
+export async function sendRappiKitchenOrderCreatedPush(input: {
+  orderId: number;
+  orderCode: string;
+  fulfillmentType: FulfillmentType;
+}) {
+  return sendStaffPushToRoles({
+    roles: ["KITCHEN"],
+    title: "🔔 Nuevo pedido Rappi en Cocina",
+    body: `${input.orderCode} · ${fulfillmentText(input.fulfillmentType)}`,
+    url: "/cocina",
+    tag: `alento-rappi-kitchen-order-${input.orderId}`,
+    orderId: input.orderId,
+    kind: "KITCHEN_ORDER",
     requireInteraction: true,
   });
 }
