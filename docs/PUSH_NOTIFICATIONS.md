@@ -6,14 +6,12 @@ Alentó usa un solo centro de notificaciones en `/notificaciones`.
 
 Ese centro contiene:
 
-- **Push APK / PWA**: campañas manuales con historial y estadísticas.
+- **Push PWA**: campañas manuales con historial y estadísticas.
 - **Automatizaciones WhatsApp**: plantillas de Meta existentes.
 
 No crear un segundo centro ni un segundo motor Push.
 
-## Canales
-
-### PWA / Web Push
+## Canal oficial: PWA / Web Push
 
 Servidor:
 
@@ -24,24 +22,9 @@ Cliente:
 - `src/lib/webPushClient.ts`
 - `public/sw.js`
 
-Las suscripciones existentes se guardan en `DriverPushSubscription`.
+Las suscripciones se guardan en `DriverPushSubscription`.
 
-### APK Repartidor 004 / Firebase Cloud Messaging
-
-Servidor:
-
-- `src/lib/nativePush.ts`
-- `src/app/api/repartidor/native-push/register/route.ts`
-
-Android:
-
-- `NativePushManager.kt`
-- `AlentoFirebaseMessagingService.kt`
-- `AlentoDriverApplication.kt`
-
-Los dispositivos se guardan en `NativePushDevice`.
-
-El registro Android reutiliza el token nativo firmado de 30 días que ya usa ubicación. No crear un segundo mecanismo de autenticación para la APK.
+El mismo motor Web Push se reutiliza para repartidores, Cocina y demás roles internos. No crear un canal móvil paralelo para un rol específico.
 
 ## Campañas manuales
 
@@ -64,34 +47,41 @@ Persistencia:
 - `PushCampaign`
 - `PushCampaignOpen`
 
+Toda campaña nueva se registra y entrega por el canal `WEB`.
+
 ## Estadísticas
 
-- **Objetivo**: dispositivos suscritos encontrados antes del envío.
-- **Entregas**: mensajes aceptados correctamente por Web Push o FCM.
+- **Objetivo**: suscripciones PWA encontradas antes del envío.
+- **Entregas**: mensajes aceptados correctamente por Web Push.
 - **Fallos**: intentos rechazados por el servicio Push.
 - **Vistas**: aperturas únicas registradas al tocar la notificación.
 
-“Entrega” no significa que una persona leyó el mensaje; significa que el proveedor Push aceptó la entrega.
+“Entrega” no significa que una persona leyó el mensaje; significa que el proveedor Web Push aceptó la entrega.
 
-## Firebase Android
+## Configuración
 
-Variables requeridas en producción:
+Variables requeridas:
 
-`FIREBASE_ANDROID_API_KEY`
+`WEB_PUSH_VAPID_SUBJECT`
 
-`FIREBASE_ANDROID_APP_ID`
+`WEB_PUSH_VAPID_PUBLIC_KEY`
 
-`FIREBASE_PROJECT_ID`
+`WEB_PUSH_VAPID_PRIVATE_KEY`
 
-`FIREBASE_MESSAGING_SENDER_ID`
+Las claves VAPID pertenecen al servidor. El navegador recibe únicamente la clave pública.
 
-`FIREBASE_SERVICE_ACCOUNT_JSON`
+## Repartidor PWA
 
-La cuenta de servicio es secreta. Nunca enviarla al navegador ni incluirla en la APK.
+La aplicación oficial del repartidor es la PWA en `/repartidor`.
 
-## Seguridad operativa
+- La disponibilidad se mantiene en `User.driverAvailable`.
+- La ubicación general se obtiene mediante `navigator.geolocation.watchPosition()`.
+- `/api/repartidor/location` acepta únicamente la sesión autenticada del repartidor y registra `driverLocationSource = "WEB"`.
+- El Push del repartidor usa `/api/repartidor/push` y Web Push.
+- La navegación externa abre Google Maps desde el navegador.
 
-- La APK se registra solo para usuarios activos con rol DRIVER/DISPATCH.
-- Estar **Inactivo** no elimina el Push: un repartidor inactivo puede recibir una novedad.
-- **Cerrar sesión** sí desactiva la asociación del dispositivo con ese usuario.
-- La ubicación 003/004 funciona por un flujo independiente; no modificar GPS para cambios exclusivamente de Push.
+No crear bridges, tokens o canales Android paralelos. Si una limitación del navegador requiere calibración, se resuelve primero dentro del flujo PWA.
+
+## Compatibilidad histórica de base de datos
+
+El esquema puede conservar temporalmente columnas o tablas históricas de integraciones móviles anteriores para evitar que `prisma db push` ejecute eliminaciones destructivas durante un despliegue. Esos registros no forman parte del flujo activo y no deben volver a ser consumidos por código nuevo.
