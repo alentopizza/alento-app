@@ -7,7 +7,7 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 - Proyecto EasyPanel: `app_alento`.
 - Aplicación: `alento-app`.
 - Puerto interno: `3000`.
-- Dominio productivo: `https://pos.alentopizza.com/`.
+- Dominio productivo: `https://alentopizza.com/`.
 - Base de datos: PostgreSQL `alento-db`.
 
 
@@ -37,13 +37,13 @@ RAPPI_API_BASE_URL
 
 Esos valores se cargan únicamente cuando Rappi los entregue durante la homologación.
 
-Mientras el servicio siga publicado en `https://pos.alentopizza.com/`, el webhook operativo que debe registrarse en Rappi es:
+El webhook operativo que debe registrarse en Rappi es:
 
 ```text
-https://pos.alentopizza.com/api/integrations/rappi/webhook
+https://alentopizza.com/api/integrations/rappi/webhook
 ```
 
-No usar todavía `https://alentopizza.com/api/integrations/rappi/webhook` porque el dominio principal continúa servido por Glide.
+`alentopizza.com` es el dominio productivo canónico de Alentó App.
 
 El cambio de schema agrega `OrderIntegration`. El arranque vigente ejecuta `prisma db push`, por lo que el primer redeploy de esta rama intentará crear la estructura automáticamente. Revisar los logs de arranque y confirmar que Prisma no proponga operaciones destructivas.
 
