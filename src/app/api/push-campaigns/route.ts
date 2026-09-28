@@ -176,9 +176,7 @@ export async function POST(request: NextRequest) {
     where: { id: campaign.id },
     data: {
       webTargetCount,
-      nativeTargetCount: 0,
       webDeliveredCount,
-      nativeDeliveredCount: 0,
       failedCount,
       status: webDeliveredCount > 0 ? "SENT" : "FAILED",
       sentAt: new Date(),
