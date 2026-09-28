@@ -1495,6 +1495,7 @@ export default function OrdersCardsDashboardV3() {
         selectedDriverId={statusSelectedDriverId}
         driverBusy={statusDriverSaving}
         showDriverManagement={!isRappiOrder(statusOrder)}
+        externalProvider={isRappiOrder(statusOrder) ? "Rappi" : null}
         onDriverChange={setStatusSelectedDriverId}
         onConfirmDriver={() => void assignManagedDriver()}
         onUnassignDriver={() => void unassignManagedDriver()}
