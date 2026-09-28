@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-23.
+Última actualización: 2026-09-27.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -18,7 +18,8 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - el domicilio se calcula automáticamente con Google Routes tanto al crear como al editar;
 - Caja básica y pagos parciales/mixtos están implementados;
 - Club acumula y muestra puntos, pero el canje transaccional sigue pendiente;
-- `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+- `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`;
+- la integración POS con Rappi ya está preparada en código, pero permanece deshabilitada hasta recibir credenciales y completar homologación.
 
 Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
 
@@ -279,11 +280,36 @@ POS-0002
 WEB-0003
 ```
 
-## Integraciones — pospuestas
+## Integraciones externas
 
-Rappi, DiDi y otras integraciones externas no forman parte del código operativo activo.
+### Rappi — preparada / pendiente de homologación
 
-La implementación experimental fue retirada.
+La integración POS oficial con Rappi ya está implementada en una rama dedicada y documentada en `docs/RAPPI_INTEGRATION.md`.
+
+Estado vigente:
+
+- Store ID: `900489414`;
+- solicitud técnica registrada con Rappi;
+- cliente OAuth preparado;
+- recepción por webhook firmada;
+- importación idempotente de órdenes;
+- aceptación desde Alentó;
+- `ready-for-pickup`;
+- cancelaciones y eventos de RappiTendero;
+- alertas Push/sonido;
+- visualización en Pedidos y Cocina;
+- pagos Rappi aislados de la Caja física;
+- integración deshabilitada por defecto con `RAPPI_ENABLED=false`.
+
+Mientras Alentó App siga operando en `pos.alentopizza.com`, el webhook a registrar con Rappi es:
+
+```text
+https://pos.alentopizza.com/api/integrations/rappi/webhook
+```
+
+La activación depende de que Rappi entregue `client_id`, `client_secret`, secreto(s) de webhook y los valores de homologación necesarios.
+
+DiDi y otras integraciones continúan como trabajo futuro opcional.
 
 **Las integraciones exclusivas de Alentó se mantienen separadas del criterio de cierre del núcleo genérico.**
 
@@ -339,7 +365,8 @@ Pendientes estratégicos conocidos:
 - mejoras futuras de Menú: tipos de producto y modificadores;
 - validación productiva de la experiencia pública ya implementada;
 - sustitución de Glide donde todavía aplique;
-- integraciones externas solo como extensiones opcionales.
+- homologación y activación de Rappi;
+- DiDi y otras integraciones externas solo como extensiones opcionales.
 
 ## Experiencia pública — estado vigente 2026-09-23
 
