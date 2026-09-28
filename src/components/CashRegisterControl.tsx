@@ -190,6 +190,8 @@ export default function CashRegisterControl({
   }, [data, openingBalance]);
 
   const session = data?.session ?? null;
+  const liveSummaryReady =
+    session?.status !== "OPEN" || currentMovement != null;
   const effectiveMovement = {
     received:
       currentMovement?.received ??
@@ -329,6 +331,8 @@ export default function CashRegisterControl({
   }
 
   function prepareClose() {
+    if (!liveSummaryReady) return;
+
     setCounts(
       Object.fromEntries(ALL_DENOMINATIONS.map((value) => [String(value), ""])),
     );
@@ -569,7 +573,15 @@ export default function CashRegisterControl({
             <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
             <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
             <MiniMetric label="Total apertura" value={money(openingControlledBalance)} />
-            <MiniMetric label="Disponible esperado" value={money(expectedNow)} strong />
+            <MiniMetric
+              label="Disponible esperado"
+              value={
+                liveSummaryReady
+                  ? money(expectedNow)
+                  : "Actualizando…"
+              }
+              strong
+            />
 
             <div className="flex gap-2">
               <button
@@ -582,9 +594,10 @@ export default function CashRegisterControl({
               <button
                 type="button"
                 onClick={prepareClose}
-                className="h-12 rounded-2xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:-translate-y-0.5"
+                disabled={!liveSummaryReady}
+                className="h-12 rounded-2xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
               >
-                Cerrar caja
+                {liveSummaryReady ? "Cerrar caja" : "Actualizando…"}
               </button>
             </div>
           </div>
