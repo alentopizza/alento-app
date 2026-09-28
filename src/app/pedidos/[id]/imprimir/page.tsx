@@ -35,6 +35,19 @@ type Order = {
     whatsappCountryCode: string;
     whatsappPhone: string | null;
   } | null;
+  integration?: {
+    provider: string;
+    externalOrderId: string;
+    customerName?: string | null;
+    customerPhone?: string | null;
+    deliveryAddress?: string | null;
+    deliveryNeighborhood?: string | null;
+    deliveryCity?: string | null;
+    paymentMethod?: string | null;
+    remoteStatus?: string | null;
+    courierName?: string | null;
+    courierPhone?: string | null;
+  } | null;
   items: { id: number; productName: string; quantity: number; unitPrice: number; lineTotal: number; configuration: unknown; notes?: string | null }[];
   payments: { id?: number; method: string; amount: number; cashReceived: number | null; changeDue: number | null; status: string; reference?: string | null; paidAt?: string | null }[];
 };
@@ -118,12 +131,19 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
   if (error) return <main className="p-8 text-red-700">{error}</main>;
   if (!order) return <main className="p-8 text-neutral-500">Cargando comprobante...</main>;
 
+  const isRappi = order.source === "RAPPI";
   const paidPayments = order.payments.filter((payment) => payment.status === "PAID");
   const paidTotal = paidPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const pendingBalance = Math.max(0, Number(order.total) - paidTotal);
   const paidInFull = pendingBalance <= 0 && Number(order.total) > 0;
   const isDelivery = order.fulfillmentType === "DELIVERY";
-  const deliveryAddress = compactDeliveryAddress(order.address?.address);
+  const customerName = order.customer?.name || order.integration?.customerName || (isRappi ? "Cliente Rappi" : "Cliente ocasional");
+  const customerPhone = order.customer?.phone
+    ? `${order.customer.countryCode}${order.customer.phone}`
+    : order.integration?.customerPhone || "";
+  const deliveryAddress = compactDeliveryAddress(
+    order.address?.address || order.integration?.deliveryAddress,
+  );
   const deliveryInstructions = order.address?.notes?.trim() || "";
   const pendingPayment =
     order.payments.find((payment) =>
@@ -152,6 +172,9 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
         <div className="text-center">
           <p className="text-[10px]">{new Date(order.createdAt).toLocaleString("es-CO")}</p>
           <p className="mt-1 text-[27px] font-black leading-none">{displayCode}</p>
+          {isRappi && (
+            <p className="mt-1 text-[11px] font-black">RAPPI #{order.integration?.externalOrderId || "—"}</p>
+          )}
           <div className="mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[14px] font-black">
             {fulfillmentLabel(order.fulfillmentType)}
           </div>
@@ -160,12 +183,12 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
         {isDelivery ? (
           <div className="receipt-customer">
             <p className="text-[15px] font-black">
-              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+              {customerName.toUpperCase()}
             </p>
 
-            {order.customer?.phone && (
+            {customerPhone && (
               <p className="mt-1 text-[11px] font-bold">
-                {order.customer.countryCode}{order.customer.phone}
+                {customerPhone}
               </p>
             )}
 
@@ -189,11 +212,11 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
         ) : (
           <div className="receipt-customer text-center">
             <p className="text-[15px] font-black">
-              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+              {customerName.toUpperCase()}
             </p>
-            {order.customer?.phone && (
+            {customerPhone && (
               <p className="mt-1 text-[11px] font-bold">
-                {order.customer.countryCode}{order.customer.phone}
+                {customerPhone}
               </p>
             )}
           </div>
@@ -227,9 +250,17 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
         <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.08em]">ESTADO DE PAGO</p>
           <p className="mt-1 text-[15px] font-black">
-            {paidInFull ? `PAGADO $ ${money(paidTotal)}` : `PENDIENTE $ ${money(pendingBalance)}`}
+            {isRappi
+              ? `COBRO RAPPI $ ${money(order.total)}`
+              : paidInFull
+                ? `PAGADO $ ${money(paidTotal)}`
+                : `PENDIENTE $ ${money(pendingBalance)}`}
           </p>
-          {!paidInFull && (
+          {isRappi ? (
+            <p className="mt-1 text-[10px] font-bold">
+              NO COBRAR EN TIENDA · {order.integration?.paymentMethod?.toUpperCase() || "GESTIONADO POR RAPPI"}
+            </p>
+          ) : !paidInFull && (
             <>
               {pendingPayment ? (
                 <p className="mt-1 text-[10px] font-bold">
