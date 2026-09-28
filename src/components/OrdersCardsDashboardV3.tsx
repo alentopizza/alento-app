@@ -4,6 +4,7 @@ import { MapPin, UserRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
+import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
 import OrderStatusSelector from "@/components/OrderStatusSelector";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
 import type { GoogleCustomerAddressSelection } from "@/components/GoogleCustomerAddressPicker";
@@ -1115,6 +1116,13 @@ export default function OrdersCardsDashboardV3() {
   }
 
   const activeCount = orders.filter((order) => !["COMPLETED", "CANCELED"].includes(order.status)).length;
+  const activeRappiOrderIds = orders
+    .filter(
+      (order) =>
+        isRappiOrder(order) &&
+        !["COMPLETED", "CANCELED"].includes(order.status),
+    )
+    .map((order) => order.id);
 
   return <main className="w-full p-3 md:p-5 xl:p-6">
     <div className="w-full space-y-5">
@@ -1143,6 +1151,15 @@ export default function OrdersCardsDashboardV3() {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
+            <KitchenOrderAlerts
+              orderIds={activeRappiOrderIds}
+              onIncomingPush={() => void load(true)}
+              pushEndpoint="/api/pedidos/push"
+              storageKey="alento-pedidos-order-sound"
+              notificationKind="RAPPI_ORDER"
+              label="Pedidos"
+            />
+
             <button
               type="button"
               onClick={() => setDeliveryMapOpen(true)}
