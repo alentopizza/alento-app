@@ -426,3 +426,41 @@ export async function sendCustomerPush(
 
   return sendPushToSubscriptions(subscriptions, input);
 }
+
+
+export async function sendCustomerPushToCustomer(
+  customerId: number,
+  input: PushMessageInput,
+): Promise<DriverPushResult> {
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    return {
+      ok: false,
+      targeted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 1,
+      reason: "Cliente inválido.",
+    };
+  }
+
+  await migrateLegacyCustomerPushSubscriptions();
+
+  const subscriptions = await prisma.driverPushSubscription.findMany({
+    where: {
+      customerId,
+      customerOptIn: true,
+    },
+    select: {
+      id: true,
+      userId: true,
+      customerId: true,
+      staffOptIn: true,
+      customerOptIn: true,
+      endpoint: true,
+      p256dh: true,
+      auth: true,
+    },
+  });
+
+  return sendPushToSubscriptions(subscriptions, input);
+}
