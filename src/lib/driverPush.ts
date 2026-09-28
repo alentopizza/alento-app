@@ -63,6 +63,8 @@ export async function migrateLegacyCustomerPushSubscriptions() {
     select: {
       id: true,
       customerId: true,
+      staffOptIn: true,
+      customerOptIn: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -115,21 +117,42 @@ export async function upsertPushSubscription(input: {
   auth: string;
   userAgent?: string | null;
 }) {
-  const ownerData =
+  const updateOwnerData =
     input.owner.kind === "staff"
-      ? { userId: input.owner.userId, customerId: null }
-      : { userId: null, customerId: input.owner.customerId ?? null };
+      ? {
+          userId: input.owner.userId,
+          staffOptIn: true,
+        }
+      : {
+          customerId: input.owner.customerId ?? null,
+          customerOptIn: true,
+        };
+
+  const createOwnerData =
+    input.owner.kind === "staff"
+      ? {
+          userId: input.owner.userId,
+          customerId: null,
+          staffOptIn: true,
+          customerOptIn: false,
+        }
+      : {
+          userId: null,
+          customerId: input.owner.customerId ?? null,
+          staffOptIn: false,
+          customerOptIn: true,
+        };
 
   return prisma.driverPushSubscription.upsert({
     where: { endpoint: input.endpoint },
     update: {
-      ...ownerData,
+      ...updateOwnerData,
       p256dh: input.p256dh,
       auth: input.auth,
       userAgent: input.userAgent?.slice(0, 500) || null,
     },
     create: {
-      ...ownerData,
+      ...createOwnerData,
       endpoint: input.endpoint,
       p256dh: input.p256dh,
       auth: input.auth,
@@ -149,19 +172,51 @@ export async function removePushSubscription(input: {
   endpoint: string;
   owner?: PushOwner;
 }) {
-  const ownerWhere =
-    input.owner?.kind === "staff"
-      ? { userId: input.owner.userId }
-      : input.owner?.kind === "customer" && input.owner.customerId
-        ? { customerId: input.owner.customerId }
-        : {};
-
-  await prisma.driverPushSubscription.deleteMany({
-    where: {
-      endpoint: input.endpoint,
-      ...ownerWhere,
+  const subscription = await prisma.driverPushSubscription.findUnique({
+    where: { endpoint: input.endpoint },
+    select: {
+      id: true,
+      userId: true,
+      customerId: true,
+      staffOptIn: true,
+      customerOptIn: true,
     },
   });
+
+  if (!subscription) return;
+
+  if (input.owner?.kind === "staff") {
+    const customerStillEnabled = subscription.customerOptIn;
+    if (customerStillEnabled) {
+      await prisma.driverPushSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          staffOptIn: false,
+          userId: null,
+        },
+      });
+    } else {
+      await prisma.driverPushSubscription.delete({
+        where: { id: subscription.id },
+      });
+    }
+    return;
+  }
+
+  const staffStillEnabled = subscription.staffOptIn && subscription.userId != null;
+  if (staffStillEnabled) {
+    await prisma.driverPushSubscription.update({
+      where: { id: subscription.id },
+      data: {
+        customerOptIn: false,
+        customerId: null,
+      },
+    });
+  } else {
+    await prisma.driverPushSubscription.delete({
+      where: { id: subscription.id },
+    });
+  }
 }
 
 async function sendPushToSubscriptions(
@@ -169,6 +224,8 @@ async function sendPushToSubscriptions(
     id: string;
     userId: number | null;
     customerId: number | null;
+    staffOptIn: boolean;
+    customerOptIn: boolean;
     endpoint: string;
     p256dh: string;
     auth: string;
@@ -292,11 +349,16 @@ async function sendPushToUserIds(
   }
 
   const subscriptions = await prisma.driverPushSubscription.findMany({
-    where: { userId: { in: uniqueUserIds } },
+    where: {
+      userId: { in: uniqueUserIds },
+      staffOptIn: true,
+    },
     select: {
       id: true,
       userId: true,
       customerId: true,
+      staffOptIn: true,
+      customerOptIn: true,
       endpoint: true,
       p256dh: true,
       auth: true,
@@ -348,12 +410,14 @@ export async function sendCustomerPush(
 
   const subscriptions = await prisma.driverPushSubscription.findMany({
     where: {
-      userId: null,
+      customerOptIn: true,
     },
     select: {
       id: true,
       userId: true,
       customerId: true,
+      staffOptIn: true,
+      customerOptIn: true,
       endpoint: true,
       p256dh: true,
       auth: true,
