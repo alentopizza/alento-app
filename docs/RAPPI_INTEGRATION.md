@@ -54,8 +54,11 @@ Reglas:
 5. Los SKU de Rappi se intentan mapear a `ProductVariant.sku`. Si un SKU no
    existe, la línea igual entra con su nombre y configuración externa para no
    perder el pedido.
-6. El pedido queda inicialmente en `CONFIRMED`, dispara la alerta existente de
-   Cocina y se identifica visualmente como Rappi.
+6. El pedido queda inicialmente en `CONFIRMED`, dispara notificación Push a
+   operación (ADMIN/POS/CASHIER/KITCHEN), se detecta por sonido cuando las
+   alertas están activadas y se identifica visualmente como Rappi. La pantalla
+   de Pedidos consulta cambios cada 15 segundos como respaldo si el Push no
+   está disponible.
 7. Al pasar de Confirmado a Preparación, Alentó llama al endpoint `take` de
    Rappi. Si Rappi no confirma, el estado local no avanza.
 8. Cocina solo permite marcar productos después de que la orden haya sido
@@ -157,8 +160,10 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
 6. Definir `RAPPI_REJECT_CANCEL_TYPE` solo con el valor confirmado por Rappi.
 7. Activar `RAPPI_ENABLED=true` y desplegar.
 8. Ejecutar la prueba administrativa de conexión.
-9. Homologar PING y firma HMAC válida/inválida.
-10. Crear un pedido de prueba y verificar:
+9. Activar una vez las alertas Push/sonido desde Pedidos en los dispositivos
+   operativos que deban recibir órdenes de Rappi.
+10. Homologar PING y firma HMAC válida/inválida.
+11. Crear un pedido de prueba y verificar:
    - recepción automática;
    - alerta;
    - datos del cliente y dirección;
@@ -169,8 +174,8 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
    - evento del RappiTendero y ETA;
    - cancelación;
    - impresión sin cobro doble.
-11. Verificar un webhook repetido para confirmar que no duplica la orden.
-12. Solo después de pasar homologación cambiar a producción.
+12. Verificar un webhook repetido para confirmar que no duplica la orden.
+13. Solo después de pasar homologación cambiar a producción.
 
 ## Referencias oficiales usadas para el diseño
 
