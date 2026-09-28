@@ -65,7 +65,7 @@ export default function KitchenOrderAlerts({
     }
 
     return context;
-  }, [pushEndpoint, storageKey]);
+  }, []);
 
   const playAlert = useCallback(
     async (orderId?: number) => {
@@ -155,7 +155,7 @@ export default function KitchenOrderAlerts({
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [pushEndpoint, storageKey]);
 
   useEffect(() => {
     if (!soundEnabled) return;
