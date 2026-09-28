@@ -1,6 +1,6 @@
 # Integración POS con Rappi
 
-Estado: preparada en código y deshabilitada por defecto mientras Rappi habilita el ambiente de pruebas, credenciales y webhooks.
+Estado al 2026-09-27: preparada en código, solicitud técnica registrada con Rappi y deshabilitada por defecto mientras Rappi habilita el ambiente de pruebas, las credenciales y los webhooks.
 
 ## Identificación
 
@@ -9,26 +9,47 @@ Estado: preparada en código y deshabilitada por defecto mientras Rappi habilita
 - Endpoint receptor: `/api/integrations/rappi/webhook`
 - Endpoint administrativo: `/api/integrations/rappi`
 
-El URL público que se entregue a Rappi debe ser el dominio HTTPS de Alentó seguido de:
+Mientras la aplicación operativa continúe publicada en `pos.alentopizza.com`, el URL público que se debe entregar a Rappi es:
 
+```text
+https://pos.alentopizza.com/api/integrations/rappi/webhook
 ```
-/api/integrations/rappi/webhook
+
+Cuando `alentopizza.com` deje de estar servido por Glide y apunte definitivamente a Alentó App, el webhook podrá migrarse a:
+
+```text
+https://alentopizza.com/api/integrations/rappi/webhook
 ```
+
+No entregar a Rappi el dominio principal antes de esa migración porque actualmente no termina en esta aplicación.
 
 ## Variables de entorno
+
+### Crear desde ahora en EasyPanel
+
+Estas variables son seguras para desplegar antes de recibir las credenciales:
 
 ```dotenv
 RAPPI_ENABLED="false"
 RAPPI_ENVIRONMENT="sandbox"
-RAPPI_API_BASE_URL=""
 RAPPI_STORE_ID="900489414"
+RAPPI_AUTO_ACCEPT="false"
+```
+
+Con `RAPPI_ENABLED=false` el código puede permanecer desplegado en producción sin intentar autenticarse ni procesar eventos de Rappi.
+
+### Crear cuando Rappi entregue los datos
+
+```dotenv
 RAPPI_CLIENT_ID=""
 RAPPI_CLIENT_SECRET=""
 RAPPI_WEBHOOK_SECRET=""
 RAPPI_WEBHOOK_SECRETS=""
-RAPPI_AUTO_ACCEPT="false"
 RAPPI_REJECT_CANCEL_TYPE=""
+RAPPI_API_BASE_URL=""
 ```
+
+No completar estas variables con valores inventados. `RAPPI_API_BASE_URL` es opcional y debe usarse únicamente si Rappi entrega un host distinto al esperado para el ambiente asignado.
 
 Reglas:
 
@@ -152,7 +173,7 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
 
 ## Checklist cuando lleguen las credenciales
 
-1. Confirmar dominio/API asignados por Rappi para pruebas.
+1. Confirmar dominio/API asignados por Rappi para pruebas y que el webhook apunte a `https://pos.alentopizza.com/api/integrations/rappi/webhook` mientras esa sea la URL operativa de Alentó App.
 2. Cargar `RAPPI_CLIENT_ID` y `RAPPI_CLIENT_SECRET` como secretos del servidor.
 3. Mantener `RAPPI_ENVIRONMENT=sandbox`.
 4. Configurar la URL pública del webhook para los eventos acordados.
