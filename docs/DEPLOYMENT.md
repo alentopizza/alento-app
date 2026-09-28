@@ -10,6 +10,45 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 - Dominio: `https://pos.alentopizza.com/`.
 - Base de datos: PostgreSQL `alento-db`.
 
+
+## Rappi POS — preparación de despliegue
+
+La integración Rappi puede desplegarse antes de recibir las credenciales siempre que permanezca deshabilitada.
+
+Crear ahora en EasyPanel:
+
+```text
+RAPPI_ENABLED=false
+RAPPI_ENVIRONMENT=sandbox
+RAPPI_STORE_ID=900489414
+RAPPI_AUTO_ACCEPT=false
+```
+
+No es necesario crear todavía valores ficticios para:
+
+```text
+RAPPI_CLIENT_ID
+RAPPI_CLIENT_SECRET
+RAPPI_WEBHOOK_SECRET
+RAPPI_WEBHOOK_SECRETS
+RAPPI_REJECT_CANCEL_TYPE
+RAPPI_API_BASE_URL
+```
+
+Esos valores se cargan únicamente cuando Rappi los entregue durante la homologación.
+
+Mientras el servicio siga publicado en `https://pos.alentopizza.com/`, el webhook operativo que debe registrarse en Rappi es:
+
+```text
+https://pos.alentopizza.com/api/integrations/rappi/webhook
+```
+
+No usar todavía `https://alentopizza.com/api/integrations/rappi/webhook` porque el dominio principal continúa servido por Glide.
+
+El cambio de schema agrega `OrderIntegration`. El arranque vigente ejecuta `prisma db push`, por lo que el primer redeploy de esta rama intentará crear la estructura automáticamente. Revisar los logs de arranque y confirmar que Prisma no proponga operaciones destructivas.
+
+Después del despliegue, mantener `RAPPI_ENABLED=false` hasta cargar credenciales válidas y completar las pruebas de `docs/RAPPI_INTEGRATION.md`.
+
 ## Flujo normal de despliegue
 
 1. Hacer cambios en el repositorio.
