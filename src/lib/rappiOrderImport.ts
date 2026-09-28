@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
+import { sendRappiOrderCreatedPush } from "@/lib/kitchenPush";
 import { orderCode } from "@/lib/orderCode";
 import {
   rappiConfig,
@@ -389,7 +389,7 @@ async function sendImportedOrderAlert(order: {
   fulfillmentType: "DELIVERY" | "PICKUP" | "STORE";
 }) {
   try {
-    const result = await sendKitchenOrderCreatedPush({
+    const result = await sendRappiOrderCreatedPush({
       orderId: order.id,
       orderCode: orderCode(
         order.sequenceNumber ?? order.id,
@@ -399,13 +399,13 @@ async function sendImportedOrderAlert(order: {
     });
 
     if (!result.ok) {
-      console.warn("Rappi order kitchen push", {
+      console.warn("Rappi order operations push", {
         orderId: order.id,
         reason: result.reason,
       });
     }
   } catch (error) {
-    console.warn("Rappi order kitchen push failed", {
+    console.warn("Rappi order operations push failed", {
       orderId: order.id,
       error:
         error instanceof Error ? error.message : "Unknown push error",
