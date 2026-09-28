@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyDriverLocationToken } from "@/lib/driverLocationToken";
 
 function text(value: unknown, max = 240) {
   return String(value ?? "").trim().slice(0, max);
@@ -26,75 +25,31 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const channel = text(body?.channel, 20).toUpperCase();
 
-  let userId: number | null = null;
-  let recipientKey = "";
-
-  if (channel === "ANDROID") {
-    const nativeToken = request.headers
-      .get("x-alento-driver-location-token")
-      ?.trim();
-    const payload = verifyDriverLocationToken(nativeToken);
-
-    if (!payload) {
-      return NextResponse.json(
-        { error: "Token nativo inválido o vencido." },
-        { status: 401 },
-      );
-    }
-
-    const deviceKey = text(body?.deviceKey, 160);
-    if (!deviceKey) {
-      return NextResponse.json(
-        { error: "Dispositivo inválido." },
-        { status: 400 },
-      );
-    }
-
-    const device = await prisma.nativePushDevice.findFirst({
-      where: {
-        userId: payload.userId,
-        deviceKey,
-      },
-      select: { id: true },
-    });
-
-    if (!device) {
-      return NextResponse.json(
-        { error: "Dispositivo Android no registrado." },
-        { status: 404 },
-      );
-    }
-
-    userId = payload.userId;
-    recipientKey = `native:${deviceKey}`;
-  } else if (channel === "WEB") {
-    const supplied = text(body?.recipientKey, 200);
-    if (!supplied.startsWith("web:")) {
-      return NextResponse.json(
-        { error: "Identificador web inválido." },
-        { status: 400 },
-      );
-    }
-
-    const subscriptionId = supplied.slice(4);
-    const subscription = await prisma.driverPushSubscription.findUnique({
-      where: { id: subscriptionId },
-      select: { id: true, userId: true },
-    });
-
-    if (!subscription) {
-      return NextResponse.json(
-        { error: "Suscripción web no registrada." },
-        { status: 404 },
-      );
-    }
-
-    userId = subscription.userId;
-    recipientKey = supplied;
-  } else {
+  if (channel !== "WEB") {
     return NextResponse.json(
       { error: "Canal inválido." },
       { status: 400 },
+    );
+  }
+
+  const recipientKey = text(body?.recipientKey, 200);
+  if (!recipientKey.startsWith("web:")) {
+    return NextResponse.json(
+      { error: "Identificador web inválido." },
+      { status: 400 },
+    );
+  }
+
+  const subscriptionId = recipientKey.slice(4);
+  const subscription = await prisma.driverPushSubscription.findUnique({
+    where: { id: subscriptionId },
+    select: { id: true, userId: true },
+  });
+
+  if (!subscription) {
+    return NextResponse.json(
+      { error: "Suscripción web no registrada." },
+      { status: 404 },
     );
   }
 
@@ -102,7 +57,7 @@ export async function POST(
     where: {
       campaignId_channel_recipientKey: {
         campaignId: id,
-        channel,
+        channel: "WEB",
         recipientKey,
       },
     },
@@ -117,8 +72,8 @@ export async function POST(
     prisma.pushCampaignOpen.create({
       data: {
         campaignId: id,
-        userId,
-        channel,
+        userId: subscription.userId,
+        channel: "WEB",
         recipientKey,
       },
     }),
