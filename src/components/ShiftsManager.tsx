@@ -490,28 +490,44 @@ export default function ShiftsManager() {
   return (
     <main className="min-h-screen p-3 md:p-5 xl:p-6">
       <div className="space-y-4">
-        <header className="overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_88%_14%,rgba(226,26,34,.38),transparent_28%),linear-gradient(135deg,#09090a,#171719)] px-6 py-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.16)]">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-[.2em] text-red-300/70">
-                Personal
-              </p>
-              <h1 className="mt-1 text-[32px] font-black tracking-[-.04em]">
+        <header className="relative min-h-[116px] overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
+
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+                  Personal
+                </p>
+              </div>
+
+              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
                 Turnos
               </h1>
-              <p className="mt-1 text-[12px] text-white/55">
+
+              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
                 Programa al equipo, controla el valor de cada turno y su estado de pago.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={openCreate}
-              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white shadow-[0_12px_28px_rgba(226,26,34,.28)]"
-            >
-              <CalendarDays className="h-4 w-4" />
-              + Crear turno
-            </button>
+            <div className="flex items-center justify-end self-end md:self-auto">
+              <button
+                type="button"
+                onClick={openCreate}
+                aria-label="Crear turno"
+                title="Crear turno"
+                className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
+              >
+                <CalendarDays
+                  className="h-[22px] w-[22px]"
+                  strokeWidth={2.15}
+                />
+              </button>
+            </div>
           </div>
         </header>
 
