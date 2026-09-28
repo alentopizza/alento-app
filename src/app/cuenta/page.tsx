@@ -4,6 +4,7 @@ import { getCustomerSession, getStaffSession } from "@/lib/auth";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import CustomerAccountHeader from "@/components/CustomerAccountHeader";
+import CustomerPushControl from "@/components/CustomerPushControl";
 import {
   bogotaDateTime,
   fulfillmentLabel,
@@ -63,6 +64,8 @@ export default async function CustomerAccountPage() {
             name={customer.name}
             phone={`${customer.countryCode} ${customer.phone ?? ""}`.trim()}
           />
+
+          <CustomerPushControl />
 
           <section className="rounded-[24px] border border-white/10 bg-white p-5 text-neutral-950 shadow-[0_16px_40px_rgba(0,0,0,.20)]">
             <div className="flex items-center justify-between gap-3">
