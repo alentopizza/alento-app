@@ -93,6 +93,7 @@ model Customer {
   account     CustomerAccount?
   clubPoints  ClubPointTransaction[]
   appInstalls CustomerAppInstallation[]
+  pushSubscriptions CustomerPushSubscription[]
 }
 
 model User {
@@ -138,6 +139,22 @@ model DriverPushSubscription {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model CustomerPushSubscription {
+  id            String    @id @default(cuid())
+  customerId    Int?
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  lastSuccessAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([updatedAt])
 }
 
 model NativePushDevice {
