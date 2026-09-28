@@ -33,7 +33,7 @@ export default function CustomerPushPrompt() {
     const timer = window.setTimeout(async () => {
       try {
         if (window.localStorage.getItem(DISMISSED_KEY) === "1") return;
-        const result = await loadWebPushState("/api/push");
+        const result = await loadWebPushState("/api/push?scope=customer");
         if (cancelled) return;
         setPublicKey(result.publicKey);
         if (result.state === "off") setVisible(true);
@@ -52,7 +52,7 @@ export default function CustomerPushPrompt() {
     if (!publicKey || busy) return;
     setBusy(true);
     try {
-      const result = await enableWebPush("/api/push", publicKey);
+      const result = await enableWebPush("/api/push?scope=customer", publicKey);
       if (result.enabled || result.denied) setVisible(false);
     } finally {
       setBusy(false);
