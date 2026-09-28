@@ -696,7 +696,9 @@ export async function applyRappiCancellation(
       where: { id: integration.id },
       data: {
         canceledAt,
-        remoteStatus: eventName,
+        remoteStatus: integration.canceledAt
+          ? integration.remoteStatus
+          : eventName,
         lastEvent: jsonValue({
           event: eventName,
           payload: value,
