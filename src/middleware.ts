@@ -21,6 +21,7 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
 
 function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/integrations")) return ["ADMIN"];
+  if (pathname.startsWith("/api/pedidos")) return ["ADMIN", "POS", "CASHIER"];
   if (pathname.startsWith("/api/users")) return ["ADMIN"];
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
   if (pathname.startsWith("/api/public-home-admin")) return ["ADMIN"];
@@ -240,6 +241,7 @@ export const config = {
     "/personalizacion/:path*",
     "/usuarios/:path*",
     "/api/integrations/:path*",
+    "/api/pedidos/:path*",
     "/api/users/:path*",
     "/api/menu-admin/:path*",
     "/api/public-home-admin/:path*",
