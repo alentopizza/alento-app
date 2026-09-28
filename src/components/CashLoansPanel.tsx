@@ -37,6 +37,11 @@ type Loan = {
   repayments: Repayment[];
 };
 
+type CashLoanChange = {
+  loanDisbursedDelta?: number;
+  loanRecoveredDelta?: number;
+};
+
 type LoansResponse = {
   summary: {
     loanCount: number;
@@ -96,7 +101,9 @@ export default function CashLoansPanel({
 }: {
   cashDateLocked: boolean;
   businessDate: string;
-  onCashChanged: () => void;
+  onCashChanged: (
+    change?: CashLoanChange,
+  ) => void | Promise<void>;
 }) {
   const [data, setData] = useState<LoansResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,12 +196,48 @@ export default function CashLoansPanel({
         throw new Error(body.error || "No fue posible registrar el préstamo.");
       }
 
+      const created = body.loan;
+      const principal = Number(created?.principal ?? 0);
+      const normalizedLoan: Loan = {
+        id: Number(created.id),
+        workerName: String(created.workerName || workerName),
+        note: created.note ?? (loanNote.trim() || null),
+        principal,
+        issuedAt: String(created.issuedAt || issuedAt),
+        status: "OPEN",
+        source: String(created.source || "MANUAL"),
+        createdByName: String(created.createdByName || ""),
+        historicalPaidWithoutRepayment: false,
+        repaidAmount: 0,
+        trackedRepaidAmount: 0,
+        outstandingAmount: principal,
+        repayments: [],
+      };
+
+      setData((current) =>
+        current
+          ? {
+              summary: {
+                loanCount: current.summary.loanCount + 1,
+                openCount: current.summary.openCount + 1,
+                principalTotal:
+                  current.summary.principalTotal + principal,
+                repaidTotal: current.summary.repaidTotal,
+                outstandingTotal:
+                  current.summary.outstandingTotal + principal,
+              },
+              loans: [normalizedLoan, ...current.loans],
+            }
+          : current,
+      );
+
       setNewOpen(false);
       setWorkerName("");
       setLoanAmount("");
       setLoanNote("");
-      await load();
-      onCashChanged();
+      void Promise.resolve(
+        onCashChanged({ loanDisbursedDelta: principal }),
+      );
     } catch (saveError) {
       setLoanMessage(
         saveError instanceof Error
@@ -243,9 +286,56 @@ export default function CashLoansPanel({
         throw new Error(body.error || "No fue posible registrar el abono.");
       }
 
+      const repayment = body.repayment as Repayment;
+      const paidAmount = Number(repayment.amount ?? 0);
+      const remaining = Math.max(0, Number(body.remaining ?? 0));
+      const repaidLoanId = repayLoan.id;
+
+      setData((current) => {
+        if (!current) return current;
+
+        const previousLoan = current.loans.find(
+          (loan) => loan.id === repaidLoanId,
+        );
+        const closesLoan =
+          previousLoan != null &&
+          previousLoan.outstandingAmount > 0 &&
+          remaining <= 0;
+
+        return {
+          summary: {
+            ...current.summary,
+            openCount: Math.max(
+              0,
+              current.summary.openCount - (closesLoan ? 1 : 0),
+            ),
+            repaidTotal:
+              current.summary.repaidTotal + paidAmount,
+            outstandingTotal: Math.max(
+              0,
+              current.summary.outstandingTotal - paidAmount,
+            ),
+          },
+          loans: current.loans.map((loan) =>
+            loan.id === repaidLoanId
+              ? {
+                  ...loan,
+                  status: remaining <= 0 ? "PAID" : "OPEN",
+                  repaidAmount: loan.repaidAmount + paidAmount,
+                  trackedRepaidAmount:
+                    loan.trackedRepaidAmount + paidAmount,
+                  outstandingAmount: remaining,
+                  repayments: [repayment, ...loan.repayments],
+                }
+              : loan,
+          ),
+        };
+      });
+
       setRepayLoan(null);
-      await load();
-      onCashChanged();
+      void Promise.resolve(
+        onCashChanged({ loanRecoveredDelta: paidAmount }),
+      );
     } catch (saveError) {
       setRepayMessage(
         saveError instanceof Error
@@ -270,9 +360,50 @@ export default function CashLoansPanel({
       if (!response.ok) {
         throw new Error(body.error || "No fue posible eliminar el préstamo.");
       }
+      const deletedLoan = deleteTarget;
+
+      setData((current) =>
+        current
+          ? {
+              summary: {
+                loanCount: Math.max(
+                  0,
+                  current.summary.loanCount - 1,
+                ),
+                openCount: Math.max(
+                  0,
+                  current.summary.openCount -
+                    (deletedLoan.outstandingAmount > 0 ? 1 : 0),
+                ),
+                principalTotal: Math.max(
+                  0,
+                  current.summary.principalTotal -
+                    deletedLoan.principal,
+                ),
+                repaidTotal: Math.max(
+                  0,
+                  current.summary.repaidTotal -
+                    deletedLoan.repaidAmount,
+                ),
+                outstandingTotal: Math.max(
+                  0,
+                  current.summary.outstandingTotal -
+                    deletedLoan.outstandingAmount,
+                ),
+              },
+              loans: current.loans.filter(
+                (loan) => loan.id !== deletedLoan.id,
+              ),
+            }
+          : current,
+      );
+
       setDeleteTarget(null);
-      await load();
-      onCashChanged();
+      void Promise.resolve(
+        onCashChanged({
+          loanDisbursedDelta: -deletedLoan.principal,
+        }),
+      );
     } catch (deleteError) {
       setError(
         deleteError instanceof Error
