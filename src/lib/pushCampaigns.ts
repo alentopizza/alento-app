@@ -7,7 +7,7 @@ export type PushAudience =
   | "ADMIN"
   | "POS";
 
-export type PushChannel = "WEB" | "ANDROID";
+export type PushChannel = "WEB";
 
 export type PushActionType =
   | "APP"
@@ -94,7 +94,7 @@ export function isPushAudience(
 export function isPushChannel(
   value: unknown,
 ): value is PushChannel {
-  return value === "WEB" || value === "ANDROID";
+  return value === "WEB";
 }
 
 export function isPushActionType(
