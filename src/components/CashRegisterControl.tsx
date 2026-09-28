@@ -98,6 +98,7 @@ export default function CashRegisterControl({
   businessDate,
   enabled,
   currentNetMovement,
+  currentMovement,
   onChanged,
   onSessionStateChange,
   onSessionClosed,
@@ -105,6 +106,15 @@ export default function CashRegisterControl({
   businessDate: string;
   enabled: boolean;
   currentNetMovement: number;
+  currentMovement?: Pick<
+    Movement,
+    | "received"
+    | "otherIncome"
+    | "expensesTotal"
+    | "loansTotal"
+    | "recovered"
+    | "netMovement"
+  > | null;
   onChanged?: () => void;
   onSessionStateChange?: (status: "NONE" | "OPEN" | "CLOSED") => void;
   onSessionClosed?: (businessDate: string) => void;
@@ -137,7 +147,9 @@ export default function CashRegisterControl({
     setError("");
     try {
       const response = await fetch(
-        "/api/caja/register-session?date=" + encodeURIComponent(businessDate),
+        "/api/caja/register-session?date=" +
+          encodeURIComponent(businessDate) +
+          "&includeMovement=0",
         { cache: "no-store" },
       );
       const result = await response.json();
@@ -178,7 +190,33 @@ export default function CashRegisterControl({
   }, [data, openingBalance]);
 
   const session = data?.session ?? null;
-  const liveMovement = data?.movement?.netMovement ?? currentNetMovement;
+  const effectiveMovement = {
+    received:
+      currentMovement?.received ??
+      data?.movement?.received ??
+      0,
+    otherIncome:
+      currentMovement?.otherIncome ??
+      data?.movement?.otherIncome ??
+      0,
+    expensesTotal:
+      currentMovement?.expensesTotal ??
+      data?.movement?.expensesTotal ??
+      0,
+    loansTotal:
+      currentMovement?.loansTotal ??
+      data?.movement?.loansTotal ??
+      0,
+    recovered:
+      currentMovement?.recovered ??
+      data?.movement?.recovered ??
+      0,
+    netMovement:
+      currentMovement?.netMovement ??
+      data?.movement?.netMovement ??
+      currentNetMovement,
+  };
+  const liveMovement = effectiveMovement.netMovement;
   const openingLoansReceivable =
     session?.openingLoanReceivable ??
     data?.openingLoansReceivable ??
@@ -200,7 +238,15 @@ export default function CashRegisterControl({
   const loansReceivable =
     session?.status === "CLOSED" && session.closingLoanReceivable != null
       ? session.closingLoanReceivable
-      : data?.movement?.loansReceivable ?? 0;
+      : currentMovement && session?.status === "OPEN"
+        ? Math.max(
+            0,
+            openingLoansReceivable +
+              effectiveMovement.loansTotal -
+              effectiveMovement.recovered,
+          )
+        : data?.movement?.loansReceivable ??
+          openingLoansReceivable;
 
   const cashTotal = useMemo(
     () =>
@@ -1339,11 +1385,11 @@ export default function CashRegisterControl({
                         Ver detalle del movimiento de la sesión
                       </summary>
                       <div className="mt-3 space-y-2 text-[10px]">
-                        <SummaryLine label="Ventas cobradas" value={money(data?.movement?.received ?? 0)} />
-                        <SummaryLine label="Otros ingresos" value={money(data?.movement?.otherIncome ?? 0)} />
-                        <SummaryLine label="Abonos de préstamos" value={money(data?.movement?.recovered ?? 0)} />
-                        <SummaryLine label="Salidas" value={"- " + money(data?.movement?.expensesTotal ?? 0)} />
-                        <SummaryLine label="Préstamos entregados" value={"- " + money(data?.movement?.loansTotal ?? 0)} />
+                        <SummaryLine label="Ventas cobradas" value={money(effectiveMovement.received)} />
+                        <SummaryLine label="Otros ingresos" value={money(effectiveMovement.otherIncome)} />
+                        <SummaryLine label="Abonos de préstamos" value={money(effectiveMovement.recovered)} />
+                        <SummaryLine label="Salidas" value={"- " + money(effectiveMovement.expensesTotal)} />
+                        <SummaryLine label="Préstamos entregados" value={"- " + money(effectiveMovement.loansTotal)} />
                       </div>
                     </details>
 
