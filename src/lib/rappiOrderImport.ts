@@ -88,6 +88,31 @@ function firstText(...values: unknown[]) {
   return "";
 }
 
+function readableComments(value: unknown): string {
+  const direct = text(value);
+  if (direct) return direct;
+  if (!Array.isArray(value)) return "";
+
+  return value
+    .flatMap((entry) => {
+      const entryText = text(entry);
+      if (entryText) return [entryText];
+
+      const object = asObject(entry);
+      if (!object) return [];
+      const candidate = firstText(
+        object.comment,
+        object.text,
+        object.value,
+        object.name,
+        object.description,
+      );
+      return candidate ? [candidate] : [];
+    })
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function firstNumber(...values: unknown[]) {
   for (const value of values) {
     const parsed = Number(value);
@@ -169,7 +194,12 @@ function parseItem(value: unknown): ParsedRappiItem | null {
     quantity,
     unitPrice,
     lineTotal,
-    comments: firstText(item.comments, item.comment, item.notes) || null,
+    comments:
+      firstText(
+        readableComments(item.comments),
+        readableComments(item.comment),
+        readableComments(item.notes),
+      ) || null,
     subitems,
   };
 }
