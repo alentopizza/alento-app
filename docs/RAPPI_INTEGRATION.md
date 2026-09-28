@@ -9,13 +9,13 @@ Estado al 2026-09-27: preparada en código, solicitud técnica registrada con Ra
 - Endpoint receptor: `/api/integrations/rappi/webhook`
 - Endpoint administrativo: `/api/integrations/rappi`
 
-Mientras la aplicación operativa continúe publicada en `pos.alentopizza.com`, el URL público que se debe entregar a Rappi es:
+Alentó App opera actualmente en producción en `pos.alentopizza.com`. Por tanto, el URL productivo que se debe entregar a Rappi es:
 
 ```text
 https://pos.alentopizza.com/api/integrations/rappi/webhook
 ```
 
-Cuando `alentopizza.com` deje de estar servido por Glide y apunte definitivamente a Alentó App, el webhook podrá migrarse a:
+Si en el futuro `alentopizza.com` deja de estar servido por Glide y se migra definitivamente a Alentó App, el webhook podrá migrarse de forma controlada a:
 
 ```text
 https://alentopizza.com/api/integrations/rappi/webhook
@@ -36,7 +36,7 @@ RAPPI_STORE_ID="900489414"
 RAPPI_AUTO_ACCEPT="false"
 ```
 
-Con `RAPPI_ENABLED=false` el código puede permanecer desplegado en producción sin intentar autenticarse ni procesar eventos de Rappi.
+Con `RAPPI_ENABLED=false` la integración puede permanecer desplegada en el sistema productivo actual sin intentar autenticarse ni procesar eventos de Rappi.
 
 ### Crear cuando Rappi entregue los datos
 
@@ -173,7 +173,7 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
 
 ## Checklist cuando lleguen las credenciales
 
-1. Confirmar dominio/API asignados por Rappi para pruebas y que el webhook apunte a `https://pos.alentopizza.com/api/integrations/rappi/webhook` mientras esa sea la URL operativa de Alentó App.
+1. Confirmar dominio/API asignados por Rappi para pruebas y registrar `https://pos.alentopizza.com/api/integrations/rappi/webhook`, que es el endpoint de la instancia productiva actual de Alentó App.
 2. Cargar `RAPPI_CLIENT_ID` y `RAPPI_CLIENT_SECRET` como secretos del servidor.
 3. Mantener `RAPPI_ENVIRONMENT=sandbox`.
 4. Configurar la URL pública del webhook para los eventos acordados.
@@ -196,7 +196,7 @@ el nombre, cantidad, precio, toppings/subitems y observaciones recibidas.
    - cancelación;
    - impresión sin cobro doble.
 12. Verificar un webhook repetido para confirmar que no duplica la orden.
-13. Solo después de pasar homologación cambiar a producción.
+13. Solo después de pasar homologación habilitar Rappi para órdenes reales en la instancia productiva.
 
 ## Referencias oficiales usadas para el diseño
 
