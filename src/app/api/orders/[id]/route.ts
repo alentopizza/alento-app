@@ -8,6 +8,7 @@ import {
   resolveDeliveryPricing,
   type DeliveryPricingSettings,
 } from "@/lib/deliveryPricing";
+import { rappiRejectOrder } from "@/lib/rappi";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -66,6 +67,7 @@ function loadOrder(id: number) {
       },
       items: { include: { product: true }, orderBy: { id: "asc" } },
       payments: { orderBy: { id: "asc" } },
+      integration: true,
     },
   });
 }
@@ -107,11 +109,47 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
 
+      if (current.source === "RAPPI") {
+        if (!current.integration?.externalOrderId) {
+          return NextResponse.json(
+            { error: "El pedido Rappi no tiene metadata de integración." },
+            { status: 409 },
+          );
+        }
+
+        if (current.status !== "CONFIRMED" || current.integration.acceptedAt) {
+          return NextResponse.json(
+            {
+              error:
+                "Este pedido Rappi ya fue aceptado. La cancelación debe gestionarse según la modalidad habilitada por Rappi para conservar la trazabilidad.",
+            },
+            { status: 409 },
+          );
+        }
+
+        try {
+          await rappiRejectOrder({
+            storeId: current.integration.externalStoreId,
+            orderId: current.integration.externalOrderId,
+          });
+        } catch (rappiError) {
+          return NextResponse.json(
+            {
+              error:
+                rappiError instanceof Error
+                  ? `Rappi no confirmó el rechazo: ${rappiError.message}`
+                  : "Rappi no confirmó el rechazo del pedido.",
+            },
+            { status: 502 },
+          );
+        }
+      }
+
       const receivedAmount = current.payments
         .filter((payment) => payment.status === "PAID")
         .reduce((sum, payment) => sum + Number(payment.amount), 0);
 
-      if (receivedAmount > 0) {
+      if (receivedAmount > 0 && current.source !== "RAPPI") {
         return NextResponse.json(
           {
             error:
@@ -135,12 +173,32 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           where: { orderId: current.id },
         });
 
+        if (current.integration) {
+          await tx.orderIntegration.update({
+            where: { orderId: current.id },
+            data: {
+              canceledAt: new Date(),
+              remoteStatus: "REJECTED_BY_STORE",
+            },
+          });
+        }
+
         return tx.order.update({
           where: { id: current.id },
           data: { status: "CANCELED" },
         });
       });
       return NextResponse.json({ order: { ...serializeOrder(current), status: updated.status } });
+    }
+
+    if (current.source === "RAPPI") {
+      return NextResponse.json(
+        {
+          error:
+            "Los productos, el cliente y el cobro de un pedido Rappi se administran desde la integración. En Alentó solo cambia sus estados operativos.",
+        },
+        { status: 409 },
+      );
     }
 
     if (["COMPLETED", "CANCELED", "DELIVERED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya está cerrado y no puede editarse." }, { status: 409 });
@@ -559,8 +617,14 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
+    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true, source: true } });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (order.source === "RAPPI") {
+      return NextResponse.json(
+        { error: "Los pedidos Rappi se conservan para trazabilidad e idempotencia de la integración." },
+        { status: 409 },
+      );
+    }
     if (!["CANCELED", "COMPLETED"].includes(order.status)) {
       return NextResponse.json(
         { error: "Solo puedes eliminar pedidos cancelados o finalizados." },
