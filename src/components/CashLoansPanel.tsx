@@ -391,18 +391,18 @@ export default function CashLoansPanel({
       <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+            <p className="alento-ui-label uppercase text-neutral-400">
               Cartera de trabajadores
             </p>
-            <h2 className="mt-1 text-2xl font-black">Préstamos y vales</h2>
-            <p className="mt-1 max-w-2xl text-[11px] text-neutral-500">
+            <h2 className="alento-ui-title mt-1">Préstamos y vales</h2>
+            <p className="alento-ui-body mt-1 max-w-2xl text-neutral-500">
               El préstamo saca dinero disponible de Caja. Cada abono o descuento
               de nómina devuelve ese dinero al flujo neto.
             </p>
           </div>
 
           {cashDateLocked && (
-            <span className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
+            <span className="alento-ui-label inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 uppercase text-neutral-600">
               Caja cerrada · solo consulta
             </span>
           )}
@@ -420,10 +420,10 @@ export default function CashLoansPanel({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <HandCoins className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
+              <span className="alento-ui-label mt-3 block uppercase text-amber-600">
                 Prestado pendiente
               </span>
-              <b className="mt-1 block text-[24px] font-black text-amber-800">
+              <b className="alento-ui-title mt-1 block text-amber-800">
                 {formatCOP(data.summary.outstandingTotal)}
               </b>
             </div>
@@ -432,10 +432,10 @@ export default function CashLoansPanel({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
                 <CircleDollarSign className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-neutral-500">
+              <span className="alento-ui-label mt-3 block uppercase text-neutral-500">
                 Total prestado
               </span>
-              <b className="mt-1 block text-[24px] font-black text-neutral-950">
+              <b className="alento-ui-title mt-1 block text-neutral-950">
                 {formatCOP(data.summary.principalTotal)}
               </b>
             </div>
@@ -444,10 +444,10 @@ export default function CashLoansPanel({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <Banknote className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-emerald-600">
+              <span className="alento-ui-label mt-3 block uppercase text-emerald-600">
                 Recuperado
               </span>
-              <b className="mt-1 block text-[24px] font-black text-emerald-800">
+              <b className="alento-ui-title mt-1 block text-emerald-800">
                 {formatCOP(data.summary.repaidTotal)}
               </b>
             </div>
@@ -456,10 +456,10 @@ export default function CashLoansPanel({
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <WalletCards className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
+              <span className="alento-ui-label mt-3 block uppercase text-amber-600">
                 Pendientes
               </span>
-              <b className="mt-1 block text-[24px] font-black text-amber-800">
+              <b className="alento-ui-title mt-1 block text-amber-800">
                 {data.summary.openCount}
               </b>
             </div>
@@ -521,10 +521,10 @@ export default function CashLoansPanel({
 
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <b className="block truncate text-[12px] text-neutral-950">
+                    <b className="alento-ui-control block truncate text-neutral-950">
                       {loan.workerName}
                     </b>
-                    <p className="mt-1 text-[8px] text-neutral-400">
+                    <p className="alento-ui-micro mt-1 text-neutral-400">
                       {dateTimeLabel(loan.issuedAt)}
                     </p>
                   </div>
@@ -541,16 +541,16 @@ export default function CashLoansPanel({
                   </span>
                 </div>
 
-                <p className="mt-2 truncate text-[9px] text-neutral-500">
+                <p className="alento-ui-micro mt-2 truncate text-neutral-500">
                   {loan.note || "Sin observación"}
                 </p>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div className="rounded-xl border border-white/80 bg-white/75 px-2.5 py-2">
-                    <span className="text-[7px] font-black uppercase tracking-[.08em] text-neutral-400">
+                    <span className="alento-ui-label uppercase text-neutral-400">
                       Prestado
                     </span>
-                    <b className="mt-0.5 block text-[12px] text-neutral-950">
+                    <b className="alento-ui-status mt-0.5 block text-neutral-950">
                       {formatCOP(loan.principal)}
                     </b>
                   </div>
@@ -578,7 +578,7 @@ export default function CashLoansPanel({
                 </div>
 
                 {loan.repaidAmount > 0 && pending && (
-                  <p className="mt-2 text-[8px] font-semibold text-emerald-700">
+                  <p className="alento-ui-micro mt-2 text-emerald-700">
                     Abonado {formatCOP(loan.repaidAmount)}
                   </p>
                 )}
@@ -590,7 +590,7 @@ export default function CashLoansPanel({
                       onClick={() => openRepayment(loan, "PARTIAL")}
                       aria-label="Registrar abono"
                       title="Registrar abono"
-                      className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-white text-[8px] font-black text-amber-800 transition hover:bg-amber-100"
+                      className="alento-ui-control flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-white text-amber-800 transition hover:bg-amber-100"
                     >
                       <Banknote className="h-3.5 w-3.5" strokeWidth={2.2} />
                       Abonar
@@ -601,7 +601,7 @@ export default function CashLoansPanel({
                       onClick={() => openRepayment(loan, "FULL")}
                       aria-label="Marcar pagado"
                       title="Marcar pagado"
-                      className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-[8px] font-black text-white shadow-[0_6px_14px_rgba(5,150,105,.16)] transition hover:brightness-105"
+                      className="alento-ui-control flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-white shadow-[0_6px_14px_rgba(5,150,105,.16)] transition hover:brightness-105"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.2} />
                       Pagar
@@ -610,7 +610,7 @@ export default function CashLoansPanel({
                 )}
 
                 {!pending && (
-                  <div className="mt-3 flex items-center gap-1.5 border-t border-emerald-200/70 pt-3 text-[8px] font-black text-emerald-700">
+                  <div className="alento-ui-label mt-3 flex items-center gap-1.5 border-t border-emerald-200/70 pt-3 text-emerald-700">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Préstamo pagado
                   </div>
@@ -631,17 +631,17 @@ export default function CashLoansPanel({
         <div className="fixed inset-0 z-[175] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
             <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(245,158,11,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[.18em] text-amber-400">
+              <p className="alento-ui-label uppercase text-amber-400">
                 Caja · Préstamos
               </p>
-              <h3 className="mt-1 text-2xl font-black">Nuevo préstamo</h3>
-              <p className="mt-1 text-[11px] text-white/50">
+              <h3 className="alento-ui-title mt-1">Nuevo préstamo</h3>
+              <p className="alento-ui-body mt-1 text-white/50">
                 El monto sale del dinero disponible y queda como cartera.
               </p>
             </header>
             <div className="space-y-4 p-5">
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Trabajador
                 </label>
                 <select
@@ -651,7 +651,7 @@ export default function CashLoansPanel({
                       event.target.value ? Number(event.target.value) : "",
                     )
                   }
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                  className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                 >
                   <option value="">Selecciona trabajador</option>
                   {(data?.workers ?? []).map((worker) => (
@@ -663,30 +663,30 @@ export default function CashLoansPanel({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                     Fecha
                   </label>
                   <input
                     type="date"
                     value={loanDate}
                     onChange={(event) => setLoanDate(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                    className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                     Hora
                   </label>
                   <input
                     type="time"
                     value={loanTime}
                     onChange={(event) => setLoanTime(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                    className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Monto
                 </label>
                 <input
@@ -696,27 +696,27 @@ export default function CashLoansPanel({
                     setLoanAmount(event.target.value.replace(/\D/g, ""))
                   }
                   placeholder="0"
-                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-lg font-black outline-none"
+                  className="alento-ui-status h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 outline-none"
                 />
                 {loanAmount && (
-                  <p className="mt-1 text-xs font-bold text-rose-700">
+                  <p className="alento-ui-control mt-1 text-rose-700">
                     {formatCOP(Number(loanAmount))}
                   </p>
                 )}
               </div>
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Nota
                 </label>
                 <input
                   value={loanNote}
                   onChange={(event) => setLoanNote(event.target.value)}
                   placeholder="Ej. Vale de quincena"
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                  className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                 />
               </div>
               {loanMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+                <div className="alento-ui-control rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
                   {loanMessage}
                 </div>
               )}
@@ -726,7 +726,7 @@ export default function CashLoansPanel({
                 type="button"
                 disabled={loanBusy}
                 onClick={() => setNewOpen(false)}
-                className="h-11 rounded-xl border border-neutral-200 font-bold"
+                className="alento-ui-control h-11 rounded-xl border border-neutral-200"
               >
                 Cancelar
               </button>
@@ -734,7 +734,7 @@ export default function CashLoansPanel({
                 type="button"
                 disabled={loanBusy}
                 onClick={() => void saveLoan()}
-                className="h-11 rounded-xl bg-neutral-950 font-black text-white disabled:opacity-50"
+                className="alento-ui-control h-11 rounded-xl bg-neutral-950 text-white disabled:opacity-50"
               >
                 {loanBusy ? "Guardando..." : "Crear préstamo"}
               </button>
@@ -747,13 +747,13 @@ export default function CashLoansPanel({
         <div className="fixed inset-0 z-[176] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
             <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[.18em] text-emerald-400">
+              <p className="alento-ui-label uppercase text-emerald-400">
                 {repayMode === "FULL" ? "Pagar préstamo" : "Registrar abono"}
               </p>
-              <h3 className="mt-1 text-2xl font-black">
+              <h3 className="alento-ui-title mt-1">
                 {repayLoan.workerName}
               </h3>
-              <p className="mt-1 text-[11px] text-white/50">
+              <p className="alento-ui-body mt-1 text-white/50">
                 Saldo actual {formatCOP(repayLoan.outstandingAmount)}.
                 {repayMode === "FULL"
                   ? " Este movimiento cerrará el préstamo."
@@ -763,43 +763,43 @@ export default function CashLoansPanel({
             <div className="space-y-4 p-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                     Fecha
                   </label>
                   <input
                     type="date"
                     value={repayDate}
                     onChange={(event) => setRepayDate(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                    className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                     Hora
                   </label>
                   <input
                     type="time"
                     value={repayTime}
                     onChange={(event) => setRepayTime(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                    className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Cómo regresó el dinero
                 </label>
                 <select
                   value={repayMethod}
                   onChange={(event) => setRepayMethod(event.target.value)}
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                  className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                 >
                   <option value="PAGO">Pago del trabajador</option>
                   <option value="DESCUENTO_NOMINA">Descuento de nómina</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Abono
                 </label>
                 <input
@@ -808,22 +808,22 @@ export default function CashLoansPanel({
                   onChange={(event) =>
                     setRepayAmount(event.target.value.replace(/\D/g, ""))
                   }
-                  className="h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 text-lg font-black outline-none"
+                  className="alento-ui-status h-12 w-full rounded-xl border border-neutral-200 bg-white px-4 outline-none"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
                   Nota
                 </label>
                 <input
                   value={repayNote}
                   onChange={(event) => setRepayNote(event.target.value)}
                   placeholder="Opcional"
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                  className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                 />
               </div>
               {repayMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+                <div className="alento-ui-control rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
                   {repayMessage}
                 </div>
               )}
@@ -833,7 +833,7 @@ export default function CashLoansPanel({
                 type="button"
                 disabled={repayBusy}
                 onClick={() => setRepayLoan(null)}
-                className="h-11 rounded-xl border border-neutral-200 font-bold"
+                className="alento-ui-control h-11 rounded-xl border border-neutral-200"
               >
                 Cancelar
               </button>
@@ -841,7 +841,7 @@ export default function CashLoansPanel({
                 type="button"
                 disabled={repayBusy}
                 onClick={() => void saveRepayment()}
-                className="h-11 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50"
+                className="alento-ui-control h-11 rounded-xl bg-emerald-600 text-white disabled:opacity-50"
               >
                 {repayBusy
                   ? "Guardando..."
