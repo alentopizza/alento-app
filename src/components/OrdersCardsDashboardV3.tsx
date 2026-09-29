@@ -1099,10 +1099,10 @@ export default function OrdersCardsDashboardV3() {
                 Operación
               </p>
             </div>
-            <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
+            <h1 className="alento-ui-hero-title mt-1.5">
               Pedidos
             </h1>
-            <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
+            <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
               Todo el flujo de tus órdenes, en un solo lugar.
             </p>
           </div>
@@ -1122,7 +1122,7 @@ export default function OrdersCardsDashboardV3() {
               <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                 Activos
               </span>
-              <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
+              <b className="alento-ui-metric mt-0.5 tabular-nums text-white">
                 {activeCount}
               </b>
             </div>
