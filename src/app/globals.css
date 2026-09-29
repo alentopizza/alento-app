@@ -104,6 +104,33 @@ button:active:not(:disabled) {
   letter-spacing: -0.02em;
 }
 
+/* Roles aprobados para headers operativos compactos y cifras destacadas. */
+.alento-ui-hero-title {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.alento-ui-hero-subtitle {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.alento-ui-metric {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+  .alento-ui-hero-title {
+    font-size: 36px;
+  }
+}
+
 /* Compatibilidad global con microtipografía heredada.
    Esto garantiza que componentes antiguos respeten la escala operativa sin
    depender de migrar inmediatamente cada archivo. La impresión térmica queda
