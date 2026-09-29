@@ -712,8 +712,8 @@ export default function CashPage() {
         </section>
 
         <CashRegisterControl
-          businessDate={startDate}
-          enabled={singleDaySelected}
+          businessDate={tab === "CASHES" ? today : startDate}
+          enabled={singleDaySelected || tab === "CASHES"}
           currentNetMovement={selectedSummary?.netTotal ?? 0}
           currentMovement={
             selectedSummary
