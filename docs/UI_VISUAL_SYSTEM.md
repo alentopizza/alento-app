@@ -124,3 +124,18 @@ Cuando el estado represente dinero/operación:
 - neutral: información sin estado.
 
 No usar verde para una obligación pendiente.
+
+
+## Compatibilidad heredada
+
+Mientras existan componentes antiguos con tamaños locales, `src/app/globals.css` normaliza automáticamente:
+
+- `7px / 8px` → Micro (10 px);
+- `9px / 11px` → Label (11 px);
+- `10px` → Micro (10 px);
+- `12px` → Control (13 px);
+- `font-black` en textos pequeños → peso 700.
+
+La impresión térmica queda excluida.
+
+Esta capa es de compatibilidad. Todo componente nuevo o refactorizado debe usar directamente las clases `.alento-ui-*`.
