@@ -19,6 +19,47 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/pedidos", roles: ["ADMIN", "POS", "CASHIER"] },
 ];
 
+const PROTECTED_API_PREFIXES = [
+  "/api/users",
+  "/api/menu-admin",
+  "/api/public-home-admin",
+  "/api/settings",
+  "/api/coupons",
+  "/api/caja",
+  "/api/customers",
+  "/api/orders",
+  "/api/delivery",
+  "/api/discount",
+];
+
+function isProtectedPage(pathname: string) {
+  if (pathname === "/interno" || pathname.startsWith("/interno/")) {
+    return true;
+  }
+
+  return PAGE_ROLE_RULES.some(
+    (item) =>
+      pathname === item.prefix ||
+      pathname.startsWith(`${item.prefix}/`),
+  );
+}
+
+function isProtectedApi(pathname: string) {
+  return PROTECTED_API_PREFIXES.some(
+    (prefix) =>
+      pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function isPublicStaffApiException(pathname: string, method: string) {
+  return (
+    (pathname === "/api/delivery/quote" && method === "POST") ||
+    (pathname === "/api/delivery/origin" && method === "GET") ||
+    (pathname === "/api/delivery/customer-default-address" &&
+      ["GET", "PUT"].includes(method))
+  );
+}
+
 function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/users")) return ["ADMIN"];
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
@@ -156,15 +197,29 @@ async function refreshStaffSessionToken(session: {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Alentó no usa React/Next Server Actions. Rechazamos cualquier solicitud
+  // que intente invocarlas antes de que llegue al runtime de Next.js.
+  // Esto evita ruido de escáneres automatizados como "Next-Action: x".
+  if (request.headers.has("next-action")) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  const protectedPage = isProtectedPage(pathname);
+  const protectedApi = isProtectedApi(pathname);
+
+  // El middleware ahora cubre también la web pública para poder filtrar
+  // Next-Action, pero no debe exigir sesión en rutas públicas.
+  if (!protectedPage && !protectedApi) {
+    return NextResponse.next();
+  }
+
   // Cotización pública del checkout: no requiere sesión de colaborador.
-  // La tarifa y la distancia se calculan server-side, por lo que no exponemos
-  // permisos internos ni confiamos en valores enviados por el navegador.
-  if (
-    (pathname === "/api/delivery/quote" && request.method === "POST") ||
-    (pathname === "/api/delivery/origin" && request.method === "GET") ||
-    (pathname === "/api/delivery/customer-default-address" &&
-      ["GET", "PUT"].includes(request.method))
-  ) {
+  if (isPublicStaffApiException(pathname, request.method)) {
     return NextResponse.next();
   }
 
@@ -216,28 +271,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/interno/:path*",
-    "/pedidos/:path*",
-    "/cocina/:path*",
-    "/masa/:path*",
-    "/notificaciones/:path*",
-    "/club-alento/:path*",
-    "/clientes/:path*",
-    "/cupones/:path*",
-    "/caja/:path*",
-    "/configuracion/:path*",
-    "/personalizacion/:path*",
-    "/usuarios/:path*",
-    "/api/users/:path*",
-    "/api/menu-admin/:path*",
-    "/api/public-home-admin/:path*",
-    "/api/settings/:path*",
-    "/api/coupons/:path*",
-    "/api/caja/:path*",
-    "/api/customers/:path*",
-    "/api/orders/:path*",
-    "/api/delivery/:path*",
-    "/api/discount/:path*",
-  ],
+  // Ejecutamos el filtro de seguridad en toda la aplicación, excepto recursos
+  // internos de Next que nunca pueden contener una acción válida de Alentó.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
