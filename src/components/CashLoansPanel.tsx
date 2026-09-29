@@ -5,6 +5,7 @@ import {
   Banknote,
   CircleDollarSign,
   HandCoins,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -21,8 +22,15 @@ type Repayment = {
   createdByName: string;
 };
 
+type WorkerOption = {
+  id: number;
+  name: string;
+  email: string;
+};
+
 type Loan = {
   id: number;
+  workerId: number | null;
   workerName: string;
   note: string | null;
   principal: number;
@@ -51,6 +59,7 @@ type LoansResponse = {
     outstandingTotal: number;
   };
   loans: Loan[];
+  workers: WorkerOption[];
 };
 
 function formatCOP(value: number) {
@@ -116,7 +125,12 @@ export default function CashLoansPanel({
   );
 
   const [newOpen, setNewOpen] = useState(false);
-  const [workerName, setWorkerName] = useState("");
+  const [workerId, setWorkerId] = useState<number | "">("");
+  const [editLoan, setEditLoan] = useState<Loan | null>(null);
+  const [editWorkerId, setEditWorkerId] = useState<number | "">("");
+  const [editNote, setEditNote] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
   const [loanAmount, setLoanAmount] = useState("");
   const [loanNote, setLoanNote] = useState("");
   const [loanDate, setLoanDate] = useState(localDateInput());
@@ -195,7 +209,7 @@ export default function CashLoansPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workerName,
+          workerId,
           amount: Number(loanAmount.replace(/\D/g, "")),
           note: loanNote,
           issuedAt,
@@ -210,7 +224,13 @@ export default function CashLoansPanel({
       const principal = Number(created?.principal ?? 0);
       const normalizedLoan: Loan = {
         id: Number(created.id),
-        workerName: String(created.workerName || workerName),
+        workerId: Number(created.workerId || workerId),
+        workerName: String(
+          created.workerName ||
+            data?.workers.find((worker) => worker.id === Number(workerId))
+              ?.name ||
+            "",
+        ),
         note: created.note ?? (loanNote.trim() || null),
         principal,
         issuedAt: String(created.issuedAt || issuedAt),
@@ -242,7 +262,7 @@ export default function CashLoansPanel({
       );
 
       setNewOpen(false);
-      setWorkerName("");
+      setWorkerId("");
       setLoanAmount("");
       setLoanNote("");
       void Promise.resolve(
@@ -354,6 +374,70 @@ export default function CashLoansPanel({
       );
     } finally {
       setRepayBusy(false);
+    }
+  }
+
+  function openEditLoan(loan: Loan) {
+    setEditLoan(loan);
+    setEditWorkerId(loan.workerId ?? "");
+    setEditNote(loan.note ?? "");
+    setEditMessage("");
+  }
+
+  async function saveLoanAssignment() {
+    if (!editLoan || editBusy) return;
+
+    setEditBusy(true);
+    setEditMessage("");
+
+    try {
+      const response = await fetch(`/api/caja/loans/${editLoan.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workerId: editWorkerId,
+          note: editNote,
+        }),
+      });
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          body.error || "No fue posible actualizar el préstamo.",
+        );
+      }
+
+      const updated = body.loan;
+
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              loans: current.loans.map((loan) =>
+                loan.id === editLoan.id
+                  ? {
+                      ...loan,
+                      workerId: Number(updated.workerId),
+                      workerName: String(
+                        updated.worker?.name || updated.workerName,
+                      ),
+                      note: updated.note ?? null,
+                    }
+                  : loan,
+              ),
+            }
+          : current,
+      );
+
+      setEditLoan(null);
+    } catch (saveError) {
+      setEditMessage(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible actualizar el préstamo.",
+      );
+    } finally {
+      setEditBusy(false);
     }
   }
 
@@ -605,6 +689,17 @@ export default function CashLoansPanel({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {!cashDateLocked && (
+                    <button
+                      type="button"
+                      onClick={() => openEditLoan(loan)}
+                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50"
+                      title="Editar trabajador"
+                      aria-label="Editar trabajador"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                   {!cashDateLocked && loan.outstandingAmount > 0 && (
                     <button
                       type="button"
@@ -686,12 +781,22 @@ export default function CashLoansPanel({
                 <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
                   Trabajador
                 </label>
-                <input
-                  value={workerName}
-                  onChange={(event) => setWorkerName(event.target.value)}
-                  placeholder="Nombre del trabajador"
+                <select
+                  value={workerId}
+                  onChange={(event) =>
+                    setWorkerId(
+                      event.target.value ? Number(event.target.value) : "",
+                    )
+                  }
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
-                />
+                >
+                  <option value="">Selecciona trabajador</option>
+                  {(data?.workers ?? []).map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -769,6 +874,99 @@ export default function CashLoansPanel({
                 className="h-11 rounded-xl bg-neutral-950 font-black text-white disabled:opacity-50"
               >
                 {loanBusy ? "Guardando..." : "Crear préstamo"}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {editLoan && (
+        <div className="fixed inset-0 z-[176] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
+          <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
+            <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(245,158,11,.18),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[.18em] text-amber-400">
+                Caja · Préstamos
+              </p>
+              <h3 className="mt-1 text-2xl font-black">
+                Editar préstamo
+              </h3>
+              <p className="mt-1 text-[11px] text-white/50">
+                Vincula este registro histórico a un trabajador del sistema.
+              </p>
+            </header>
+
+            <div className="space-y-4 p-5">
+              <div>
+                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  Trabajador
+                </label>
+                <select
+                  value={editWorkerId}
+                  onChange={(event) =>
+                    setEditWorkerId(
+                      event.target.value ? Number(event.target.value) : "",
+                    )
+                  }
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                >
+                  <option value="">Selecciona trabajador</option>
+                  {(data?.workers ?? []).map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}
+                    </option>
+                  ))}
+                </select>
+                {!editLoan.workerId && (
+                  <p className="mt-1.5 text-[9px] text-amber-700">
+                    Registro actual: {editLoan.workerName}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  Nota
+                </label>
+                <input
+                  value={editNote}
+                  onChange={(event) => setEditNote(event.target.value)}
+                  placeholder="Nota opcional"
+                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
+                />
+              </div>
+
+              <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
+                <span className="text-[8px] font-black uppercase text-neutral-400">
+                  Valor del préstamo
+                </span>
+                <b className="mt-1 block text-lg font-black text-neutral-950">
+                  {formatCOP(editLoan.principal)}
+                </b>
+              </div>
+
+              {editMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+                  {editMessage}
+                </div>
+              )}
+            </div>
+
+            <footer className="grid grid-cols-2 gap-2 border-t bg-white p-4">
+              <button
+                type="button"
+                disabled={editBusy}
+                onClick={() => setEditLoan(null)}
+                className="h-11 rounded-xl border border-neutral-200 font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={editBusy || !editWorkerId}
+                onClick={() => void saveLoanAssignment()}
+                className="h-11 rounded-xl bg-neutral-950 font-black text-white disabled:opacity-40"
+              >
+                {editBusy ? "Guardando..." : "Guardar"}
               </button>
             </footer>
           </div>
