@@ -602,7 +602,7 @@ export default function CashPage() {
             <div>
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
                   Finanzas operativas
                 </p>
               </div>
@@ -616,7 +616,7 @@ export default function CashPage() {
 
             <div className="flex flex-wrap items-end justify-end gap-2 self-end lg:self-auto">
               <div>
-                <span className="mb-1 block text-[7px] font-black uppercase tracking-[0.13em] text-white/40">
+                <span className="mb-1 block alento-ui-micro uppercase tracking-[0.13em] text-white/40">
                   Desde
                 </span>
                 <input
@@ -628,7 +628,7 @@ export default function CashPage() {
                 />
               </div>
               <div>
-                <span className="mb-1 block text-[7px] font-black uppercase tracking-[0.13em] text-white/40">
+                <span className="mb-1 block alento-ui-micro uppercase tracking-[0.13em] text-white/40">
                   Hasta
                 </span>
                 <input
@@ -642,14 +642,14 @@ export default function CashPage() {
               <button
                 type="button"
                 onClick={setTodayRange}
-                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[9px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 alento-ui-label text-white/85 transition hover:bg-white/[0.13]"
               >
                 Hoy
               </button>
               <button
                 type="button"
                 onClick={setMonthRange}
-                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[9px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 alento-ui-label text-white/85 transition hover:bg-white/[0.13]"
               >
                 Este mes
               </button>
@@ -683,7 +683,7 @@ export default function CashPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             {selectedDayClosed && (
-              <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
+              <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-100 px-3 alento-ui-label uppercase tracking-[0.08em] text-neutral-600">
                 Caja cerrada · solo consulta
               </span>
             )}
@@ -787,7 +787,7 @@ export default function CashPage() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
                     <ReceiptText className="h-5 w-5" />
                   </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-sky-600">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-sky-600">
                     Ventas
                   </span>
                 </div>
@@ -804,7 +804,7 @@ export default function CashPage() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                     <ArrowDownCircle className="h-5 w-5" />
                   </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-600">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-emerald-600">
                     Entró total
                   </span>
                 </div>
@@ -821,7 +821,7 @@ export default function CashPage() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
                     <Banknote className="h-5 w-5" />
                   </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-teal-600">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-teal-600">
                     Otros ingresos
                   </span>
                 </div>
@@ -838,7 +838,7 @@ export default function CashPage() {
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
                     <ArrowUpCircle className="h-5 w-5" />
                   </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-rose-600">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-rose-600">
                     Salió
                   </span>
                 </div>
@@ -863,7 +863,7 @@ export default function CashPage() {
                   }`}>
                     <WalletCards className="h-5 w-5" />
                   </span>
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-500">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-neutral-500">
                     Flujo neto
                   </span>
                 </div>
@@ -877,7 +877,7 @@ export default function CashPage() {
                 </p>
                 {(summary.loanDisbursedTotal > 0 ||
                   summary.loanRecoveredTotal > 0) && (
-                  <p className="mt-1 text-[9px] font-bold text-neutral-400">
+                  <p className="mt-1 alento-ui-label font-bold text-neutral-400">
                     Prestado {formatCOP(summary.loanDisbursedTotal)} · Recuperado{" "}
                     {formatCOP(summary.loanRecoveredTotal)}
                   </p>
@@ -891,7 +891,7 @@ export default function CashPage() {
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                        <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                           Ingresos
                         </p>
                         <h2 className="mt-1 text-xl font-black">
@@ -946,7 +946,7 @@ export default function CashPage() {
 
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                         Otros ingresos
                       </p>
                       <h2 className="mt-1 text-xl font-black">
@@ -992,7 +992,7 @@ export default function CashPage() {
 
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                         Salidas
                       </p>
                       <h2 className="mt-1 text-xl font-black">
@@ -1039,7 +1039,7 @@ export default function CashPage() {
 
                 <section className="grid gap-4 xl:grid-cols-3">
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                       Últimos ingresos
                     </p>
                     <h2 className="mt-1 text-xl font-black">
@@ -1060,7 +1060,7 @@ export default function CashPage() {
                                   payment.order.source,
                                 )}
                               </b>
-                              <span className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-[9px] font-bold text-neutral-500">
+                              <span className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 alento-ui-label font-bold text-neutral-500">
                                 {payment.method}
                               </span>
                             </div>
@@ -1087,7 +1087,7 @@ export default function CashPage() {
                   </div>
 
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                       Otros ingresos
                     </p>
                     <h2 className="mt-1 text-xl font-black">
@@ -1100,7 +1100,7 @@ export default function CashPage() {
                           className="grid gap-2 rounded-2xl border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
                         >
                           <div className="min-w-0">
-                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-700">
+                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 alento-ui-label text-emerald-700">
                               {income.category}
                             </span>
                             <p className="mt-1 truncate text-[11px] text-neutral-500">
@@ -1124,7 +1124,7 @@ export default function CashPage() {
                   </div>
 
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                       Últimas salidas
                     </p>
                     <h2 className="mt-1 text-xl font-black">
@@ -1138,7 +1138,7 @@ export default function CashPage() {
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black ${expenseTone(expense.category)}`}>
+                              <span className={`rounded-full border px-2 py-0.5 alento-ui-label ${expenseTone(expense.category)}`}>
                                 {expense.category}
                               </span>
                               {expense.subcategory && (
@@ -1172,7 +1172,7 @@ export default function CashPage() {
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                       Otros ingresos
                     </p>
                     <h2 className="mt-1 text-xl font-black">
@@ -1217,7 +1217,7 @@ export default function CashPage() {
                       className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
                     >
                       <div>
-                        <span className="inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[9px] font-black uppercase text-emerald-700">
+                        <span className="inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 alento-ui-label uppercase text-emerald-700">
                           {income.category}
                         </span>
                         <p className="mt-2 text-[10px] text-neutral-400">
@@ -1229,7 +1229,7 @@ export default function CashPage() {
                         <b className="block truncate text-sm text-neutral-900">
                           {income.note || "Ingreso adicional"}
                         </b>
-                        <p className="mt-1 text-[9px] text-neutral-400">
+                        <p className="mt-1 alento-ui-label text-neutral-400">
                           {`Registró: ${income.createdByName}`}
                         </p>
                       </div>
@@ -1269,7 +1269,7 @@ export default function CashPage() {
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                       Control de salidas
                     </p>
                     <h2 className="mt-1 text-xl font-black">
@@ -1311,7 +1311,7 @@ export default function CashPage() {
                       className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
                     >
                       <div>
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${expenseTone(expense.category)}`}>
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-label uppercase ${expenseTone(expense.category)}`}>
                           {expense.category}
                         </span>
                         <p className="mt-2 text-[10px] text-neutral-400">
@@ -1326,7 +1326,7 @@ export default function CashPage() {
                         <p className="mt-1 truncate text-[11px] text-neutral-500">
                           {expense.note || "Sin observación"}
                         </p>
-                        <p className="mt-1 text-[9px] text-neutral-400">
+                        <p className="mt-1 alento-ui-label text-neutral-400">
                           {expense.source === "DRIVER_PAYMENT"
                             ? `Pago a repartidor · Registró: ${expense.createdByName}`
                             : `Registró: ${expense.createdByName}`}
@@ -1366,7 +1366,7 @@ export default function CashPage() {
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-xl overflow-hidden rounded-[26px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
             <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-400">
+              <p className="alento-ui-label uppercase tracking-[0.18em] text-emerald-400">
                 Caja · Otros ingresos
               </p>
               <h2 className="mt-1 text-2xl font-black">Registrar ingreso</h2>
@@ -1378,7 +1378,7 @@ export default function CashPage() {
             <div className="space-y-4 p-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Fecha
                   </label>
                   <input
@@ -1389,7 +1389,7 @@ export default function CashPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Hora
                   </label>
                   <input
@@ -1402,7 +1402,7 @@ export default function CashPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Tipo de ingreso
                 </label>
                 <input
@@ -1420,7 +1420,7 @@ export default function CashPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Observación
                 </label>
                 <input
@@ -1432,7 +1432,7 @@ export default function CashPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Monto
                 </label>
                 <input
@@ -1484,7 +1484,7 @@ export default function CashPage() {
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-2xl">
             <div className="bg-[#111113] px-5 py-4 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-400">
+              <p className="alento-ui-label uppercase tracking-[0.16em] text-emerald-400">
                 Confirmar
               </p>
               <h3 className="mt-1 text-xl font-black">Eliminar ingreso</h3>
@@ -1524,7 +1524,7 @@ export default function CashPage() {
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-xl overflow-hidden rounded-[26px] border border-white/10 bg-[#f6f3ee] shadow-[0_30px_100px_rgba(0,0,0,.34)]">
             <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.24),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
+              <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff5a60]">
                 Caja · Salidas
               </p>
               <h2 className="mt-1 text-2xl font-black">Registrar salida</h2>
@@ -1536,7 +1536,7 @@ export default function CashPage() {
             <div className="space-y-4 p-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Fecha
                   </label>
                   <input
@@ -1547,7 +1547,7 @@ export default function CashPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Hora
                   </label>
                   <input
@@ -1560,7 +1560,7 @@ export default function CashPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Tipo de salida
                 </label>
                 <select
@@ -1584,7 +1584,7 @@ export default function CashPage() {
 
               {expenseCategory === "Domicilios" ? (
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Repartidor
                   </label>
                   <select
@@ -1625,7 +1625,7 @@ export default function CashPage() {
                     return (
                       <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-cyan-100 bg-cyan-50 px-3 py-2.5">
                         <div>
-                          <span className="block text-[8px] font-black uppercase tracking-[0.08em] text-cyan-700/60">
+                          <span className="block alento-ui-micro uppercase tracking-[0.08em] text-cyan-700/60">
                             Saldo pendiente
                           </span>
                           <b className="mt-0.5 block text-base text-cyan-800">
@@ -1640,7 +1640,7 @@ export default function CashPage() {
                               String(Math.round(selectedDriver.walletBalance)),
                             )
                           }
-                          className="h-9 rounded-xl bg-cyan-700 px-3 text-[9px] font-black text-white disabled:bg-neutral-300"
+                          className="h-9 rounded-xl bg-cyan-700 px-3 alento-ui-label text-white disabled:bg-neutral-300"
                         >
                           Pagar todo
                         </button>
@@ -1650,7 +1650,7 @@ export default function CashPage() {
                 </div>
               ) : (
                 <div>
-                  <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                  <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                     Subtipo
                   </label>
                   <input
@@ -1673,7 +1673,7 @@ export default function CashPage() {
               )}
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Observación
                 </label>
                 <input
@@ -1689,7 +1689,7 @@ export default function CashPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Monto
                 </label>
                 <input
@@ -1720,7 +1720,7 @@ export default function CashPage() {
                     return (
                       <p
                         className={
-                          "mt-1 text-[9px] font-semibold " +
+                          "mt-1 alento-ui-label font-semibold " +
                           (exceeds ? "text-red-600" : "text-neutral-400")
                         }
                       >
@@ -1774,7 +1774,7 @@ export default function CashPage() {
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-2xl">
             <div className="bg-[#111113] px-5 py-4 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-red-400">
+              <p className="alento-ui-label uppercase tracking-[0.16em] text-red-400">
                 Confirmar
               </p>
               <h3 className="mt-1 text-xl font-black">Eliminar salida</h3>
