@@ -216,7 +216,7 @@ function ProductRow({ item }: { item: OrderItem }) {
 
           {item.notes && (
             <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[11px] font-semibold text-amber-900">
-              <span className="mr-1 text-[9px] font-black uppercase tracking-[.08em] text-amber-600">Nota cocina</span>{item.notes}
+              <span className="mr-1 alento-ui-label uppercase tracking-[.08em] text-amber-600">Nota cocina</span>{item.notes}
             </div>
           )}
         </div>
@@ -1095,7 +1095,7 @@ export default function OrdersCardsDashboardV3() {
           <div className="max-w-2xl">
             <div className="flex items-center gap-3">
               <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+              <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
                 Operación
               </p>
             </div>
@@ -1119,7 +1119,7 @@ export default function OrdersCardsDashboardV3() {
             </button>
 
             <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-              <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
+              <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                 Activos
               </span>
               <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
@@ -1169,7 +1169,7 @@ export default function OrdersCardsDashboardV3() {
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
-            <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
+            <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
             <div className="p-4">
               <div className="[font-synthesis:none]">
                 <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
@@ -1183,7 +1183,7 @@ export default function OrdersCardsDashboardV3() {
                 <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,.45)]" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.08em] text-emerald-700">
+                    <span className="alento-ui-label uppercase tracking-[0.08em] text-emerald-700">
                       Asignado
                     </span>
                     <b className="truncate text-[11px] text-emerald-950">
@@ -1200,7 +1200,7 @@ export default function OrdersCardsDashboardV3() {
                         void unassignDriver(order);
                       }}
                       disabled={busy === order.id}
-                      className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
+                      className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 alento-ui-label uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
                     >
                       Desasignar
                     </button>
@@ -1268,9 +1268,9 @@ export default function OrdersCardsDashboardV3() {
     </div>
 
     {selected && <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-[3px]" onClick={() => setSelected(null)}><aside onClick={(event) => event.stopPropagation()} className="order-detail-drawer absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden bg-[#f5f2ee] shadow-[-24px_0_70px_rgba(0,0,0,.24)]">
-      <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--brand-red)] bg-[radial-gradient(circle_at_90%_20%,rgba(229,28,17,.22),transparent_28%),linear-gradient(135deg,#0b0b0c,#171718)] px-5 py-5 text-white"><div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Detalle del pedido</p><h2 className="mt-1 text-2xl font-black">{displayOrderCode(selected)}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="order-detail-date text-xs text-white/55">{dateTime(selected.createdAt)}</span><span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase ${fulfillmentTone(selected.fulfillmentType)}`}>{fulfillmentLabel(selected.fulfillmentType)}</span>{selected.fulfillmentType === "DELIVERY" && <span className="order-detail-delivery-fee">{selected.deliveryZoneName || (Number(selected.deliveryFee) > 0 ? money(selected.deliveryFee) : "Sin costo")}</span>}</div></div><button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]"><Icon name="close" /></button></header>
+      <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--brand-red)] bg-[radial-gradient(circle_at_90%_20%,rgba(229,28,17,.22),transparent_28%),linear-gradient(135deg,#0b0b0c,#171718)] px-5 py-5 text-white"><div><p className="alento-ui-label font-bold uppercase tracking-[0.16em] text-white/45">Detalle del pedido</p><h2 className="mt-1 text-2xl font-black">{displayOrderCode(selected)}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="order-detail-date text-xs text-white/55">{dateTime(selected.createdAt)}</span><span className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase ${fulfillmentTone(selected.fulfillmentType)}`}>{fulfillmentLabel(selected.fulfillmentType)}</span>{selected.fulfillmentType === "DELIVERY" && <span className="order-detail-delivery-fee">{selected.deliveryZoneName || (Number(selected.deliveryFee) > 0 ? money(selected.deliveryFee) : "Sin costo")}</span>}</div></div><button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]"><Icon name="close" /></button></header>
       <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 flex flex-wrap items-center gap-2"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div><button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
+        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 flex flex-wrap items-center gap-2"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="alento-ui-label uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div><button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 alento-ui-label uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
   onClick={() => openCustomerManager(selected)}
   disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
   className="inline-flex h-10 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-700 shadow-[0_6px_18px_rgba(28,23,20,.08)] transition-all duration-150 hover:-translate-y-[1px] hover:border-[var(--brand-red)] hover:text-[var(--brand-red)] hover:shadow-[0_10px_24px_rgba(28,23,20,.12)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-neutral-200 disabled:hover:text-neutral-700"
@@ -1278,10 +1278,10 @@ export default function OrdersCardsDashboardV3() {
   <Icon name="edit" />
   <span>Editar cliente</span>
 </button></div></div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
-          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
+        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
+        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
+        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
+          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 alento-ui-label uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
           <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
         </section>
       </div>
@@ -1367,7 +1367,7 @@ export default function OrdersCardsDashboardV3() {
       />
     )}
 
-    {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
+    {paymentOrder && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3" onClick={() => setPaymentOrder(null)}><div onClick={(event) => event.stopPropagation()} className="w-full max-w-[420px] overflow-hidden rounded-[22px] bg-white shadow-2xl"><div className="bg-black px-5 py-3.5 text-white"><p className="alento-ui-label font-bold uppercase tracking-[.14em] text-white/50">Registrar ingreso</p><div className="mt-0.5 flex items-end justify-between gap-3"><h3 className="text-[19px] font-black">Saldo {money(balance(paymentOrder))}</h3><span className="pb-0.5 text-[10px] text-white/50">Total o parcial</span></div></div><div className="space-y-2.5 p-4"><div><label className="mb-1 block alento-ui-label uppercase tracking-[.08em] text-neutral-400">Monto de este pago</label><input value={paymentAmount} onChange={(event) => { setPaymentAmount(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Monto a registrar" inputMode="numeric" className="h-10 w-full rounded-xl border border-neutral-200 px-3 text-base font-bold outline-none focus:border-neutral-400"/><div className="mt-1.5 flex items-center justify-between text-[11px]"><span className="text-neutral-500">Saldo después</span><b className="text-amber-700">{money(Math.max(0, balance(paymentOrder) - Number(paymentAmount || 0)))}</b></div></div><div><p className="mb-1 block alento-ui-label uppercase tracking-[.08em] text-neutral-400">Medio recibido</p><div className="grid grid-cols-2 gap-1.5">{settings?.paymentMethods.filter((method) => method.active).map((method) => <button key={method.id} onClick={() => { setPaymentMethodId(method.id); setCashReceived(""); setPaymentError(""); }} className={`h-10 rounded-xl border px-3 text-sm font-semibold ${paymentMethodId === method.id ? "border-[var(--brand-red)] bg-red-50 text-[var(--brand-red)]" : "border-neutral-200"}`}>{method.name}</button>)}</div></div>{settings?.paymentMethods.find((method) => method.id === paymentMethodId)?.name.toLowerCase() === "efectivo" && <div><label className="mb-1 block alento-ui-label uppercase tracking-[.08em] text-neutral-400">Efectivo entregado <span className="font-medium normal-case tracking-normal text-neutral-400">(opcional)</span></label><input value={cashReceived} onChange={(event) => { setCashReceived(event.target.value.replace(/\D/g, "")); setPaymentError(""); }} placeholder="Solo si deseas calcular cambio" inputMode="numeric" className="h-10 w-full rounded-xl border px-3 text-sm"/>{cashReceived && Number(cashReceived) >= Number(paymentAmount || 0) && <p className="mt-1 text-[11px] text-neutral-500">Cambio: <b>{money(Number(cashReceived) - Number(paymentAmount || 0))}</b></p>}</div>}<input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Referencia (opcional)" className="h-10 w-full rounded-xl border px-3 text-sm" />{paymentError && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">{paymentError}</p>}<div className="grid grid-cols-2 gap-2 pt-0.5"><button onClick={() => setPaymentOrder(null)} className="h-10 rounded-xl border text-sm font-semibold">Cancelar</button><button onClick={() => void registerPayment()} disabled={!paymentMethodId || !paymentAmount || Number(paymentAmount) <= 0 || Number(paymentAmount) > balance(paymentOrder) || busy === paymentOrder.id} className="h-10 rounded-xl bg-[var(--brand-red)] text-sm font-bold text-white disabled:opacity-50">Registrar pago</button></div></div></div></div>}
 
     {customerOrder && (
       <div
@@ -1382,7 +1382,7 @@ export default function OrdersCardsDashboardV3() {
         >
           <div className="flex shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_28%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white sm:px-7 sm:py-5">
             <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
+              <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff5a60]">
                 Cliente del pedido
               </p>
               <h3 className="mt-1 text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
@@ -1527,7 +1527,7 @@ export default function OrdersCardsDashboardV3() {
 
               {customerOrder.fulfillmentType === "DELIVERY" && (
                 <div className="mt-4 hidden rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 lg:block">
-                  <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                  <span className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                     Estado de ubicación
                   </span>
                   {customerPanel === "CHANGE" ? (
@@ -1642,7 +1642,7 @@ export default function OrdersCardsDashboardV3() {
                 <section className="mx-auto max-w-[880px] space-y-4">
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
                     <div className="border-b border-neutral-100 pb-4">
-                      <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                      <p className="alento-ui-label uppercase tracking-[.12em] text-neutral-400">
                         Cambiar cliente
                       </p>
                       <h3 className="mt-1 text-[22px] font-bold tracking-[-0.025em] text-neutral-950">
@@ -1698,7 +1698,7 @@ export default function OrdersCardsDashboardV3() {
                                   {customerOrder.fulfillmentType ===
                                     "DELIVERY" && (
                                     <span
-                                      className={`mt-2 inline-flex rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
+                                      className={`mt-2 inline-flex rounded-full px-2 py-1 alento-ui-label font-bold uppercase ${
                                         validAddress
                                           ? "bg-emerald-100 text-emerald-700"
                                           : "bg-amber-100 text-amber-700"
@@ -1711,7 +1711,7 @@ export default function OrdersCardsDashboardV3() {
                                   )}
                                 </div>
                                 {selectedCustomer && (
-                                  <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 text-[9px] font-black uppercase text-white">
+                                  <span className="rounded-full bg-[var(--brand-red)] px-2 py-1 alento-ui-label uppercase text-white">
                                     Seleccionado
                                   </span>
                                 )}
@@ -1727,7 +1727,7 @@ export default function OrdersCardsDashboardV3() {
                     <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-[0_10px_30px_rgba(20,18,16,.04)] sm:p-6">
                       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-neutral-100 pb-4">
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                          <p className="alento-ui-label uppercase tracking-[.12em] text-neutral-400">
                             Cliente seleccionado
                           </p>
                           <h4 className="mt-1 text-[18px] font-black text-neutral-950">
@@ -1896,14 +1896,14 @@ export default function OrdersCardsDashboardV3() {
         >
           <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/10 bg-[radial-gradient(circle_at_88%_12%,rgba(226,26,34,.20),transparent_30%),linear-gradient(135deg,#080809,#1a1718)] px-5 py-4 text-white sm:px-7 sm:py-5">
             <div className="min-w-0">
-              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff5a60]">
+              <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff5a60]">
                 Editar pedido
               </p>
               <div className="mt-1 flex flex-wrap items-end gap-x-3 gap-y-1">
                 <h3 className="text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
                   {displayOrderCode(editing)}
                 </h3>
-                <span className="mb-1 rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.06em] text-white/65">
+                <span className="mb-1 rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 alento-ui-label font-bold uppercase tracking-[.06em] text-white/65">
                   {fulfillmentLabel(fulfillment)}
                 </span>
               </div>
@@ -1928,7 +1928,7 @@ export default function OrdersCardsDashboardV3() {
             <aside className="alento-scroll min-h-0 overflow-y-auto border-b border-neutral-200 bg-[#faf9f7] p-4 sm:p-5 md:border-b-0 md:border-r">
               <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
                 <div className="mb-3">
-                  <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                  <p className="alento-ui-label uppercase tracking-[.12em] text-neutral-400">
                     Modalidad
                   </p>
                   <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
@@ -1965,7 +1965,7 @@ export default function OrdersCardsDashboardV3() {
                         ✓
                       </span>
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-[.1em] text-emerald-700">
+                        <p className="alento-ui-label uppercase tracking-[.1em] text-emerald-700">
                           Domicilio automático
                         </p>
                         <p className="mt-0.5 text-[10px] leading-4 text-emerald-800/80">
@@ -1980,7 +1980,7 @@ export default function OrdersCardsDashboardV3() {
               <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
                 <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-3">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[.12em] text-neutral-400">
                       Productos actuales
                     </p>
                     <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
@@ -2055,10 +2055,10 @@ export default function OrdersCardsDashboardV3() {
                         {isPizzaItem(item) && currentQuantity > 0 && (
                           <div className="mt-3 border-t border-neutral-100 pt-2.5">
                             <div className="mb-1.5 flex items-center justify-between">
-                              <label className="text-[9px] font-black uppercase tracking-[.08em] text-neutral-400">
+                              <label className="alento-ui-label uppercase tracking-[.08em] text-neutral-400">
                                 Nota para cocina
                               </label>
-                              <span className="text-[9px] text-neutral-400">
+                              <span className="alento-ui-label text-neutral-400">
                                 {(itemNotes[item.id] ?? "").length}/120
                               </span>
                             </div>
@@ -2089,12 +2089,12 @@ export default function OrdersCardsDashboardV3() {
               </section>
 
               <section className="mt-4 rounded-[22px] border border-neutral-200 bg-neutral-950 p-4 text-white shadow-[0_10px_26px_rgba(0,0,0,.10)]">
-                <p className="text-[9px] font-black uppercase tracking-[.12em] text-white/40">
+                <p className="alento-ui-label uppercase tracking-[.12em] text-white/40">
                   Resumen de edición
                 </p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div className="rounded-xl bg-white/[0.07] p-3">
-                    <span className="block text-[9px] uppercase text-white/40">
+                    <span className="block alento-ui-label uppercase text-white/40">
                       Nuevos
                     </span>
                     <b className="mt-1 block text-lg tabular-nums">
@@ -2102,7 +2102,7 @@ export default function OrdersCardsDashboardV3() {
                     </b>
                   </div>
                   <div className="rounded-xl bg-white/[0.07] p-3">
-                    <span className="block text-[9px] uppercase text-white/40">
+                    <span className="block alento-ui-label uppercase text-white/40">
                       Productos
                     </span>
                     <b className="mt-1 block text-[15px] tracking-[-0.02em]">
@@ -2129,7 +2129,7 @@ export default function OrdersCardsDashboardV3() {
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.045)] sm:p-5">
                     <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-100 pb-4">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-[.12em] text-neutral-400">
+                        <p className="alento-ui-label uppercase tracking-[.12em] text-neutral-400">
                           Bebidas y otros
                         </p>
                         <h4 className="mt-1 text-[18px] font-black tracking-[-0.02em] text-neutral-950">
@@ -2213,7 +2213,7 @@ export default function OrdersCardsDashboardV3() {
 
           <div className="flex shrink-0 items-center justify-between gap-3 border-t border-neutral-200 bg-white px-4 py-3.5 sm:px-6">
             <div className="hidden min-w-0 sm:block">
-              <p className="text-[9px] font-black uppercase tracking-[.1em] text-neutral-400">
+              <p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">
                 Cambios del pedido
               </p>
               <p className="mt-0.5 truncate text-[11px] text-neutral-500">
