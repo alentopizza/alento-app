@@ -426,7 +426,7 @@ export default function CashLoansPanel({
   return (
     <>
       <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
               Cartera de trabajadores
@@ -438,25 +438,26 @@ export default function CashLoansPanel({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {cashDateLocked ? (
               <span className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
                 Caja cerrada · solo consulta
               </span>
             ) : (
               <button
-                  type="button"
-                  onClick={() => {
-                    setLoanDate(businessDate);
-                    setLoanTime(localTimeInput());
-                    setLoanMessage("");
-                    setNewOpen(true);
-                  }}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-950 px-4 text-[10px] font-black text-white"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nuevo préstamo
-                </button>
+                type="button"
+                onClick={() => {
+                  setLoanDate(businessDate);
+                  setLoanTime(localTimeInput());
+                  setLoanMessage("");
+                  setNewOpen(true);
+                }}
+                aria-label="Nuevo préstamo"
+                title="Nuevo préstamo"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_8px_18px_rgba(17,17,19,.16)] transition hover:-translate-y-0.5 hover:bg-black"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
+              </button>
             )}
           </div>
         </div>
