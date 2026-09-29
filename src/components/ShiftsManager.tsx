@@ -162,6 +162,7 @@ export default function ShiftsManager() {
   const [month, setMonth] = useState(() => monthKey(new Date()));
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [users, setUsers] = useState<ShiftUser[]>([]);
+  const [loanBalances, setLoanBalances] = useState<Record<number, number>>({});
   const [summary, setSummary] = useState<Summary>({
     shifts: 0,
     total: 0,
@@ -196,6 +197,7 @@ export default function ShiftsManager() {
 
       setShifts(data.shifts ?? []);
       setUsers(data.users ?? []);
+      setLoanBalances(data.loanBalances ?? {});
       setSummary(
         data.summary ?? {
           shifts: 0,
@@ -286,6 +288,8 @@ export default function ShiftsManager() {
         total: number;
         paid: number;
         pending: number;
+        loanBalance: number;
+        netToPay: number;
       }
     >();
 
@@ -297,6 +301,8 @@ export default function ShiftsManager() {
         total: 0,
         paid: 0,
         pending: 0,
+        loanBalance: loanBalances[shift.user.id] ?? 0,
+        netToPay: 0,
       };
 
       current.shifts += 1;
@@ -304,13 +310,14 @@ export default function ShiftsManager() {
       if (shift.status === "PAID") current.paid += shift.amount;
       else current.pending += shift.amount;
 
+      current.netToPay = Math.max(0, current.total - current.loanBalance);
       grouped.set(shift.user.id, current);
     }
 
     return [...grouped.values()].sort(
       (a, b) => b.total - a.total || a.name.localeCompare(b.name, "es"),
     );
-  }, [shifts]);
+  }, [loanBalances, shifts]);
 
   const selectedWorker = useMemo(
     () =>
@@ -826,6 +833,21 @@ export default function ShiftsManager() {
                       Pendiente {money(worker.pending)}
                     </span>
                   </div>
+
+                  <div className="mt-2 border-t border-neutral-200 pt-2">
+                    <div className="flex items-center justify-between gap-2 text-[8px] font-semibold">
+                      <span className="text-rose-600">Préstamos</span>
+                      <b className="text-rose-700">
+                        {money(worker.loanBalance)}
+                      </b>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-black">
+                      <span className="text-neutral-500">Neto estimado</span>
+                      <b className="text-neutral-950">
+                        {money(worker.netToPay)}
+                      </b>
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -869,7 +891,7 @@ export default function ShiftsManager() {
               </div>
             </header>
 
-            <div className="grid grid-cols-3 gap-2 border-b border-neutral-100 bg-[#faf9f7] p-3">
+            <div className="grid grid-cols-2 gap-2 border-b border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-5">
               <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5">
                 <span className="text-[8px] font-black uppercase tracking-[.1em] text-neutral-400">
                   Total
