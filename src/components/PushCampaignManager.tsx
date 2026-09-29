@@ -226,7 +226,7 @@ function CampaignMetric({
       <b className="mt-1 block text-[11px] text-neutral-900">
         {String(value)}
       </b>
-      <span className="text-[7px] font-black uppercase tracking-[.08em] text-neutral-400">
+      <span className="alento-ui-micro uppercase tracking-[.08em] text-neutral-400">
         {label}
       </span>
     </div>
@@ -465,19 +465,19 @@ export default function PushCampaignManager() {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2.5 text-center">
-              <span className="text-[8px] font-black uppercase tracking-[.12em] text-white/35">
+              <span className="alento-ui-micro uppercase tracking-[.12em] text-white/35">
                 Campañas
               </span>
               <b className="mt-1 block text-xl">{campaigns.length}</b>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2.5 text-center">
-              <span className="text-[8px] font-black uppercase tracking-[.12em] text-white/35">
+              <span className="alento-ui-micro uppercase tracking-[.12em] text-white/35">
                 Entregas
               </span>
               <b className="mt-1 block text-xl">{totalDelivered}</b>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[.055] px-4 py-2.5 text-center">
-              <span className="text-[8px] font-black uppercase tracking-[.12em] text-white/35">
+              <span className="alento-ui-micro uppercase tracking-[.12em] text-white/35">
                 Vistas
               </span>
               <b className="mt-1 block text-xl">{totalOpened}</b>
@@ -584,7 +584,7 @@ export default function PushCampaignManager() {
                   />
                   <div className="min-w-0 flex-1">
                     <b className="text-[11px]">Imagen cargada</b>
-                    <p className="mt-1 text-[9px] text-neutral-400">
+                    <p className="mt-1 alento-ui-label text-neutral-400">
                       Se mostrará expandida cuando el dispositivo lo soporte.
                     </p>
                   </div>
@@ -770,7 +770,7 @@ export default function PushCampaignManager() {
                 </span>
                 <span
                   className={
-                    "rounded-full px-2 py-1 text-[9px] font-black " +
+                    "rounded-full px-2 py-1 alento-ui-label " +
                     (delivery.webConfigured
                       ? "bg-emerald-100 text-emerald-700"
                       : "bg-amber-100 text-amber-700")
@@ -819,13 +819,13 @@ export default function PushCampaignManager() {
                           <b className="block truncate text-[11px] text-neutral-900">
                             {device.customer?.name || "Cliente sin sesión vinculada"}
                           </b>
-                          <span className="mt-0.5 block text-[9px] text-neutral-500">
+                          <span className="mt-0.5 block alento-ui-label text-neutral-500">
                             {deviceLabel(device.userAgent)}
                           </span>
                         </div>
                         <span
                           className={
-                            "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
+                            "shrink-0 rounded-full px-2 py-1 alento-ui-micro " +
                             (audience === "CUSTOMERS"
                               ? "bg-emerald-100 text-emerald-700"
                               : "bg-neutral-100 text-neutral-500")
@@ -836,7 +836,7 @@ export default function PushCampaignManager() {
                             : "Cliente"}
                         </span>
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
+                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 alento-ui-micro font-semibold text-neutral-400">
                         <span>Cliente</span>
                         {device.customer?.phone && (
                           <>
@@ -865,13 +865,13 @@ export default function PushCampaignManager() {
                           <b className="block truncate text-[11px] text-neutral-900">
                             {device.user.name}
                           </b>
-                          <span className="mt-0.5 block text-[9px] text-neutral-500">
+                          <span className="mt-0.5 block alento-ui-label text-neutral-500">
                             {deviceLabel(device.userAgent)}
                           </span>
                         </div>
                         <span
                           className={
-                            "shrink-0 rounded-full px-2 py-1 text-[8px] font-black " +
+                            "shrink-0 rounded-full px-2 py-1 alento-ui-micro " +
                             (deviceMatchesAudience(device, audience)
                               ? "bg-emerald-100 text-emerald-700"
                               : "bg-neutral-100 text-neutral-500")
@@ -882,7 +882,7 @@ export default function PushCampaignManager() {
                             : "Staff"}
                         </span>
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold text-neutral-400">
+                      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 alento-ui-micro font-semibold text-neutral-400">
                         <span>{device.user.roles.join(", ") || "Sin rol"}</span>
                         <span>·</span>
                         <span>
@@ -952,7 +952,7 @@ export default function PushCampaignManager() {
                       </b>
                       <span
                         className={
-                          "rounded-full px-2 py-1 text-[8px] font-black uppercase " +
+                          "rounded-full px-2 py-1 alento-ui-micro uppercase " +
                           (campaign.status === "SENT"
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-red-50 text-red-700")
@@ -960,14 +960,14 @@ export default function PushCampaignManager() {
                       >
                         {campaign.status === "SENT" ? "Enviada" : "Fallida"}
                       </span>
-                      <span className="rounded-full bg-neutral-100 px-2 py-1 text-[8px] font-bold text-neutral-500">
+                      <span className="rounded-full bg-neutral-100 px-2 py-1 alento-ui-micro font-bold text-neutral-500">
                         {audienceLabel(campaign.audience)}
                       </span>
                     </div>
                     <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-neutral-500">
                       {campaign.body}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5 text-[8px] font-bold text-neutral-400">
+                    <div className="mt-2 flex flex-wrap gap-1.5 alento-ui-micro font-bold text-neutral-400">
                       <span>{moneylessDate(campaign.sentAt || campaign.createdAt)}</span>
                       <span>·</span>
                       <span>{campaign.createdByName}</span>
@@ -1006,7 +1006,7 @@ export default function PushCampaignManager() {
           </div>
         )}
 
-        <p className="mt-3 text-[9px] leading-4 text-neutral-400">
+        <p className="mt-3 alento-ui-label leading-4 text-neutral-400">
           “Entregas” significa que el servicio Push aceptó el mensaje. “Vistas”
           cuenta aperturas únicas al tocar la notificación.
         </p>
