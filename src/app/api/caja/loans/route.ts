@@ -19,14 +19,33 @@ export async function GET() {
   try {
     await requireStaffSession(["ADMIN", "CASHIER"]);
 
-    const loans = await prisma.cashLoan.findMany({
-      orderBy: [{ status: "asc" }, { issuedAt: "desc" }, { id: "desc" }],
-      include: {
-        repayments: {
-          orderBy: [{ paidAt: "desc" }, { id: "desc" }],
+    const [loans, workers] = await Promise.all([
+      prisma.cashLoan.findMany({
+        orderBy: [{ status: "asc" }, { issuedAt: "desc" }, { id: "desc" }],
+        include: {
+          worker: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              active: true,
+            },
+          },
+          repayments: {
+            orderBy: [{ paidAt: "desc" }, { id: "desc" }],
+          },
         },
-      },
-    });
+      }),
+      prisma.user.findMany({
+        where: { active: true },
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      }),
+    ]);
 
     let principalTotal = 0;
     let repaidTotal = 0;
@@ -53,7 +72,9 @@ export async function GET() {
 
       return {
         id: loan.id,
-        workerName: loan.workerName,
+        workerId: loan.workerId,
+        workerName: loan.worker?.name || loan.workerName,
+        worker: loan.worker,
         note: loan.note,
         principal,
         issuedAt: loan.issuedAt,
@@ -86,6 +107,7 @@ export async function GET() {
         outstandingTotal,
       },
       loans: normalized,
+      workers,
     });
   } catch (error) {
     const forbidden = error instanceof Error && error.message === "FORBIDDEN";
@@ -118,15 +140,27 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const workerName = clean(body.workerName);
+    const workerId = Number(body.workerId);
     const note = clean(body.note);
     const amount = Number(body.amount);
     const issuedAt = new Date(clean(body.issuedAt));
 
-    if (!workerName) {
+    if (!Number.isInteger(workerId) || workerId <= 0) {
       return NextResponse.json(
-        { error: "Indica el trabajador." },
+        { error: "Selecciona un trabajador." },
         { status: 400 },
+      );
+    }
+
+    const worker = await prisma.user.findFirst({
+      where: { id: workerId, active: true },
+      select: { id: true, name: true },
+    });
+
+    if (!worker) {
+      return NextResponse.json(
+        { error: "El trabajador seleccionado no está activo." },
+        { status: 409 },
       );
     }
 
@@ -148,7 +182,8 @@ export async function POST(request: NextRequest) {
 
     const loan = await prisma.cashLoan.create({
       data: {
-        workerName,
+        workerId: worker.id,
+        workerName: worker.name,
         note: note || null,
         principal: Math.round(amount),
         issuedAt,
@@ -161,6 +196,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       loan: {
         ...loan,
+        worker: {
+          id: worker.id,
+          name: worker.name,
+          email: null,
+          active: true,
+        },
         principal: Number(loan.principal),
       },
     });
