@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     const { start, end } = monthRange(month);
 
-    const [shifts, users] = await Promise.all([
+    const [shifts, users, loans] = await Promise.all([
       prisma.workShift.findMany({
         where: {
           startsAt: {
@@ -110,6 +110,21 @@ export async function GET(request: NextRequest) {
           roles: true,
         },
       }),
+      prisma.cashLoan.findMany({
+        where: {
+          workerId: { not: null },
+          historicalPaidWithoutRepayment: false,
+        },
+        select: {
+          workerId: true,
+          principal: true,
+          repayments: {
+            select: {
+              amount: true,
+            },
+          },
+        },
+      }),
     ]);
 
     const serialized = shifts.map(serializeShift);
@@ -121,10 +136,25 @@ export async function GET(request: NextRequest) {
       .filter((shift) => shift.status !== "PAID")
       .reduce((sum, shift) => sum + shift.amount, 0);
 
+    const loanBalances = loans.reduce<Record<number, number>>((map, loan) => {
+      if (loan.workerId == null) return map;
+
+      const principal = Number(loan.principal);
+      const repaid = loan.repayments.reduce(
+        (sum, repayment) => sum + Number(repayment.amount),
+        0,
+      );
+      const outstanding = Math.max(0, principal - repaid);
+
+      map[loan.workerId] = (map[loan.workerId] ?? 0) + outstanding;
+      return map;
+    }, {});
+
     return NextResponse.json({
       month,
       shifts: serialized,
       users,
+      loanBalances,
       summary: {
         shifts: serialized.length,
         total,
