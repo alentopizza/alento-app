@@ -534,11 +534,11 @@ export default function ShiftsManager() {
                 </p>
               </div>
 
-              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
+              <h1 className="alento-ui-hero-title mt-1.5">
                 Turnos
               </h1>
 
-              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
                 Programa al equipo, controla el valor de cada turno y su estado de pago.
               </p>
             </div>
