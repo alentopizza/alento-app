@@ -576,7 +576,7 @@ export default function ShiftsManager() {
                   (error ? "bg-red-500" : "bg-emerald-500")
                 }
               />
-              <p className="min-w-0 flex-1 text-[10px] font-bold leading-4">
+              <p className="min-w-0 flex-1 alento-ui-micro font-bold leading-4">
                 {error || notice}
               </p>
               <button
@@ -631,14 +631,14 @@ export default function ShiftsManager() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar trabajador o nota..."
-                className="alento-input h-11 w-full rounded-xl pl-11 pr-4 text-[12px]"
+                className="alento-input h-11 w-full rounded-xl pl-11 pr-4 alento-ui-control"
               />
             </div>
 
             <select
               value={userFilter}
               onChange={(event) => setUserFilter(event.target.value)}
-              className="alento-input h-11 rounded-xl px-3 text-[11px] font-semibold"
+              className="alento-input h-11 rounded-xl px-3 alento-ui-label font-semibold"
             >
               <option value="ALL">Todos los trabajadores</option>
               {users.map((user) => (
@@ -651,7 +651,7 @@ export default function ShiftsManager() {
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="alento-input h-11 rounded-xl px-3 text-[11px] font-semibold"
+              className="alento-input h-11 rounded-xl px-3 alento-ui-label font-semibold"
             >
               <option value="ALL">Todos los pagos</option>
               <option value="PENDING">Pendientes</option>
@@ -668,7 +668,7 @@ export default function ShiftsManager() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="min-w-[150px] text-center">
-                <b className="block text-[12px] capitalize text-neutral-900">
+                <b className="block alento-ui-control capitalize text-neutral-900">
                   {monthTitle(month)}
                 </b>
               </div>
@@ -723,7 +723,7 @@ export default function ShiftsManager() {
                     <div className="mb-1 flex justify-end">
                       <span
                         className={
-                          "flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] font-bold " +
+                          "flex h-6 min-w-6 items-center justify-center rounded-full px-1 alento-ui-micro font-bold " +
                           (today
                             ? "bg-[var(--brand-red)] text-white"
                             : day.inMonth
@@ -781,17 +781,17 @@ export default function ShiftsManager() {
               <h2 className="mt-1 text-xl font-black">
                 Personal de {monthTitle(month)}
               </h2>
-              <p className="mt-1 text-[10px] text-neutral-400">
+              <p className="mt-1 alento-ui-micro text-neutral-400">
                 Toca un trabajador para ver todos sus turnos del mes.
               </p>
             </div>
-            <b className="text-[12px] text-neutral-400">
+            <b className="alento-ui-control text-neutral-400">
               {workerTotals.length}
             </b>
           </div>
 
           {workerTotals.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-[11px] text-neutral-400">
+            <div className="mt-4 rounded-2xl border border-dashed border-neutral-200 py-8 text-center alento-ui-label text-neutral-400">
               No hay turnos programados para este mes.
             </div>
           ) : (
@@ -806,14 +806,14 @@ export default function ShiftsManager() {
                   <div className="flex items-center gap-2.5">
                     <span
                       className={
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white " +
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl alento-ui-micro font-black text-white " +
                         employeeColor(worker.userId)
                       }
                     >
                       {initials(worker.name)}
                     </span>
                     <div className="min-w-0">
-                      <b className="block truncate text-[11px] text-neutral-950">
+                      <b className="block truncate alento-ui-label text-neutral-950">
                         {worker.name}
                       </b>
                       <span className="alento-ui-micro text-neutral-400">
@@ -871,7 +871,7 @@ export default function ShiftsManager() {
               <div className="flex items-center gap-3">
                 <span
                   className={
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[11px] font-black text-white " +
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl alento-ui-label font-black text-white " +
                     employeeColor(selectedWorker.userId)
                   }
                 >
@@ -884,7 +884,7 @@ export default function ShiftsManager() {
                   <h2 className="mt-1 truncate text-[24px] font-black tracking-[-.03em]">
                     {selectedWorker.name}
                   </h2>
-                  <p className="mt-1 text-[10px] capitalize text-white/55">
+                  <p className="mt-1 alento-ui-micro capitalize text-white/55">
                     {monthTitle(month)} · {selectedWorker.shifts} turno{selectedWorker.shifts === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -926,7 +926,7 @@ export default function ShiftsManager() {
                     className="grid gap-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 md:grid-cols-[140px_1fr_150px_130px_100px] md:items-center"
                   >
                     <div>
-                      <b className="block text-[11px] text-neutral-950">
+                      <b className="block alento-ui-label text-neutral-950">
                         {dayKey(shift.startsAt)}
                       </b>
                       <span className="mt-0.5 block alento-ui-label text-neutral-400">
@@ -934,11 +934,11 @@ export default function ShiftsManager() {
                       </span>
                     </div>
 
-                    <p className="truncate text-[10px] text-neutral-500">
+                    <p className="truncate alento-ui-micro text-neutral-500">
                       {shift.notes || "Sin nota"}
                     </p>
 
-                    <b className="text-[12px] text-neutral-900">
+                    <b className="alento-ui-control text-neutral-900">
                       {money(shift.amount)}
                     </b>
 
@@ -1005,7 +1005,7 @@ export default function ShiftsManager() {
             <div className="min-h-0 flex-1 overflow-y-auto p-5">
               <div className="grid gap-4">
                 <label>
-                  <span className="text-[11px] font-bold text-neutral-700">
+                  <span className="alento-ui-label font-bold text-neutral-700">
                     Trabajador
                   </span>
                   <div className="relative mt-2">
@@ -1037,10 +1037,10 @@ export default function ShiftsManager() {
                   <div className="flex items-center gap-2">
                     <Clock3 className="h-4 w-4 text-[var(--brand-red)]" />
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[.12em] text-neutral-500">
+                      <p className="alento-ui-micro font-black uppercase tracking-[.12em] text-neutral-500">
                         Horario
                       </p>
-                      <p className="mt-0.5 text-[10px] text-neutral-400">
+                      <p className="mt-0.5 alento-ui-micro text-neutral-400">
                         Selecciona primero la fecha y luego la hora.
                       </p>
                     </div>
@@ -1048,13 +1048,13 @@ export default function ShiftsManager() {
 
                   <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <div className="rounded-2xl border border-neutral-200 bg-white p-3.5">
-                      <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-500">
+                      <p className="alento-ui-micro font-black uppercase tracking-[.1em] text-neutral-500">
                         Entrada
                       </p>
 
                       <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_170px]">
                         <label>
-                          <span className="text-[10px] font-bold text-neutral-600">
+                          <span className="alento-ui-micro font-bold text-neutral-600">
                             Fecha
                           </span>
                           <input
@@ -1088,7 +1088,7 @@ export default function ShiftsManager() {
                         </label>
 
                         <label>
-                          <span className="text-[10px] font-bold text-neutral-600">
+                          <span className="alento-ui-micro font-bold text-neutral-600">
                             Hora
                           </span>
                           <input
@@ -1112,13 +1112,13 @@ export default function ShiftsManager() {
                     </div>
 
                     <div className="rounded-2xl border border-neutral-200 bg-white p-3.5">
-                      <p className="text-[10px] font-black uppercase tracking-[.1em] text-neutral-500">
+                      <p className="alento-ui-micro font-black uppercase tracking-[.1em] text-neutral-500">
                         Salida
                       </p>
 
                       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px]">
                         <label>
-                          <span className="text-[10px] font-bold text-neutral-600">
+                          <span className="alento-ui-micro font-bold text-neutral-600">
                             Fecha
                           </span>
                           <input
@@ -1139,7 +1139,7 @@ export default function ShiftsManager() {
                         </label>
 
                         <label>
-                          <span className="text-[10px] font-bold text-neutral-600">
+                          <span className="alento-ui-micro font-bold text-neutral-600">
                             Hora
                           </span>
                           <input
@@ -1166,7 +1166,7 @@ export default function ShiftsManager() {
                 </section>
 
                 <label>
-                  <span className="text-[11px] font-bold text-neutral-700">
+                  <span className="alento-ui-label font-bold text-neutral-700">
                     Valor del turno
                   </span>
                   <div className="relative mt-2">
@@ -1192,7 +1192,7 @@ export default function ShiftsManager() {
                 </label>
 
                 <label>
-                  <span className="text-[11px] font-bold text-neutral-700">
+                  <span className="alento-ui-label font-bold text-neutral-700">
                     Nota · opcional
                   </span>
                   <textarea
@@ -1218,7 +1218,7 @@ export default function ShiftsManager() {
                     type="button"
                     disabled={saving}
                     onClick={() => void removeShift()}
-                    className="h-11 rounded-xl border border-red-200 bg-red-50 px-4 text-[10px] font-black text-red-700"
+                    className="h-11 rounded-xl border border-red-200 bg-red-50 px-4 alento-ui-micro font-black text-red-700"
                   >
                     Eliminar turno
                   </button>
@@ -1230,13 +1230,13 @@ export default function ShiftsManager() {
                   type="button"
                   disabled={saving}
                   onClick={() => setEditor(null)}
-                  className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[11px] font-black text-neutral-600"
+                  className="h-11 rounded-xl border border-neutral-200 bg-white px-5 alento-ui-label font-black text-neutral-600"
                 >
                   Cancelar
                 </button>
                 <button
                   disabled={saving}
-                  className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white disabled:opacity-50"
+                  className="h-11 rounded-xl bg-[var(--brand-red)] px-5 alento-ui-label font-black text-white disabled:opacity-50"
                 >
                   {saving
                     ? "Guardando..."
