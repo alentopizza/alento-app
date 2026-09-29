@@ -529,7 +529,7 @@ export default function ShiftsManager() {
             <div className="max-w-2xl">
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
                   Personal
                 </p>
               </div>
@@ -690,7 +690,7 @@ export default function ShiftsManager() {
               (day) => (
                 <div
                   key={day}
-                  className="border-r border-neutral-200 px-2 py-2.5 text-center text-[9px] font-black uppercase tracking-[.08em] text-neutral-400 last:border-r-0"
+                  className="border-r border-neutral-200 px-2 py-2.5 text-center alento-ui-label uppercase tracking-[.08em] text-neutral-400 last:border-r-0"
                 >
                   {day}
                 </div>
@@ -747,7 +747,7 @@ export default function ShiftsManager() {
                           }
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <b className="truncate text-[9px]">
+                            <b className="truncate alento-ui-label">
                               {shift.user.name}
                             </b>
                             <span
@@ -759,7 +759,7 @@ export default function ShiftsManager() {
                               }
                             />
                           </div>
-                          <span className="mt-0.5 block truncate text-[7px] font-semibold text-white/80">
+                          <span className="mt-0.5 block truncate alento-ui-micro font-semibold text-white/80">
                             {timeLabel(shift.startsAt)}–{timeLabel(shift.endsAt)} · {money(shift.amount)}
                           </span>
                         </button>
@@ -775,7 +775,7 @@ export default function ShiftsManager() {
         <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(28,23,20,.04)]">
           <div className="flex items-end justify-between gap-3 border-b border-neutral-100 pb-3">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[.14em] text-neutral-400">
+              <p className="alento-ui-label uppercase tracking-[.14em] text-neutral-400">
                 Consolidado
               </p>
               <h2 className="mt-1 text-xl font-black">
@@ -816,7 +816,7 @@ export default function ShiftsManager() {
                       <b className="block truncate text-[11px] text-neutral-950">
                         {worker.name}
                       </b>
-                      <span className="text-[8px] text-neutral-400">
+                      <span className="alento-ui-micro text-neutral-400">
                         {worker.shifts} turno{worker.shifts === 1 ? "" : "s"}
                       </span>
                     </div>
@@ -825,7 +825,7 @@ export default function ShiftsManager() {
                   <b className="mt-3 block text-[18px] font-black text-neutral-950">
                     {money(worker.total)}
                   </b>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[8px] font-semibold">
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 alento-ui-micro font-semibold">
                     <span className="text-emerald-700">
                       Pagado {money(worker.paid)}
                     </span>
@@ -835,13 +835,13 @@ export default function ShiftsManager() {
                   </div>
 
                   <div className="mt-2 border-t border-neutral-200 pt-2">
-                    <div className="flex items-center justify-between gap-2 text-[8px] font-semibold">
+                    <div className="flex items-center justify-between gap-2 alento-ui-micro font-semibold">
                       <span className="text-rose-600">Préstamos</span>
                       <b className="text-rose-700">
                         {money(worker.loanBalance)}
                       </b>
                     </div>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-black">
+                    <div className="mt-1 flex items-center justify-between gap-2 alento-ui-label">
                       <span className="text-neutral-500">Neto estimado</span>
                       <b className="text-neutral-950">
                         {money(worker.netToPay)}
@@ -878,7 +878,7 @@ export default function ShiftsManager() {
                   {initials(selectedWorker.name)}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/40">
+                  <p className="alento-ui-label uppercase tracking-[.16em] text-white/40">
                     Historial de turnos
                   </p>
                   <h2 className="mt-1 truncate text-[24px] font-black tracking-[-.03em]">
@@ -893,7 +893,7 @@ export default function ShiftsManager() {
 
             <div className="grid grid-cols-2 gap-2 border-b border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-5">
               <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5">
-                <span className="text-[8px] font-black uppercase tracking-[.1em] text-neutral-400">
+                <span className="alento-ui-micro uppercase tracking-[.1em] text-neutral-400">
                   Total
                 </span>
                 <b className="mt-1 block text-[15px] font-black text-neutral-950">
@@ -901,7 +901,7 @@ export default function ShiftsManager() {
                 </b>
               </div>
               <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5">
-                <span className="text-[8px] font-black uppercase tracking-[.1em] text-emerald-600">
+                <span className="alento-ui-micro uppercase tracking-[.1em] text-emerald-600">
                   Pagado
                 </span>
                 <b className="mt-1 block text-[15px] font-black text-emerald-700">
@@ -909,7 +909,7 @@ export default function ShiftsManager() {
                 </b>
               </div>
               <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2.5">
-                <span className="text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
+                <span className="alento-ui-micro uppercase tracking-[.1em] text-amber-600">
                   Pendiente
                 </span>
                 <b className="mt-1 block text-[15px] font-black text-amber-700">
@@ -929,7 +929,7 @@ export default function ShiftsManager() {
                       <b className="block text-[11px] text-neutral-950">
                         {dayKey(shift.startsAt)}
                       </b>
-                      <span className="mt-0.5 block text-[9px] text-neutral-400">
+                      <span className="mt-0.5 block alento-ui-label text-neutral-400">
                         {timeLabel(shift.startsAt)} – {timeLabel(shift.endsAt)}
                       </span>
                     </div>
@@ -947,7 +947,7 @@ export default function ShiftsManager() {
                       disabled={busyId === shift.id}
                       onClick={() => void togglePayment(shift)}
                       className={
-                        "h-9 rounded-xl px-3 text-[9px] font-black disabled:opacity-50 " +
+                        "h-9 rounded-xl px-3 alento-ui-label disabled:opacity-50 " +
                         (shift.status === "PAID"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-amber-100 text-amber-700")
@@ -966,7 +966,7 @@ export default function ShiftsManager() {
                         setSelectedWorkerId(null);
                         openEdit(shift);
                       }}
-                      className="h-9 rounded-xl border border-neutral-200 bg-white px-3 text-[9px] font-black text-neutral-600"
+                      className="h-9 rounded-xl border border-neutral-200 bg-white px-3 alento-ui-label text-neutral-600"
                     >
                       Editar
                     </button>
@@ -994,7 +994,7 @@ export default function ShiftsManager() {
                 <X className="h-4 w-4" />
               </button>
 
-              <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/40">
+              <p className="alento-ui-label uppercase tracking-[.16em] text-white/40">
                 {editor.id ? "Editar turno" : "Nuevo turno"}
               </p>
               <h2 className="mt-1 text-[26px] font-black tracking-[-.035em]">
@@ -1271,7 +1271,7 @@ function SummaryCard({
   return (
     <article className="rounded-[18px] border border-neutral-200 bg-white px-4 py-3.5 shadow-[0_8px_22px_rgba(28,23,20,.035)]">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-black uppercase tracking-[.13em] text-neutral-400">
+        <span className="alento-ui-label uppercase tracking-[.13em] text-neutral-400">
           {label}
         </span>
         <span
@@ -1299,7 +1299,7 @@ function SummaryCard({
       >
         {value}
       </b>
-      <p className="mt-1.5 text-[9px] leading-4 text-neutral-400">{note}</p>
+      <p className="mt-1.5 alento-ui-label leading-4 text-neutral-400">{note}</p>
     </article>
   );
 }
