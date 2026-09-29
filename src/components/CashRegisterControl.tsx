@@ -104,6 +104,7 @@ export default function CashRegisterControl({
   onChanged,
   onSessionStateChange,
   onSessionClosed,
+  showHistory = false,
 }: {
   businessDate: string;
   enabled: boolean;
@@ -120,6 +121,7 @@ export default function CashRegisterControl({
   onChanged?: () => void;
   onSessionStateChange?: (status: "NONE" | "OPEN" | "CLOSED") => void;
   onSessionClosed?: (businessDate: string) => void;
+  showHistory?: boolean;
 }) {
   const [data, setData] = useState<SessionResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -672,7 +674,7 @@ export default function CashRegisterControl({
         </section>
       )}
 
-      {(data?.history?.length ?? 0) > 0 && (
+      {showHistory && (data?.history?.length ?? 0) > 0 && (
         <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
           <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
             <div>
