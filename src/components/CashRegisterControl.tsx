@@ -456,7 +456,7 @@ export default function CashRegisterControl({
           </span>
           <div>
             <b className="text-sm text-neutral-800">Apertura y cierre por sesión</b>
-            <p className="mt-0.5 text-[11px] text-neutral-500">
+            <p className="mt-0.5 alento-ui-label text-neutral-500">
               Selecciona un solo día para consultar su apertura. Una sesión puede continuar después de medianoche hasta que se cierre.
             </p>
           </div>
@@ -497,7 +497,7 @@ export default function CashRegisterControl({
                     {dateLabel(businessDate)}
                   </span>
                 </div>
-                <p className="mt-1 max-w-xl text-[11px] text-neutral-500">
+                <p className="mt-1 max-w-xl alento-ui-label text-neutral-500">
                   Parte del dinero disponible del cierre anterior. La cartera de préstamos se trae por separado y se suma automáticamente al total de apertura.
                 </p>
               </div>
@@ -528,7 +528,7 @@ export default function CashRegisterControl({
                 <button
                   type="button"
                   onClick={prepareOpen}
-                  className="h-12 rounded-2xl bg-neutral-950 px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
+                  className="h-12 rounded-2xl bg-neutral-950 px-5 alento-ui-label font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
                 >
                   Abrir con cierre anterior
                 </button>
@@ -537,7 +537,7 @@ export default function CashRegisterControl({
               <button
                 type="button"
                 onClick={prepareOpen}
-                className="h-12 rounded-2xl bg-neutral-950 px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
+                className="h-12 rounded-2xl bg-neutral-950 px-5 alento-ui-label font-black text-white shadow-[0_10px_24px_rgba(0,0,0,.16)] transition hover:-translate-y-0.5"
               >
                 Abrir caja
               </button>
@@ -721,13 +721,13 @@ export default function CashRegisterControl({
                     >
                       {isOpen ? "Abierta" : "Cerrada"}
                     </span>
-                    <b className="mt-1.5 block text-[11px] text-neutral-900">
+                    <b className="mt-1.5 block alento-ui-label text-neutral-900">
                       {dateLabel(item.businessDate)}
                     </b>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-semibold text-neutral-600">
+                    <p className="alento-ui-micro font-semibold text-neutral-600">
                       Apertura · {dateTimeLabel(item.openedAt)}
                     </p>
                     <p className="mt-0.5 alento-ui-label text-neutral-400">
@@ -741,7 +741,7 @@ export default function CashRegisterControl({
                     <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
                       Esperado
                     </span>
-                    <b className="mt-0.5 block text-[12px] text-neutral-800">
+                    <b className="mt-0.5 block alento-ui-control text-neutral-800">
                       {item.expectedClosingBalance == null
                         ? "—"
                         : money(item.expectedClosingBalance)}
@@ -753,12 +753,12 @@ export default function CashRegisterControl({
                       Resultado
                     </span>
                     {isOpen ? (
-                      <b className="mt-0.5 block text-[12px] text-emerald-700">
+                      <b className="mt-0.5 block alento-ui-control text-emerald-700">
                         En curso
                       </b>
                     ) : (
                       <>
-                        <b className="mt-0.5 block text-[12px] text-neutral-900">
+                        <b className="mt-0.5 block alento-ui-control text-neutral-900">
                           {money(item.actualClosingBalance ?? 0)}
                         </b>
                         <span
@@ -828,7 +828,7 @@ export default function CashRegisterControl({
                     <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">
                       {dateLabel(historySession.businessDate)}
                     </h2>
-                    <p className="mt-1 text-[11px] text-white/50">
+                    <p className="mt-1 alento-ui-label text-white/50">
                       Abrió {historySession.openedByName} · {dateTimeLabel(historySession.openedAt)}
                       {" · "}
                       Cerró {historySession.closedByName || "—"} · {dateTimeLabel(historySession.closedAt)}
@@ -1071,7 +1071,7 @@ export default function CashRegisterControl({
                           <span className="alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
                             Observación del cierre
                           </span>
-                          <p className="mt-1 text-[10px] font-semibold leading-4 text-neutral-700">
+                          <p className="mt-1 alento-ui-micro font-semibold leading-4 text-neutral-700">
                             {historySession.closeNote}
                           </p>
                         </div>
@@ -1088,7 +1088,7 @@ export default function CashRegisterControl({
                 <button
                   type="button"
                   onClick={() => setHistorySession(null)}
-                  className="ml-auto h-11 rounded-xl bg-neutral-950 px-6 text-[11px] font-black text-white"
+                  className="ml-auto h-11 rounded-xl bg-neutral-950 px-6 alento-ui-label font-black text-white"
                 >
                   Cerrar detalle
                 </button>
@@ -1114,7 +1114,7 @@ export default function CashRegisterControl({
                   <h2 className="mt-2 text-[28px] font-black tracking-[-0.04em]">
                     {editingOpening ? "Editar apertura" : "Abrir caja"}
                   </h2>
-                  <p className="mt-1 text-[11px] leading-5 text-white/50">
+                  <p className="mt-1 alento-ui-label leading-5 text-white/50">
                     Ingresa únicamente el dinero disponible. Alentó suma automáticamente los préstamos por cobrar para formar el total de apertura.
                   </p>
                 </div>
@@ -1160,13 +1160,13 @@ export default function CashRegisterControl({
                         data.suggestedOpeningBalance,
                     )}
                   </b>
-                  <span className="mt-1 block text-[10px] text-neutral-500">
+                  <span className="mt-1 block alento-ui-micro text-neutral-500">
                     Toca para usar este dinero disponible en la nueva apertura.
                   </span>
                 </button>
               )}
 
-              <label className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-500">
+              <label className="alento-ui-micro font-black uppercase tracking-[0.12em] text-neutral-500">
                 Dinero disponible al abrir
               </label>
               <div className="mt-2 flex h-16 items-center rounded-2xl border border-neutral-200 bg-[#faf9f7] px-4 focus-within:border-neutral-400 focus-within:bg-white">
@@ -1205,7 +1205,7 @@ export default function CashRegisterControl({
                 </div>
               </div>
 
-              <p className="mt-4 text-[10px] leading-5 text-neutral-500">
+              <p className="mt-4 alento-ui-micro leading-5 text-neutral-500">
                 Solo ingresas el dinero realmente disponible. La cartera de préstamos se trae automáticamente y se suma para mostrar el valor total de Alentó al abrir.
               </p>
             </div>
@@ -1215,7 +1215,7 @@ export default function CashRegisterControl({
                 type="button"
                 onClick={() => setOpenModal(false)}
                 disabled={actionBusy}
-                className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white px-5 text-[11px] font-black text-neutral-600 sm:flex-none"
+                className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white px-5 alento-ui-label font-black text-neutral-600 sm:flex-none"
               >
                 Cancelar
               </button>
@@ -1223,7 +1223,7 @@ export default function CashRegisterControl({
                 type="button"
                 onClick={() => void saveOpening()}
                 disabled={actionBusy}
-                className="h-11 flex-1 rounded-xl bg-neutral-950 px-6 text-[11px] font-black text-white disabled:bg-neutral-300 sm:flex-none"
+                className="h-11 flex-1 rounded-xl bg-neutral-950 px-6 alento-ui-label font-black text-white disabled:bg-neutral-300 sm:flex-none"
               >
                 {actionBusy
                   ? editingOpening
@@ -1252,7 +1252,7 @@ export default function CashRegisterControl({
                 <div>
                   <p className="alento-ui-label uppercase tracking-[0.18em] text-white/45">Cuadre · {dateLabel(businessDate)}</p>
                   <h2 className="mt-1.5 text-[27px] font-black tracking-[-0.04em]">Cerrar caja</h2>
-                  <p className="mt-1 text-[11px] text-white/50">Cuenta efectivo y cuentas. Los préstamos no se cuentan aquí.</p>
+                  <p className="mt-1 alento-ui-label text-white/50">Cuenta efectivo y cuentas. Los préstamos no se cuentan aquí.</p>
                 </div>
                 <button
                   type="button"
@@ -1359,18 +1359,18 @@ export default function CashRegisterControl({
 
                     <div className="mt-4 rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-4">
                       <div className="flex items-center justify-between gap-4">
-                        <span className="text-[11px] font-medium text-neutral-500">Disponible al iniciar</span>
-                        <b className="text-[12px] font-black text-neutral-800">{money(openingAvailableBalance)}</b>
+                        <span className="alento-ui-label font-medium text-neutral-500">Disponible al iniciar</span>
+                        <b className="alento-ui-control font-black text-neutral-800">{money(openingAvailableBalance)}</b>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-4">
-                        <span className="text-[11px] font-medium text-neutral-500">Movimiento de la sesión</span>
-                        <b className={"text-[12px] font-black " + (liveMovement >= 0 ? "text-emerald-700" : "text-red-700")}>
+                        <span className="alento-ui-label font-medium text-neutral-500">Movimiento de la sesión</span>
+                        <b className={"alento-ui-control font-black " + (liveMovement >= 0 ? "text-emerald-700" : "text-red-700")}>
                           {liveMovement >= 0 ? "+" : ""}{money(liveMovement)}
                         </b>
                       </div>
                       <div className="my-3 h-px bg-neutral-200" />
                       <div className="flex items-center justify-between gap-4">
-                        <span className="text-[12px] font-black text-neutral-800">Debe haber disponible</span>
+                        <span className="alento-ui-control font-black text-neutral-800">Debe haber disponible</span>
                         <b className="text-[18px] font-black text-neutral-950">{money(expectedNow)}</b>
                       </div>
                     </div>
@@ -1395,10 +1395,10 @@ export default function CashRegisterControl({
                     </div>
 
                     <details className="mt-3 rounded-[14px] border border-neutral-200 bg-white px-3 py-2.5">
-                      <summary className="cursor-pointer text-[10px] font-black text-neutral-500">
+                      <summary className="cursor-pointer alento-ui-micro font-black text-neutral-500">
                         Ver detalle del movimiento de la sesión
                       </summary>
-                      <div className="mt-3 space-y-2 text-[10px]">
+                      <div className="mt-3 space-y-2 alento-ui-micro">
                         <SummaryLine label="Ventas cobradas" value={money(effectiveMovement.received)} />
                         <SummaryLine label="Otros ingresos" value={money(effectiveMovement.otherIncome)} />
                         <SummaryLine label="Abonos de préstamos" value={money(effectiveMovement.recovered)} />
@@ -1434,7 +1434,7 @@ export default function CashRegisterControl({
                       onChange={(event) => setCloseNote(event.target.value)}
                       rows={1}
                       placeholder="Ej. pendiente confirmar transferencia..."
-                      className="mt-2 w-full resize-none rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 text-[11px] outline-none focus:border-neutral-400"
+                      className="mt-2 w-full resize-none rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5 alento-ui-label outline-none focus:border-neutral-400"
                     />
                   </section>
                 </div>
@@ -1442,7 +1442,7 @@ export default function CashRegisterControl({
             </div>
 
             <div className="flex shrink-0 flex-col gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <p className="text-[10px] text-neutral-400">
+              <p className="alento-ui-micro text-neutral-400">
                 Solo compara el dinero disponible que debes tener contra lo que realmente contaste.
               </p>
               <div className="flex gap-2">
@@ -1450,7 +1450,7 @@ export default function CashRegisterControl({
                   type="button"
                   onClick={() => setCloseModal(false)}
                   disabled={actionBusy}
-                  className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white px-5 text-[11px] font-black text-neutral-600 sm:flex-none"
+                  className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white px-5 alento-ui-label font-black text-neutral-600 sm:flex-none"
                 >
                   Cancelar
                 </button>
@@ -1458,7 +1458,7 @@ export default function CashRegisterControl({
                   type="button"
                   onClick={() => void closeCash()}
                   disabled={actionBusy}
-                  className="h-11 flex-1 rounded-xl bg-[var(--brand-red)] px-6 text-[11px] font-black text-white disabled:bg-neutral-300 sm:flex-none"
+                  className="h-11 flex-1 rounded-xl bg-[var(--brand-red)] px-6 alento-ui-label font-black text-white disabled:bg-neutral-300 sm:flex-none"
                 >
                   {actionBusy ? "Cerrando..." : "Confirmar cierre"}
                 </button>
@@ -1601,14 +1601,14 @@ function ReadOnlyDenominationRow({
     <div className="grid min-h-[52px] grid-cols-[1fr_68px_96px] items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-1.5">
       <div>
         <span className="alento-ui-label font-bold text-neutral-400">$</span>
-        <b className="ml-1 text-[12px] text-neutral-800">
+        <b className="ml-1 alento-ui-control text-neutral-800">
           {denomination.toLocaleString("es-CO")}
         </b>
       </div>
-      <div className="flex h-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-[12px] font-black text-neutral-700">
+      <div className="flex h-8 items-center justify-center rounded-lg border border-neutral-200 bg-white alento-ui-control font-black text-neutral-700">
         {count}
       </div>
-      <span className="truncate text-right text-[10px] font-black text-neutral-500">
+      <span className="truncate text-right alento-ui-micro font-black text-neutral-500">
         {money(subtotal)}
       </span>
     </div>
@@ -1629,16 +1629,16 @@ function DenominationRow({
     <label className="grid min-h-[52px] grid-cols-[1fr_68px_88px] items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-1.5 xl:grid-cols-[1fr_74px_98px]">
       <div>
         <span className="alento-ui-label font-bold text-neutral-400">$</span>
-        <b className="ml-1 text-[12px] text-neutral-800">{denomination.toLocaleString("es-CO")}</b>
+        <b className="ml-1 alento-ui-control text-neutral-800">{denomination.toLocaleString("es-CO")}</b>
       </div>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         inputMode="numeric"
         placeholder="0"
-        className="h-8 w-full rounded-lg border border-neutral-200 bg-white px-2 text-center text-[12px] font-black outline-none focus:border-neutral-400"
+        className="h-8 w-full rounded-lg border border-neutral-200 bg-white px-2 text-center alento-ui-control font-black outline-none focus:border-neutral-400"
       />
-      <span className="truncate text-right text-[10px] font-black text-neutral-500">{money(subtotal)}</span>
+      <span className="truncate text-right alento-ui-micro font-black text-neutral-500">{money(subtotal)}</span>
     </label>
   );
 }
@@ -1656,7 +1656,7 @@ function MoneyField({
     <label className="block">
       <span className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">{label}</span>
       <div className="mt-1 flex h-10 items-center rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 focus-within:border-neutral-400 focus-within:bg-white">
-        <span className="mr-1.5 text-[12px] font-black text-neutral-400">$</span>
+        <span className="mr-1.5 alento-ui-control font-black text-neutral-400">$</span>
         <input
           value={value}
           onChange={(event) => onChange(integerInput(event.target.value))}
