@@ -223,7 +223,7 @@ function CampaignMetric({
   return (
     <div className="rounded-xl bg-[#faf9f7] px-2 py-2 text-center">
       <Icon className="mx-auto h-3.5 w-3.5 text-neutral-400" />
-      <b className="mt-1 block text-[11px] text-neutral-900">
+      <b className="mt-1 block alento-ui-label text-neutral-900">
         {String(value)}
       </b>
       <span className="alento-ui-micro uppercase tracking-[.08em] text-neutral-400">
@@ -451,13 +451,13 @@ export default function PushCampaignManager() {
       <header className="rounded-[26px] bg-[radial-gradient(circle_at_88%_14%,rgba(229,28,17,.34),transparent_25%),linear-gradient(135deg,#09090a,#171719)] px-6 py-5 text-white shadow-[0_18px_50px_rgba(0,0,0,.18)]">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.2em] text-red-300/70">
+            <p className="alento-ui-micro font-black uppercase tracking-[.2em] text-red-300/70">
               Centro Push
             </p>
             <h1 className="mt-1 text-[28px] font-black tracking-[-.04em]">
               Notificaciones PWA
             </h1>
-            <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-white/55">
+            <p className="mt-1.5 max-w-2xl alento-ui-control leading-5 text-white/55">
               Envía mensajes manuales al equipo y conserva métricas de
               entrega y apertura.
             </p>
@@ -501,7 +501,7 @@ export default function PushCampaignManager() {
         <section className="alento-card rounded-[26px] p-4 sm:p-5">
           <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+              <p className="alento-ui-micro font-black uppercase tracking-[.14em] text-neutral-400">
                 Nuevo mensaje
               </p>
               <h2 className="mt-1 text-xl font-black tracking-[-.03em]">
@@ -513,7 +513,7 @@ export default function PushCampaignManager() {
 
           <div className="mt-4 grid gap-4">
             <label>
-              <span className="flex items-center justify-between text-[11px] font-bold text-neutral-700">
+              <span className="flex items-center justify-between alento-ui-label font-bold text-neutral-700">
                 Título
                 <em className="not-italic text-neutral-400">
                   {title.length}/20
@@ -529,7 +529,7 @@ export default function PushCampaignManager() {
             </label>
 
             <label>
-              <span className="flex items-center justify-between text-[11px] font-bold text-neutral-700">
+              <span className="flex items-center justify-between alento-ui-label font-bold text-neutral-700">
                 Subtítulo
                 <em className="not-italic text-neutral-400">
                   {subtitle.length}/30
@@ -545,7 +545,7 @@ export default function PushCampaignManager() {
             </label>
 
             <label>
-              <span className="flex items-center justify-between text-[11px] font-bold text-neutral-700">
+              <span className="flex items-center justify-between alento-ui-label font-bold text-neutral-700">
                 Mensaje
                 <em className="not-italic text-neutral-400">
                   {body.length}/240
@@ -561,7 +561,7 @@ export default function PushCampaignManager() {
             </label>
 
             <div>
-              <span className="text-[11px] font-bold text-neutral-700">
+              <span className="alento-ui-label font-bold text-neutral-700">
                 Imagen opcional
               </span>
               <input
@@ -583,7 +583,7 @@ export default function PushCampaignManager() {
                     className="h-16 w-24 rounded-xl object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <b className="text-[11px]">Imagen cargada</b>
+                    <b className="alento-ui-label">Imagen cargada</b>
                     <p className="mt-1 alento-ui-label text-neutral-400">
                       Se mostrará expandida cuando el dispositivo lo soporte.
                     </p>
@@ -602,7 +602,7 @@ export default function PushCampaignManager() {
                   type="button"
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 bg-[#faf9f7] text-[11px] font-bold text-neutral-600 disabled:opacity-50"
+                  className="mt-2 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 bg-[#faf9f7] alento-ui-label font-bold text-neutral-600 disabled:opacity-50"
                 >
                   {uploading ? (
                     <RefreshCcw className="h-4 w-4 animate-spin" />
@@ -616,7 +616,7 @@ export default function PushCampaignManager() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <label>
-                <span className="text-[11px] font-bold text-neutral-700">
+                <span className="alento-ui-label font-bold text-neutral-700">
                   Audiencia
                 </span>
                 <select
@@ -633,14 +633,14 @@ export default function PushCampaignManager() {
               </label>
 
               <div>
-                <span className="text-[11px] font-bold text-neutral-700">
+                <span className="alento-ui-label font-bold text-neutral-700">
                   Canales
                 </span>
                 <div className="mt-1.5 grid grid-cols-1 gap-2">
                   <button
                     type="button"
                     disabled
-                    className="h-11 rounded-xl border border-neutral-950 bg-neutral-950 text-[10px] font-black text-white"
+                    className="h-11 rounded-xl border border-neutral-950 bg-neutral-950 alento-ui-micro font-black text-white"
                   >
                     PWA · {audienceDeviceCount}
                   </button>
@@ -649,7 +649,7 @@ export default function PushCampaignManager() {
             </div>
 
             <fieldset className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5">
-              <legend className="px-1 text-[11px] font-bold text-neutral-700">
+              <legend className="px-1 alento-ui-label font-bold text-neutral-700">
                 Al tocar, abrir
               </legend>
               <div className="grid gap-2 sm:grid-cols-4">
@@ -662,7 +662,7 @@ export default function PushCampaignManager() {
                   <label
                     key={value}
                     className={
-                      "flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-[10px] font-bold " +
+                      "flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 alento-ui-micro font-bold " +
                       (actionType === value
                         ? "border-neutral-950 bg-white text-neutral-950"
                         : "border-transparent text-neutral-500")
@@ -708,7 +708,7 @@ export default function PushCampaignManager() {
               type="button"
               onClick={() => void sendCampaign()}
               disabled={sending || !title.trim() || !body.trim() || !channels.length}
-              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] disabled:opacity-40"
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-red)] px-5 alento-ui-control font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
               {sending ? "Enviando..." : "Enviar notificación"}
@@ -718,7 +718,7 @@ export default function PushCampaignManager() {
 
         <aside className="space-y-4">
           <section className="rounded-[26px] border border-neutral-200 bg-white p-4">
-            <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+            <p className="alento-ui-micro font-black uppercase tracking-[.14em] text-neutral-400">
               Vista previa
             </p>
             <div className="mt-3 rounded-[24px] bg-[#111] p-3 text-white shadow-[0_18px_45px_rgba(0,0,0,.18)]">
@@ -742,11 +742,11 @@ export default function PushCampaignManager() {
                     {title || "Título de la notificación"}
                   </b>
                   {subtitle && (
-                    <span className="mt-0.5 block truncate text-[10px] font-semibold text-white/60">
+                    <span className="mt-0.5 block truncate alento-ui-micro font-semibold text-white/60">
                       {subtitle}
                     </span>
                   )}
-                  <p className="mt-1 text-[11px] leading-4 text-white/65">
+                  <p className="mt-1 alento-ui-label leading-4 text-white/65">
                     {body || "Aquí aparecerá el mensaje que recibirá el equipo."}
                   </p>
                 </div>
@@ -755,12 +755,12 @@ export default function PushCampaignManager() {
           </section>
 
           <section className="rounded-[26px] border border-neutral-200 bg-white p-4">
-            <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+            <p className="alento-ui-micro font-black uppercase tracking-[.14em] text-neutral-400">
               Estado de canal
             </p>
             <div className="mt-3">
               <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3">
-                <span className="flex items-center gap-2 text-[11px] font-bold">
+                <span className="flex items-center gap-2 alento-ui-label font-bold">
                   <img
                     src={ALENTO_PUSH_ICON}
                     alt=""
@@ -789,14 +789,14 @@ export default function PushCampaignManager() {
           <section className="rounded-[26px] border border-neutral-200 bg-white p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+                <p className="alento-ui-micro font-black uppercase tracking-[.14em] text-neutral-400">
                   Suscripciones registradas
                 </p>
-                <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                <p className="mt-1 alento-ui-micro leading-4 text-neutral-500">
                   Son suscripciones Web Push, no instalaciones PWA confirmadas.
                 </p>
               </div>
-              <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[10px] font-black text-neutral-600">
+              <span className="rounded-full bg-neutral-100 px-2.5 py-1 alento-ui-micro font-black text-neutral-600">
                 {delivery.webDevices}
               </span>
             </div>
@@ -804,7 +804,7 @@ export default function PushCampaignManager() {
             <div className="mt-3 space-y-2">
               {delivery.devices.length === 0 &&
               (delivery.customerDevices?.length ?? 0) === 0 ? (
-                <div className="rounded-2xl border border-dashed border-neutral-200 px-3 py-5 text-center text-[10px] text-neutral-400">
+                <div className="rounded-2xl border border-dashed border-neutral-200 px-3 py-5 text-center alento-ui-micro text-neutral-400">
                   No hay suscripciones Push registradas.
                 </div>
               ) : (
@@ -816,7 +816,7 @@ export default function PushCampaignManager() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <b className="block truncate text-[11px] text-neutral-900">
+                          <b className="block truncate alento-ui-label text-neutral-900">
                             {device.customer?.name || "Cliente sin sesión vinculada"}
                           </b>
                           <span className="mt-0.5 block alento-ui-label text-neutral-500">
@@ -862,7 +862,7 @@ export default function PushCampaignManager() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <b className="block truncate text-[11px] text-neutral-900">
+                          <b className="block truncate alento-ui-label text-neutral-900">
                             {device.user.name}
                           </b>
                           <span className="mt-0.5 block alento-ui-label text-neutral-500">
@@ -904,7 +904,7 @@ export default function PushCampaignManager() {
       <section className="alento-card rounded-[26px] p-4 sm:p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[.14em] text-neutral-400">
+            <p className="alento-ui-micro font-black uppercase tracking-[.14em] text-neutral-400">
               Historial
             </p>
             <h2 className="mt-1 text-xl font-black tracking-[-.03em]">
@@ -915,7 +915,7 @@ export default function PushCampaignManager() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="flex h-9 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-[10px] font-bold text-neutral-600"
+            className="flex h-9 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 alento-ui-micro font-bold text-neutral-600"
           >
             <RefreshCcw className={"h-3.5 w-3.5 " + (loading ? "animate-spin" : "")} />
             Actualizar
@@ -964,7 +964,7 @@ export default function PushCampaignManager() {
                         {audienceLabel(campaign.audience)}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-neutral-500">
+                    <p className="mt-1 line-clamp-2 alento-ui-micro leading-4 text-neutral-500">
                       {campaign.body}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1.5 alento-ui-micro font-bold text-neutral-400">
