@@ -486,7 +486,7 @@ export default function CashLoansPanel({
                 key={value}
                 type="button"
                 onClick={() => setStatusFilter(value)}
-                className={`h-9 rounded-lg px-3 text-[10px] font-black transition ${
+                className={`h-9 rounded-lg px-3 alento-ui-micro font-black transition ${
                   statusFilter === value
                     ? "bg-neutral-950 text-white"
                     : "text-neutral-600 hover:bg-white"
@@ -531,7 +531,7 @@ export default function CashLoansPanel({
 
                   <span
                     className={
-                      "shrink-0 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[.05em] " +
+                      "shrink-0 rounded-full border px-2 py-0.5 alento-ui-micro font-black uppercase tracking-[.05em] " +
                       (pending
                         ? "border-amber-200 bg-amber-100 text-amber-800"
                         : "border-emerald-200 bg-emerald-100 text-emerald-800")
@@ -558,7 +558,7 @@ export default function CashLoansPanel({
                   <div className="rounded-xl border border-white/80 bg-white/75 px-2.5 py-2">
                     <span
                       className={
-                        "text-[7px] font-black uppercase tracking-[.08em] " +
+                        "alento-ui-micro font-black uppercase tracking-[.08em] " +
                         (pending ? "text-amber-600" : "text-emerald-600")
                       }
                     >
@@ -566,7 +566,7 @@ export default function CashLoansPanel({
                     </span>
                     <b
                       className={
-                        "mt-0.5 block text-[12px] " +
+                        "mt-0.5 block alento-ui-control " +
                         (pending ? "text-amber-800" : "text-emerald-800")
                       }
                     >
