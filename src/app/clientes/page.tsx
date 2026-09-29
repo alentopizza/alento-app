@@ -818,10 +818,10 @@ export default function CustomersPage() {
                   Relación con clientes
                 </p>
               </div>
-              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
+              <h1 className="alento-ui-hero-title mt-1.5">
                 Clientes
               </h1>
-              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
                 Conoce quién compra, cuánto vuelve y dónde existe una oportunidad de recuperar ventas.
               </p>
             </div>
@@ -851,7 +851,7 @@ export default function CustomersPage() {
                 <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                   Clientes
                 </span>
-                <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
+                <b className="alento-ui-metric mt-0.5 tabular-nums text-white">
                   {customers.length}
                 </b>
               </div>
