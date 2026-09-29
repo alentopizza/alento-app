@@ -589,32 +589,33 @@ export default function CashPage() {
   return (
     <main className="min-h-screen w-full bg-[#f4f4f2] p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
-        <section className="relative min-h-[164px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_38%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_68%_110%,rgba(132,12,16,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
           <CircleDollarSign
-            className="absolute right-[30%] top-[-38px] h-52 w-52 rotate-[-10deg] text-white/[0.03]"
+            className="absolute right-[31%] top-[-24px] h-40 w-40 rotate-[-10deg] text-white/[0.028]"
             strokeWidth={1.1}
           />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-          <div className="relative flex min-h-[164px] flex-col justify-between gap-5 px-6 py-5 lg:flex-row lg:items-center lg:px-8 xl:px-10">
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 lg:flex-row lg:items-center lg:px-6 xl:px-7">
             <div>
               <div className="flex items-center gap-3">
-                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
                   Finanzas operativas
                 </p>
               </div>
-              <h1 className="mt-2 text-[40px] font-black leading-none tracking-[-0.045em] md:text-[46px]">
+              <h1 className="mt-1.5 text-[32px] font-black leading-none tracking-[-0.04em] md:text-[36px]">
                 Caja
               </h1>
-              <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
+              <p className="mt-1.5 text-[11px] font-medium text-white/60 md:text-[12px]">
                 Ventas, entradas, préstamos y salidas reales en el período.
               </p>
             </div>
 
             <div className="flex flex-wrap items-end justify-end gap-2 self-end lg:self-auto">
               <div>
-                <span className="mb-1 block text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
+                <span className="mb-1 block text-[7px] font-black uppercase tracking-[0.13em] text-white/40">
                   Desde
                 </span>
                 <input
@@ -622,11 +623,11 @@ export default function CashPage() {
                   value={startDate}
                   max={endDate}
                   onChange={(event) => setStartDate(event.target.value)}
-                  className="h-11 rounded-xl border border-white/12 bg-white/[0.08] px-3 text-[11px] font-bold text-white outline-none [color-scheme:dark]"
+                  className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-2.5 text-[10px] font-bold text-white outline-none [color-scheme:dark]"
                 />
               </div>
               <div>
-                <span className="mb-1 block text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
+                <span className="mb-1 block text-[7px] font-black uppercase tracking-[0.13em] text-white/40">
                   Hasta
                 </span>
                 <input
@@ -634,20 +635,20 @@ export default function CashPage() {
                   value={endDate}
                   min={startDate}
                   onChange={(event) => setEndDate(event.target.value)}
-                  className="h-11 rounded-xl border border-white/12 bg-white/[0.08] px-3 text-[11px] font-bold text-white outline-none [color-scheme:dark]"
+                  className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-2.5 text-[10px] font-bold text-white outline-none [color-scheme:dark]"
                 />
               </div>
               <button
                 type="button"
                 onClick={setTodayRange}
-                className="h-11 rounded-xl border border-white/12 bg-white/[0.08] px-3 text-[10px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[9px] font-black text-white/85 transition hover:bg-white/[0.13]"
               >
                 Hoy
               </button>
               <button
                 type="button"
                 onClick={setMonthRange}
-                className="h-11 rounded-xl border border-white/12 bg-white/[0.08] px-3 text-[10px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[9px] font-black text-white/85 transition hover:bg-white/[0.13]"
               >
                 Este mes
               </button>
