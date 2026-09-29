@@ -359,7 +359,7 @@ export default function KitchenPage() {
             <div className="max-w-2xl">
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
                   Producción
                 </p>
               </div>
@@ -390,7 +390,7 @@ export default function KitchenPage() {
               </Link>
 
               <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
+                <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                   Cocina
                 </span>
                 <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
