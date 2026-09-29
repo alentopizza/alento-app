@@ -98,9 +98,11 @@ export default function CashLoansPanel({
   cashDateLocked,
   businessDate,
   onCashChanged,
+  createSignal = 0,
 }: {
   cashDateLocked: boolean;
   businessDate: string;
+  createSignal?: number;
   onCashChanged: (
     change?: CashLoanChange,
   ) => void | Promise<void>;
@@ -160,6 +162,14 @@ export default function CashLoansPanel({
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (createSignal <= 0 || cashDateLocked) return;
+    setLoanDate(businessDate);
+    setLoanTime(localTimeInput());
+    setLoanMessage("");
+    setNewOpen(true);
+  }, [businessDate, cashDateLocked, createSignal]);
 
   const filteredLoans = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -438,28 +448,11 @@ export default function CashLoansPanel({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {cashDateLocked ? (
-              <span className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
-                Caja cerrada · solo consulta
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setLoanDate(businessDate);
-                  setLoanTime(localTimeInput());
-                  setLoanMessage("");
-                  setNewOpen(true);
-                }}
-                aria-label="Nuevo préstamo"
-                title="Nuevo préstamo"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_8px_18px_rgba(17,17,19,.16)] transition hover:-translate-y-0.5 hover:bg-black"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.4} />
-              </button>
-            )}
-          </div>
+          {cashDateLocked && (
+            <span className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-neutral-100 px-3 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-600">
+              Caja cerrada · solo consulta
+            </span>
+          )}
         </div>
 
         {error && (
