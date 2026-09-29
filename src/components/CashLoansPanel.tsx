@@ -6,9 +6,7 @@ import {
   CircleDollarSign,
   HandCoins,
   CheckCircle2,
-  Pencil,
   Search,
-  Trash2,
   WalletCards,
 } from "lucide-react";
 
@@ -126,11 +124,6 @@ export default function CashLoansPanel({
 
   const [newOpen, setNewOpen] = useState(false);
   const [workerId, setWorkerId] = useState<number | "">("");
-  const [editLoan, setEditLoan] = useState<Loan | null>(null);
-  const [editWorkerId, setEditWorkerId] = useState<number | "">("");
-  const [editNote, setEditNote] = useState("");
-  const [editBusy, setEditBusy] = useState(false);
-  const [editMessage, setEditMessage] = useState("");
   const [loanAmount, setLoanAmount] = useState("");
   const [loanNote, setLoanNote] = useState("");
   const [loanDate, setLoanDate] = useState(localDateInput());
@@ -147,9 +140,6 @@ export default function CashLoansPanel({
   const [repayTime, setRepayTime] = useState(localTimeInput());
   const [repayBusy, setRepayBusy] = useState(false);
   const [repayMessage, setRepayMessage] = useState("");
-
-  const [deleteTarget, setDeleteTarget] = useState<Loan | null>(null);
-  const [deleteBusy, setDeleteBusy] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -388,139 +378,6 @@ export default function CashLoansPanel({
     }
   }
 
-  function openEditLoan(loan: Loan) {
-    setEditLoan(loan);
-    setEditWorkerId(loan.workerId ?? "");
-    setEditNote(loan.note ?? "");
-    setEditMessage("");
-  }
-
-  async function saveLoanAssignment() {
-    if (!editLoan || editBusy) return;
-
-    setEditBusy(true);
-    setEditMessage("");
-
-    try {
-      const response = await fetch(`/api/caja/loans/${editLoan.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workerId: editWorkerId,
-          note: editNote,
-        }),
-      });
-      const body = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          body.error || "No fue posible actualizar el préstamo.",
-        );
-      }
-
-      const updated = body.loan;
-
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              loans: current.loans.map((loan) =>
-                loan.id === editLoan.id
-                  ? {
-                      ...loan,
-                      workerId: Number(updated.workerId),
-                      workerName: String(
-                        updated.worker?.name || updated.workerName,
-                      ),
-                      note: updated.note ?? null,
-                    }
-                  : loan,
-              ),
-            }
-          : current,
-      );
-
-      setEditLoan(null);
-    } catch (saveError) {
-      setEditMessage(
-        saveError instanceof Error
-          ? saveError.message
-          : "No fue posible actualizar el préstamo.",
-      );
-    } finally {
-      setEditBusy(false);
-    }
-  }
-
-  async function deleteLoan() {
-    if (!deleteTarget || deleteBusy || cashDateLocked) return;
-    setDeleteBusy(true);
-
-    try {
-      const response = await fetch(
-        `/api/caja/loans/${deleteTarget.id}`,
-        { method: "DELETE" },
-      );
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.error || "No fue posible eliminar el préstamo.");
-      }
-      const deletedLoan = deleteTarget;
-
-      setData((current) =>
-        current
-          ? {
-              ...current,
-              summary: {
-                loanCount: Math.max(
-                  0,
-                  current.summary.loanCount - 1,
-                ),
-                openCount: Math.max(
-                  0,
-                  current.summary.openCount -
-                    (deletedLoan.outstandingAmount > 0 ? 1 : 0),
-                ),
-                principalTotal: Math.max(
-                  0,
-                  current.summary.principalTotal -
-                    deletedLoan.principal,
-                ),
-                repaidTotal: Math.max(
-                  0,
-                  current.summary.repaidTotal -
-                    deletedLoan.repaidAmount,
-                ),
-                outstandingTotal: Math.max(
-                  0,
-                  current.summary.outstandingTotal -
-                    deletedLoan.outstandingAmount,
-                ),
-              },
-              loans: current.loans.filter(
-                (loan) => loan.id !== deletedLoan.id,
-              ),
-            }
-          : current,
-      );
-
-      setDeleteTarget(null);
-      void Promise.resolve(
-        onCashChanged({
-          loanDisbursedDelta: -deletedLoan.principal,
-        }),
-      );
-    } catch (deleteError) {
-      setError(
-        deleteError instanceof Error
-          ? deleteError.message
-          : "No fue posible eliminar el préstamo.",
-      );
-    } finally {
-      setDeleteBusy(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="rounded-[24px] border border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">
@@ -559,14 +416,14 @@ export default function CashLoansPanel({
 
         {data && (
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[18px] border border-rose-100 bg-rose-50 p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+            <div className="rounded-[18px] border border-amber-100 bg-amber-50 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <HandCoins className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-rose-600">
+              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
                 Prestado pendiente
               </span>
-              <b className="mt-1 block text-[24px] font-black text-rose-800">
+              <b className="mt-1 block text-[24px] font-black text-amber-800">
                 {formatCOP(data.summary.outstandingTotal)}
               </b>
             </div>
@@ -595,14 +452,14 @@ export default function CashLoansPanel({
               </b>
             </div>
 
-            <div className="rounded-[18px] border border-sky-100 bg-sky-50 p-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+            <div className="rounded-[18px] border border-amber-100 bg-amber-50 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <WalletCards className="h-5 w-5" />
               </span>
-              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-sky-600">
+              <span className="mt-3 block text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
                 Pendientes
               </span>
-              <b className="mt-1 block text-[24px] font-black text-sky-800">
+              <b className="mt-1 block text-[24px] font-black text-amber-800">
                 {data.summary.openCount}
               </b>
             </div>
@@ -641,147 +498,129 @@ export default function CashLoansPanel({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          {filteredLoans.map((loan) => (
-            <article
-              key={loan.id}
-              className="overflow-hidden rounded-[20px] border border-neutral-200 bg-[#fbfaf8]"
-            >
-              <div className="grid gap-4 p-4 lg:grid-cols-[1.2fr_.8fr_.8fr_auto] lg:items-center">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <b className="text-base text-neutral-950">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          {filteredLoans.map((loan) => {
+            const pending = loan.status === "OPEN" && loan.outstandingAmount > 0;
+
+            return (
+              <article
+                key={loan.id}
+                className={
+                  "relative overflow-hidden rounded-[18px] border p-3.5 transition " +
+                  (pending
+                    ? "border-amber-200 bg-amber-50/45"
+                    : "border-emerald-200 bg-emerald-50/45")
+                }
+              >
+                <span
+                  className={
+                    "absolute inset-x-0 top-0 h-[3px] " +
+                    (pending ? "bg-amber-500" : "bg-emerald-500")
+                  }
+                />
+
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <b className="block truncate text-[12px] text-neutral-950">
                       {loan.workerName}
                     </b>
+                    <p className="mt-1 text-[8px] text-neutral-400">
+                      {dateTimeLabel(loan.issuedAt)}
+                    </p>
+                  </div>
+
+                  <span
+                    className={
+                      "shrink-0 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[.05em] " +
+                      (pending
+                        ? "border-amber-200 bg-amber-100 text-amber-800"
+                        : "border-emerald-200 bg-emerald-100 text-emerald-800")
+                    }
+                  >
+                    {pending ? "Pendiente" : "Pagado"}
+                  </span>
+                </div>
+
+                <p className="mt-2 truncate text-[9px] text-neutral-500">
+                  {loan.note || "Sin observación"}
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-white/80 bg-white/75 px-2.5 py-2">
+                    <span className="text-[7px] font-black uppercase tracking-[.08em] text-neutral-400">
+                      Prestado
+                    </span>
+                    <b className="mt-0.5 block text-[12px] text-neutral-950">
+                      {formatCOP(loan.principal)}
+                    </b>
+                  </div>
+
+                  <div className="rounded-xl border border-white/80 bg-white/75 px-2.5 py-2">
                     <span
-                      className={`rounded-full border px-2 py-0.5 text-[9px] font-black ${
-                        loan.status === "OPEN"
-                          ? "border-amber-100 bg-amber-50 text-amber-700"
-                          : "border-emerald-100 bg-emerald-50 text-emerald-700"
-                      }`}
+                      className={
+                        "text-[7px] font-black uppercase tracking-[.08em] " +
+                        (pending ? "text-amber-600" : "text-emerald-600")
+                      }
                     >
-                      {loan.status === "OPEN" ? "PENDIENTE" : "PAGADO"}
+                      {pending ? "Saldo" : "Recuperado"}
                     </span>
-                  </div>
-                  <p className="mt-1 text-[10px] text-neutral-400">
-                    {dateTimeLabel(loan.issuedAt)}
-                  </p>
-                  <p className="mt-1 truncate text-[11px] text-neutral-500">
-                    {loan.note || "Sin observación"}
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[8px] font-black uppercase text-neutral-400">
-                    Prestado
-                  </span>
-                  <b className="mt-1 block text-sm text-neutral-950">
-                    {formatCOP(loan.principal)}
-                  </b>
-                </div>
-
-                <div>
-                  <span className="text-[8px] font-black uppercase text-neutral-400">
-                    Saldo
-                  </span>
-                  <b
-                    className={`mt-1 block text-sm ${
-                      loan.outstandingAmount > 0
-                        ? "text-rose-700"
-                        : "text-emerald-700"
-                    }`}
-                  >
-                    {formatCOP(loan.outstandingAmount)}
-                  </b>
-                  {loan.repaidAmount > 0 && (
-                    <span className="mt-1 block text-[9px] text-neutral-400">
-                      Recuperado {formatCOP(loan.repaidAmount)}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => openEditLoan(loan)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50"
-                    title="Editar trabajador"
-                    aria-label="Editar trabajador"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  {!cashDateLocked && loan.outstandingAmount > 0 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openRepayment(loan, "PARTIAL")}
-                        aria-label="Registrar abono"
-                        title="Registrar abono"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
-                      >
-                        <Banknote className="h-4 w-4" strokeWidth={2.2} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => openRepayment(loan, "FULL")}
-                        aria-label="Marcar pagado"
-                        title="Marcar pagado"
-                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
-                      >
-                        <CheckCircle2 className="h-4 w-4" strokeWidth={2.2} />
-                      </button>
-                    </>
-                  )}
-                  {!cashDateLocked &&
-                    loan.repayments.length === 0 &&
-                    !loan.historicalPaidWithoutRepayment && (
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(loan)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600"
-                        title="Eliminar préstamo"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                </div>
-              </div>
-
-              {loan.repayments.length > 0 && (
-                <div className="border-t border-neutral-200 bg-white px-4 py-3">
-                  <p className="text-[8px] font-black uppercase tracking-[.1em] text-neutral-400">
-                    Abonos
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {loan.repayments.map((repayment) => (
-                      <span
-                        key={repayment.id}
-                        className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[9px] text-emerald-800"
-                      >
-                        <b>{formatCOP(repayment.amount)}</b> ·{" "}
-                        {repayment.method === "DESCUENTO_NOMINA"
-                          ? "Descuento nómina"
-                          : "Pago"}{" "}
-                        · {dateTimeLabel(repayment.paidAt)}
-                      </span>
-                    ))}
+                    <b
+                      className={
+                        "mt-0.5 block text-[12px] " +
+                        (pending ? "text-amber-800" : "text-emerald-800")
+                      }
+                    >
+                      {pending
+                        ? formatCOP(loan.outstandingAmount)
+                        : formatCOP(loan.repaidAmount)}
+                    </b>
                   </div>
                 </div>
-              )}
 
-              {loan.historicalPaidWithoutRepayment && (
-                <div className="border-t border-neutral-200 bg-amber-50 px-4 py-2.5 text-[9px] text-amber-700">
-                  Registro anterior a la operación actual. No existe una fecha
-                  verificable de devolución, por eso no se genera un movimiento
-                  sintético en Caja.
-                </div>
-              )}
-            </article>
-          ))}
+                {loan.repaidAmount > 0 && pending && (
+                  <p className="mt-2 text-[8px] font-semibold text-emerald-700">
+                    Abonado {formatCOP(loan.repaidAmount)}
+                  </p>
+                )}
+
+                {!cashDateLocked && pending && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-amber-200/70 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => openRepayment(loan, "PARTIAL")}
+                      aria-label="Registrar abono"
+                      title="Registrar abono"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-white text-[8px] font-black text-amber-800 transition hover:bg-amber-100"
+                    >
+                      <Banknote className="h-3.5 w-3.5" strokeWidth={2.2} />
+                      Abonar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => openRepayment(loan, "FULL")}
+                      aria-label="Marcar pagado"
+                      title="Marcar pagado"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 text-[8px] font-black text-white shadow-[0_6px_14px_rgba(5,150,105,.16)] transition hover:brightness-105"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.2} />
+                      Pagar
+                    </button>
+                  </div>
+                )}
+
+                {!pending && (
+                  <div className="mt-3 flex items-center gap-1.5 border-t border-emerald-200/70 pt-3 text-[8px] font-black text-emerald-700">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Préstamo pagado
+                  </div>
+                )}
+              </article>
+            );
+          })}
 
           {filteredLoans.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
+            <div className="col-span-full rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
               No hay préstamos para mostrar.
             </div>
           )}
@@ -904,99 +743,6 @@ export default function CashLoansPanel({
         </div>
       )}
 
-      {editLoan && (
-        <div className="fixed inset-0 z-[176] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
-          <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
-            <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(245,158,11,.18),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[.18em] text-amber-400">
-                Caja · Préstamos
-              </p>
-              <h3 className="mt-1 text-2xl font-black">
-                Editar préstamo
-              </h3>
-              <p className="mt-1 text-[11px] text-white/50">
-                Vincula este registro histórico a un trabajador del sistema.
-              </p>
-            </header>
-
-            <div className="space-y-4 p-5">
-              <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
-                  Trabajador
-                </label>
-                <select
-                  value={editWorkerId}
-                  onChange={(event) =>
-                    setEditWorkerId(
-                      event.target.value ? Number(event.target.value) : "",
-                    )
-                  }
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
-                >
-                  <option value="">Selecciona trabajador</option>
-                  {(data?.workers ?? []).map((worker) => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </option>
-                  ))}
-                </select>
-                {!editLoan.workerId && (
-                  <p className="mt-1.5 text-[9px] text-amber-700">
-                    Registro actual: {editLoan.workerName}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-[9px] font-black uppercase text-neutral-500">
-                  Nota
-                </label>
-                <input
-                  value={editNote}
-                  onChange={(event) => setEditNote(event.target.value)}
-                  placeholder="Nota opcional"
-                  className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm outline-none"
-                />
-              </div>
-
-              <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
-                <span className="text-[8px] font-black uppercase text-neutral-400">
-                  Valor del préstamo
-                </span>
-                <b className="mt-1 block text-lg font-black text-neutral-950">
-                  {formatCOP(editLoan.principal)}
-                </b>
-              </div>
-
-              {editMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
-                  {editMessage}
-                </div>
-              )}
-            </div>
-
-            <footer className="grid grid-cols-2 gap-2 border-t bg-white p-4">
-              <button
-                type="button"
-                disabled={editBusy}
-                onClick={() => setEditLoan(null)}
-                className="h-11 rounded-xl border border-neutral-200 font-bold"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={editBusy || !editWorkerId}
-                onClick={() => void saveLoanAssignment()}
-                className="h-11 rounded-xl bg-neutral-950 font-black text-white disabled:opacity-40"
-              >
-                {editBusy ? "Guardando..." : "Guardar"}
-              </button>
-            </footer>
-          </div>
-        </div>
-      )}
-
       {repayLoan && (
         <div className="fixed inset-0 z-[176] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
@@ -1104,41 +850,6 @@ export default function CashLoansPanel({
                     : "Registrar abono"}
               </button>
             </footer>
-          </div>
-        </div>
-      )}
-
-      {deleteTarget && (
-        <div className="fixed inset-0 z-[177] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
-          <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-2xl">
-            <div className="bg-[#111113] px-5 py-4 text-white">
-              <p className="text-[9px] font-black uppercase tracking-[.16em] text-red-400">
-                Confirmar
-              </p>
-              <h3 className="mt-1 text-xl font-black">Eliminar préstamo</h3>
-            </div>
-            <div className="p-5 text-sm text-neutral-600">
-              ¿Eliminar el préstamo de <b>{deleteTarget.workerName}</b> por{" "}
-              <b>{formatCOP(deleteTarget.principal)}</b>?
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-t p-4">
-              <button
-                type="button"
-                disabled={deleteBusy}
-                onClick={() => setDeleteTarget(null)}
-                className="h-11 rounded-xl border border-neutral-200 font-bold"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                disabled={deleteBusy}
-                onClick={() => void deleteLoan()}
-                className="h-11 rounded-xl bg-red-600 font-black text-white"
-              >
-                {deleteBusy ? "Eliminando..." : "Eliminar"}
-              </button>
-            </div>
           </div>
         </div>
       )}
