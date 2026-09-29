@@ -123,7 +123,7 @@ type CashLoanChange = {
   loanRecoveredDelta?: number;
 };
 
-type Tab = "SUMMARY" | "INCOMES" | "LOANS" | "EXPENSES";
+type Tab = "SUMMARY" | "EXPENSES" | "INCOMES" | "LOANS" | "CASHES";
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -660,9 +660,10 @@ export default function CashPage() {
           <div className="flex gap-1 rounded-[14px] bg-[#f5f4f2] p-1">
             {([
               ["SUMMARY", "Resumen"],
-              ["INCOMES", "Otros ingresos"],
-              ["LOANS", "Préstamos"],
               ["EXPENSES", "Salidas"],
+              ["INCOMES", "Ingresos"],
+              ["LOANS", "Préstamos"],
+              ["CASHES", "Cajas"],
             ] as [Tab, string][]).map(([value, label]) => (
               <button
                 key={value}
@@ -726,6 +727,7 @@ export default function CashPage() {
                 }
               : null
           }
+          showHistory={tab === "CASHES"}
           onChanged={() => void load(true)}
           onSessionStateChange={setCashDayStatus}
           onSessionClosed={(businessDate) => {
@@ -1247,7 +1249,7 @@ export default function CashPage() {
                 businessDate={startDate}
                 onCashChanged={handleLoanCashChanged}
               />
-            ) : (
+            ) : tab === "EXPENSES" ? (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
@@ -1339,7 +1341,7 @@ export default function CashPage() {
                   )}
                 </div>
               </section>
-            )}
+            ) : null}
           </>
         ) : null}
       </div>
