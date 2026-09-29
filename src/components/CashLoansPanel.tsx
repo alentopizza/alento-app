@@ -6,7 +6,6 @@ import {
   CircleDollarSign,
   HandCoins,
   Pencil,
-  Plus,
   Search,
   Trash2,
   WalletCards,
@@ -247,6 +246,7 @@ export default function CashLoansPanel({
       setData((current) =>
         current
           ? {
+              ...current,
               summary: {
                 loanCount: current.summary.loanCount + 1,
                 openCount: current.summary.openCount + 1,
@@ -333,6 +333,7 @@ export default function CashLoansPanel({
           remaining <= 0;
 
         return {
+          ...current,
           summary: {
             ...current.summary,
             openCount: Math.max(
@@ -459,6 +460,7 @@ export default function CashLoansPanel({
       setData((current) =>
         current
           ? {
+              ...current,
               summary: {
                 loanCount: Math.max(
                   0,
