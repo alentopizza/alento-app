@@ -689,17 +689,15 @@ export default function CashLoansPanel({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {!cashDateLocked && (
-                    <button
-                      type="button"
-                      onClick={() => openEditLoan(loan)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50"
-                      title="Editar trabajador"
-                      aria-label="Editar trabajador"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => openEditLoan(loan)}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50"
+                    title="Editar trabajador"
+                    aria-label="Editar trabajador"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   {!cashDateLocked && loan.outstandingAmount > 0 && (
                     <button
                       type="button"
