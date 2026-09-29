@@ -198,6 +198,7 @@ export default function CashPage() {
   const [cashDayStatus, setCashDayStatus] = useState<
     "NONE" | "OPEN" | "CLOSED"
   >("NONE");
+  const [loanCreateSignal, setLoanCreateSignal] = useState(0);
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("ALL");
   const [incomeQuery, setIncomeQuery] = useState("");
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
@@ -694,6 +695,18 @@ export default function CashPage() {
                 aria-label="Nuevo ingreso"
                 title="Nuevo ingreso"
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
+              </button>
+            )}
+
+            {tab === "LOANS" && cashOperationsOpen && (
+              <button
+                type="button"
+                onClick={() => setLoanCreateSignal((value) => value + 1)}
+                aria-label="Nuevo préstamo"
+                title="Nuevo préstamo"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_8px_18px_rgba(17,17,19,.16)] transition hover:-translate-y-0.5 hover:bg-black"
               >
                 <Plus className="h-4 w-4" strokeWidth={2.4} />
               </button>
@@ -1249,6 +1262,7 @@ export default function CashPage() {
               <CashLoansPanel
                 cashDateLocked={!cashOperationsOpen}
                 businessDate={startDate}
+                createSignal={loanCreateSignal}
                 onCashChanged={handleLoanCashChanged}
               />
             ) : tab === "EXPENSES" ? (
