@@ -72,6 +72,8 @@ Para pizzas y combos:
 
 ## 5. UI pública e interna
 
+Antes de crear o modificar tipografía, tamaños de texto, estados o jerarquía visual, revisar `docs/UI_VISUAL_SYSTEM.md` y reutilizar la escala `.alento-ui-*` definida en `src/app/globals.css`. No introducir microtexto funcional menor a 10 px ni tamaños arbitrarios cuando exista un rol tipográfico equivalente.
+
 Reutilizar la lógica no significa forzar la misma interfaz.
 
 La app pública, POS, Pedidos, Cocina y Repartidor pueden tener experiencias distintas, pero deben compartir reglas de negocio, configuración, precios y normalización cuando representan la misma acción.
