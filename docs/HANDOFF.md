@@ -26,8 +26,9 @@ Leer en este orden:
 18. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
 19. `docs/DEPLOYMENT.md`
 20. `docs/MAPS_VISUAL_SYSTEM.md`
-21. `prisma/schema.prisma`
-22. archivos del módulo que se vaya a modificar.
+21. `docs/UI_VISUAL_SYSTEM.md`
+22. `prisma/schema.prisma`
+23. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
