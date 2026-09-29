@@ -7,6 +7,8 @@ import {
   Eye,
   Landmark,
   LockKeyhole,
+  Pencil,
+  Power,
   X,
 } from "lucide-react";
 
@@ -580,17 +582,21 @@ export default function CashRegisterControl({
               <button
                 type="button"
                 onClick={prepareEditOpening}
-                className="h-10 rounded-xl border border-neutral-200 bg-white px-3.5 text-[9px] font-black text-neutral-700 transition hover:bg-neutral-50"
+                aria-label="Editar apertura"
+                title="Editar apertura"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
               >
-                Editar
+                <Pencil className="h-4 w-4" strokeWidth={2.1} />
               </button>
               <button
                 type="button"
                 onClick={prepareClose}
                 disabled={!liveSummaryReady}
-                className="h-10 rounded-xl bg-[var(--brand-red)] px-4 text-[9px] font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.16)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
+                aria-label="Cerrar caja"
+                title={liveSummaryReady ? "Cerrar caja" : "Actualizando caja"}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
               >
-                {liveSummaryReady ? "Cerrar caja" : "Actualizando…"}
+                <Power className="h-4 w-4" strokeWidth={2.2} />
               </button>
             </div>
           </div>
@@ -656,10 +662,11 @@ export default function CashRegisterControl({
             <button
               type="button"
               onClick={() => setHistorySession(session)}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 text-[9px] font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+              aria-label="Ver detalle"
+              title="Ver detalle"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
             >
-              <Eye className="h-3.5 w-3.5" strokeWidth={2} />
-              Detalle
+              <Eye className="h-4 w-4" strokeWidth={2} />
             </button>
           </div>
         </section>
