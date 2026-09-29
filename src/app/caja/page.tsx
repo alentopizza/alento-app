@@ -691,10 +691,11 @@ export default function CashPage() {
               <button
                 type="button"
                 onClick={openIncome}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(5,150,105,.20)]"
+                aria-label="Nuevo ingreso"
+                title="Nuevo ingreso"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
               >
-                <Plus className="h-4 w-4" />
-                Nuevo ingreso
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
               </button>
             )}
 
@@ -702,10 +703,11 @@ export default function CashPage() {
               <button
                 type="button"
                 onClick={openExpense}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-red)] px-4 text-[10px] font-black text-white shadow-[0_7px_18px_rgba(226,26,34,.20)]"
+                aria-label="Nueva salida"
+                title="Nueva salida"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
               >
-                <Plus className="h-4 w-4" />
-                Nueva salida
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
               </button>
             )}
           </div>
