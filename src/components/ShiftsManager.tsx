@@ -174,6 +174,7 @@ export default function ShiftsManager() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [userFilter, setUserFilter] = useState("ALL");
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -311,6 +312,27 @@ export default function ShiftsManager() {
     );
   }, [shifts]);
 
+  const selectedWorker = useMemo(
+    () =>
+      selectedWorkerId == null
+        ? null
+        : workerTotals.find((worker) => worker.userId === selectedWorkerId) ?? null,
+    [selectedWorkerId, workerTotals],
+  );
+
+  const selectedWorkerShifts = useMemo(
+    () =>
+      selectedWorkerId == null
+        ? []
+        : shifts
+            .filter((shift) => shift.user.id === selectedWorkerId)
+            .sort(
+              (a, b) =>
+                new Date(a.startsAt).getTime() -
+                new Date(b.startsAt).getTime(),
+            ),
+    [selectedWorkerId, shifts],
+  );
 
   const calendarDays = useMemo(() => {
     const [year, monthNumber] = month.split("-").map(Number);
@@ -749,19 +771,30 @@ export default function ShiftsManager() {
               <p className="text-[9px] font-black uppercase tracking-[.14em] text-neutral-400">
                 Consolidado
               </p>
-              <h2 className="mt-1 text-xl font-black">Turnos de {monthTitle(month)}</h2>
+              <h2 className="mt-1 text-xl font-black">
+                Personal de {monthTitle(month)}
+              </h2>
+              <p className="mt-1 text-[10px] text-neutral-400">
+                Toca un trabajador para ver todos sus turnos del mes.
+              </p>
             </div>
             <b className="text-[12px] text-neutral-400">
-              {filteredShifts.length}
+              {workerTotals.length}
             </b>
           </div>
 
-          {workerTotals.length > 0 && (
+          {workerTotals.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-[11px] text-neutral-400">
+              No hay turnos programados para este mes.
+            </div>
+          ) : (
             <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               {workerTotals.map((worker) => (
-                <div
+                <button
+                  type="button"
                   key={worker.userId}
-                  className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"
+                  onClick={() => setSelectedWorkerId(worker.userId)}
+                  className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-[0_10px_24px_rgba(28,23,20,.07)]"
                 >
                   <div className="flex items-center gap-2.5">
                     <span
@@ -793,80 +826,135 @@ export default function ShiftsManager() {
                       Pendiente {money(worker.pending)}
                     </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
-
-          <div className="mt-4 space-y-2">
-            {filteredShifts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-neutral-200 py-8 text-center text-[11px] text-neutral-400">
-                No hay turnos para los filtros seleccionados.
-              </div>
-            ) : (
-              filteredShifts.map((shift) => (
-                <article
-                  key={shift.id}
-                  className="grid gap-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 md:grid-cols-[1.2fr_1fr_150px_130px_120px] md:items-center"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className={
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white " +
-                        employeeColor(shift.user.id)
-                      }
-                    >
-                      {initials(shift.user.name)}
-                    </span>
-                    <div className="min-w-0">
-                      <b className="block truncate text-[12px] text-neutral-950">
-                        {shift.user.name}
-                      </b>
-                      <span className="text-[9px] text-neutral-400">
-                        {dayKey(shift.startsAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] text-neutral-600">
-                    {timeLabel(shift.startsAt)} – {timeLabel(shift.endsAt)}
-                  </div>
-
-                  <b className="text-[12px] text-neutral-900">
-                    {money(shift.amount)}
-                  </b>
-
-                  <button
-                    type="button"
-                    disabled={busyId === shift.id}
-                    onClick={() => void togglePayment(shift)}
-                    className={
-                      "h-9 rounded-xl px-3 text-[9px] font-black disabled:opacity-50 " +
-                      (shift.status === "PAID"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700")
-                    }
-                  >
-                    {busyId === shift.id
-                      ? "Guardando..."
-                      : shift.status === "PAID"
-                        ? "PAGADO"
-                        : "PENDIENTE"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => openEdit(shift)}
-                    className="h-9 rounded-xl border border-neutral-200 bg-white px-3 text-[9px] font-black text-neutral-600"
-                  >
-                    Editar
-                  </button>
-                </article>
-              ))
-            )}
-          </div>
         </section>
       </div>
+
+      {selectedWorker && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/65 p-3 backdrop-blur-[3px]">
+          <section className="flex max-h-[92dvh] w-full max-w-[980px] flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_100px_rgba(0,0,0,.34)]">
+            <header className="relative overflow-hidden bg-[radial-gradient(circle_at_88%_18%,rgba(226,26,34,.36),transparent_28%),linear-gradient(135deg,#09090a,#1a1112)] px-5 py-5 text-white">
+              <button
+                type="button"
+                onClick={() => setSelectedWorkerId(null)}
+                className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[.07]"
+                aria-label="Cerrar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <span
+                  className={
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[11px] font-black text-white " +
+                    employeeColor(selectedWorker.userId)
+                  }
+                >
+                  {initials(selectedWorker.name)}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[.16em] text-white/40">
+                    Historial de turnos
+                  </p>
+                  <h2 className="mt-1 truncate text-[24px] font-black tracking-[-.03em]">
+                    {selectedWorker.name}
+                  </h2>
+                  <p className="mt-1 text-[10px] capitalize text-white/55">
+                    {monthTitle(month)} · {selectedWorker.shifts} turno{selectedWorker.shifts === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-3 gap-2 border-b border-neutral-100 bg-[#faf9f7] p-3">
+              <div className="rounded-xl border border-neutral-200 bg-white px-3 py-2.5">
+                <span className="text-[8px] font-black uppercase tracking-[.1em] text-neutral-400">
+                  Total
+                </span>
+                <b className="mt-1 block text-[15px] font-black text-neutral-950">
+                  {money(selectedWorker.total)}
+                </b>
+              </div>
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5">
+                <span className="text-[8px] font-black uppercase tracking-[.1em] text-emerald-600">
+                  Pagado
+                </span>
+                <b className="mt-1 block text-[15px] font-black text-emerald-700">
+                  {money(selectedWorker.paid)}
+                </b>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2.5">
+                <span className="text-[8px] font-black uppercase tracking-[.1em] text-amber-600">
+                  Pendiente
+                </span>
+                <b className="mt-1 block text-[15px] font-black text-amber-700">
+                  {money(selectedWorker.pending)}
+                </b>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="space-y-2">
+                {selectedWorkerShifts.map((shift) => (
+                  <article
+                    key={shift.id}
+                    className="grid gap-3 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 md:grid-cols-[140px_1fr_150px_130px_100px] md:items-center"
+                  >
+                    <div>
+                      <b className="block text-[11px] text-neutral-950">
+                        {dayKey(shift.startsAt)}
+                      </b>
+                      <span className="mt-0.5 block text-[9px] text-neutral-400">
+                        {timeLabel(shift.startsAt)} – {timeLabel(shift.endsAt)}
+                      </span>
+                    </div>
+
+                    <p className="truncate text-[10px] text-neutral-500">
+                      {shift.notes || "Sin nota"}
+                    </p>
+
+                    <b className="text-[12px] text-neutral-900">
+                      {money(shift.amount)}
+                    </b>
+
+                    <button
+                      type="button"
+                      disabled={busyId === shift.id}
+                      onClick={() => void togglePayment(shift)}
+                      className={
+                        "h-9 rounded-xl px-3 text-[9px] font-black disabled:opacity-50 " +
+                        (shift.status === "PAID"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700")
+                      }
+                    >
+                      {busyId === shift.id
+                        ? "Guardando..."
+                        : shift.status === "PAID"
+                          ? "PAGADO"
+                          : "PENDIENTE"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedWorkerId(null);
+                        openEdit(shift);
+                      }}
+                      className="h-9 rounded-xl border border-neutral-200 bg-white px-3 text-[9px] font-black text-neutral-600"
+                    >
+                      Editar
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {editor && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/65 p-3 backdrop-blur-[3px]">
