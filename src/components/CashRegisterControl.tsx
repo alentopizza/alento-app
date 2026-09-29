@@ -541,61 +541,54 @@ export default function CashRegisterControl({
           </div>
         </section>
       ) : session.status === "OPEN" ? (
-        <section className="overflow-hidden rounded-[22px] border border-emerald-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[1fr_auto_auto_auto_auto_auto] xl:items-center">
-            <div className="flex min-w-0 items-center gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
-                <CheckCircle2 className="h-6 w-6" strokeWidth={2} />
+        <section className="overflow-hidden rounded-[20px] border border-emerald-200 bg-[linear-gradient(135deg,#ffffff,#fbfffd)] shadow-[0_8px_24px_rgba(28,23,20,.045)]">
+          <div className="grid gap-3 p-3.5 xl:grid-cols-[minmax(260px,.9fr)_minmax(0,1.6fr)_auto] xl:items-center">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
               </span>
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-[16px] font-black text-neutral-950">Caja abierta</b>
-                  <span className="rounded-full bg-emerald-600 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-white">
+                  <b className="text-[14px] font-black text-neutral-950">Caja abierta</b>
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white">
                     Activa
                   </span>
                 </div>
-                <p className="mt-1 text-[10px] text-neutral-400">
+                <p className="mt-0.5 truncate text-[9px] text-neutral-400">
                   Abrió {session.openedByName} · {dateTimeLabel(session.openedAt)}
                 </p>
                 {data?.inheritedOpenSession && (
-                  <p className="mt-1 text-[9px] font-black text-amber-600">
-                    Esta caja sigue abierta desde {dateLabel(session.businessDate)}. Los movimientos después de medianoche continúan dentro de esta misma sesión.
-                  </p>
-                )}
-                {session.openingControlledBalance == null && (
-                  <p className="mt-1 text-[9px] font-bold text-amber-600">
-                    Apertura anterior al nuevo desglose · se interpreta como total incluyendo préstamos.
+                  <p className="mt-1 text-[8px] font-black text-amber-600">
+                    Abierta desde {dateLabel(session.businessDate)}.
                   </p>
                 )}
               </div>
             </div>
 
-            <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
-            <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
-            <MiniMetric label="Total apertura" value={money(openingControlledBalance)} />
-            <MiniMetric
-              label="Disponible esperado"
-              value={
-                liveSummaryReady
-                  ? money(expectedNow)
-                  : "Actualizando…"
-              }
-              strong
-            />
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
+              <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
+              <MiniMetric label="Total apertura" value={money(openingControlledBalance)} />
+              <MiniMetric
+                label="Disponible esperado"
+                value={liveSummaryReady ? money(expectedNow) : "Actualizando…"}
+                strong
+              />
+            </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 xl:justify-end">
               <button
                 type="button"
                 onClick={prepareEditOpening}
-                className="h-12 rounded-2xl border border-neutral-200 bg-white px-4 text-[10px] font-black text-neutral-700 transition hover:bg-neutral-50"
+                className="h-10 rounded-xl border border-neutral-200 bg-white px-3.5 text-[9px] font-black text-neutral-700 transition hover:bg-neutral-50"
               >
-                Editar apertura
+                Editar
               </button>
               <button
                 type="button"
                 onClick={prepareClose}
                 disabled={!liveSummaryReady}
-                className="h-12 rounded-2xl bg-[var(--brand-red)] px-5 text-[11px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
+                className="h-10 rounded-xl bg-[var(--brand-red)] px-4 text-[9px] font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.16)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
               >
                 {liveSummaryReady ? "Cerrar caja" : "Actualizando…"}
               </button>
@@ -603,21 +596,21 @@ export default function CashRegisterControl({
           </div>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.05)]">
-          <div className="flex flex-col gap-4 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-neutral-950 text-white">
-                <LockKeyhole className="h-5 w-5" />
+        <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-[linear-gradient(135deg,#ffffff,#fafafa)] shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="grid gap-3 p-3.5 xl:grid-cols-[minmax(300px,1fr)_minmax(0,1.2fr)_auto] xl:items-center">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-neutral-950 text-white">
+                <LockKeyhole className="h-4.5 w-4.5" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-[16px] font-black text-neutral-950">Caja cerrada</b>
-                  <span className="rounded-full border border-neutral-200 bg-neutral-100 px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-neutral-600">
+                  <b className="text-[14px] font-black text-neutral-950">Caja cerrada</b>
+                  <span className="rounded-full border border-neutral-200 bg-neutral-100 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-neutral-600">
                     {dateLabel(session.businessDate)}
                   </span>
                   <span
                     className={
-                      "rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.08em] " +
+                      "rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] " +
                       ((session.difference || 0) === 0
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                         : (session.difference || 0) > 0
@@ -632,43 +625,42 @@ export default function CashRegisterControl({
                         : "Falta " + money(Math.abs(session.difference || 0))}
                   </span>
                 </div>
-                <p className="mt-1 text-[10px] text-neutral-400">
+                <p className="mt-0.5 truncate text-[9px] text-neutral-400">
                   Cerró {session.closedByName || "—"} · {dateTimeLabel(session.closedAt)}
                 </p>
-                <p className="mt-1 text-[9px] font-semibold text-neutral-500">
-                  Cierre bloqueado: esta sesión queda solo para consulta.
+                <p className="mt-0.5 text-[8px] font-semibold text-neutral-500">
+                  Sesión bloqueada · solo consulta
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="grid gap-2 sm:grid-cols-3">
-                <MiniMetric
-                  label="Disponible al cierre"
-                  value={money(session.actualClosingBalance || 0)}
-                />
-                <MiniMetric
-                  label="Préstamos por cobrar"
-                  value={money(session.closingLoanReceivable || 0)}
-                />
-                <MiniMetric
-                  label="Total de Alentó"
-                  value={money(
-                    (session.actualClosingBalance || 0) +
-                      (session.closingLoanReceivable || 0),
-                  )}
-                  strong
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setHistorySession(session)}
-                className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[10px] font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
-              >
-                <Eye className="h-4 w-4" strokeWidth={2} />
-                Ver detalle
-              </button>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <MiniMetric
+                label="Disponible al cierre"
+                value={money(session.actualClosingBalance || 0)}
+              />
+              <MiniMetric
+                label="Préstamos por cobrar"
+                value={money(session.closingLoanReceivable || 0)}
+              />
+              <MiniMetric
+                label="Total de Alentó"
+                value={money(
+                  (session.actualClosingBalance || 0) +
+                    (session.closingLoanReceivable || 0),
+                )}
+                strong
+              />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setHistorySession(session)}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 text-[9px] font-black text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              <Eye className="h-3.5 w-3.5" strokeWidth={2} />
+              Detalle
+            </button>
           </div>
         </section>
       )}
@@ -1484,9 +1476,9 @@ function MiniMetric({
   difference?: number;
 }) {
   return (
-    <div className="min-w-[116px] rounded-2xl border border-neutral-200 bg-[#faf9f7] px-4 py-3">
-      <span className="text-[8px] font-black uppercase tracking-[0.12em] text-neutral-400">{label}</span>
-      <b className={"mt-1 block text-[15px] font-black " + (
+    <div className="min-w-[0] rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+      <span className="text-[7px] font-black uppercase tracking-[0.11em] text-neutral-400">{label}</span>
+      <b className={"mt-0.5 block text-[13px] font-black " + (
         difference != null
           ? difference === 0
             ? "text-emerald-700"
