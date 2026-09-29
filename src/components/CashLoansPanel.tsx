@@ -5,6 +5,7 @@ import {
   Banknote,
   CircleDollarSign,
   HandCoins,
+  CheckCircle2,
   Pencil,
   Search,
   Trash2,
@@ -138,6 +139,7 @@ export default function CashLoansPanel({
   const [loanMessage, setLoanMessage] = useState("");
 
   const [repayLoan, setRepayLoan] = useState<Loan | null>(null);
+  const [repayMode, setRepayMode] = useState<"PARTIAL" | "FULL">("PARTIAL");
   const [repayAmount, setRepayAmount] = useState("");
   const [repayMethod, setRepayMethod] = useState("PAGO");
   const [repayNote, setRepayNote] = useState("");
@@ -279,9 +281,17 @@ export default function CashLoansPanel({
     }
   }
 
-  function openRepayment(loan: Loan) {
+  function openRepayment(
+    loan: Loan,
+    mode: "PARTIAL" | "FULL" = "PARTIAL",
+  ) {
     setRepayLoan(loan);
-    setRepayAmount(String(Math.round(loan.outstandingAmount)));
+    setRepayMode(mode);
+    setRepayAmount(
+      mode === "FULL"
+        ? String(Math.round(loan.outstandingAmount))
+        : "",
+    );
     setRepayMethod("PAGO");
     setRepayNote("");
     setRepayDate(businessDate);
@@ -701,13 +711,27 @@ export default function CashLoansPanel({
                     <Pencil className="h-4 w-4" />
                   </button>
                   {!cashDateLocked && loan.outstandingAmount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => openRepayment(loan)}
-                      className="h-10 rounded-xl bg-emerald-600 px-4 text-[10px] font-black text-white"
-                    >
-                      Registrar abono
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openRepayment(loan, "PARTIAL")}
+                        aria-label="Registrar abono"
+                        title="Registrar abono"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <Banknote className="h-4 w-4" strokeWidth={2.2} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openRepayment(loan, "FULL")}
+                        aria-label="Marcar pagado"
+                        title="Marcar pagado"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(5,150,105,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
+                      >
+                        <CheckCircle2 className="h-4 w-4" strokeWidth={2.2} />
+                      </button>
+                    </>
                   )}
                   {!cashDateLocked &&
                     loan.repayments.length === 0 &&
@@ -978,13 +1002,16 @@ export default function CashLoansPanel({
           <div className="w-full max-w-lg overflow-hidden rounded-[26px] bg-[#f6f3ee] shadow-2xl">
             <header className="bg-[radial-gradient(circle_at_88%_12%,rgba(16,185,129,.22),transparent_32%),linear-gradient(135deg,#080809,#1a1718)] px-6 py-5 text-white">
               <p className="text-[9px] font-black uppercase tracking-[.18em] text-emerald-400">
-                Recuperar dinero
+                {repayMode === "FULL" ? "Pagar préstamo" : "Registrar abono"}
               </p>
               <h3 className="mt-1 text-2xl font-black">
-                Abono de {repayLoan.workerName}
+                {repayLoan.workerName}
               </h3>
               <p className="mt-1 text-[11px] text-white/50">
                 Saldo actual {formatCOP(repayLoan.outstandingAmount)}.
+                {repayMode === "FULL"
+                  ? " Este movimiento cerrará el préstamo."
+                  : ""}
               </p>
             </header>
             <div className="space-y-4 p-5">
@@ -1070,7 +1097,11 @@ export default function CashLoansPanel({
                 onClick={() => void saveRepayment()}
                 className="h-11 rounded-xl bg-emerald-600 font-black text-white disabled:opacity-50"
               >
-                {repayBusy ? "Guardando..." : "Registrar abono"}
+                {repayBusy
+                  ? "Guardando..."
+                  : repayMode === "FULL"
+                    ? "Marcar pagado"
+                    : "Registrar abono"}
               </button>
             </footer>
           </div>
