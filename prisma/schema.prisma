@@ -122,6 +122,7 @@ model User {
   nativePushDevices        NativePushDevice[]
   doughPreparations DoughPreparation[]
   workShifts WorkShift[]
+  cashLoans CashLoan[]
 
   @@index([active])
   @@index([whatsappPhone])
@@ -614,6 +615,7 @@ model CashRegisterSession {
 
 model CashLoan {
   id                              Int                 @id @default(autoincrement())
+  workerId                        Int?
   workerName                      String
   note                            String?
   principal                       Decimal             @db.Decimal(12, 2)
@@ -625,7 +627,9 @@ model CashLoan {
   createdAt                       DateTime            @default(now())
   updatedAt                       DateTime            @updatedAt
   repayments                      CashLoanRepayment[]
+  worker                          User?               @relation(fields: [workerId], references: [id], onDelete: SetNull)
 
+  @@index([workerId, issuedAt])
   @@index([issuedAt])
   @@index([status, issuedAt])
   @@index([workerName, issuedAt])
