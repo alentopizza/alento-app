@@ -290,7 +290,7 @@ function Metric({
         ) : icon === "spent" ? (
           <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.9} />
         ) : null}
-        <span className="block truncate text-[9px] font-bold uppercase tracking-[0.055em] text-neutral-400">
+        <span className="block truncate alento-ui-label font-bold uppercase tracking-[0.055em] text-neutral-400">
           {label}
         </span>
       </div>
@@ -814,7 +814,7 @@ export default function CustomersPage() {
             <div className="max-w-3xl">
               <div className="flex items-center gap-3">
                 <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
                   Relación con clientes
                 </p>
               </div>
@@ -848,7 +848,7 @@ export default function CustomersPage() {
               </button>
 
               <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
+                <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                   Clientes
                 </span>
                 <b className="mt-0.5 text-[22px] font-black leading-none tabular-nums text-white">
@@ -1669,7 +1669,7 @@ export default function CustomersPage() {
                     </div>
 
                     <div className="mt-4 hidden rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3 lg:block">
-                      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      <span className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
                         Estado de ubicación
                       </span>
                       {addressEditor?.placeId &&
