@@ -467,6 +467,7 @@ model Order {
   couponName       String?
   deliveryZoneId   String?
   deliveryZoneName String?
+  deliveryDistanceMeters Int?
   deliveryTravelMode String?
   discountSource   String            @default("NONE")
   status           OrderStatus       @default(DRAFT)
