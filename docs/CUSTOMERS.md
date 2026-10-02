@@ -355,3 +355,63 @@ Quedan operativos:
 - permiso de eliminación masiva controlado desde Configuración.
 
 El módulo puede recibir correcciones de bugs, pero no debe reabrirse como fase de diseño sin una solicitud explícita.
+
+
+## Sincronización de contactos nuevos
+
+Alentó puede enviar los clientes nuevos a un escenario externo de Make para crear o sincronizar el contacto en Google Contacts.
+
+Variable de producción:
+
+```text
+CUSTOMER_CREATED_WEBHOOK_URL=<webhook privado de Make>
+```
+
+La URL real no se guarda en Git.
+
+### Clientes incluidos
+
+Se marca el envío para:
+
+- clientes creados manualmente desde Clientes/POS;
+- clientes creados durante un checkout web;
+- clientes creados por registro OTP;
+- clientes temporales con nombre `NUEVO` cuando posteriormente reciben un nombre real.
+
+La importación CSV histórica **no** marca clientes para este webhook.
+
+### Control de entrega
+
+`Customer` conserva:
+
+- `contactWebhookPending`: el contacto debe enviarse;
+- `contactWebhookSentAt`: momento de la entrega exitosa.
+
+Si el webhook falla, la creación del cliente no falla. El estado queda pendiente para un reintento en una interacción posterior compatible.
+
+Un cliente con nombre `NUEVO` no se envía hasta contar con un nombre real.
+
+### Payload
+
+Make recibe JSON con esta estructura:
+
+```json
+{
+  "evento": "cliente.registrado",
+  "clienteId": 123,
+  "nombre": "Cliente Ejemplo",
+  "indicativo": "+57",
+  "telefono": "3001234567",
+  "telefonoCompleto": "+573001234567",
+  "origen": "STAFF",
+  "registradoEn": "2026-10-02T15:00:00.000Z"
+}
+```
+
+`origen` puede ser:
+
+- `STAFF`;
+- `WEB_CHECKOUT`;
+- `CUSTOMER_ACCOUNT`.
+
+El helper central es `src/lib/customerContactWebhook.ts`.
