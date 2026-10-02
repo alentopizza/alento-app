@@ -72,6 +72,8 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           total: true,
           deliveryFee: true,
+          deliveryZoneName: true,
+          deliveryDistanceMeters: true,
           deliveryTravelMode: true,
           driverId: true,
           driverLatitude: true,
@@ -397,6 +399,8 @@ export async function GET(request: NextRequest) {
           customerName: order.customer?.name ?? "Cliente",
           total,
           deliveryFee: Number(order.deliveryFee),
+          deliveryZoneName: order.deliveryZoneName,
+          deliveryDistanceMeters: order.deliveryDistanceMeters,
           deliveryTravelMode:
             normalizeDeliveryTravelMode(order.deliveryTravelMode) ??
             (order.status === "OUT_FOR_DELIVERY" ? "VEHICLE" : null),
