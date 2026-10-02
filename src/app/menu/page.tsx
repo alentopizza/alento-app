@@ -68,7 +68,6 @@ type CatalogResponse = {
   modifiers: Modifier[];
 };
 type PublicHomeSettings = {
-  brand: { logoUrl: string };
   menuHero?: { active: boolean; imageUrl: string };
 };
 
