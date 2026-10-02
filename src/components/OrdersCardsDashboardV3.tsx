@@ -1,11 +1,12 @@
 "use client";
 
-import { MapPin, UserRound, Users } from "lucide-react";
+import { MapPin, MapPinned, UserRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import OrderStatusSelector from "@/components/OrderStatusSelector";
 import AdminDeliveryMapModal from "@/components/AdminDeliveryMapModal";
+import DeliveryZoneAnalyticsModal from "@/components/DeliveryZoneAnalyticsModal";
 import type { GoogleCustomerAddressSelection } from "@/components/GoogleCustomerAddressPicker";
 import CustomerAddressEditor, {
   isValidatedCustomerAddress,
@@ -231,6 +232,7 @@ export default function OrdersCardsDashboardV3() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deliveryMapOpen, setDeliveryMapOpen] = useState(false);
+  const [deliveryZonesOpen, setDeliveryZonesOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("ACTIVE");
   const [selected, setSelected] = useState<Order | null>(null);
@@ -1118,6 +1120,16 @@ export default function OrdersCardsDashboardV3() {
               <MapPin className="h-[22px] w-[22px]" strokeWidth={2.25} />
             </button>
 
+            <button
+              type="button"
+              onClick={() => setDeliveryZonesOpen(true)}
+              aria-label="Zonas de entrega"
+              title="Zonas de entrega"
+              className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.12] active:translate-y-0"
+            >
+              <MapPinned className="h-[22px] w-[22px]" strokeWidth={2.15} />
+            </button>
+
             <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
               <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                 Activos
@@ -1881,6 +1893,11 @@ export default function OrdersCardsDashboardV3() {
     <AdminDeliveryMapModal
       open={deliveryMapOpen}
       onClose={() => setDeliveryMapOpen(false)}
+    />
+
+    <DeliveryZoneAnalyticsModal
+      open={deliveryZonesOpen}
+      onClose={() => setDeliveryZonesOpen(false)}
     />
 
     {editing && (
