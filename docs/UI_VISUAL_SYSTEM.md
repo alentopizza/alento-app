@@ -139,3 +139,20 @@ Mientras existan componentes antiguos con tamaños locales, `src/app/globals.css
 La impresión térmica queda excluida.
 
 Esta capa es de compatibilidad. Todo componente nuevo o refactorizado debe usar directamente las clases `.alento-ui-*`.
+
+
+## Tarjeta canónica de producto
+
+La tarjeta de producto del menú público es la referencia visual compartida para catálogo.
+
+Se reutiliza en:
+
+- menú del cliente;
+- POS;
+- menú administrativo.
+
+Clases fuente:
+
+`.alento-product-card*` en `src/app/globals.css`.
+
+No duplicar esta estructura en componentes. Las superficies administrativas pueden superponer controles operativos, pero deben conservar la misma tarjeta base.
