@@ -243,16 +243,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   />
                 )}
                 <span
-                  className={`flex shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
-                    sidebarCollapsed ? "h-10 w-10" : "h-9 w-9"
-                  } ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
                     active
                       ? "bg-black text-white shadow-[0_4px_14px_rgba(0,0,0,.18)]"
                       : "bg-white/[0.07] text-white/80 group-hover:bg-white/10 group-hover:text-white"
                   }`}
                 >
                   <item.icon
-                    className={sidebarCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]"}
+                    className="h-[18px] w-[18px]"
                     strokeWidth={2.35}
                     aria-hidden="true"
                   />
