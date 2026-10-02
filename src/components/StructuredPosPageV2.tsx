@@ -715,41 +715,46 @@ export default function StructuredPosPageV2() {
       <div className="w-full space-y-5">
         <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="min-w-0 space-y-5">
-            <header className="relative min-h-[150px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_77%_42%,rgba(226,26,34,.48),transparent_24%),radial-gradient(circle_at_62%_110%,rgba(120,10,14,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_42%,#1a0b0d_67%,#5a090c_100%)]" />
-              <div className="absolute inset-y-0 right-0 w-[48%] opacity-60 [background:repeating-linear-gradient(120deg,transparent_0_46px,rgba(255,255,255,.025)_47px_48px)]" />
-              <div className="absolute right-[7%] top-[-24px] h-32 w-32 rounded-full border border-red-300/10 bg-red-500/[0.04]" />
+            <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+              <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+              <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+              <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-              <div className="relative flex min-h-[150px] items-center justify-between gap-5 px-6 py-5 md:px-8 xl:px-9">
-                <div className="flex min-w-0 items-center gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3">
-                      <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">
-                        Operación Alentó
-                      </p>
-                    </div>
-                    <h1 className="mt-2 text-[36px] font-black leading-none tracking-[-0.045em] md:text-[42px]">
-                      Punto de venta
-                    </h1>
-                    <p className="mt-2 text-[13px] font-medium text-white/65 md:text-[14px]">
-                      Configura, cobra y envía cada pedido a operación.
+              <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
+                <div className="max-w-2xl">
+                  <div className="flex items-center gap-3">
+                    <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                    <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
+                      Operación Alentó
                     </p>
                   </div>
+                  <h1 className="alento-ui-hero-title mt-1.5">
+                    Punto de venta
+                  </h1>
+                  <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
+                    Configura, cobra y envía cada pedido a operación.
+                  </p>
                 </div>
 
-                <div className="hidden items-center gap-2 rounded-[18px] border border-white/12 bg-white/[0.08] px-4 py-3 shadow-inner backdrop-blur-sm sm:inline-flex">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                  </span>
-                  <div className="leading-tight">
-                    <span className="block text-[8px] font-black uppercase tracking-[0.13em] text-white/42">Sistema</span>
-                    <b className="text-[11px] font-bold text-white/88">POS activo</b>
+                <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
+                  <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                    <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                      Sistema
+                    </span>
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                      </span>
+                      <b className="alento-ui-label whitespace-nowrap text-white">
+                        POS activo
+                      </b>
+                    </div>
                   </div>
                 </div>
               </div>
-            </header>
+            </section>
 
             {catalogLoading ? <div className="alento-card rounded-3xl p-8">Cargando catálogo...</div> : catalogError ? <div className="rounded-3xl bg-red-50 p-5 text-red-700">{catalogError}</div> : <>
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
