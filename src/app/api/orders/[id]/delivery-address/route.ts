@@ -263,6 +263,9 @@ export async function PATCH(
           deliveryFee,
           deliveryZoneId: pricing.deliveryZoneId,
           deliveryZoneName: pricing.deliveryZoneName,
+          deliveryDistanceMeters: Math.round(
+            pricing.commercialDistanceMeters,
+          ),
           total,
         },
       });
