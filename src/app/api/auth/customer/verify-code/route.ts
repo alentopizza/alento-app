@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneE164, setCustomerSession, verifyOtp } from "@/lib/auth";
+import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
         name: "NUEVO",
         countryCode,
         phone: localPhone,
+        contactWebhookPending: true,
       },
       select: { id: true, name: true },
     });
@@ -70,8 +72,14 @@ export async function POST(request: NextRequest) {
 
   await setCustomerSession(account);
 
+  const contactWebhook = await sendCustomerContactWebhook({
+    customerId: customer.id,
+    source: "CUSTOMER_ACCOUNT",
+  });
+
   return NextResponse.json({
     ok: true,
     customer: { id: customer.id, name: customer.name },
+    contactWebhook,
   });
 }
