@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   ShoppingCart,
   Store,
+  UserPlus,
   UserRound,
 } from "lucide-react";
 import OrderCheckoutModal from "@/components/OrderCheckoutModal";
@@ -737,22 +738,7 @@ export default function StructuredPosPageV2() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
-                  <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                    <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
-                      Sistema
-                    </span>
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/45" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                      </span>
-                      <b className="alento-ui-label whitespace-nowrap text-white">
-                        POS activo
-                      </b>
-                    </div>
-                  </div>
-                </div>
+
               </div>
             </section>
 
@@ -889,9 +875,11 @@ export default function StructuredPosPageV2() {
                 <button
                   type="button"
                   onClick={openNewCustomer}
-                  className="rounded-xl border border-white/12 bg-white/[0.08] px-3 py-2 text-[10px] font-black text-white/85 transition hover:bg-white/[0.13]"
+                  aria-label="Nuevo cliente"
+                  title="Nuevo cliente"
+                  className="group inline-flex h-[56px] w-[76px] shrink-0 items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
                 >
-                  + Cliente
+                  <UserPlus className="h-[22px] w-[22px]" strokeWidth={2.15} />
                 </button>
               </div>
             </div>
