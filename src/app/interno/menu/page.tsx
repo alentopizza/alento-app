@@ -830,14 +830,14 @@ export default function MenuPage() {
                     moveProductBefore(product.id);
                     setDraggingProductId(null);
                   }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-[22px] border-[5px] border-white bg-white shadow-[0_10px_26px_rgba(28,23,20,.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(28,23,20,.14)] ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
+                  className={`alento-product-card group relative cursor-pointer ${draggingProductId === product.id ? "opacity-45 ring-2 ring-black/10" : ""}`}
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-[17px_17px_0_0] bg-white">
+                  <div className="alento-product-card-media">
                     {product.imageUrl ? (
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        className="h-full w-full object-contain p-1.5 transition duration-300 group-hover:scale-[1.012]"
+                        className="alento-product-card-image"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
@@ -883,16 +883,16 @@ export default function MenuPage() {
                     )}
                   </div>
 
-                  <div className="bg-[linear-gradient(135deg,#111112,#1b1819)] p-3.5 text-white">
-                    <h3 className="truncate text-[17px] font-medium leading-6 tracking-[-0.01em] text-white">
+                  <div className="alento-product-card-body">
+                    <h3 className="alento-product-card-title">
                       {product.name}
                     </h3>
 
-                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/12 pt-3">
-                      <span className="min-w-0 truncate text-[17px] font-semibold leading-6 tracking-[-0.015em] text-white">
+                    <div className="alento-product-card-footer">
+                      <span className="alento-product-card-price">
                         {displayProductPrice(product)}
                       </span>
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[19px] font-medium leading-none text-neutral-950 shadow-[0_6px_18px_rgba(0,0,0,.2)] transition group-hover:scale-[1.04]">
+                      <span className="alento-product-card-action">
                         +
                       </span>
                     </div>
