@@ -266,7 +266,7 @@ export default function ClubPointsAdmin() {
               </div>
               <h2 className="alento-ui-title mt-1 text-neutral-950">Clientes con más puntos</h2>
             </div>
-            <p className="text-[11px] font-medium text-neutral-400">Ranking por saldo disponible</p>
+            <p className="alento-ui-micro text-neutral-400">Ranking por saldo disponible</p>
           </div>
 
           {rankingLoading ? (
@@ -282,30 +282,34 @@ export default function ClubPointsAdmin() {
           )}
         </section>
 
-        <section className="w-full rounded-[18px] border border-neutral-200 bg-white p-2 shadow-[0_6px_18px_rgba(28,23,20,.04)]">
-          <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
-            <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={2} />
+        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-end gap-3">
+              <div>
+                <p className="alento-ui-label uppercase text-neutral-400">
+                  Ranking completo
+                </p>
+                <h2 className="alento-ui-title mt-1 text-neutral-950">
+                  Clientes con puntos
+                </h2>
+              </div>
+              <span className="alento-ui-label mb-0.5 rounded-full bg-neutral-100 px-2 py-1 text-neutral-500">
+                {visibleCustomers.length}
+              </span>
+            </div>
+
+            <label className="group relative w-full lg:w-[360px]">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 transition group-focus-within:text-neutral-700"
+                strokeWidth={2}
+              />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar cliente, teléfono o correo..."
-                className="alento-ui-control h-10 w-full rounded-[13px] border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 outline-none transition focus:border-neutral-400 focus:bg-white"
+                className="alento-ui-control h-10 w-full rounded-[13px] border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 outline-none transition focus:border-neutral-400 focus:bg-white"
               />
-            </div>
-
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
-          <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-4 py-3">
-            <div>
-              <p className="alento-ui-label uppercase text-neutral-400">Ranking completo</p>
-              <h2 className="alento-ui-title mt-1 text-neutral-950">
-                Clientes con puntos
-              </h2>
-            </div>
-            <b className="text-[12px] font-black text-neutral-400">{visibleCustomers.length}</b>
+            </label>
           </div>
 
           {rankingLoading ? (
@@ -315,21 +319,21 @@ export default function ClubPointsAdmin() {
               {visibleCustomers.map((customer) => (
                 <article key={customer.id} className="grid gap-3 px-4 py-3 transition hover:bg-[#faf9f7] md:grid-cols-[56px_minmax(0,1fr)_125px_140px] md:items-center">
                   <div>
-                    <span className={"inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[12px] font-black " + (customer.rank > 0 && customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
+                    <span className={"alento-ui-control inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 " + (customer.rank > 0 && customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
                       {"#" + customer.rank}
                     </span>
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-[11px] font-black text-neutral-600 shadow-sm">
+                      <span className="alento-ui-label flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-600 shadow-sm">
                         {initials(customer.name)}
                       </span>
                       <div className="min-w-0">
                         <div className="flex min-w-0 items-center gap-2">
-                          <h3 className="truncate text-[14px] font-bold text-neutral-950">{customer.name}</h3>
+                          <h3 className="alento-ui-body truncate font-bold text-neutral-950">{customer.name}</h3>
                         </div>
-                        <p className="mt-0.5 truncate text-[10px] text-neutral-400">
+                        <p className="alento-ui-micro mt-0.5 truncate text-neutral-400">
                           {customer.phone ? customer.countryCode + customer.phone : customer.email || "Sin teléfono"}
                         </p>
                       </div>
@@ -338,12 +342,12 @@ export default function ClubPointsAdmin() {
 
                   <div>
                     <span className="block alento-ui-label uppercase text-neutral-400">Compras con puntos</span>
-                    <b className="mt-1 block text-[13px] text-neutral-700">{customer.purchases}</b>
+                    <b className="alento-ui-control mt-1 block text-neutral-700">{customer.purchases}</b>
                   </div>
 
                   <div className="md:text-right">
-                    <b className="block text-[19px] font-black tabular-nums text-[var(--brand-red)]">{formatPoints(customer.points)} pts</b>
-                    <span className="mt-1 block text-[9px] font-medium text-neutral-400">Último mov. {shortDate(customer.lastMovementAt)}</span>
+                    <b className="alento-ui-status block tabular-nums text-[var(--brand-red)]">{formatPoints(customer.points)} pts</b>
+                    <span className="alento-ui-micro mt-1 block text-neutral-400">Último mov. {shortDate(customer.lastMovementAt)}</span>
                   </div>
                 </article>
               ))}
@@ -372,7 +376,7 @@ function StatCard({ label, value, note, red = false, icon }: { label: string; va
   return (
     <div className="rounded-[18px] border border-neutral-200 bg-white p-3.5 shadow-[0_7px_20px_rgba(28,23,20,.04)]">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-neutral-400">{label}</span>
+        <span className="alento-ui-label uppercase text-neutral-400">{label}</span>
         {icon}
       </div>
       <b className={"alento-ui-metric mt-2 block " + (red ? "text-[var(--brand-red)]" : "text-neutral-950")}>{value}</b>
@@ -390,14 +394,14 @@ function TopCard({ customer }: { customer: ClubCustomer }) {
         <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl alento-ui-control " + (leader ? "border border-white/10 bg-white/[0.08] text-white" : "border border-neutral-200 bg-white text-neutral-700")}>
           {initials(customer.name)}
         </div>
-        <span className={"rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] " + (leader ? "bg-[var(--brand-red)] text-white" : "border border-neutral-200 bg-white text-neutral-500")}>
+        <span className={"alento-ui-label rounded-full px-3 py-1.5 uppercase " + (leader ? "bg-[var(--brand-red)] text-white" : "border border-neutral-200 bg-white text-neutral-500")}>
           {rankLabel(customer.rank)}
         </span>
       </div>
 
       <div className="relative mt-3">
         <h3 className="alento-ui-status truncate">{customer.name}</h3>
-        {customer.phone && <p className={"mt-1 text-[11px] font-medium " + (leader ? "text-white/45" : "text-neutral-400")}>{customer.countryCode}{customer.phone}</p>}
+        {customer.phone && <p className={"alento-ui-micro mt-1 " + (leader ? "text-white/45" : "text-neutral-400")}>{customer.countryCode}{customer.phone}</p>}
       </div>
 
       <div className="relative mt-3 flex items-end justify-between gap-3">
@@ -405,7 +409,7 @@ function TopCard({ customer }: { customer: ClubCustomer }) {
           <span className={"alento-ui-label uppercase " + (leader ? "text-white/40" : "text-neutral-400")}>Saldo</span>
           <b className={"alento-ui-metric mt-1 block " + (leader ? "text-white" : "text-[var(--brand-red)]")}>{formatPoints(customer.points)}</b>
         </div>
-        <span className={"pb-1 text-[10px] font-bold " + (leader ? "text-white/45" : "text-neutral-400")}>
+        <span className={"alento-ui-micro pb-1 font-bold " + (leader ? "text-white/45" : "text-neutral-400")}>
           {customer.purchases} compra{customer.purchases === 1 ? "" : "s"}
         </span>
       </div>
