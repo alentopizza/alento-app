@@ -156,3 +156,27 @@ Clases fuente:
 `.alento-product-card*` en `src/app/globals.css`.
 
 No duplicar esta estructura en componentes. Las superficies administrativas pueden superponer controles operativos, pero deben conservar la misma tarjeta base.
+
+
+## Hub de Configuración
+
+La ruta `/configuracion` funciona como un centro de accesos y no como una página continua de formularios.
+
+Patrón:
+
+- header compacto estándar de 116 px;
+- cards de acceso para cada área real de configuración;
+- una sola sección visible a la vez;
+- la lógica y persistencia existentes se reutilizan, no se duplican;
+- el guardado global permanece centralizado;
+- cualquier nueva familia de ajustes debe agregarse primero como acceso del hub.
+
+Secciones actuales:
+
+- Sede;
+- Domicilios;
+- Repartidores;
+- Clientes;
+- Pagos.
+
+No volver a apilar todas estas secciones simultáneamente en la vista principal.
