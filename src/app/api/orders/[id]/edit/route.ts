@@ -94,6 +94,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
+    let deliveryDistanceMeters: number | null = null;
 
     if (fulfillmentType === "DELIVERY") {
       const customer = current.customer;
@@ -159,6 +160,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       deliveryFee = money(Number(zone.fee ?? 0));
       deliveryZoneId = zone.id;
       deliveryZoneName = zone.name?.trim() || "Domicilio";
+      deliveryDistanceMeters = Math.round(commercialDistanceMeters);
     }
 
     const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
@@ -260,7 +262,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       await tx.order.update({
         where: { id: current.id },
-        data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total },
+        data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryDistanceMeters, deliveryFee, subtotal, discount, total },
       });
 
       if (payment) {
