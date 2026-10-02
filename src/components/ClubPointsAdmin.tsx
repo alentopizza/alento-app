@@ -202,40 +202,45 @@ export default function ClubPointsAdmin() {
 
   return (
     <main className="w-full p-3 md:p-5 xl:p-6">
-      <div className="w-full space-y-5">
-        <section className="relative min-h-[176px] w-full overflow-hidden rounded-[26px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_18px_45px_rgba(20,16,14,.12)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_84%_38%,rgba(226,26,34,.50),transparent_24%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.34),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+      <div className="w-full space-y-4">
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
           <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
-          <div className="absolute right-[18%] top-[-32px] h-28 w-28 rotate-12 rounded-[32px] border border-red-400/10 bg-red-500/[0.045]" />
-          <div className="absolute right-[5%] top-[72px] h-[2px] w-[34%] bg-gradient-to-r from-transparent via-red-300/35 to-transparent" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-          <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-6 py-6 md:flex-row md:items-center md:px-8 xl:px-10">
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
             <div className="max-w-2xl">
               <div className="flex items-center gap-3">
-                <span className="h-[3px] w-8 rounded-full bg-[var(--brand-red)]" />
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/58">Fidelización</p>
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
+                  Fidelización
+                </p>
               </div>
-              <h1 className="mt-2 text-[42px] font-black leading-none tracking-[-0.045em] md:text-[48px]">Club Puntos</h1>
-              <p className="mt-2 text-[14px] font-medium text-white/68 md:text-[15px]">
+              <h1 className="alento-ui-hero-title mt-1.5">Club Puntos</h1>
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
                 Mira quiénes más acumulan y cómo crece la comunidad Alentó.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 self-end md:self-auto">
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
               <button
                 type="button"
                 onClick={() => { setMessage(""); setSettingsOpen(true); }}
-                className="group inline-flex h-[68px] items-center gap-3 rounded-[19px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] px-5 text-white shadow-[0_12px_28px_rgba(168,11,16,.30),inset_0_1px_0_rgba(255,255,255,.15)] transition hover:-translate-y-0.5 hover:border-red-300/70 hover:brightness-110 active:translate-y-0"
+                aria-label="Ajustes del Club"
+                title="Ajustes del Club"
+                className="flex h-[56px] w-[76px] items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:brightness-110"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.08]">
-                  <Settings className="h-[21px] w-[21px]" strokeWidth={2.2} />
-                </span>
-                <span className="hidden text-[13px] font-black sm:inline">Ajustes</span>
+                <Settings className="h-[22px] w-[22px]" strokeWidth={2.15} />
               </button>
 
-              <div className="flex h-[68px] min-w-[104px] flex-col items-center justify-center rounded-[19px] border border-white/14 bg-white/[0.08] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
-                <span className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">Con puntos</span>
-                <b className="mt-1 text-[30px] font-black leading-none tabular-nums text-white">{summary.customersWithPoints}</b>
+              <div className="flex h-[56px] w-[76px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 backdrop-blur-sm">
+                <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                  Con puntos
+                </span>
+                <b className="alento-ui-metric mt-0.5 tabular-nums text-white">
+                  {summary.customersWithPoints}
+                </b>
               </div>
             </div>
           </div>
@@ -245,21 +250,21 @@ export default function ClubPointsAdmin() {
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Clientes con saldo" value={String(summary.customersWithPoints)} note="Clientes que hoy tienen puntos disponibles." icon={<Users className="h-5 w-5 text-neutral-300" strokeWidth={1.8} />} />
           <StatCard label="Puntos en circulación" value={formatPoints(summary.pointsInCirculation)} note="Saldo disponible entre todos los clientes." red icon={<Star className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos acumulados" value={formatPoints(summary.totalEarnedPoints)} note="Total histórico generado por compras válidas." />
           <StatCard label="Regla actual" value={settings.earnRatePercent + "%"} note="Sobre productos elegibles sin descuento." />
         </section>
 
-        <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(28,23,20,.045)] md:p-5">
-          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <section className="rounded-[22px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] md:p-4">
+          <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={2} />
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--brand-red)]">Top Club</p>
+                <p className="alento-ui-label uppercase text-[var(--brand-red)]">Top Club</p>
               </div>
-              <h2 className="mt-1 text-[24px] font-black tracking-[-0.035em] text-neutral-950">Clientes con más puntos</h2>
+              <h2 className="alento-ui-title mt-1 text-neutral-950">Clientes con más puntos</h2>
             </div>
             <p className="text-[11px] font-medium text-neutral-400">Ranking por saldo disponible</p>
           </div>
@@ -267,7 +272,7 @@ export default function ClubPointsAdmin() {
           {rankingLoading ? (
             <div className="py-12 text-center text-sm font-semibold text-neutral-400">Calculando ranking...</div>
           ) : topCustomers.length ? (
-            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            <div className="mt-3 grid gap-2.5 lg:grid-cols-3">
               {topCustomers.map((customer) => (
                 <TopCard key={customer.id} customer={customer} />
               ))}
@@ -277,26 +282,26 @@ export default function ClubPointsAdmin() {
           )}
         </section>
 
-        <section className="w-full rounded-[20px] border border-neutral-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(28,23,20,.045)]">
+        <section className="w-full rounded-[18px] border border-neutral-200 bg-white p-2 shadow-[0_6px_18px_rgba(28,23,20,.04)]">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-center">
             <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-neutral-400" strokeWidth={2} />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={2} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar cliente, teléfono o correo..."
-                className="h-12 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-12 pr-4 text-sm font-medium outline-none transition focus:border-neutral-400 focus:bg-white"
+                className="alento-ui-control h-10 w-full rounded-[13px] border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 outline-none transition focus:border-neutral-400 focus:bg-white"
               />
             </div>
 
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.045)]">
-          <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-5 py-4">
+        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-4 py-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">Ranking completo</p>
-              <h2 className="mt-1 text-[21px] font-black tracking-[-0.03em] text-neutral-950">
+              <p className="alento-ui-label uppercase text-neutral-400">Ranking completo</p>
+              <h2 className="alento-ui-title mt-1 text-neutral-950">
                 Clientes con puntos
               </h2>
             </div>
@@ -308,7 +313,7 @@ export default function ClubPointsAdmin() {
           ) : visibleCustomers.length ? (
             <div className="divide-y divide-neutral-100">
               {visibleCustomers.map((customer) => (
-                <article key={customer.id} className="grid gap-4 px-5 py-4 transition hover:bg-[#faf9f7] md:grid-cols-[64px_minmax(0,1fr)_140px_150px] md:items-center">
+                <article key={customer.id} className="grid gap-3 px-4 py-3 transition hover:bg-[#faf9f7] md:grid-cols-[56px_minmax(0,1fr)_125px_140px] md:items-center">
                   <div>
                     <span className={"inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-[12px] font-black " + (customer.rank > 0 && customer.rank <= 3 ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-600")}>
                       {"#" + customer.rank}
@@ -332,7 +337,7 @@ export default function ClubPointsAdmin() {
                   </div>
 
                   <div>
-                    <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Compras con puntos</span>
+                    <span className="block alento-ui-label uppercase text-neutral-400">Compras con puntos</span>
                     <b className="mt-1 block text-[13px] text-neutral-700">{customer.purchases}</b>
                   </div>
 
@@ -365,13 +370,13 @@ export default function ClubPointsAdmin() {
 
 function StatCard({ label, value, note, red = false, icon }: { label: string; value: string; note: string; red?: boolean; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-[22px] border border-neutral-200 bg-white p-5 shadow-[0_10px_28px_rgba(28,23,20,.045)]">
+    <div className="rounded-[18px] border border-neutral-200 bg-white p-3.5 shadow-[0_7px_20px_rgba(28,23,20,.04)]">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black uppercase tracking-[0.14em] text-neutral-400">{label}</span>
         {icon}
       </div>
-      <b className={"mt-3 block text-[30px] font-black tracking-[-0.04em] " + (red ? "text-[var(--brand-red)]" : "text-neutral-950")}>{value}</b>
-      <p className="mt-1 text-[11px] text-neutral-400">{note}</p>
+      <b className={"alento-ui-metric mt-2 block " + (red ? "text-[var(--brand-red)]" : "text-neutral-950")}>{value}</b>
+      <p className="alento-ui-micro mt-1 text-neutral-400">{note}</p>
     </div>
   );
 }
@@ -379,10 +384,10 @@ function StatCard({ label, value, note, red = false, icon }: { label: string; va
 function TopCard({ customer }: { customer: ClubCustomer }) {
   const leader = customer.rank === 1;
   return (
-    <article className={"relative overflow-hidden rounded-[22px] border p-5 transition " + (leader ? "border-red-200 bg-[linear-gradient(145deg,#171113,#080808)] text-white shadow-[0_16px_38px_rgba(110,10,14,.20)]" : "border-neutral-200 bg-[#faf9f7] text-neutral-950")}>
+    <article className={"relative overflow-hidden rounded-[18px] border p-4 transition " + (leader ? "border-red-200 bg-[linear-gradient(145deg,#171113,#080808)] text-white shadow-[0_16px_38px_rgba(110,10,14,.20)]" : "border-neutral-200 bg-[#faf9f7] text-neutral-950")}>
       {leader && <div className="absolute right-[-20px] top-[-28px] h-28 w-28 rounded-full bg-red-600/20 blur-xl" />}
       <div className="relative flex items-start justify-between gap-4">
-        <div className={"flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-[13px] font-black " + (leader ? "border border-white/10 bg-white/[0.08] text-white" : "border border-neutral-200 bg-white text-neutral-700")}>
+        <div className={"flex h-10 w-10 shrink-0 items-center justify-center rounded-xl alento-ui-control " + (leader ? "border border-white/10 bg-white/[0.08] text-white" : "border border-neutral-200 bg-white text-neutral-700")}>
           {initials(customer.name)}
         </div>
         <span className={"rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] " + (leader ? "bg-[var(--brand-red)] text-white" : "border border-neutral-200 bg-white text-neutral-500")}>
@@ -390,15 +395,15 @@ function TopCard({ customer }: { customer: ClubCustomer }) {
         </span>
       </div>
 
-      <div className="relative mt-5">
-        <h3 className="truncate text-[18px] font-black tracking-[-0.025em]">{customer.name}</h3>
+      <div className="relative mt-3">
+        <h3 className="alento-ui-status truncate">{customer.name}</h3>
         {customer.phone && <p className={"mt-1 text-[11px] font-medium " + (leader ? "text-white/45" : "text-neutral-400")}>{customer.countryCode}{customer.phone}</p>}
       </div>
 
-      <div className="relative mt-5 flex items-end justify-between gap-3">
+      <div className="relative mt-3 flex items-end justify-between gap-3">
         <div>
-          <span className={"text-[9px] font-black uppercase tracking-[0.14em] " + (leader ? "text-white/40" : "text-neutral-400")}>Saldo</span>
-          <b className={"mt-1 block text-[30px] font-black leading-none tracking-[-0.045em] " + (leader ? "text-white" : "text-[var(--brand-red)]")}>{formatPoints(customer.points)}</b>
+          <span className={"alento-ui-label uppercase " + (leader ? "text-white/40" : "text-neutral-400")}>Saldo</span>
+          <b className={"alento-ui-metric mt-1 block " + (leader ? "text-white" : "text-[var(--brand-red)]")}>{formatPoints(customer.points)}</b>
         </div>
         <span className={"pb-1 text-[10px] font-bold " + (leader ? "text-white/45" : "text-neutral-400")}>
           {customer.purchases} compra{customer.purchases === 1 ? "" : "s"}
@@ -502,7 +507,7 @@ function SettingsModal({
               </div>
 
               <div className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-400">Ejemplos con la regla actual</p>
+                <p className="alento-ui-label uppercase text-neutral-400">Ejemplos con la regla actual</p>
                 <div className="mt-3 space-y-2">
                   {examples.map((example) => (
                     <div key={example.amount} className="flex items-center justify-between rounded-xl border border-neutral-100 bg-white px-4 py-3">
