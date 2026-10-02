@@ -1,21 +1,83 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-function serializeCoupon(coupon: { id: number; name: string; type: "FIXED" | "PERCENTAGE"; value: unknown; active: boolean; createdAt: Date; updatedAt: Date }) {
+function serializeCoupon(
+  coupon: {
+    id: number;
+    name: string;
+    type: "FIXED" | "PERCENTAGE";
+    value: unknown;
+    active: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  stats?: {
+    usageCount: number;
+    totalDiscount: number;
+    lastUsedAt: Date | null;
+  },
+) {
   return {
     ...coupon,
     value: Number(coupon.value),
+    usageCount: stats?.usageCount ?? 0,
+    totalDiscount: stats?.totalDiscount ?? 0,
+    lastUsedAt: stats?.lastUsedAt ?? null,
   };
 }
 
 export async function GET(request: NextRequest) {
   const activeOnly = request.nextUrl.searchParams.get("active") === "1";
-  const coupons = await prisma.coupon.findMany({
-    where: activeOnly ? { active: true } : undefined,
-    orderBy: [{ active: "desc" }, { name: "asc" }],
-  });
 
-  return NextResponse.json({ coupons: coupons.map(serializeCoupon) });
+  const [coupons, usageRows] = await Promise.all([
+    prisma.coupon.findMany({
+      where: activeOnly ? { active: true } : undefined,
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+    }),
+    prisma.order.groupBy({
+      by: ["couponId"],
+      where: {
+        couponId: { not: null },
+        status: { notIn: ["DRAFT", "CANCELED"] },
+      },
+      _count: { id: true },
+      _sum: { discount: true },
+      _max: { createdAt: true },
+    }),
+  ]);
+
+  const usageByCoupon = new Map(
+    usageRows
+      .filter((row) => row.couponId != null)
+      .map((row) => [
+        row.couponId as number,
+        {
+          usageCount: row._count.id,
+          totalDiscount: Number(row._sum.discount ?? 0),
+          lastUsedAt: row._max.createdAt ?? null,
+        },
+      ]),
+  );
+
+  const serialized = coupons.map((coupon) =>
+    serializeCoupon(coupon, usageByCoupon.get(coupon.id)),
+  );
+
+  return NextResponse.json({
+    coupons: serialized,
+    summary: {
+      total: serialized.length,
+      active: serialized.filter((coupon) => coupon.active).length,
+      totalUses: serialized.reduce(
+        (sum, coupon) => sum + coupon.usageCount,
+        0,
+      ),
+      totalDiscount: serialized.reduce(
+        (sum, coupon) => sum + coupon.totalDiscount,
+        0,
+      ),
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
