@@ -207,3 +207,25 @@ Se reutiliza en:
 La carga del SDK del navegador se centraliza en `src/lib/googleMapsClient.ts`.
 
 No crear un segundo autocompletado propio para nuevas superficies. Cuando el usuario selecciona una dirección de Google deben conservarse `formattedAddress`, `placeId`, `latitude` y `longitude`. El reverse geocoding se usa únicamente al mover un pin o partir de coordenadas.
+
+
+### Personalización dentro de Configuración
+
+`/personalizacion` es un submódulo de `/configuracion`, no un módulo independiente del menú lateral.
+
+Reglas:
+
+- Configuración debe permanecer marcada como activa mientras se navega en Personalización.
+- La vista debe ofrecer breadcrumb y acción explícita para volver a Configuración.
+- Si existen cambios sin guardar, se debe advertir antes de abandonar la página.
+- El guardado usa la acción compacta del header estándar.
+- Las acciones que restablecen una pieza visual deben requerir confirmación y describirse como **Usar imagen predeterminada**, no como eliminación destructiva.
+- La API administrativa de Personalización es exclusiva para rol `ADMIN`.
+
+Piezas configurables actuales:
+
+- Home móvil: 1080 × 2160 px.
+- Home PC: 1920 × 1080 px.
+- Portada del menú: 1920 × 730 px.
+
+No agregar controles de personalización que no tengan un consumidor real en la experiencia pública. El antiguo `brand.logoUrl` fue retirado porque ninguna superficie lo renderizaba.
