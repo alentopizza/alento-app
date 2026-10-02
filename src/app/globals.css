@@ -905,3 +905,125 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
     opacity: 0.85;
   }
 }
+
+
+/* Tarjeta canónica de producto.
+   Fuente visual: menú público del cliente.
+   POS y Menú administrativo reutilizan esta misma superficie. */
+.alento-product-card {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: #151515;
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(28, 23, 20, 0.10);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.alento-product-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(215, 25, 32, 0.70);
+  box-shadow: 0 18px 36px rgba(28, 23, 20, 0.16);
+}
+
+.alento-product-card-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #101010;
+}
+
+.alento-product-card-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: transform 300ms ease;
+}
+
+.alento-product-card:hover .alento-product-card-image {
+  transform: scale(1.02);
+}
+
+.alento-product-card-body {
+  padding: 8px 12px 10px;
+  background: #151515;
+  color: #fff;
+}
+
+.alento-product-card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: #fff;
+}
+
+.alento-product-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.alento-product-card-price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #ff3439;
+}
+
+.alento-product-card-action {
+  display: inline-flex;
+  height: 34px;
+  width: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e21a22;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(226, 26, 34, 0.24);
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
+}
+
+.alento-product-card-action:hover {
+  transform: scale(1.06);
+  filter: brightness(1.08);
+}
+
+@media (min-width: 1024px) {
+  .alento-product-card-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .alento-product-card-title {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .alento-product-card-price {
+    font-size: 17px;
+  }
+
+  .alento-product-card-action {
+    height: 36px;
+    width: 36px;
+  }
+}
