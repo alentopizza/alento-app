@@ -278,16 +278,16 @@ export default function StoreOriginMapPicker({
     <div className="overflow-hidden rounded-[20px] border border-neutral-200 bg-white">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
         <div>
-          <b className="block text-[13px] text-neutral-900">
+          <b className="alento-ui-control block text-neutral-900">
             Ajusta el origen exacto
           </b>
-          <p className="mt-1 text-[11px] leading-4 text-neutral-500">
+          <p className="alento-ui-micro mt-1 leading-4 text-neutral-500">
             Arrastra el pin de Alentó o toca el mapa para moverlo hasta la entrada exacta.
           </p>
         </div>
         <span
           className={
-            "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase " +
+            "alento-ui-label rounded-full px-2.5 py-1 uppercase " +
             (resolving
               ? "bg-amber-50 text-amber-700"
               : "bg-emerald-50 text-emerald-700")
@@ -300,14 +300,14 @@ export default function StoreOriginMapPicker({
       <div className="relative min-h-[360px] bg-neutral-100">
         <div ref={mapHostRef} className="absolute inset-0" />
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-[12px] font-semibold text-neutral-500 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 alento-ui-control text-neutral-500 backdrop-blur-sm">
             Cargando mapa...
           </div>
         )}
       </div>
 
       {error && (
-        <div className="border-t border-red-100 bg-red-50 px-4 py-3 text-[11px] font-semibold text-red-700">
+        <div className="border-t border-red-100 bg-red-50 px-4 py-3 alento-ui-label text-red-700">
           {error}
         </div>
       )}
