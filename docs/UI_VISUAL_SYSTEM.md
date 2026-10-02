@@ -186,10 +186,24 @@ No volver a apilar todas estas secciones simultáneamente en la vista principal.
 
 Las secciones del Hub de Configuración deben aprovechar el ancho disponible según el tipo de contenido:
 
-- **Sede:** información y validación a la izquierda; mapa de origen a la derecha.
+- **Sede:** buscador compartido de Google Places + ubicación actual a la izquierda; mapa de origen y pin editable a la derecha. No mostrar un campo de enlace de Google Maps ni un botón separado de validación manual.
 - **Domicilios:** zonas y tarifas a la izquierda; mapa de cobertura a la derecha.
 - **Repartidores:** operación y compensación en paneles paralelos.
 - **Clientes:** controles sensibles en cards compactas, sin espacio vertical innecesario.
 - **Pagos:** medios fijos como cards analíticas; solo activar/desactivar.
 
 En desktop, los mapas pueden ser `sticky` dentro de su columna para mantener contexto mientras se editan datos.
+
+
+### Búsqueda compartida de direcciones
+
+La búsqueda de direcciones con Google Places usa el componente compartido `GoogleAddressSearch`.
+
+Se reutiliza en:
+
+- dirección del cliente;
+- configuración de la sede.
+
+La carga del SDK del navegador se centraliza en `src/lib/googleMapsClient.ts`.
+
+No crear un segundo autocompletado propio para nuevas superficies. Cuando el usuario selecciona una dirección de Google deben conservarse `formattedAddress`, `placeId`, `latitude` y `longitude`. El reverse geocoding se usa únicamente al mover un pin o partir de coordenadas.
