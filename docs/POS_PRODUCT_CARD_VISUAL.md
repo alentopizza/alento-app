@@ -1,35 +1,41 @@
 # Diseño de tarjetas de producto del POS
 
-Última actualización: 2026-09-16.
+Última actualización: 2026-10-01.
 
-Este documento registra el pulido visual final de las tarjetas del catálogo del POS.
+## Fuente visual canónica
 
-## Objetivo
+El POS ya no mantiene una tarjeta visual propia.
 
-Reducir espacios muertos en la parte inferior de cada tarjeta y hacer que la acción de agregar sea más compacta y elegante sin cambiar la lógica de producto ni del carrito.
+La tarjeta del **menú público del cliente** es la fuente de verdad visual y se comparte con:
+
+- `/menu`;
+- POS;
+- Menú administrativo.
+
+Las clases canónicas viven en `src/app/globals.css` bajo:
+
+- `.alento-product-card`;
+- `.alento-product-card-media`;
+- `.alento-product-card-image`;
+- `.alento-product-card-body`;
+- `.alento-product-card-title`;
+- `.alento-product-card-footer`;
+- `.alento-product-card-price`;
+- `.alento-product-card-action`.
 
 ## Reglas visuales
 
-- Las reglas aplican únicamente al catálogo del POS y no deben afectar `/menu` ni otras pantallas administrativas.
-- El bloque de contenido usa menor padding vertical.
-- El título usa tipografía de sistema más fina y legible.
-- La descripción conserva máximo dos líneas, pero con menor altura mínima.
-- El bloque inferior alinea precio a la izquierda y acción a la derecha.
-- La etiqueta `PRECIO` se mantiene pequeña y secundaria.
-- El valor (`Desde`, `Ahorra` o precio directo) es el elemento principal del footer de la tarjeta.
-- El botón conserva internamente el texto `Agregar`, pero visualmente se representa con un botón rojo compacto de `+`.
-- El botón `+` permanece en la esquina inferior derecha de la tarjeta y tiene estado hover y disabled.
-- En móvil se reduce ligeramente el tamaño del botón y el padding de la tarjeta.
+- fondo oscuro;
+- imagen 1:1;
+- imagen a sangre con `object-cover`;
+- nombre en el bloque inferior;
+- precio, `Desde` o `Ahorra` en rojo;
+- CTA circular rojo `+`;
+- mismas proporciones y hover que el menú del cliente.
 
-## Implementación
+## Comportamiento POS
 
-Archivo de estilo:
-
-`src/app/product-card-polish.css`
-
-El archivo se carga después de los estilos generales desde `src/app/layout.tsx`.
-
-La implementación visual no cambia:
+La unificación es solo visual. No cambia:
 
 - `startAdd(product)`;
 - configuración de pizzas;
@@ -38,4 +44,8 @@ La implementación visual no cambia:
 - integridad estructurada de `CartItem.configuration`;
 - reglas de cierre del pedido.
 
-Por tanto, este cambio es exclusivamente de UX/UI.
+## Regla de no regresión
+
+No crear otra variante visual local de tarjeta para POS.
+
+Si cambia la tarjeta aprobada, modificar el estilo compartido `.alento-product-card*` para que menú público, POS y administración hereden el cambio.
