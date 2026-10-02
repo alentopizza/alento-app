@@ -5,8 +5,19 @@ import {
   PUBLIC_HOME_SETTING_KEY,
   normalizePublicHomeSettings,
 } from "@/lib/publicHome";
+import { requireStaffSession } from "@/lib/auth";
 
 export async function GET() {
+  try {
+    await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return NextResponse.json(
+      { error: message === "FORBIDDEN" ? "Sin permisos." : "No autorizado." },
+      { status: message === "FORBIDDEN" ? 403 : 401 },
+    );
+  }
+
   const saved = await prisma.appSetting.findUnique({
     where: { key: PUBLIC_HOME_SETTING_KEY },
   });
@@ -19,6 +30,16 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  try {
+    await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return NextResponse.json(
+      { error: message === "FORBIDDEN" ? "Sin permisos." : "No autorizado." },
+      { status: message === "FORBIDDEN" ? 403 : 401 },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const settings = normalizePublicHomeSettings(body?.settings);
 
