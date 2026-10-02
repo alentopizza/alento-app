@@ -10,12 +10,15 @@ import {
   CalendarClock,
   ChefHat,
   ClipboardList,
+  LogOut,
+  Menu,
   Settings,
   ShieldCheck,
   Star,
   Store,
   Users,
   WalletCards,
+  X,
 } from "lucide-react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import { PUBLIC_CART_STORAGE_KEY, type PublicCartItem } from "@/lib/publicCart";
@@ -53,6 +56,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState("");
   const [publicCartCount, setPublicCartCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const publicNavActive = useMemo(() => {
     if (pathname.startsWith("/menu")) return "menu" as const;
@@ -100,6 +105,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     if (!publicNavActive) return;
 
     const readCartCount = () => {
@@ -139,9 +168,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [publicSurface]);
 
   async function logout() {
-    await fetch("/api/auth/staff/logout", { method: "POST" });
-    router.replace("/login");
-    router.refresh();
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+    setMobileMenuOpen(false);
+
+    try {
+      await fetch("/api/auth/staff/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+      setLoggingOut(false);
+    }
   }
 
   if (publicSurface) {
@@ -157,7 +195,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const visibleItems = roles.length ? items.filter((item) => item.roles.some((role) => roles.includes(role))) : [];
+  const visibleItems = roles.length
+    ? items.filter((item) =>
+        item.roles.some((role) => roles.includes(role)),
+      )
+    : [];
+
+  const currentItem =
+    visibleItems.find(
+      (item) =>
+        pathname === item.href ||
+        pathname.startsWith(`${item.href}/`) ||
+        (item.href === "/configuracion" &&
+          pathname.startsWith("/personalizacion")),
+    ) ?? null;
 
   return (
     <div
@@ -167,26 +218,199 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           : "lg:grid-cols-[212px_1fr]"
       }`}
     >
-      <aside className="relative border-b border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-b-0 lg:border-r lg:border-white/10">
+      <header className="sticky top-0 z-[145] flex h-[66px] items-center justify-between border-b border-white/10 bg-[#0b0b0c]/96 px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,.22)] backdrop-blur-xl hidden">
+        <Link
+          href="/interno"
+          className="flex min-w-0 items-center gap-2.5"
+          aria-label="Ir al inicio interno"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-black">
+            <img
+              src={LOGO_DARK}
+              alt="Alentó Pizza"
+              className="h-full w-full object-cover"
+            />
+          </span>
+          <span className="min-w-0">
+            <span className="alento-ui-status block truncate text-white">
+              {currentItem?.label || "Alentó Pizza"}
+            </span>
+            <span className="alento-ui-micro mt-0.5 block truncate text-white/38">
+              {userName || "Sesión interna"}
+            </span>
+          </span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.07] text-white transition active:scale-[.97]"
+          aria-label="Abrir menú de colaboradores"
+          title="Abrir menú"
+        >
+          <Menu className="h-5 w-5" strokeWidth={2.2} />
+        </button>
+      </header>
+
+      {mobileMenuOpen && (
         <div
-          className={`flex items-center justify-between px-4 py-3.5 lg:flex lg:min-h-[82px] lg:items-start lg:pb-3.5 lg:pt-4 ${
+          className="fixed inset-0 z-[210] hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menú de colaboradores"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/68 backdrop-blur-[2px]"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Cerrar menú"
+          />
+
+          <aside className="absolute inset-y-0 left-0 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/10 bg-[#0b0b0c] text-white shadow-[18px_0_60px_rgba(0,0,0,.42)]">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+              <Link
+                href="/interno"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex min-w-0 items-center gap-3"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-white/10 bg-black">
+                  <img
+                    src={LOGO_DARK}
+                    alt="Alentó Pizza"
+                    className="h-full w-full object-cover"
+                  />
+                </span>
+                <span className="min-w-0">
+                  <span className="alento-ui-status block truncate text-white">
+                    Alentó Pizza
+                  </span>
+                  <span className="alento-ui-micro mt-0.5 block truncate text-white/40">
+                    Sabor Que Te Hace Volver.
+                  </span>
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.06] text-white/70"
+                aria-label="Cerrar menú"
+              >
+                <X className="h-[19px] w-[19px]" strokeWidth={2.1} />
+              </button>
+            </div>
+
+            <div className="border-b border-white/[0.07] px-4 py-3">
+              <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.045] px-3 py-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.08] alento-ui-control font-bold text-white">
+                  {(userName || "A").trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="alento-ui-control block truncate font-bold text-white">
+                    {userName || "Alentó Pizza"}
+                  </span>
+                  <span className="alento-ui-micro mt-0.5 block truncate text-white/38">
+                    {roles
+                      .map((role) => ROLE_LABELS[role] ?? role)
+                      .join(" · ") || "Sesión interna"}
+                  </span>
+                </span>
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
+              </div>
+            </div>
+
+            <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+              <p className="alento-ui-label mb-2 px-2 uppercase tracking-[0.14em] text-white/28">
+                Módulos disponibles
+              </p>
+
+              <div className="space-y-1">
+                {visibleItems.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`) ||
+                    (item.href === "/configuracion" &&
+                      pathname.startsWith("/personalizacion"));
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                        active
+                          ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
+                          : "text-white/72 active:bg-white/[0.07]"
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--brand-red)]" />
+                      )}
+
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          active
+                            ? "bg-black text-white"
+                            : "bg-white/[0.07] text-white/80"
+                        }`}
+                      >
+                        <item.icon
+                          className="h-[18px] w-[18px]"
+                          strokeWidth={2.3}
+                          aria-hidden="true"
+                        />
+                      </span>
+
+                      <span className="alento-ui-control min-w-0 flex-1 truncate font-bold">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+
+            <div className="shrink-0 border-t border-white/10 p-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+              <button
+                type="button"
+                onClick={() => void logout()}
+                disabled={loggingOut}
+                className="flex h-12 w-full items-center justify-between rounded-[15px] border border-red-400/15 bg-red-500/[0.08] px-3 text-left text-red-200 transition active:bg-red-500/[0.14] disabled:opacity-50"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-red-500/10">
+                    <LogOut className="h-4 w-4" strokeWidth={2.1} />
+                  </span>
+                  <span className="alento-ui-control font-bold">
+                    {loggingOut ? "Cerrando..." : "Cerrar sesión"}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      <aside className="relative hidden border-r border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:h-screen-col">
+        <div
+          className={`flex items-center justify-between px-4 py-3.5 min-h-[82px] items-start pb-3.5 pt-4 ${
             sidebarCollapsed ? "lg:px-[18px]" : "lg:px-4"
           }`}
         >
           <Link href="/interno" className="block min-w-0">
             <div
-              className={`flex items-center gap-3 lg:items-start ${
-                sidebarCollapsed ? "lg:justify-center" : ""
+              className={`flex items-center gap-3 items-start ${
+                sidebarCollapsed ? "justify-center" : ""
               }`}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] lg:h-12 lg:w-12">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)] h-12 w-12">
                 <img src={LOGO_DARK} alt="Alentó Pizza" className="h-full w-full object-cover" />
               </div>
               <div
                 className={`min-w-0 pt-0.5 transition-all duration-200 ${
                   sidebarCollapsed
-                    ? "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0"
-                    : "lg:w-auto lg:opacity-100"
+                    ? "pointer-events-none w-0 overflow-hidden opacity-0"
+                    : "w-auto opacity-100"
                 }`}
               >
                 <p className="whitespace-nowrap text-[16px] font-semibold leading-5 tracking-[-0.02em] text-white">Alentó Pizza</p>
@@ -202,7 +426,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             onClick={toggleSidebar}
             title={sidebarCollapsed ? "Expandir menú" : "Recoger menú"}
             aria-label={sidebarCollapsed ? "Expandir menú lateral" : "Recoger menú lateral"}
-            className={`hidden h-8 w-6 items-center justify-center rounded-r-lg border border-l-0 border-white/10 bg-[var(--brand-red)] text-sm font-black text-white shadow-[5px_0_16px_rgba(0,0,0,.22)] transition hover:brightness-110 lg:absolute lg:right-[-24px] lg:top-[18px] lg:z-50 lg:flex`}
+            className={`flex h-8 w-6 items-center justify-center rounded-r-lg border border-l-0 border-white/10 bg-[var(--brand-red)] text-sm font-black text-white shadow-[5px_0_16px_rgba(0,0,0,.22)] transition hover:brightness-110 absolute right-[-24px] top-[18px] z-50`}
           >
             {sidebarCollapsed ? "›" : "‹"}
           </button>
@@ -211,8 +435,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-4 hidden h-px bg-gradient-to-r from-transparent via-white/15 to-transparent lg:block" />
 
         <nav
-          className={`flex gap-2 overflow-x-auto px-3 pb-3 lg:mt-2.5 lg:block lg:min-h-0 lg:flex-1 lg:space-y-0.5 lg:overflow-y-auto lg:pb-3 ${
-            sidebarCollapsed ? "lg:px-2.5" : "lg:px-2.5"
+          className={`mt-2.5 block min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-3 ${
+            sidebarCollapsed ? "px-2.5" : "px-2.5"
           }`}
         >
           {visibleItems.map((item) => {
@@ -227,9 +451,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 title={sidebarCollapsed ? item.label : undefined}
                 aria-label={sidebarCollapsed ? item.label : undefined}
-                className={`group relative flex min-w-fit items-center overflow-hidden rounded-2xl py-2 transition-all lg:w-full ${
+                className={`group relative flex w-full items-center overflow-hidden rounded-2xl py-2 transition-all ${
                   sidebarCollapsed
-                    ? "lg:justify-center lg:px-2 lg:py-2.5"
+                    ? "justify-center px-2 py-2.5"
                     : "gap-2.5 px-3"
                 } ${
                   active
@@ -240,7 +464,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {active && (
                   <span
                     className={`absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--brand-red)] ${
-                      sidebarCollapsed ? "lg:hidden" : ""
+                      sidebarCollapsed ? "hidden" : ""
                     }`}
                   />
                 )}
@@ -260,8 +484,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <span
                   className={`min-w-0 truncate text-[13px] font-bold leading-5 transition-all duration-200 ${
                     sidebarCollapsed
-                      ? "lg:pointer-events-none lg:w-0 lg:opacity-0"
-                      : "lg:w-auto lg:opacity-100"
+                      ? "pointer-events-none w-0 opacity-0"
+                      : "w-auto opacity-100"
                   }`}
                 >
                   {item.label}
@@ -278,7 +502,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         >
           <div
             className={`overflow-hidden rounded-[18px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025))] shadow-[0_12px_30px_rgba(0,0,0,.18)] backdrop-blur ${
-              sidebarCollapsed ? "lg:rounded-2xl" : ""
+              sidebarCollapsed ? "rounded-2xl" : ""
             }`}
           >
             <div
@@ -295,8 +519,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div
                 className={`min-w-0 flex-1 transition-all duration-200 ${
                   sidebarCollapsed
-                    ? "lg:pointer-events-none lg:w-0 lg:flex-none lg:overflow-hidden lg:opacity-0"
-                    : "lg:opacity-100"
+                    ? "pointer-events-none w-0 flex-none overflow-hidden opacity-0"
+                    : "opacity-100"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -322,8 +546,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span
                 className={`text-[10px] font-medium text-white/52 transition-all duration-200 group-hover:text-white/80 ${
                   sidebarCollapsed
-                    ? "lg:pointer-events-none lg:w-0 lg:overflow-hidden lg:opacity-0"
-                    : "lg:opacity-100"
+                    ? "pointer-events-none w-0 overflow-hidden opacity-0"
+                    : "opacity-100"
                 }`}
               >
                 Cerrar sesión
