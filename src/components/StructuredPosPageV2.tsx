@@ -716,7 +716,7 @@ export default function StructuredPosPageV2() {
   return (
     <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
-        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_480px] 2xl:grid-cols-[minmax(0,1fr)_500px]">
           <div className="min-w-0 space-y-5">
             <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
