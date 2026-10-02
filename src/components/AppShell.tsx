@@ -10,7 +10,6 @@ import {
   CalendarClock,
   ChefHat,
   ClipboardList,
-  Palette,
   Settings,
   ShieldCheck,
   Star,
@@ -32,7 +31,6 @@ const items = [
   { href: "/cupones", label: "Cupones", icon: BadgePercent, roles: ["ADMIN"] },
   { href: "/caja", label: "Caja", icon: WalletCards, roles: ["ADMIN", "CASHIER"] },
   { href: "/turnos", label: "Turnos", icon: CalendarClock, roles: ["ADMIN"] },
-  { href: "/personalizacion", label: "Personalización", icon: Palette, roles: ["ADMIN"] },
   { href: "/club-alento", label: "Club Puntos", icon: Star, roles: ["ADMIN"] },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell, roles: ["ADMIN"] },
   { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["ADMIN"] },
@@ -218,7 +216,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           }`}
         >
           {visibleItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`) ||
+              (item.href === "/configuracion" &&
+                pathname.startsWith("/personalizacion"));
             return (
               <Link
                 key={item.href}
