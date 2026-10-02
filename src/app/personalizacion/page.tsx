@@ -576,8 +576,9 @@ export default function PersonalizationPage() {
             </div>
 
             <Link
-              href="/"
+              href="/?preview=1"
               target="_blank"
+              rel="noreferrer"
               className="alento-ui-control inline-flex h-9 items-center gap-2 self-start rounded-xl border border-neutral-200 bg-white px-3 text-neutral-600 transition hover:bg-neutral-50 sm:self-auto"
             >
               Ver Home
@@ -681,6 +682,7 @@ export default function PersonalizationPage() {
             <Link
               href="/menu"
               target="_blank"
+              rel="noreferrer"
               className="alento-ui-control inline-flex h-9 items-center gap-2 self-start rounded-xl border border-neutral-200 bg-white px-3 text-neutral-600 transition hover:bg-neutral-50 sm:self-auto"
             >
               Ver menú
