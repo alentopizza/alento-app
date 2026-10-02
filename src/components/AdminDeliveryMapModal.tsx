@@ -650,31 +650,33 @@ export default function AdminDeliveryMapModal({
         });
       });
 
-      payload.drivers.forEach((driver) => {
-        const point = {
-          lat: driver.latitude,
-          lng: driver.longitude,
-        };
+      if (mapFilter !== "UNASSIGNED") {
+        payload.drivers.forEach((driver) => {
+          const point = {
+            lat: driver.latitude,
+            lng: driver.longitude,
+          };
 
-        const marker = new AdvancedMarkerElement({
-          map,
-          position: point,
-          title: `${driver.name} · Ver información`,
-          content: createDriverMapPinElement({ label: driver.name }),
-          zIndex: selectedDriverId === driver.id ? 65 : 50,
+          const marker = new AdvancedMarkerElement({
+            map,
+            position: point,
+            title: `${driver.name} · Ver información`,
+            content: createDriverMapPinElement({ label: driver.name }),
+            zIndex: selectedDriverId === driver.id ? 65 : 50,
+          });
+
+          marker.addListener?.("click", () => {
+            setSelectedDriverId(driver.id);
+            setSelectedOrderId(null);
+            setSelectedAssignDriverId(null);
+            setActionNotice(null);
+          });
+
+          markersRef.current.push(marker);
+          bounds.extend(point);
+          points += 1;
         });
-
-        marker.addListener?.("click", () => {
-          setSelectedDriverId(driver.id);
-          setSelectedOrderId(null);
-          setSelectedAssignDriverId(null);
-          setActionNotice(null);
-        });
-
-        markersRef.current.push(marker);
-        bounds.extend(point);
-        points += 1;
-      });
+      }
 
       payload.trips.forEach((trip) => {
         if (!google.maps.geometry?.encoding?.decodePath) return;
@@ -779,20 +781,20 @@ export default function AdminDeliveryMapModal({
     [data],
   );
 
-  const routeLegend = useMemo(
-    () =>
-      (data?.trips ?? []).map((trip) => ({
-        id: trip.driverId,
-        name: trip.driverName,
-        stops: trip.stops.map((stop) => ({
-          ...stop,
-          color: deliveryTravelModeColor(stop.travelMode),
-        })),
-        distanceMeters: trip.totalDistanceMeters,
-        durationSeconds: trip.totalDurationSeconds,
+  const routeLegend = useMemo(() => {
+    if (mapFilter === "UNASSIGNED") return [];
+
+    return (data?.trips ?? []).map((trip) => ({
+      id: trip.driverId,
+      name: trip.driverName,
+      stops: trip.stops.map((stop) => ({
+        ...stop,
+        color: deliveryTravelModeColor(stop.travelMode),
       })),
-    [data],
-  );
+      distanceMeters: trip.totalDistanceMeters,
+      durationSeconds: trip.totalDurationSeconds,
+    }));
+  }, [data, mapFilter]);
 
   const selectedDriver = useMemo(
     () =>
