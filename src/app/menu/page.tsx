@@ -470,26 +470,26 @@ export default function PublicMenuPage() {
                 key={product.id}
                 type="button"
                 onClick={() => setSelectedProduct(product)}
-                className="group overflow-hidden rounded-[16px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70 lg:rounded-[18px]"
+                className="alento-product-card group text-left"
               >
-                <div className="relative aspect-square overflow-hidden bg-[#101010]">
+                <div className="alento-product-card-media">
                   {product.imageUrl ? (
                     <img
                       src={product.imageUrl}
                       alt={product.name}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                      className="alento-product-card-image"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">🍕</div>
                   )}
                 </div>
 
-                <div className="px-3 pb-2.5 pt-2 antialiased lg:px-4">
-                  <h3 className="line-clamp-1 text-[14px] font-semibold leading-[18px] tracking-[-0.012em] text-white sm:text-[16px] sm:leading-[20px] lg:text-[20px] lg:leading-[23px]">
+                <div className="alento-product-card-body antialiased">
+                  <h3 className="alento-product-card-title">
                     {product.name}
                   </h3>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
+                  <div className="alento-product-card-footer">
+                    <span className="alento-product-card-price">
                       {displayPrice(product)}
                     </span>
                     <span
@@ -506,7 +506,7 @@ export default function PublicMenuPage() {
                           setSelectedProduct(product);
                         }
                       }}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
+                      className="alento-product-card-action"
                       aria-label={`Agregar ${product.name} al carrito`}
                     >
                       +
@@ -554,26 +554,26 @@ export default function PublicMenuPage() {
                   key={product.id}
                   type="button"
                   onClick={() => setSelectedProduct(product)}
-                  className="group overflow-hidden rounded-[16px] border border-white/18 bg-[#151515] text-left transition hover:-translate-y-1 hover:border-[#d71920]/70 lg:rounded-[18px]"
+                  className="alento-product-card group text-left"
                 >
-                  <div className="relative aspect-square overflow-hidden bg-[#101010]">
+                  <div className="alento-product-card-media">
                     {product.imageUrl ? (
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                        className="alento-product-card-image"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">🍕</div>
                     )}
                   </div>
 
-                  <div className="px-3 pb-2.5 pt-2 antialiased lg:px-4">
-                    <h3 className="line-clamp-1 text-[14px] font-semibold leading-[18px] tracking-[-0.012em] text-white sm:text-[16px] sm:leading-[20px] lg:text-[20px] lg:leading-[23px]">
+                  <div className="alento-product-card-body antialiased">
+                    <h3 className="alento-product-card-title">
                       {product.name}
                     </h3>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="truncate text-[14px] font-bold leading-none text-[#ff3439] sm:text-[16px] lg:text-[18px]">
+                    <div className="alento-product-card-footer">
+                      <span className="alento-product-card-price">
                         {displayPrice(product)}
                       </span>
                       <span
@@ -590,7 +590,7 @@ export default function PublicMenuPage() {
                           setSelectedProduct(product);
                         }
                       }}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e21a22] text-[17px] font-semibold leading-none text-white shadow-[0_6px_16px_rgba(226,26,34,.24)] lg:h-9 lg:w-9 lg:text-[18px]"
+                      className="alento-product-card-action"
                       aria-label={`Agregar ${product.name} al carrito`}
                     >
                       +
