@@ -406,20 +406,24 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    const forbidden =
-      error instanceof Error && error.message === "FORBIDDEN";
+    const message =
+      error instanceof Error ? error.message : "";
 
-    if (forbidden) {
+    if (message === "FORBIDDEN") {
       return NextResponse.json(
         { error: "Sin permisos." },
         { status: 403 },
       );
     }
 
-    if (
-      error instanceof Error &&
-      error.message === "INVALID_RANGE"
-    ) {
+    if (message === "UNAUTHORIZED") {
+      return NextResponse.json(
+        { error: "No autorizado." },
+        { status: 401 },
+      );
+    }
+
+    if (message === "INVALID_RANGE") {
       return NextResponse.json(
         { error: "El rango de fechas no es válido." },
         { status: 400 },
