@@ -905,7 +905,98 @@ export default function StructuredPosPageV2() {
                       +
                     </span>
                   </button>
-                )}</div> : <><div className="flex gap-2"><input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchCustomers(); }} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5 text-sm" placeholder="Nombre, teléfono o correo"/><button onClick={() => void searchCustomers()} className="rounded-xl bg-black px-4 text-xs font-black text-white">{searching ? "..." : "Buscar"}</button></div>{(customers.length > 0 || searchMessage) && <div className="mt-2 overflow-hidden rounded-xl border border-neutral-200 bg-white">{customers.map((customer) => <button key={customer.id} onClick={() => chooseCustomer(customer)} className="flex w-full justify-between border-b bg-white px-3 py-2 text-left text-xs last:border-b-0"><b>{customer.name}</b><span>{customer.phone}</span></button>)}{searchMessage && <p className="bg-white px-3 py-2 text-xs text-neutral-500">{searchMessage}</p>}</div>}</>}</div>
+                )}</div> : <>
+                  <div className="rounded-[16px] border border-neutral-200 bg-white p-2 shadow-[0_6px_18px_rgba(28,23,20,.045)]">
+                    <div className="flex items-center gap-2">
+                      <label className="group relative min-w-0 flex-1">
+                        <Search
+                          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 transition group-focus-within:text-neutral-700"
+                          strokeWidth={2}
+                        />
+                        <input
+                          value={query}
+                          onChange={(event) => setQuery(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") void searchCustomers();
+                          }}
+                          className="alento-ui-control h-11 w-full rounded-[13px] border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white"
+                          placeholder="Nombre, teléfono o correo"
+                          aria-label="Buscar cliente"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => void searchCustomers()}
+                        disabled={searching}
+                        aria-label="Buscar cliente"
+                        title="Buscar cliente"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.15)] transition hover:-translate-y-0.5 hover:bg-black disabled:cursor-wait disabled:opacity-55"
+                      >
+                        <Search
+                          className={"h-4 w-4 " + (searching ? "animate-pulse" : "")}
+                          strokeWidth={2.3}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {(customers.length > 0 || searchMessage) && (
+                    <div className="mt-2 rounded-[16px] border border-neutral-200 bg-white p-1.5 shadow-[0_8px_22px_rgba(28,23,20,.055)]">
+                      {customers.length > 0 && (
+                        <div className="flex items-center justify-between px-2.5 py-2">
+                          <span className="alento-ui-label uppercase text-neutral-400">
+                            Resultados
+                          </span>
+                          <span className="alento-ui-micro rounded-full bg-neutral-100 px-2 py-1 text-neutral-500">
+                            {customers.length}
+                          </span>
+                        </div>
+                      )}
+
+                      {customers.length > 0 && (
+                        <div className="alento-scroll max-h-[280px] space-y-1 overflow-y-auto">
+                          {customers.map((customer) => (
+                            <button
+                              key={customer.id}
+                              type="button"
+                              onClick={() => chooseCustomer(customer)}
+                              className="group flex w-full items-center gap-3 rounded-[13px] border border-transparent bg-[#faf9f7] px-2.5 py-2.5 text-left transition hover:border-neutral-200 hover:bg-white hover:shadow-[0_5px_14px_rgba(28,23,20,.05)]"
+                            >
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-900 text-white transition group-hover:bg-[var(--brand-red)]">
+                                <UserRound className="h-4 w-4" strokeWidth={2.1} />
+                              </span>
+
+                              <span className="min-w-0 flex-1">
+                                <b className="alento-ui-control block truncate text-neutral-950">
+                                  {customer.name}
+                                </b>
+                                <span className="alento-ui-micro mt-0.5 block truncate text-neutral-500">
+                                  {[customer.countryCode, customer.phone]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                  {customer.email ? ` · ${customer.email}` : ""}
+                                </span>
+                              </span>
+
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition group-hover:border-red-200 group-hover:text-[var(--brand-red)]">
+                                ›
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {searchMessage && (
+                        <div className="m-1 rounded-xl bg-neutral-50 px-3 py-2.5 text-center">
+                          <p className="alento-ui-micro text-neutral-500">
+                            {searchMessage}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>}</div>
               </div>
             </div>
 
