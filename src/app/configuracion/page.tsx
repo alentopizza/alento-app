@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bike,
   CheckCircle2,
@@ -284,23 +284,19 @@ export default function SettingsPage() {
   const activeDeliveryBands = settings.deliveryBands.filter((band) => band.active).length;
   const activePayments = settings.paymentMethods.filter((method) => method.active).length;
 
-  const paymentCards = useMemo(
-    () =>
-      settings.paymentMethods
-        .map((method) => {
-          const stats = paymentStats.find((item) => item.id === method.id);
-          return {
-            ...method,
-            transactionCount: stats?.transactionCount ?? 0,
-            amount: stats?.amount ?? 0,
-            usagePercent: stats?.usagePercent ?? 0,
-            amountPercent: stats?.amountPercent ?? 0,
-            lastUsedAt: stats?.lastUsedAt ?? null,
-          };
-        })
-        .sort((a, b) => b.usagePercent - a.usagePercent),
-    [paymentStats, settings.paymentMethods],
-  );
+  const paymentCards = settings.paymentMethods
+    .map((method) => {
+      const stats = paymentStats.find((item) => item.id === method.id);
+      return {
+        ...method,
+        transactionCount: stats?.transactionCount ?? 0,
+        amount: stats?.amount ?? 0,
+        usagePercent: stats?.usagePercent ?? 0,
+        amountPercent: stats?.amountPercent ?? 0,
+        lastUsedAt: stats?.lastUsedAt ?? null,
+      };
+    })
+    .sort((a, b) => b.usagePercent - a.usagePercent);
 
   const sectionCards: Array<{
     id: SettingsSection;
