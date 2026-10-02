@@ -184,3 +184,39 @@ Por ello un pedido puede aportar varios movimientos a Caja y varios medios de pa
 Esta funcionalidad utiliza la relación existente `Order 1:N Payment`.
 
 No requiere cambios en Prisma ni `npx prisma db push`.
+
+
+## Configuración de medios de pago
+
+Los medios de pago base del POS son canónicos y no se administran como registros libres.
+
+Medios actuales:
+
+- Efectivo;
+- Nequi;
+- DaviPlata;
+- Tarjeta;
+- Llave.
+
+Desde `/configuracion`:
+
+- no se crean medios nuevos;
+- no se renombran;
+- no se eliminan;
+- únicamente se activan o desactivan.
+
+El servidor normaliza `pos_settings.paymentMethods` contra esta lista canónica para evitar que una edición manual o un cliente antiguo altere nombres o elimine medios base.
+
+La sección Pagos de Configuración muestra analítica histórica usando exclusivamente movimientos:
+
+`Payment.status = PAID`
+
+Por cada medio se expone:
+
+- cantidad de pagos reales;
+- monto recaudado;
+- porcentaje de uso por cantidad de transacciones;
+- porcentaje de participación sobre el valor cobrado;
+- último uso registrado.
+
+Los `PENDING` del POS siguen siendo intención de pago y no participan en estas estadísticas.
