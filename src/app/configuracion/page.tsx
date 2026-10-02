@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   Bike,
@@ -7,6 +8,7 @@ import {
   CheckCircle2,
   CreditCard,
   MapPinned,
+  Palette,
   Save,
   Store,
   Users,
@@ -426,11 +428,12 @@ export default function SettingsPage() {
     .sort((a, b) => b.usagePercent - a.usagePercent);
 
   const sectionCards: Array<{
-    id: SettingsSection;
+    id: SettingsSection | "PERSONALIZATION";
     title: string;
     description: string;
     icon: typeof Store;
     status: string;
+    href?: string;
   }> = [
     {
       id: "STORE",
@@ -472,6 +475,14 @@ export default function SettingsPage() {
       icon: CreditCard,
       status: `${activePayments} activos`,
     },
+    {
+      id: "PERSONALIZATION",
+      title: "Personalización",
+      description: "Home, logo y portada pública",
+      icon: Palette,
+      status: "Experiencia pública",
+      href: "/personalizacion",
+    },
   ];
 
   const currentSection =
@@ -498,7 +509,7 @@ export default function SettingsPage() {
               </div>
               <h1 className="alento-ui-hero-title mt-1.5">Configuración</h1>
               <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
-                Administra sede, domicilios, repartidores, clientes y medios de pago.
+                Administra sede, domicilios, repartidores, clientes, pagos y experiencia pública.
               </p>
             </div>
 
@@ -534,22 +545,14 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           {sectionCards.map((section) => {
             const Icon = section.icon;
             const selected = activeSection === section.id;
+            const className = `group flex min-h-[104px] items-center gap-3 rounded-[20px] border p-3.5 text-left transition ${selected ? "border-red-200 bg-[linear-gradient(135deg,#171113,#100d0e)] text-white shadow-[0_12px_28px_rgba(110,10,14,.14)]" : "border-neutral-200 bg-white text-neutral-950 shadow-[0_7px_20px_rgba(28,23,20,.04)] hover:-translate-y-0.5 hover:border-neutral-300"}`;
 
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => {
-                  setActiveSection(section.id);
-                  setMessage("");
-                  setError("");
-                }}
-                className={`group flex min-h-[104px] items-center gap-3 rounded-[20px] border p-3.5 text-left transition ${selected ? "border-red-200 bg-[linear-gradient(135deg,#171113,#100d0e)] text-white shadow-[0_12px_28px_rgba(110,10,14,.14)]" : "border-neutral-200 bg-white text-neutral-950 shadow-[0_7px_20px_rgba(28,23,20,.04)] hover:-translate-y-0.5 hover:border-neutral-300"}`}
-              >
+            const content = (
+              <>
                 <span
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border ${selected ? "border-white/10 bg-white/[0.08] text-red-300" : "border-neutral-200 bg-[#faf9f7] text-neutral-600"}`}
                 >
@@ -574,6 +577,33 @@ export default function SettingsPage() {
                     {section.status}
                   </span>
                 </span>
+              </>
+            );
+
+            if (section.href) {
+              return (
+                <Link
+                  key={section.id}
+                  href={section.href}
+                  className={className}
+                >
+                  {content}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => {
+                  setActiveSection(section.id as SettingsSection);
+                  setMessage("");
+                  setError("");
+                }}
+                className={className}
+              >
+                {content}
               </button>
             );
           })}
