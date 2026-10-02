@@ -86,6 +86,8 @@ model Customer {
   phone       String?           @unique
   email       String?           @unique
   notes       String?
+  contactWebhookPending Boolean @default(false)
+  contactWebhookSentAt DateTime?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   addresses   CustomerAddress[]
