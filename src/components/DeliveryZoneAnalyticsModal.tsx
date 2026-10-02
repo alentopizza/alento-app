@@ -661,6 +661,7 @@ export default function DeliveryZoneAnalyticsModal({
                           className="h-2 w-2 rounded-full"
                           style={{
                             background:
+                              zoneColorById.get(zone.id) ??
                               ZONE_COLORS[index % ZONE_COLORS.length],
                           }}
                         />
@@ -715,6 +716,7 @@ export default function DeliveryZoneAnalyticsModal({
                       className="mt-0.5 h-9 w-2 shrink-0 rounded-full"
                       style={{
                         background:
+                          zoneColorById.get(zone.id) ??
                           ZONE_COLORS[index % ZONE_COLORS.length],
                       }}
                     />
