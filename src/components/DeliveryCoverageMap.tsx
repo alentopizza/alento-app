@@ -315,18 +315,18 @@ export default function DeliveryCoverageMap({
   }, [activeBands, bandKey, latitude, longitude]);
 
   return (
-    <div className="mt-5 overflow-hidden rounded-[22px] border border-neutral-200 bg-white">
+    <div className="overflow-hidden rounded-[20px] border border-neutral-200 bg-white">
       <div className="border-b border-neutral-100 px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div>
-            <b className="block text-[14px] text-neutral-900">
+            <b className="alento-ui-body block font-bold text-neutral-900">
               Mapa de cobertura visual
             </b>
-            <p className="mt-1 text-[11px] leading-5 text-neutral-500">
+            <p className="alento-ui-micro mt-1 leading-5 text-neutral-500">
               Los círculos muestran los rangos reales usados para cobrar el domicilio según la distancia directa desde Alentó.
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-neutral-500">
+          <span className="alento-ui-label shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 uppercase text-neutral-500">
             Cobertura real
           </span>
         </div>
@@ -336,13 +336,13 @@ export default function DeliveryCoverageMap({
         <div ref={mapHostRef} className="absolute inset-0" />
 
         {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 text-[12px] font-semibold text-neutral-500 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 alento-ui-control text-neutral-500 backdrop-blur-sm">
             Dibujando zonas...
           </div>
         )}
 
         {!loading && activeBands.length === 0 && !error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/75 px-6 text-center text-[12px] font-semibold text-neutral-500 backdrop-blur-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/75 px-6 text-center alento-ui-control text-neutral-500 backdrop-blur-sm">
             Activa al menos una zona para visualizar su cobertura.
           </div>
         )}
@@ -364,10 +364,10 @@ export default function DeliveryCoverageMap({
                   style={{ backgroundColor: color }}
                 />
                 <div className="min-w-0">
-                  <b className="block truncate text-[10px] text-neutral-900">
+                  <b className="block truncate alento-ui-micro text-neutral-900">
                     {band.name}
                   </b>
-                  <span className="block text-[9px] leading-4 text-neutral-500">
+                  <span className="block alento-ui-micro leading-4 text-neutral-500">
                     {distance(band.minMeters)} – {distance(band.maxMeters)}
                     {" · "}
                     {money(band.fee)}
@@ -378,13 +378,13 @@ export default function DeliveryCoverageMap({
           })}
         </div>
 
-        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-[10px] font-semibold leading-4 text-amber-800">
+        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 alento-ui-micro font-semibold leading-4 text-amber-800">
           La tarifa se determina por estos rangos de distancia directa. Las rutas a pie y en moto se usan únicamente para la operación del domicilio y no modifican el precio.
         </div>
       </div>
 
       {error && (
-        <div className="border-t border-red-100 bg-red-50 px-4 py-3 text-[11px] font-semibold text-red-700">
+        <div className="border-t border-red-100 bg-red-50 px-4 py-3 alento-ui-label text-red-700">
           {error}
         </div>
       )}
