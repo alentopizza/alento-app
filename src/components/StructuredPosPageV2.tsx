@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Bike,
+  ChevronDown,
   MapPin,
   Pencil,
   Search,
@@ -84,6 +85,7 @@ export default function StructuredPosPageV2() {
   const [activeCategory, setActiveCategory] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType | null>(null);
+  const [orderTypeOpen, setOrderTypeOpen] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [query, setQuery] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -887,7 +889,72 @@ export default function StructuredPosPageV2() {
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4">
               <div className="mb-3 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                 <div className="space-y-3">
-                <div><p className="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">Tipo de pedido</p><div className="grid grid-cols-3 gap-1.5 rounded-[16px] border border-neutral-200 bg-white p-1.5">{fulfillmentOptions.map((option) => { const selected = fulfillmentType === option.type; return <button key={option.type} onClick={() => setFulfillmentType(option.type)} className={`flex min-h-[52px] items-center justify-center gap-2 rounded-[12px] px-2 text-center transition ${selected ? "bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_6px_16px_rgba(226,26,34,.22)]" : "text-neutral-700 hover:bg-neutral-50"}`}><option.icon className="h-[17px] w-[17px]" strokeWidth={2.15} /><b className="text-[11px] leading-4">{option.shortTitle}</b></button>; })}</div></div>
+                <div className="rounded-[18px] border border-neutral-200 bg-white p-2.5 shadow-[0_6px_18px_rgba(28,23,20,.04)]">
+                  <button
+                    type="button"
+                    onClick={() => setOrderTypeOpen((current) => !current)}
+                    className="flex w-full items-center justify-between gap-3 rounded-[14px] px-1.5 py-1 text-left"
+                    aria-expanded={orderTypeOpen}
+                  >
+                    <div className="min-w-0">
+                      <p className="alento-ui-label uppercase text-neutral-400">
+                        Tipo de pedido
+                      </p>
+                      <div className="mt-1.5 flex items-center gap-2.5">
+                        {(() => {
+                          const current = fulfillmentOptions.find(
+                            (option) => option.type === fulfillmentType,
+                          );
+                          const CurrentIcon = current?.icon ?? ShoppingBag;
+                          return (
+                            <>
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white">
+                                <CurrentIcon className="h-4 w-4" strokeWidth={2.1} />
+                              </span>
+                              <span className="min-w-0">
+                                <b className="alento-ui-control block truncate text-neutral-950">
+                                  {current?.title ?? "Selecciona el tipo"}
+                                </b>
+                                <span className="alento-ui-micro block text-neutral-500">
+                                  {current ? "Configuración del pedido" : "Domicilio, recoger o local"}
+                                </span>
+                              </span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-[#faf9f7] text-neutral-500">
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${orderTypeOpen ? "rotate-180" : ""}`}
+                        strokeWidth={2.2}
+                      />
+                    </span>
+                  </button>
+
+                  {orderTypeOpen && (
+                    <div className="mt-2.5 grid grid-cols-3 gap-1.5 rounded-[15px] border border-neutral-200 bg-[#f7f6f3] p-1.5">
+                      {fulfillmentOptions.map((option) => {
+                        const selected = fulfillmentType === option.type;
+                        return (
+                          <button
+                            key={option.type}
+                            type="button"
+                            onClick={() => {
+                              setFulfillmentType(option.type);
+                              setOrderTypeOpen(false);
+                            }}
+                            className={`flex min-h-[56px] flex-col items-center justify-center gap-1 rounded-[12px] px-2 text-center transition ${selected ? "bg-[linear-gradient(135deg,#ef1d26,#c90f16)] text-white shadow-[0_7px_16px_rgba(226,26,34,.22)]" : "bg-white text-neutral-700 hover:bg-neutral-50"}`}
+                          >
+                            <option.icon className="h-[18px] w-[18px]" strokeWidth={2.15} />
+                            <b className="alento-ui-control">{option.shortTitle}</b>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <div><p className="mb-1.5 text-[11px] font-black">2. Cliente <span className={`ml-1 text-[10px] uppercase ${requiresCustomer ? "text-[var(--brand-red)]" : "text-neutral-400"}`}>{requiresCustomer ? "Obligatorio" : "Opcional"}</span></p>{selectedCustomer ? <div className="rounded-[16px] border border-neutral-200 bg-white p-3 shadow-[0_4px_14px_rgba(25,22,18,0.035)]"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-600"><UserRound className="h-5 w-5" strokeWidth={2} /></span><div className="min-w-0"><b className="block truncate text-sm">{selectedCustomer.name}</b><span className="text-xs text-neutral-500">{selectedCustomer.countryCode} {selectedCustomer.phone}</span>{fulfillmentType === "DELIVERY" && selectedAddress?.address && <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-neutral-500"><MapPin className="h-3 w-3 shrink-0" />{selectedAddress.address}</span>}</div></div><div className="flex gap-1.5"><button onClick={() => openEditCustomer(selectedCustomer)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Editar cliente"><Pencil className="h-4 w-4" /></button><button onClick={() => { setSelectedCustomer(null); setQuery(""); }} className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Cambiar cliente"><UserRound className="h-4 w-4" /></button></div></div>{fulfillmentType === "DELIVERY" && !hasDeliveryAddress && (
                   <button
                     type="button"
@@ -1000,89 +1067,197 @@ export default function StructuredPosPageV2() {
               </div>
             </div>
 
-            <div className="mb-3 flex items-end justify-between gap-3"><div><p className="text-[9px] font-black uppercase tracking-[0.16em] text-neutral-400">Productos</p><h2 className="mt-1 text-[22px] font-black tracking-[-0.025em]">{cartCount ? `${cartCount} producto${cartCount === 1 ? "" : "s"}` : "Sin productos"}</h2>{selectedCustomer && <p className="text-xs text-neutral-500">Para {selectedCustomer.name}</p>}</div>{fulfillmentType && <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase text-neutral-500">{fulfillmentOptions.find((option) => option.type === fulfillmentType)?.title}</span>}</div>
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div>
+                <p className="alento-ui-label uppercase text-neutral-400">
+                  Productos
+                </p>
+                <h2 className="alento-ui-title mt-1 text-neutral-950">
+                  {cartCount
+                    ? `${cartCount} producto${cartCount === 1 ? "" : "s"}`
+                    : "Sin productos"}
+                </h2>
+                {selectedCustomer && (
+                  <p className="alento-ui-body mt-0.5 text-neutral-500">
+                    Para {selectedCustomer.name}
+                  </p>
+                )}
+              </div>
 
-            {cart.length ? <div className="space-y-2">{cart.map((item) => <PosCartLine key={item.key} item={item} editable={item.configuration.kind === "PIZZA" || item.configuration.kind === "COMBO"} onEdit={() => editCartItem(item)} onChangeQty={(delta) => changeQty(item.key, delta)} />)}</div> : <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-400">Agrega productos al pedido.</div>}
+              {fulfillmentType && (
+                <span className="alento-ui-label rounded-full border border-neutral-200 bg-white px-2.5 py-1 uppercase text-neutral-500">
+                  {fulfillmentOptions.find(
+                    (option) => option.type === fulfillmentType,
+                  )?.title}
+                </span>
+              )}
+            </div>
+
+            {cart.length ? (
+              <div className="space-y-2">
+                {cart.map((item) => (
+                  <PosCartLine
+                    key={item.key}
+                    item={item}
+                    editable={
+                      item.configuration.kind === "PIZZA" ||
+                      item.configuration.kind === "COMBO"
+                    }
+                    onEdit={() => editCartItem(item)}
+                    onChangeQty={(delta) => changeQty(item.key, delta)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-[190px] flex-col items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-[#faf9f7] p-8 text-center">
+                <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-400 shadow-sm">
+                  <ShoppingCart className="h-5 w-5" strokeWidth={2} />
+                </span>
+                <b className="alento-ui-control text-neutral-700">
+                  Agrega productos al pedido
+                </b>
+                <p className="alento-ui-micro mt-1 text-neutral-500">
+                  Selecciona productos del catálogo para comenzar.
+                </p>
+              </div>
+            )}
 
             </div>
 
             <div className="shrink-0 border-t border-neutral-200 bg-white p-4">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Subtotal</span>
-                <b>{formatCOP(subtotal)}</b>
-              </div>
-
-              {fulfillmentType === "DELIVERY" && (
-                <div className="mt-2">
+              <div className="rounded-[22px] border border-neutral-900/5 bg-[linear-gradient(135deg,#111113,#1b1a1f)] p-4 text-white shadow-[0_12px_28px_rgba(20,16,14,.14)]">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-neutral-500">Domicilio</span>
-                    {deliveryQuoteLoading ? (
-                      <b className="text-[var(--brand-red)]">Calculando...</b>
-                    ) : deliveryQuote?.covered && deliveryQuote.deliveryFee != null ? (
-                      <div className="flex items-center gap-2">
-                        {deliveryFeeOverride !== null && (
-                          <span className="text-[10px] font-bold text-neutral-400 line-through">
-                            {formatCOP(automaticDeliveryFee)}
-                          </span>
-                        )}
-                        <label className="flex h-9 items-center gap-1 rounded-xl border border-neutral-200 bg-neutral-50 px-2.5 shadow-inner focus-within:border-[var(--brand-red)] focus-within:bg-white">
-                          <Pencil className="h-3 w-3 text-neutral-400" strokeWidth={2.2} />
-                          <span className="text-xs font-black text-neutral-500">$</span>
-                          <input
-                            value={deliveryFeeOverrideInput ?? String(automaticDeliveryFee)}
-                            onFocus={(event) => event.currentTarget.select()}
-                            onChange={(event) => {
-                              setDeliveryFeeOverrideInput(event.target.value.replace(/\D/g, "").slice(0, 9));
-                            }}
-                            inputMode="numeric"
-                            aria-label="Valor de domicilio"
-                            className="w-[72px] bg-transparent text-right text-sm font-black text-[var(--brand-red)] outline-none"
-                          />
-                        </label>
-                      </div>
-                    ) : (
-                      <b className="text-[var(--brand-red)]">Pendiente</b>
-                    )}
+                    <span className="alento-ui-body text-white/60">
+                      Subtotal
+                    </span>
+                    <b className="alento-ui-status text-white">
+                      {formatCOP(subtotal)}
+                    </b>
                   </div>
 
-                  {deliveryQuote?.covered && deliveryQuote.deliveryFee != null && (
-                    <div className="mt-1.5 flex items-center justify-end gap-2 text-[9px] font-semibold text-neutral-400">
-                      <span>Tarifa calculada {formatCOP(automaticDeliveryFee)}</span>
-                      {deliveryFeeOverride !== null && (
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryFeeOverrideInput(null)}
-                          className="font-black text-[var(--brand-red)] hover:underline"
-                        >
-                          Restaurar
-                        </button>
-                      )}
+                  {fulfillmentType === "DELIVERY" && (
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <span className="alento-ui-body text-white/60">
+                            Domicilio
+                          </span>
+                          {deliveryQuote?.covered &&
+                            deliveryQuote.deliveryFee != null && (
+                              <p className="alento-ui-micro mt-1 text-white/35">
+                                Tarifa calculada {formatCOP(automaticDeliveryFee)}
+                              </p>
+                            )}
+                        </div>
+
+                        {deliveryQuoteLoading ? (
+                          <b className="alento-ui-control text-red-300">
+                            Calculando...
+                          </b>
+                        ) : deliveryQuote?.covered &&
+                          deliveryQuote.deliveryFee != null ? (
+                          <div className="flex items-center gap-2">
+                            {deliveryFeeOverride !== null && (
+                              <span className="alento-ui-micro text-white/35 line-through">
+                                {formatCOP(automaticDeliveryFee)}
+                              </span>
+                            )}
+                            <label className="flex h-10 items-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] px-2.5 shadow-inner focus-within:border-red-400/50 focus-within:bg-white/[0.09]">
+                              <Pencil
+                                className="h-3 w-3 text-white/40"
+                                strokeWidth={2.2}
+                              />
+                              <span className="alento-ui-control text-white/45">
+                                $
+                              </span>
+                              <input
+                                value={
+                                  deliveryFeeOverrideInput ??
+                                  String(automaticDeliveryFee)
+                                }
+                                onFocus={(event) =>
+                                  event.currentTarget.select()
+                                }
+                                onChange={(event) => {
+                                  setDeliveryFeeOverrideInput(
+                                    event.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 9),
+                                  );
+                                }}
+                                inputMode="numeric"
+                                aria-label="Valor de domicilio"
+                                className="w-[78px] bg-transparent text-right text-[15px] font-semibold text-red-300 outline-none"
+                              />
+                            </label>
+                          </div>
+                        ) : (
+                          <b className="alento-ui-control text-red-300">
+                            Pendiente
+                          </b>
+                        )}
+                      </div>
+
+                      {deliveryFeeOverride !== null &&
+                        deliveryQuote?.covered &&
+                        deliveryQuote.deliveryFee != null && (
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDeliveryFeeOverrideInput(null)
+                              }
+                              className="alento-ui-micro text-red-300 transition hover:text-red-200"
+                            >
+                              Restaurar tarifa calculada
+                            </button>
+                          </div>
+                        )}
                     </div>
                   )}
+
+                  {fulfillmentType === "DELIVERY" &&
+                    deliveryQuoteError && (
+                      <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2">
+                        <p className="alento-ui-micro text-red-200">
+                          {deliveryQuoteError}
+                        </p>
+                      </div>
+                    )}
+
+                  <div className="border-t border-dashed border-white/12 pt-3">
+                    <div className="flex items-end justify-between gap-3">
+                      <div>
+                        <span className="alento-ui-label uppercase text-white/45">
+                          Total
+                        </span>
+                        <p className="alento-ui-micro mt-1 text-white/35">
+                          Valor final a cobrar
+                        </p>
+                      </div>
+                      <b className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[#ff3439]">
+                        {formatCOP(orderTotal)}
+                      </b>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              {fulfillmentType === "DELIVERY" && deliveryQuoteError && (
-                <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[10px] font-semibold leading-4 text-red-600">
-                  {deliveryQuoteError}
-                </p>
-              )}
-
-              <div className="mt-3 flex items-end justify-between border-t border-dashed pt-3">
-                <b>Total</b>
-                <b className="text-2xl text-[var(--brand-red)]">
-                  {formatCOP(orderTotal)}
-                </b>
+                <button
+                  type="button"
+                  onClick={() => setCheckoutOpen(true)}
+                  disabled={!canContinue}
+                  className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,#ef1d26,#c90f16)] px-4 text-white shadow-[0_10px_22px_rgba(226,26,34,.24)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none"
+                >
+                  <ShoppingCart
+                    className="h-4 w-4"
+                    strokeWidth={2.2}
+                  />
+                  <span className="alento-ui-control">
+                    Continuar pedido
+                  </span>
+                </button>
               </div>
-
-              <button
-                onClick={() => setCheckoutOpen(true)}
-                disabled={!canContinue}
-                className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-[linear-gradient(135deg,#ef1d26,#d4131a)] px-4 text-sm font-black text-white shadow-[0_8px_20px_rgba(226,26,34,.22)] transition hover:brightness-105 disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
-              >
-                <ShoppingCart className="h-[17px] w-[17px]" strokeWidth={2.2} />
-                Continuar pedido
-              </button>
             </div>
           </aside>
         </section>
