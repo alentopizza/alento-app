@@ -35,7 +35,6 @@ type PaymentMethodSetting = {
 type PosSettings = {
   store: {
     address: string;
-    mapsUrl: string;
     placeId: string;
     latitude: number | null;
     longitude: number | null;
@@ -62,7 +61,6 @@ function defaultBandName(fee: number, index: number) {
 const DEFAULT_POS_SETTINGS: PosSettings = {
   store: {
     address: "Av. Calle 43 Sur #79A-33, Bogotá",
-    mapsUrl: "https://maps.app.goo.gl/po5MesvuTLifpwyz7",
     placeId: "",
     latitude: null,
     longitude: null,
@@ -95,7 +93,6 @@ function normalizeSettings(value: unknown): PosSettings {
   const store = raw.store && typeof raw.store === "object"
     ? {
         address: typeof raw.store.address === "string" ? raw.store.address : DEFAULT_POS_SETTINGS.store.address,
-        mapsUrl: typeof raw.store.mapsUrl === "string" ? raw.store.mapsUrl : DEFAULT_POS_SETTINGS.store.mapsUrl,
         placeId: typeof raw.store.placeId === "string" ? raw.store.placeId : "",
         latitude: Number.isFinite(Number(raw.store.latitude)) ? Number(raw.store.latitude) : null,
         longitude: Number.isFinite(Number(raw.store.longitude)) ? Number(raw.store.longitude) : null,
