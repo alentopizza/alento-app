@@ -733,25 +733,27 @@ export default function SettingsPage() {
           )}
 
           {activeSection === "DELIVERY" && (
-            <div className="grid gap-4 xl:grid-cols-[minmax(520px,.94fr)_minmax(0,1.06fr)] xl:items-start">
+            <div className="grid gap-4 xl:grid-cols-[minmax(620px,1fr)_minmax(0,1fr)] xl:items-start">
               <div>
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="alento-ui-label uppercase text-neutral-400">
                       Domicilios
                     </p>
-                    <h2 className="alento-ui-title mt-1 text-neutral-950">
-                      Cobertura y tarifas
-                    </h2>
-                    <p className="alento-ui-body mt-1 max-w-2xl text-neutral-500">
-                      Define los rangos de distancia y cuánto se cobra en cada
-                      zona.
-                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h2 className="alento-ui-title text-neutral-950">
+                        Cobertura y tarifas
+                      </h2>
+                      <p className="alento-ui-micro text-neutral-500">
+                        Define distancia y valor por zona.
+                      </p>
+                    </div>
                   </div>
+
                   <button
                     type="button"
                     onClick={addDeliveryBand}
-                    className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
+                    className="alento-ui-control flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
                     aria-label="Agregar zona"
                     title="Agregar zona"
                   >
@@ -759,20 +761,21 @@ export default function SettingsPage() {
                   </button>
                 </div>
 
-                <div className="mb-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+                <div className="mb-2 grid grid-cols-3 gap-1.5">
+                  <div className="flex min-h-[46px] items-center justify-between gap-2 rounded-[12px] border border-neutral-200 bg-[#faf9f7] px-2.5 py-2">
                     <span className="alento-ui-micro uppercase text-neutral-400">
-                      Zonas activas
+                      Zonas
                     </span>
-                    <b className="alento-ui-status mt-1 block text-neutral-950">
+                    <b className="alento-ui-status text-neutral-950">
                       {activeDeliveryBands}
                     </b>
                   </div>
-                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+
+                  <div className="flex min-h-[46px] items-center justify-between gap-2 rounded-[12px] border border-neutral-200 bg-[#faf9f7] px-2.5 py-2">
                     <span className="alento-ui-micro uppercase text-neutral-400">
                       Cobertura
                     </span>
-                    <b className="alento-ui-status mt-1 block text-neutral-950">
+                    <b className="alento-ui-status text-neutral-950">
                       {(() => {
                         const active = settings.deliveryBands.filter(
                           (band) => band.active,
@@ -788,11 +791,12 @@ export default function SettingsPage() {
                       })()}
                     </b>
                   </div>
-                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
-                    <span className="alento-ui-micro uppercase text-neutral-400">
-                      Tarifa máxima
+
+                  <div className="flex min-h-[46px] items-center justify-between gap-2 rounded-[12px] border border-red-100 bg-red-50 px-2.5 py-2">
+                    <span className="alento-ui-micro uppercase text-red-400">
+                      Máxima
                     </span>
-                    <b className="alento-ui-status mt-1 block text-[var(--brand-red)]">
+                    <b className="alento-ui-status text-[var(--brand-red)]">
                       {formatCOP(
                         settings.deliveryBands.length
                           ? Math.max(
@@ -807,23 +811,26 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="mb-3 rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2.5">
-                  <p className="alento-ui-micro leading-5 text-blue-800">
-                    Los rangos activos deben ser continuos. La última zona
-                    activa define el límite máximo de cobertura.
+                <div className="mb-2 rounded-[12px] border border-blue-100 bg-blue-50 px-2.5 py-2">
+                  <p className="alento-ui-micro text-blue-800">
+                    Los rangos activos deben ser continuos; la última zona define
+                    la cobertura máxima.
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {[...settings.deliveryBands]
                     .sort((a, b) => a.minMeters - b.minMeters)
                     .map((band, index) => (
                       <article
                         key={band.id}
-                        className={`rounded-[17px] border p-3 ${band.active ? "border-emerald-200 bg-emerald-50/45" : "border-neutral-200 bg-[#faf9f7]"}`}
+                        className={`rounded-[14px] border p-2.5 transition ${band.active ? "border-emerald-200 bg-emerald-50/35" : "border-neutral-200 bg-[#faf9f7]"}`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
+                        <div className="grid gap-2 sm:grid-cols-[minmax(150px,1.45fr)_90px_90px_110px_auto_auto] sm:items-end">
+                          <label className="min-w-0">
+                            <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
+                              Zona
+                            </span>
                             <input
                               value={band.name}
                               onChange={(event) =>
@@ -831,42 +838,16 @@ export default function SettingsPage() {
                                   name: event.target.value,
                                 })
                               }
-                              className="alento-ui-control h-9 w-full rounded-xl border border-neutral-200 bg-white px-3 font-bold outline-none focus:border-neutral-400"
+                              className="alento-ui-control h-9 w-full rounded-[10px] border border-neutral-200 bg-white px-2.5 font-bold outline-none focus:border-neutral-400"
                               aria-label={`Nombre de zona ${index + 1}`}
                             />
-                          </div>
+                          </label>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateDeliveryBand(band.id, {
-                                active: !band.active,
-                              })
-                            }
-                            className={`alento-ui-label h-9 shrink-0 rounded-xl px-3 transition ${band.active ? "bg-emerald-600 text-white" : "bg-neutral-200 text-neutral-500"}`}
-                            aria-pressed={band.active}
-                          >
-                            {band.active ? "Activa" : "Inactiva"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => removeDeliveryBand(band.id)}
-                            disabled={settings.deliveryBands.length <= 1}
-                            className="alento-ui-label flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 disabled:opacity-30"
-                            aria-label={`Eliminar ${band.name || `zona ${index + 1}`}`}
-                            title="Eliminar zona"
-                          >
-                            ×
-                          </button>
-                        </div>
-
-                        <div className="mt-2 grid grid-cols-3 gap-2">
-                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
-                            <span className="alento-ui-micro uppercase text-neutral-400">
+                          <label>
+                            <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
                               Desde
                             </span>
-                            <div className="mt-0.5 flex items-center gap-1">
+                            <div className="flex h-9 items-center rounded-[10px] border border-neutral-200 bg-white px-2">
                               <input
                                 type="number"
                                 min={0}
@@ -888,11 +869,11 @@ export default function SettingsPage() {
                             </div>
                           </label>
 
-                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
-                            <span className="alento-ui-micro uppercase text-neutral-400">
+                          <label>
+                            <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
                               Hasta
                             </span>
-                            <div className="mt-0.5 flex items-center gap-1">
+                            <div className="flex h-9 items-center rounded-[10px] border border-neutral-200 bg-white px-2">
                               <input
                                 type="number"
                                 min={0}
@@ -914,12 +895,12 @@ export default function SettingsPage() {
                             </div>
                           </label>
 
-                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
-                            <span className="alento-ui-micro uppercase text-neutral-400">
+                          <label>
+                            <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
                               Tarifa
                             </span>
-                            <div className="mt-0.5 flex items-center gap-1">
-                              <span className="alento-ui-micro text-neutral-400">
+                            <div className="flex h-9 items-center rounded-[10px] border border-neutral-200 bg-white px-2">
+                              <span className="alento-ui-micro mr-1 text-neutral-400">
                                 $
                               </span>
                               <input
@@ -939,27 +920,30 @@ export default function SettingsPage() {
                               />
                             </div>
                           </label>
-                        </div>
 
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <span className="alento-ui-micro rounded-full bg-white px-2 py-1 text-neutral-500 shadow-sm">
-                            {(band.minMeters / 1000).toFixed(
-                              band.minMeters % 1000 === 0 ? 0 : 1,
-                            )}{" "}
-                            km →{" "}
-                            {(band.maxMeters / 1000).toFixed(
-                              band.maxMeters % 1000 === 0 ? 0 : 1,
-                            )}{" "}
-                            km
-                          </span>
-                          <span className="alento-ui-micro rounded-full bg-white px-2 py-1 text-neutral-500 shadow-sm">
-                            {formatCOP(band.fee)}
-                          </span>
-                          {band.active && (
-                            <span className="alento-ui-micro rounded-full bg-emerald-100 px-2 py-1 font-bold text-emerald-700">
-                              Incluida en cobertura
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDeliveryBand(band.id, {
+                                active: !band.active,
+                              })
+                            }
+                            className={`alento-ui-label h-9 rounded-[10px] px-3 transition ${band.active ? "bg-emerald-600 text-white" : "bg-neutral-200 text-neutral-500"}`}
+                            aria-pressed={band.active}
+                          >
+                            {band.active ? "Activa" : "Inactiva"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => removeDeliveryBand(band.id)}
+                            disabled={settings.deliveryBands.length <= 1}
+                            className="alento-ui-label flex h-9 w-9 items-center justify-center rounded-[10px] border border-red-200 bg-white text-red-600 transition hover:bg-red-50 disabled:opacity-30"
+                            aria-label={`Eliminar ${band.name || `zona ${index + 1}`}`}
+                            title="Eliminar zona"
+                          >
+                            ×
+                          </button>
                         </div>
                       </article>
                     ))}
@@ -975,7 +959,7 @@ export default function SettingsPage() {
                     bands={settings.deliveryBands}
                   />
                 ) : (
-                  <div className="flex min-h-[480px] items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-[#faf9f7] p-8 text-center">
+                  <div className="flex min-h-[420px] items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-[#faf9f7] p-8 text-center">
                     <div>
                       <MapPinned className="mx-auto h-7 w-7 text-neutral-300" />
                       <b className="alento-ui-status mt-3 block text-neutral-700">
