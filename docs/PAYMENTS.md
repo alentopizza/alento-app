@@ -207,9 +207,16 @@ Desde `/configuracion`:
 
 El servidor normaliza `pos_settings.paymentMethods` contra esta lista canónica para evitar que una edición manual o un cliente antiguo altere nombres o elimine medios base.
 
-La sección Pagos de Configuración muestra analítica histórica usando exclusivamente movimientos:
+La sección Pagos de Configuración muestra analítica por rango de fechas usando exclusivamente movimientos:
 
 `Payment.status = PAID`
+
+El rango usa días calendario de Bogotá (`America/Bogota`) sobre `Payment.paidAt`. Por defecto se muestra el mes actual hasta hoy y la interfaz permite:
+
+- seleccionar fecha inicial y final;
+- consultar solo hoy;
+- volver rápidamente al mes actual;
+- usar la misma fecha inicial/final para consultar un día específico.
 
 Por cada medio se expone:
 
@@ -217,6 +224,10 @@ Por cada medio se expone:
 - monto recaudado;
 - porcentaje de uso por cantidad de transacciones;
 - porcentaje de participación sobre el valor cobrado;
-- último uso registrado.
+- último uso registrado dentro del rango.
+
+Los porcentajes y totales principales se calculan únicamente sobre los cinco medios canónicos visibles. Si existen pagos históricos/importados cuyo `Payment.method` no coincide con un nombre o ID canónico, se informan como **histórico sin clasificar** y no distorsionan el ranking.
 
 Los `PENDING` del POS siguen siendo intención de pago y no participan en estas estadísticas.
+
+La analítica se sirve desde `GET /api/settings/payment-stats?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`; `GET /api/settings` permanece dedicado a configuración operativa para no añadir consultas analíticas al flujo normal del POS.
