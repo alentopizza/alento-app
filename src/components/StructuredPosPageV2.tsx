@@ -812,34 +812,34 @@ export default function StructuredPosPageV2() {
                 {visibleCatalogProducts.map((product) => (
                   <article
                     key={product.id}
-                    className="group relative overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_10px_28px_rgba(28,23,20,.075)] transition duration-200 hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_18px_38px_rgba(28,23,20,.13)]"
+                    className="alento-product-card group relative"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[linear-gradient(145deg,#fff,#f7f5f1)]">
+                    <div className="alento-product-card-media">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-[1.025]"
+                          className="alento-product-card-image"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-[linear-gradient(145deg,#f7f6f3,#ece8e2)] text-5xl">🍕</div>
                       )}
                     </div>
 
-                    <div className="bg-[linear-gradient(135deg,#111113,#1d191a)] p-4 text-white">
-                      <h3 className="truncate text-[17px] font-medium leading-6 tracking-[-0.01em] text-white">
+                    <div className="alento-product-card-body">
+                      <h3 className="alento-product-card-title">
                         {product.name}
                       </h3>
 
-                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/12 pt-3">
-                        <span className="min-w-0 truncate text-[17px] font-semibold leading-6 tracking-[-0.015em] text-white">
+                      <div className="alento-product-card-footer">
+                        <span className="alento-product-card-price">
                           {displayPrice(product)}
                         </span>
 
                         <button
                           type="button"
                           onClick={() => startAdd(product)}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-[22px] font-medium leading-none text-white shadow-[0_8px_18px_rgba(226,26,34,.30)] transition hover:scale-[1.06] hover:brightness-110 active:scale-95"
+                          className="alento-product-card-action"
                           aria-label={`Agregar ${product.name}`}
                           title={`Agregar ${product.name}`}
                         >
