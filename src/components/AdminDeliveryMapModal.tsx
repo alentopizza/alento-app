@@ -17,6 +17,10 @@ import {
   deliveryTravelModeLabel,
   type DeliveryTravelMode,
 } from "@/lib/deliveryTravelMode";
+import {
+  loadGoogleMapsClient,
+  type GoogleMapsImportRuntime,
+} from "@/lib/googleMapsClient";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -80,6 +84,8 @@ type MapOrder = {
   customerName: string;
   total: number;
   deliveryFee: number;
+  deliveryZoneName: string | null;
+  deliveryDistanceMeters: number | null;
   deliveryTravelMode: DeliveryTravelMode | null;
   paidAmount: number;
   balance: number;
@@ -155,9 +161,8 @@ type GoogleBounds = {
   extend: (point: { lat: number; lng: number }) => void;
 };
 
-type GoogleRuntime = {
-  maps: {
-    importLibrary: (name: string) => Promise<unknown>;
+type GoogleRuntime = GoogleMapsImportRuntime & {
+  maps: GoogleMapsImportRuntime["maps"] & {
     Map: new (
       element: HTMLElement,
       options: Record<string, unknown>,
@@ -174,63 +179,7 @@ type GoogleRuntime = {
   };
 };
 
-function getGoogle() {
-  return (window as typeof window & { google?: GoogleRuntime }).google;
-}
-
-function installGoogleMaps(key: string) {
-  if (getGoogle()?.maps?.importLibrary) return;
-
-  const id = "alento-admin-delivery-map-google";
-  if (document.getElementById(id)) return;
-
-  const script = document.createElement("script");
-  script.id = id;
-  script.textContent = `
-    (g=>{
-      var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",
-        q="__ib__",m=document,b=window;
-      b=b[c]||(b[c]={});
-      var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,
-        u=()=>h||(h=new Promise(async(f,n)=>{
-          await (a=m.createElement("script"));
-          e.set("libraries",[...r]+"");
-          for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);
-          e.set("callback",c+"."+ "maps" +"."+q);
-          a.src="https://maps."+c+"apis.com/maps/api/js?"+e;
-          d[q]=f;
-          a.onerror=()=>h=n(Error(p+" could not load."));
-          a.nonce=m.querySelector("script[nonce]")?.nonce||"";
-          m.head.append(a)
-        }));
-      d[l]
-        ? console.warn(p+" only loads once. Ignoring:",g)
-        : d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))
-    })({
-      key: "__KEY__",
-      v: "weekly",
-      language: "es",
-      region: "CO"
-    });
-  `.replace('"__KEY__"', JSON.stringify(key));
-
-  document.head.appendChild(script);
-}
-
-async function loadGoogleMaps() {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
-  if (!key) throw new Error("Google Maps no está configurado.");
-
-  installGoogleMaps(key);
-
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    const runtime = getGoogle();
-    if (runtime?.maps?.importLibrary) return runtime;
-    await new Promise((resolve) => window.setTimeout(resolve, 100));
-  }
-
-  throw new Error("No fue posible iniciar Google Maps.");
-}
+type MapFilter = "ALL" | "UNASSIGNED" | "ASSIGNED" | "IN_ROUTE";
 
 function formatStatus(status: string) {
   const labels: Record<string, string> = {
@@ -353,6 +302,7 @@ export default function AdminDeliveryMapModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [gpsNow, setGpsNow] = useState(0);
+  const [mapFilter, setMapFilter] = useState<MapFilter>("ALL");
 
   const mergePayload = useCallback((next: MapPayload) => {
     setData((current) => {
@@ -474,7 +424,7 @@ export default function AdminDeliveryMapModal({
     async (payload: MapPayload) => {
       if (!mapHostRef.current) return;
 
-      const google = await loadGoogleMaps();
+      const google = await loadGoogleMapsClient<GoogleRuntime>();
       await google.maps.importLibrary("maps");
       await google.maps.importLibrary("geometry");
       const { AdvancedMarkerElement } =
@@ -534,6 +484,18 @@ export default function AdminDeliveryMapModal({
         points += 1;
       }
 
+      const visibleOrders = payload.orders.filter((order) => {
+        if (mapFilter === "UNASSIGNED") return order.driver == null;
+        if (mapFilter === "ASSIGNED") return order.driver != null;
+        if (mapFilter === "IN_ROUTE") {
+          return ["OUT_FOR_DELIVERY", "ARRIVED"].includes(order.status);
+        }
+        return true;
+      });
+      const visibleOrderIds = new Set(
+        visibleOrders.map((order) => order.id),
+      );
+
       const routeStopByOrder = new Map<
         number,
         { stopNumber: number; color: string; driverName: string }
@@ -541,6 +503,7 @@ export default function AdminDeliveryMapModal({
 
       payload.trips.forEach((trip) => {
         trip.stops.forEach((stop) => {
+          if (!visibleOrderIds.has(stop.orderId)) return;
           routeStopByOrder.set(stop.orderId, {
             stopNumber: stop.stopNumber,
             color: deliveryTravelModeColor(stop.travelMode),
@@ -549,7 +512,7 @@ export default function AdminDeliveryMapModal({
         });
       });
 
-      const ordersWithDestination = payload.orders.filter(
+      const ordersWithDestination = visibleOrders.filter(
         (
           order,
         ): order is MapOrder & {
@@ -717,7 +680,9 @@ export default function AdminDeliveryMapModal({
         if (!google.maps.geometry?.encoding?.decodePath) return;
 
         trip.legs.forEach((leg) => {
-          if (!leg.encodedPolyline) return;
+          if (!visibleOrderIds.has(leg.orderId) || !leg.encodedPolyline) {
+            return;
+          }
 
           const path = google.maps.geometry!.encoding!.decodePath(
             leg.encodedPolyline,
@@ -754,6 +719,7 @@ export default function AdminDeliveryMapModal({
     },
     [
       expandedLocationCluster,
+      mapFilter,
       selectedDriverId,
       selectedOrderId,
     ],
@@ -787,6 +753,7 @@ export default function AdminDeliveryMapModal({
     setSelectedAssignDriverId(null);
     setAssigningOrderId(null);
     setActionNotice(null);
+    setMapFilter("ALL");
     setError("");
   }, [open]);
 
