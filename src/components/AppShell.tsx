@@ -318,6 +318,9 @@ export default function AppShell({
       itemIsActive(pathname, item.href),
     ) ?? null;
 
+  const staffHomeHref =
+    visibleItems[0]?.href ?? "/sin-acceso";
+
   const roleText =
     roles
       .map((role) => ROLE_LABELS[role] ?? role)
@@ -333,7 +336,7 @@ export default function AppShell({
     >
       <header className="sticky top-0 z-[145] flex h-[66px] items-center justify-between border-b border-white/10 bg-[#0b0b0c]/96 px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,.22)] backdrop-blur-xl lg:hidden">
         <Link
-          href="/interno"
+          href={staffHomeHref}
           className="flex min-w-0 items-center gap-2.5"
           aria-label="Ir al inicio interno"
         >
@@ -383,7 +386,7 @@ export default function AppShell({
           <aside className="absolute inset-y-0 left-0 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/10 bg-[#0b0b0c] text-white shadow-[18px_0_60px_rgba(0,0,0,.42)]">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
               <Link
-                href="/interno"
+                href={staffHomeHref}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex min-w-0 items-center gap-3"
               >
@@ -524,7 +527,7 @@ export default function AppShell({
             sidebarCollapsed ? "px-[18px]" : "px-4"
           }`}
         >
-          <Link href="/interno" className="block min-w-0">
+          <Link href={staffHomeHref} className="block min-w-0">
             <div
               className={`flex items-start gap-3 ${
                 sidebarCollapsed ? "justify-center" : ""
