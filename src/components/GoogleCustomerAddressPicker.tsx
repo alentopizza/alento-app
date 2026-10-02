@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import GoogleAddressSearch, {
+  type GoogleAddressSearchSelection,
+} from "@/components/GoogleAddressSearch";
 import {
   createAlentoMapPinElement,
   createDeliveryMapPinElement,
@@ -80,39 +83,6 @@ type GoogleMapsRuntime = {
       };
     };
   };
-};
-
-type PlaceLocationValue = number | (() => number);
-
-type AddressComponent = {
-  longText?: string;
-  shortText?: string;
-  types?: string[];
-};
-
-type GooglePlace = {
-  id?: string;
-  formattedAddress?: string;
-  addressComponents?: AddressComponent[];
-  location?: {
-    lat?: PlaceLocationValue;
-    lng?: PlaceLocationValue;
-  };
-  fetchFields: (options: { fields: string[] }) => Promise<void>;
-};
-
-type PlaceSelectEvent = Event & {
-  placePrediction: {
-    toPlace: () => GooglePlace;
-  };
-};
-
-type PlaceAutocompleteElementInstance = HTMLElement & {
-  placeholder: string;
-};
-
-type PlacesLibrary = {
-  PlaceAutocompleteElement: new () => PlaceAutocompleteElementInstance;
 };
 
 type DeliveryQuote = {
@@ -195,17 +165,6 @@ async function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
   return runtime;
 }
 
-function componentValue(
-  components: AddressComponent[] | undefined,
-  types: string[],
-) {
-  return (
-    components?.find((component) =>
-      component.types?.some((type) => types.includes(type)),
-    )?.longText?.trim() ?? ""
-  );
-}
-
 function money(value: number | null | undefined) {
   if (value == null) return "Sin cobertura";
   return new Intl.NumberFormat("es-CO", {
@@ -241,7 +200,6 @@ export default function GoogleCustomerAddressPicker({
   };
   onSelect: (selection: GoogleCustomerAddressSelection) => void;
 }) {
-  const autocompleteHostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<GoogleMapInstance | null>(null);
   const originMarkerRef = useRef<GoogleMarkerInstance | null>(null);
@@ -250,7 +208,6 @@ export default function GoogleCustomerAddressPicker({
 
   const onSelectRef = useRef(onSelect);
   const [editing, setEditing] = useState(!currentAddress);
-  const [loading, setLoading] = useState(false);
   const [adjustingPin, setAdjustingPin] = useState(false);
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [error, setError] = useState("");
@@ -473,46 +430,14 @@ export default function GoogleCustomerAddressPicker({
   }, [drawMap]);
 
   const quotePlace = useCallback(
-    async (place: GooglePlace) => {
-      await place.fetchFields({
-        fields: [
-          "id",
-          "formattedAddress",
-          "location",
-          "addressComponents",
-        ],
-      });
-
-      const latitude =
-        typeof place.location?.lat === "function"
-          ? place.location.lat()
-          : Number(place.location?.lat);
-      const longitude =
-        typeof place.location?.lng === "function"
-          ? place.location.lng()
-          : Number(place.location?.lng);
-
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        throw new Error("Google no devolvió una ubicación válida.");
-      }
-
-      const neighborhood = componentValue(place.addressComponents, [
-        "neighborhood",
-        "sublocality_level_1",
-        "sublocality",
-      ]);
-      const city = componentValue(place.addressComponents, [
-        "locality",
-        "administrative_area_level_2",
-      ]);
-
+    async (selection: GoogleAddressSearchSelection) => {
       const data = await quoteCoordinates({
-        latitude,
-        longitude,
-        formattedAddress: place.formattedAddress ?? "",
-        placeId: place.id ?? "",
-        neighborhood,
-        city: city || "Bogotá",
+        latitude: selection.latitude,
+        longitude: selection.longitude,
+        formattedAddress: selection.formattedAddress,
+        placeId: selection.placeId,
+        neighborhood: selection.neighborhood,
+        city: selection.city || "Bogotá",
       });
 
       window.requestAnimationFrame(() => {
@@ -581,63 +506,6 @@ export default function GoogleCustomerAddressPicker({
   ]);
 
   useEffect(() => {
-    if (!editing) return;
-
-    let cancelled = false;
-    let autocomplete: PlaceAutocompleteElementInstance | null = null;
-    let listener: EventListener | null = null;
-
-    async function setup() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const google = await loadGoogleMaps();
-        const { PlaceAutocompleteElement } =
-          (await google.maps.importLibrary("places")) as PlacesLibrary;
-
-        if (cancelled || !autocompleteHostRef.current) return;
-
-        autocompleteHostRef.current.innerHTML = "";
-        autocomplete = new PlaceAutocompleteElement();
-        autocomplete.placeholder = "Busca la dirección en Google";
-        autocomplete.style.width = "100%";
-
-        listener = (event: Event) => {
-          const selected = event as PlaceSelectEvent;
-          void quotePlace(selected.placePrediction.toPlace()).catch((err) => {
-            setError(
-              err instanceof Error
-                ? err.message
-                : "No fue posible usar esa dirección.",
-            );
-          });
-        };
-
-        autocomplete.addEventListener("gmp-select", listener);
-        autocompleteHostRef.current.appendChild(autocomplete);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "No fue posible cargar Google Maps.",
-        );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void setup();
-
-    return () => {
-      cancelled = true;
-      if (autocomplete && listener) {
-        autocomplete.removeEventListener("gmp-select", listener);
-      }
-    };
-  }, [editing, quotePlace]);
-
-  useEffect(() => {
     if (!quote?.destination || editing) return;
     const frame = window.requestAnimationFrame(() => {
       void drawMap(quote);
@@ -675,24 +543,22 @@ export default function GoogleCustomerAddressPicker({
             <span className="alento-ui-label uppercase text-neutral-400">
               Google Maps
             </span>
-            <b className="mt-1 block text-[14px] text-neutral-900">
+            <b className="alento-ui-body mt-1 block font-bold text-neutral-900">
               Busca una referencia cercana
             </b>
-            <p className="mt-1 text-[10px] leading-4 text-neutral-400">
+            <p className="alento-ui-micro mt-1 leading-4 text-neutral-400">
               Si Google no encuentra el número exacto, selecciona la opción más cercana y luego ajusta el pin en el mapa.
             </p>
           </div>
 
-          <div className="mt-2 min-h-[48px] rounded-xl border border-neutral-200 bg-white px-2 py-0.5">
-            <div ref={autocompleteHostRef} />
-            {loading && (
-              <div className="flex h-11 items-center px-2 text-[11px] text-neutral-400">
-                Cargando Google Maps...
-              </div>
-            )}
+          <div className="mt-2">
+            <GoogleAddressSearch
+              onSelect={quotePlace}
+              placeholder="Busca la dirección en Google"
+            />
           </div>
 
-          <p className="mt-2 text-[10px] leading-4 text-neutral-400">
+          <p className="alento-ui-micro mt-2 leading-4 text-neutral-400">
             Primero elegimos una referencia de Google; la ubicación final la puedes precisar manualmente.
           </p>
         </div>
