@@ -179,6 +179,14 @@ MAKE_WHATSAPP_OTP_WEBHOOK_URL=...
 
 La configuración Meta/WhatsApp que exista detrás de Make pertenece a la infraestructura externa de Alentó y no se guarda en este repositorio.
 
+Para sincronizar clientes nuevos hacia Make / Google Contacts:
+
+```text
+CUSTOMER_CREATED_WEBHOOK_URL=<webhook privado de Make>
+```
+
+El webhook real debe configurarse en EasyPanel y nunca guardarse en Git.
+
 Para notificaciones operativas opcionales:
 
 ```text
