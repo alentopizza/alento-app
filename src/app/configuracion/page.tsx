@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bike,
   CheckCircle2,
@@ -30,6 +30,22 @@ type PaymentMethodSetting = {
   active: boolean;
 };
 
+type PaymentUsageStat = {
+  id: string;
+  name: string;
+  active: boolean;
+  transactionCount: number;
+  amount: number;
+  usagePercent: number;
+  amountPercent: number;
+  lastUsedAt: string | null;
+};
+
+type PaymentSummary = {
+  totalTransactions: number;
+  totalAmount: number;
+};
+
 type SettingsSection = "STORE" | "DELIVERY" | "DRIVERS" | "CUSTOMERS" | "PAYMENTS";
 
 type PosSettings = {
@@ -54,6 +70,23 @@ type PosSettings = {
   };
 };
 
+function formatCOP(value: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatShortDate(value: string | null) {
+  if (!value) return "Sin registros";
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +96,11 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [storePinAdjusted, setStorePinAdjusted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>("STORE");
+  const [paymentStats, setPaymentStats] = useState<PaymentUsageStat[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary>({
+    totalTransactions: 0,
+    totalAmount: 0,
+  });
 
   useEffect(() => {
     async function load() {
@@ -71,6 +109,13 @@ export default function SettingsPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "No fue posible cargar la configuración.");
         setSettings(data.settings);
+        setPaymentStats(Array.isArray(data.paymentStats) ? data.paymentStats : []);
+        setPaymentSummary(
+          data.paymentSummary ?? {
+            totalTransactions: 0,
+            totalAmount: 0,
+          },
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "No fue posible cargar la configuración.");
       } finally {
@@ -80,16 +125,19 @@ export default function SettingsPage() {
     void load();
   }, []);
 
-  function updatePayment(id: string, patch: Partial<PaymentMethodSetting>) {
-    setSettings((current) => current ? { ...current, paymentMethods: current.paymentMethods.map((method) => method.id === id ? { ...method, ...patch } : method) } : current);
-  }
-
-  function addPayment() {
-    setSettings((current) => current ? { ...current, paymentMethods: [...current.paymentMethods, { id: `payment-${Date.now()}`, name: "Nuevo medio de pago", active: true }] } : current);
-  }
-
-  function removePayment(id: string) {
-    setSettings((current) => current ? { ...current, paymentMethods: current.paymentMethods.filter((method) => method.id !== id) } : current);
+  function togglePayment(id: string) {
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            paymentMethods: current.paymentMethods.map((method) =>
+              method.id === id
+                ? { ...method, active: !method.active }
+                : method,
+            ),
+          }
+        : current,
+    );
   }
 
   function updateDeliveryBand(id: string, patch: Partial<DeliveryBand>) {
@@ -235,6 +283,24 @@ export default function SettingsPage() {
 
   const activeDeliveryBands = settings.deliveryBands.filter((band) => band.active).length;
   const activePayments = settings.paymentMethods.filter((method) => method.active).length;
+
+  const paymentCards = useMemo(
+    () =>
+      settings.paymentMethods
+        .map((method) => {
+          const stats = paymentStats.find((item) => item.id === method.id);
+          return {
+            ...method,
+            transactionCount: stats?.transactionCount ?? 0,
+            amount: stats?.amount ?? 0,
+            usagePercent: stats?.usagePercent ?? 0,
+            amountPercent: stats?.amountPercent ?? 0,
+            lastUsedAt: stats?.lastUsedAt ?? null,
+          };
+        })
+        .sort((a, b) => b.usagePercent - a.usagePercent),
+    [paymentStats, settings.paymentMethods],
+  );
 
   const sectionCards: Array<{
     id: SettingsSection;
@@ -413,332 +479,427 @@ export default function SettingsPage() {
           <div className="p-4 md:p-5">
 
           {activeSection === "STORE" && (
-            <div>
-              <div className="mb-5">
-                <p className="alento-ui-label uppercase text-neutral-400">Punto de origen</p>
-            <h2 className="mt-1 text-xl font-black">Ubicación de Alentó Pizza</h2>
-            <p className="mt-1 text-sm text-neutral-500">Define el origen oficial usado por Google Maps para calcular rutas y domicilios.</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-black">Dirección del local</label>
-              <input
-                value={settings.store.address}
-                onChange={(event) =>
-                  setSettings({
-                    ...settings,
-                    store: {
-                      ...settings.store,
-                      address: event.target.value,
-                      placeId: "",
-                      latitude: null,
-                      longitude: null,
-                      formattedAddress: "",
-                    },
-                  })
-                }
-                className="alento-input w-full rounded-2xl px-4 py-3"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-black">Enlace de Google Maps</label>
-              <input value={settings.store.mapsUrl} onChange={(event) => setSettings({ ...settings, store: { ...settings.store, mapsUrl: event.target.value } })} className="alento-input w-full rounded-2xl px-4 py-3" />
-            </div>
-          </div>
+            <div className="grid gap-4 xl:grid-cols-[minmax(340px,.78fr)_minmax(0,1.22fr)] xl:items-start">
+              <div className="space-y-3">
+                <div>
+                  <p className="alento-ui-label uppercase text-neutral-400">
+                    Punto de origen
+                  </p>
+                  <h2 className="alento-ui-title mt-1 text-neutral-950">
+                    Ubicación de Alentó Pizza
+                  </h2>
+                  <p className="alento-ui-body mt-1 text-neutral-500">
+                    Define el punto oficial usado para rutas, cobertura y domicilios.
+                  </p>
+                </div>
 
-          <div className="mt-4 rounded-2xl border bg-[#faf9f7] p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <b className="block text-sm">Origen oficial para domicilios</b>
-                <p className="mt-1 text-xs leading-5 text-neutral-500">
-                  Validamos la dirección con Google para guardar coordenadas exactas. Estas coordenadas son el centro de los rangos de domicilio y también el origen de las rutas operativas.
-                </p>
+                <div className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="alento-ui-label mb-1.5 block text-neutral-500">
+                        Dirección del local
+                      </label>
+                      <input
+                        value={settings.store.address}
+                        onChange={(event) =>
+                          setSettings({
+                            ...settings,
+                            store: {
+                              ...settings.store,
+                              address: event.target.value,
+                              placeId: "",
+                              latitude: null,
+                              longitude: null,
+                              formattedAddress: "",
+                            },
+                          })
+                        }
+                        className="alento-ui-control h-11 w-full rounded-[14px] border border-neutral-200 bg-white px-3.5 outline-none transition focus:border-neutral-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="alento-ui-label mb-1.5 block text-neutral-500">
+                        Enlace de Google Maps
+                      </label>
+                      <input
+                        value={settings.store.mapsUrl}
+                        onChange={(event) =>
+                          setSettings({
+                            ...settings,
+                            store: {
+                              ...settings.store,
+                              mapsUrl: event.target.value,
+                            },
+                          })
+                        }
+                        className="alento-ui-control h-11 w-full rounded-[14px] border border-neutral-200 bg-white px-3.5 outline-none transition focus:border-neutral-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase text-neutral-400">
+                        Origen oficial
+                      </p>
+                      <h3 className="alento-ui-status mt-1 text-neutral-950">
+                        Validación de ubicación
+                      </h3>
+                    </div>
+                    <span
+                      className={`alento-ui-label rounded-full px-2.5 py-1 ${settings.store.latitude != null && settings.store.longitude != null ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
+                    >
+                      {settings.store.latitude != null &&
+                      settings.store.longitude != null
+                        ? "Validada"
+                        : "Pendiente"}
+                    </span>
+                  </div>
+
+                  <p className="alento-ui-micro mt-2 leading-5 text-neutral-500">
+                    Google valida la dirección y guarda las coordenadas exactas
+                    usadas como centro de cobertura.
+                  </p>
+
+                  {settings.store.latitude != null &&
+                  settings.store.longitude != null ? (
+                    <div className="mt-3 grid gap-2">
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+                        <span className="alento-ui-micro uppercase text-emerald-600">
+                          Dirección validada
+                        </span>
+                        <b className="alento-ui-control mt-1 block text-emerald-900">
+                          {settings.store.formattedAddress ||
+                            settings.store.address}
+                        </b>
+                      </div>
+                      <div className="rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+                        <span className="alento-ui-micro uppercase text-neutral-400">
+                          Coordenadas
+                        </span>
+                        <b className="alento-ui-control mt-1 block tabular-nums text-neutral-900">
+                          {settings.store.latitude.toFixed(6)},{" "}
+                          {settings.store.longitude.toFixed(6)}
+                        </b>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5">
+                      <p className="alento-ui-micro text-amber-800">
+                        Falta validar el origen oficial de la sede.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => void validateStoreLocation()}
+                    disabled={validatingStore}
+                    className="alento-ui-control mt-3 flex h-10 w-full items-center justify-center rounded-xl bg-neutral-950 px-4 text-white transition hover:bg-black disabled:bg-neutral-300"
+                  >
+                    {validatingStore
+                      ? "Validando..."
+                      : "Validar con Google Maps"}
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => void validateStoreLocation()}
-                disabled={validatingStore}
-                className="shrink-0 rounded-2xl bg-black px-4 py-3 text-xs font-black text-white disabled:bg-neutral-300"
-              >
-                {validatingStore ? "Validando..." : "Validar con Google Maps"}
-              </button>
-            </div>
 
-            {settings.store.latitude != null && settings.store.longitude != null ? (
-              <>
-                <div className="mt-3 grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800 md:grid-cols-2">
-                  <div>
-                    <b>Dirección validada</b>
-                    <p className="mt-1">
-                      {settings.store.formattedAddress || settings.store.address}
-                    </p>
-                  </div>
-                  <div>
-                    <b>Coordenadas</b>
-                    <p className="mt-1">
-                      {settings.store.latitude.toFixed(6)},{" "}
-                      {settings.store.longitude.toFixed(6)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <StoreOriginMapPicker
-                    latitude={settings.store.latitude}
-                    longitude={settings.store.longitude}
-                    onChange={handleStoreOriginChange}
-                  />
-                </div>
-
-                {storePinAdjusted && (
-                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-[11px] font-semibold text-blue-800">
-                    Ubicación ajustada manualmente. Estas coordenadas serán el
-                    punto exacto desde el que se miden los rangos comerciales
-                    y se calculan las rutas cuando guardes la configuración.
+              <div className="xl:sticky xl:top-4">
+                {settings.store.latitude != null &&
+                settings.store.longitude != null ? (
+                  <>
+                    <StoreOriginMapPicker
+                      latitude={settings.store.latitude}
+                      longitude={settings.store.longitude}
+                      onChange={handleStoreOriginChange}
+                    />
+                    {storePinAdjusted && (
+                      <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                        <p className="alento-ui-micro text-blue-800">
+                          Pin ajustado manualmente. Guarda la configuración para
+                          conservar este origen.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex min-h-[420px] items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-[#faf9f7] p-8 text-center">
+                    <div>
+                      <MapPinned className="mx-auto h-7 w-7 text-neutral-300" />
+                      <b className="alento-ui-status mt-3 block text-neutral-700">
+                        Mapa pendiente
+                      </b>
+                      <p className="alento-ui-micro mt-1 text-neutral-500">
+                        Valida la dirección del local para habilitar el mapa del
+                        origen oficial.
+                      </p>
+                    </div>
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                Pendiente validar la ubicación oficial de la sede.
               </div>
-            )}
-          </div>
             </div>
           )}
 
           {activeSection === "DELIVERY" && (
-            <div>
-              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="alento-ui-label uppercase text-neutral-400">
-                Domicilios
-              </p>
-              <h2 className="mt-1 text-xl font-black">
-                Cobertura y tarifas
-              </h2>
-              <p className="mt-1 max-w-3xl text-sm text-neutral-500">
-                Define cuánto se cobra según la distancia directa entre Alentó y el cliente. La ruta a pie o en moto no cambia la tarifa. La última zona activa marca el límite máximo de cobertura.
-              </p>
-            </div>
+            <div className="grid gap-4 xl:grid-cols-[minmax(520px,.94fr)_minmax(0,1.06fr)] xl:items-start">
+              <div>
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="alento-ui-label uppercase text-neutral-400">
+                      Domicilios
+                    </p>
+                    <h2 className="alento-ui-title mt-1 text-neutral-950">
+                      Cobertura y tarifas
+                    </h2>
+                    <p className="alento-ui-body mt-1 max-w-2xl text-neutral-500">
+                      Define los rangos de distancia y cuánto se cobra en cada
+                      zona.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addDeliveryBand}
+                    className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
+                    aria-label="Agregar zona"
+                    title="Agregar zona"
+                  >
+                    +
+                  </button>
+                </div>
 
-            <button
-              type="button"
-              onClick={addDeliveryBand}
-              className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
-             aria-label="Agregar zona" title="Agregar zona">
-              +
-            </button>
-          </div>
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+                    <span className="alento-ui-micro uppercase text-neutral-400">
+                      Zonas activas
+                    </span>
+                    <b className="alento-ui-status mt-1 block text-neutral-950">
+                      {activeDeliveryBands}
+                    </b>
+                  </div>
+                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+                    <span className="alento-ui-micro uppercase text-neutral-400">
+                      Cobertura
+                    </span>
+                    <b className="alento-ui-status mt-1 block text-neutral-950">
+                      {(() => {
+                        const active = settings.deliveryBands.filter(
+                          (band) => band.active,
+                        );
+                        const maxMeters = active.length
+                          ? Math.max(...active.map((band) => band.maxMeters))
+                          : 0;
+                        return maxMeters >= 1000
+                          ? `${(maxMeters / 1000).toFixed(
+                              maxMeters % 1000 === 0 ? 0 : 1,
+                            )} km`
+                          : `${maxMeters} m`;
+                      })()}
+                    </b>
+                  </div>
+                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
+                    <span className="alento-ui-micro uppercase text-neutral-400">
+                      Tarifa máxima
+                    </span>
+                    <b className="alento-ui-status mt-1 block text-[var(--brand-red)]">
+                      {formatCOP(
+                        settings.deliveryBands.length
+                          ? Math.max(
+                              ...settings.deliveryBands
+                                .filter((band) => band.active)
+                                .map((band) => band.fee),
+                              0,
+                            )
+                          : 0,
+                      )}
+                    </b>
+                  </div>
+                </div>
 
-          <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">
-            Los rangos activos deben ser continuos: por ejemplo 0–2000 m, 2001–4000 m y 4001–6000 m. Si reduces la última zona, también reduces la cobertura disponible para nuevos domicilios.
-          </div>
+                <div className="mb-3 rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2.5">
+                  <p className="alento-ui-micro leading-5 text-blue-800">
+                    Los rangos activos deben ser continuos. La última zona
+                    activa define el límite máximo de cobertura.
+                  </p>
+                </div>
 
-          <div className="space-y-3">
-            {[...settings.deliveryBands]
-              .sort((a, b) => a.minMeters - b.minMeters)
-              .map((band, index) => (
-                <article
-                  key={band.id}
-                  className={
-                    "rounded-[22px] border p-4 " +
-                    (band.active
-                      ? "border-emerald-200 bg-emerald-50/40"
-                      : "border-neutral-200 bg-[#faf9f7]")
-                  }
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
-                    <div className="min-w-0 flex-1">
-                      <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
-                        Nombre de zona
-                      </label>
-                      <input
-                        value={band.name}
-                        onChange={(event) =>
-                          updateDeliveryBand(band.id, {
-                            name: event.target.value,
-                          })
-                        }
-                        className="alento-input w-full rounded-xl px-3 py-2.5 text-sm font-bold"
-                      />
-                    </div>
-
-                    <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
-                      <div>
-                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
-                          Desde
-                        </label>
-                        <div className="flex items-center rounded-xl border bg-white">
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={band.minMeters}
-                            onChange={(event) =>
-                              updateDeliveryBand(band.id, {
-                                minMeters: Math.max(
-                                  0,
-                                  Number(event.target.value) || 0,
-                                ),
-                              })
-                            }
-                            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-black outline-none"
-                          />
-                          <span className="pr-3 text-[9px] font-black uppercase text-neutral-400">
-                            m
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
-                          Hasta
-                        </label>
-                        <div className="flex items-center rounded-xl border bg-white">
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={band.maxMeters}
-                            onChange={(event) =>
-                              updateDeliveryBand(band.id, {
-                                maxMeters: Math.max(
-                                  0,
-                                  Number(event.target.value) || 0,
-                                ),
-                              })
-                            }
-                            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm font-black outline-none"
-                          />
-                          <span className="pr-3 text-[9px] font-black uppercase text-neutral-400">
-                            m
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="col-span-2 sm:col-span-1">
-                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
-                          Tarifa
-                        </label>
-                        <div className="flex items-center rounded-xl border bg-white">
-                          <span className="pl-3 text-xs font-black text-neutral-500">
-                            $
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            step={500}
-                            value={band.fee}
-                            onChange={(event) =>
-                              updateDeliveryBand(band.id, {
-                                fee: Math.max(
-                                  0,
-                                  Number(event.target.value) || 0,
-                                ),
-                              })
-                            }
-                            className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm font-black outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateDeliveryBand(band.id, {
-                            active: !band.active,
-                          })
-                        }
-                        className={
-                          "h-11 rounded-xl px-4 text-[10px] font-black transition " +
-                          (band.active
-                            ? "bg-emerald-600 text-white"
-                            : "bg-neutral-200 text-neutral-500")
-                        }
-                        aria-pressed={band.active}
+                <div className="space-y-2">
+                  {[...settings.deliveryBands]
+                    .sort((a, b) => a.minMeters - b.minMeters)
+                    .map((band, index) => (
+                      <article
+                        key={band.id}
+                        className={`rounded-[17px] border p-3 ${band.active ? "border-emerald-200 bg-emerald-50/45" : "border-neutral-200 bg-[#faf9f7]"}`}
                       >
-                        {band.active ? "Activa" : "Inactiva"}
-                      </button>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <input
+                              value={band.name}
+                              onChange={(event) =>
+                                updateDeliveryBand(band.id, {
+                                  name: event.target.value,
+                                })
+                              }
+                              className="alento-ui-control h-9 w-full rounded-xl border border-neutral-200 bg-white px-3 font-bold outline-none focus:border-neutral-400"
+                              aria-label={`Nombre de zona ${index + 1}`}
+                            />
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={() => removeDeliveryBand(band.id)}
-                        disabled={settings.deliveryBands.length <= 1}
-                        className="h-11 rounded-xl border border-red-200 bg-white px-3 text-[10px] font-black text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
-                        aria-label={`Eliminar ${band.name || `zona ${index + 1}`}`}
-                      >
-                        Eliminar
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateDeliveryBand(band.id, {
+                                active: !band.active,
+                              })
+                            }
+                            className={`alento-ui-label h-9 shrink-0 rounded-xl px-3 transition ${band.active ? "bg-emerald-600 text-white" : "bg-neutral-200 text-neutral-500"}`}
+                            aria-pressed={band.active}
+                          >
+                            {band.active ? "Activa" : "Inactiva"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => removeDeliveryBand(band.id)}
+                            disabled={settings.deliveryBands.length <= 1}
+                            className="alento-ui-label flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 disabled:opacity-30"
+                            aria-label={`Eliminar ${band.name || `zona ${index + 1}`}`}
+                            title="Eliminar zona"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
+                            <span className="alento-ui-micro uppercase text-neutral-400">
+                              Desde
+                            </span>
+                            <div className="mt-0.5 flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={band.minMeters}
+                                onChange={(event) =>
+                                  updateDeliveryBand(band.id, {
+                                    minMeters: Math.max(
+                                      0,
+                                      Number(event.target.value) || 0,
+                                    ),
+                                  })
+                                }
+                                className="alento-ui-control min-w-0 flex-1 bg-transparent outline-none"
+                              />
+                              <span className="alento-ui-micro text-neutral-400">
+                                m
+                              </span>
+                            </div>
+                          </label>
+
+                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
+                            <span className="alento-ui-micro uppercase text-neutral-400">
+                              Hasta
+                            </span>
+                            <div className="mt-0.5 flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={band.maxMeters}
+                                onChange={(event) =>
+                                  updateDeliveryBand(band.id, {
+                                    maxMeters: Math.max(
+                                      0,
+                                      Number(event.target.value) || 0,
+                                    ),
+                                  })
+                                }
+                                className="alento-ui-control min-w-0 flex-1 bg-transparent outline-none"
+                              />
+                              <span className="alento-ui-micro text-neutral-400">
+                                m
+                              </span>
+                            </div>
+                          </label>
+
+                          <label className="rounded-xl border border-neutral-200 bg-white px-2.5 py-2">
+                            <span className="alento-ui-micro uppercase text-neutral-400">
+                              Tarifa
+                            </span>
+                            <div className="mt-0.5 flex items-center gap-1">
+                              <span className="alento-ui-micro text-neutral-400">
+                                $
+                              </span>
+                              <input
+                                type="number"
+                                min={0}
+                                step={500}
+                                value={band.fee}
+                                onChange={(event) =>
+                                  updateDeliveryBand(band.id, {
+                                    fee: Math.max(
+                                      0,
+                                      Number(event.target.value) || 0,
+                                    ),
+                                  })
+                                }
+                                className="alento-ui-control min-w-0 flex-1 bg-transparent outline-none"
+                              />
+                            </div>
+                          </label>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="alento-ui-micro rounded-full bg-white px-2 py-1 text-neutral-500 shadow-sm">
+                            {(band.minMeters / 1000).toFixed(
+                              band.minMeters % 1000 === 0 ? 0 : 1,
+                            )}{" "}
+                            km →{" "}
+                            {(band.maxMeters / 1000).toFixed(
+                              band.maxMeters % 1000 === 0 ? 0 : 1,
+                            )}{" "}
+                            km
+                          </span>
+                          <span className="alento-ui-micro rounded-full bg-white px-2 py-1 text-neutral-500 shadow-sm">
+                            {formatCOP(band.fee)}
+                          </span>
+                          {band.active && (
+                            <span className="alento-ui-micro rounded-full bg-emerald-100 px-2 py-1 font-bold text-emerald-700">
+                              Incluida en cobertura
+                            </span>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                </div>
+              </div>
+
+              <div className="xl:sticky xl:top-4">
+                {settings.store.latitude != null &&
+                settings.store.longitude != null ? (
+                  <DeliveryCoverageMap
+                    latitude={settings.store.latitude}
+                    longitude={settings.store.longitude}
+                    bands={settings.deliveryBands}
+                  />
+                ) : (
+                  <div className="flex min-h-[480px] items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-[#faf9f7] p-8 text-center">
+                    <div>
+                      <MapPinned className="mx-auto h-7 w-7 text-neutral-300" />
+                      <b className="alento-ui-status mt-3 block text-neutral-700">
+                        Cobertura pendiente
+                      </b>
+                      <p className="alento-ui-micro mt-1 text-neutral-500">
+                        Valida primero la sede para dibujar las zonas de
+                        cobertura.
+                      </p>
                     </div>
                   </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-neutral-500">
-                    <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">
-                      {(band.minMeters / 1000).toFixed(
-                        band.minMeters % 1000 === 0 ? 0 : 1,
-                      )}{" "}
-                      km →{" "}
-                      {(band.maxMeters / 1000).toFixed(
-                        band.maxMeters % 1000 === 0 ? 0 : 1,
-                      )}{" "}
-                      km
-                    </span>
-                    <span className="rounded-full bg-white px-2.5 py-1 shadow-sm">
-                      {new Intl.NumberFormat("es-CO", {
-                        style: "currency",
-                        currency: "COP",
-                        maximumFractionDigits: 0,
-                      }).format(band.fee)}
-                    </span>
-                    {band.active && (
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-black text-emerald-700">
-                        Incluida en cobertura
-                      </span>
-                    )}
-                  </div>
-                </article>
-              ))}
-          </div>
-
-          {settings.store.latitude != null &&
-          settings.store.longitude != null ? (
-            <DeliveryCoverageMap
-              latitude={settings.store.latitude}
-              longitude={settings.store.longitude}
-              bands={settings.deliveryBands}
-            />
-          ) : (
-            <div className="mt-5 rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-4 text-xs font-semibold text-amber-800">
-              Valida primero la ubicación oficial de Alentó para visualizar las zonas de cobertura en el mapa.
-            </div>
-          )}
-
-          <div className="mt-4 rounded-2xl bg-[#111] px-4 py-4 text-white">
-            <span className="block alento-ui-label uppercase text-white/45">
-              Cobertura máxima actual
-            </span>
-            <strong className="mt-1 block text-xl font-black">
-              {(() => {
-                const active = settings.deliveryBands.filter(
-                  (band) => band.active,
-                );
-                const maxMeters = active.length
-                  ? Math.max(...active.map((band) => band.maxMeters))
-                  : 0;
-                return maxMeters >= 1000
-                  ? `${(maxMeters / 1000).toFixed(
-                      maxMeters % 1000 === 0 ? 0 : 1,
-                    )} km`
-                  : `${maxMeters} m`;
-              })()}
-            </strong>
-            <p className="mt-1 text-[10px] text-white/45">
-              Una dirección por fuera de este límite se rechazará como fuera de cobertura.
-            </p>
-          </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -813,7 +974,7 @@ export default function SettingsPage() {
               <p className="mt-1 max-w-2xl text-xs leading-5 text-neutral-500">
                 El repartidor debe estar dentro de esta zona alrededor de Alentó para autoasignarse un pedido. Salir de la zona durante una entrega no afecta los pedidos que ya tenga asignados.
               </p>
-              <p className="mt-2 text-[11px] font-black text-emerald-700">
+              <p className="mt-2 alento-ui-label font-black text-emerald-700">
                 Radio actual: {settings.driverManagement.acceptanceRadiusMeters >= 1000
                   ? `${(settings.driverManagement.acceptanceRadiusMeters / 1000).toFixed(
                       settings.driverManagement.acceptanceRadiusMeters % 1000 === 0 ? 0 : 1,
@@ -863,7 +1024,7 @@ export default function SettingsPage() {
                 className="h-10 w-20 rounded-xl border-0 bg-transparent text-center text-lg font-black tabular-nums outline-none"
                 aria-label="Radio en metros para aceptar domicilios"
               />
-              <span className="pr-1 text-[10px] font-black uppercase text-neutral-400">
+              <span className="pr-1 alento-ui-micro font-black uppercase text-neutral-400">
                 m
               </span>
               <button
@@ -920,7 +1081,7 @@ export default function SettingsPage() {
               <p className="mt-3 text-xs leading-5 text-neutral-500">
                 Se calcula sobre el valor de domicilio cobrado al cliente y queda congelado cuando el repartidor marca el pedido como entregado.
               </p>
-              <div className="mt-3 rounded-xl border border-[#e21a22]/10 bg-white px-3 py-2.5 text-[11px] font-semibold text-neutral-600">
+              <div className="mt-3 rounded-xl border border-[#e21a22]/10 bg-white px-3 py-2.5 alento-ui-label font-semibold text-neutral-600">
                 Ejemplo con domicilio de $5.000:{" "}
                 <b className="text-[#e21a22]">
                   {"$" + Math.round(
@@ -962,7 +1123,7 @@ export default function SettingsPage() {
               <p className="mt-3 text-xs leading-5 text-neutral-500">
                 Si el cliente tiene domicilio $0 por cercanía, este valor se reconoce al repartidor como incentivo sin alterar el total cobrado al cliente.
               </p>
-              <div className="mt-3 rounded-xl border border-amber-100 bg-white px-3 py-2.5 text-[11px] font-semibold text-neutral-600">
+              <div className="mt-3 rounded-xl border border-amber-100 bg-white px-3 py-2.5 alento-ui-label font-semibold text-neutral-600">
                 Domicilio gratis → el repartidor gana{" "}
                 <b className="text-amber-700">
                   {"$" + settings.driverManagement.freeDeliveryEarning.toLocaleString("es-CO")}
@@ -1009,31 +1170,152 @@ export default function SettingsPage() {
 
           {activeSection === "PAYMENTS" && (
             <div>
-              <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <p className="alento-ui-label uppercase text-neutral-400">Caja</p>
-              <h2 className="mt-1 text-xl font-black">Medios de pago</h2>
-              <p className="mt-1 text-sm text-neutral-500">Solo los medios activos aparecerán durante el cierre de un pedido.</p>
-            </div>
-            <button
-              type="button"
-              onClick={addPayment}
-              aria-label="Agregar medio de pago"
-              title="Agregar medio de pago"
-              className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
-            >
-              +
-            </button>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {settings.paymentMethods.map((method) => (
-              <div key={method.id} className="flex items-center gap-2 rounded-2xl border bg-[#faf9f7] p-3">
-                <button onClick={() => updatePayment(method.id, { active: !method.active })} className={`shrink-0 rounded-xl px-3 py-2.5 text-xs font-black ${method.active ? "bg-black text-white" : "bg-neutral-200 text-neutral-500"}`}>{method.active ? "Activo" : "Inactivo"}</button>
-                <input value={method.name} onChange={(event) => updatePayment(method.id, { name: event.target.value })} className="alento-input min-w-0 flex-1 rounded-xl px-3 py-2.5" />
-                <button onClick={() => removePayment(method.id)} disabled={settings.paymentMethods.length === 1} className="rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-black text-red-600 disabled:border-neutral-200 disabled:text-neutral-300">Eliminar</button>
+                  <p className="alento-ui-label uppercase text-neutral-400">
+                    Caja
+                  </p>
+                  <h2 className="alento-ui-title mt-1 text-neutral-950">
+                    Medios de pago
+                  </h2>
+                  <p className="alento-ui-body mt-1 text-neutral-500">
+                    Los medios son fijos. Solo puedes activarlos o
+                    desactivarlos.
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2 text-right">
+                    <span className="alento-ui-micro uppercase text-neutral-400">
+                      Pagos reales
+                    </span>
+                    <b className="alento-ui-status mt-0.5 block text-neutral-950">
+                      {paymentSummary.totalTransactions}
+                    </b>
+                  </div>
+                  <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2 text-right">
+                    <span className="alento-ui-micro uppercase text-neutral-400">
+                      Recaudado
+                    </span>
+                    <b className="alento-ui-status mt-0.5 block text-[var(--brand-red)]">
+                      {formatCOP(paymentSummary.totalAmount)}
+                    </b>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
+
+              <div className="mb-3 rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2.5">
+                <p className="alento-ui-micro leading-5 text-blue-800">
+                  Estadística histórica calculada únicamente con movimientos
+                  de pago <b>PAID</b>. Los medios previstos en pedidos todavía
+                  no cobrados no cuentan.
+                </p>
+              </div>
+
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                {paymentCards.map((method, index) => (
+                  <article
+                    key={method.id}
+                    className={`relative overflow-hidden rounded-[18px] border p-3.5 transition ${method.active ? "border-neutral-200 bg-white" : "border-neutral-200 bg-[#faf9f7] opacity-75"}`}
+                  >
+                    {index === 0 && method.transactionCount > 0 && (
+                      <span className="absolute right-3 top-3 rounded-full bg-red-50 px-2 py-1 alento-ui-micro font-bold text-[var(--brand-red)]">
+                        Más usado
+                      </span>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${method.active ? "bg-neutral-950 text-white" : "bg-neutral-200 text-neutral-500"}`}
+                      >
+                        <CreditCard className="h-4 w-4" strokeWidth={2} />
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="alento-ui-status truncate text-neutral-950">
+                          {method.name}
+                        </h3>
+                        <p className="alento-ui-micro mt-0.5 text-neutral-400">
+                          Último uso: {formatShortDate(method.lastUsedAt)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => togglePayment(method.id)}
+                        className={`relative h-7 w-12 shrink-0 rounded-full transition ${method.active ? "bg-emerald-500" : "bg-neutral-300"}`}
+                        aria-pressed={method.active}
+                        aria-label={`${method.active ? "Desactivar" : "Activar"} ${method.name}`}
+                        title={method.active ? "Desactivar" : "Activar"}
+                      >
+                        <span
+                          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${method.active ? "left-6" : "left-1"}`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="mt-3 rounded-[14px] bg-[#faf9f7] p-3">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <span className="alento-ui-micro uppercase text-neutral-400">
+                            Uso por transacciones
+                          </span>
+                          <b className="alento-ui-metric mt-1 block text-neutral-950">
+                            {method.usagePercent.toLocaleString("es-CO", {
+                              maximumFractionDigits: 1,
+                            })}
+                            %
+                          </b>
+                        </div>
+                        <span
+                          className={`alento-ui-label rounded-full px-2 py-1 ${method.active ? "bg-emerald-50 text-emerald-700" : "bg-neutral-200 text-neutral-500"}`}
+                        >
+                          {method.active ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200">
+                        <div
+                          className="h-full rounded-full bg-[var(--brand-red)] transition-all"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, method.usagePercent))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl border border-neutral-100 bg-white px-2.5 py-2">
+                        <span className="alento-ui-micro uppercase text-neutral-400">
+                          Pagos
+                        </span>
+                        <b className="alento-ui-control mt-0.5 block text-neutral-950">
+                          {method.transactionCount}
+                        </b>
+                      </div>
+                      <div className="rounded-xl border border-neutral-100 bg-white px-2.5 py-2">
+                        <span className="alento-ui-micro uppercase text-neutral-400">
+                          Recaudado
+                        </span>
+                        <b className="alento-ui-control mt-0.5 block truncate text-neutral-950">
+                          {formatCOP(method.amount)}
+                        </b>
+                      </div>
+                      <div className="rounded-xl border border-neutral-100 bg-white px-2.5 py-2">
+                        <span className="alento-ui-micro uppercase text-neutral-400">
+                          Del valor
+                        </span>
+                        <b className="alento-ui-control mt-0.5 block text-neutral-950">
+                          {method.amountPercent.toLocaleString("es-CO", {
+                            maximumFractionDigits: 1,
+                          })}
+                          %
+                        </b>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           )}
           </div>
