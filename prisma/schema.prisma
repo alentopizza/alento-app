@@ -507,6 +507,8 @@ model Order {
   @@index([driverId, driverEarningCreditedAt])
   @@index([status])
   @@index([createdAt])
+  @@index([fulfillmentType, createdAt])
+  @@index([deliveryZoneId, createdAt])
 }
 
 model OrderItem {
