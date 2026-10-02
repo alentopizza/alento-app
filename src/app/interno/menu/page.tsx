@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
+import { Pencil, Plus } from "lucide-react";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
 type ComboOption = { id?: number; productId: number; productName?: string; quantity: number; priceDelta: number };
@@ -688,9 +689,11 @@ export default function MenuPage() {
                   setCategoryError("");
                   setCategoryEditor({ name: "", active: true });
                 }}
-                className="h-9 rounded-xl bg-black px-3.5 text-[11px] font-semibold text-white"
+                aria-label="Nueva categoría"
+                title="Nueva categoría"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_8px_18px_rgba(17,17,19,.16)] transition hover:-translate-y-0.5 hover:bg-black"
               >
-                + Categoría
+                <Plus className="h-4 w-4" strokeWidth={2.4} />
               </button>
             </div>
 
@@ -795,9 +798,11 @@ export default function MenuPage() {
                         setCategoryError("");
                         setCategoryEditor({ id: activeCategory.id, name: activeCategory.name, active: activeCategory.active });
                       }}
-                      className="h-11 shrink-0 rounded-xl border border-neutral-200 bg-white px-4 text-[11px] font-semibold text-neutral-700"
+                      aria-label="Editar categoría"
+                      title="Editar categoría"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
                     >
-                      Editar categoría
+                      <Pencil className="h-4 w-4" strokeWidth={2.1} />
                     </button>
                   )}
 
@@ -805,9 +810,11 @@ export default function MenuPage() {
                     <button
                       type="button"
                       onClick={() => startCreateProduct(activeCategory)}
-                      className="h-11 shrink-0 rounded-xl bg-black px-4 text-[11px] font-semibold text-white"
+                      aria-label={activeCategory.slug === "ingredientes" ? "Nuevo ingrediente" : "Nuevo producto"}
+                      title={activeCategory.slug === "ingredientes" ? "Nuevo ingrediente" : "Nuevo producto"}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_8px_18px_rgba(17,17,19,.16)] transition hover:-translate-y-0.5 hover:bg-black"
                     >
-                      + {activeCategory.slug === "ingredientes" ? "Ingrediente" : "Producto"}
+                      <Plus className="h-4 w-4" strokeWidth={2.4} />
                     </button>
                   )}
 
@@ -815,9 +822,11 @@ export default function MenuPage() {
                     <button
                       type="button"
                       onClick={() => startCombo()}
-                      className="h-11 shrink-0 rounded-xl bg-[var(--brand-red)] px-4 text-[11px] font-bold text-white"
+                      aria-label="Nuevo combo"
+                      title="Nuevo combo"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
                     >
-                      + Combo
+                      <Plus className="h-4 w-4" strokeWidth={2.4} />
                     </button>
                   )}
                 </div>
