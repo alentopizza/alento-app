@@ -201,6 +201,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         : 0;
       let deliveryZoneId = current.deliveryZoneId;
       let deliveryZoneName = current.deliveryZoneName;
+      let deliveryDistanceMeters = current.deliveryDistanceMeters;
       let total = money(Number(current.total));
 
       if (current.fulfillmentType === "DELIVERY") {
@@ -262,6 +263,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         deliveryFee = pricing.deliveryFee ?? 0;
         deliveryZoneId = pricing.deliveryZoneId;
         deliveryZoneName = pricing.deliveryZoneName;
+        deliveryDistanceMeters = Math.round(
+          pricing.commercialDistanceMeters,
+        );
         total = Math.max(
           0,
           money(
@@ -312,6 +316,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             deliveryFee,
             deliveryZoneId,
             deliveryZoneName,
+            deliveryDistanceMeters,
             total,
           },
         });
@@ -373,6 +378,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
+    let deliveryDistanceMeters: number | null = null;
     if (fulfillmentType === "DELIVERY") {
       const customer = current.customer;
       if (!customer) {
@@ -445,6 +451,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       deliveryZoneId = pricing.deliveryZoneId;
       deliveryZoneName = pricing.deliveryZoneName;
+      deliveryDistanceMeters = Math.round(
+        pricing.commercialDistanceMeters,
+      );
     }
 
     const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
@@ -551,7 +560,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           notes: rawNote ? rawNote.slice(0, 120) : null,
         } });
       }
-      await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryFee, subtotal, discount, total, status: kitchenProductChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
+      await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryDistanceMeters, deliveryFee, subtotal, discount, total, status: kitchenProductChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
 
       if (outstanding > 0) {
         if (pendingPayment) {
