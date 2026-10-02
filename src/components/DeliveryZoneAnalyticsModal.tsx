@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, MapPin, Trophy } from "lucide-react";
+import { CalendarDays, Trophy } from "lucide-react";
 import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
 import {
   loadGoogleMapsClient,
@@ -406,16 +406,18 @@ export default function DeliveryZoneAnalyticsModal({
         pointCount += 1;
       });
 
-      if (pointCount > 1) {
-        map.fitBounds(bounds, {
-          top: 70,
-          right: 70,
-          bottom: 70,
-          left: 70,
-        });
-      } else {
-        map.setCenter(center);
-        map.setZoom(14);
+      if (selectedOrderId == null) {
+        if (pointCount > 1) {
+          map.fitBounds(bounds, {
+            top: 70,
+            right: 70,
+            bottom: 70,
+            left: 70,
+          });
+        } else {
+          map.setCenter(center);
+          map.setZoom(14);
+        }
       }
     },
     [selectedOrderId, zoneColorById],
