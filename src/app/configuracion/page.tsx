@@ -15,6 +15,9 @@ import StoreOriginMapPicker, {
   type StoreOriginLocation,
 } from "@/components/StoreOriginMapPicker";
 import DeliveryCoverageMap from "@/components/DeliveryCoverageMap";
+import GoogleAddressSearch, {
+  type GoogleAddressSearchSelection,
+} from "@/components/GoogleAddressSearch";
 
 type DeliveryBand = {
   id: string;
@@ -55,7 +58,6 @@ type SettingsSection = "STORE" | "DELIVERY" | "DRIVERS" | "CUSTOMERS" | "PAYMENT
 type PosSettings = {
   store: {
     address: string;
-    mapsUrl: string;
     placeId: string;
     latitude: number | null;
     longitude: number | null;
@@ -113,7 +115,6 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [validatingStore, setValidatingStore] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [storePinAdjusted, setStorePinAdjusted] = useState(false);
@@ -329,42 +330,6 @@ export default function SettingsPage() {
     );
   }
 
-  async function validateStoreLocation() {
-    if (!settings?.store.address.trim()) return;
-    setValidatingStore(true);
-    setMessage("");
-    setError("");
-    try {
-      const response = await fetch("/api/settings/store-geocode", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: settings.store.address }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible validar la dirección.");
-
-      setSettings((current) =>
-        current
-          ? {
-              ...current,
-              store: {
-                ...current.store,
-                placeId: data.location.placeId,
-                latitude: data.location.latitude,
-                longitude: data.location.longitude,
-                formattedAddress: data.location.formattedAddress,
-              },
-            }
-          : current,
-      );
-      setMessage("Ubicación validada con Google Maps. Guarda la configuración para conservarla.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible validar la dirección.");
-    } finally {
-      setValidatingStore(false);
-    }
-  }
-
   const handleStoreOriginChange = useCallback(
     (location: StoreOriginLocation) => {
       setSettings((current) =>
@@ -373,6 +338,7 @@ export default function SettingsPage() {
               ...current,
               store: {
                 ...current.store,
+                address: location.formattedAddress,
                 formattedAddress: location.formattedAddress,
                 placeId: location.placeId,
                 latitude: location.latitude,
@@ -384,6 +350,32 @@ export default function SettingsPage() {
       setStorePinAdjusted(true);
       setMessage(
         "Origen ajustado manualmente en el mapa. Guarda la configuración para conservarlo.",
+      );
+      setError("");
+    },
+    [],
+  );
+
+  const handleStoreAddressSelect = useCallback(
+    (selection: GoogleAddressSearchSelection) => {
+      setSettings((current) =>
+        current
+          ? {
+              ...current,
+              store: {
+                ...current.store,
+                address: selection.formattedAddress,
+                formattedAddress: selection.formattedAddress,
+                placeId: selection.placeId,
+                latitude: selection.latitude,
+                longitude: selection.longitude,
+              },
+            }
+          : current,
+      );
+      setStorePinAdjusted(false);
+      setMessage(
+        "Ubicación seleccionada con Google. Guarda la configuración para conservarla.",
       );
       setError("");
     },
@@ -610,7 +602,7 @@ export default function SettingsPage() {
           <div className="p-4 md:p-5">
 
           {activeSection === "STORE" && (
-            <div className="grid gap-4 xl:grid-cols-[minmax(340px,.78fr)_minmax(0,1.22fr)] xl:items-start">
+            <div className="grid gap-4 xl:grid-cols-[minmax(360px,.78fr)_minmax(0,1.22fr)] xl:items-start">
               <div className="space-y-3">
                 <div>
                   <p className="alento-ui-label uppercase text-neutral-400">
@@ -620,122 +612,89 @@ export default function SettingsPage() {
                     Ubicación de Alentó Pizza
                   </h2>
                   <p className="alento-ui-body mt-1 text-neutral-500">
-                    Define el punto oficial usado para rutas, cobertura y domicilios.
+                    Busca la sede igual que una dirección de cliente y confirma
+                    el punto exacto en el mapa.
                   </p>
                 </div>
 
                 <div className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="alento-ui-label mb-1.5 block text-neutral-500">
-                        Dirección del local
-                      </label>
-                      <input
-                        value={settings.store.address}
-                        onChange={(event) =>
-                          setSettings({
-                            ...settings,
-                            store: {
-                              ...settings.store,
-                              address: event.target.value,
-                              placeId: "",
-                              latitude: null,
-                              longitude: null,
-                              formattedAddress: "",
-                            },
-                          })
-                        }
-                        className="alento-ui-control h-11 w-full rounded-[14px] border border-neutral-200 bg-white px-3.5 outline-none transition focus:border-neutral-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="alento-ui-label mb-1.5 block text-neutral-500">
-                        Enlace de Google Maps
-                      </label>
-                      <input
-                        value={settings.store.mapsUrl}
-                        onChange={(event) =>
-                          setSettings({
-                            ...settings,
-                            store: {
-                              ...settings.store,
-                              mapsUrl: event.target.value,
-                            },
-                          })
-                        }
-                        className="alento-ui-control h-11 w-full rounded-[14px] border border-neutral-200 bg-white px-3.5 outline-none transition focus:border-neutral-400"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[18px] border border-neutral-200 bg-white p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="alento-ui-label uppercase text-neutral-400">
-                        Origen oficial
+                        Buscar ubicación
                       </p>
                       <h3 className="alento-ui-status mt-1 text-neutral-950">
-                        Validación de ubicación
+                        Google Maps
                       </h3>
                     </div>
                     <span
-                      className={`alento-ui-label rounded-full px-2.5 py-1 ${settings.store.latitude != null && settings.store.longitude != null ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
+                      className={`alento-ui-label rounded-full px-2.5 py-1 ${
+                        settings.store.latitude != null &&
+                        settings.store.longitude != null &&
+                        settings.store.placeId
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
+                      }`}
                     >
                       {settings.store.latitude != null &&
-                      settings.store.longitude != null
+                      settings.store.longitude != null &&
+                      settings.store.placeId
                         ? "Validada"
                         : "Pendiente"}
                     </span>
                   </div>
 
                   <p className="alento-ui-micro mt-2 leading-5 text-neutral-500">
-                    Google valida la dirección y guarda las coordenadas exactas
-                    usadas como centro de cobertura.
+                    Selecciona una dirección de los resultados de Google. No
+                    necesitas copiar enlaces ni validar en un segundo paso.
                   </p>
 
-                  {settings.store.latitude != null &&
-                  settings.store.longitude != null ? (
-                    <div className="mt-3 grid gap-2">
-                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
-                        <span className="alento-ui-micro uppercase text-emerald-600">
-                          Dirección validada
-                        </span>
-                        <b className="alento-ui-control mt-1 block text-emerald-900">
+                  <div className="mt-3">
+                    <GoogleAddressSearch
+                      onSelect={handleStoreAddressSelect}
+                      placeholder="Busca la dirección de Alentó Pizza"
+                    />
+                  </div>
+                </div>
+
+                {settings.store.latitude != null &&
+                settings.store.longitude != null ? (
+                  <div className="rounded-[18px] border border-emerald-100 bg-white p-3.5">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                        <MapPinned className="h-4 w-4" strokeWidth={2} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="alento-ui-label uppercase text-emerald-600">
+                          Ubicación actual
+                        </p>
+                        <b className="alento-ui-control mt-1 block leading-5 text-neutral-950">
                           {settings.store.formattedAddress ||
                             settings.store.address}
                         </b>
-                      </div>
-                      <div className="rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
-                        <span className="alento-ui-micro uppercase text-neutral-400">
-                          Coordenadas
-                        </span>
-                        <b className="alento-ui-control mt-1 block tabular-nums text-neutral-900">
+                        <p className="alento-ui-micro mt-1 tabular-nums text-neutral-400">
                           {settings.store.latitude.toFixed(6)},{" "}
                           {settings.store.longitude.toFixed(6)}
-                        </b>
+                        </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5">
-                      <p className="alento-ui-micro text-amber-800">
-                        Falta validar el origen oficial de la sede.
+
+                    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                      <p className="alento-ui-micro leading-5 text-blue-800">
+                        Si Google ubica el punto cerca pero no exactamente en
+                        la entrada, arrastra el pin del mapa. La dirección y las
+                        coordenadas se actualizarán automáticamente.
                       </p>
                     </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => void validateStoreLocation()}
-                    disabled={validatingStore}
-                    className="alento-ui-control mt-3 flex h-10 w-full items-center justify-center rounded-xl bg-neutral-950 px-4 text-white transition hover:bg-black disabled:bg-neutral-300"
-                  >
-                    {validatingStore
-                      ? "Validando..."
-                      : "Validar con Google Maps"}
-                  </button>
-                </div>
+                  </div>
+                ) : (
+                  <div className="rounded-[18px] border border-dashed border-neutral-300 bg-[#faf9f7] p-4">
+                    <p className="alento-ui-micro text-neutral-500">
+                      Busca y selecciona la sede para establecer el origen
+                      oficial de rutas y cobertura.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="xl:sticky xl:top-4">
@@ -750,8 +709,8 @@ export default function SettingsPage() {
                     {storePinAdjusted && (
                       <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
                         <p className="alento-ui-micro text-blue-800">
-                          Pin ajustado manualmente. Guarda la configuración para
-                          conservar este origen.
+                          Punto ajustado manualmente. Guarda la configuración
+                          para conservar este origen.
                         </p>
                       </div>
                     )}
@@ -764,8 +723,7 @@ export default function SettingsPage() {
                         Mapa pendiente
                       </b>
                       <p className="alento-ui-micro mt-1 text-neutral-500">
-                        Valida la dirección del local para habilitar el mapa del
-                        origen oficial.
+                        Selecciona una dirección de Google para ubicar la sede.
                       </p>
                     </div>
                   </div>
