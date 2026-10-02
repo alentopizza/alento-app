@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
 
 function normalizePhone(value: string) {
   return value.replace(/\D/g, "");
@@ -123,6 +124,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         phone: true,
         email: true,
         notes: true,
+        contactWebhookPending: true,
+        contactWebhookSentAt: true,
       },
     });
 
@@ -157,6 +160,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         })
       : null;
 
+
+    const becameNamedCustomer =
+      existing.name.trim().toLocaleUpperCase("es") === "NUEVO" &&
+      name.trim().toLocaleUpperCase("es") !== "NUEVO";
+
     const customer = await prisma.$transaction(async (tx) => {
       await tx.customer.update({
         where: { id: customerId },
@@ -166,6 +174,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           phone,
           email: email || null,
           notes: notes || null,
+          ...(becameNamedCustomer && !existing.contactWebhookSentAt
+            ? { contactWebhookPending: true }
+            : {}),
         },
       });
 
@@ -195,7 +206,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       });
     });
 
-    return NextResponse.json({ customer });
+    const contactWebhook = await sendCustomerContactWebhook({
+      customerId,
+      source: "STAFF",
+    });
+
+    return NextResponse.json({ customer, contactWebhook });
   } catch (error) {
     const prismaError = error as { code?: string };
     if (prismaError.code === "P2002") {
