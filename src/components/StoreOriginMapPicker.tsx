@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createAlentoMapPinElement } from "@/lib/alentoMapMarker";
+import {
+  loadGoogleMapsClient,
+  type GoogleMapsImportRuntime,
+} from "@/lib/googleMapsClient";
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -47,78 +51,14 @@ type GoogleMarkerLibrary = {
   }) => GoogleAdvancedMarkerInstance;
 };
 
-type GoogleMapsRuntime = {
-  maps: {
-    importLibrary: (library: string) => Promise<unknown>;
+type GoogleMapsRuntime = GoogleMapsImportRuntime & {
+  maps: GoogleMapsImportRuntime["maps"] & {
     Map: new (
       element: HTMLElement,
       options: Record<string, unknown>,
     ) => GoogleMapInstance;
-
   };
 };
-
-function getGoogleWindow() {
-  return window as typeof window & { google?: GoogleMapsRuntime };
-}
-
-function installGoogleMapsBootstrap(key: string) {
-  if (getGoogleWindow().google?.maps?.importLibrary) return;
-
-  const bootstrapId = "alento-google-maps-bootstrap";
-  if (!document.getElementById(bootstrapId)) {
-    const script = document.createElement("script");
-    script.id = bootstrapId;
-    script.textContent = `
-      (g=>{
-        var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",
-          q="__ib__",m=document,b=window;
-        b=b[c]||(b[c]={});
-        var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,
-          u=()=>h||(h=new Promise(async(f,n)=>{
-            await (a=m.createElement("script"));
-            e.set("libraries",[...r]+"");
-            for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);
-            e.set("callback",c+".maps."+q);
-            a.src="https://maps."+c+"apis.com/maps/api/js?"+e;
-            d[q]=f;
-            a.onerror=()=>h=n(Error(p+" could not load."));
-            a.nonce=m.querySelector("script[nonce]")?.nonce||"";
-            m.head.append(a)
-          }));
-        d[l]
-          ? console.warn(p+" only loads once. Ignoring:",g)
-          : d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))
-      })({
-        key: "__ALENTO_MAPS_KEY__",
-        v: "weekly",
-        language: "es",
-        region: "CO"
-      });
-    `;
-    script.textContent = script.textContent.replace(
-      '"__ALENTO_MAPS_KEY__"',
-      JSON.stringify(key),
-    );
-    document.head.appendChild(script);
-  }
-}
-
-async function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
-  if (!key) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY no está configurada.");
-  }
-
-  installGoogleMapsBootstrap(key);
-
-  const runtime = getGoogleWindow().google;
-  if (!runtime?.maps?.importLibrary) {
-    throw new Error("No fue posible iniciar Google Maps.");
-  }
-
-  return runtime;
-}
 
 export type StoreOriginLocation = {
   formattedAddress: string;
@@ -187,7 +127,7 @@ export default function StoreOriginMapPicker({
       setError("");
 
       try {
-        const google = await loadGoogleMaps();
+        const google = await loadGoogleMapsClient<GoogleMapsRuntime>();
         await google.maps.importLibrary("maps");
         const { AdvancedMarkerElement } =
           (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
