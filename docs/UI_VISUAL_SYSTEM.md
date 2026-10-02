@@ -180,3 +180,16 @@ Secciones actuales:
 - Pagos.
 
 No volver a apilar todas estas secciones simultáneamente en la vista principal.
+
+
+### Distribución interna del Hub
+
+Las secciones del Hub de Configuración deben aprovechar el ancho disponible según el tipo de contenido:
+
+- **Sede:** información y validación a la izquierda; mapa de origen a la derecha.
+- **Domicilios:** zonas y tarifas a la izquierda; mapa de cobertura a la derecha.
+- **Repartidores:** operación y compensación en paneles paralelos.
+- **Clientes:** controles sensibles en cards compactas, sin espacio vertical innecesario.
+- **Pagos:** medios fijos como cards analíticas; solo activar/desactivar.
+
+En desktop, los mapas pueden ser `sticky` dentro de su columna para mantener contexto mientras se editan datos.
