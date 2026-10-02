@@ -145,16 +145,10 @@ export async function GET(request: NextRequest) {
       if (loan.workerId == null) return map;
 
       const principal = Number(loan.principal);
-      const repaid = loan.repayments
-        .filter(
-          (repayment) =>
-            repayment.paidAt >= start &&
-            repayment.paidAt < end,
-        )
-        .reduce(
-          (sum, repayment) => sum + Number(repayment.amount),
-          0,
-        );
+      const repaid = loan.repayments.reduce(
+        (sum, repayment) => sum + Number(repayment.amount),
+        0,
+      );
       const outstanding = Math.max(0, principal - repaid);
 
       map[loan.workerId] = (map[loan.workerId] ?? 0) + outstanding;
