@@ -760,8 +760,22 @@ export default function AdminDeliveryMapModal({
   const inRoute = useMemo(
     () =>
       (data?.orders ?? []).filter(
-        (order) => order.status === "OUT_FOR_DELIVERY",
+        (order) =>
+          order.status === "OUT_FOR_DELIVERY" ||
+          order.status === "ARRIVED",
       ),
+    [data],
+  );
+
+  const unassigned = useMemo(
+    () =>
+      (data?.orders ?? []).filter((order) => order.driver == null),
+    [data],
+  );
+
+  const assigned = useMemo(
+    () =>
+      (data?.orders ?? []).filter((order) => order.driver != null),
     [data],
   );
 
@@ -896,28 +910,38 @@ export default function AdminDeliveryMapModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="hidden items-center gap-2 md:flex">
               <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
-                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+                <span className="alento-ui-micro block uppercase text-white/35">
                   Entregas
                 </span>
-                <b className="mt-0.5 block text-sm">
+                <b className="alento-ui-control mt-0.5 block text-white">
                   {data?.orders.filter((order) => order.destination).length ?? 0}
                 </b>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
-                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+                <span className="alento-ui-micro block uppercase text-white/35">
+                  Sin asignar
+                </span>
+                <b className="alento-ui-control mt-0.5 block text-white">
+                  {unassigned.length}
+                </b>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
+                <span className="alento-ui-micro block uppercase text-white/35">
                   Repartidores
                 </span>
-                <b className="mt-0.5 block text-sm">
+                <b className="alento-ui-control mt-0.5 block text-white">
                   {data?.drivers.length ?? 0}
                 </b>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
-                <span className="block text-[7px] font-black uppercase tracking-[.08em] text-white/35">
+                <span className="alento-ui-micro block uppercase text-white/35">
                   En camino
                 </span>
-                <b className="mt-0.5 block text-sm">{inRoute.length}</b>
+                <b className="alento-ui-control mt-0.5 block text-white">
+                  {inRoute.length}
+                </b>
               </div>
             </div>
 
@@ -935,21 +959,59 @@ export default function AdminDeliveryMapModal({
         <div className="relative min-h-0 flex-1 bg-[#ecebe7]">
           <div ref={mapHostRef} className="absolute inset-0" />
 
-          <div className="pointer-events-none absolute left-4 top-4 z-20 space-y-1.5">
-            <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111]/92 px-2.5 py-2 text-white shadow-lg backdrop-blur-xl">
-              <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+          <div className="absolute left-4 top-4 z-20 space-y-1.5">
+            <div className="flex max-w-[calc(100vw-3rem)] items-center gap-1 overflow-x-auto rounded-[14px] border border-white/15 bg-[#111]/92 p-1.5 text-white shadow-lg backdrop-blur-xl">
+              {([
+                ["ALL", "Todos", data?.orders.length ?? 0],
+                ["UNASSIGNED", "Sin asignar", unassigned.length],
+                ["ASSIGNED", "Asignados", assigned.length],
+                ["IN_ROUTE", "En reparto", inRoute.length],
+              ] as [MapFilter, string, number][]).map(
+                ([value, label, count]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setMapFilter(value);
+                      setSelectedOrderId(null);
+                      setExpandedLocationCluster(null);
+                      initialFitRef.current = false;
+                    }}
+                    className={`alento-ui-micro flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] px-2.5 font-bold transition ${
+                      mapFilter === value
+                        ? "bg-white text-neutral-950"
+                        : "text-white/58 hover:bg-white/[0.08] hover:text-white"
+                    }`}
+                  >
+                    {label}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 ${
+                        mapFilter === value
+                          ? "bg-neutral-100 text-neutral-600"
+                          : "bg-white/[0.08] text-white/45"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                ),
+              )}
+            </div>
+
+            <div className="pointer-events-none flex items-center gap-1.5 rounded-full border border-white/15 bg-[#111]/92 px-2.5 py-2 text-white shadow-lg backdrop-blur-xl">
+              <span className="alento-ui-micro inline-flex items-center gap-1.5 rounded-full px-1.5 font-bold uppercase text-white/70">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 shadow-[0_0_8px_rgba(5,150,105,.45)]" />
                 Asignado
               </span>
               <span className="h-4 w-px bg-white/10" />
-              <span className="inline-flex items-center gap-1.5 rounded-full px-1.5 text-[8px] font-black uppercase tracking-[0.05em] text-white/70">
+              <span className="alento-ui-micro inline-flex items-center gap-1.5 rounded-full px-1.5 font-bold uppercase text-white/70">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#e21a22] shadow-[0_0_8px_rgba(226,26,34,.40)]" />
                 Disponible
               </span>
             </div>
 
-            {routeLegend.length > 0 && (
-              <div className="flex items-center gap-2 rounded-full border border-white/15 bg-[#111]/92 px-3 py-2 text-[8px] font-black text-white/62 shadow-lg backdrop-blur-xl">
+            {routeLegend.length > 0 && mapFilter !== "UNASSIGNED" && (
+              <div className="pointer-events-none flex items-center gap-2 rounded-full border border-white/15 bg-[#111]/92 px-3 py-2 alento-ui-micro font-bold text-white/62 shadow-lg backdrop-blur-xl">
                 <span className="inline-flex items-center gap-1">
                   <span className="h-2.5 w-4 rounded-full bg-[#2563eb]" />
                   Pie
@@ -1252,6 +1314,17 @@ export default function AdminDeliveryMapModal({
                   <p className="mt-1 text-[9px] leading-4 text-white/42">
                     {selectedOrder.destination?.address || "Sin dirección"}
                   </p>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="alento-ui-micro rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-white/62">
+                    Zona · {selectedOrder.deliveryZoneName || "Sin clasificar"}
+                  </span>
+                  {selectedOrder.deliveryDistanceMeters != null && (
+                    <span className="alento-ui-micro rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-white/62">
+                      {formatDistance(selectedOrder.deliveryDistanceMeters)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
