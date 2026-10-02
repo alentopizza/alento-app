@@ -635,20 +635,40 @@ export default function MenuPage() {
   return (
     <main className="min-h-screen p-3 sm:p-4 lg:p-5 xl:p-5">
       <div className="w-full space-y-4">
-        <header className="alento-dark rounded-[28px] px-7 py-5 md:px-8 md:py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/45">Administración</p>
-              <h1 className="mt-0.5 text-3xl font-black tracking-[-0.035em]">Menú</h1>
-              <p className="mt-1.5 text-[13px] font-normal leading-5 text-white/65">Organiza categorías, productos y disponibilidad desde un solo lugar.</p>
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
+
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
+                  Administración
+                </p>
+              </div>
+              <h1 className="alento-ui-hero-title mt-1.5">
+                Menú
+              </h1>
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
+                Organiza categorías, productos y disponibilidad desde un solo lugar.
+              </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-4 py-2.5 text-center shadow-inner">
-              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">Productos</span>
-              <b className="mt-0.5 block text-[28px] font-black leading-none tabular-nums text-white">{totalProducts}</b>
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
+              <div className="flex h-[56px] w-[76px] shrink-0 flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm">
+                <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                  Productos
+                </span>
+                <b className="alento-ui-metric mt-0.5 tabular-nums text-white">
+                  {totalProducts}
+                </b>
+              </div>
             </div>
           </div>
-        </header>
+        </section>
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
         {notice && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</div>}
