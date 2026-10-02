@@ -11,6 +11,7 @@ import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormaliz
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import { createOrderTrackingToken } from "@/lib/orderTracking";
+import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -275,6 +276,7 @@ export async function POST(request: NextRequest) {
             countryCode,
             phone,
             email: email || null,
+            contactWebhookPending: true,
           },
           include: {
             addresses: {
@@ -283,12 +285,19 @@ export async function POST(request: NextRequest) {
           },
         });
       } else if (sessionOwnsCustomer) {
+        const becameNamedCustomer =
+          customer.name.trim().toLocaleUpperCase("es") === "NUEVO" &&
+          name.trim().toLocaleUpperCase("es") !== "NUEVO";
+
         customer = await tx.customer.update({
           where: { id: customer.id },
           data: {
             name,
             countryCode,
             email: email || null,
+            ...(becameNamedCustomer && !customer.contactWebhookSentAt
+              ? { contactWebhookPending: true }
+              : {}),
           },
           include: {
             addresses: {
@@ -419,6 +428,14 @@ export async function POST(request: NextRequest) {
       });
     });
 
+    const contactWebhook =
+      order.customer?.id != null
+        ? await sendCustomerContactWebhook({
+            customerId: order.customer.id,
+            source: "WEB_CHECKOUT",
+          })
+        : null;
+
     const code = `WEB-${String(order.sequenceNumber).padStart(4, "0")}`;
     let notification:
       | Awaited<ReturnType<typeof dispatchOrderCreatedNotification>>
@@ -493,6 +510,7 @@ export async function POST(request: NextRequest) {
           authenticatedCustomer: Boolean(session),
         },
         notification,
+        contactWebhook,
       },
       { status: 201 },
     );
