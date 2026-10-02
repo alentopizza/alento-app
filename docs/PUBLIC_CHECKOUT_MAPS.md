@@ -155,7 +155,15 @@ Los campos `placeId`, `formattedAddress`, `latitude` y `longitude` ya forman par
 
 ### Fase B — Configuración de sede
 
-Guardar dirección, coordenadas y Place ID oficiales de Alentó en configuración.
+La sede usa el mismo patrón de búsqueda de dirección que los clientes:
+
+1. buscar con Google Places Autocomplete;
+2. seleccionar un resultado válido;
+3. guardar dirección formateada, Place ID y coordenadas;
+4. ajustar el pin en el mapa solo si la entrada exacta necesita corrección;
+5. guardar Configuración.
+
+No usar campos libres de enlace de Google Maps ni reintroducir el flujo manual de escribir dirección y luego geocodificarla por separado.
 
 ### Fase C — Persistencia de direcciones
 
@@ -207,7 +215,7 @@ Reglas actuales:
 ## Avance implementado
 
 - Fase A: Google Cloud y claves configuradas por operación.
-- Fase B: sede validada con Google Geocoding y persistida en `pos_settings`.
+- Fase B: sede seleccionada con Google Places y persistida en `pos_settings` con dirección formateada, Place ID y coordenadas. El mismo buscador compartido se reutiliza para clientes y sede; el reverse geocoding queda reservado para ajustes manuales del pin.
 - Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
 - El checkout inicia en Recoger en tienda, no reutiliza direcciones temporales de compras anteriores y solo precarga la dirección guardada de un cliente autenticado.
 - El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 3:4 como elemento principal, con Ruta / Domicilio / Tiempo integrados en la parte superior.
