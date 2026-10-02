@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
+    let deliveryDistanceMeters: number | null = null;
     let resolvedDeliveryAddress: string | null = null;
     let resolvedDeliveryPlaceId: string | null = null;
     let resolvedDeliveryLatitude: number | null = null;
@@ -171,6 +172,9 @@ export async function POST(request: NextRequest) {
         deliveryFee = pricing.deliveryFee ?? 0;
         deliveryZoneId = pricing.deliveryZoneId;
         deliveryZoneName = pricing.deliveryZoneName;
+        deliveryDistanceMeters = Math.round(
+          pricing.commercialDistanceMeters,
+        );
         resolvedDeliveryLatitude = pricing.destination.latitude;
         resolvedDeliveryLongitude = pricing.destination.longitude;
       } catch (pricingError) {
@@ -368,6 +372,7 @@ export async function POST(request: NextRequest) {
           addressId,
           deliveryZoneId,
           deliveryZoneName,
+          deliveryDistanceMeters,
           discountSource: "NONE",
           status: hasKitchenPreparation ? "PREPARING" : "READY",
           fulfillmentType,
