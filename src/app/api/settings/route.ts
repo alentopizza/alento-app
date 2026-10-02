@@ -121,15 +121,20 @@ function normalizeSettings(value: unknown): PosSettings {
         .filter((band) => Number.isFinite(band.minMeters) && Number.isFinite(band.maxMeters) && Number.isFinite(band.fee))
     : DEFAULT_POS_SETTINGS.deliveryBands;
 
-  const paymentMethods = Array.isArray(raw.paymentMethods)
+  const rawPaymentMethods = Array.isArray(raw.paymentMethods)
     ? raw.paymentMethods
-        .map((method, index) => ({
-          id: typeof method?.id === "string" && method.id ? method.id : `payment-${index + 1}`,
-          name: typeof method?.name === "string" ? method.name.trim() : "",
-          active: method?.active !== false,
-        }))
-        .filter((method) => method.name.length > 0)
-    : DEFAULT_POS_SETTINGS.paymentMethods;
+    : [];
+
+  const paymentMethods = DEFAULT_POS_SETTINGS.paymentMethods.map((canonical) => {
+    const saved = rawPaymentMethods.find(
+      (method) => method?.id === canonical.id,
+    );
+
+    return {
+      ...canonical,
+      active: saved?.active !== false,
+    };
+  });
 
   const customerManagement = raw.customerManagement && typeof raw.customerManagement === "object"
     ? {
@@ -165,9 +170,75 @@ function normalizeSettings(value: unknown): PosSettings {
 }
 
 export async function GET() {
-  const saved = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
+  const [saved, paymentUsageRows] = await Promise.all([
+    prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } }),
+    prisma.payment.groupBy({
+      by: ["method"],
+      where: {
+        status: "PAID",
+        paidAt: { not: null },
+      },
+      _count: { id: true },
+      _sum: { amount: true },
+      _max: { paidAt: true },
+    }),
+  ]);
+
   const settings = saved ? normalizeSettings(saved.value) : DEFAULT_POS_SETTINGS;
-  return NextResponse.json({ settings });
+
+  const totalTransactions = paymentUsageRows.reduce(
+    (sum, row) => sum + row._count.id,
+    0,
+  );
+  const totalAmount = paymentUsageRows.reduce(
+    (sum, row) => sum + Number(row._sum.amount ?? 0),
+    0,
+  );
+
+  const usageByName = new Map(
+    paymentUsageRows.map((row) => [
+      row.method.trim().toLowerCase(),
+      {
+        transactionCount: row._count.id,
+        amount: Number(row._sum.amount ?? 0),
+        lastUsedAt: row._max.paidAt ?? null,
+      },
+    ]),
+  );
+
+  const paymentStats = settings.paymentMethods.map((method) => {
+    const usage = usageByName.get(method.name.trim().toLowerCase()) ?? {
+      transactionCount: 0,
+      amount: 0,
+      lastUsedAt: null,
+    };
+
+    return {
+      id: method.id,
+      name: method.name,
+      active: method.active,
+      transactionCount: usage.transactionCount,
+      amount: usage.amount,
+      usagePercent:
+        totalTransactions > 0
+          ? Math.round((usage.transactionCount / totalTransactions) * 1000) / 10
+          : 0,
+      amountPercent:
+        totalAmount > 0
+          ? Math.round((usage.amount / totalAmount) * 1000) / 10
+          : 0,
+      lastUsedAt: usage.lastUsedAt,
+    };
+  });
+
+  return NextResponse.json({
+    settings,
+    paymentStats,
+    paymentSummary: {
+      totalTransactions,
+      totalAmount,
+    },
+  });
 }
 
 export async function PUT(request: NextRequest) {
