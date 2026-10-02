@@ -214,15 +214,25 @@ El POS respeta este mismo orden.
 
 ## Tarjetas de producto
 
-La vista administrativa usa tarjetas visuales orientadas a imagen:
+La tarjeta visual canónica es la misma del menú público del cliente y se comparte entre:
 
-- marco blanco;
-- imagen principal completa con `object-contain`;
-- bloque inferior oscuro;
-- nombre;
-- precio;
-- acción visual mínima;
-- control `⋮⋮` para reordenar cuando corresponde.
+- `/menu` público;
+- POS interno;
+- Menú administrativo.
+
+La fuente visual única vive en `src/app/globals.css` mediante las clases `.alento-product-card*`.
+
+Reglas:
+
+- tarjeta oscura;
+- imagen principal 1:1 a sangre;
+- `object-cover`;
+- nombre sobre bloque negro;
+- precio / `Desde` / `Ahorra` como dato principal;
+- acción circular roja `+`;
+- hover y proporciones compartidas.
+
+El Menú administrativo puede superponer badges de estado y el control `⋮⋮` porque son funciones operativas propias, pero no debe crear otra estructura visual de tarjeta.
 
 La tarjeta completa abre el administrador del producto.
 
