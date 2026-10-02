@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
 
 function normalizePhone(value: string) {
   return value.replace(/\D/g, "");
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
         phone,
         email: email || null,
         notes: notes || null,
+        contactWebhookPending: true,
         ...(address
           ? {
               addresses: {
@@ -163,7 +165,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ customer }, { status: 201 });
+    const contactWebhook = await sendCustomerContactWebhook({
+      customerId: customer.id,
+      source: "STAFF",
+    });
+
+    return NextResponse.json(
+      { customer, contactWebhook },
+      { status: 201 },
+    );
   } catch (error) {
     const prismaError = error as { code?: string };
 
