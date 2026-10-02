@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  Bike,
+  CheckCircle2,
+  CreditCard,
+  MapPinned,
+  Save,
+  Store,
+  Users,
+} from "lucide-react";
 import StoreOriginMapPicker, {
   type StoreOriginLocation,
 } from "@/components/StoreOriginMapPicker";
@@ -20,6 +29,8 @@ type PaymentMethodSetting = {
   name: string;
   active: boolean;
 };
+
+type SettingsSection = "STORE" | "DELIVERY" | "DRIVERS" | "CUSTOMERS" | "PAYMENTS";
 
 type PosSettings = {
   store: {
@@ -51,6 +62,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [storePinAdjusted, setStorePinAdjusted] = useState(false);
+  const [activeSection, setActiveSection] = useState<SettingsSection>("STORE");
 
   useEffect(() => {
     async function load() {
@@ -221,23 +233,189 @@ export default function SettingsPage() {
   if (loading) return <main className="p-5 lg:p-8"><div className="alento-card mx-auto max-w-6xl rounded-[28px] p-8">Cargando configuración...</div></main>;
   if (!settings) return <main className="p-5 lg:p-8"><div className="mx-auto max-w-6xl rounded-[28px] border border-red-200 bg-red-50 p-6 text-red-700">{error || "No fue posible cargar la configuración."}</div></main>;
 
+  const activeDeliveryBands = settings.deliveryBands.filter((band) => band.active).length;
+  const activePayments = settings.paymentMethods.filter((method) => method.active).length;
+
+  const sectionCards: Array<{
+    id: SettingsSection;
+    title: string;
+    description: string;
+    icon: typeof Store;
+    status: string;
+  }> = [
+    {
+      id: "STORE",
+      title: "Sede",
+      description: "Origen oficial y ubicación",
+      icon: Store,
+      status:
+        settings.store.latitude != null && settings.store.longitude != null
+          ? "Validada"
+          : "Pendiente",
+    },
+    {
+      id: "DELIVERY",
+      title: "Domicilios",
+      description: "Cobertura, tarifas y mapa",
+      icon: MapPinned,
+      status: `${activeDeliveryBands} zonas activas`,
+    },
+    {
+      id: "DRIVERS",
+      title: "Repartidores",
+      description: "Capacidad, radio y ganancias",
+      icon: Bike,
+      status: `${settings.driverManagement.maxConcurrentDeliveries} simultáneos`,
+    },
+    {
+      id: "CUSTOMERS",
+      title: "Clientes",
+      description: "Funciones sensibles",
+      icon: Users,
+      status: settings.customerManagement.bulkDeleteEnabled
+        ? "Borrado masivo activo"
+        : "Protegido",
+    },
+    {
+      id: "PAYMENTS",
+      title: "Pagos",
+      description: "Medios disponibles en POS",
+      icon: CreditCard,
+      status: `${activePayments} activos`,
+    },
+  ];
+
+  const currentSection =
+    sectionCards.find((section) => section.id === activeSection) ??
+    sectionCards[0];
+  const CurrentSectionIcon = currentSection.icon;
+
   return (
-    <main className="p-5 lg:p-8">
-      <div className="mx-auto max-w-6xl space-y-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-neutral-500">Operación</p>
-            <h1 className="text-3xl font-black tracking-tight">Configuración</h1>
-            <p className="mt-1 text-sm text-neutral-500">Administra la sede, funciones operativas y medios de pago.</p>
+    <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
+      <div className="w-full space-y-4">
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
+
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
+                  Operación
+                </p>
+              </div>
+              <h1 className="alento-ui-hero-title mt-1.5">Configuración</h1>
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
+                Administra sede, domicilios, repartidores, clientes y medios de pago.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end md:self-auto">
+              <div className="flex h-[56px] min-w-[76px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 backdrop-blur-sm">
+                <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                  Sección
+                </span>
+                <b className="alento-ui-label mt-0.5 whitespace-nowrap text-white">
+                  {currentSection.title}
+                </b>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void save()}
+                disabled={saving}
+                aria-label="Guardar configuración"
+                title={saving ? "Guardando..." : "Guardar configuración"}
+                className="flex h-[56px] w-[76px] items-center justify-center rounded-[16px] border border-red-400/45 bg-[linear-gradient(135deg,rgba(236,25,31,.96),rgba(119,12,16,.82))] text-white shadow-[0_10px_22px_rgba(168,11,16,.25),inset_0_1px_0_rgba(255,255,255,.13)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-wait disabled:opacity-55"
+              >
+                <Save className="h-[22px] w-[22px]" strokeWidth={2.15} />
+              </button>
+            </div>
           </div>
-          <button onClick={() => void save()} disabled={saving} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white disabled:bg-neutral-300">{saving ? "Guardando..." : "Guardar configuración"}</button>
-        </div>
+        </section>
 
-        {(message || error) && <div className={`rounded-2xl px-4 py-3 text-sm font-semibold ${error ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{error || message}</div>}
+        {(message || error) && (
+          <div
+            className={`rounded-2xl border px-4 py-3 ${error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"}`}
+          >
+            <p className="alento-ui-control">{error || message}</p>
+          </div>
+        )}
 
-        <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Punto de origen</p>
+        <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          {sectionCards.map((section) => {
+            const Icon = section.icon;
+            const selected = activeSection === section.id;
+
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => {
+                  setActiveSection(section.id);
+                  setMessage("");
+                  setError("");
+                }}
+                className={`group flex min-h-[104px] items-center gap-3 rounded-[20px] border p-3.5 text-left transition ${selected ? "border-red-200 bg-[linear-gradient(135deg,#171113,#100d0e)] text-white shadow-[0_12px_28px_rgba(110,10,14,.14)]" : "border-neutral-200 bg-white text-neutral-950 shadow-[0_7px_20px_rgba(28,23,20,.04)] hover:-translate-y-0.5 hover:border-neutral-300"}`}
+              >
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border ${selected ? "border-white/10 bg-white/[0.08] text-red-300" : "border-neutral-200 bg-[#faf9f7] text-neutral-600"}`}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={2} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="alento-ui-status block truncate">
+                    {section.title}
+                  </span>
+                  <span
+                    className={`alento-ui-micro mt-0.5 block truncate ${selected ? "text-white/45" : "text-neutral-500"}`}
+                  >
+                    {section.description}
+                  </span>
+                  <span
+                    className={`alento-ui-label mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 ${selected ? "bg-white/[0.08] text-white/65" : "bg-neutral-100 text-neutral-500"}`}
+                  >
+                    {selected && (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                    )}
+                    {section.status}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
+        <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_10px_30px_rgba(28,23,20,.045)]">
+          <div className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-950 text-white">
+                <CurrentSectionIcon className="h-4 w-4" strokeWidth={2.1} />
+              </span>
+              <div>
+                <p className="alento-ui-label uppercase text-neutral-400">
+                  Configuración
+                </p>
+                <h2 className="alento-ui-title mt-0.5 text-neutral-950">
+                  {currentSection.title}
+                </h2>
+              </div>
+            </div>
+            <span className="alento-ui-micro hidden text-neutral-400 sm:block">
+              {currentSection.description}
+            </span>
+          </div>
+
+          <div className="p-4 md:p-5">
+
+          {activeSection === "STORE" && (
+            <div>
+              <div className="mb-5">
+                <p className="alento-ui-label uppercase text-neutral-400">Punto de origen</p>
             <h2 className="mt-1 text-xl font-black">Ubicación de Alentó Pizza</h2>
             <p className="mt-1 text-sm text-neutral-500">Define el origen oficial usado por Google Maps para calcular rutas y domicilios.</p>
           </div>
@@ -326,12 +504,14 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-        </section>
+            </div>
+          )}
 
-        <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          {activeSection === "DELIVERY" && (
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="alento-ui-label uppercase text-neutral-400">
                 Domicilios
               </p>
               <h2 className="mt-1 text-xl font-black">
@@ -345,9 +525,9 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={addDeliveryBand}
-              className="shrink-0 rounded-2xl bg-black px-4 py-3 text-xs font-black text-white"
-            >
-              + Agregar zona
+              className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
+             aria-label="Agregar zona" title="Agregar zona">
+              +
             </button>
           </div>
 
@@ -370,7 +550,7 @@ export default function SettingsPage() {
                 >
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
                     <div className="min-w-0 flex-1">
-                      <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                      <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
                         Nombre de zona
                       </label>
                       <input
@@ -386,7 +566,7 @@ export default function SettingsPage() {
 
                     <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
                           Desde
                         </label>
                         <div className="flex items-center rounded-xl border bg-white">
@@ -412,7 +592,7 @@ export default function SettingsPage() {
                       </div>
 
                       <div>
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
                           Hasta
                         </label>
                         <div className="flex items-center rounded-xl border bg-white">
@@ -438,7 +618,7 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="col-span-2 sm:col-span-1">
-                        <label className="mb-1.5 block text-[10px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                        <label className="mb-1.5 block alento-ui-label uppercase text-neutral-400">
                           Tarifa
                         </label>
                         <div className="flex items-center rounded-xl border bg-white">
@@ -537,7 +717,7 @@ export default function SettingsPage() {
           )}
 
           <div className="mt-4 rounded-2xl bg-[#111] px-4 py-4 text-white">
-            <span className="block text-[9px] font-black uppercase tracking-[0.12em] text-white/45">
+            <span className="block alento-ui-label uppercase text-white/45">
               Cobertura máxima actual
             </span>
             <strong className="mt-1 block text-xl font-black">
@@ -559,11 +739,13 @@ export default function SettingsPage() {
               Una dirección por fuera de este límite se rechazará como fuera de cobertura.
             </p>
           </div>
-        </section>
+            </div>
+          )}
 
-        <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Repartidores</p>
+          {activeSection === "DRIVERS" && (
+            <div>
+              <div className="mb-4">
+                <p className="alento-ui-label uppercase text-neutral-400">Repartidores</p>
             <h2 className="mt-1 text-xl font-black">Capacidad simultánea</h2>
             <p className="mt-1 text-sm text-neutral-500">Define cuántos domicilios sin entregar puede tener asignados al mismo tiempo cada repartidor.</p>
           </div>
@@ -708,7 +890,7 @@ export default function SettingsPage() {
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-[#e21a22]/10 bg-[#fff8f8] p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#e21a22]">
+              <p className="alento-ui-label uppercase text-[#e21a22]">
                 Ganancia por domicilio cobrado
               </p>
               <div className="mt-2 flex items-end gap-3">
@@ -750,7 +932,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.14em] text-amber-700">
+              <p className="alento-ui-label uppercase text-amber-700">
                 Incentivo para entrega sin costo
               </p>
               <div className="mt-2 flex items-end gap-2">
@@ -788,11 +970,13 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </section>
+            </div>
+          )}
 
-        <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Clientes</p>
+          {activeSection === "CUSTOMERS" && (
+            <div>
+              <div className="mb-4">
+                <p className="alento-ui-label uppercase text-neutral-400">Clientes</p>
             <h2 className="mt-1 text-xl font-black">Gestión de clientes</h2>
             <p className="mt-1 text-sm text-neutral-500">Controla funciones sensibles del módulo de clientes.</p>
           </div>
@@ -820,16 +1004,26 @@ export default function SettingsPage() {
               <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${settings.customerManagement.bulkDeleteEnabled ? "left-7" : "left-1"}`} />
             </button>
           </div>
-        </section>
+            </div>
+          )}
 
-        <section className="alento-card rounded-[28px] p-5 md:p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
+          {activeSection === "PAYMENTS" && (
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">Caja</p>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <p className="alento-ui-label uppercase text-neutral-400">Caja</p>
               <h2 className="mt-1 text-xl font-black">Medios de pago</h2>
               <p className="mt-1 text-sm text-neutral-500">Solo los medios activos aparecerán durante el cierre de un pedido.</p>
             </div>
-            <button onClick={addPayment} className="rounded-2xl border bg-white px-4 py-2.5 text-sm font-black">+ Agregar medio</button>
+            <button
+              type="button"
+              onClick={addPayment}
+              aria-label="Agregar medio de pago"
+              title="Agregar medio de pago"
+              className="alento-ui-control flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white shadow-[0_7px_16px_rgba(17,17,19,.14)] transition hover:-translate-y-0.5"
+            >
+              +
+            </button>
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             {settings.paymentMethods.map((method) => (
@@ -839,6 +1033,9 @@ export default function SettingsPage() {
                 <button onClick={() => removePayment(method.id)} disabled={settings.paymentMethods.length === 1} className="rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-black text-red-600 disabled:border-neutral-200 disabled:text-neutral-300">Eliminar</button>
               </div>
             ))}
+          </div>
+            </div>
+          )}
           </div>
         </section>
       </div>
