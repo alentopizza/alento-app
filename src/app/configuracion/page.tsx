@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Bike,
+  CalendarDays,
   CheckCircle2,
   CreditCard,
   MapPinned,
@@ -33,7 +34,6 @@ type PaymentMethodSetting = {
 type PaymentUsageStat = {
   id: string;
   name: string;
-  active: boolean;
   transactionCount: number;
   amount: number;
   usagePercent: number;
@@ -42,8 +42,12 @@ type PaymentUsageStat = {
 };
 
 type PaymentSummary = {
+  startDate: string;
+  endDate: string;
   totalTransactions: number;
   totalAmount: number;
+  unclassifiedTransactions: number;
+  unclassifiedAmount: number;
 };
 
 type SettingsSection = "STORE" | "DELIVERY" | "DRIVERS" | "CUSTOMERS" | "PAYMENTS";
@@ -87,6 +91,24 @@ function formatShortDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function todayBogotaText() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function monthStartBogotaText() {
+  const today = todayBogotaText();
+  return `${today.slice(0, 7)}-01`;
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,33 +119,146 @@ export default function SettingsPage() {
   const [storePinAdjusted, setStorePinAdjusted] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>("STORE");
   const [paymentStats, setPaymentStats] = useState<PaymentUsageStat[]>([]);
+  const [paymentStartDate, setPaymentStartDate] = useState(
+    () => monthStartBogotaText(),
+  );
+  const [paymentEndDate, setPaymentEndDate] = useState(
+    () => todayBogotaText(),
+  );
+  const [paymentStatsLoading, setPaymentStatsLoading] = useState(false);
+  const [paymentStatsError, setPaymentStatsError] = useState("");
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary>({
+    startDate: monthStartBogotaText(),
+    endDate: todayBogotaText(),
     totalTransactions: 0,
     totalAmount: 0,
+    unclassifiedTransactions: 0,
+    unclassifiedAmount: 0,
   });
 
   useEffect(() => {
     async function load() {
+      const startDate = monthStartBogotaText();
+      const endDate = todayBogotaText();
+
       try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "No fue posible cargar la configuración.");
-        setSettings(data.settings);
-        setPaymentStats(Array.isArray(data.paymentStats) ? data.paymentStats : []);
-        setPaymentSummary(
-          data.paymentSummary ?? {
-            totalTransactions: 0,
-            totalAmount: 0,
-          },
-        );
+        const [settingsResponse, statsResponse] = await Promise.all([
+          fetch("/api/settings", { cache: "no-store" }),
+          fetch(
+            `/api/settings/payment-stats?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+            { cache: "no-store" },
+          ),
+        ]);
+
+        const settingsData = await settingsResponse.json();
+        if (!settingsResponse.ok) {
+          throw new Error(
+            settingsData.error || "No fue posible cargar la configuración.",
+          );
+        }
+        setSettings(settingsData.settings);
+
+        const statsData = await statsResponse.json();
+        if (statsResponse.ok) {
+          setPaymentStats(
+            Array.isArray(statsData.paymentStats)
+              ? statsData.paymentStats
+              : [],
+          );
+          setPaymentSummary(
+            statsData.paymentSummary ?? {
+              startDate,
+              endDate,
+              totalTransactions: 0,
+              totalAmount: 0,
+              unclassifiedTransactions: 0,
+              unclassifiedAmount: 0,
+            },
+          );
+        } else {
+          setPaymentStatsError(
+            statsData.error ||
+              "No fue posible cargar las estadísticas de pagos.",
+          );
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "No fue posible cargar la configuración.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "No fue posible cargar la configuración.",
+        );
       } finally {
         setLoading(false);
       }
     }
     void load();
   }, []);
+
+  async function refreshPaymentStats(
+    startDate: string,
+    endDate: string,
+  ) {
+    if (!startDate || !endDate || startDate > endDate) {
+      setPaymentStatsError(
+        "Selecciona un rango válido: la fecha inicial no puede ser posterior a la final.",
+      );
+      return;
+    }
+
+    setPaymentStatsLoading(true);
+    setPaymentStatsError("");
+
+    try {
+      const response = await fetch(
+        `/api/settings/payment-stats?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
+        { cache: "no-store" },
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible cargar las estadísticas de pagos.",
+        );
+      }
+
+      setPaymentStats(
+        Array.isArray(data.paymentStats) ? data.paymentStats : [],
+      );
+      setPaymentSummary(
+        data.paymentSummary ?? {
+          startDate,
+          endDate,
+          totalTransactions: 0,
+          totalAmount: 0,
+          unclassifiedTransactions: 0,
+          unclassifiedAmount: 0,
+        },
+      );
+    } catch (err) {
+      setPaymentStatsError(
+        err instanceof Error
+          ? err.message
+          : "No fue posible cargar las estadísticas de pagos.",
+      );
+    } finally {
+      setPaymentStatsLoading(false);
+    }
+  }
+
+  function showPaymentsToday() {
+    const today = todayBogotaText();
+    setPaymentStartDate(today);
+    setPaymentEndDate(today);
+    void refreshPaymentStats(today, today);
+  }
+
+  function showPaymentsThisMonth() {
+    const startDate = monthStartBogotaText();
+    const endDate = todayBogotaText();
+    setPaymentStartDate(startDate);
+    setPaymentEndDate(endDate);
+    void refreshPaymentStats(startDate, endDate);
+  }
 
   function togglePayment(id: string) {
     setSettings((current) =>
@@ -1296,7 +1431,7 @@ export default function SettingsPage() {
 
           {activeSection === "PAYMENTS" && (
             <div>
-              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="alento-ui-label uppercase text-neutral-400">
                     Caja
@@ -1305,15 +1440,15 @@ export default function SettingsPage() {
                     Medios de pago
                   </h2>
                   <p className="alento-ui-body mt-1 text-neutral-500">
-                    Los medios son fijos. Solo puedes activarlos o
-                    desactivarlos.
+                    Consulta qué medio se usa más y cuánto dinero recibió cada
+                    uno en el período seleccionado.
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <div className="rounded-[14px] border border-neutral-200 bg-[#faf9f7] px-3 py-2 text-right">
                     <span className="alento-ui-micro uppercase text-neutral-400">
-                      Pagos reales
+                      Pagos clasificados
                     </span>
                     <b className="alento-ui-status mt-0.5 block text-neutral-950">
                       {paymentSummary.totalTransactions}
@@ -1330,26 +1465,112 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              <div className="mb-3 flex flex-col gap-2 rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-2.5 xl:flex-row xl:items-end xl:justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <label className="min-w-[170px]">
+                    <span className="alento-ui-label mb-1 block text-neutral-400">
+                      Desde
+                    </span>
+                    <div className="flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3">
+                      <CalendarDays className="h-4 w-4 text-neutral-400" strokeWidth={2} />
+                      <input
+                        type="date"
+                        value={paymentStartDate}
+                        max={paymentEndDate}
+                        onChange={(event) =>
+                          setPaymentStartDate(event.target.value)
+                        }
+                        className="alento-ui-control min-w-0 bg-transparent outline-none"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="min-w-[170px]">
+                    <span className="alento-ui-label mb-1 block text-neutral-400">
+                      Hasta
+                    </span>
+                    <div className="flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3">
+                      <CalendarDays className="h-4 w-4 text-neutral-400" strokeWidth={2} />
+                      <input
+                        type="date"
+                        value={paymentEndDate}
+                        min={paymentStartDate}
+                        onChange={(event) =>
+                          setPaymentEndDate(event.target.value)
+                        }
+                        className="alento-ui-control min-w-0 bg-transparent outline-none"
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={showPaymentsToday}
+                    className="alento-ui-control h-10 rounded-xl border border-neutral-200 bg-white px-3 text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showPaymentsThisMonth}
+                    className="alento-ui-control h-10 rounded-xl border border-neutral-200 bg-white px-3 text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    Este mes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void refreshPaymentStats(
+                        paymentStartDate,
+                        paymentEndDate,
+                      )
+                    }
+                    disabled={paymentStatsLoading}
+                    className="alento-ui-control h-10 rounded-xl bg-neutral-950 px-4 text-white transition hover:bg-black disabled:cursor-wait disabled:opacity-50"
+                  >
+                    {paymentStatsLoading ? "Actualizando..." : "Aplicar"}
+                  </button>
+                </div>
+              </div>
+
               <div className="mb-3 rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2.5">
                 <p className="alento-ui-micro leading-5 text-blue-800">
-                  Estadística histórica calculada únicamente con movimientos
-                  de pago <b>PAID</b>. Los medios previstos en pedidos todavía
-                  no cobrados no cuentan.
+                  Solo se cuentan movimientos <b>PAID</b> entre{" "}
+                  <b>{paymentSummary.startDate}</b> y{" "}
+                  <b>{paymentSummary.endDate}</b>. Las intenciones de pago del
+                  POS no entran en esta estadística.
                 </p>
               </div>
+
+              {paymentSummary.unclassifiedTransactions > 0 && (
+                <div className="mb-3 rounded-[14px] border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <p className="alento-ui-micro leading-5 text-amber-900">
+                    <b>Histórico sin clasificar:</b>{" "}
+                    {paymentSummary.unclassifiedTransactions} pagos por{" "}
+                    {formatCOP(paymentSummary.unclassifiedAmount)}. Son
+                    registros antiguos/importados cuyo nombre de medio no
+                    coincide con Efectivo, Nequi, DaviPlata, Tarjeta o Llave;
+                    por eso se muestran aparte y no alteran los porcentajes.
+                  </p>
+                </div>
+              )}
+
+              {paymentStatsError && (
+                <div className="mb-3 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2.5">
+                  <p className="alento-ui-micro text-red-700">
+                    {paymentStatsError}
+                  </p>
+                </div>
+              )}
 
               <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
                 {paymentCards.map((method, index) => (
                   <article
                     key={method.id}
-                    className={`relative overflow-hidden rounded-[18px] border p-3.5 transition ${method.active ? "border-neutral-200 bg-white" : "border-neutral-200 bg-[#faf9f7] opacity-75"}`}
+                    className={`overflow-hidden rounded-[18px] border p-3.5 transition ${method.active ? "border-neutral-200 bg-white" : "border-neutral-200 bg-[#faf9f7] opacity-75"}`}
                   >
-                    {index === 0 && method.transactionCount > 0 && (
-                      <span className="absolute right-3 top-3 rounded-full bg-red-50 px-2 py-1 alento-ui-micro font-bold text-[var(--brand-red)]">
-                        Más usado
-                      </span>
-                    )}
-
                     <div className="flex items-start gap-3">
                       <span
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${method.active ? "bg-neutral-950 text-white" : "bg-neutral-200 text-neutral-500"}`}
@@ -1381,11 +1602,19 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="mt-3 rounded-[14px] bg-[#faf9f7] p-3">
-                      <div className="flex items-end justify-between gap-3">
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <span className="alento-ui-micro uppercase text-neutral-400">
-                            Uso por transacciones
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="alento-ui-micro uppercase text-neutral-400">
+                              Uso por transacciones
+                            </span>
+                            {index === 0 &&
+                              method.transactionCount > 0 && (
+                                <span className="alento-ui-micro rounded-full bg-red-50 px-2 py-1 font-bold text-[var(--brand-red)]">
+                                  Más usado
+                                </span>
+                              )}
+                          </div>
                           <b className="alento-ui-metric mt-1 block text-neutral-950">
                             {method.usagePercent.toLocaleString("es-CO", {
                               maximumFractionDigits: 1,
@@ -1404,7 +1633,10 @@ export default function SettingsPage() {
                         <div
                           className="h-full rounded-full bg-[var(--brand-red)] transition-all"
                           style={{
-                            width: `${Math.min(100, Math.max(0, method.usagePercent))}%`,
+                            width: `${Math.min(
+                              100,
+                              Math.max(0, method.usagePercent),
+                            )}%`,
                           }}
                         />
                       </div>
