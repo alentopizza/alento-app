@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
     let deliveryZoneName: string | null = null;
+    let deliveryDistanceMeters: number | null = null;
 
     if (fulfillmentType === "DELIVERY") {
       try {
@@ -130,6 +131,9 @@ export async function POST(request: NextRequest) {
         deliveryFee = pricing.deliveryFee ?? 0;
         deliveryZoneId = pricing.deliveryZoneId;
         deliveryZoneName = pricing.deliveryZoneName;
+        deliveryDistanceMeters = Math.round(
+          pricing.commercialDistanceMeters,
+        );
 
         if (body.deliveryFeeOverride != null) {
           const requestedDeliveryFee = Number(body.deliveryFeeOverride);
@@ -217,6 +221,7 @@ export async function POST(request: NextRequest) {
           couponName,
           deliveryZoneId,
           deliveryZoneName,
+          deliveryDistanceMeters,
           discountSource: discountMode,
           status: hasKitchenPreparation ? "PREPARING" : "READY",
           fulfillmentType,
