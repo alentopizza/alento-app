@@ -326,7 +326,7 @@ async function sendTemplate(data) {
   if (!data?.recipientId || !data?.phone) throw new Error("Evento sin destinatario válido.");
 
   let contact = await findContact(data);
-  if (!contact) {
+  if (!contact && !data.existingRecipientOnly) {
     try {
       contact = await createContact(data);
     } catch (error) {
@@ -335,15 +335,25 @@ async function sendTemplate(data) {
     }
   }
 
-  if (!contact?.id) throw new Error("No se pudo resolver el contacto en Chatwoot.");
+  if (!contact?.id) {
+    throw new Error(
+      data.existingRecipientOnly
+        ? "No se encontró el contacto existente para este cliente."
+        : "No se pudo resolver el contacto en Chatwoot.",
+    );
+  }
 
   let conversation = await findConversation(contact.id);
-  if (!conversation) {
+  if (!conversation && !data.existingRecipientOnly) {
     conversation = await createConversation(contact.id, data.phone);
   }
 
   if (!conversation?.id) {
-    throw new Error("No se pudo crear o encontrar la conversación de WhatsApp.");
+    throw new Error(
+      data.existingRecipientOnly
+        ? "El contacto existe, pero no tiene una conversación de WhatsApp disponible."
+        : "No se pudo crear o encontrar la conversación de WhatsApp.",
+    );
   }
 
   const processedParams = await alignProcessedParamsToApprovedTemplate(
