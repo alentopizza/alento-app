@@ -1125,7 +1125,7 @@ export default function OrdersCardsDashboardV3() {
             ? sendError.message
             : "No fue posible reenviar la plantilla nuevo_pedido_v2.",
         detail:
-          "Verifica que el teléfono corregido también tenga un contacto/conversación válida en Chatwoot.",
+          "El reenvío usa el mismo flujo automático de un pedido nuevo y no crea contactos ni conversaciones.",
       });
     } finally {
       setBusy(null);
