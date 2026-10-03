@@ -24,6 +24,11 @@ type OrderCreatedNotificationInput = {
   fulfillmentType: string;
 };
 
+type OrderCreatedNotificationOptions = {
+  templateName?: string;
+  requirePhoneMatch?: boolean;
+};
+
 export type ChatwootNotificationResult =
   | { ok: true; status: "sent"; conversationId: number; contactId: number }
   | { ok: false; status: "skipped" | "failed"; reason: string };
@@ -106,12 +111,16 @@ async function chatwootFetch<T>(
 async function findContact(
   customerId: number,
   phone: string,
+  requirePhoneMatch = false,
 ): Promise<ChatwootContact | null> {
   const config = requiredConfig();
   if (!config) return null;
 
   const identifier = `alento_customer_${customerId}`;
-  const queries = [identifier, normalizePhone(phone)].filter(Boolean);
+  const normalizedPhone = normalizePhone(phone);
+  const queries = requirePhoneMatch
+    ? [normalizedPhone].filter(Boolean)
+    : [identifier, normalizedPhone].filter(Boolean);
 
   for (const query of queries) {
     const data = await chatwootFetch<{ payload?: ChatwootContact[] }>(
@@ -119,14 +128,19 @@ async function findContact(
     );
 
     const contacts = data.payload ?? [];
-    const exact =
-      contacts.find((contact) => contact.identifier === identifier) ??
-      contacts.find(
-        (contact) =>
-          normalizePhone(contact.phone_number ?? "") === normalizePhone(phone),
-      );
+    const phoneMatch = contacts.find(
+      (contact) =>
+        normalizePhone(contact.phone_number ?? "") === normalizedPhone,
+    );
 
-    if (exact) return exact;
+    if (phoneMatch) return phoneMatch;
+
+    if (!requirePhoneMatch) {
+      const identifierMatch = contacts.find(
+        (contact) => contact.identifier === identifier,
+      );
+      if (identifierMatch) return identifierMatch;
+    }
   }
 
   return null;
@@ -204,6 +218,7 @@ function templateBodyParams(input: OrderCreatedNotificationInput) {
 
 export async function notifyOrderCreated(
   input: OrderCreatedNotificationInput,
+  options: OrderCreatedNotificationOptions = {},
 ): Promise<ChatwootNotificationResult> {
   const config = requiredConfig();
   if (!config) {
@@ -215,6 +230,7 @@ export async function notifyOrderCreated(
   }
 
   const templateName =
+    options.templateName?.trim() ||
     process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_NAME?.trim();
   if (!templateName) {
     return {
@@ -230,12 +246,19 @@ export async function notifyOrderCreated(
     process.env.CHATWOOT_ORDER_CREATED_TEMPLATE_CATEGORY?.trim() || "UTILITY";
 
   try {
-    const contact = await findContact(input.customerId, input.phone);
+    const contact = await findContact(
+      input.customerId,
+      input.phone,
+      options.requirePhoneMatch === true,
+    );
     if (!contact) {
       return {
         ok: false,
         status: "failed",
-        reason: "No se encontró el cliente en Chatwoot.",
+        reason:
+          options.requirePhoneMatch === true
+            ? `No se encontró en Chatwoot un contacto con el teléfono actual ${normalizePhone(input.phone)}.`
+            : "No se encontró el cliente en Chatwoot.",
       };
     }
 
