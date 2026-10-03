@@ -4,9 +4,11 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Ban,
   BarChart3,
+  CheckCircle2,
   Clock3,
   Download,
   MapPin,
+  MapPinned,
   RefreshCcw,
   Search,
   ShoppingCart,
@@ -14,6 +16,7 @@ import {
   Tag,
   Upload,
   UserPlus,
+  AlertTriangle,
   UserRound,
   Users,
 } from "lucide-react";
@@ -89,6 +92,7 @@ type CustomerDetail = Customer & {
 };
 
 type CustomerStatusFilter = "ALL" | "Nuevo" | "Activo" | "Frecuente" | "Por recuperar" | "Sin compras";
+type CustomerAddressFilter = "ALL" | "VERIFIED" | "PENDING" | "NONE";
 
 type ImportPreviewRow = {
   rowNumber: number;
@@ -254,6 +258,60 @@ function customerCardVisual(status: CustomerStatusFilter) {
   };
 }
 
+function customerAddressState(customer: Customer) {
+  const address = customer.addresses?.[0] ?? null;
+  const hasAddress = Boolean(
+    address?.address?.trim() || address?.formattedAddress?.trim(),
+  );
+  const verified = Boolean(
+    address?.formattedAddress?.trim() &&
+      address?.placeId?.trim() &&
+      address?.latitude != null &&
+      address?.longitude != null,
+  );
+
+  if (verified) {
+    return {
+      value: "VERIFIED" as const,
+      label: "Google verificada",
+      shortLabel: "Verificada",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  if (hasAddress) {
+    return {
+      value: "PENDING" as const,
+      label: "Por actualizar en Google",
+      shortLabel: "Por actualizar",
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  return {
+    value: "NONE" as const,
+    label: "Sin dirección",
+    shortLabel: "Sin dirección",
+    tone: "border-neutral-200 bg-neutral-100 text-neutral-500",
+  };
+}
+
+function CustomerAddressStateIcon({
+  state,
+  className = "h-3.5 w-3.5",
+}: {
+  state: ReturnType<typeof customerAddressState>["value"];
+  className?: string;
+}) {
+  if (state === "VERIFIED") {
+    return <CheckCircle2 className={className} strokeWidth={2.2} />;
+  }
+  if (state === "PENDING") {
+    return <AlertTriangle className={className} strokeWidth={2.2} />;
+  }
+  return <MapPin className={className} strokeWidth={2.1} />;
+}
+
 function CustomerFilterIcon({
   status,
   className = "h-[17px] w-[17px]",
@@ -272,7 +330,6 @@ function CustomerFilterIcon({
 function Metric({
   label,
   value,
-  hint,
   icon,
 }: {
   label: string;
@@ -281,23 +338,22 @@ function Metric({
   icon?: "purchases" | "ticket" | "spent";
 }) {
   return (
-    <div className="min-w-0 rounded-[14px] border border-neutral-100 bg-[#f8f9fb] px-3.5 py-3 [font-synthesis:none]">
-      <div className="flex items-center gap-2 text-neutral-400">
+    <div className="min-w-0 px-2.5 py-2 [font-synthesis:none]">
+      <div className="flex items-center gap-1.5 text-neutral-400">
         {icon === "purchases" ? (
-          <ShoppingCart className="h-3.5 w-3.5" strokeWidth={1.9} />
+          <ShoppingCart className="h-3 w-3" strokeWidth={1.9} />
         ) : icon === "ticket" ? (
-          <Tag className="h-3.5 w-3.5" strokeWidth={1.9} />
+          <Tag className="h-3 w-3" strokeWidth={1.9} />
         ) : icon === "spent" ? (
-          <BarChart3 className="h-3.5 w-3.5" strokeWidth={1.9} />
+          <BarChart3 className="h-3 w-3" strokeWidth={1.9} />
         ) : null}
-        <span className="block truncate alento-ui-label font-bold uppercase tracking-[0.055em] text-neutral-400">
+        <span className="alento-ui-micro block truncate uppercase text-neutral-400">
           {label}
         </span>
       </div>
-      <b className="mt-2 block truncate text-[16px] font-black leading-none tracking-[-0.015em] text-neutral-950">
+      <b className="alento-ui-control mt-1 block truncate font-black leading-none text-neutral-950">
         {value}
       </b>
-      {hint && <span className="mt-1.5 block truncate text-[10px] text-neutral-400">{hint}</span>}
     </div>
   );
 }
@@ -307,6 +363,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("ALL");
+  const [addressFilter, setAddressFilter] = useState<CustomerAddressFilter>("ALL");
   const [editing, setEditing] = useState<Customer | null>(null);
   const [editSection, setEditSection] = useState<"PERSONAL" | "LOCATION">("PERSONAL");
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
@@ -442,12 +499,28 @@ export default function CustomersPage() {
     return counts;
   }, [customers]);
 
+  const addressCounts = useMemo(() => {
+    const counts = {
+      VERIFIED: 0,
+      PENDING: 0,
+      NONE: 0,
+    };
+
+    customers.forEach((customer) => {
+      counts[customerAddressState(customer).value] += 1;
+    });
+
+    return counts;
+  }, [customers]);
+
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
 
     return customers.filter((customer) => {
       const signal = customerSignal(customer.metrics).label;
+      const addressState = customerAddressState(customer).value;
       if (statusFilter !== "ALL" && signal !== statusFilter) return false;
+      if (addressFilter !== "ALL" && addressState !== addressFilter) return false;
       if (!value) return true;
 
       return [
@@ -460,7 +533,7 @@ export default function CustomersPage() {
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(value));
     });
-  }, [customers, query, statusFilter]);
+  }, [addressFilter, customers, query, statusFilter]);
 
   async function openCustomer(customer: Customer) {
     setDetailLoading(true);
@@ -859,18 +932,74 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        <section className="rounded-[20px] border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(28,23,20,.045)]">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-neutral-400" strokeWidth={2} />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="h-12 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-12 pr-4 text-sm font-medium outline-none transition focus:border-neutral-400 focus:bg-white"
-              placeholder="Buscar por nombre, teléfono, correo, dirección o nota"
-            />
+        <section className="rounded-[18px] border border-neutral-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="grid gap-2 xl:grid-cols-[minmax(300px,1fr)_auto]">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={2} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="alento-ui-control h-10 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 outline-none transition focus:border-neutral-400 focus:bg-white"
+                placeholder="Buscar cliente, teléfono o dirección"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {([
+                ["ALL", "Todas", customers.length],
+                ["VERIFIED", "Verificadas", addressCounts.VERIFIED],
+                ["PENDING", "Por actualizar", addressCounts.PENDING],
+                ["NONE", "Sin dirección", addressCounts.NONE],
+              ] as [CustomerAddressFilter, string, number][]).map(
+                ([value, label, count]) => {
+                  const active = addressFilter === value;
+                  const tone =
+                    value === "VERIFIED"
+                      ? active
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                        : "border-emerald-100 bg-white text-emerald-700"
+                      : value === "PENDING"
+                        ? active
+                          ? "border-amber-300 bg-amber-50 text-amber-700"
+                          : "border-amber-100 bg-white text-amber-700"
+                        : value === "NONE"
+                          ? active
+                            ? "border-neutral-400 bg-neutral-100 text-neutral-700"
+                            : "border-neutral-200 bg-white text-neutral-500"
+                          : active
+                            ? "border-neutral-950 bg-neutral-950 text-white"
+                            : "border-neutral-200 bg-white text-neutral-600";
+
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setAddressFilter(value)}
+                      className={`alento-ui-micro inline-flex h-10 items-center gap-1.5 rounded-xl border px-2.5 font-bold transition ${tone}`}
+                    >
+                      {value === "VERIFIED" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.2} />
+                      ) : value === "PENDING" ? (
+                        <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.2} />
+                      ) : value === "NONE" ? (
+                        <MapPin className="h-3.5 w-3.5" strokeWidth={2.1} />
+                      ) : (
+                        <MapPinned className="h-3.5 w-3.5" strokeWidth={2.1} />
+                      )}
+                      <span>{label}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 tabular-nums ${
+                        active ? "bg-black/10" : "bg-neutral-100"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                },
+              )}
+            </div>
           </div>
 
-          <div className="mt-2.5 grid grid-cols-2 gap-2 pb-0.5 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
             {([
               ["ALL", "Todos", customers.length],
               ["Nuevo", "Nuevo", statusCounts.Nuevo],
@@ -886,13 +1015,13 @@ export default function CustomersPage() {
                   key={value}
                   type="button"
                   onClick={() => setStatusFilter(value)}
-                  className={`flex min-h-12 w-full min-w-0 items-center justify-between gap-2 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.025em] transition ${tone.button}`}
+                  className={`flex h-9 min-w-0 items-center justify-between gap-1.5 rounded-[10px] border px-2.5 alento-ui-micro font-bold transition ${tone.button}`}
                 >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <CustomerFilterIcon status={value} />
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <CustomerFilterIcon status={value} className="h-3.5 w-3.5" />
                     <span className="truncate">{label}</span>
                   </span>
-                  <span className={`inline-flex min-w-7 items-center justify-center rounded-full px-2 py-1 text-[11px] font-black leading-none tabular-nums ${tone.count}`}>
+                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 font-black tabular-nums ${tone.count}`}>
                     {count}
                   </span>
                 </button>
@@ -945,62 +1074,128 @@ export default function CustomersPage() {
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-10 text-center text-sm text-neutral-400">No hay clientes para mostrar.</div>
         ) : (
-          <section className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((customer) => {
               const signal = customerSignal(customer.metrics);
+              const visual = customerCardVisual(
+                signal.label as CustomerStatusFilter,
+              );
+              const addressState = customerAddressState(customer);
+              const address = customer.addresses?.[0] ?? null;
 
               return (
                 <article
                   key={customer.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => bulkMode ? toggleCustomerSelection(customer) : void openCustomer(customer)}
+                  onClick={() =>
+                    bulkMode
+                      ? toggleCustomerSelection(customer)
+                      : void openCustomer(customer)
+                  }
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       if (bulkMode) toggleCustomerSelection(customer);
                       else void openCustomer(customer);
                     }
                   }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-[20px] border bg-white shadow-[0_10px_28px_rgba(28,23,20,.055)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(28,23,20,.09)] ${selectedCustomerIds.includes(customer.id) ? "border-red-300 ring-2 ring-red-100" : "border-neutral-200 hover:border-neutral-300"} ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-[17px] border bg-white shadow-[0_7px_20px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(28,23,20,.08)] ${
+                    selectedCustomerIds.includes(customer.id)
+                      ? "border-red-300 ring-2 ring-red-100"
+                      : "border-neutral-200 hover:border-neutral-300"
+                  } ${bulkMode && customer._count.orders > 0 ? "opacity-55" : ""}`}
                 >
-                  <div className={`absolute inset-x-0 top-0 h-1 ${customerCardVisual(signal.label as CustomerStatusFilter).top}`} />
-                  <div className="p-5 pt-6 [font-synthesis:none]">
-                    <div className={`relative w-full ${bulkMode ? "pr-40" : "pr-32"}`}>
-                      <div className="absolute right-3 top-3 flex items-center gap-1.5">
-                        <span className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] ${signal.tone}`}>
-                          {signal.label}
-                        </span>
-                        {bulkMode && (
-                          <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg border px-2 text-[10px] font-bold shadow-sm ${customer._count.orders > 0 ? "border-neutral-200 bg-neutral-100 text-neutral-400" : selectedCustomerIds.includes(customer.id) ? "border-red-600 bg-red-600 text-white" : "border-neutral-300 bg-white text-neutral-600"}`}>
-                            {customer._count.orders > 0 ? "Bloq." : selectedCustomerIds.includes(customer.id) ? "✓" : ""}
-                          </span>
-                        )}
+                  <div className={`absolute inset-x-0 top-0 h-[3px] ${visual.top}`} />
+
+                  <div className="p-3.5 pt-4">
+                    <div className="flex items-start gap-2.5">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border alento-ui-status font-black shadow-sm ${visual.avatar}`}
+                      >
+                        {customer.name.trim().charAt(0).toUpperCase()}
                       </div>
 
-                      <div className="flex min-w-0 items-center gap-3.5">
-                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full border text-[20px] font-black shadow-sm ${customerCardVisual(signal.label as CustomerStatusFilter).avatar}`}>
-                          {customer.name.trim().charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h2 className="truncate text-[19px] font-bold leading-6 tracking-[-0.02em] text-neutral-950">{customer.name}</h2>
-                          <div className="mt-2 grid gap-1">
-                            <p className="flex min-w-0 items-center gap-2 truncate text-[12px] font-medium leading-5 text-neutral-500">
-                              <span className="text-[11px]">⌕</span>
-                              <span className="truncate">{customer.countryCode} {customer.phone || "Sin teléfono"}</span>
-                            </p>
-                            <p className="flex min-w-0 items-center gap-2 truncate text-[12px] font-medium leading-5 text-neutral-500">
-                              <MapPin className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                              <span className="truncate">{customer.addresses?.[0]?.address || "Sin dirección registrada"}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h2 className="alento-ui-status truncate text-neutral-950">
+                              {customer.name}
+                            </h2>
+                            <p className="alento-ui-micro mt-0.5 truncate text-neutral-500">
+                              {customer.countryCode} {customer.phone || "Sin teléfono"}
                             </p>
                           </div>
+
+                          <span
+                            className={`alento-ui-micro shrink-0 rounded-full border px-2 py-1 font-bold uppercase ${signal.tone}`}
+                          >
+                            {signal.label}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex min-w-0 items-center gap-1.5">
+                          <MapPin
+                            className="h-3.5 w-3.5 shrink-0 text-neutral-400"
+                            strokeWidth={2}
+                          />
+                          <span className="alento-ui-micro min-w-0 flex-1 truncate text-neutral-500">
+                            {address?.formattedAddress ||
+                              address?.address ||
+                              "Sin dirección registrada"}
+                          </span>
+                        </div>
+
+                        <div className="mt-1.5 flex items-center justify-between gap-2">
+                          <span
+                            className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold ${addressState.tone}`}
+                            title={addressState.label}
+                          >
+                            <CustomerAddressStateIcon
+                              state={addressState.value}
+                              className="h-3 w-3 shrink-0"
+                            />
+                            <span className="truncate">
+                              {addressState.shortLabel}
+                            </span>
+                          </span>
+
+                          {bulkMode && (
+                            <span
+                              className={`flex h-6 min-w-6 items-center justify-center rounded-lg border px-1.5 alento-ui-micro font-bold ${
+                                customer._count.orders > 0
+                                  ? "border-neutral-200 bg-neutral-100 text-neutral-400"
+                                  : selectedCustomerIds.includes(customer.id)
+                                    ? "border-red-600 bg-red-600 text-white"
+                                    : "border-neutral-300 bg-white text-neutral-600"
+                              }`}
+                            >
+                              {customer._count.orders > 0
+                                ? "Bloq."
+                                : selectedCustomerIds.includes(customer.id)
+                                  ? "✓"
+                                  : ""}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <Metric label="Compras" value={String(customer.metrics.purchaseCount)} icon="purchases" />
-                      <Metric label="Ticket promedio" value={money(customer.metrics.averageTicket)} icon="ticket" />
-                      <Metric label="Total comprado" value={money(customer.metrics.totalSpent)} icon="spent" />
+                    <div className="mt-3 grid grid-cols-3 divide-x divide-neutral-200 rounded-[12px] border border-neutral-100 bg-[#f8f9fb]">
+                      <Metric
+                        label="Compras"
+                        value={String(customer.metrics.purchaseCount)}
+                        icon="purchases"
+                      />
+                      <Metric
+                        label="Ticket"
+                        value={money(customer.metrics.averageTicket)}
+                        icon="ticket"
+                      />
+                      <Metric
+                        label="Comprado"
+                        value={money(customer.metrics.totalSpent)}
+                        icon="spent"
+                      />
                     </div>
                   </div>
                 </article>
