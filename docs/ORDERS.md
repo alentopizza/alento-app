@@ -179,6 +179,31 @@ En Domicilio es obligatorio seleccionar una dirección perteneciente al nuevo cl
 
 No se inventa ni copia una dirección de otro registro.
 
+
+### Reenvío manual de `nuevo_pedido_v2`
+
+El drawer de detalle del pedido incluye **Reenviar WhatsApp**.
+
+Uso principal:
+
+- el cliente registró un teléfono incorrecto;
+- el operador corrige el teléfono desde **Editar cliente**;
+- luego puede reenviar manualmente la plantilla `nuevo_pedido_v2` sin recrear el pedido.
+
+Endpoint:
+
+`POST /api/orders/[id]/resend-new-order-template`
+
+Reglas:
+
+- usa siempre el teléfono actualmente guardado en `Customer`;
+- la plantilla enviada es exactamente `nuevo_pedido_v2`;
+- el reenvío exige coincidencia exacta de teléfono en Chatwoot;
+- no se permite caer al contacto histórico encontrado únicamente por `customerId`, porque podría corresponder al número equivocado anterior;
+- si Chatwoot no tiene contacto/conversación válida para el teléfono corregido, la UI informa el error en lugar de arriesgar un envío al número viejo;
+- disponible para roles `ADMIN`, `POS` y `CASHIER`.
+
+
 ## Productos y configuración
 
 El detalle lee `OrderItem.configuration`.
