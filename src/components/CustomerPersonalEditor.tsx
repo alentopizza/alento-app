@@ -66,6 +66,7 @@ export default function CustomerPersonalEditor({
               className="alento-input h-12 w-full rounded-2xl px-3"
             >
               <option>+57</option>
+              <option>+30</option>
               <option>+1</option>
               <option>+34</option>
               <option>+52</option>
