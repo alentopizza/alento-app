@@ -310,16 +310,69 @@ export default function OrdersCardsDashboardV3() {
   async function load(silent = false) {
     if (!silent) setLoading(true);
     try {
-      const response = await fetch("/api/orders", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "No fue posible cargar los pedidos.");
-      const next = (data.orders ?? []) as Order[];
+      const response = await fetch("/api/orders", {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const bodyText = await response.text();
+
+      if (!contentType.includes("application/json")) {
+        console.warn("Orders API returned non-JSON response", {
+          status: response.status,
+          contentType,
+          preview: bodyText.slice(0, 180),
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(
+            "Tu sesión ya no es válida. Inicia sesión nuevamente para cargar los pedidos.",
+          );
+        }
+
+        throw new Error(
+          "El servidor devolvió una respuesta temporal inesperada. Recarga la página en unos segundos.",
+        );
+      }
+
+      let data: { orders?: Order[]; error?: string };
+      try {
+        data = JSON.parse(bodyText) as {
+          orders?: Order[];
+          error?: string;
+        };
+      } catch {
+        throw new Error(
+          "La respuesta de Pedidos llegó incompleta. Recarga la página.",
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible cargar los pedidos.",
+        );
+      }
+
+      const next = data.orders ?? [];
       setOrders(next);
-      setSelected((current) => current ? next.find((order) => order.id === current.id) ?? null : null);
-      setPaymentOrder((current) => current ? next.find((order) => order.id === current.id) ?? null : null);
+      setSelected((current) =>
+        current
+          ? next.find((order) => order.id === current.id) ?? null
+          : null,
+      );
+      setPaymentOrder((current) =>
+        current
+          ? next.find((order) => order.id === current.id) ?? null
+          : null,
+      );
       setError("");
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "No fue posible cargar los pedidos.");
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "No fue posible cargar los pedidos.",
+      );
     } finally {
       if (!silent) setLoading(false);
     }
@@ -1669,30 +1722,26 @@ export default function OrdersCardsDashboardV3() {
                 type="button"
                 onClick={() => void openEdit(selected)}
                 disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
-                className="inline-flex h-11 items-center justify-center rounded-[12px] border border-neutral-200 bg-white px-3 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
+                className="relative h-11 rounded-[12px] border border-neutral-200 bg-white px-10 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
               >
-                <span className="inline-flex items-center justify-center gap-2 leading-none">
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none">
-                    <Icon name="edit" />
-                  </span>
-                  <span className="hidden leading-none min-[390px]:inline">
-                    Editar
-                  </span>
+                <span className="pointer-events-none absolute left-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-neutral-600">
+                  <Icon name="edit" />
+                </span>
+                <span className="block w-full text-center leading-none">
+                  Editar
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => print(selected)}
-                className="inline-flex h-11 items-center justify-center rounded-[12px] border border-neutral-200 bg-white px-3 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50"
+                className="relative h-11 rounded-[12px] border border-neutral-200 bg-white px-10 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50"
               >
-                <span className="inline-flex items-center justify-center gap-2 leading-none">
-                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none">
-                    <Icon name="print" />
-                  </span>
-                  <span className="hidden leading-none min-[390px]:inline">
-                    Imprimir
-                  </span>
+                <span className="pointer-events-none absolute left-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-neutral-600">
+                  <Icon name="print" />
+                </span>
+                <span className="block w-full text-center leading-none">
+                  Imprimir
                 </span>
               </button>
 
