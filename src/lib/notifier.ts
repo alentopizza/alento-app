@@ -22,6 +22,7 @@ type BaseOrderEvent = {
 
 type NotifierPayload = {
   orderId: number;
+  existingRecipientOnly?: boolean;
   orderCode: string;
   total: number;
   fulfillmentType: string;
@@ -140,9 +141,17 @@ function customerPayload(input: BaseOrderEvent) {
 
 export async function dispatchOrderCreatedNotification(
   input: BaseOrderEvent,
+  options: { existingRecipientOnly?: boolean } = {},
 ): Promise<NotificationDispatchResult> {
   const event = "order.created";
-  return dispatchEvent(event, customerPayload(input), await templateFor(event, input.fulfillmentType));
+  return dispatchEvent(
+    event,
+    {
+      ...customerPayload(input),
+      existingRecipientOnly: options.existingRecipientOnly === true,
+    },
+    await templateFor(event, input.fulfillmentType),
+  );
 }
 
 export async function dispatchOrderStatusNotification(
