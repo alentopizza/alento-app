@@ -1083,6 +1083,55 @@ export default function OrdersCardsDashboardV3() {
     }
   }
 
+  async function resendNewOrderTemplate(order: Order) {
+    if (!order.customer?.phone) {
+      setFeedbackModal({
+        tone: "warning",
+        title: "Cliente sin teléfono",
+        message:
+          "Corrige el teléfono del cliente antes de reenviar la plantilla.",
+      });
+      return;
+    }
+
+    setBusy(order.id);
+
+    try {
+      const response = await fetch(
+        `/api/orders/${order.id}/resend-new-order-template`,
+        { method: "POST" },
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "No fue posible reenviar la plantilla nuevo_pedido_v2.",
+        );
+      }
+
+      setFeedbackModal({
+        tone: "success",
+        title: "Plantilla reenviada",
+        message: `nuevo_pedido_v2 fue enviada a ${data.phone || "el teléfono actual del cliente"}.`,
+        detail: `${displayOrderCode(order)} · El reenvío usó el número guardado actualmente en Alentó.`,
+      });
+    } catch (sendError) {
+      setFeedbackModal({
+        tone: "error",
+        title: "No fue posible reenviar",
+        message:
+          sendError instanceof Error
+            ? sendError.message
+            : "No fue posible reenviar la plantilla nuevo_pedido_v2.",
+        detail:
+          "Verifica que el teléfono corregido también tenga un contacto/conversación válida en Chatwoot.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const activeCount = orders.filter((order) => !["COMPLETED", "CANCELED"].includes(order.status)).length;
 
   return <main className="w-full p-3 md:p-5 xl:p-6">
@@ -1296,6 +1345,15 @@ export default function OrdersCardsDashboardV3() {
 >
   <Icon name="edit" />
   <span>Editar cliente</span>
+</button>
+<button
+  type="button"
+  onClick={() => void resendNewOrderTemplate(selected)}
+  disabled={busy === selected.id || !selected.customer?.phone}
+  title="Reenviar plantilla nuevo_pedido_v2"
+  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-[10px] font-black uppercase tracking-[0.04em] text-emerald-800 shadow-[0_6px_18px_rgba(28,23,20,.06)] transition hover:-translate-y-[1px] hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+>
+  {busy === selected.id ? "Enviando..." : "Reenviar WhatsApp"}
 </button></div></div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
         <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
