@@ -1335,35 +1335,373 @@ export default function OrdersCardsDashboardV3() {
         })}</div>}
     </div>
 
-    {selected && <div className="fixed inset-0 z-[90] bg-black/55 backdrop-blur-[3px]" onClick={() => setSelected(null)}><aside onClick={(event) => event.stopPropagation()} className="order-detail-drawer absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden bg-[#f5f2ee] shadow-[-24px_0_70px_rgba(0,0,0,.24)]">
-      <header className="flex items-start justify-between gap-4 border-b-2 border-[var(--brand-red)] bg-[radial-gradient(circle_at_90%_20%,rgba(229,28,17,.22),transparent_28%),linear-gradient(135deg,#0b0b0c,#171718)] px-5 py-5 text-white"><div><p className="alento-ui-label font-bold uppercase tracking-[0.16em] text-white/45">Detalle del pedido</p><h2 className="mt-1 text-2xl font-black">{displayOrderCode(selected)}</h2><div className="mt-2 flex flex-wrap items-center gap-2"><span className="order-detail-date text-xs text-white/55">{dateTime(selected.createdAt)}</span><span className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase ${fulfillmentTone(selected.fulfillmentType)}`}>{fulfillmentLabel(selected.fulfillmentType)}</span>{selected.fulfillmentType === "DELIVERY" && <span className="order-detail-delivery-fee">{selected.deliveryZoneName || (Number(selected.deliveryFee) > 0 ? money(selected.deliveryFee) : "Sin costo")}</span>}</div></div><button onClick={() => setSelected(null)} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.08]"><Icon name="close" /></button></header>
-      <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        <section className="order-customer-detail rounded-2xl border border-neutral-200 bg-white p-5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Cliente</p><h3 className="order-customer-detail-name mt-1">{selected.customer?.name || "Cliente ocasional"}</h3><div className="order-customer-detail-meta"><p>{selected.customer?.phone ? `${selected.customer.countryCode} ${selected.customer.phone}` : "Sin teléfono"}</p>{selected.address?.address && <p>{selected.address.address}</p>}</div>{selected.fulfillmentType === "DELIVERY" && selected.driver && <div className="mt-3 flex flex-wrap items-center gap-2"><div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /><span className="alento-ui-label uppercase tracking-[0.07em] text-emerald-700">Asignado a {selected.driver.name}</span></div><button type="button" onClick={() => void unassignDriver(selected)} disabled={busy === selected.id} className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 alento-ui-label uppercase tracking-[0.05em] text-red-600 disabled:opacity-40">Desasignar</button></div>}</div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`${statusTone(selected.status)} rounded-xl px-3 py-2 text-[10px] font-black uppercase text-white`}>{statusLabel(selected.status)}</span><button
-  onClick={() => openCustomerManager(selected)}
-  disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
-  className="inline-flex h-10 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 text-[11px] font-bold text-neutral-700 shadow-[0_6px_18px_rgba(28,23,20,.08)] transition-all duration-150 hover:-translate-y-[1px] hover:border-[var(--brand-red)] hover:text-[var(--brand-red)] hover:shadow-[0_10px_24px_rgba(28,23,20,.12)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:border-neutral-200 disabled:hover:text-neutral-700"
->
-  <Icon name="edit" />
-  <span>Editar cliente</span>
-</button>
-<button
-  type="button"
-  onClick={() => void resendNewOrderTemplate(selected)}
-  disabled={busy === selected.id || !selected.customer?.phone}
-  title="Reenviar plantilla nuevo_pedido_v2"
-  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-[10px] font-black uppercase tracking-[0.04em] text-emerald-800 shadow-[0_6px_18px_rgba(28,23,20,.06)] transition hover:-translate-y-[1px] hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
->
-  {busy === selected.id ? "Enviando..." : "Reenviar WhatsApp"}
-</button></div></div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Productos</p><h3 className="mt-1 text-lg font-black">Detalle de la orden</h3></div><div className="mt-3 space-y-2">{selected.items.map((item) => <ProductRow key={item.id} item={item} />)}</div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Totales</p><div className="mt-3 space-y-2 text-sm"><div className="flex justify-between"><span className="text-neutral-500">Subtotal</span><b>{money(selected.subtotal)}</b></div>{Number(selected.deliveryFee) > 0 && <div className="flex justify-between"><span className="text-neutral-500">Domicilio</span><b>{money(selected.deliveryFee)}</b></div>}{Number(selected.discount) > 0 && <div className="flex justify-between text-emerald-700"><span>Descuento</span><b>- {money(selected.discount)}</b></div>}<div className="flex justify-between border-t border-dashed pt-3"><b>Total</b><b className="text-xl text-[var(--brand-red)]">{money(selected.total)}</b></div></div></section>
-        <section className="mt-3 rounded-2xl border border-neutral-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="alento-ui-label uppercase tracking-[.1em] text-neutral-400">Movimientos de pago</p><h3 className="mt-1 text-lg font-black">Pagos registrados</h3></div>{balance(selected) > 0 && <button onClick={() => void openPayment(selected)} className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase text-white">Registrar pago</button>}</div>
-          <div className="mt-3 space-y-2">{selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? <p className="text-sm text-neutral-400">Sin movimientos.</p> : selected.payments.filter((payment) => payment.status !== "CANCELED").map((payment) => { const received = payment.status === "PAID"; return <div key={payment.id} className={`rounded-xl border p-3 ${received ? "border-emerald-100 bg-emerald-50/50" : "border-amber-100 bg-amber-50/50"}`}><div className="flex items-center justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><b className="text-sm">{payment.method}</b><span className={`rounded-full px-2 py-0.5 alento-ui-label uppercase ${received ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{received ? "Recibido" : "Medio previsto"}</span></div><p className="mt-1 text-xs text-neutral-500">{received && payment.paidAt ? `Recibido ${dateTime(payment.paidAt)}` : "Indicado desde POS · aún no ingresado a Caja"}{payment.reference ? ` · Ref. ${payment.reference}` : ""}</p>{received && payment.cashReceived != null && <p className="mt-1 text-[11px] text-neutral-400">Efectivo recibido {money(payment.cashReceived)}{payment.changeDue != null ? ` · Cambio ${money(payment.changeDue)}` : ""}</p>}</div><div className="flex items-center gap-2"><b className="text-sm">{money(payment.amount)}</b><button onClick={() => setConfirmAction({ kind: "delete-payment", order: selected, payment })} disabled={busy === selected.id} className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-white text-red-600" title={received ? "Eliminar pago" : "Eliminar medio previsto"}><Icon name="trash" /></button></div></div></div>; })}</div>
-          <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-emerald-50 px-3 py-2"><span className="block text-[10px] font-bold uppercase text-emerald-600">Recibido</span><b className="text-sm text-emerald-800">{money(paidAmount(selected))}</b></div><div className="rounded-xl bg-[#f7f5f2] px-3 py-2"><span className="block text-[10px] font-bold uppercase text-neutral-400">Saldo pendiente</span><b className={balance(selected) > 0 ? "text-sm text-amber-700" : "text-sm text-emerald-700"}>{money(balance(selected))}</b></div></div>
-        </section>
+    {selected && (
+      <div
+        className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-[4px]"
+        onClick={() => setSelected(null)}
+      >
+        <aside
+          onClick={(event) => event.stopPropagation()}
+          className="order-detail-drawer absolute inset-y-0 right-0 flex w-full max-w-[680px] flex-col overflow-hidden bg-[#f7f6f3] shadow-[-28px_0_80px_rgba(0,0,0,.28)]"
+        >
+          <header className="relative shrink-0 overflow-hidden border-b border-red-500/40 bg-[#0b0b0c] px-4 py-4 text-white sm:px-5">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_20%,rgba(226,26,34,.34),transparent_32%),linear-gradient(120deg,#0b0b0c_0%,#121215_58%,#3c0a0d_100%)]" />
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="h-[2px] w-6 rounded-full bg-[var(--brand-red)]" />
+                  <p className="alento-ui-label uppercase tracking-[0.16em] text-white/45">
+                    Detalle del pedido
+                  </p>
+                </div>
+
+                <div className="mt-1.5 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
+                  <h2 className="text-[26px] font-black leading-none tracking-[-0.035em]">
+                    {displayOrderCode(selected)}
+                  </h2>
+                  <span className="order-detail-date pb-0.5 text-[10px] font-semibold text-white/45">
+                    {dateTime(selected.createdAt)}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`${statusTone(selected.status)} rounded-full border border-white/10 px-2.5 py-1 alento-ui-label uppercase text-white shadow-sm`}
+                  >
+                    {statusLabel(selected.status)}
+                  </span>
+                  <span
+                    className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase ${fulfillmentTone(selected.fulfillmentType)}`}
+                  >
+                    {fulfillmentLabel(selected.fulfillmentType)}
+                  </span>
+                  {selected.fulfillmentType === "DELIVERY" && (
+                    <span className="rounded-full border border-white/10 bg-white/[0.08] px-2.5 py-1 alento-ui-micro font-bold text-white/70">
+                      {selected.deliveryZoneName ||
+                        (Number(selected.deliveryFee) > 0
+                          ? money(selected.deliveryFee)
+                          : "Sin costo")}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.07] text-white/80 transition hover:bg-white/[0.12]"
+                aria-label="Cerrar detalle"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+          </header>
+
+          <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+            <section className="rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.045)] sm:p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-neutral-200 bg-[#f7f6f3] alento-ui-status font-black text-neutral-800">
+                  {(selected.customer?.name || "C").trim().charAt(0).toUpperCase()}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                    Cliente
+                  </p>
+                  <h3 className="alento-ui-status mt-0.5 truncate text-neutral-950">
+                    {selected.customer?.name || "Cliente ocasional"}
+                  </h3>
+                  <p className="alento-ui-micro mt-1 text-neutral-500">
+                    {selected.customer?.phone
+                      ? `${selected.customer.countryCode} ${selected.customer.phone}`
+                      : "Sin teléfono"}
+                  </p>
+                  {selected.address?.address && (
+                    <p className="alento-ui-micro mt-1 line-clamp-2 text-neutral-500">
+                      {selected.address.address}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {selected.fulfillmentType === "DELIVERY" && selected.driver && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[13px] border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+                  <span className="alento-ui-micro inline-flex min-w-0 items-center gap-1.5 font-bold text-emerald-800">
+                    <span aria-hidden="true">🏍️</span>
+                    <span className="truncate">{selected.driver.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void unassignDriver(selected)}
+                    disabled={busy === selected.id}
+                    className="alento-ui-micro rounded-lg border border-red-200 bg-white px-2.5 py-1.5 font-bold text-red-600 disabled:opacity-40"
+                  >
+                    Desasignar
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => openCustomerManager(selected)}
+                  disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white px-3 alento-ui-control font-bold text-neutral-700 transition hover:border-neutral-400 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Icon name="edit" />
+                  <span>Editar cliente</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void resendNewOrderTemplate(selected)}
+                  disabled={busy === selected.id || !selected.customer?.phone}
+                  className="inline-flex h-10 items-center justify-center rounded-[12px] border border-emerald-200 bg-emerald-50 px-3 alento-ui-control font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {busy === selected.id ? "Enviando..." : "Reenviar WhatsApp"}
+                </button>
+              </div>
+            </section>
+
+            <section className="mt-3 rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] sm:p-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                    Productos
+                  </p>
+                  <h3 className="alento-ui-status mt-0.5 text-neutral-950">
+                    Detalle de la orden
+                  </h3>
+                </div>
+                <span className="alento-ui-micro rounded-full bg-neutral-100 px-2.5 py-1 font-bold text-neutral-500">
+                  {selected.items.reduce((sum, item) => sum + item.quantity, 0)} productos
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {selected.items.map((item) => (
+                  <ProductRow key={item.id} item={item} />
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-3 grid gap-3 sm:grid-cols-[0.82fr_1.18fr]">
+              <div className="rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+                <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                  Totales
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="alento-ui-body text-neutral-500">Subtotal</span>
+                    <b className="alento-ui-control text-neutral-900">
+                      {money(selected.subtotal)}
+                    </b>
+                  </div>
+
+                  {Number(selected.deliveryFee) > 0 && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="alento-ui-body text-neutral-500">Domicilio</span>
+                      <b className="alento-ui-control text-neutral-900">
+                        {money(selected.deliveryFee)}
+                      </b>
+                    </div>
+                  )}
+
+                  {Number(selected.discount) > 0 && (
+                    <div className="flex items-center justify-between gap-3 text-emerald-700">
+                      <span className="alento-ui-body">Descuento</span>
+                      <b className="alento-ui-control">- {money(selected.discount)}</b>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 rounded-[14px] bg-[#111113] px-3.5 py-3 text-white">
+                  <span className="alento-ui-micro uppercase tracking-[0.09em] text-white/45">
+                    Total
+                  </span>
+                  <b className="mt-1 block text-[24px] font-black leading-none tracking-[-0.035em] text-[#ff3038]">
+                    {money(selected.total)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                      Pago
+                    </p>
+                    <h3 className="alento-ui-status mt-0.5 text-neutral-950">
+                      Estado financiero
+                    </h3>
+                  </div>
+                  {balance(selected) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => void openPayment(selected)}
+                      className="h-9 rounded-[11px] bg-black px-3 alento-ui-micro font-black uppercase text-white"
+                    >
+                      Registrar pago
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-[12px] border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+                    <span className="alento-ui-micro block uppercase text-emerald-600">
+                      Recibido
+                    </span>
+                    <b className="alento-ui-status mt-1 block text-emerald-800">
+                      {money(paidAmount(selected))}
+                    </b>
+                  </div>
+                  <div className="rounded-[12px] border border-amber-100 bg-amber-50 px-3 py-2.5">
+                    <span className="alento-ui-micro block uppercase text-amber-600">
+                      Pendiente
+                    </span>
+                    <b className={`alento-ui-status mt-1 block ${balance(selected) > 0 ? "text-amber-800" : "text-emerald-700"}`}>
+                      {money(balance(selected))}
+                    </b>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-3 rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] sm:p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                    Movimientos de pago
+                  </p>
+                  <h3 className="alento-ui-status mt-0.5 text-neutral-950">
+                    Pagos registrados
+                  </h3>
+                </div>
+                <span className="alento-ui-micro rounded-full bg-neutral-100 px-2.5 py-1 font-bold text-neutral-500">
+                  {selected.payments.filter((payment) => payment.status !== "CANCELED").length}
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {selected.payments.filter((payment) => payment.status !== "CANCELED").length === 0 ? (
+                  <div className="rounded-[12px] border border-dashed border-neutral-200 bg-[#faf9f7] px-3 py-4 text-center alento-ui-body text-neutral-400">
+                    Sin movimientos registrados.
+                  </div>
+                ) : (
+                  selected.payments
+                    .filter((payment) => payment.status !== "CANCELED")
+                    .map((payment) => {
+                      const received = payment.status === "PAID";
+                      return (
+                        <div
+                          key={payment.id}
+                          className={`rounded-[13px] border px-3 py-2.5 ${
+                            received
+                              ? "border-emerald-100 bg-emerald-50/55"
+                              : "border-amber-100 bg-amber-50/55"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <b className="alento-ui-control text-neutral-900">
+                                  {payment.method}
+                                </b>
+                                <span
+                                  className={`rounded-full px-2 py-0.5 alento-ui-micro font-bold uppercase ${
+                                    received
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-amber-100 text-amber-700"
+                                  }`}
+                                >
+                                  {received ? "Recibido" : "Medio previsto"}
+                                </span>
+                              </div>
+                              <p className="alento-ui-micro mt-1 text-neutral-500">
+                                {received && payment.paidAt
+                                  ? `Recibido ${dateTime(payment.paidAt)}`
+                                  : "Indicado desde POS · aún no ingresado a Caja"}
+                                {payment.reference ? ` · Ref. ${payment.reference}` : ""}
+                              </p>
+                              {received && payment.cashReceived != null && (
+                                <p className="alento-ui-micro mt-1 text-neutral-400">
+                                  Efectivo {money(payment.cashReceived)}
+                                  {payment.changeDue != null
+                                    ? ` · Cambio ${money(payment.changeDue)}`
+                                    : ""}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-2">
+                              <b className="alento-ui-control text-neutral-950">
+                                {money(payment.amount)}
+                              </b>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setConfirmAction({
+                                    kind: "delete-payment",
+                                    order: selected,
+                                    payment,
+                                  })
+                                }
+                                disabled={busy === selected.id}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-[9px] border border-red-100 bg-white text-red-600 disabled:opacity-40"
+                                title={received ? "Eliminar pago" : "Eliminar medio previsto"}
+                              >
+                                <Icon name="trash" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </section>
+          </div>
+
+          <footer className="shrink-0 border-t border-neutral-200 bg-white p-3 sm:p-4">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => void openEdit(selected)}
+                disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
+                className="flex h-11 items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white alento-ui-control font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
+              >
+                <Icon name="edit" />
+                <span className="hidden min-[390px]:inline">Editar</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => print(selected)}
+                className="flex h-11 items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white alento-ui-control font-bold text-neutral-700 transition hover:bg-neutral-50"
+              >
+                <Icon name="print" />
+                <span className="hidden min-[390px]:inline">Imprimir</span>
+              </button>
+
+              {["CANCELED", "COMPLETED"].includes(selected.status) ? (
+                <span className="flex h-11 items-center justify-center rounded-[12px] bg-neutral-100 alento-ui-control font-bold text-neutral-400">
+                  Cerrado
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void openStatusManager(selected)}
+                  className="h-11 rounded-[12px] bg-black alento-ui-control font-black text-white"
+                >
+                  ESTADOS
+                </button>
+              )}
+            </div>
+          </footer>
+        </aside>
       </div>
-      <footer className="border-t border-neutral-200 bg-white p-4"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3"><button onClick={() => void openEdit(selected)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold disabled:opacity-30"><Icon name="edit" /> Editar</button><button onClick={() => print(selected)} className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"><Icon name="print" /> Imprimir</button>{["CANCELED", "COMPLETED"].includes(selected.status) ? <span className="flex h-11 items-center justify-center rounded-xl bg-neutral-100 text-sm font-bold text-neutral-400">Cerrado</span> : <button type="button" onClick={() => void openStatusManager(selected)} className="h-11 rounded-xl bg-black text-sm font-black text-white">ESTADOS</button>}</div></footer>
-    </aside></div>}
+    )}
 
     {confirmAction && <ActionConfirmModal
       variant={confirmAction.kind === "cancel-order" ? "warning" : "danger"}
