@@ -433,6 +433,27 @@ Los pedidos cancelados pueden eliminarse desde este flujo aunque pertenezcan a u
 
 ## Impresión
 
+### Precios de borde en el comprobante
+
+Para pizzas con configuración estructurada, el comprobante no debe ocultar el valor de un borde especial dentro del precio principal de la pizza.
+
+Regla visual:
+
+```text
+1 × PIZZA / SABOR                  $ precio base
+  TAMAÑO: ...
+  SABOR: ...
+  BORDE: BOCADILLO                $ precio borde
+```
+
+El precio principal mostrado se obtiene restando del `OrderItem.lineTotal` únicamente el snapshot `configuration.crust.price × quantity`. El subtotal y total de la orden no se recalculan en impresión.
+
+- borde con precio mayor a cero: mostrar nombre + precio separado;
+- borde de $0: mostrar el nombre sin inventar un cargo;
+- pedidos históricos sin snapshot de precio de borde: mostrar el nombre disponible, pero no inferir un precio actual del catálogo.
+
+El comprobante usa el título **DETALLE DEL PEDIDO**; no volver a introducir checklist de despacho.
+
 La acción Imprimir usa la ruta:
 
 `/pedidos/[id]/imprimir`
