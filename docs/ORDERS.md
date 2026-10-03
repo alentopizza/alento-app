@@ -571,3 +571,30 @@ Reglas vigentes adicionales:
 - rutas múltiples encadenan paradas y diferencian cada tramo por color;
 - el límite de domicilios simultáneos por repartidor se configura desde Configuración;
 - una orden con dinero `PAID` no puede cancelarse hasta disponer de un flujo de refund.
+
+
+### Comanda térmica de repartidor
+
+Cuando `fulfillmentType = DELIVERY`, la impresión genera un único trabajo con dos páginas térmicas de 80 mm:
+
+1. factura/comprobante para caja;
+2. comanda operativa para el repartidor.
+
+La comanda incluye:
+
+- código del pedido;
+- nombre y teléfono;
+- dirección;
+- indicaciones;
+- estado de pago;
+- medio de pago pendiente;
+- efectivo con el que paga el cliente, cuando existe;
+- vueltas que debe llevar el repartidor;
+- Nequi `324 333 4009`;
+- Llave `@324 333 4009`.
+
+No incluye el detalle de productos: su función es exclusivamente operativa para la entrega.
+
+La segunda hoja usa `break-before: page` / `page-break-before: always`. El sistema envía factura y comanda como páginas separadas; el corte físico entre ambas depende de que el driver de la impresora térmica esté configurado para **cortar al finalizar cada página**.
+
+Los pedidos que no son domicilio imprimen únicamente el comprobante.
