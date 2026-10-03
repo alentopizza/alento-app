@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
-import { notifyOrderCreated } from "@/lib/chatwoot";
+import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { orderCode } from "@/lib/orderCode";
 
 function authError(error: unknown) {
@@ -90,7 +90,7 @@ export async function POST(
     order.source,
   );
 
-  const result = await notifyOrderCreated(
+  const result = await dispatchOrderCreatedNotification(
     {
       customerId: order.customerId,
       customerName: order.customer.name,
@@ -101,8 +101,7 @@ export async function POST(
       fulfillmentType: order.fulfillmentType,
     },
     {
-      templateName: "nuevo_pedido_v2",
-      requirePhoneMatch: true,
+      existingRecipientOnly: true,
     },
   );
 
@@ -122,7 +121,6 @@ export async function POST(
     template: "nuevo_pedido_v2",
     phone: currentPhone,
     orderCode: code,
-    conversationId: result.conversationId,
-    contactId: result.contactId,
+    status: result.status,
   });
 }
