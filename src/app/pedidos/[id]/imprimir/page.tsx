@@ -100,6 +100,13 @@ function pizzaCrustSnapshot(configuration: unknown) {
   return name ? { name, price } : null;
 }
 
+function receiptDetailText(value: string) {
+  return value
+    .replace(/½/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function itemReceiptBreakdown(item: Order["items"][number]) {
   const crust = pizzaCrustSnapshot(item.configuration);
   const crustTotal = crust ? crust.price * Math.max(1, item.quantity) : 0;
@@ -160,7 +167,7 @@ export default function ThermalReceiptPage() {
     const displayNumber = order.sequenceNumber ?? order.id;
     const displayCode = orderCode(displayNumber, order.source);
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>
-*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;max-width:80mm;margin:0 auto;padding:4mm 5mm 6mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.thermal-receipt{width:70mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:2px dashed #000}.receipt-header img{display:block;margin:0 auto;width:16mm;height:16mm;object-fit:contain;filter:grayscale(1)}.receipt-brand{font-size:18px;font-weight:900;margin:3px 0 0}.receipt-business{font-size:11px;font-weight:700;line-height:14px;margin:1px 0 0}.receipt-date{font-size:11px;font-weight:700;margin:0}.receipt-order-code{font-size:30px;line-height:1;font-weight:900;margin:3px 0 0}.receipt-mode{display:inline-block;border:2px solid #000;padding:5px 12px;margin-top:7px;font-size:15px;font-weight:900}.receipt-section-title{font-size:14px;font-weight:900;margin:0 0 7px}.receipt-customer-name{font-size:16px;font-weight:900;margin:0}.receipt-phone{font-size:12px;font-weight:700;margin:3px 0 0}.receipt-address{font-size:12px;font-weight:700;line-height:15px;margin:5px 0 0}.receipt-instructions{font-size:11px;font-weight:700;line-height:14px;margin:4px 0 0}.receipt-item{margin:0 0 12px}.receipt-item:last-child{margin-bottom:0}.receipt-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}.receipt-product{font-size:13px;font-weight:900;line-height:16px}.receipt-price{font-size:14px;font-weight:900;line-height:16px;white-space:nowrap}.receipt-details{margin:4px 0 0 13px}.receipt-detail{font-size:11px;font-weight:700;line-height:14px;margin:1px 0}.receipt-crust{display:grid;grid-template-columns:1fr auto;gap:8px;margin:3px 0 0 13px;font-size:12px;font-weight:700;line-height:15px}.receipt-crust-price{font-size:13px;font-weight:900;white-space:nowrap}.receipt-note{margin:5px 0 0 13px;border:2px solid #000;padding:4px 6px;font-size:11px;font-weight:900}.receipt-totals{font-size:14px;font-weight:900}.receipt-total-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}.receipt-grand-total{display:flex;justify-content:space-between;align-items:end;border-top:2px solid #000;margin-top:8px;padding-top:7px;font-size:21px;font-weight:900}.receipt-payment{margin-top:12px;border:2px solid #000;padding:8px 10px;text-align:center}.receipt-payment-label{font-size:11px;font-weight:900;letter-spacing:.08em}.receipt-payment-value{font-size:16px;font-weight:900;margin-top:4px}.receipt-footer{text-align:center}.receipt-footer-title{font-size:14px;font-weight:900;margin:0}.receipt-footer-sub{font-size:11px;font-weight:700;font-style:italic;margin:4px 0 0}.mt-rule{margin:12px 0}.coupon{font-size:11px;font-weight:700;text-align:center;margin-top:8px}
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;max-width:80mm;margin:0 auto;padding:4mm 5mm 6mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.thermal-receipt{width:70mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:2px dashed #000}.receipt-header img{display:block;margin:0 auto;width:16mm;height:16mm;object-fit:contain;filter:grayscale(1)}.receipt-brand{font-size:18px;font-weight:900;margin:3px 0 0}.receipt-business{font-size:11px;font-weight:700;line-height:14px;margin:1px 0 0}.receipt-date{font-size:11px;font-weight:700;margin:0}.receipt-order-code{font-size:30px;line-height:1;font-weight:900;margin:3px 0 0}.receipt-mode{display:inline-block;border:2px solid #000;padding:5px 12px;margin-top:7px;font-size:15px;font-weight:900}.receipt-section-title{font-size:14px;font-weight:900;margin:0 0 7px}.receipt-customer-block{text-align:center}.receipt-customer-name{font-size:16px;font-weight:900;margin:0;text-align:center}.receipt-phone{font-size:12px;font-weight:700;margin:3px 0 0;text-align:center}.receipt-address{font-size:12px;font-weight:700;line-height:15px;margin:5px 0 0;text-align:center}.receipt-instructions{margin:8px 0 0;border:2px solid #000;padding:7px 8px;font-size:12px;font-weight:900;line-height:16px;text-align:center;white-space:pre-line}.receipt-item{margin:0 0 12px}.receipt-item:last-child{margin-bottom:0}.receipt-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}.receipt-product{font-size:13px;font-weight:900;line-height:16px}.receipt-price{font-size:14px;font-weight:900;line-height:16px;white-space:nowrap}.receipt-details{margin:4px 0 0 13px}.receipt-detail{font-size:11px;font-weight:700;line-height:14px;margin:1px 0}.receipt-crust{display:grid;grid-template-columns:1fr auto;gap:8px;margin:3px 0 0 13px;font-size:12px;font-weight:700;line-height:15px}.receipt-crust-price{font-size:13px;font-weight:900;white-space:nowrap}.receipt-note{margin:5px 0 0 13px;border:2px solid #000;padding:4px 6px;font-size:11px;font-weight:900}.receipt-totals{font-size:14px;font-weight:900}.receipt-total-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}.receipt-grand-total{display:flex;justify-content:space-between;align-items:end;border-top:2px solid #000;margin-top:8px;padding-top:7px;font-size:21px;font-weight:900}.receipt-payment{margin-top:12px;border:2px solid #000;padding:8px 10px;text-align:center}.receipt-payment-label{font-size:11px;font-weight:900;letter-spacing:.08em}.receipt-payment-value{font-size:16px;font-weight:900;margin-top:4px}.receipt-footer{text-align:center}.receipt-footer-title{font-size:14px;font-weight:900;margin:0}.receipt-footer-sub{font-size:11px;font-weight:700;font-style:italic;margin:4px 0 0}.mt-rule{margin:12px 0}.coupon{font-size:11px;font-weight:700;text-align:center;margin-top:8px}
 </style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -231,29 +238,28 @@ export default function ThermalReceiptPage() {
 
         <div className="thermal-rule mt-rule my-3" />
 
-        <section>
-          <p className="receipt-customer-name text-[16px] font-black">
+        <section className="receipt-customer-block text-center">
+          <p className="receipt-customer-name text-center text-[16px] font-black">
             {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
           </p>
 
           {order.customer?.phone && (
-            <p className="receipt-phone mt-1 text-[12px] font-bold">
+            <p className="receipt-phone mt-1 text-center text-[12px] font-bold">
               {order.customer.countryCode}
               {order.customer.phone}
             </p>
           )}
 
           {isDelivery && deliveryAddress && (
-            <p className="receipt-address">
+            <p className="receipt-address text-center">
               {deliveryAddress}
             </p>
           )}
 
           {isDelivery && deliveryInstructions && (
-            <p className="receipt-instructions text-[11px] font-bold leading-[14px]">
-              <span className="font-bold">Indicaciones:</span>{" "}
+            <div className="receipt-instructions mt-2 whitespace-pre-line border-[2px] border-black px-2 py-2 text-center text-[12px] font-black leading-[16px]">
               {deliveryInstructions}
-            </p>
+            </div>
           )}
 
           {order.notes && (
@@ -295,7 +301,7 @@ export default function ThermalReceiptPage() {
                           <span className="font-bold">
                             {detail.label.toUpperCase()}:
                           </span>{" "}
-                          {detail.value.toUpperCase()}
+                          {receiptDetailText(detail.value).toUpperCase()}
                         </p>
                       ))}
                     </div>
