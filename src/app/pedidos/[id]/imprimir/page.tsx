@@ -162,12 +162,12 @@ export default function ThermalReceiptPage() {
 
   function downloadReceipt() {
     if (!order) return;
-    const receipt = document.querySelector(".thermal-receipt")?.outerHTML;
+    const receipt = document.querySelector(".thermal-print-job")?.outerHTML;
     if (!receipt) return;
     const displayNumber = order.sequenceNumber ?? order.id;
     const displayCode = orderCode(displayNumber, order.source);
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>
-*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;max-width:80mm;margin:0 auto;padding:4mm 5mm 6mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.thermal-receipt{width:70mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:2px dashed #000}.receipt-header img{display:block;margin:0 auto;width:16mm;height:16mm;object-fit:contain;filter:grayscale(1)}.receipt-brand{font-size:18px;font-weight:900;margin:3px 0 0}.receipt-business{font-size:11px;font-weight:700;line-height:14px;margin:1px 0 0}.receipt-whatsapp{display:block;font-size:14px;font-weight:900;line-height:17px;margin-top:2px}.receipt-date{font-size:11px;font-weight:700;margin:0}.receipt-order-code{font-size:30px;line-height:1;font-weight:900;margin:3px 0 0}.receipt-mode{display:inline-block;border:2px solid #000;padding:5px 12px;margin-top:7px;font-size:15px;font-weight:900}.receipt-section-title{font-size:14px;font-weight:900;margin:0 0 7px}.receipt-customer-block{text-align:center}.receipt-customer-name{font-size:16px;font-weight:900;margin:0;text-align:center}.receipt-phone{font-size:12px;font-weight:700;margin:3px 0 0;text-align:center}.receipt-address{font-size:12px;font-weight:700;line-height:15px;margin:5px 0 0;text-align:center}.receipt-instructions{margin:8px 0 0;border:2px solid #000;padding:7px 8px;font-size:12px;font-weight:900;line-height:16px;text-align:center;white-space:normal;overflow-wrap:anywhere}.receipt-item{margin:0 0 12px}.receipt-item:last-child{margin-bottom:0}.receipt-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}.receipt-product{font-size:13px;font-weight:900;line-height:16px}.receipt-price{font-size:14px;font-weight:900;line-height:16px;white-space:nowrap}.receipt-details{margin:4px 0 0 13px}.receipt-detail{font-size:11px;font-weight:700;line-height:14px;margin:1px 0}.receipt-crust{display:grid;grid-template-columns:1fr auto;gap:8px;margin:3px 0 0 13px;font-size:12px;font-weight:700;line-height:15px}.receipt-crust-price{font-size:13px;font-weight:900;white-space:nowrap}.receipt-note{margin:5px 0 0 13px;border:2px solid #000;padding:4px 6px;font-size:11px;font-weight:900}.receipt-totals{font-size:14px;font-weight:900}.receipt-total-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}.receipt-grand-total{display:flex;justify-content:space-between;align-items:end;border-top:2px solid #000;margin-top:8px;padding-top:7px;font-size:21px;font-weight:900}.receipt-payment{margin-top:12px;border:2px solid #000;padding:8px 10px;text-align:center}.receipt-payment-label{font-size:11px;font-weight:900;letter-spacing:.08em}.receipt-payment-value{font-size:16px;font-weight:900;margin-top:4px}.receipt-footer{text-align:center}.receipt-footer-title{font-size:14px;font-weight:900;margin:0}.receipt-footer-sub{font-size:11px;font-weight:700;font-style:italic;margin:4px 0 0}.mt-rule{margin:12px 0}.coupon{font-size:11px;font-weight:700;text-align:center;margin-top:8px}
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;max-width:80mm;margin:0 auto;padding:4mm 5mm 6mm;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-rendering:geometricPrecision}.thermal-receipt{width:70mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#000}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:2px dashed #000}.receipt-header img{display:block;margin:0 auto;width:16mm;height:16mm;object-fit:contain;filter:grayscale(1)}.receipt-brand{font-size:18px;font-weight:900;margin:3px 0 0}.receipt-business{font-size:11px;font-weight:700;line-height:14px;margin:1px 0 0}.receipt-whatsapp{display:block;font-size:14px;font-weight:900;line-height:17px;margin-top:2px}.receipt-date{font-size:11px;font-weight:700;margin:0}.receipt-order-code{font-size:30px;line-height:1;font-weight:900;margin:3px 0 0}.receipt-mode{display:inline-block;border:2px solid #000;padding:5px 12px;margin-top:7px;font-size:15px;font-weight:900}.receipt-section-title{font-size:14px;font-weight:900;margin:0 0 7px}.receipt-customer-block{text-align:center}.receipt-customer-name{font-size:16px;font-weight:900;margin:0;text-align:center}.receipt-phone{font-size:12px;font-weight:700;margin:3px 0 0;text-align:center}.receipt-address{font-size:12px;font-weight:700;line-height:15px;margin:5px 0 0;text-align:center}.receipt-instructions{margin:8px 0 0;border:2px solid #000;padding:7px 8px;font-size:12px;font-weight:900;line-height:16px;text-align:center;white-space:normal;overflow-wrap:anywhere}.receipt-item{margin:0 0 12px}.receipt-item:last-child{margin-bottom:0}.receipt-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}.receipt-product{font-size:13px;font-weight:900;line-height:16px}.receipt-price{font-size:14px;font-weight:900;line-height:16px;white-space:nowrap}.receipt-details{margin:4px 0 0 13px}.receipt-detail{font-size:11px;font-weight:700;line-height:14px;margin:1px 0}.receipt-crust{display:grid;grid-template-columns:1fr auto;gap:8px;margin:3px 0 0 13px;font-size:12px;font-weight:700;line-height:15px}.receipt-crust-price{font-size:13px;font-weight:900;white-space:nowrap}.receipt-note{margin:5px 0 0 13px;border:2px solid #000;padding:4px 6px;font-size:11px;font-weight:900}.receipt-totals{font-size:14px;font-weight:900}.receipt-total-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}.receipt-grand-total{display:flex;justify-content:space-between;align-items:end;border-top:2px solid #000;margin-top:8px;padding-top:7px;font-size:21px;font-weight:900}.receipt-payment{margin-top:12px;border:2px solid #000;padding:8px 10px;text-align:center}.receipt-payment-label{font-size:11px;font-weight:900;letter-spacing:.08em}.receipt-payment-value{font-size:16px;font-weight:900;margin-top:4px}.receipt-footer{text-align:center}.receipt-footer-title{font-size:14px;font-weight:900;margin:0}.receipt-footer-sub{font-size:11px;font-weight:700;font-style:italic;margin:4px 0 0}.mt-rule{margin:12px 0}.coupon{font-size:11px;font-weight:700;text-align:center;margin-top:8px}.thermal-print-job{width:70mm;margin:0 auto}.thermal-sheet{width:70mm;margin:0 auto}.delivery-command{break-before:page;page-break-before:always;padding-top:4mm}.driver-title{text-align:center;font-size:18px;font-weight:900;line-height:21px;margin:0}.driver-order{font-size:24px;font-weight:900;line-height:1;text-align:center;margin:5px 0 0}.driver-meta{font-size:11px;font-weight:700;text-align:center;margin:4px 0 0}.driver-block{margin-top:10px;border:2px solid #000;padding:8px}.driver-label{font-size:10px;font-weight:900;letter-spacing:.06em;text-align:center;margin:0 0 4px}.driver-value{font-size:14px;font-weight:900;line-height:17px;text-align:center;margin:0;overflow-wrap:anywhere}.driver-value-sm{font-size:12px;font-weight:800;line-height:15px;text-align:center;margin:0;overflow-wrap:anywhere}.driver-payment{margin-top:10px;border:2px solid #000;padding:8px;text-align:center}.driver-payment-state{font-size:17px;font-weight:900;line-height:20px;margin:0}.driver-payment-row{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:12px;font-weight:900}.driver-digital{margin-top:10px;border:2px dashed #000;padding:8px;text-align:center}.driver-digital-title{font-size:10px;font-weight:900;letter-spacing:.08em;margin:0 0 5px}.driver-digital-value{font-size:15px;font-weight:900;line-height:18px;margin:2px 0}
 </style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -205,7 +205,8 @@ export default function ThermalReceiptPage() {
         <button onClick={() => window.close()} className="rounded-xl border px-5 py-2.5 text-sm font-black">Cerrar</button>
       </div>}
 
-      <div className="thermal-receipt">
+      <div className="thermal-print-job">
+        <div className="thermal-sheet thermal-receipt">
         <div className="receipt-header text-center">
           <img
             src={LOGO}
@@ -216,8 +217,7 @@ export default function ThermalReceiptPage() {
             ALENTÓ PIZZA
           </h1>
           <p className="receipt-business text-[11px] font-bold leading-[14px]">
-            AV CALLE 43 SUR #79A-33
-            <span className="receipt-whatsapp mt-0.5 block text-[14px] font-black leading-[17px]">
+            <span className="receipt-whatsapp block text-[14px] font-black leading-[17px]">
               WHATSAPP 324 333 4009
             </span>
           </p>
@@ -404,6 +404,94 @@ export default function ThermalReceiptPage() {
             Este documento es un comprobante de entrega.
           </p>
         </div>
+        </div>
+
+        {isDelivery && (
+          <section className="thermal-sheet delivery-command">
+            <div className="text-center">
+              <p className="driver-title">COMANDA REPARTIDOR</p>
+              <p className="driver-order">{displayCode}</p>
+              <p className="driver-meta">{receiptDateTime(order.createdAt)}</p>
+            </div>
+
+            <div className="thermal-rule mt-rule my-3" />
+
+            <div className="driver-block">
+              <p className="driver-label">CLIENTE</p>
+              <p className="driver-value">
+                {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+              </p>
+
+              {order.customer?.phone && (
+                <p className="driver-value-sm mt-1">
+                  {order.customer.countryCode}
+                  {order.customer.phone}
+                </p>
+              )}
+            </div>
+
+            <div className="driver-block">
+              <p className="driver-label">DIRECCIÓN</p>
+              <p className="driver-value">
+                {(deliveryAddress || "SIN DIRECCIÓN REGISTRADA").toUpperCase()}
+              </p>
+            </div>
+
+            {deliveryInstructions && (
+              <div className="driver-block">
+                <p className="driver-label">INDICACIONES</p>
+                <p className="driver-value-sm">
+                  {deliveryInstructions.replace(/\s+/g, " ").trim().toUpperCase()}
+                </p>
+              </div>
+            )}
+
+            <div className="driver-payment">
+              <p className="driver-label">ESTADO DE PAGO</p>
+              <p className="driver-payment-state">
+                {paidInFull
+                  ? `PAGADO $ ${money(paidTotal)}`
+                  : `PENDIENTE $ ${money(pendingBalance)}`}
+              </p>
+
+              {!paidInFull && (
+                <>
+                  <div className="driver-payment-row">
+                    <span>MEDIO</span>
+                    <span>
+                      {pendingPayment?.method?.toUpperCase() || "SIN REGISTRAR"}
+                    </span>
+                  </div>
+
+                  {pendingPayment?.cashReceived != null && (
+                    <>
+                      <div className="driver-payment-row">
+                        <span>CLIENTE PAGA CON</span>
+                        <span>$ {money(pendingPayment.cashReceived)}</span>
+                      </div>
+                      <div className="driver-payment-row">
+                        <span>LLEVAR VUELTAS</span>
+                        <span>$ {money(pendingPayment.changeDue || 0)}</span>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="driver-digital">
+              <p className="driver-digital-title">PAGO DIGITAL ALENTÓ</p>
+              <p className="driver-digital-value">NEQUI 324 333 4009</p>
+              <p className="driver-digital-value">LLAVE @324 333 4009</p>
+            </div>
+
+            <div className="thermal-rule mt-rule my-3" />
+
+            <p className="text-center text-[11px] font-black">
+              VERIFICAR PAGO Y DIRECCIÓN ANTES DE SALIR
+            </p>
+          </section>
+        )}
       </div>
     </main>
   );
