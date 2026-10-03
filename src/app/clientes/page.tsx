@@ -1146,18 +1146,43 @@ export default function CustomersPage() {
                         </div>
 
                         <div className="mt-1.5 flex items-center justify-between gap-2">
-                          <span
-                            className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold ${addressState.tone}`}
-                            title={addressState.label}
-                          >
-                            <CustomerAddressStateIcon
-                              state={addressState.value}
-                              className="h-3 w-3 shrink-0"
-                            />
-                            <span className="truncate">
-                              {addressState.shortLabel}
+                          {addressState.value === "PENDING" ||
+                          addressState.value === "NONE" ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEdit(customer, "LOCATION");
+                              }}
+                              className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold transition hover:brightness-95 ${addressState.tone}`}
+                              title={
+                                addressState.value === "PENDING"
+                                  ? "Actualizar dirección con Google"
+                                  : "Registrar dirección con Google"
+                              }
+                            >
+                              <CustomerAddressStateIcon
+                                state={addressState.value}
+                                className="h-3 w-3 shrink-0"
+                              />
+                              <span className="truncate">
+                                {addressState.shortLabel}
+                              </span>
+                            </button>
+                          ) : (
+                            <span
+                              className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold ${addressState.tone}`}
+                              title={addressState.label}
+                            >
+                              <CustomerAddressStateIcon
+                                state={addressState.value}
+                                className="h-3 w-3 shrink-0"
+                              />
+                              <span className="truncate">
+                                {addressState.shortLabel}
+                              </span>
                             </span>
-                          </span>
+                          )}
 
                           {bulkMode && (
                             <span
