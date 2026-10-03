@@ -475,10 +475,14 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
 .thermal-receipt {
   width: 100%;
   font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  text-rendering: geometricPrecision;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .thermal-rule {
-  border-top: 1.5px dashed #000;
+  border-top: 2px dashed #000;
 }
 
 @media (min-width: 768px) {
