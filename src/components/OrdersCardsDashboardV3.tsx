@@ -152,7 +152,7 @@ function fulfillmentTone(type: FulfillmentType) {
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
-function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" }) {
+function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" | "status" }) {
   const c = "h-[17px] w-[17px]";
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>;
   if (name === "refresh") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.3 6.3L4 11M20 13l-2.3 4.7A7 7 0 0 1 5.5 15"/></svg>;
@@ -164,6 +164,7 @@ function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close
   if (name === "cancel") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7M15.5 8.5l-7 7"/></svg>;
   if (name === "minus") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M5 12h14"/></svg>;
   if (name === "wallet") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M3 7h16a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2Z"/><path d="M3 7V5a2 2 0 0 1 2-2h13v4M16 12h5"/></svg>;
+  if (name === "status") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h7M15 17h5"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="13" cy="17" r="2"/></svg>;
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M12 5v14M5 12h14"/></svg>;
 }
 
@@ -1429,7 +1430,7 @@ export default function OrdersCardsDashboardV3() {
                     {fulfillmentLabel(selected.fulfillmentType)}
                   </span>
                   {selected.fulfillmentType === "DELIVERY" && (
-                    <span className="rounded-full border border-white/10 bg-white/[0.08] px-2.5 py-1 alento-ui-micro font-bold text-white/70">
+                    <span className="order-detail-zone-badge rounded-full border px-2.5 py-1 alento-ui-label uppercase shadow-sm">
                       {selected.deliveryZoneName ||
                         (Number(selected.deliveryFee) > 0
                           ? money(selected.deliveryFee)
@@ -1717,45 +1718,45 @@ export default function OrdersCardsDashboardV3() {
           </div>
 
           <footer className="shrink-0 border-t border-neutral-200 bg-white p-3 sm:p-4">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex items-center justify-center gap-2.5">
               <button
                 type="button"
                 onClick={() => void openEdit(selected)}
                 disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
-                className="relative h-11 rounded-[12px] border border-neutral-200 bg-white px-10 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
+                className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-neutral-200 bg-white text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-30"
+                aria-label="Editar pedido"
+                title="Editar"
               >
-                <span className="pointer-events-none absolute left-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-neutral-600">
-                  <Icon name="edit" />
-                </span>
-                <span className="block w-full text-center leading-none">
-                  Editar
-                </span>
+                <Icon name="edit" />
               </button>
 
               <button
                 type="button"
                 onClick={() => print(selected)}
-                className="relative h-11 rounded-[12px] border border-neutral-200 bg-white px-10 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50"
+                className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-neutral-200 bg-white text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+                aria-label="Imprimir pedido"
+                title="Imprimir"
               >
-                <span className="pointer-events-none absolute left-3 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center text-neutral-600">
-                  <Icon name="print" />
-                </span>
-                <span className="block w-full text-center leading-none">
-                  Imprimir
-                </span>
+                <Icon name="print" />
               </button>
 
               {["CANCELED", "COMPLETED"].includes(selected.status) ? (
-                <span className="flex h-11 items-center justify-center rounded-[12px] bg-neutral-100 alento-ui-control font-bold text-neutral-400">
-                  Cerrado
+                <span
+                  className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] bg-neutral-100 text-neutral-400"
+                  aria-label="Pedido cerrado"
+                  title="Cerrado"
+                >
+                  <Icon name="status" />
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={() => void openStatusManager(selected)}
-                  className="h-11 rounded-[12px] bg-black alento-ui-control font-black text-white"
+                  className="order-detail-action-button order-detail-action-button--primary inline-flex h-11 w-11 items-center justify-center rounded-[13px] bg-black text-white transition hover:bg-neutral-800"
+                  aria-label="Cambiar estado"
+                  title="Estados"
                 >
-                  ESTADOS
+                  <Icon name="status" />
                 </button>
               )}
             </div>
