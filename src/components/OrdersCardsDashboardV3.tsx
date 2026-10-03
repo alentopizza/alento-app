@@ -1669,19 +1669,31 @@ export default function OrdersCardsDashboardV3() {
                 type="button"
                 onClick={() => void openEdit(selected)}
                 disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(selected.status)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white alento-ui-control font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
+                className="inline-flex h-11 items-center justify-center rounded-[12px] border border-neutral-200 bg-white px-3 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-30"
               >
-                <Icon name="edit" />
-                <span className="hidden min-[390px]:inline">Editar</span>
+                <span className="inline-flex items-center justify-center gap-2 leading-none">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none">
+                    <Icon name="edit" />
+                  </span>
+                  <span className="hidden leading-none min-[390px]:inline">
+                    Editar
+                  </span>
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => print(selected)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[12px] border border-neutral-200 bg-white alento-ui-control font-bold text-neutral-700 transition hover:bg-neutral-50"
+                className="inline-flex h-11 items-center justify-center rounded-[12px] border border-neutral-200 bg-white px-3 alento-ui-control font-bold leading-none text-neutral-700 transition hover:bg-neutral-50"
               >
-                <Icon name="print" />
-                <span className="hidden min-[390px]:inline">Imprimir</span>
+                <span className="inline-flex items-center justify-center gap-2 leading-none">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center leading-none">
+                    <Icon name="print" />
+                  </span>
+                  <span className="hidden leading-none min-[390px]:inline">
+                    Imprimir
+                  </span>
+                </span>
               </button>
 
               {["CANCELED", "COMPLETED"].includes(selected.status) ? (
