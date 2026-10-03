@@ -173,7 +173,10 @@ export default function ThermalReceiptPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${displayCode}-comprobante.html`;
+    anchor.download =
+      order.fulfillmentType === "DELIVERY"
+        ? `${displayCode}-factura-y-comanda.html`
+        : `${displayCode}-comprobante.html`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
