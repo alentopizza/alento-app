@@ -106,13 +106,13 @@ export default function PublicLandingPageClient() {
             />
 
             <div
-              className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center px-[74px] text-center"
+              className="pointer-events-none absolute inset-y-0 left-[68px] right-3 z-[3] flex items-center justify-center text-center"
               style={{
                 opacity: Math.max(0.18, 1 - progress * 1.15),
                 transition: dragging ? "none" : "opacity 180ms ease",
               }}
             >
-              <span className="landing-menu-slider-text truncate text-[12px] font-black uppercase tracking-[0.11em] text-black/75">
+              <span className="landing-menu-slider-text whitespace-nowrap text-[10px] font-black uppercase tracking-[0.06em] text-black/75 min-[360px]:text-[11px] min-[430px]:text-[12px] min-[430px]:tracking-[0.08em]">
                 Desliza y descubre el menú
               </span>
             </div>
