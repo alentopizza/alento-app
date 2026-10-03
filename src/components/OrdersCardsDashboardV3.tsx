@@ -1189,16 +1189,16 @@ export default function OrdersCardsDashboardV3() {
               <div className="flex min-w-0 items-center justify-end gap-1.5">
                 {order.fulfillmentType === "DELIVERY" && order.driver && (
                   <span
-                    className="alento-ui-label inline-flex min-w-0 max-w-[170px] items-center gap-1.5 rounded-full border border-neutral-950 bg-white px-2.5 py-1 uppercase text-neutral-950 shadow-sm"
+                    className="alento-ui-label inline-flex min-w-0 max-w-[170px] items-center gap-1.5 rounded-full border border-neutral-950 bg-transparent px-2.5 py-1 uppercase text-neutral-950"
                     title={`Repartidor: ${order.driver.name}`}
                   >
                     <span
                       aria-hidden="true"
-                      className="shrink-0 text-[11px] leading-none"
+                      className="shrink-0 bg-transparent text-[11px] leading-none"
                     >
                       🏍️
                     </span>
-                    <span className="truncate">
+                    <span className="truncate bg-transparent">
                       {order.driver.name}
                     </span>
                   </span>
