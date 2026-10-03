@@ -1181,8 +1181,30 @@ export default function OrdersCardsDashboardV3() {
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
-            <div className={`${statusTone(order.status)} flex items-center justify-between gap-3 px-4 py-2.5 text-white`}><span className="text-[10px] font-black uppercase tracking-[0.08em]">{statusLabel(order.status)}</span><span className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}>{fulfillmentLabel(order.fulfillmentType)}</span></div>
-            <div className="p-4">
+            <div className={`${statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
+              <span className="alento-ui-label shrink-0 uppercase tracking-[0.08em]">
+                {statusLabel(order.status)}
+              </span>
+
+              <div className="flex min-w-0 items-center justify-end gap-1.5">
+                {order.fulfillmentType === "DELIVERY" && order.driver && (
+                  <span
+                    className="alento-ui-micro inline-flex min-w-0 max-w-[150px] items-center gap-1 rounded-full border border-white/18 bg-white/[0.12] px-2 py-1 font-bold text-white shadow-sm"
+                    title={`Repartidor: ${order.driver.name}`}
+                  >
+                    <span aria-hidden="true">🏍</span>
+                    <span className="truncate">{order.driver.name}</span>
+                  </span>
+                )}
+
+                <span
+                  className={`alento-ui-label shrink-0 rounded-full border px-2.5 py-1 uppercase shadow-sm ${fulfillmentTone(order.fulfillmentType)}`}
+                >
+                  {fulfillmentLabel(order.fulfillmentType)}
+                </span>
+              </div>
+            </div>
+            <div className="px-3.5 pb-3.5 pt-3">
               <div className="[font-synthesis:none]">
                 <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
                 <div className="mt-0.5 flex items-end justify-between gap-3">
@@ -1190,51 +1212,37 @@ export default function OrdersCardsDashboardV3() {
                   <b className="shrink-0 pb-[1px] text-[16px] font-semibold leading-5 tabular-nums tracking-[-0.015em] text-[var(--brand-red)]">{money(order.total)}</b>
                 </div>
               </div>
-              <div className="order-customer-card mt-4 flex items-center gap-4 rounded-2xl border border-neutral-200 bg-[#f8f7f5] p-4"><div className="order-customer-avatar flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-base font-bold shadow-sm">{(order.customer?.name || "C").trim().charAt(0).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="order-customer-name truncate">{order.customer?.name || "Cliente ocasional"}</p><div className="order-customer-meta"><p className="order-customer-line">{order.customer?.phone ? `${order.customer.countryCode} ${order.customer.phone}` : "Sin teléfono"}</p>{order.fulfillmentType === "DELIVERY" && order.address?.address && <p className="order-customer-line order-customer-address">{order.address.address}</p>}</div></div></div>
-              {order.fulfillmentType === "DELIVERY" && order.driver && (
-                <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,.45)]" />
-                    <span className="alento-ui-label uppercase tracking-[0.08em] text-emerald-700">
-                      Asignado
-                    </span>
-                    <b className="truncate text-[11px] text-emerald-950">
-                      {order.driver.name}
-                    </b>
-                  </div>
-                  {!["DELIVERED", "COMPLETED", "CANCELED"].includes(
-                    order.status,
-                  ) && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void unassignDriver(order);
-                      }}
-                      disabled={busy === order.id}
-                      className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 alento-ui-label uppercase tracking-[0.04em] text-red-600 disabled:opacity-40"
-                    >
-                      Desasignar
-                    </button>
-                  )}
+              <div className="order-customer-card mt-2.5 flex items-center gap-3 rounded-[14px] border border-neutral-200 bg-[#f8f7f5] px-3 py-2.5">
+                <div className="order-customer-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-sm font-bold shadow-sm">
+                  {(order.customer?.name || "C").trim().charAt(0).toUpperCase()}
                 </div>
-              )}
-              <div className="mt-2.5 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
+                <div className="min-w-0 flex-1">
+                  <p className="order-customer-name truncate">
+                    {order.customer?.name || "Cliente ocasional"}
+                  </p>
+                  <p className="order-customer-line mt-0.5 truncate">
+                    {order.customer?.phone
+                      ? `${order.customer.countryCode} ${order.customer.phone}`
+                      : "Sin teléfono"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => { if (!fullyPaid) void openPayment(order); }}
                   disabled={fullyPaid}
-                  className={`order-payment-status ${fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"} block w-full rounded-xl border px-3.5 py-2.5 text-left transition disabled:cursor-default disabled:opacity-100`}
+                  className={`order-payment-status ${fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"} block w-full rounded-[11px] border px-3 py-2 text-left transition disabled:cursor-default disabled:opacity-100`}
                 >
                   <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : "text-rose-700"}`}>
                     {fullyPaid ? "Pagado" : "Pago pendiente"}
                   </span>
-                  <b className={`mt-1 block text-[16px] font-bold leading-none tabular-nums tracking-[-0.015em] ${fullyPaid ? "text-emerald-900" : "text-rose-900"}`}>
+                  <b className={`mt-0.5 block text-[15px] font-bold leading-none tabular-nums tracking-[-0.015em] ${fullyPaid ? "text-emerald-900" : "text-rose-900"}`}>
                     {money(fullyPaid ? receivedTotal : pendingTotal)}
                   </b>
                 </button>
               </div>
-              <div className="mt-3 flex items-center gap-1.5 border-t border-neutral-100 pt-2.5" onClick={(event) => event.stopPropagation()}>
+              <div className="mt-2.5 flex items-center gap-1.5 border-t border-neutral-100 pt-2" onClick={(event) => event.stopPropagation()}>
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
