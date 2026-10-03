@@ -430,3 +430,43 @@
     gap: 3px !important;
   }
 }
+
+
+/* Delivery zone badge: same visual family as the status/fulfillment pills. */
+.order-detail-drawer .order-detail-zone-badge {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border-color: #d97706 !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #fff !important;
+  font-weight: 780 !important;
+  letter-spacing: .055em !important;
+  box-shadow: 0 4px 10px rgba(217,119,6,.22), inset 0 1px rgba(255,255,255,.18);
+}
+
+/* Footer actions are intentionally icon-only, matching the compact toolbars used elsewhere. */
+.order-detail-drawer > footer .order-detail-action-button {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  border-radius: 13px !important;
+  box-shadow: 0 3px 10px rgba(28,23,20,.055);
+}
+
+.order-detail-drawer > footer .order-detail-action-button svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.order-detail-drawer > footer .order-detail-action-button--primary {
+  border-color: #0b0b0c !important;
+  background: #0b0b0c !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(0,0,0,.17);
+}
+
+.order-detail-drawer > footer .order-detail-action-button--primary:hover {
+  background: #222225 !important;
+}
