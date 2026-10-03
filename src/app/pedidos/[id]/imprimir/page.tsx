@@ -59,6 +59,69 @@ function compactDeliveryAddress(value: string | null | undefined) {
     .trim();
 }
 
+type JsonObject = Record<string, unknown>;
+
+function isObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function numberValue(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function receiptDateTime(value: string) {
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Bogota",
+  }).format(new Date(value));
+}
+
+function pizzaCrustSnapshot(configuration: unknown) {
+  if (!isObject(configuration)) return null;
+  if (String(configuration.kind ?? "").toUpperCase() !== "PIZZA") {
+    return null;
+  }
+
+  const crust = isObject(configuration.crust)
+    ? configuration.crust
+    : null;
+  if (!crust) return null;
+
+  const name =
+    typeof crust.name === "string" ? crust.name.trim() : "";
+  const price = Math.max(0, numberValue(crust.price));
+
+  return name ? { name, price } : null;
+}
+
+function itemReceiptBreakdown(item: Order["items"][number]) {
+  const crust = pizzaCrustSnapshot(item.configuration);
+  const crustTotal = crust ? crust.price * Math.max(1, item.quantity) : 0;
+  const baseLineTotal = Math.max(
+    0,
+    Number(item.lineTotal) - crustTotal,
+  );
+
+  const details = presentOrderItemConfiguration(
+    item.configuration,
+  ).filter(
+    (detail) =>
+      detail.label.trim().toLocaleLowerCase("es") !== "borde",
+  );
+
+  return {
+    crust,
+    crustTotal,
+    baseLineTotal,
+    details,
+  };
+}
+
 export default function ThermalReceiptPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -96,13 +159,7 @@ export default function ThermalReceiptPage() {
     const displayNumber = order.sequenceNumber ?? order.id;
     const displayCode = orderCode(displayNumber, order.source);
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${displayCode}</title><style>
-body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color:#000}
-.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1.5px dashed #111}
-.flex{display:flex}.justify-between{justify-content:space-between}.grid{display:grid}.space-y-1>*+*{margin-top:4px}.space-y-3>*+*{margin-top:12px}
-.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.my-3{margin-top:12px;margin-bottom:12px}.ml-\[22px\]{margin-left:22px}
-.border-\[2px\]{border:2px solid #000}.px-3{padding-left:12px;padding-right:12px}.py-2{padding-top:8px;padding-bottom:8px}
-.receipt-customer{margin-top:10px}.receipt-address{font-size:13px;font-weight:900;line-height:1.25;margin-top:7px}
-.receipt-instructions{font-size:10px;line-height:1.3;margin-top:4px}
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;max-width:80mm;margin:0 auto;padding:4mm 5mm 6mm;color:#000;background:#fff}.thermal-receipt{width:70mm;margin:0 auto}.text-center{text-align:center}.font-black{font-weight:900}.font-bold{font-weight:700}.thermal-rule{border-top:1.5px dashed #111}.receipt-header img{display:block;margin:0 auto;width:16mm;height:16mm;object-fit:contain;filter:grayscale(1)}.receipt-brand{font-size:17px;font-weight:900;margin:3px 0 0}.receipt-business{font-size:10px;line-height:13px;margin:1px 0 0}.receipt-date{font-size:10px;margin:0}.receipt-order-label{font-size:11px;font-weight:900;margin:7px 0 0}.receipt-order-code{font-size:28px;line-height:1;font-weight:900;margin:2px 0 0}.receipt-mode{display:inline-block;border:2px solid #000;padding:5px 12px;margin-top:7px;font-size:14px;font-weight:900}.receipt-section-title{font-size:13px;font-weight:900;margin:0 0 7px}.receipt-customer-name{font-size:15px;font-weight:900;margin:0}.receipt-phone{font-size:11px;font-weight:700;margin:3px 0 0}.receipt-address{font-size:12px;font-weight:700;line-height:1.3;margin:5px 0 0}.receipt-instructions{font-size:10px;line-height:1.3;margin:4px 0 0}.receipt-item{margin:0 0 12px}.receipt-item:last-child{margin-bottom:0}.receipt-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}.receipt-product{font-size:12px;font-weight:900;line-height:1.25}.receipt-price{font-size:12px;font-weight:900;white-space:nowrap}.receipt-details{margin:4px 0 0 13px}.receipt-detail{font-size:10.5px;line-height:14px;margin:1px 0}.receipt-crust{display:grid;grid-template-columns:1fr auto;gap:8px;margin:2px 0 0 13px;font-size:10.5px;line-height:14px}.receipt-note{margin:5px 0 0 13px;border:1.5px solid #000;padding:4px 6px;font-size:10px;font-weight:900}.receipt-totals{font-size:13px;font-weight:900}.receipt-total-row{display:flex;justify-content:space-between;gap:8px;margin-top:4px}.receipt-grand-total{display:flex;justify-content:space-between;align-items:end;border-top:2px solid #000;margin-top:8px;padding-top:7px;font-size:20px;font-weight:900}.receipt-payment{margin-top:12px;border:2px solid #000;padding:8px 10px;text-align:center}.receipt-payment-label{font-size:10px;font-weight:900;letter-spacing:.08em}.receipt-payment-value{font-size:15px;font-weight:900;margin-top:4px}.receipt-footer{text-align:center}.receipt-footer-title{font-size:13px;font-weight:900;margin:0}.receipt-footer-sub{font-size:10px;font-style:italic;margin:4px 0 0}.mt-rule{margin:12px 0}.coupon{font-size:10px;font-weight:700;text-align:center;margin-top:8px}
 </style></head><body>${receipt}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -141,94 +198,174 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
       </div>}
 
       <div className="thermal-receipt">
-        <div className="text-center">
-          <img src={LOGO} alt="Alentó Pizza" className="mx-auto h-[17mm] w-[17mm] object-contain grayscale" />
-          <h1 className="mt-1 text-[17px] font-black">ALENTÓ PIZZA</h1>
-          <p className="text-[10px] leading-[13px]">AV CALLE 43 SUR #79A-33 · WHATSAPP 324 333 4009</p>
+        <div className="receipt-header text-center">
+          <img
+            src={LOGO}
+            alt="Alentó Pizza"
+            className="mx-auto h-[16mm] w-[16mm] object-contain grayscale"
+          />
+          <h1 className="receipt-brand mt-1 text-[17px] font-black">
+            ALENTÓ PIZZA
+          </h1>
+          <p className="receipt-business text-[10px] leading-[13px]">
+            AV CALLE 43 SUR #79A-33
+            <br />
+            WHATSAPP 324 333 4009
+          </p>
         </div>
 
-        <div className="thermal-rule my-3" />
+        <div className="thermal-rule mt-rule my-3" />
 
         <div className="text-center">
-          <p className="text-[10px]">{new Date(order.createdAt).toLocaleString("es-CO")}</p>
-          <p className="mt-1 text-[27px] font-black leading-none">{displayCode}</p>
-          <div className="mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[14px] font-black">
+          <p className="receipt-date text-[10px]">
+            {receiptDateTime(order.createdAt)}
+          </p>
+          <p className="receipt-order-label mt-2 text-[11px] font-black">
+            PEDIDO N.º
+          </p>
+          <p className="receipt-order-code mt-1 text-[28px] font-black leading-none">
+            {displayCode}
+          </p>
+          <div className="receipt-mode mx-auto mt-2 inline-block border-[2px] border-black px-4 py-1 text-[14px] font-black">
             {fulfillmentLabel(order.fulfillmentType)}
           </div>
         </div>
 
-        {isDelivery ? (
-          <div className="receipt-customer">
-            <p className="text-[15px] font-black">
-              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
-            </p>
+        <div className="thermal-rule mt-rule my-3" />
 
-            {order.customer?.phone && (
-              <p className="mt-1 text-[11px] font-bold">
-                {order.customer.countryCode}{order.customer.phone}
-              </p>
-            )}
-
-            {deliveryAddress && (
-              <p className="receipt-address">{deliveryAddress}</p>
-            )}
-
-            {deliveryInstructions && (
-              <p className="receipt-instructions text-[10px] leading-[13px]">
-                <span className="font-bold">Indicaciones:</span>{" "}
-                {deliveryInstructions}
-              </p>
-            )}
-
-            {order.notes && (
-              <p className="mt-2 text-[10px] font-bold">
-                NOTA: {order.notes}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="receipt-customer text-center">
-            <p className="text-[15px] font-black">
-              {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
-            </p>
-            {order.customer?.phone && (
-              <p className="mt-1 text-[11px] font-bold">
-                {order.customer.countryCode}{order.customer.phone}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="thermal-rule my-3" />
-        <p className="text-[12px] font-black">CHECKLIST DE DESPACHO:</p>
-
-        <div className="mt-2 space-y-3">
-          {order.items.map((item) => {
-            const details = presentOrderItemConfiguration(item.configuration);
-            return <div key={item.id}>
-              <div className="grid grid-cols-[16px_1fr_auto] gap-1 text-[12px] font-black">
-                <span>□</span><span>{item.quantity}X {item.productName.toUpperCase()}</span><span>$ {money(item.lineTotal)}</span>
-              </div>
-              {details.length > 0 && <div className="ml-[22px] mt-1 space-y-0.5">{details.map((detail, index) => <p key={`${detail.label}-${index}`} className="text-[11px] leading-[14px]">- {detail.label.toUpperCase()}: {detail.value.toUpperCase()}</p>)}</div>}
-              {item.notes && <div className="ml-[22px] mt-1 border-[2px] border-black px-2 py-1"><p className="text-[11px] font-black">NOTA COCINA: {item.notes.toUpperCase()}</p></div>}
-            </div>;
-          })}
-        </div>
-
-        <div className="thermal-rule my-3" />
-
-        <div className="space-y-1 text-[13px] font-black">
-          <div className="flex justify-between"><span>SUBTOTAL</span><span>$ {money(order.subtotal)}</span></div>
-          <div className="flex justify-between"><span>DOMICILIO</span><span>$ {money(order.deliveryFee)}</span></div>
-          <div className="flex justify-between"><span>DESCUENTO</span><span>-$ {money(order.discount)}</span></div>
-          <div className="mt-2 flex items-end justify-between text-[20px]"><span>TOTAL</span><span>$ {money(order.total)}</span></div>
-        </div>
-
-        <div className="mt-3 border-[2px] border-black px-3 py-2 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.08em]">ESTADO DE PAGO</p>
-          <p className="mt-1 text-[15px] font-black">
-            {paidInFull ? `PAGADO $ ${money(paidTotal)}` : `PENDIENTE $ ${money(pendingBalance)}`}
+        <section>
+          <p className="receipt-section-title text-[13px] font-black">
+            CLIENTE
           </p>
+
+          <p className="receipt-customer-name text-[15px] font-black">
+            {order.customer?.name?.toUpperCase() || "CLIENTE OCASIONAL"}
+          </p>
+
+          {order.customer?.phone && (
+            <p className="receipt-phone mt-1 text-[11px] font-bold">
+              {order.customer.countryCode}
+              {order.customer.phone}
+            </p>
+          )}
+
+          {isDelivery && deliveryAddress && (
+            <p className="receipt-address">
+              {deliveryAddress}
+            </p>
+          )}
+
+          {isDelivery && deliveryInstructions && (
+            <p className="receipt-instructions text-[10px] leading-[13px]">
+              <span className="font-bold">Indicaciones:</span>{" "}
+              {deliveryInstructions}
+            </p>
+          )}
+
+          {order.notes && (
+            <p className="mt-2 text-[10px] font-bold">
+              NOTA: {order.notes}
+            </p>
+          )}
+        </section>
+
+        <div className="thermal-rule mt-rule my-3" />
+
+        <section>
+          <p className="receipt-section-title text-[13px] font-black">
+            DETALLE DEL PEDIDO
+          </p>
+
+          <div className="space-y-3">
+            {order.items.map((item) => {
+              const breakdown = itemReceiptBreakdown(item);
+
+              return (
+                <div key={item.id} className="receipt-item">
+                  <div className="receipt-line grid grid-cols-[1fr_auto] gap-2">
+                    <span className="receipt-product text-[12px] font-black">
+                      {item.quantity} × {item.productName.toUpperCase()}
+                    </span>
+                    <span className="receipt-price text-[12px] font-black">
+                      $ {money(breakdown.baseLineTotal)}
+                    </span>
+                  </div>
+
+                  {breakdown.details.length > 0 && (
+                    <div className="receipt-details ml-[13px] mt-1">
+                      {breakdown.details.map((detail, index) => (
+                        <p
+                          key={`${detail.label}-${index}`}
+                          className="receipt-detail text-[11px] leading-[14px]"
+                        >
+                          <span className="font-bold">
+                            {detail.label.toUpperCase()}:
+                          </span>{" "}
+                          {detail.value.toUpperCase()}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {breakdown.crust && (
+                    <div className="receipt-crust ml-[13px] mt-1 grid grid-cols-[1fr_auto] gap-2 text-[11px] leading-[14px]">
+                      <span>
+                        <span className="font-bold">BORDE:</span>{" "}
+                        {breakdown.crust.name.toUpperCase()}
+                      </span>
+                      {breakdown.crustTotal > 0 && (
+                        <span className="font-black">
+                          $ {money(breakdown.crustTotal)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {item.notes && (
+                    <div className="receipt-note ml-[13px] mt-1 border-[2px] border-black px-2 py-1">
+                      <p className="text-[10px] font-black">
+                        NOTA COCINA: {item.notes.toUpperCase()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="thermal-rule mt-rule my-3" />
+
+        <section className="receipt-totals space-y-1 text-[13px] font-black">
+          <div className="receipt-total-row flex justify-between">
+            <span>SUBTOTAL</span>
+            <span>$ {money(order.subtotal)}</span>
+          </div>
+          <div className="receipt-total-row flex justify-between">
+            <span>DOMICILIO</span>
+            <span>$ {money(order.deliveryFee)}</span>
+          </div>
+          <div className="receipt-total-row flex justify-between">
+            <span>DESCUENTO</span>
+            <span>-$ {money(order.discount)}</span>
+          </div>
+
+          <div className="receipt-grand-total mt-2 flex items-end justify-between border-t-[2px] border-black pt-2 text-[20px]">
+            <span>TOTAL</span>
+            <span>$ {money(order.total)}</span>
+          </div>
+        </section>
+
+        <div className="receipt-payment mt-3 border-[2px] border-black px-3 py-2 text-center">
+          <p className="receipt-payment-label text-[10px] font-black uppercase tracking-[0.08em]">
+            ESTADO DE PAGO
+          </p>
+          <p className="receipt-payment-value mt-1 text-[15px] font-black">
+            {paidInFull
+              ? `PAGADO $ ${money(paidTotal)}`
+              : `PENDIENTE $ ${money(pendingBalance)}`}
+          </p>
+
           {!paidInFull && (
             <>
               {pendingPayment ? (
@@ -236,7 +373,9 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
                   COBRAR {pendingPayment.method.toUpperCase()} · $ {money(pendingBalance)}
                 </p>
               ) : (
-                <p className="mt-1 text-[10px] font-bold">SIN MEDIO DE PAGO REGISTRADO</p>
+                <p className="mt-1 text-[10px] font-bold">
+                  SIN MEDIO DE PAGO REGISTRADO
+                </p>
               )}
 
               {pendingPayment?.cashReceived != null && (
@@ -248,10 +387,22 @@ body{font-family:Arial,sans-serif;max-width:80mm;margin:0 auto;padding:5mm;color
           )}
         </div>
 
-        {order.couponName && <p className="mt-2 text-center text-[10px] font-bold">CUPÓN: {order.couponName.toUpperCase()}</p>}
+        {order.couponName && (
+          <p className="coupon mt-2 text-center text-[10px] font-bold">
+            CUPÓN: {order.couponName.toUpperCase()}
+          </p>
+        )}
 
-        <div className="thermal-rule my-3" />
-        <div className="text-center"><p className="text-[13px] font-black">¡Gracias por elegir Alentó Pizza!</p><p className="mt-1 text-[10px] italic">Este documento es un comprobante de entrega.</p></div>
+        <div className="thermal-rule mt-rule my-3" />
+
+        <div className="receipt-footer text-center">
+          <p className="receipt-footer-title text-[13px] font-black">
+            ¡Gracias por elegir Alentó Pizza!
+          </p>
+          <p className="receipt-footer-sub mt-1 text-[10px] italic">
+            Este documento es un comprobante de entrega.
+          </p>
+        </div>
       </div>
     </main>
   );
