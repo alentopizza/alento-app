@@ -887,7 +887,7 @@ export default function StructuredPosPageV2() {
             </div>
 
             <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4">
-              <div className="mb-3 rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+              <div className="mb-3">
                 <div className="space-y-3">
                 <div className="rounded-[18px] border border-neutral-200 bg-white p-2.5 shadow-[0_6px_18px_rgba(28,23,20,.04)]">
                   <button
