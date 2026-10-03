@@ -77,17 +77,28 @@ async function findContact(data) {
   const identifier = data.recipientKind === "DRIVER"
     ? `alento_driver_${data.recipientId}`
     : `alento_customer_${data.recipientId}`;
+  const normalizedPhone = normalizePhone(data.phone);
+  const queries = data.existingRecipientOnly
+    ? [normalizedPhone]
+    : [identifier, normalizedPhone];
 
-  for (const q of [identifier, normalizePhone(data.phone)]) {
+  for (const q of queries) {
     if (!q) continue;
     const result = await cw(
       `/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts/search?q=${encodeURIComponent(q)}`,
     );
     const contacts = result?.payload || [];
-    const exact =
-      contacts.find((item) => item.identifier === identifier) ||
-      contacts.find((item) => normalizePhone(item.phone_number) === normalizePhone(data.phone));
-    if (exact) return exact;
+    const phoneMatch = contacts.find(
+      (item) => normalizePhone(item.phone_number) === normalizedPhone,
+    );
+    if (phoneMatch) return phoneMatch;
+
+    if (!data.existingRecipientOnly) {
+      const identifierMatch = contacts.find(
+        (item) => item.identifier === identifier,
+      );
+      if (identifierMatch) return identifierMatch;
+    }
   }
   return null;
 }
