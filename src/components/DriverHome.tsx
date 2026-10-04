@@ -502,13 +502,15 @@ export default function DriverHome({
     }
 
     if (mapMode === "ASSIGNED") {
-      return [...orders].sort((a, b) => {
-        const ownDelta =
-          Number(Boolean(b.assignment?.own)) -
-          Number(Boolean(a.assignment?.own));
-        if (ownDelta !== 0) return ownDelta;
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      });
+      return orders
+        .filter((order) => order.assignment?.own || order.claimable)
+        .sort((a, b) => {
+          const ownDelta =
+            Number(Boolean(b.assignment?.own)) -
+            Number(Boolean(a.assignment?.own));
+          if (ownDelta !== 0) return ownDelta;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
     }
 
     return orders.filter(
@@ -1679,23 +1681,29 @@ export default function DriverHome({
         <div className="pointer-events-none absolute inset-x-0 bottom-[max(14px,env(safe-area-inset-bottom))] z-30 px-3 sm:px-5">
           <div className="pointer-events-auto mx-auto max-w-[760px]">
             <div className="flex snap-x gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {orders.length ? (
-                orders.map((order) => (
+              {operationalOrders.length ? (
+                operationalOrders.map((order) => (
                   <article
                     key={order.id}
                     role="button"
                     tabIndex={0}
                     onClick={() => {
-                      if (order.href) router.push(order.href);
+                      if (order.assignment?.own && order.href) {
+                        router.push(order.href);
+                        return;
+                      }
+                      setSelectedId(order.id);
                     }}
                     onKeyDown={(event) => {
-                      if (
-                        order.href &&
-                        (event.key === "Enter" || event.key === " ")
-                      ) {
-                        event.preventDefault();
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+
+                      if (order.assignment?.own && order.href) {
                         router.push(order.href);
+                        return;
                       }
+
+                      setSelectedId(order.id);
                     }}
                     className={
                       "min-w-[286px] cursor-pointer snap-start overflow-hidden rounded-[20px] border text-white backdrop-blur-xl transition active:scale-[.99] sm:min-w-[310px] " +
@@ -1814,8 +1822,43 @@ export default function DriverHome({
                   </article>
                 ))
               ) : (
-                <div className="w-full rounded-[20px] border border-white/10 bg-[#111]/94 px-4 py-5 text-center text-[10px] font-semibold text-white/45 backdrop-blur-xl">
-                  No hay domicilios en proceso.
+                <div className="w-full rounded-[20px] border border-white/10 bg-[#111]/94 px-4 py-4 text-white backdrop-blur-xl">
+                  {mapMode === "INACTIVE" ? (
+                    <div className="text-center">
+                      <b className="block text-[11px] font-black text-white/78">
+                        Estás inactivo
+                      </b>
+                      <p className="mt-1 text-[9px] font-semibold leading-4 text-white/38">
+                        Actívate para recibir domicilios y compartir tu ubicación operativa.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={
+                              "h-2.5 w-2.5 shrink-0 rounded-full " +
+                              (gpsState.tone === "live"
+                                ? "bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.65)]"
+                                : gpsState.tone === "recent"
+                                  ? "bg-amber-300"
+                                  : "bg-[#ff6267]")
+                            }
+                          />
+                          <b className="text-[11px] font-black text-white/78">
+                            Activo · esperando pedidos
+                          </b>
+                        </div>
+                        <p className="mt-1 truncate text-[9px] font-semibold text-white/38">
+                          GPS {gpsState.label.toLowerCase()} · {acceptanceZoneLabel(acceptanceZone)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[8px] font-black text-white/42">
+                        0 disponibles
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
