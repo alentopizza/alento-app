@@ -187,6 +187,11 @@ export async function GET(request: NextRequest) {
           occurredAt: { gte: queryStart, lt: queryEndExclusive },
         },
         orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+        include: {
+          payrollPayment: {
+            select: { id: true },
+          },
+        },
       }),
       prisma.cashLoan.findMany({
         where: {
@@ -413,6 +418,7 @@ export async function GET(request: NextRequest) {
         occurredAt: expense.occurredAt,
         source: expense.source,
         createdByName: expense.createdByName,
+        payrollPaymentId: expense.payrollPayment?.id ?? null,
       })),
     });
   } catch (error) {
