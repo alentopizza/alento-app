@@ -105,6 +105,16 @@ export async function PATCH(
     });
   }
 
+  if (existing.payrollPaymentItem) {
+    return NextResponse.json(
+      {
+        error:
+          "Este turno ya hace parte de un pago de nómina registrado en Caja y quedó bloqueado para proteger el historial.",
+      },
+      { status: 409 },
+    );
+  }
+
   const userId = Number(body?.userId);
   const startsAt = new Date(String(body?.startsAt || ""));
   const endsAt = new Date(String(body?.endsAt || ""));
@@ -201,7 +211,30 @@ export async function DELETE(
     return NextResponse.json({ error: "Turno inválido." }, { status: 400 });
   }
 
-  await prisma.workShift.delete({ where: { id } }).catch(() => null);
+  const existing = await prisma.workShift.findUnique({
+    where: { id },
+    include: {
+      payrollPaymentItem: {
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (existing.payrollPaymentItem) {
+    return NextResponse.json(
+      {
+        error:
+          "Este turno pertenece a un pago de nómina registrado en Caja y no puede eliminarse.",
+      },
+      { status: 409 },
+    );
+  }
+
+  await prisma.workShift.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });
 }
