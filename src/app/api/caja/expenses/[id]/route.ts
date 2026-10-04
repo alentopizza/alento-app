@@ -35,7 +35,7 @@ export async function DELETE(
   try {
     const existing = await prisma.cashExpense.findUnique({
       where: { id },
-      select: { id: true, occurredAt: true },
+      select: { id: true, occurredAt: true, source: true },
     });
 
     if (!existing) {
@@ -46,6 +46,16 @@ export async function DELETE(
     }
 
     await assertCashDateEditable(existing.occurredAt);
+
+    if (existing.source === "PAYROLL") {
+      return NextResponse.json(
+        {
+          error:
+            "Este movimiento corresponde a un pago de nómina y está vinculado a turnos pagados. No puede eliminarse como una salida manual.",
+        },
+        { status: 409 },
+      );
+    }
 
     await prisma.cashExpense.delete({ where: { id } });
     return NextResponse.json({ ok: true });
