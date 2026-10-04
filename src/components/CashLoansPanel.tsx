@@ -396,8 +396,10 @@ export default function CashLoansPanel({
             </p>
             <h2 className="alento-ui-title mt-1">Préstamos y vales</h2>
             <p className="alento-ui-body mt-1 max-w-2xl text-neutral-500">
-              El préstamo saca dinero disponible de Caja. Cada abono o descuento
-              de nómina devuelve ese dinero al flujo neto.
+              El préstamo saca dinero disponible de Caja. Los abonos recibidos
+              entran nuevamente a Caja; los descuentos de nómina se gestionan
+              desde el pago de turnos y reducen el saldo por cobrar sin duplicar
+              movimientos de efectivo.
             </p>
           </div>
 
@@ -795,7 +797,6 @@ export default function CashLoansPanel({
                   className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                 >
                   <option value="PAGO">Pago del trabajador</option>
-                  <option value="DESCUENTO_NOMINA">Descuento de nómina</option>
                 </select>
               </div>
               <div>
