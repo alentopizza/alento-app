@@ -305,6 +305,8 @@ export default function DriverDestinationActions({
   canStartDelivery,
   orderCode,
   initialTravelMode,
+  destinationLatitude,
+  destinationLongitude,
 }: {
   token: string;
   phone: string | null;
@@ -313,6 +315,8 @@ export default function DriverDestinationActions({
   canStartDelivery: boolean;
   orderCode: string;
   initialTravelMode: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
 }) {
   const router = useRouter();
   const mapHostRef = useRef<HTMLDivElement | null>(null);
@@ -402,6 +406,66 @@ export default function DriverDestinationActions({
     lastSpeedRef.current = null;
     mapRef.current = null;
   }, []);
+
+  const drawDestinationPreview = useCallback(async () => {
+    if (
+      !mapHostRef.current ||
+      destinationLatitude == null ||
+      destinationLongitude == null
+    ) {
+      return;
+    }
+
+    const google = await loadGoogleMaps();
+    await google.maps.importLibrary("maps");
+    const { AdvancedMarkerElement } =
+      (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
+
+    const destination = {
+      lat: destinationLatitude,
+      lng: destinationLongitude,
+    };
+
+    if (!mapRef.current) {
+      mapRef.current = new google.maps.Map(mapHostRef.current, {
+        center: destination,
+        zoom: 16,
+        mapId: ALENTO_DELIVERY_MAP_ID,
+        ...(google.maps.RenderingType?.VECTOR
+          ? { renderingType: google.maps.RenderingType.VECTOR }
+          : {}),
+        disableDefaultUI: true,
+        gestureHandling: "greedy",
+        headingInteractionEnabled: false,
+        tiltInteractionEnabled: false,
+      });
+    } else {
+      mapRef.current.setCenter?.(destination);
+      mapRef.current.setZoom?.(16);
+      mapRef.current.setTilt?.(0);
+      mapRef.current.setHeading?.(0);
+    }
+
+    markerRefs.current.forEach((marker) => {
+      if ("setMap" in marker) marker.setMap(null);
+      else marker.map = null;
+    });
+    markerRefs.current = [];
+
+    const customerMarker = new AdvancedMarkerElement({
+      map: mapRef.current,
+      position: destination,
+      title: `${orderCode} · ${customerName}`,
+      content: createDeliveryMapPinElement(orderCode),
+      zIndex: 25,
+    });
+    markerRefs.current.push(customerMarker);
+  }, [
+    customerName,
+    destinationLatitude,
+    destinationLongitude,
+    orderCode,
+  ]);
 
   const animateHeading = useCallback(
     (map: GoogleMapInstance, targetHeading: number) => {
@@ -791,6 +855,8 @@ export default function DriverDestinationActions({
       setError("");
 
       try {
+        await drawDestinationPreview();
+
         if (!navigator.geolocation) {
           throw new Error("Este dispositivo no permite obtener ubicación.");
         }
@@ -874,6 +940,7 @@ export default function DriverDestinationActions({
       resetMap();
     };
   }, [
+    drawDestinationPreview,
     drawMap,
     navigationDisabled,
     open,
