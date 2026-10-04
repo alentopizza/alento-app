@@ -2782,7 +2782,7 @@ export default function CashPage() {
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                   <span className="alento-ui-micro uppercase text-white/35">
                     Turnos seleccionados
@@ -2793,10 +2793,26 @@ export default function CashPage() {
                 </div>
                 <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                   <span className="alento-ui-micro uppercase text-white/35">
-                    Total a pagar
+                    Nómina seleccionada
+                  </span>
+                  <b className="mt-1 block text-lg text-white">
+                    {formatCOP(selectedPayrollTotal)}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-violet-300/20 bg-violet-400/[0.08] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-violet-200/55">
+                    Descuento préstamos
+                  </span>
+                  <b className="mt-1 block text-lg text-violet-200">
+                    − {formatCOP(selectedPayrollLoanDeductionTotal)}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-emerald-300/20 bg-emerald-400/[0.08] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-emerald-200/55">
+                    Salida real de caja
                   </span>
                   <b className="mt-1 block text-lg text-emerald-300">
-                    {formatCOP(selectedPayrollTotal)}
+                    {formatCOP(selectedPayrollNetTotal)}
                   </b>
                 </div>
               </div>
@@ -3077,6 +3093,105 @@ export default function CashPage() {
                           </section>
                         );
                       })}
+
+                      <section className="overflow-hidden rounded-[20px] border border-violet-100 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-3 bg-violet-50/55 px-4 py-3.5">
+                          <div>
+                            <p className="alento-ui-label uppercase tracking-[0.1em] text-violet-500">
+                              Descuentos por préstamo
+                            </p>
+                            <h4 className="mt-0.5 text-[14px] font-black text-neutral-950">
+                              Préstamos pendientes del trabajador
+                            </h4>
+                          </div>
+                          <div className="text-right">
+                            <span className="block alento-ui-micro uppercase text-neutral-400">
+                              Seleccionado
+                            </span>
+                            <b className="mt-0.5 block text-sm font-black text-violet-700">
+                              {formatCOP(selectedPayrollLoanDeductionTotal)}
+                            </b>
+                          </div>
+                        </div>
+
+                        {selectedPayrollLoans.length === 0 ? (
+                          <div className="px-4 py-5 text-center text-[11px] font-semibold text-neutral-400">
+                            Este trabajador no tiene préstamos pendientes.
+                          </div>
+                        ) : (
+                          <div className="space-y-2 border-t border-violet-100 p-3">
+                            {selectedPayrollLoans.map((loan) => {
+                              const selected =
+                                payrollLoanDeductions[loan.id] != null;
+                              const deduction = Number(
+                                String(payrollLoanDeductions[loan.id] ?? "").replace(/\D/g, "") || 0,
+                              );
+
+                              return (
+                                <div
+                                  key={loan.id}
+                                  className={
+                                    "grid gap-3 rounded-[15px] border p-3 sm:grid-cols-[28px_minmax(0,1fr)_170px] sm:items-center " +
+                                    (selected
+                                      ? "border-violet-200 bg-violet-50/45"
+                                      : "border-neutral-200 bg-white")
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={payrollSaving || selectedPayrollTotal <= 0}
+                                    onClick={() => togglePayrollLoan(loan)}
+                                    className={
+                                      "flex h-6 w-6 items-center justify-center rounded-[7px] border text-[13px] font-black transition disabled:opacity-35 " +
+                                      (selected
+                                        ? "border-violet-600 bg-violet-600 text-white"
+                                        : "border-neutral-300 bg-white text-transparent")
+                                    }
+                                    aria-label={selected ? "Quitar descuento" : "Aplicar descuento"}
+                                  >
+                                    ✓
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={payrollSaving || selectedPayrollTotal <= 0}
+                                    onClick={() => togglePayrollLoan(loan)}
+                                    className="min-w-0 text-left disabled:opacity-50"
+                                  >
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <b className="text-xs font-black text-neutral-950">
+                                        Préstamo #{loan.id}
+                                      </b>
+                                      <span className="rounded-full border border-violet-100 bg-white px-2 py-0.5 alento-ui-micro font-bold text-violet-700">
+                                        Saldo {formatCOP(loan.outstandingAmount)}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 truncate text-[10px] text-neutral-500">
+                                      {loan.note || "Sin observación"} · entregado {payrollDayLabel(loan.issuedAt)}
+                                    </p>
+                                  </button>
+
+                                  <label className="block">
+                                    <span className="mb-1 block alento-ui-micro uppercase tracking-[0.08em] text-neutral-400">
+                                      Descontar
+                                    </span>
+                                    <input
+                                      inputMode="numeric"
+                                      disabled={!selected || payrollSaving}
+                                      value={selected ? formatDigits(String(deduction || "")) : ""}
+                                      onChange={(event) =>
+                                        setPayrollLoanDeduction(loan, event.target.value)
+                                      }
+                                      placeholder={formatCOP(loan.outstandingAmount)}
+                                      className="h-9 w-full rounded-xl border border-neutral-200 bg-white px-3 text-right text-xs font-black text-violet-700 outline-none disabled:bg-neutral-100 disabled:text-neutral-300"
+                                    />
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </section>
                     </div>
                   )}
                 </div>
@@ -3108,8 +3223,13 @@ export default function CashPage() {
                         Pago seleccionado
                       </p>
                       <p className="mt-0.5 text-[11px] font-semibold text-neutral-500">
-                        {payrollSelectedShiftIds.length} turno{payrollSelectedShiftIds.length === 1 ? "" : "s"} · salida de caja por
-                        <b className="ml-1 text-neutral-950">{formatCOP(selectedPayrollTotal)}</b>
+                        Nómina {formatCOP(selectedPayrollTotal)}
+                        {selectedPayrollLoanDeductionTotal > 0
+                          ? ` · préstamos − ${formatCOP(selectedPayrollLoanDeductionTotal)}`
+                          : ""}
+                        <span className="mx-1">·</span>
+                        salida real de caja
+                        <b className="ml-1 text-neutral-950">{formatCOP(selectedPayrollNetTotal)}</b>
                       </p>
                     </div>
 
@@ -3129,13 +3249,14 @@ export default function CashPage() {
                           payrollSaving ||
                           payrollWorkerId == null ||
                           payrollSelectedShiftIds.length === 0 ||
-                          selectedPayrollTotal <= 0
+                          selectedPayrollTotal <= 0 ||
+                          selectedPayrollLoanDeductionTotal > selectedPayrollTotal
                         }
                         className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-xs font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] disabled:opacity-40"
                       >
                         {payrollSaving
                           ? "Pagando..."
-                          : `Pagar nómina · ${formatCOP(selectedPayrollTotal)}`}
+                          : `Pagar nómina · ${formatCOP(selectedPayrollNetTotal)}`}
                       </button>
                     </div>
                   </div>
