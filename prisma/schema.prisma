@@ -125,6 +125,7 @@ model User {
   doughPreparations DoughPreparation[]
   workShifts WorkShift[]
   cashLoans CashLoan[]
+  payrollPayments PayrollPayment[]
 
   @@index([active])
   @@index([whatsappPhone])
@@ -568,6 +569,7 @@ model CashExpense {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   driver        User?    @relation("DriverCashExpenses", fields: [driverId], references: [id], onDelete: SetNull)
+  payrollPayment PayrollPayment?
 
   @@index([driverId, occurredAt])
   @@index([occurredAt])
@@ -738,21 +740,57 @@ model DoughPreparation {
 
 
 model WorkShift {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  startsAt      DateTime
-  endsAt        DateTime
-  amount        Decimal  @db.Decimal(12, 2)
-  status        String   @default("PENDING")
-  paidAt        DateTime?
-  notes         String?
-  createdById   Int?
-  createdByName String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  startsAt           DateTime
+  endsAt             DateTime
+  amount             Decimal              @db.Decimal(12, 2)
+  status             String               @default("PENDING")
+  paidAt             DateTime?
+  notes              String?
+  createdById        Int?
+  createdByName      String
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  payrollPaymentItem PayrollPaymentShift?
 
   @@index([userId, startsAt])
   @@index([status, startsAt])
   @@index([startsAt])
+}
+
+model PayrollPayment {
+  id            Int                   @id @default(autoincrement())
+  workerId      Int
+  workerName    String
+  grossAmount   Decimal               @db.Decimal(12, 2)
+  loanDeduction Decimal               @default(0) @db.Decimal(12, 2)
+  netAmount     Decimal               @db.Decimal(12, 2)
+  occurredAt    DateTime
+  note          String?
+  source        String                @default("CASH")
+  createdById   Int?
+  createdByName String
+  cashExpenseId Int                   @unique
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  worker        User                  @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  cashExpense   CashExpense           @relation(fields: [cashExpenseId], references: [id], onDelete: Restrict)
+  shifts        PayrollPaymentShift[]
+
+  @@index([workerId, occurredAt])
+  @@index([occurredAt])
+}
+
+model PayrollPaymentShift {
+  id               Int            @id @default(autoincrement())
+  payrollPaymentId Int
+  shiftId          Int            @unique
+  amount           Decimal        @db.Decimal(12, 2)
+  createdAt        DateTime       @default(now())
+  payrollPayment   PayrollPayment @relation(fields: [payrollPaymentId], references: [id], onDelete: Cascade)
+  shift            WorkShift      @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@index([payrollPaymentId])
 }
