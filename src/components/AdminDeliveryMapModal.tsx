@@ -23,6 +23,8 @@ import {
 } from "@/lib/googleMapsClient";
 
 const MAP_ID = "b0bfaae2809a720a6204509b";
+const LOCATION_REFRESH_MS = 5000;
+const ROUTE_REFRESH_MS = 120000;
 
 type Point = {
   latitude: number;
@@ -406,17 +408,33 @@ export default function AdminDeliveryMapModal({
     initialFitRef.current = false;
     void load(true);
 
-    const locationTimer = window.setInterval(() => {
+    const refreshLocations = () => {
       void load(false, true);
-    }, 30000);
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshLocations();
+      }
+    };
+
+    const locationTimer = window.setInterval(
+      refreshLocations,
+      LOCATION_REFRESH_MS,
+    );
 
     const routeTimer = window.setInterval(() => {
       void load(true, true);
-    }, 120000);
+    }, ROUTE_REFRESH_MS);
+
+    window.addEventListener("focus", refreshLocations);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       window.clearInterval(locationTimer);
       window.clearInterval(routeTimer);
+      window.removeEventListener("focus", refreshLocations);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [load, open]);
 
