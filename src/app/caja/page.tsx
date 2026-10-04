@@ -820,26 +820,6 @@ export default function CashPage() {
           }}
         />
 
-        {summary?.sessionScope && singleDaySelected && (
-          <div className="rounded-[18px] border border-sky-100 bg-sky-50 px-4 py-3 text-[10px] text-sky-800 shadow-sm">
-            <b className="font-black">Resumen por sesión de caja.</b>{" "}
-            Incluye todos los movimientos desde{" "}
-            <b>{dateTimeLabel(summary.sessionScope.openedAt)}</b>{" "}
-            {summary.sessionScope.closedAt ? (
-              <>
-                hasta <b>{dateTimeLabel(summary.sessionScope.closedAt)}</b>.
-              </>
-            ) : (
-              <>hasta este momento.</>
-            )}
-            {summary.sessionScope.inheritedFromPreviousDay && (
-              <span className="ml-1 font-black">
-                La sesión comenzó el {summary.sessionScope.businessDate} y continúa abierta después de medianoche.
-              </span>
-            )}
-          </div>
-        )}
-
         {loading ? (
           <div className="rounded-[24px] border border-neutral-200 bg-white p-12 text-center text-sm text-neutral-500">
             Cargando caja...
@@ -981,31 +961,7 @@ export default function CashPage() {
               </button>
             </section>
 
-            {tab === "SUMMARY" ? (
-              <section className="rounded-[22px] border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                      Detalle bajo demanda
-                    </p>
-                    <h2 className="mt-1 text-lg font-black text-neutral-950">
-                      Haz clic en una tarjeta para revisar sus movimientos
-                    </h2>
-                    <p className="mt-1 max-w-3xl text-[11px] leading-5 text-neutral-500">
-                      Ventas, pagos, otros ingresos, salidas y composición del flujo neto ahora se consultan en un modal amplio. El resumen permanece limpio y evita listas interminables.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void load(true)}
-                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 alento-ui-label font-black text-neutral-600 transition hover:bg-neutral-100"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                    Actualizar
-                  </button>
-                </div>
-              </section>
-            ) : tab === "INCOMES" ? (
+            {tab === "SUMMARY" ? null : tab === "INCOMES" ? (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
