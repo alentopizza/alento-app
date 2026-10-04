@@ -370,6 +370,16 @@ export default function DriverDestinationActions({
     "COMPLETED",
     "CANCELED",
   ].includes(navigationStatus);
+  const preDelivery = [
+    "CONFIRMED",
+    "PREPARING",
+    "PREPARED",
+    "READY",
+  ].includes(navigationStatus);
+  const deliveryActive = [
+    "OUT_FOR_DELIVERY",
+    "ARRIVED",
+  ].includes(navigationStatus);
 
   const resetMap = useCallback(() => {
     markerRefs.current.forEach((marker) => {
@@ -534,11 +544,11 @@ export default function DriverDestinationActions({
 
       const heading = resolveMovementHeading(position);
 
-      // READY es una vista previa de la ruta completa. El modo "rumbo arriba"
-      // se activa cuando el domicilio realmente está en curso y se conserva
-      // también después de marcar llegada hasta que el pedido se entregue.
+      // Antes de iniciar el domicilio mostramos la ruta completa para que el
+      // repartidor pueda preparar el trayecto desde que recibe la asignación.
+      // El modo "rumbo arriba" solo se activa durante la entrega real.
       if (
-        navigationStatus === "READY" ||
+        preDelivery ||
         !cameraFollowingRef.current
       ) {
         return;
@@ -583,7 +593,7 @@ export default function DriverDestinationActions({
     },
     [
       animateHeading,
-      navigationStatus,
+      preDelivery,
       resolveMovementHeading,
       travelMode,
     ],
@@ -713,7 +723,7 @@ export default function DriverDestinationActions({
         }
       }
 
-      if (navigationStatus === "READY") {
+      if (preDelivery) {
         map.setTilt?.(0);
         map.setHeading?.(0);
         map.fitBounds(bounds, {
@@ -733,7 +743,7 @@ export default function DriverDestinationActions({
         animateHeading(map, routeHeadingRef.current);
       }
     },
-    [animateHeading, customerName, navigationStatus, orderCode],
+    [animateHeading, customerName, orderCode, preDelivery],
   );
 
   const requestNavigation = useCallback(
@@ -747,7 +757,7 @@ export default function DriverDestinationActions({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            deliveryTravelMode: travelMode,
+            deliveryTravelMode: travelMode ?? "VEHICLE",
           }),
         },
       );
@@ -793,11 +803,6 @@ export default function DriverDestinationActions({
         watchRef.current = navigator.geolocation.watchPosition(
           async (position) => {
             if (disposed) return;
-
-            if (!travelMode) {
-              setLoading(false);
-              return;
-            }
 
             // La cámara sigue la ubicación y el rumbo en cada actualización
             // del GPS. La ruta de Google se mantiene limitada a ~8 s para no
@@ -1188,7 +1193,11 @@ export default function DriverDestinationActions({
                     Modo
                   </span>
                   <b className="mt-1 block truncate text-[12px]">
-                    {travelMode ? deliveryTravelModeLabel(travelMode) : "—"}
+                    {travelMode
+                      ? deliveryTravelModeLabel(travelMode)
+                      : preDelivery
+                        ? "Vista previa"
+                        : "—"}
                   </b>
                 </div>
                 <div className="border-r border-white/10 px-2">
@@ -1213,7 +1222,7 @@ export default function DriverDestinationActions({
                 </div>
               </div>
 
-              {navigationStatus !== "READY" && (
+              {deliveryActive && (
                 <div
                   className={
                     "absolute right-3 z-20 sm:right-4 " +
@@ -1295,7 +1304,7 @@ export default function DriverDestinationActions({
               )}
             </div>
 
-            {navigationStatus === "READY" && (
+            {preDelivery && (
               <div className="border-t border-white/10 bg-[#0d0d0d] p-3 sm:p-4">
                 <div className="mb-3">
                   <span className="block text-[8px] font-black uppercase tracking-[.11em] text-white/40">
@@ -1336,6 +1345,13 @@ export default function DriverDestinationActions({
                   </p>
                 </div>
 
+                {navigationStatus !== "READY" && (
+                  <div className="mb-3 rounded-[14px] border border-emerald-300/15 bg-emerald-400/[0.07] px-3 py-2.5 text-[9px] font-semibold leading-4 text-emerald-100/65">
+                    Puedes revisar la ubicación y preparar la ruta desde ahora. El inicio del domicilio se habilitará cuando el pedido esté listo.
+                  </div>
+                )}
+
+                {navigationStatus === "READY" && (
                 <div
                   ref={departureTrackRef}
                   className={
@@ -1459,6 +1475,7 @@ export default function DriverDestinationActions({
                     )}
                   </button>
                 </div>
+                )}
               </div>
             )}
 
