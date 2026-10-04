@@ -302,7 +302,10 @@ export async function GET(request: NextRequest) {
       paymentCount: payments.length,
       otherIncomeTotal,
       otherIncomeCount: otherIncomes.length,
-      totalInflow: receivedTotal + otherIncomeTotal,
+      totalInflow:
+        receivedTotal +
+        otherIncomeTotal +
+        loanRecoveredTotal,
       loanDisbursedTotal,
       loanRecoveredTotal,
       expensesTotal,
