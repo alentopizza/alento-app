@@ -285,6 +285,17 @@ export async function GET(request: NextRequest) {
       (sum, repayment) => sum + Number(repayment.amount),
       0,
     );
+    const loanRecoveredPayrollTotal = loanRepayments
+      .filter(
+        (repayment) =>
+          repayment.method === "DESCUENTO_NOMINA",
+      )
+      .reduce(
+        (sum, repayment) => sum + Number(repayment.amount),
+        0,
+      );
+    const loanRecoveredCashTotal =
+      loanRecoveredTotal - loanRecoveredPayrollTotal;
 
     return NextResponse.json({
       startDate,
@@ -305,15 +316,17 @@ export async function GET(request: NextRequest) {
       totalInflow:
         receivedTotal +
         otherIncomeTotal +
-        loanRecoveredTotal,
+        loanRecoveredCashTotal,
       loanDisbursedTotal,
       loanRecoveredTotal,
+      loanRecoveredCashTotal,
+      loanRecoveredPayrollTotal,
       expensesTotal,
       expenseCount: expenses.length,
       netTotal:
         receivedTotal +
         otherIncomeTotal +
-        loanRecoveredTotal -
+        loanRecoveredCashTotal -
         expensesTotal -
         loanDisbursedTotal,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
