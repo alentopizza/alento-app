@@ -132,8 +132,16 @@ export async function GET() {
         ? []
         : await prisma.cashLoan.findMany({
             where: {
-              workerId: { in: workerIds },
               historicalPaidWithoutRepayment: false,
+              OR: [
+                { workerId: { in: workerIds } },
+                {
+                  workerId: null,
+                  workerName: {
+                    in: [...workers.values()].map((worker) => worker.name),
+                  },
+                },
+              ],
             },
             include: {
               repayments: {
@@ -152,7 +160,12 @@ export async function GET() {
         );
         return {
           id: loan.id,
-          workerId: loan.workerId,
+          workerId:
+            loan.workerId ??
+            [...workers.values()].find(
+              (worker) => worker.name === loan.workerName,
+            )?.id ??
+            null,
           workerName: loan.workerName,
           note: loan.note,
           principal,
@@ -305,8 +318,11 @@ export async function POST(request: NextRequest) {
           : await tx.cashLoan.findMany({
               where: {
                 id: { in: loanIds },
-                workerId,
                 historicalPaidWithoutRepayment: false,
+                OR: [
+                  { workerId },
+                  { workerId: null, workerName: worker.name },
+                ],
               },
               include: {
                 repayments: {
@@ -405,6 +421,13 @@ export async function POST(request: NextRequest) {
       });
 
       for (const deduction of validatedLoanDeductions) {
+        if (deduction.loan.workerId == null) {
+          await tx.cashLoan.update({
+            where: { id: deduction.loan.id },
+            data: { workerId: worker.id },
+          });
+        }
+
         await tx.cashLoanRepayment.create({
           data: {
             loanId: deduction.loan.id,
