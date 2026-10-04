@@ -744,11 +744,6 @@ export default function CashPage() {
 
       if (workers.length === 1) {
         setPayrollWorkerId(workers[0].id);
-        setPayrollSelectedShiftIds(
-          shifts
-            .filter((shift) => shift.userId === workers[0].id)
-            .map((shift) => shift.id),
-        );
       }
     } catch (loadError) {
       setPayrollMessage(
