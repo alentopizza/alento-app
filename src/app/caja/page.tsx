@@ -5,6 +5,7 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Banknote,
+  CalendarRange,
   CircleDollarSign,
   Plus,
   ReceiptText,
@@ -167,6 +168,7 @@ type CashLoanChange = {
 
 type Tab = "SUMMARY" | "EXPENSES" | "INCOMES" | "LOANS" | "CASHES";
 type SummaryDetail = "SALES" | "INFLOW" | "INCOMES" | "EXPENSES" | "NET";
+type RangePreset = "TODAY" | "YESTERDAY" | "WEEK" | "MONTH" | "CUSTOM";
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -201,6 +203,36 @@ function localTimeInput() {
 function firstDayOfMonth() {
   const today = localDateInput();
   return `${today.slice(0, 8)}01`;
+}
+
+function shiftDateInput(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function firstDayOfWeek() {
+  const today = localDateInput();
+  const [year, month, day] = today.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const weekday = date.getUTCDay();
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+  return shiftDateInput(today, mondayOffset);
+}
+
+function shortDateLabel(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
 function dateTimeLabel(value: string) {
@@ -255,6 +287,7 @@ export default function CashPage() {
   const today = localDateInput();
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("TODAY");
   const [tab, setTab] = useState<Tab>("SUMMARY");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -471,15 +504,37 @@ export default function CashPage() {
     });
   }, [summary, expenseCategoryFilter, expenseQuery]);
 
-  function setTodayRange() {
-    const value = localDateInput();
-    setStartDate(value);
-    setEndDate(value);
+  function applyRangePreset(preset: Exclude<RangePreset, "CUSTOM">) {
+    const current = localDateInput();
+
+    if (preset === "TODAY") {
+      setStartDate(current);
+      setEndDate(current);
+    } else if (preset === "YESTERDAY") {
+      const yesterday = shiftDateInput(current, -1);
+      setStartDate(yesterday);
+      setEndDate(yesterday);
+    } else if (preset === "WEEK") {
+      setStartDate(firstDayOfWeek());
+      setEndDate(current);
+    } else {
+      setStartDate(firstDayOfMonth());
+      setEndDate(current);
+    }
+
+    setRangePreset(preset);
   }
 
-  function setMonthRange() {
-    setStartDate(firstDayOfMonth());
-    setEndDate(localDateInput());
+  function setCustomStartDate(value: string) {
+    setStartDate(value);
+    if (value > endDate) setEndDate(value);
+    setRangePreset("CUSTOM");
+  }
+
+  function setCustomEndDate(value: string) {
+    setEndDate(value);
+    if (value < startDate) setStartDate(value);
+    setRangePreset("CUSTOM");
   }
 
   function openSummaryDetail(detail: SummaryDetail) {
@@ -683,45 +738,90 @@ export default function CashPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-end justify-end gap-2 self-end lg:self-auto">
-              <div>
-                <span className="mb-1 block alento-ui-micro uppercase tracking-[0.13em] text-white/40">
-                  Desde
-                </span>
-                <input
-                  type="date"
-                  value={startDate}
-                  max={endDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-2.5 text-[10px] font-bold text-white outline-none [color-scheme:dark]"
-                />
+            <div className="w-full self-end lg:w-auto lg:min-w-[560px] lg:self-auto">
+              <div className="rounded-[18px] border border-white/10 bg-black/10 p-2.5 backdrop-blur-sm">
+                <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                  <div className="flex items-center gap-2">
+                    <CalendarRange className="h-4 w-4 text-white/55" strokeWidth={1.9} />
+                    <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/45">
+                      Período
+                    </span>
+                  </div>
+                  <span className="truncate text-[9px] font-semibold text-white/45">
+                    {startDate === endDate
+                      ? shortDateLabel(startDate)
+                      : `${shortDateLabel(startDate)} — ${shortDateLabel(endDate)}`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+                  {([
+                    ["TODAY", "Hoy"],
+                    ["YESTERDAY", "Ayer"],
+                    ["WEEK", "Semana"],
+                    ["MONTH", "Mes"],
+                  ] as [Exclude<RangePreset, "CUSTOM">, string][]).map(
+                    ([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => applyRangePreset(value)}
+                        className={
+                          "h-10 rounded-[11px] border px-3 text-[10px] font-black transition " +
+                          (rangePreset === value
+                            ? "border-white bg-white text-neutral-950 shadow-[0_5px_16px_rgba(0,0,0,.14)]"
+                            : "border-white/10 bg-white/[0.07] text-white/75 hover:bg-white/[0.12]")
+                        }
+                      >
+                        {label}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setRangePreset("CUSTOM")}
+                    className={
+                      "col-span-2 h-10 rounded-[11px] border px-3 text-[10px] font-black transition sm:col-span-1 " +
+                      (rangePreset === "CUSTOM"
+                        ? "border-white bg-white text-neutral-950 shadow-[0_5px_16px_rgba(0,0,0,.14)]"
+                        : "border-white/10 bg-white/[0.07] text-white/75 hover:bg-white/[0.12]")
+                    }
+                  >
+                    Personalizado
+                  </button>
+                </div>
+
+                {rangePreset === "CUSTOM" && (
+                  <div className="mt-2 grid gap-2 rounded-[13px] border border-white/10 bg-black/15 p-2 sm:grid-cols-2">
+                    <label className="min-w-0">
+                      <span className="mb-1 block alento-ui-micro uppercase tracking-[0.12em] text-white/40">
+                        Desde
+                      </span>
+                      <input
+                        type="date"
+                        value={startDate}
+                        max={endDate}
+                        onChange={(event) => setCustomStartDate(event.target.value)}
+                        className="h-11 w-full rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[12px] font-bold text-white outline-none transition focus:border-white/30 focus:bg-white/[0.11] [color-scheme:dark]"
+                      />
+                    </label>
+
+                    <label className="min-w-0">
+                      <span className="mb-1 block alento-ui-micro uppercase tracking-[0.12em] text-white/40">
+                        Hasta
+                      </span>
+                      <input
+                        type="date"
+                        value={endDate}
+                        min={startDate}
+                        onChange={(event) => setCustomEndDate(event.target.value)}
+                        className="h-11 w-full rounded-[11px] border border-white/12 bg-white/[0.08] px-3 text-[12px] font-bold text-white outline-none transition focus:border-white/30 focus:bg-white/[0.11] [color-scheme:dark]"
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
-              <div>
-                <span className="mb-1 block alento-ui-micro uppercase tracking-[0.13em] text-white/40">
-                  Hasta
-                </span>
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate}
-                  onChange={(event) => setEndDate(event.target.value)}
-                  className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-2.5 text-[10px] font-bold text-white outline-none [color-scheme:dark]"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={setTodayRange}
-                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 alento-ui-label text-white/85 transition hover:bg-white/[0.13]"
-              >
-                Hoy
-              </button>
-              <button
-                type="button"
-                onClick={setMonthRange}
-                className="h-10 rounded-[11px] border border-white/12 bg-white/[0.08] px-3 alento-ui-label text-white/85 transition hover:bg-white/[0.13]"
-              >
-                Este mes
-              </button>
             </div>
           </div>
         </section>
@@ -817,6 +917,9 @@ export default function CashPage() {
           onSessionClosed={(businessDate) => {
             setStartDate(businessDate);
             setEndDate(businessDate);
+            setRangePreset(
+              businessDate === localDateInput() ? "TODAY" : "CUSTOM",
+            );
           }}
         />
 
