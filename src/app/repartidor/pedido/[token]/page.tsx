@@ -171,6 +171,8 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 canStartDelivery={canStartDelivery}
                 orderCode={orderCode}
                 initialTravelMode={order.deliveryTravelMode}
+                destinationLatitude={order.address?.latitude ?? null}
+                destinationLongitude={order.address?.longitude ?? null}
               />
             )}
 
