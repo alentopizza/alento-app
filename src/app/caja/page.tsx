@@ -232,6 +232,49 @@ function formatDigits(value: string) {
   }).format(Number(digits));
 }
 
+function printPayrollReceipt(receiptUrl: string) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.tabIndex = -1;
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "1px";
+  iframe.style.height = "1px";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    window.setTimeout(() => iframe.remove(), 300);
+  };
+
+  iframe.onload = () => {
+    const printWindow = iframe.contentWindow;
+    if (!printWindow) {
+      cleanup();
+      return;
+    }
+
+    window.setTimeout(() => {
+      try {
+        printWindow.addEventListener("afterprint", cleanup, { once: true });
+        printWindow.focus();
+        printWindow.print();
+        window.setTimeout(cleanup, 60_000);
+      } catch {
+        cleanup();
+      }
+    }, 250);
+  };
+
+  iframe.src = receiptUrl;
+  document.body.appendChild(iframe);
+}
+
 function localDateInput(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Bogota",
@@ -973,7 +1016,6 @@ export default function CashPage() {
 
     setPayrollSaving(true);
     setPayrollMessage("");
-    const receiptWindow = window.open("", "_blank");
 
     try {
       const response = await fetch("/api/caja/payroll", {
@@ -1001,20 +1043,13 @@ export default function CashPage() {
 
       const receiptUrl = String(data.payment?.receiptUrl || "");
       if (receiptUrl) {
-        if (receiptWindow) {
-          receiptWindow.location.href = `${receiptUrl}?auto=1`;
-        } else {
-          window.open(`${receiptUrl}?auto=1`, "_blank", "noopener,noreferrer");
-        }
-      } else if (receiptWindow) {
-        receiptWindow.close();
+        printPayrollReceipt(receiptUrl);
       }
 
       setPayrollOpen(false);
       setTab("EXPENSES");
       await load(true);
     } catch (saveError) {
-      receiptWindow?.close();
       setPayrollMessage(
         saveError instanceof Error
           ? saveError.message
@@ -1683,16 +1718,19 @@ export default function CashPage() {
                         </b>
                         {expense.source === "PAYROLL" &&
                           expense.payrollPaymentId != null && (
-                            <a
-                              href={`/caja/nomina/${expense.payrollPaymentId}/imprimir`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() =>
+                                printPayrollReceipt(
+                                  `/caja/nomina/${expense.payrollPaymentId}/imprimir`,
+                                )
+                              }
                               className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
                               title="Imprimir comprobante de nómina"
                               aria-label="Imprimir comprobante de nómina"
                             >
                               <Printer className="h-4 w-4" />
-                            </a>
+                            </button>
                           )}
                         <button
                           type="button"
