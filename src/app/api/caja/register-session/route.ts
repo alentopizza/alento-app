@@ -136,8 +136,15 @@ async function loanReceivableAt(asOf: Date) {
 }
 
 async function movementBetween(start: Date, endExclusive: Date) {
-  const [payments, incomes, expenses, loans, repayments, loanPortfolio] =
-    await prisma.$transaction([
+  const [
+    payments,
+    incomes,
+    expenses,
+    loans,
+    repayments,
+    cashRepayments,
+    loanPortfolio,
+  ] = await prisma.$transaction([
       prisma.payment.aggregate({
         where: {
           status: "PAID",
@@ -165,6 +172,13 @@ async function movementBetween(start: Date, endExclusive: Date) {
         where: { paidAt: { gte: start, lt: endExclusive } },
         _sum: { amount: true },
       }),
+      prisma.cashLoanRepayment.aggregate({
+        where: {
+          paidAt: { gte: start, lt: endExclusive },
+          method: { not: "DESCUENTO_NOMINA" },
+        },
+        _sum: { amount: true },
+      }),
       prisma.cashLoan.findMany({
         where: {
           issuedAt: { lt: endExclusive },
@@ -185,6 +199,7 @@ async function movementBetween(start: Date, endExclusive: Date) {
   const expensesTotal = Number(expenses._sum.amount ?? 0);
   const loansTotal = Number(loans._sum.principal ?? 0);
   const recovered = Number(repayments._sum.amount ?? 0);
+  const recoveredCash = Number(cashRepayments._sum.amount ?? 0);
   const loansReceivable = loanPortfolio.reduce((sum, loan) => {
     const principal = Number(loan.principal);
     const repaid = loan.repayments.reduce(
@@ -205,7 +220,7 @@ async function movementBetween(start: Date, endExclusive: Date) {
     netMovement:
       received +
       otherIncome +
-      recovered -
+      recoveredCash -
       expensesTotal -
       loansTotal,
   };
