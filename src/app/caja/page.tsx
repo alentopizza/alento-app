@@ -57,6 +57,45 @@ type PaymentRow = {
   };
 };
 
+type OrderSummaryRow = {
+  id: number;
+  sequenceNumber: number | null;
+  source: string;
+  fulfillmentType: string;
+  status: string;
+  subtotal: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+  createdAt: string;
+  customerName: string;
+  paidAmount: number;
+  pendingAmount: number;
+  payments: Array<{
+    id: number;
+    method: string;
+    status: string;
+    amount: number;
+    paidAt: string | null;
+  }>;
+};
+
+type CashLoanRow = {
+  id: number;
+  workerName: string;
+  amount: number;
+  issuedAt: string;
+};
+
+type CashLoanRepaymentRow = {
+  id: number;
+  loanId: number;
+  workerName: string;
+  amount: number;
+  paidAt: string;
+  method: string;
+};
+
 type IncomeRow = {
   id: number;
   category: string;
@@ -111,10 +150,13 @@ type Summary = {
   expenseCount: number;
   netTotal: number;
   methods: MethodSummary[];
+  orders: OrderSummaryRow[];
   incomeCategories: IncomeCategorySummary[];
   expenseCategories: ExpenseCategorySummary[];
   payments: PaymentRow[];
   otherIncomes: IncomeRow[];
+  loans: CashLoanRow[];
+  loanRepayments: CashLoanRepaymentRow[];
   expenses: ExpenseRow[];
 };
 
@@ -124,6 +166,7 @@ type CashLoanChange = {
 };
 
 type Tab = "SUMMARY" | "EXPENSES" | "INCOMES" | "LOANS" | "CASHES";
+type SummaryDetail = "SALES" | "INFLOW" | "INCOMES" | "EXPENSES" | "NET";
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -203,6 +246,7 @@ export default function CashPage() {
   const [incomeQuery, setIncomeQuery] = useState("");
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
   const [expenseQuery, setExpenseQuery] = useState("");
+  const [summaryDetail, setSummaryDetail] = useState<SummaryDetail | null>(null);
 
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [incomeCategory, setIncomeCategory] = useState("Otros");
