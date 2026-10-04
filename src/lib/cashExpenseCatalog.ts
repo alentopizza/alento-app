@@ -69,7 +69,7 @@ export const CASH_EXPENSE_CATEGORIES: CashExpenseCategory[] = [
       "Lata Frijol",
     ],
   },
-  { name: "Nomina", subcategories: ["Nicolas"] },
+  { name: "Nomina", subcategories: [] },
   { name: "Domicilios", subcategories: [] },
   {
     name: "Servicios Públicos",
