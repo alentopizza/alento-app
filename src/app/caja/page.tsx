@@ -214,6 +214,27 @@ function dateTimeLabel(value: string) {
   });
 }
 
+function cashOrderStatusLabel(value: string) {
+  const labels: Record<string, string> = {
+    CONFIRMED: "Confirmado",
+    PREPARING: "Preparando",
+    PREPARED: "Horneando",
+    READY: "Listo",
+    OUT_FOR_DELIVERY: "En camino",
+    ARRIVED: "Llegó",
+    DELIVERED: "Entregado",
+    COMPLETED: "Finalizado",
+  };
+  return labels[value] ?? value;
+}
+
+function fulfillmentLabel(value: string) {
+  if (value === "DELIVERY") return "Domicilio";
+  if (value === "PICKUP") return "Recoger";
+  if (value === "STORE") return "Local";
+  return value;
+}
+
 function expenseTone(category: string) {
   const tones: Record<string, string> = {
     Insumos: "border-emerald-100 bg-emerald-50 text-emerald-700",
@@ -1177,6 +1198,570 @@ export default function CashPage() {
           </>
         ) : null}
       </div>
+
+      {summaryDetail && summary && (
+        <div
+          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/72 p-2 backdrop-blur-[5px] sm:p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSummaryDetail(null);
+          }}
+        >
+          <section className="flex max-h-[92dvh] w-[min(97vw,1480px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f4f1] shadow-[0_34px_120px_rgba(0,0,0,.42)]">
+            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_0%,rgba(226,26,34,.28),transparent_30%),linear-gradient(135deg,#0a0a0b,#171315)] px-5 py-5 text-white sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff6267]">
+                    Caja · detalle del período
+                  </p>
+                  <h2 className="mt-1 truncate text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
+                    {summaryDetail === "SALES"
+                      ? "Ventas, pedidos y pagos"
+                      : summaryDetail === "INFLOW"
+                        ? "Dinero que entró"
+                        : summaryDetail === "INCOMES"
+                          ? "Otros ingresos"
+                          : summaryDetail === "EXPENSES"
+                            ? "Salidas"
+                            : "Composición del flujo neto"}
+                  </h2>
+                  <p className="mt-1 text-[10px] font-semibold text-white/45">
+                    {summary.startDate === summary.endDate
+                      ? summary.startDate
+                      : `${summary.startDate} → ${summary.endDate}`}
+                    {summary.sessionScope ? " · sesión de caja" : ""}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void load(true)}
+                    aria-label="Actualizar detalle"
+                    title="Actualizar"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/65 transition hover:bg-white/[0.10]"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSummaryDetail(null)}
+                    aria-label="Cerrar detalle"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[22px] text-white/70 transition hover:bg-white/[0.10]"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {summaryDetail === "SALES" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Ventas</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.salesTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Pedidos</span>
+                      <b className="mt-1 block text-lg">{summary.orderCount}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Pagos recibidos</span>
+                      <b className="mt-1 block text-lg text-emerald-300">{formatCOP(summary.receivedTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Movimientos de pago</span>
+                      <b className="mt-1 block text-lg">{summary.paymentCount}</b>
+                    </div>
+                  </>
+                )}
+
+                {summaryDetail === "INFLOW" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Entró total</span>
+                      <b className="mt-1 block text-lg text-emerald-300">{formatCOP(summary.totalInflow)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Cobros de ventas</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.receivedTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Otros ingresos</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.otherIncomeTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Movimientos</span>
+                      <b className="mt-1 block text-lg">{summary.paymentCount + summary.otherIncomeCount}</b>
+                    </div>
+                  </>
+                )}
+
+                {summaryDetail === "INCOMES" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Otros ingresos</span>
+                      <b className="mt-1 block text-lg text-emerald-300">{formatCOP(summary.otherIncomeTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Movimientos</span>
+                      <b className="mt-1 block text-lg">{summary.otherIncomeCount}</b>
+                    </div>
+                  </>
+                )}
+
+                {summaryDetail === "EXPENSES" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Salió</span>
+                      <b className="mt-1 block text-lg text-rose-300">{formatCOP(summary.expensesTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Movimientos</span>
+                      <b className="mt-1 block text-lg">{summary.expenseCount}</b>
+                    </div>
+                  </>
+                )}
+
+                {summaryDetail === "NET" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Flujo neto</span>
+                      <b className={`mt-1 block text-lg ${summary.netTotal >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                        {formatCOP(summary.netTotal)}
+                      </b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Prestado</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanDisbursedTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Recuperado</span>
+                      <b className="mt-1 block text-lg text-emerald-300">{formatCOP(summary.loanRecoveredTotal)}</b>
+                    </div>
+                  </>
+                )}
+              </div>
+            </header>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+              {summaryDetail === "SALES" && (
+                <div className="grid gap-4 xl:grid-cols-[310px_minmax(0,1fr)]">
+                  <aside className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                    <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                      Cobros
+                    </p>
+                    <h3 className="mt-1 text-lg font-black">Por medio de pago</h3>
+                    <div className="mt-4 space-y-4">
+                      {summary.methods.map((item) => (
+                        <div key={item.method}>
+                          <div className="flex items-end justify-between gap-3">
+                            <div>
+                              <b className="text-xs">{item.method}</b>
+                              <p className="alento-ui-micro mt-0.5 text-neutral-400">
+                                {item.count} pago{item.count === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <b className="text-xs text-emerald-700">{formatCOP(item.amount)}</b>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                            <div
+                              className="h-full rounded-full bg-emerald-500"
+                              style={{ width: `${Math.max(4, (item.amount / maxMethod) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {summary.methods.length === 0 && (
+                        <p className="text-xs text-neutral-400">No hay pagos en este período.</p>
+                      )}
+                    </div>
+                  </aside>
+
+                  <div className="min-w-0 space-y-4">
+                    <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-white shadow-sm">
+                      <div className="flex items-end justify-between gap-4 border-b border-neutral-100 px-4 py-3.5">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                            Pedidos
+                          </p>
+                          <h3 className="mt-0.5 text-lg font-black">Ventas del período</h3>
+                        </div>
+                        <b className="text-sm text-neutral-500">{summary.orderCount}</b>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[900px] border-collapse text-left">
+                          <thead className="bg-[#faf9f7]">
+                            <tr className="alento-ui-label uppercase text-neutral-400">
+                              <th className="px-4 py-3">Pedido</th>
+                              <th className="px-4 py-3">Cliente</th>
+                              <th className="px-4 py-3">Tipo / estado</th>
+                              <th className="px-4 py-3">Total</th>
+                              <th className="px-4 py-3">Pagado</th>
+                              <th className="px-4 py-3">Pagos</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-100">
+                            {(summary.orders ?? []).map((order) => (
+                              <tr key={order.id} className="text-xs text-neutral-700">
+                                <td className="px-4 py-3 align-top">
+                                  <b className="block text-neutral-950">
+                                    {orderCode(order.sequenceNumber ?? order.id, order.source)}
+                                  </b>
+                                  <span className="mt-1 block text-[10px] text-neutral-400">
+                                    {dateTimeLabel(order.createdAt)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <b className="font-bold text-neutral-850">{order.customerName}</b>
+                                  {order.discount > 0 && (
+                                    <span className="mt-1 block text-[10px] font-bold text-emerald-700">
+                                      Descuento − {formatCOP(order.discount)}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <span className="block font-bold">{fulfillmentLabel(order.fulfillmentType)}</span>
+                                  <span className="mt-1 block text-[10px] text-neutral-400">{cashOrderStatusLabel(order.status)}</span>
+                                </td>
+                                <td className="px-4 py-3 align-top font-black text-neutral-950">
+                                  {formatCOP(order.total)}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <b className="text-emerald-700">{formatCOP(order.paidAmount)}</b>
+                                  {order.pendingAmount > 0 && (
+                                    <span className="mt-1 block text-[10px] font-bold text-rose-600">
+                                      Pendiente {formatCOP(order.pendingAmount)}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 align-top">
+                                  <div className="flex max-w-[280px] flex-wrap gap-1">
+                                    {order.payments.length ? (
+                                      order.payments.map((payment) => (
+                                        <span
+                                          key={payment.id}
+                                          className={`rounded-full border px-2 py-1 text-[9px] font-bold ${
+                                            payment.status === "PAID"
+                                              ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                                              : "border-neutral-200 bg-neutral-50 text-neutral-500"
+                                          }`}
+                                        >
+                                          {payment.method} · {formatCOP(payment.amount)}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-[10px] text-neutral-400">Sin pagos</span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {(summary.orders ?? []).length === 0 && (
+                          <div className="p-8 text-center text-sm text-neutral-400">
+                            No hay pedidos vendidos en este período.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                            Pagos recibidos
+                          </p>
+                          <h3 className="mt-0.5 text-lg font-black">Movimientos de pago</h3>
+                        </div>
+                        <b className="text-sm text-emerald-700">{formatCOP(summary.receivedTotal)}</b>
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                        {summary.payments.map((payment) => (
+                          <article
+                            key={payment.id}
+                            className="grid gap-2 rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <b className="text-xs">
+                                  {orderCode(payment.order.sequenceNumber ?? payment.order.id, payment.order.source)}
+                                </b>
+                                <span className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 alento-ui-micro font-bold text-neutral-500">
+                                  {payment.method}
+                                </span>
+                              </div>
+                              <p className="mt-1 truncate text-[10px] text-neutral-500">{payment.order.customerName}</p>
+                              {payment.paidAt && (
+                                <p className="mt-0.5 text-[9px] text-neutral-400">{dateTimeLabel(payment.paidAt)}</p>
+                              )}
+                            </div>
+                            <b className="text-xs text-emerald-700">+ {formatCOP(payment.amount)}</b>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )}
+
+              {summaryDetail === "INFLOW" && (
+                <div className="grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]">
+                  <aside className="space-y-4">
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Cobros por medio</p>
+                      <div className="mt-4 space-y-3">
+                        {summary.methods.map((item) => (
+                          <div key={item.method} className="flex items-center justify-between gap-3 rounded-xl bg-[#faf9f7] px-3 py-2.5">
+                            <div>
+                              <b className="text-xs">{item.method}</b>
+                              <p className="alento-ui-micro text-neutral-400">{item.count} pagos</p>
+                            </div>
+                            <b className="text-xs text-emerald-700">{formatCOP(item.amount)}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Otros ingresos por tipo</p>
+                      <div className="mt-4 space-y-3">
+                        {summary.incomeCategories.map((item) => (
+                          <div key={item.category} className="flex items-center justify-between gap-3 rounded-xl bg-[#faf9f7] px-3 py-2.5">
+                            <div>
+                              <b className="text-xs">{item.category}</b>
+                              <p className="alento-ui-micro text-neutral-400">{item.count} movimientos</p>
+                            </div>
+                            <b className="text-xs text-teal-700">{formatCOP(item.amount)}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </aside>
+
+                  <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-black">Pagos de pedidos</h3>
+                        <b className="text-sm text-emerald-700">{formatCOP(summary.receivedTotal)}</b>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {summary.payments.map((payment) => (
+                          <div key={payment.id} className="grid gap-2 rounded-[14px] border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                            <div className="min-w-0">
+                              <b className="text-xs">{orderCode(payment.order.sequenceNumber ?? payment.order.id, payment.order.source)}</b>
+                              <p className="mt-1 truncate text-[10px] text-neutral-500">{payment.order.customerName} · {payment.method}</p>
+                              {payment.paidAt && <p className="mt-0.5 text-[9px] text-neutral-400">{dateTimeLabel(payment.paidAt)}</p>}
+                            </div>
+                            <b className="text-xs text-emerald-700">+ {formatCOP(payment.amount)}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-black">Entradas adicionales</h3>
+                        <b className="text-sm text-teal-700">{formatCOP(summary.otherIncomeTotal)}</b>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {summary.otherIncomes.map((income) => (
+                          <div key={income.id} className="grid gap-2 rounded-[14px] border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 alento-ui-micro font-bold text-emerald-700">{income.category}</span>
+                                <b className="truncate text-xs">{income.note || "Ingreso adicional"}</b>
+                              </div>
+                              <p className="mt-1 text-[9px] text-neutral-400">{dateTimeLabel(income.occurredAt)}</p>
+                            </div>
+                            <b className="text-xs text-teal-700">+ {formatCOP(income.amount)}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )}
+
+              {summaryDetail === "INCOMES" && (
+                <div className="grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]">
+                  <aside className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                    <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Distribución</p>
+                    <h3 className="mt-1 text-lg font-black">Por tipo</h3>
+                    <div className="mt-4 space-y-4">
+                      {summary.incomeCategories.map((item) => (
+                        <div key={item.category}>
+                          <div className="flex items-end justify-between gap-3">
+                            <div>
+                              <b className="text-xs">{item.category}</b>
+                              <p className="alento-ui-micro text-neutral-400">{item.count} movimientos</p>
+                            </div>
+                            <b className="text-xs text-teal-700">{formatCOP(item.amount)}</b>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                            <div
+                              className="h-full rounded-full bg-teal-500"
+                              style={{ width: `${Math.max(4, (item.amount / maxIncomeCategory) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </aside>
+
+                  <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-black">Todos los ingresos adicionales</h3>
+                      <b className="text-sm text-teal-700">{summary.otherIncomes.length}</b>
+                    </div>
+                    <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                      {summary.otherIncomes.map((income) => (
+                        <article key={income.id} className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 alento-ui-micro font-bold text-emerald-700">{income.category}</span>
+                              <b className="mt-2 block truncate text-xs">{income.note || "Ingreso adicional"}</b>
+                              <p className="mt-1 text-[9px] text-neutral-400">{dateTimeLabel(income.occurredAt)} · {income.createdByName}</p>
+                            </div>
+                            <b className="shrink-0 text-xs text-teal-700">+ {formatCOP(income.amount)}</b>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {summaryDetail === "EXPENSES" && (
+                <div className="grid gap-4 xl:grid-cols-[330px_minmax(0,1fr)]">
+                  <aside className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                    <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Distribución</p>
+                    <h3 className="mt-1 text-lg font-black">Por categoría</h3>
+                    <div className="mt-4 space-y-4">
+                      {summary.expenseCategories.map((item) => (
+                        <div key={item.category}>
+                          <div className="flex items-end justify-between gap-3">
+                            <div>
+                              <b className="text-xs">{item.category}</b>
+                              <p className="alento-ui-micro text-neutral-400">{item.count} movimientos</p>
+                            </div>
+                            <b className="text-xs text-rose-700">{formatCOP(item.amount)}</b>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                            <div
+                              className="h-full rounded-full bg-rose-500"
+                              style={{ width: `${Math.max(4, (item.amount / maxExpenseCategory) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </aside>
+
+                  <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-black">Todas las salidas</h3>
+                      <b className="text-sm text-rose-700">{summary.expenses.length}</b>
+                    </div>
+                    <div className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
+                      {summary.expenses.map((expense) => (
+                        <article key={expense.id} className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`rounded-full border px-2 py-0.5 alento-ui-micro font-bold ${expenseTone(expense.category)}`}>
+                                  {expense.category}
+                                </span>
+                                {expense.subcategory && <b className="truncate text-xs">{expense.subcategory}</b>}
+                              </div>
+                              <p className="mt-2 truncate text-[10px] text-neutral-500">{expense.note || "Sin observación"}</p>
+                              <p className="mt-1 text-[9px] text-neutral-400">{dateTimeLabel(expense.occurredAt)} · {expense.createdByName}</p>
+                            </div>
+                            <b className="shrink-0 text-xs text-rose-700">− {formatCOP(expense.amount)}</b>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {summaryDetail === "NET" && (
+                <div className="space-y-4">
+                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {[
+                      ["Cobros de ventas", summary.receivedTotal, "text-emerald-700"],
+                      ["Otros ingresos", summary.otherIncomeTotal, "text-teal-700"],
+                      ["Abonos préstamos", summary.loanRecoveredTotal, "text-emerald-700"],
+                      ["Salidas", -summary.expensesTotal, "text-rose-700"],
+                      ["Préstamos entregados", -summary.loanDisbursedTotal, "text-rose-700"],
+                    ].map(([label, amount, tone]) => (
+                      <div key={String(label)} className="rounded-[18px] border border-neutral-200 bg-white p-4 shadow-sm">
+                        <span className="alento-ui-label uppercase text-neutral-400">{String(label)}</span>
+                        <b className={`mt-2 block text-lg font-black ${String(tone)}`}>
+                          {Number(amount) >= 0 ? "+ " : "− "}
+                          {formatCOP(Math.abs(Number(amount)))}
+                        </b>
+                      </div>
+                    ))}
+                  </section>
+
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Cartera</p>
+                          <h3 className="mt-1 text-lg font-black">Préstamos entregados</h3>
+                        </div>
+                        <b className="text-sm text-rose-700">− {formatCOP(summary.loanDisbursedTotal)}</b>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {(summary.loans ?? []).map((loan) => (
+                          <div key={loan.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-[#faf9f7] px-3 py-3">
+                            <div>
+                              <b className="text-xs">{loan.workerName}</b>
+                              <p className="mt-0.5 text-[9px] text-neutral-400">{dateTimeLabel(loan.issuedAt)}</p>
+                            </div>
+                            <b className="text-xs text-rose-700">− {formatCOP(loan.amount)}</b>
+                          </div>
+                        ))}
+                        {(summary.loans ?? []).length === 0 && (
+                          <p className="py-5 text-center text-xs text-neutral-400">No hubo préstamos entregados en el período.</p>
+                        )}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Cartera</p>
+                          <h3 className="mt-1 text-lg font-black">Dinero recuperado</h3>
+                        </div>
+                        <b className="text-sm text-emerald-700">+ {formatCOP(summary.loanRecoveredTotal)}</b>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {(summary.loanRepayments ?? []).map((repayment) => (
+                          <div key={repayment.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-[#faf9f7] px-3 py-3">
+                            <div>
+                              <b className="text-xs">{repayment.workerName}</b>
+                              <p className="mt-0.5 text-[9px] text-neutral-400">
+                                {dateTimeLabel(repayment.paidAt)} · {repayment.method === "DESCUENTO_NOMINA" ? "Descuento nómina" : "Pago"}
+                              </p>
+                            </div>
+                            <b className="text-xs text-emerald-700">+ {formatCOP(repayment.amount)}</b>
+                          </div>
+                        ))}
+                        {(summary.loanRepayments ?? []).length === 0 && (
+                          <p className="py-5 text-center text-xs text-neutral-400">No hubo recuperaciones en el período.</p>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {incomeOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
