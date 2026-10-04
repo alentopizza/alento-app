@@ -396,6 +396,8 @@ export default function DriverHome({
   const [store, setStore] = useState<DriverStore | null>(null);
   const [acceptanceZone, setAcceptanceZone] =
     useState<DriverAcceptanceZone | null>(null);
+  const [serviceCoverageRadiusMeters, setServiceCoverageRadiusMeters] =
+    useState<number | null>(null);
   const [orders, setOrders] = useState<DriverRequest[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [routeSummaries, setRouteSummaries] = useState<Record<number, DriverRouteSummary>>({});
@@ -607,6 +609,12 @@ export default function DriverHome({
     setStore((data.store ?? null) as DriverStore | null);
     setAcceptanceZone(
       (data.acceptanceZone ?? null) as DriverAcceptanceZone | null,
+    );
+    const coverageRadius = Number(data.serviceCoverageRadiusMeters);
+    setServiceCoverageRadiusMeters(
+      Number.isFinite(coverageRadius) && coverageRadius > 0
+        ? coverageRadius
+        : null,
     );
     setOrders(next);
     setOrdersLoaded(true);
@@ -824,64 +832,37 @@ export default function DriverHome({
     }
   }
 
+  const mapFocusRadiusMeters =
+    serviceCoverageRadiusMeters ?? acceptanceZone?.radiusMeters ?? null;
+
   const recenterMap = useCallback(() => {
     const map = mapRef.current;
     const google = getGoogle();
     if (!map || !google) return;
 
-    const bounds = new google.maps.LatLngBounds();
-    let points = 0;
-
-    if (
-      driver.driverLatitude != null &&
-      driver.driverLongitude != null
-    ) {
-      bounds.extend({
-        lat: driver.driverLatitude,
-        lng: driver.driverLongitude,
-      });
-      points += 1;
-    }
-
-    if (store) {
-      bounds.extend({
+    if (store && mapFocusRadiusMeters && mapFocusRadiusMeters > 0) {
+      const serviceBounds = new google.maps.LatLngBounds();
+      serviceBounds.extend({
         lat: store.latitude,
         lng: store.longitude,
       });
-      points += 1;
-
-      if (acceptanceZone?.radiusMeters) {
-        extendCircleBounds(
-          bounds,
-          store,
-          acceptanceZone.radiusMeters,
-        );
-        points += 4;
-      }
-    }
-
-    orders.forEach((order) => {
-      if (
-        order.address?.latitude == null ||
-        order.address?.longitude == null
-      ) {
-        return;
-      }
-
-      bounds.extend({
-        lat: order.address.latitude,
-        lng: order.address.longitude,
+      extendCircleBounds(
+        serviceBounds,
+        store,
+        mapFocusRadiusMeters,
+      );
+      map.fitBounds(serviceBounds, {
+        top: 96,
+        right: 38,
+        bottom: 150,
+        left: 38,
       });
-      points += 1;
-    });
-
-    if (points > 1) {
-      map.fitBounds(bounds, {
-        top: 120,
-        right: 74,
-        bottom: 190,
-        left: 74,
-      });
+      window.setTimeout(() => {
+        const fittedZoom = map.getZoom();
+        if (fittedZoom != null) {
+          map.setZoom(Math.min(17, fittedZoom + 1));
+        }
+      }, 0);
       return;
     }
 
@@ -893,6 +874,12 @@ export default function DriverHome({
         lat: driver.driverLatitude,
         lng: driver.driverLongitude,
       });
+      map.setZoom(15);
+      return;
+    }
+
+    if (store) {
+      map.panTo({ lat: store.latitude, lng: store.longitude });
       map.setZoom(15);
       return;
     }
@@ -912,8 +899,8 @@ export default function DriverHome({
     }
   }, [
     driver.driverLatitude,
-    acceptanceZone?.radiusMeters,
     driver.driverLongitude,
+    mapFocusRadiusMeters,
     orders,
     store,
   ]);
@@ -947,15 +934,15 @@ export default function DriverHome({
         );
 
         const center =
-          driver.driverLatitude != null && driver.driverLongitude != null
+          store
             ? {
-                lat: driver.driverLatitude,
-                lng: driver.driverLongitude,
+                lat: store.latitude,
+                lng: store.longitude,
               }
-            : store
+            : driver.driverLatitude != null && driver.driverLongitude != null
               ? {
-                  lat: store.latitude,
-                  lng: store.longitude,
+                  lat: driver.driverLatitude,
+                  lng: driver.driverLongitude,
                 }
               : requestWithLocation[0]?.address?.latitude != null &&
                   requestWithLocation[0]?.address?.longitude != null
@@ -1233,7 +1220,32 @@ export default function DriverHome({
           (!initialMapFitDoneRef.current || fitForNewRequestRef.current);
 
         if (shouldFit && points > 0) {
-          if (points > 1) {
+          if (store && mapFocusRadiusMeters && mapFocusRadiusMeters > 0) {
+            const serviceBounds = new google.maps.LatLngBounds();
+            serviceBounds.extend({
+              lat: store.latitude,
+              lng: store.longitude,
+            });
+            extendCircleBounds(
+              serviceBounds,
+              store,
+              mapFocusRadiusMeters,
+            );
+            mapRef.current.fitBounds(serviceBounds, {
+              top: 96,
+              right: 38,
+              bottom: 150,
+              left: 38,
+            });
+
+            window.setTimeout(() => {
+              if (disposed || !mapRef.current) return;
+              const fittedZoom = mapRef.current.getZoom();
+              if (fittedZoom != null) {
+                mapRef.current.setZoom(Math.min(17, fittedZoom + 1));
+              }
+            }, 0);
+          } else if (points > 1) {
             mapRef.current.fitBounds(bounds, {
               top: 120,
               right: 74,
@@ -1271,6 +1283,7 @@ export default function DriverHome({
     driver.driverLongitude,
     driver.name,
     expandedLocationCluster,
+    mapFocusRadiusMeters,
     orders,
     ordersLoaded,
     router,
