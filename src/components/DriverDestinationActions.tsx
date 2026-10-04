@@ -358,7 +358,12 @@ export default function DriverDestinationActions({
     setTravelMode(
       normalizeDeliveryTravelMode(initialTravelMode),
     );
-  }, [currentStatus, initialTravelMode]);
+
+    if (["OUT_FOR_DELIVERY", "ARRIVED"].includes(currentStatus)) {
+      setCameraFollowing(true);
+      setOpen(true);
+    }
+  }, [currentStatus, initialTravelMode, setCameraFollowing]);
 
   const navigationDisabled = [
     "DELIVERED",
