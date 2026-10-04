@@ -606,6 +606,38 @@ export default function CashPage() {
     [payrollShifts, payrollWorkerId],
   );
 
+  const selectedPayrollMonthGroups = useMemo(() => {
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        shifts: PayrollShift[];
+        total: number;
+      }
+    >();
+
+    selectedPayrollWorkerShifts.forEach((shift) => {
+      const key = payrollMonthKey(shift.startsAt);
+      const current = groups.get(key);
+
+      if (current) {
+        current.shifts.push(shift);
+        current.total += shift.amount;
+        return;
+      }
+
+      groups.set(key, {
+        key,
+        label: payrollMonthLabel(shift.startsAt),
+        shifts: [shift],
+        total: shift.amount,
+      });
+    });
+
+    return [...groups.values()].sort((a, b) => a.key.localeCompare(b.key));
+  }, [selectedPayrollWorkerShifts]);
+
   const selectedPayrollTotal = useMemo(
     () =>
       selectedPayrollWorkerShifts
@@ -746,9 +778,8 @@ export default function CashPage() {
     setPayrollMessage("");
     setPayrollWorkerId(null);
     setPayrollSelectedShiftIds([]);
+    setPayrollExpandedMonths([]);
     setPayrollNote("");
-    setPayrollDate(localDateInput());
-    setPayrollTime(localTimeInput());
 
     try {
       const response = await fetch("/api/caja/payroll", { cache: "no-store" });
@@ -765,6 +796,10 @@ export default function CashPage() {
 
       if (workers.length === 1) {
         setPayrollWorkerId(workers[0].id);
+        const firstShift = shifts.find((shift) => shift.userId === workers[0].id);
+        setPayrollExpandedMonths(
+          firstShift ? [payrollMonthKey(firstShift.startsAt)] : [],
+        );
       }
     } catch (loadError) {
       setPayrollMessage(
@@ -781,6 +816,14 @@ export default function CashPage() {
     setPayrollWorkerId(workerId);
     setPayrollSelectedShiftIds([]);
     setPayrollMessage("");
+
+    const firstShift =
+      workerId == null
+        ? null
+        : payrollShifts.find((shift) => shift.userId === workerId) ?? null;
+    setPayrollExpandedMonths(
+      firstShift ? [payrollMonthKey(firstShift.startsAt)] : [],
+    );
   }
 
   function togglePayrollShift(shiftId: number) {
@@ -788,6 +831,32 @@ export default function CashPage() {
       current.includes(shiftId)
         ? current.filter((id) => id !== shiftId)
         : [...current, shiftId],
+    );
+  }
+
+  function togglePayrollMonth(monthKey: string) {
+    setPayrollExpandedMonths((current) =>
+      current.includes(monthKey)
+        ? current.filter((key) => key !== monthKey)
+        : [...current, monthKey],
+    );
+  }
+
+  function togglePayrollMonthSelection(monthKey: string) {
+    const group = selectedPayrollMonthGroups.find(
+      (item) => item.key === monthKey,
+    );
+    if (!group) return;
+
+    const ids = group.shifts.map((shift) => shift.id);
+    const allSelected = ids.every((id) =>
+      payrollSelectedShiftIds.includes(id),
+    );
+
+    setPayrollSelectedShiftIds((current) =>
+      allSelected
+        ? current.filter((id) => !ids.includes(id))
+        : [...new Set([...current, ...ids])],
     );
   }
 
@@ -812,17 +881,12 @@ export default function CashPage() {
     setPayrollMessage("");
 
     try {
-      const occurredAt = new Date(
-        `${payrollDate}T${payrollTime || "12:00"}:00-05:00`,
-      ).toISOString();
-
       const response = await fetch("/api/caja/payroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workerId: payrollWorkerId,
           shiftIds: payrollSelectedShiftIds,
-          occurredAt,
           note: payrollNote,
         }),
       });
