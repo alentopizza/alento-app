@@ -569,6 +569,30 @@ export default function CashPage() {
     });
   }, [summary, expenseCategoryFilter, expenseQuery]);
 
+  const selectedPayrollWorker = useMemo(
+    () =>
+      payrollWorkerId == null
+        ? null
+        : payrollWorkers.find((worker) => worker.id === payrollWorkerId) ?? null,
+    [payrollWorkerId, payrollWorkers],
+  );
+
+  const selectedPayrollWorkerShifts = useMemo(
+    () =>
+      payrollWorkerId == null
+        ? []
+        : payrollShifts.filter((shift) => shift.userId === payrollWorkerId),
+    [payrollShifts, payrollWorkerId],
+  );
+
+  const selectedPayrollTotal = useMemo(
+    () =>
+      selectedPayrollWorkerShifts
+        .filter((shift) => payrollSelectedShiftIds.includes(shift.id))
+        .reduce((sum, shift) => sum + shift.amount, 0),
+    [payrollSelectedShiftIds, selectedPayrollWorkerShifts],
+  );
+
   function applyRangePreset(preset: Exclude<RangePreset, "CUSTOM">) {
     const current = localDateInput();
 
@@ -692,6 +716,118 @@ export default function CashPage() {
     setExpenseTime(localTimeInput());
     setExpenseMessage("");
     setExpenseOpen(true);
+  }
+
+  async function openPayroll() {
+    setExpenseOpen(false);
+    setPayrollOpen(true);
+    setPayrollLoading(true);
+    setPayrollMessage("");
+    setPayrollWorkerId(null);
+    setPayrollSelectedShiftIds([]);
+    setPayrollNote("");
+    setPayrollDate(localDateInput());
+    setPayrollTime(localTimeInput());
+
+    try {
+      const response = await fetch("/api/caja/payroll", { cache: "no-store" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible cargar la nómina pendiente.");
+      }
+
+      const workers = (data.workers ?? []) as PayrollWorker[];
+      const shifts = (data.shifts ?? []) as PayrollShift[];
+      setPayrollWorkers(workers);
+      setPayrollShifts(shifts);
+
+      if (workers.length === 1) {
+        setPayrollWorkerId(workers[0].id);
+        setPayrollSelectedShiftIds(
+          shifts
+            .filter((shift) => shift.userId === workers[0].id)
+            .map((shift) => shift.id),
+        );
+      }
+    } catch (loadError) {
+      setPayrollMessage(
+        loadError instanceof Error
+          ? loadError.message
+          : "No fue posible cargar la nómina pendiente.",
+      );
+    } finally {
+      setPayrollLoading(false);
+    }
+  }
+
+  function selectPayrollWorker(workerId: number | null) {
+    setPayrollWorkerId(workerId);
+    setPayrollSelectedShiftIds([]);
+    setPayrollMessage("");
+  }
+
+  function togglePayrollShift(shiftId: number) {
+    setPayrollSelectedShiftIds((current) =>
+      current.includes(shiftId)
+        ? current.filter((id) => id !== shiftId)
+        : [...current, shiftId],
+    );
+  }
+
+  function toggleAllPayrollShifts() {
+    const ids = selectedPayrollWorkerShifts.map((shift) => shift.id);
+    const allSelected =
+      ids.length > 0 && ids.every((id) => payrollSelectedShiftIds.includes(id));
+
+    setPayrollSelectedShiftIds(allSelected ? [] : ids);
+  }
+
+  async function savePayrollPayment() {
+    if (
+      payrollSaving ||
+      payrollWorkerId == null ||
+      payrollSelectedShiftIds.length === 0
+    ) {
+      return;
+    }
+
+    setPayrollSaving(true);
+    setPayrollMessage("");
+
+    try {
+      const occurredAt = new Date(
+        `${payrollDate}T${payrollTime || "12:00"}:00-05:00`,
+      ).toISOString();
+
+      const response = await fetch("/api/caja/payroll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workerId: payrollWorkerId,
+          shiftIds: payrollSelectedShiftIds,
+          occurredAt,
+          note: payrollNote,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible pagar la nómina.");
+      }
+
+      setPayrollOpen(false);
+      setTab("EXPENSES");
+      await load(true);
+    } catch (saveError) {
+      setPayrollMessage(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible pagar la nómina.",
+      );
+    } finally {
+      setPayrollSaving(false);
+    }
   }
 
   async function saveExpense() {
