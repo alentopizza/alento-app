@@ -295,6 +295,28 @@ function payrollTimeLabel(value: string) {
   });
 }
 
+function payrollMonthKey(value: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date(value));
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  return `${year}-${month}`;
+}
+
+function payrollMonthLabel(value: string) {
+  const label = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 function cashOrderStatusLabel(value: string) {
   const labels: Record<string, string> = {
     CONFIRMED: "Confirmado",
@@ -383,8 +405,7 @@ export default function CashPage() {
   const [payrollShifts, setPayrollShifts] = useState<PayrollShift[]>([]);
   const [payrollWorkerId, setPayrollWorkerId] = useState<number | null>(null);
   const [payrollSelectedShiftIds, setPayrollSelectedShiftIds] = useState<number[]>([]);
-  const [payrollDate, setPayrollDate] = useState(today);
-  const [payrollTime, setPayrollTime] = useState(localTimeInput());
+  const [payrollExpandedMonths, setPayrollExpandedMonths] = useState<string[]>([]);
   const [payrollNote, setPayrollNote] = useState("");
   const [payrollMessage, setPayrollMessage] = useState("");
 
