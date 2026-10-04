@@ -8,6 +8,10 @@ import {
   calculateDriverEarning,
   normalizeDriverCompensationSettings,
 } from "@/lib/driverCompensation";
+import {
+  normalizeDeliveryBands,
+  type DeliveryPricingSettings,
+} from "@/lib/deliveryPricing";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -140,6 +144,13 @@ export async function GET() {
       }),
     ]);
 
+    const deliveryBands = normalizeDeliveryBands(
+      (savedSettings?.value ?? null) as DeliveryPricingSettings | null,
+    );
+    const serviceCoverageRadiusMeters = deliveryBands.length
+      ? Math.max(...deliveryBands.map((band) => band.maxMeters))
+      : null;
+
     const maxConcurrentDeliveries =
       driverMaxConcurrentFromSettings(savedSettings?.value);
     const assignedDeliveries = orders.filter(
@@ -161,6 +172,7 @@ export async function GET() {
     return NextResponse.json({
       store: storeLocation(savedSettings?.value),
       acceptanceZone,
+      serviceCoverageRadiusMeters,
       compensation: normalizeDriverCompensationSettings(savedSettings?.value),
       capacity: {
         assignedDeliveries,
