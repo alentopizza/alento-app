@@ -126,6 +126,31 @@ type DriverPayoutOption = {
   paidTotal: number;
 };
 
+type PayrollWorker = {
+  id: number;
+  name: string;
+  active: boolean;
+  pendingAmount: number;
+  pendingCount: number;
+  oldestPendingAt: string;
+};
+
+type PayrollShift = {
+  id: number;
+  userId: number;
+  startsAt: string;
+  endsAt: string;
+  amount: number;
+  status: string;
+  paidAt: string | null;
+  notes: string | null;
+  user: {
+    id: number;
+    name: string;
+    active: boolean;
+  };
+};
+
 type Summary = {
   startDate: string;
   endDate: string;
@@ -252,6 +277,24 @@ function dateTimeLabel(value: string) {
   });
 }
 
+function payrollDayLabel(value: string) {
+  return new Date(value).toLocaleDateString("es-CO", {
+    timeZone: "America/Bogota",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function payrollTimeLabel(value: string) {
+  return new Date(value).toLocaleTimeString("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function cashOrderStatusLabel(value: string) {
   const labels: Record<string, string> = {
     CONFIRMED: "Confirmado",
@@ -332,6 +375,18 @@ export default function CashPage() {
   const [expenseTime, setExpenseTime] = useState(localTimeInput());
   const [expenseSaving, setExpenseSaving] = useState(false);
   const [expenseMessage, setExpenseMessage] = useState("");
+
+  const [payrollOpen, setPayrollOpen] = useState(false);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+  const [payrollSaving, setPayrollSaving] = useState(false);
+  const [payrollWorkers, setPayrollWorkers] = useState<PayrollWorker[]>([]);
+  const [payrollShifts, setPayrollShifts] = useState<PayrollShift[]>([]);
+  const [payrollWorkerId, setPayrollWorkerId] = useState<number | null>(null);
+  const [payrollSelectedShiftIds, setPayrollSelectedShiftIds] = useState<number[]>([]);
+  const [payrollDate, setPayrollDate] = useState(today);
+  const [payrollTime, setPayrollTime] = useState(localTimeInput());
+  const [payrollNote, setPayrollNote] = useState("");
+  const [payrollMessage, setPayrollMessage] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<ExpenseRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
