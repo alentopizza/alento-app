@@ -170,7 +170,6 @@ export default function ShiftsManager() {
     pending: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [userFilter, setUserFilter] = useState("ALL");
@@ -442,42 +441,6 @@ export default function ShiftsManager() {
       );
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function togglePayment(shift: Shift) {
-    if (busyId) return;
-    setBusyId(shift.id);
-    setError("");
-
-    try {
-      const response = await fetch(`/api/turnos/${shift.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "toggle-payment" }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "No fue posible cambiar el estado de pago.",
-        );
-      }
-
-      setNotice(
-        data.shift?.status === "PAID"
-          ? "Turno marcado como pagado."
-          : "Turno marcado como pendiente.",
-      );
-      await load();
-    } catch (paymentError) {
-      setError(
-        paymentError instanceof Error
-          ? paymentError.message
-          : "No fue posible cambiar el pago.",
-      );
-    } finally {
-      setBusyId(null);
     }
   }
 
@@ -942,23 +905,21 @@ export default function ShiftsManager() {
                       {money(shift.amount)}
                     </b>
 
-                    <button
-                      type="button"
-                      disabled={busyId === shift.id}
-                      onClick={() => void togglePayment(shift)}
+                    <div
                       className={
-                        "h-9 rounded-xl px-3 alento-ui-label disabled:opacity-50 " +
+                        "flex h-9 items-center justify-center rounded-xl px-3 alento-ui-label font-black " +
                         (shift.status === "PAID"
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-amber-100 text-amber-700")
                       }
+                      title={
+                        shift.status === "PAID"
+                          ? "Turno pagado"
+                          : "Los turnos pendientes se pagan desde Caja → Salidas → Nómina"
+                      }
                     >
-                      {busyId === shift.id
-                        ? "Guardando..."
-                        : shift.status === "PAID"
-                          ? "PAGADO"
-                          : "PENDIENTE"}
-                    </button>
+                      {shift.status === "PAID" ? "PAGADO" : "PENDIENTE"}
+                    </div>
 
                     <button
                       type="button"
