@@ -1413,7 +1413,10 @@ export default function CashPage() {
                     {formatCOP(summary.loanRecoveredTotal)}
                   </b>
                   <p className="mt-1 text-[11px] text-neutral-500">
-                    {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"} recibido{summary.loanRepayments.length === 1 ? "" : "s"}
+                    {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"}
+                    {(summary.loanRecoveredPayrollTotal ?? 0) > 0
+                      ? ` · Nómina ${formatCOP(summary.loanRecoveredPayrollTotal ?? 0)}`
+                      : ""}
                   </p>
                 </button>
               )}
@@ -1435,8 +1438,8 @@ export default function CashPage() {
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
                   Cobros {formatCOP(summary.receivedTotal)}
-                  {summary.loanRecoveredTotal > 0
-                    ? ` · Préstamos ${formatCOP(summary.loanRecoveredTotal)}`
+                  {(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal) > 0
+                    ? ` · Préstamos en efectivo ${formatCOP(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal)}`
                     : ""}
                 </p>
               </button>
@@ -1815,8 +1818,8 @@ export default function CashPage() {
                       <b className="mt-1 block text-lg">{formatCOP(summary.otherIncomeTotal)}</b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                      <span className="alento-ui-micro uppercase text-white/35">Préstamos recuperados</span>
-                      <b className="mt-1 block text-lg">{formatCOP(summary.loanRecoveredTotal)}</b>
+                      <span className="alento-ui-micro uppercase text-white/35">Préstamos en efectivo</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal)}</b>
                     </div>
                   </>
                 )}
@@ -1837,8 +1840,16 @@ export default function CashPage() {
                 {summaryDetail === "RECOVERIES" && (
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                      <span className="alento-ui-micro uppercase text-white/35">Recuperado</span>
+                      <span className="alento-ui-micro uppercase text-white/35">Recuperado total</span>
                       <b className="mt-1 block text-lg text-violet-300">{formatCOP(summary.loanRecoveredTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Entró a caja</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Descuento nómina</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanRecoveredPayrollTotal ?? 0)}</b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                       <span className="alento-ui-micro uppercase text-white/35">Abonos</span>
@@ -2286,12 +2297,13 @@ export default function CashPage() {
 
               {summaryDetail === "NET" && (
                 <div className="space-y-4">
-                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                     {[
                       ["Cobros de ventas", summary.receivedTotal, "text-emerald-700"],
                       ["Otros ingresos", summary.otherIncomeTotal, "text-teal-700"],
-                      ["Abonos préstamos", summary.loanRecoveredTotal, "text-emerald-700"],
-                      ["Salidas", -summary.expensesTotal, "text-rose-700"],
+                      ["Abonos préstamos en efectivo", summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal, "text-emerald-700"],
+                      ["Descuento nómina a préstamos", summary.loanRecoveredPayrollTotal ?? 0, "text-violet-700"],
+                      ["Salidas reales", -summary.expensesTotal, "text-rose-700"],
                       ["Préstamos entregados", -summary.loanDisbursedTotal, "text-rose-700"],
                     ].map(([label, amount, tone]) => (
                       <div key={String(label)} className="rounded-[18px] border border-neutral-200 bg-white p-4 shadow-sm">
