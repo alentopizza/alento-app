@@ -2553,6 +2553,365 @@ export default function CashPage() {
         </div>
       )}
 
+      {payrollOpen && (
+        <div className="fixed inset-0 z-[155] flex items-center justify-center bg-black/72 p-2 backdrop-blur-[5px] sm:p-4">
+          <section className="flex max-h-[94dvh] w-[min(98vw,1220px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f4f1] shadow-[0_34px_120px_rgba(0,0,0,.42)]">
+            <header className="shrink-0 bg-[radial-gradient(circle_at_86%_0%,rgba(226,26,34,.30),transparent_30%),linear-gradient(135deg,#09090a,#191315)] px-5 py-5 text-white sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff6267]">
+                    Caja · Salidas · Nómina
+                  </p>
+                  <h2 className="mt-1 text-[25px] font-black tracking-[-0.035em] sm:text-[30px]">
+                    Pagar turnos pendientes
+                  </h2>
+                  <p className="mt-1 max-w-2xl text-[11px] leading-5 text-white/50">
+                    Selecciona al trabajador y los turnos que vas a liquidar. Al confirmar, se registra una sola salida de caja y los turnos quedan pagados.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={payrollSaving}
+                  onClick={() => !payrollSaving && setPayrollOpen(false)}
+                  aria-label="Cerrar nómina"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[22px] text-white/70 transition hover:bg-white/[0.10] disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Trabajador
+                  </span>
+                  <b className="mt-1 block truncate text-sm">
+                    {selectedPayrollWorker?.name ?? "Sin seleccionar"}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Turnos seleccionados
+                  </span>
+                  <b className="mt-1 block text-sm">
+                    {payrollSelectedShiftIds.length}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Total a pagar
+                  </span>
+                  <b className="mt-1 block text-lg text-emerald-300">
+                    {formatCOP(selectedPayrollTotal)}
+                  </b>
+                </div>
+              </div>
+            </header>
+
+            <div className="grid min-h-0 flex-1 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <aside className="border-b border-neutral-200 bg-white p-4 xl:border-b-0 xl:border-r">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                      Personal
+                    </p>
+                    <h3 className="mt-0.5 text-lg font-black text-neutral-950">
+                      Nómina pendiente
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 alento-ui-micro font-bold text-neutral-500">
+                    {payrollWorkers.length}
+                  </span>
+                </div>
+
+                {payrollLoading ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-xs text-neutral-400">
+                    Cargando turnos pendientes...
+                  </div>
+                ) : payrollWorkers.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-center">
+                    <b className="text-sm text-emerald-800">Nómina al día</b>
+                    <p className="mt-1 text-[10px] leading-4 text-emerald-700/65">
+                      No hay turnos pendientes de pago.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 max-h-[42dvh] space-y-2 overflow-y-auto pr-1 xl:max-h-none">
+                    {payrollWorkers.map((worker) => (
+                      <button
+                        key={worker.id}
+                        type="button"
+                        onClick={() => selectPayrollWorker(worker.id)}
+                        className={
+                          "w-full rounded-[16px] border p-3 text-left transition " +
+                          (payrollWorkerId === worker.id
+                            ? "border-neutral-950 bg-neutral-950 text-white shadow-[0_8px_20px_rgba(0,0,0,.12)]"
+                            : "border-neutral-200 bg-[#faf9f7] text-neutral-900 hover:border-neutral-300 hover:bg-white")
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-xs font-black">
+                              {worker.name}
+                            </b>
+                            <p
+                              className={
+                                "mt-1 alento-ui-micro " +
+                                (payrollWorkerId === worker.id
+                                  ? "text-white/45"
+                                  : "text-neutral-400")
+                              }
+                            >
+                              {worker.pendingCount} turno{worker.pendingCount === 1 ? "" : "s"} pendiente{worker.pendingCount === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                          <b
+                            className={
+                              "shrink-0 text-xs " +
+                              (payrollWorkerId === worker.id
+                                ? "text-emerald-300"
+                                : "text-amber-700")
+                            }
+                          >
+                            {formatCOP(worker.pendingAmount)}
+                          </b>
+                        </div>
+                        <p
+                          className={
+                            "mt-2 text-[9px] " +
+                            (payrollWorkerId === worker.id
+                              ? "text-white/35"
+                              : "text-neutral-400")
+                          }
+                        >
+                          Pendiente desde {payrollDayLabel(worker.oldestPendingAt)}
+                          {!worker.active ? " · trabajador inactivo" : ""}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </aside>
+
+              <div className="flex min-h-0 flex-col">
+                <div className="shrink-0 border-b border-neutral-200 bg-[#faf9f7] p-3 sm:p-4">
+                  <div className="grid gap-3 lg:grid-cols-[1fr_170px_150px] lg:items-end">
+                    <div>
+                      <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
+                        Trabajador
+                      </label>
+                      <select
+                        value={payrollWorkerId ?? ""}
+                        disabled={payrollLoading || payrollSaving}
+                        onChange={(event) => {
+                          const value = Number(event.target.value);
+                          selectPayrollWorker(
+                            Number.isInteger(value) && value > 0 ? value : null,
+                          );
+                        }}
+                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-neutral-100"
+                      >
+                        <option value="">Selecciona un trabajador</option>
+                        {payrollWorkers.map((worker) => (
+                          <option key={worker.id} value={worker.id}>
+                            {worker.name} · {worker.pendingCount} turnos · {formatCOP(worker.pendingAmount)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <label>
+                      <span className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
+                        Fecha pago
+                      </span>
+                      <input
+                        type="date"
+                        value={payrollDate}
+                        disabled={payrollSaving}
+                        onChange={(event) => setPayrollDate(event.target.value)}
+                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                      />
+                    </label>
+
+                    <label>
+                      <span className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
+                        Hora
+                      </span>
+                      <input
+                        type="time"
+                        value={payrollTime}
+                        disabled={payrollSaving}
+                        onChange={(event) => setPayrollTime(event.target.value)}
+                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  {selectedPayrollWorker && (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-amber-100 bg-amber-50/65 px-3 py-2.5">
+                      <div>
+                        <span className="alento-ui-micro uppercase tracking-[0.1em] text-amber-600">
+                          Pendiente total
+                        </span>
+                        <b className="ml-2 text-sm text-amber-800">
+                          {formatCOP(selectedPayrollWorker.pendingAmount)}
+                        </b>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleAllPayrollShifts}
+                        disabled={payrollSaving || selectedPayrollWorkerShifts.length === 0}
+                        className="h-8 rounded-lg border border-amber-200 bg-white px-3 alento-ui-micro font-black text-amber-800 disabled:opacity-40"
+                      >
+                        {selectedPayrollWorkerShifts.length > 0 &&
+                        selectedPayrollWorkerShifts.every((shift) =>
+                          payrollSelectedShiftIds.includes(shift.id),
+                        )
+                          ? "Quitar todos"
+                          : "Seleccionar todos"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+                  {!payrollWorkerId ? (
+                    <div className="flex min-h-[280px] items-center justify-center rounded-[20px] border border-dashed border-neutral-300 bg-white p-8 text-center">
+                      <div>
+                        <b className="text-sm text-neutral-700">
+                          Selecciona un trabajador
+                        </b>
+                        <p className="mt-1 text-[10px] text-neutral-400">
+                          Aquí aparecerán todos sus turnos pendientes para que elijas cuáles pagar.
+                        </p>
+                      </div>
+                    </div>
+                  ) : selectedPayrollWorkerShifts.length === 0 ? (
+                    <div className="flex min-h-[280px] items-center justify-center rounded-[20px] border border-emerald-100 bg-emerald-50 p-8 text-center">
+                      <div>
+                        <b className="text-sm text-emerald-800">
+                          Este trabajador no tiene turnos pendientes.
+                        </b>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedPayrollWorkerShifts.map((shift) => {
+                        const selected = payrollSelectedShiftIds.includes(shift.id);
+                        return (
+                          <button
+                            key={shift.id}
+                            type="button"
+                            disabled={payrollSaving}
+                            onClick={() => togglePayrollShift(shift.id)}
+                            className={
+                              "grid w-full gap-3 rounded-[16px] border p-3 text-left transition sm:grid-cols-[28px_180px_minmax(0,1fr)_130px] sm:items-center " +
+                              (selected
+                                ? "border-emerald-200 bg-emerald-50/55"
+                                : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-[#faf9f7]")
+                            }
+                          >
+                            <span
+                              className={
+                                "flex h-6 w-6 items-center justify-center rounded-[7px] border text-[13px] font-black " +
+                                (selected
+                                  ? "border-emerald-600 bg-emerald-600 text-white"
+                                  : "border-neutral-300 bg-white text-transparent")
+                              }
+                              aria-hidden="true"
+                            >
+                              ✓
+                            </span>
+
+                            <div>
+                              <b className="block text-xs text-neutral-950">
+                                {payrollDayLabel(shift.startsAt)}
+                              </b>
+                              <span className="mt-0.5 block text-[10px] text-neutral-400">
+                                {payrollTimeLabel(shift.startsAt)} – {payrollTimeLabel(shift.endsAt)}
+                              </span>
+                            </div>
+
+                            <p className="truncate text-[10px] text-neutral-500">
+                              {shift.notes || "Sin observación"}
+                            </p>
+
+                            <b className="text-right text-sm font-black text-neutral-950">
+                              {formatCOP(shift.amount)}
+                            </b>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="shrink-0 border-t border-neutral-200 bg-white p-3 sm:p-4">
+                  <label className="block">
+                    <span className="alento-ui-label uppercase text-neutral-500">
+                      Nota del pago · opcional
+                    </span>
+                    <input
+                      value={payrollNote}
+                      disabled={payrollSaving}
+                      onChange={(event) => setPayrollNote(event.target.value)}
+                      placeholder="Ej. Nómina primera quincena, pago parcial..."
+                      maxLength={240}
+                      className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 text-xs outline-none focus:border-neutral-400"
+                    />
+                  </label>
+
+                  {payrollMessage && (
+                    <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+                      {payrollMessage}
+                    </div>
+                  )}
+
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
+                        Pago seleccionado
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-neutral-500">
+                        {payrollSelectedShiftIds.length} turno{payrollSelectedShiftIds.length === 1 ? "" : "s"} · salida de caja por
+                        <b className="ml-1 text-neutral-950">{formatCOP(selectedPayrollTotal)}</b>
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={payrollSaving}
+                        onClick={() => !payrollSaving && setPayrollOpen(false)}
+                        className="h-11 rounded-xl border border-neutral-200 bg-white px-4 text-xs font-black text-neutral-600 disabled:opacity-40"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void savePayrollPayment()}
+                        disabled={
+                          payrollSaving ||
+                          payrollWorkerId == null ||
+                          payrollSelectedShiftIds.length === 0 ||
+                          selectedPayrollTotal <= 0
+                        }
+                        className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-xs font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] disabled:opacity-40"
+                      >
+                        {payrollSaving
+                          ? "Pagando..."
+                          : `Pagar nómina · ${formatCOP(selectedPayrollTotal)}`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {deleteTarget && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-3 backdrop-blur-[4px]">
           <div className="w-full max-w-md overflow-hidden rounded-[24px] bg-white shadow-2xl">
