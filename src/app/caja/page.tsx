@@ -1083,15 +1083,29 @@ export default function CashPage() {
             )}
 
             {tab === "EXPENSES" && cashOperationsOpen && (
-              <button
-                type="button"
-                onClick={openExpense}
-                aria-label="Nueva salida"
-                title="Nueva salida"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.4} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => void openPayroll()}
+                  aria-label="Pagar nómina"
+                  title="Pagar nómina"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-100"
+                >
+                  <Banknote className="h-4 w-4" strokeWidth={2.2} />
+                  <span className="hidden alento-ui-label font-black sm:inline">
+                    Nómina
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openExpense}
+                  aria-label="Nueva salida"
+                  title="Nueva salida"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.4} />
+                </button>
+              </>
             )}
           </div>
         </section>
