@@ -736,21 +736,22 @@ export default function ShiftsManager() {
         </section>
 
         <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(28,23,20,.04)]">
-          <div className="flex items-end justify-between gap-3 border-b border-neutral-100 pb-3">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-100 pb-3">
             <div>
               <p className="alento-ui-label uppercase tracking-[.14em] text-neutral-400">
                 Consolidado
               </p>
-              <h2 className="mt-1 text-xl font-black">
+              <h2 className="mt-1 text-xl font-black text-neutral-950">
                 Personal de {monthTitle(month)}
               </h2>
               <p className="mt-1 alento-ui-micro text-neutral-400">
                 Toca un trabajador para ver todos sus turnos del mes.
               </p>
             </div>
-            <b className="alento-ui-control text-neutral-400">
-              {workerTotals.length}
-            </b>
+
+            <span className="inline-flex items-center rounded-full border border-neutral-200 bg-[#faf9f7] px-2.5 py-1 alento-ui-micro font-black text-neutral-500">
+              {workerTotals.length} trabajador{workerTotals.length === 1 ? "" : "es"}
+            </span>
           </div>
 
           {workerTotals.length === 0 ? (
@@ -758,55 +759,81 @@ export default function ShiftsManager() {
               No hay turnos programados para este mes.
             </div>
           ) : (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {workerTotals.map((worker) => (
                 <button
                   type="button"
                   key={worker.userId}
                   onClick={() => setSelectedWorkerId(worker.userId)}
-                  className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-[0_10px_24px_rgba(28,23,20,.07)]"
+                  className="group flex min-h-[190px] flex-col rounded-[20px] border border-neutral-200 bg-white p-3.5 text-left shadow-[0_5px_16px_rgba(28,23,20,.035)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_12px_28px_rgba(28,23,20,.07)]"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl alento-ui-micro font-black text-white " +
-                        employeeColor(worker.userId)
-                      }
-                    >
-                      {initials(worker.name)}
-                    </span>
-                    <div className="min-w-0">
-                      <b className="block truncate alento-ui-label text-neutral-950">
-                        {worker.name}
-                      </b>
-                      <span className="alento-ui-micro text-neutral-400">
-                        {worker.shifts} turno{worker.shifts === 1 ? "" : "s"}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span
+                        className={
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl alento-ui-micro font-black text-white " +
+                          employeeColor(worker.userId)
+                        }
+                      >
+                        {initials(worker.name)}
                       </span>
+                      <div className="min-w-0">
+                        <b className="block truncate alento-ui-label text-neutral-950">
+                          {worker.name}
+                        </b>
+                        <span className="alento-ui-micro text-neutral-400">
+                          {worker.shifts} turno{worker.shifts === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="rounded-full border border-neutral-200 bg-[#faf9f7] px-2 py-0.5 alento-ui-micro font-bold text-neutral-400 transition group-hover:border-neutral-300 group-hover:text-neutral-600">
+                      Ver turnos
+                    </span>
+                  </div>
+
+                  <div className="mt-3">
+                    <span className="alento-ui-micro uppercase tracking-[.1em] text-neutral-400">
+                      Total del mes
+                    </span>
+                    <b className="mt-0.5 block text-[20px] font-black tracking-[-.02em] text-neutral-950">
+                      {money(worker.total)}
+                    </b>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/55 px-2.5 py-2">
+                      <span className="block alento-ui-micro uppercase tracking-[.08em] text-emerald-600">
+                        Pagado
+                      </span>
+                      <b className="mt-0.5 block alento-ui-control text-emerald-700">
+                        {money(worker.paid)}
+                      </b>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-100 bg-amber-50/55 px-2.5 py-2">
+                      <span className="block alento-ui-micro uppercase tracking-[.08em] text-amber-600">
+                        Pendiente
+                      </span>
+                      <b className="mt-0.5 block alento-ui-control text-amber-700">
+                        {money(worker.pending)}
+                      </b>
                     </div>
                   </div>
 
-                  <b className="mt-3 block text-[18px] font-black text-neutral-950">
-                    {money(worker.total)}
-                  </b>
-                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 alento-ui-micro font-semibold">
-                    <span className="text-emerald-700">
-                      Pagado {money(worker.paid)}
-                    </span>
-                    <span className="text-amber-700">
-                      Pendiente {money(worker.pending)}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 border-t border-neutral-200 pt-2">
+                  <div className="mt-3 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 py-2.5">
                     <div className="flex items-center justify-between gap-2 alento-ui-micro font-semibold">
-                      <span className="text-rose-600">Préstamos</span>
-                      <b className="text-rose-700">
+                      <span className="text-neutral-500">Préstamos</span>
+                      <b className={worker.loanBalance > 0 ? "text-rose-700" : "text-neutral-400"}>
                         {money(worker.loanBalance)}
                       </b>
                     </div>
-                    <div className="mt-1 flex items-center justify-between gap-2 alento-ui-label">
-                      <span className="text-neutral-500">Neto estimado</span>
-                      <b className="text-neutral-950">
+                    <div className="my-2 h-px bg-neutral-200" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="alento-ui-label font-bold text-neutral-600">
+                        Neto estimado
+                      </span>
+                      <b className="text-[15px] font-black text-neutral-950">
                         {money(worker.netToPay)}
                       </b>
                     </div>
