@@ -471,6 +471,7 @@ export default function CashPage() {
   const [payrollShifts, setPayrollShifts] = useState<PayrollShift[]>([]);
   const [payrollLoans, setPayrollLoans] = useState<PayrollLoan[]>([]);
   const [payrollCashAvailable, setPayrollCashAvailable] = useState<number | null>(null);
+  const [payrollLoansReceivable, setPayrollLoansReceivable] = useState<number | null>(null);
   const [payrollWorkerId, setPayrollWorkerId] = useState<number | null>(null);
   const [payrollSelectedShiftIds, setPayrollSelectedShiftIds] = useState<number[]>([]);
   const [payrollExpandedMonths, setPayrollExpandedMonths] = useState<string[]>([]);
@@ -883,6 +884,7 @@ export default function CashPage() {
     setPayrollExpandedMonths([]);
     setPayrollLoanDeductions({});
     setPayrollCashAvailable(null);
+    setPayrollLoansReceivable(null);
     setPayrollNote("");
 
     try {
@@ -919,6 +921,9 @@ export default function CashPage() {
         const currentMovement = Number(cashData.movement?.netMovement ?? 0);
         setPayrollCashAvailable(
           Math.round(openingAvailable + currentMovement),
+        );
+        setPayrollLoansReceivable(
+          Math.round(Number(cashData.movement?.loansReceivable ?? 0)),
         );
       }
 
@@ -2962,20 +2967,36 @@ export default function CashPage() {
                 </div>
 
                 <div className="mt-3 rounded-[18px] border border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f8fffb)] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
-                        Disponible en caja
-                      </span>
-                      <b className="mt-1 block text-[18px] font-black tracking-[-0.02em] text-emerald-800">
-                        {payrollCashAvailable == null
-                          ? "Actualizando…"
-                          : formatCOP(payrollCashAvailable)}
-                      </b>
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
+                      Saldo de caja
+                    </span>
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                       <Banknote className="h-4 w-4" strokeWidth={2.1} />
                     </span>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="rounded-xl border border-emerald-100 bg-white/70 px-2.5 py-2">
+                      <span className="block alento-ui-micro uppercase tracking-[0.07em] text-emerald-700/55">
+                        Disponible
+                      </span>
+                      <b className="mt-0.5 block text-[15px] font-black tracking-[-0.02em] text-emerald-800">
+                        {payrollCashAvailable == null
+                          ? "—"
+                          : formatCOP(payrollCashAvailable)}
+                      </b>
+                    </div>
+                    <div className="rounded-xl border border-violet-100 bg-violet-50/70 px-2.5 py-2">
+                      <span className="block alento-ui-micro uppercase tracking-[0.07em] text-violet-600/65">
+                        En préstamos
+                      </span>
+                      <b className="mt-0.5 block text-[15px] font-black tracking-[-0.02em] text-violet-700">
+                        {payrollLoansReceivable == null
+                          ? "—"
+                          : formatCOP(payrollLoansReceivable)}
+                      </b>
+                    </div>
                   </div>
 
                   {payrollCashAfterSelection != null &&
@@ -2983,7 +3004,7 @@ export default function CashPage() {
                       <div className="mt-2 border-t border-emerald-100 pt-2">
                         <div className="flex items-center justify-between gap-2">
                           <span className="alento-ui-micro font-bold text-emerald-700/70">
-                            Después de este pago
+                            Saldo después del pago
                           </span>
                           <b
                             className={
@@ -2996,9 +3017,6 @@ export default function CashPage() {
                             {formatCOP(payrollCashAfterSelection)}
                           </b>
                         </div>
-                        <p className="mt-1 text-[9px] leading-4 text-emerald-700/55">
-                          Se descuenta solo la salida real de nómina después de aplicar préstamos.
-                        </p>
                       </div>
                     )}
                 </div>
@@ -3131,35 +3149,7 @@ export default function CashPage() {
                                 </div>
                               </div>
 
-                              <div className="mt-2 flex items-center justify-between gap-2">
-                                <p
-                                  className={
-                                    "text-[9px] " +
-                                    (payrollWorkerId === worker.id
-                                      ? "text-white/35"
-                                      : "text-neutral-400")
-                                  }
-                                >
-                                  Pendiente desde {payrollDayLabel(worker.oldestPendingAt)}
-                                  {!worker.active ? " · trabajador inactivo" : ""}
-                                </p>
-                                {payrollCashAvailable != null && (
-                                  <span
-                                    className={
-                                      "shrink-0 rounded-full px-2 py-0.5 alento-ui-micro font-black " +
-                                      (enoughCash
-                                        ? payrollWorkerId === worker.id
-                                          ? "bg-emerald-400/15 text-emerald-300"
-                                          : "bg-emerald-50 text-emerald-700"
-                                        : payrollWorkerId === worker.id
-                                          ? "bg-red-400/15 text-red-300"
-                                          : "bg-red-50 text-red-700")
-                                    }
-                                  >
-                                    {enoughCash ? "Alcanza" : "No alcanza"}
-                                  </span>
-                                )}
-                              </div>
+
                             </>
                           );
                         })()}
