@@ -461,6 +461,10 @@ export default function CashPage() {
     setEndDate(localDateInput());
   }
 
+  function openSummaryDetail(detail: SummaryDetail) {
+    setSummaryDetail(detail);
+  }
+
   function openIncome() {
     setIncomeCategory("Otros");
     setIncomeNote("");
@@ -826,7 +830,10 @@ export default function CashPage() {
         ) : summary ? (
           <>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <article className="rounded-[22px] border border-sky-100 bg-[linear-gradient(145deg,#ffffff,#f0f7ff)] p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => openSummaryDetail("SALES")}
+                className="rounded-[22px] border border-sky-100 bg-[linear-gradient(145deg,#ffffff,#f0f7ff)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
                     <ReceiptText className="h-5 w-5" />
@@ -841,9 +848,15 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   {summary.orderCount} pedido{summary.orderCount === 1 ? "" : "s"} vendido{summary.orderCount === 1 ? "" : "s"}
                 </p>
-              </article>
+                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
+                  Ver detalle →
+                </span>
+              </button>
 
-              <article className="rounded-[22px] border border-emerald-100 bg-[linear-gradient(145deg,#ffffff,#effcf6)] p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => openSummaryDetail("INFLOW")}
+                className="rounded-[22px] border border-emerald-100 bg-[linear-gradient(145deg,#ffffff,#effcf6)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                     <ArrowDownCircle className="h-5 w-5" />
@@ -858,9 +871,15 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   Cobros de ventas {formatCOP(summary.receivedTotal)}
                 </p>
-              </article>
+                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
+                  Ver detalle →
+                </span>
+              </button>
 
-              <article className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => openSummaryDetail("INCOMES")}
+                className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
                     <Banknote className="h-5 w-5" />
@@ -875,9 +894,15 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
                 </p>
-              </article>
+                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
+                  Ver detalle →
+                </span>
+              </button>
 
-              <article className="rounded-[22px] border border-rose-100 bg-[linear-gradient(145deg,#ffffff,#fff3f4)] p-5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => openSummaryDetail("EXPENSES")}
+                className="rounded-[22px] border border-rose-100 bg-[linear-gradient(145deg,#ffffff,#fff3f4)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
                     <ArrowUpCircle className="h-5 w-5" />
@@ -892,9 +917,15 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   {summary.expenseCount} salida{summary.expenseCount === 1 ? "" : "s"} registrada{summary.expenseCount === 1 ? "" : "s"}
                 </p>
-              </article>
+                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
+                  Ver detalle →
+                </span>
+              </button>
 
-              <article className={`rounded-[22px] border p-5 shadow-sm ${
+              <button
+                type="button"
+                onClick={() => openSummaryDetail("NET")}
+                className={`group w-full rounded-[22px] border p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                 summary.netTotal >= 0
                   ? "border-neutral-200 bg-[linear-gradient(145deg,#ffffff,#f7f7f6)]"
                   : "border-red-200 bg-red-50"
@@ -926,292 +957,33 @@ export default function CashPage() {
                     {formatCOP(summary.loanRecoveredTotal)}
                   </p>
                 )}
-              </article>
+              </button>
             </section>
 
             {tab === "SUMMARY" ? (
-              <div className="space-y-4">
-                <section className="grid gap-4 xl:grid-cols-3">
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                          Ingresos
-                        </p>
-                        <h2 className="mt-1 text-xl font-black">
-                          Por medio de pago
-                        </h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void load(true)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 text-neutral-500"
-                        title="Actualizar"
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    <div className="mt-5 space-y-4">
-                      {summary.methods.length === 0 ? (
-                        <p className="text-sm text-neutral-400">
-                          No hay ingresos registrados en este período.
-                        </p>
-                      ) : (
-                        summary.methods.map((item) => (
-                          <div key={item.method}>
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <b className="text-sm">{item.method}</b>
-                                <p className="text-[10px] text-neutral-400">
-                                  {item.count} pago{item.count === 1 ? "" : "s"}
-                                </p>
-                              </div>
-                              <b className="text-sm text-emerald-700">
-                                {formatCOP(item.amount)}
-                              </b>
-                            </div>
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
-                              <div
-                                className="h-full rounded-full bg-emerald-500"
-                                style={{
-                                  width: `${Math.max(
-                                    4,
-                                    (item.amount / maxMethod) * 100,
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <div>
-                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                        Otros ingresos
-                      </p>
-                      <h2 className="mt-1 text-xl font-black">
-                        Por tipo
-                      </h2>
-                    </div>
-
-                    <div className="mt-5 space-y-4">
-                      {summary.incomeCategories.length === 0 ? (
-                        <p className="text-sm text-neutral-400">
-                          No hay otros ingresos en este período.
-                        </p>
-                      ) : (
-                        summary.incomeCategories.map((item) => (
-                          <div key={item.category}>
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <b className="text-sm">{item.category}</b>
-                                <p className="text-[10px] text-neutral-400">
-                                  {item.count} movimiento{item.count === 1 ? "" : "s"}
-                                </p>
-                              </div>
-                              <b className="text-sm text-teal-700">
-                                {formatCOP(item.amount)}
-                              </b>
-                            </div>
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
-                              <div
-                                className="h-full rounded-full bg-teal-500"
-                                style={{
-                                  width: `${Math.max(
-                                    4,
-                                    (item.amount / maxIncomeCategory) * 100,
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <div>
-                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                        Salidas
-                      </p>
-                      <h2 className="mt-1 text-xl font-black">
-                        Por categoría
-                      </h2>
-                    </div>
-
-                    <div className="mt-5 space-y-4">
-                      {summary.expenseCategories.length === 0 ? (
-                        <p className="text-sm text-neutral-400">
-                          No hay salidas registradas en este período.
-                        </p>
-                      ) : (
-                        summary.expenseCategories.map((item) => (
-                          <div key={item.category}>
-                            <div className="flex items-end justify-between gap-4">
-                              <div>
-                                <b className="text-sm">{item.category}</b>
-                                <p className="text-[10px] text-neutral-400">
-                                  {item.count} movimiento{item.count === 1 ? "" : "s"}
-                                </p>
-                              </div>
-                              <b className="text-sm text-rose-700">
-                                {formatCOP(item.amount)}
-                              </b>
-                            </div>
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100">
-                              <div
-                                className="h-full rounded-full bg-rose-500"
-                                style={{
-                                  width: `${Math.max(
-                                    4,
-                                    (item.amount / maxExpenseCategory) * 100,
-                                  )}%`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="grid gap-4 xl:grid-cols-3">
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
+              <section className="rounded-[22px] border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
                     <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                      Últimos ingresos
+                      Detalle bajo demanda
                     </p>
-                    <h2 className="mt-1 text-xl font-black">
-                      Pagos recibidos
+                    <h2 className="mt-1 text-lg font-black text-neutral-950">
+                      Haz clic en una tarjeta para revisar sus movimientos
                     </h2>
-                    <div className="mt-4 space-y-2">
-                      {summary.payments.slice(0, 8).map((payment) => (
-                        <div
-                          key={payment.id}
-                          className="grid gap-2 rounded-2xl border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
-                        >
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <b className="text-sm">
-                                {orderCode(
-                                  payment.order.sequenceNumber ??
-                                    payment.order.id,
-                                  payment.order.source,
-                                )}
-                              </b>
-                              <span className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 alento-ui-label font-bold text-neutral-500">
-                                {payment.method}
-                              </span>
-                            </div>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              {payment.order.customerName}
-                            </p>
-                            {payment.paidAt && (
-                              <p className="mt-0.5 text-[10px] text-neutral-400">
-                                {dateTimeLabel(payment.paidAt)}
-                              </p>
-                            )}
-                          </div>
-                          <b className="text-sm text-emerald-700">
-                            + {formatCOP(payment.amount)}
-                          </b>
-                        </div>
-                      ))}
-                      {summary.payments.length === 0 && (
-                        <p className="text-sm text-neutral-400">
-                          No hay pagos en este período.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                      Otros ingresos
+                    <p className="mt-1 max-w-3xl text-[11px] leading-5 text-neutral-500">
+                      Ventas, pagos, otros ingresos, salidas y composición del flujo neto ahora se consultan en un modal amplio. El resumen permanece limpio y evita listas interminables.
                     </p>
-                    <h2 className="mt-1 text-xl font-black">
-                      Entradas adicionales
-                    </h2>
-                    <div className="mt-4 space-y-2">
-                      {summary.otherIncomes.slice(0, 8).map((income) => (
-                        <div
-                          key={income.id}
-                          className="grid gap-2 rounded-2xl border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
-                        >
-                          <div className="min-w-0">
-                            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 alento-ui-label text-emerald-700">
-                              {income.category}
-                            </span>
-                            <p className="mt-1 truncate text-[11px] text-neutral-500">
-                              {income.note || "Sin observación"}
-                            </p>
-                            <p className="mt-0.5 text-[10px] text-neutral-400">
-                              {dateTimeLabel(income.occurredAt)}
-                            </p>
-                          </div>
-                          <b className="text-sm text-emerald-700">
-                            + {formatCOP(income.amount)}
-                          </b>
-                        </div>
-                      ))}
-                      {summary.otherIncomes.length === 0 && (
-                        <p className="text-sm text-neutral-400">
-                          No hay otros ingresos en este período.
-                        </p>
-                      )}
-                    </div>
                   </div>
-
-                  <div className="rounded-[24px] border border-neutral-200 bg-white p-5 shadow-sm">
-                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                      Últimas salidas
-                    </p>
-                    <h2 className="mt-1 text-xl font-black">
-                      Dinero que salió
-                    </h2>
-                    <div className="mt-4 space-y-2">
-                      {summary.expenses.slice(0, 8).map((expense) => (
-                        <div
-                          key={expense.id}
-                          className="grid gap-2 rounded-2xl border border-neutral-100 bg-[#faf9f7] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`rounded-full border px-2 py-0.5 alento-ui-label ${expenseTone(expense.category)}`}>
-                                {expense.category}
-                              </span>
-                              {expense.subcategory && (
-                                <b className="truncate text-xs">
-                                  {expense.subcategory}
-                                </b>
-                              )}
-                            </div>
-                            <p className="mt-1 truncate text-[11px] text-neutral-500">
-                              {expense.note || "Sin observación"}
-                            </p>
-                            <p className="mt-0.5 text-[10px] text-neutral-400">
-                              {dateTimeLabel(expense.occurredAt)}
-                            </p>
-                          </div>
-                          <b className="text-sm text-rose-700">
-                            − {formatCOP(expense.amount)}
-                          </b>
-                        </div>
-                      ))}
-                      {summary.expenses.length === 0 && (
-                        <p className="text-sm text-neutral-400">
-                          No hay salidas en este período.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => void load(true)}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-[#faf9f7] px-3 alento-ui-label font-black text-neutral-600 transition hover:bg-neutral-100"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    Actualizar
+                  </button>
+                </div>
+              </section>
             ) : tab === "INCOMES" ? (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
