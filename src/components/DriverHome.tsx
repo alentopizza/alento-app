@@ -1079,7 +1079,7 @@ export default function DriverHome({
 
         if (disposed || !mapHostRef.current) return;
 
-        const requestWithLocation = orders.filter(
+        const requestWithLocation = operationalOrders.filter(
           (order) =>
             order.address?.latitude != null &&
             order.address?.longitude != null,
@@ -1174,10 +1174,10 @@ export default function DriverHome({
                 center: storePoint,
                 radius: acceptanceZone.radiusMeters,
                 strokeColor: "#059669",
-                strokeOpacity: 0.82,
-                strokeWeight: 2,
+                strokeOpacity: 0.48,
+                strokeWeight: 1.5,
                 fillColor: "#10b981",
-                fillOpacity: 0.11,
+                fillOpacity: 0.055,
                 clickable: false,
                 zIndex: 5,
               });
@@ -1260,13 +1260,16 @@ export default function DriverHome({
           });
 
           marker.addListener("click", () => {
-            if (order.href) {
+            if (order.assignment?.own && order.href) {
               router.push(order.href);
               return;
             }
 
+            setSelectedId(order.id);
             mapRef.current?.panTo(point);
-            mapRef.current?.setZoom(15);
+            if ((mapRef.current?.getZoom() ?? 0) < 15) {
+              mapRef.current?.setZoom(15);
+            }
           });
 
           requestMarkerRefs.current.set(markerKey, marker);
@@ -1369,47 +1372,16 @@ export default function DriverHome({
 
         const shouldFit =
           ordersLoaded &&
-          (!initialMapFitDoneRef.current || fitForNewRequestRef.current);
+          (
+            !initialMapFitDoneRef.current ||
+            fitForNewRequestRef.current ||
+            lastOperationalFitKeyRef.current !== operationalFitKey
+          );
 
         if (shouldFit && points > 0) {
-          if (store && mapFocusRadiusMeters && mapFocusRadiusMeters > 0) {
-            const serviceBounds = new google.maps.LatLngBounds();
-            serviceBounds.extend({
-              lat: store.latitude,
-              lng: store.longitude,
-            });
-            extendCircleBounds(
-              serviceBounds,
-              store,
-              mapFocusRadiusMeters,
-            );
-            mapRef.current.fitBounds(serviceBounds, {
-              top: 96,
-              right: 38,
-              bottom: 150,
-              left: 38,
-            });
-
-            window.setTimeout(() => {
-              if (disposed || !mapRef.current) return;
-              const fittedZoom = mapRef.current.getZoom();
-              if (fittedZoom != null) {
-                mapRef.current.setZoom(Math.min(17, fittedZoom + 1));
-              }
-            }, 0);
-          } else if (points > 1) {
-            mapRef.current.fitBounds(bounds, {
-              top: 120,
-              right: 74,
-              bottom: 190,
-              left: 74,
-            });
-          } else {
-            mapRef.current.panTo(center);
-            mapRef.current.setZoom(14);
-          }
-
+          fitOperationalView(mapRef.current, google);
           initialMapFitDoneRef.current = true;
+          lastOperationalFitKeyRef.current = operationalFitKey;
           fitForNewRequestRef.current = false;
         }
       } catch (err) {
@@ -1435,8 +1407,9 @@ export default function DriverHome({
     driver.driverLongitude,
     driver.name,
     expandedLocationCluster,
-    mapFocusRadiusMeters,
-    orders,
+    fitOperationalView,
+    operationalFitKey,
+    operationalOrders,
     ordersLoaded,
     router,
     store,
@@ -1480,6 +1453,7 @@ export default function DriverHome({
 
     mapRef.current = null;
     initialMapFitDoneRef.current = false;
+    lastOperationalFitKeyRef.current = "";
     lastFocusedRequestRef.current = null;
     setExpandedLocationCluster(null);
   }, [tab]);
