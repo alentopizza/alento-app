@@ -42,6 +42,9 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
       status: true,
       subtotal: true,
       deliveryFee: true,
+      discount: true,
+      discountSource: true,
+      couponName: true,
       total: true,
       notes: true,
       deliveryZoneName: true,
@@ -111,6 +114,15 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
     order.payments.find((payment) => payment.status === "PAID")?.method ??
     order.payments[0]?.method ??
     "Sin información";
+  const discountAmount = Number(order.discount);
+  const discountLabel =
+    order.discountSource === "COUPON"
+      ? order.couponName
+        ? `Cupón · ${order.couponName}`
+        : "Cupón aplicado"
+      : order.discountSource === "MANUAL"
+        ? "Descuento manual"
+        : "Descuento aplicado";
 
   const canStartDelivery =
     assigned &&
@@ -199,6 +211,24 @@ export default async function DriverOrderPage({ params }: { params: Promise<{ to
                 {money(Number(order.deliveryFee))}
               </b>
             </div>
+
+            {discountAmount > 0 && (
+              <div className="mt-2 rounded-xl border border-emerald-300/15 bg-emerald-400/[0.07] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="block text-[11px] text-emerald-100/60">
+                      Descuento
+                    </span>
+                    <span className="mt-0.5 block truncate text-[8px] font-black uppercase tracking-[0.06em] text-emerald-300/70">
+                      {discountLabel}
+                    </span>
+                  </div>
+                  <b className="shrink-0 text-[12px] text-emerald-300">
+                    − {money(discountAmount)}
+                  </b>
+                </div>
+              </div>
+            )}
 
             <div className="mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between gap-4 text-[11px]">
