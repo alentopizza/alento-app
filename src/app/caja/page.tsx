@@ -810,6 +810,7 @@ export default function CashPage() {
     setPayrollWorkerId(null);
     setPayrollSelectedShiftIds([]);
     setPayrollExpandedMonths([]);
+    setPayrollLoanDeductions({});
     setPayrollNote("");
 
     try {
@@ -822,8 +823,10 @@ export default function CashPage() {
 
       const workers = (data.workers ?? []) as PayrollWorker[];
       const shifts = (data.shifts ?? []) as PayrollShift[];
+      const loans = (data.loans ?? []) as PayrollLoan[];
       setPayrollWorkers(workers);
       setPayrollShifts(shifts);
+      setPayrollLoans(loans);
 
       if (workers.length === 1) {
         setPayrollWorkerId(workers[0].id);
@@ -846,6 +849,7 @@ export default function CashPage() {
   function selectPayrollWorker(workerId: number | null) {
     setPayrollWorkerId(workerId);
     setPayrollSelectedShiftIds([]);
+    setPayrollLoanDeductions({});
     setPayrollMessage("");
 
     const firstShift =
@@ -899,6 +903,50 @@ export default function CashPage() {
     setPayrollSelectedShiftIds(allSelected ? [] : ids);
   }
 
+  function togglePayrollLoan(loan: PayrollLoan) {
+    const currentValue = payrollLoanDeductions[loan.id];
+    if (currentValue != null) {
+      setPayrollLoanDeductions((current) => {
+        const next = { ...current };
+        delete next[loan.id];
+        return next;
+      });
+      return;
+    }
+
+    const remainingPayroll = Math.max(
+      0,
+      selectedPayrollTotal - selectedPayrollLoanDeductionTotal,
+    );
+    const deduction = Math.min(loan.outstandingAmount, remainingPayroll);
+
+    if (deduction <= 0) {
+      setPayrollMessage(
+        "Selecciona turnos suficientes antes de aplicar descuentos por préstamo.",
+      );
+      return;
+    }
+
+    setPayrollLoanDeductions((current) => ({
+      ...current,
+      [loan.id]: String(Math.round(deduction)),
+    }));
+    setPayrollMessage("");
+  }
+
+  function setPayrollLoanDeduction(loan: PayrollLoan, value: string) {
+    const numeric = Number(value.replace(/\D/g, ""));
+    const bounded = Math.min(
+      loan.outstandingAmount,
+      Number.isFinite(numeric) ? numeric : 0,
+    );
+
+    setPayrollLoanDeductions((current) => ({
+      ...current,
+      [loan.id]: bounded > 0 ? String(Math.round(bounded)) : "",
+    }));
+  }
+
   async function savePayrollPayment() {
     if (
       payrollSaving ||
@@ -908,8 +956,16 @@ export default function CashPage() {
       return;
     }
 
+    if (selectedPayrollLoanDeductionTotal > selectedPayrollTotal) {
+      setPayrollMessage(
+        "Los descuentos por préstamo no pueden superar la nómina seleccionada.",
+      );
+      return;
+    }
+
     setPayrollSaving(true);
     setPayrollMessage("");
+    const receiptWindow = window.open("", "_blank");
 
     try {
       const response = await fetch("/api/caja/payroll", {
@@ -918,6 +974,14 @@ export default function CashPage() {
         body: JSON.stringify({
           workerId: payrollWorkerId,
           shiftIds: payrollSelectedShiftIds,
+          loanDeductions: selectedPayrollLoans
+            .map((loan) => ({
+              loanId: loan.id,
+              amount: Number(
+                String(payrollLoanDeductions[loan.id] ?? "").replace(/\D/g, ""),
+              ),
+            }))
+            .filter((deduction) => deduction.amount > 0),
           note: payrollNote,
         }),
       });
@@ -927,10 +991,22 @@ export default function CashPage() {
         throw new Error(data.error || "No fue posible pagar la nómina.");
       }
 
+      const receiptUrl = String(data.payment?.receiptUrl || "");
+      if (receiptUrl) {
+        if (receiptWindow) {
+          receiptWindow.location.href = `${receiptUrl}?auto=1`;
+        } else {
+          window.open(`${receiptUrl}?auto=1`, "_blank", "noopener,noreferrer");
+        }
+      } else if (receiptWindow) {
+        receiptWindow.close();
+      }
+
       setPayrollOpen(false);
       setTab("EXPENSES");
       await load(true);
     } catch (saveError) {
+      receiptWindow?.close();
       setPayrollMessage(
         saveError instanceof Error
           ? saveError.message
