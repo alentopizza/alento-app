@@ -643,19 +643,22 @@ model CashLoan {
 }
 
 model CashLoanRepayment {
-  id            Int      @id @default(autoincrement())
-  loanId        Int
-  amount        Decimal  @db.Decimal(12, 2)
-  paidAt        DateTime
-  method        String   @default("PAGO")
-  note          String?
-  source        String   @default("MANUAL")
-  createdByName String
-  createdAt     DateTime @default(now())
-  loan          CashLoan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  id               Int             @id @default(autoincrement())
+  loanId           Int
+  payrollPaymentId Int?
+  amount           Decimal         @db.Decimal(12, 2)
+  paidAt           DateTime
+  method           String          @default("PAGO")
+  note             String?
+  source           String          @default("MANUAL")
+  createdByName    String
+  createdAt        DateTime        @default(now())
+  loan             CashLoan        @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  payrollPayment   PayrollPayment? @relation(fields: [payrollPaymentId], references: [id], onDelete: SetNull)
 
   @@index([loanId, paidAt])
   @@index([paidAt])
+  @@index([payrollPaymentId])
 }
 
 
@@ -778,6 +781,7 @@ model PayrollPayment {
   worker        User                  @relation(fields: [workerId], references: [id], onDelete: Restrict)
   cashExpense   CashExpense           @relation(fields: [cashExpenseId], references: [id], onDelete: Restrict)
   shifts        PayrollPaymentShift[]
+  loanRepayments CashLoanRepayment[]
 
   @@index([workerId, occurredAt])
   @@index([occurredAt])
