@@ -644,21 +644,24 @@ export default function CashRegisterControl({
           </div>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-[linear-gradient(135deg,#ffffff,#fafafa)] shadow-[0_8px_24px_rgba(28,23,20,.04)]">
-          <div className="grid gap-3 p-3.5 xl:grid-cols-[minmax(300px,1fr)_minmax(0,1.2fr)_auto] xl:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-neutral-950 text-white">
-                <LockKeyhole className="h-4.5 w-4.5" />
+        <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
+          <div className="grid gap-3 p-3 sm:p-4 xl:grid-cols-[minmax(350px,1fr)_minmax(0,2.1fr)_auto] xl:items-stretch">
+            <div className="flex min-w-0 items-center gap-4 rounded-[20px] border border-neutral-200 bg-[linear-gradient(135deg,#f7f7f6,#fcfcfb)] px-4 py-4 sm:px-5">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white shadow-[0_8px_18px_rgba(0,0,0,.14)]">
+                <LockKeyhole className="h-6 w-6" strokeWidth={2} />
               </span>
+
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-[14px] font-black text-neutral-950">Caja cerrada</b>
-                  <span className="rounded-full border border-neutral-200 bg-neutral-100 px-2 py-0.5 alento-ui-micro uppercase tracking-[0.08em] text-neutral-600">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <b className="text-[18px] font-black tracking-[-0.025em] text-neutral-950 sm:text-[20px]">
+                    Caja cerrada
+                  </b>
+                  <span className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 alento-ui-micro font-black uppercase tracking-[0.08em] text-neutral-600">
                     {dateLabel(session.businessDate)}
                   </span>
                   <span
                     className={
-                      "rounded-full border px-2 py-0.5 alento-ui-micro uppercase tracking-[0.08em] " +
+                      "rounded-full border px-2.5 py-1 alento-ui-micro font-black uppercase tracking-[0.08em] " +
                       ((session.difference || 0) === 0
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                         : (session.difference || 0) > 0
@@ -673,67 +676,146 @@ export default function CashRegisterControl({
                         : "Falta " + money(Math.abs(session.difference || 0))}
                   </span>
                 </div>
-                <p className="mt-0.5 truncate alento-ui-label text-neutral-400">
+
+                <p className="mt-1.5 truncate text-[11px] font-semibold text-neutral-500">
                   Cerró {session.closedByName || "—"} · {dateTimeLabel(session.closedAt)}
                 </p>
-                <p className="mt-0.5 alento-ui-micro font-semibold text-neutral-500">
-                  Sesión bloqueada · solo consulta
+                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-400">
+                  Sesión cerrada · solo consulta
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <MiniMetric
-                label="Disponible al cierre"
-                value={money(session.actualClosingBalance || 0)}
-              />
-              <MiniMetric
-                label="Préstamos por cobrar"
-                value={money(session.closingLoanReceivable || 0)}
-              />
-              <MiniMetric
-                label="Total de Alentó"
-                value={money(
-                  (session.actualClosingBalance || 0) +
-                    (session.closingLoanReceivable || 0),
-                )}
-                strong
-              />
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfbfa] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-neutral-100 text-neutral-600">
+                  <Banknote className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
+                    Disponible al cierre
+                  </span>
+                  <b className="mt-1 block truncate text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                    {money(session.actualClosingBalance || 0)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfbfa] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-neutral-100 text-neutral-600">
+                  <Landmark className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
+                    Préstamos por cobrar
+                  </span>
+                  <b className="mt-1 block truncate text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                    {money(session.closingLoanReceivable || 0)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f7fffb)] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-emerald-100 text-emerald-700">
+                  <CircleDollarSign className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-emerald-700/55">
+                    Total de Alentó
+                  </span>
+                  <b className="mt-1 block truncate text-[17px] font-black tracking-[-0.025em] text-emerald-800">
+                    {money(
+                      (session.actualClosingBalance || 0) +
+                        (session.closingLoanReceivable || 0),
+                    )}
+                  </b>
+                </div>
+              </div>
+
+              <div
+                className={
+                  "flex min-w-0 items-center gap-3 rounded-[18px] border px-3.5 py-3.5 " +
+                  ((session.difference || 0) === 0
+                    ? "border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f7fffb)]"
+                    : (session.difference || 0) > 0
+                      ? "border-sky-100 bg-[linear-gradient(135deg,#f4faff,#eef8ff)]"
+                      : "border-red-100 bg-[linear-gradient(135deg,#fff5f5,#fffafa)]")
+                }
+              >
+                <span
+                  className={
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] " +
+                    ((session.difference || 0) === 0
+                      ? "bg-emerald-100 text-emerald-700"
+                      : (session.difference || 0) > 0
+                        ? "bg-sky-100 text-sky-700"
+                        : "bg-red-100 text-red-700")
+                  }
+                >
+                  <WalletCards className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
+                    Diferencia
+                  </span>
+                  <b
+                    className={
+                      "mt-1 block truncate text-[16px] font-black tracking-[-0.02em] " +
+                      ((session.difference || 0) === 0
+                        ? "text-emerald-800"
+                        : (session.difference || 0) > 0
+                          ? "text-sky-700"
+                          : "text-red-700")
+                    }
+                  >
+                    {(session.difference || 0) === 0
+                      ? "Cuadrada"
+                      : (session.difference || 0) > 0
+                        ? "+ " + money(session.difference || 0)
+                        : "− " + money(Math.abs(session.difference || 0))}
+                  </b>
+                </div>
+              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setHistorySession(session)}
-              aria-label="Ver detalle"
-              title="Ver detalle"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
-            >
-              <Eye className="h-4 w-4" strokeWidth={2} />
-            </button>
+            <div className="flex items-center justify-end border-t border-neutral-100 pt-3 xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
+              <button
+                type="button"
+                onClick={() => setHistorySession(session)}
+                aria-label="Ver detalle"
+                title="Ver detalle"
+                className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-neutral-200 bg-white text-neutral-700 shadow-[0_5px_14px_rgba(28,23,20,.08)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                <Eye className="h-[18px] w-[18px]" strokeWidth={2} />
+              </button>
+            </div>
           </div>
         </section>
       )}
 
       {showHistory && (data?.history?.length ?? 0) > 0 && (
-        <section className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
-          <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3.5 sm:px-5">
+        <section className="rounded-[24px] border border-neutral-200 bg-white p-3 shadow-[0_10px_28px_rgba(28,23,20,.045)] sm:p-4">
+          <div className="flex items-center justify-between gap-3 px-1 pb-3">
             <div>
               <p className="alento-ui-micro uppercase tracking-[0.14em] text-neutral-400">
                 Historial
               </p>
-              <h3 className="mt-0.5 text-[15px] font-black text-neutral-950">
+              <h3 className="mt-0.5 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
                 Aperturas y cierres de caja
               </h3>
             </div>
-            <span className="rounded-full bg-neutral-100 px-2.5 py-1 alento-ui-micro text-neutral-500">
+            <span className="rounded-full border border-neutral-200 bg-[#faf9f7] px-2.5 py-1 alento-ui-micro font-bold text-neutral-500">
               {data?.history.length ?? 0} sesiones
             </span>
           </div>
 
-          <div className="divide-y divide-neutral-100">
+          <div className="grid gap-2.5">
             {data?.history.map((item) => {
               const isOpen = item.status === "OPEN";
               const difference = Number(item.difference ?? 0);
+              const closingTotal =
+                Number(item.actualClosingBalance ?? 0) +
+                Number(item.closingLoanReceivable ?? 0);
 
               return (
                 <button
@@ -744,82 +826,143 @@ export default function CashRegisterControl({
                     if (!isOpen) setHistorySession(item);
                   }}
                   className={
-                    "grid w-full gap-3 px-4 py-3.5 text-left sm:px-5 lg:grid-cols-[150px_1fr_auto_auto] lg:items-center " +
+                    "grid w-full gap-2 rounded-[20px] border p-2.5 text-left sm:p-3 xl:grid-cols-[minmax(280px,.9fr)_minmax(0,2fr)_44px] xl:items-stretch " +
                     (isOpen
-                      ? "cursor-default"
-                      : "cursor-pointer transition hover:bg-neutral-50 active:bg-neutral-100")
+                      ? "cursor-default border-emerald-100 bg-emerald-50/25"
+                      : "cursor-pointer border-neutral-200 bg-[#fcfcfb] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_8px_20px_rgba(28,23,20,.055)] active:translate-y-0")
                   }
                 >
-                  <div>
+                  <div
+                    className={
+                      "flex min-w-0 items-center gap-3 rounded-[16px] border px-3.5 py-3 " +
+                      (isOpen
+                        ? "border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f7fffb)]"
+                        : "border-neutral-200 bg-white")
+                    }
+                  >
                     <span
                       className={
-                        "inline-flex rounded-full px-2 py-1 alento-ui-micro uppercase tracking-[0.08em] " +
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full " +
                         (isOpen
                           ? "bg-emerald-100 text-emerald-700"
-                          : "bg-neutral-100 text-neutral-600")
+                          : "bg-neutral-950 text-white")
                       }
                     >
-                      {isOpen ? "Abierta" : "Cerrada"}
+                      {isOpen ? (
+                        <CheckCircle2 className="h-5 w-5" strokeWidth={2.1} />
+                      ) : (
+                        <LockKeyhole className="h-[18px] w-[18px]" strokeWidth={2} />
+                      )}
                     </span>
-                    <b className="mt-1.5 block alento-ui-label text-neutral-900">
-                      {dateLabel(item.businessDate)}
-                    </b>
-                  </div>
 
-                  <div>
-                    <p className="alento-ui-micro font-semibold text-neutral-600">
-                      Apertura · {dateTimeLabel(item.openedAt)}
-                    </p>
-                    <p className="mt-0.5 alento-ui-label text-neutral-400">
-                      {item.closedAt
-                        ? "Cierre · " + dateTimeLabel(item.closedAt)
-                        : "Sigue abierta"}
-                    </p>
-                  </div>
-
-                  <div className="lg:text-right">
-                    <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
-                      Esperado
-                    </span>
-                    <b className="mt-0.5 block alento-ui-control text-neutral-800">
-                      {item.expectedClosingBalance == null
-                        ? "—"
-                        : money(item.expectedClosingBalance)}
-                    </b>
-                  </div>
-
-                  <div className="lg:min-w-[130px] lg:text-right">
-                    <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
-                      Resultado
-                    </span>
-                    {isOpen ? (
-                      <b className="mt-0.5 block alento-ui-control text-emerald-700">
-                        En curso
-                      </b>
-                    ) : (
-                      <>
-                        <b className="mt-0.5 block alento-ui-control text-neutral-900">
-                          {money(item.actualClosingBalance ?? 0)}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <b className="text-[13px] font-black text-neutral-950">
+                          {isOpen ? "Caja abierta" : "Caja cerrada"}
                         </b>
                         <span
                           className={
-                            "mt-0.5 block alento-ui-micro " +
-                            (difference === 0
-                              ? "text-emerald-600"
-                              : difference > 0
-                                ? "text-sky-600"
-                                : "text-red-600")
+                            "rounded-full px-2 py-0.5 alento-ui-micro font-black uppercase tracking-[0.08em] " +
+                            (isOpen
+                              ? "bg-emerald-600 text-white"
+                              : "border border-neutral-200 bg-neutral-100 text-neutral-600")
                           }
                         >
-                          {difference === 0
+                          {isOpen ? "Activa" : dateLabel(item.businessDate)}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-[10px] font-semibold text-neutral-500">
+                        Apertura · {dateTimeLabel(item.openedAt)}
+                      </p>
+                      <p className="mt-0.5 truncate text-[9px] text-neutral-400">
+                        {item.closedAt
+                          ? "Cierre · " + dateTimeLabel(item.closedAt)
+                          : dateLabel(item.businessDate) + " · sesión en curso"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-[15px] border border-neutral-200 bg-white px-3 py-2.5">
+                      <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
+                        Esperado
+                      </span>
+                      <b className="mt-1 block truncate text-[13px] font-black text-neutral-900">
+                        {item.expectedClosingBalance == null
+                          ? "En cálculo"
+                          : money(item.expectedClosingBalance)}
+                      </b>
+                    </div>
+
+                    <div className="rounded-[15px] border border-neutral-200 bg-white px-3 py-2.5">
+                      <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
+                        Disponible cierre
+                      </span>
+                      <b className="mt-1 block truncate text-[13px] font-black text-neutral-900">
+                        {isOpen ? "En curso" : money(item.actualClosingBalance ?? 0)}
+                      </b>
+                    </div>
+
+                    <div className="rounded-[15px] border border-emerald-100 bg-emerald-50/55 px-3 py-2.5">
+                      <span className="block alento-ui-micro uppercase tracking-[0.09em] text-emerald-700/55">
+                        Total de Alentó
+                      </span>
+                      <b className="mt-1 block truncate text-[13px] font-black text-emerald-800">
+                        {isOpen ? "En curso" : money(closingTotal)}
+                      </b>
+                    </div>
+
+                    <div
+                      className={
+                        "rounded-[15px] border px-3 py-2.5 " +
+                        (isOpen
+                          ? "border-emerald-100 bg-emerald-50/55"
+                          : difference === 0
+                            ? "border-emerald-100 bg-emerald-50/55"
+                            : difference > 0
+                              ? "border-sky-100 bg-sky-50/60"
+                              : "border-red-100 bg-red-50/60")
+                      }
+                    >
+                      <span className="block alento-ui-micro uppercase tracking-[0.09em] text-neutral-400">
+                        Resultado
+                      </span>
+                      <b
+                        className={
+                          "mt-1 block truncate text-[13px] font-black " +
+                          (isOpen || difference === 0
+                            ? "text-emerald-700"
+                            : difference > 0
+                              ? "text-sky-700"
+                              : "text-red-700")
+                        }
+                      >
+                        {isOpen
+                          ? "En curso"
+                          : difference === 0
                             ? "Cuadrada"
                             : difference > 0
-                              ? "Sobra " + money(difference)
-                              : "Falta " + money(Math.abs(difference))}
-                        </span>
-                      </>
-                    )}
+                              ? "+ " + money(difference)
+                              : "− " + money(Math.abs(difference))}
+                      </b>
+                    </div>
                   </div>
+
+                  <span
+                    className={
+                      "hidden h-11 w-11 items-center justify-center self-center rounded-[14px] border shadow-sm xl:flex " +
+                      (isOpen
+                        ? "border-emerald-100 bg-emerald-50 text-emerald-400"
+                        : "border-neutral-200 bg-white text-neutral-700")
+                    }
+                    aria-hidden="true"
+                  >
+                    {isOpen ? (
+                      <CheckCircle2 className="h-[18px] w-[18px]" strokeWidth={2} />
+                    ) : (
+                      <Eye className="h-[18px] w-[18px]" strokeWidth={2} />
+                    )}
+                  </span>
                 </button>
               );
             })}
