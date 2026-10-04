@@ -155,11 +155,81 @@ export async function GET(request: NextRequest) {
       );
     });
 
-    const drivers = driverUsers.filter(
+    const latestOrderLocationByDriver = new Map<
+      number,
+      {
+        latitude: number;
+        longitude: number;
+        accuracy: number | null;
+        updatedAt: Date;
+      }
+    >();
+
+    orders.forEach((order) => {
+      if (order.driverId == null || !order.driverLocationUpdatedAt) return;
+
+      const latitude = coordinate(order.driverLatitude);
+      const longitude = coordinate(order.driverLongitude);
+      if (latitude == null || longitude == null) return;
+
+      const current = latestOrderLocationByDriver.get(order.driverId);
+      if (
+        !current ||
+        order.driverLocationUpdatedAt.getTime() > current.updatedAt.getTime()
+      ) {
+        latestOrderLocationByDriver.set(order.driverId, {
+          latitude,
+          longitude,
+          accuracy:
+            order.driverLocationAccuracy == null
+              ? null
+              : Number(order.driverLocationAccuracy),
+          updatedAt: order.driverLocationUpdatedAt,
+        });
+      }
+    });
+
+    const driverLocations = driverUsers.map((driver) => {
+      const userLatitude = coordinate(driver.driverLatitude);
+      const userLongitude = coordinate(driver.driverLongitude);
+      const userUpdatedAt = driver.driverLocationUpdatedAt;
+      const orderLocation = latestOrderLocationByDriver.get(driver.id) ?? null;
+      const useOrderLocation =
+        orderLocation != null &&
+        (!userUpdatedAt ||
+          orderLocation.updatedAt.getTime() > userUpdatedAt.getTime());
+
+      return {
+        ...driver,
+        mapLatitude: useOrderLocation
+          ? orderLocation.latitude
+          : userLatitude,
+        mapLongitude: useOrderLocation
+          ? orderLocation.longitude
+          : userLongitude,
+        mapAccuracy: useOrderLocation
+          ? orderLocation.accuracy
+          : driver.driverLocationAccuracy == null
+            ? null
+            : Number(driver.driverLocationAccuracy),
+        mapUpdatedAt: useOrderLocation
+          ? orderLocation.updatedAt
+          : userUpdatedAt,
+        mapSource: useOrderLocation
+          ? "WEB"
+          : driver.driverLocationSource,
+      };
+    });
+
+    const driverLocationById = new Map(
+      driverLocations.map((driver) => [driver.id, driver]),
+    );
+
+    const drivers = driverLocations.filter(
       (driver) =>
         driver.driverAvailable &&
-        coordinate(driver.driverLatitude) != null &&
-        coordinate(driver.driverLongitude) != null,
+        driver.mapLatitude != null &&
+        driver.mapLongitude != null,
     );
 
     const driverRouteEntries =
@@ -169,8 +239,8 @@ export async function GET(request: NextRequest) {
               try {
                 const route = await computeDrivingRoute({
                   origin: {
-                    latitude: Number(driver.driverLatitude),
-                    longitude: Number(driver.driverLongitude),
+                    latitude: Number(driver.mapLatitude),
+                    longitude: Number(driver.mapLongitude),
                   },
                   destination: {
                     latitude: store.latitude,
@@ -221,10 +291,13 @@ export async function GET(request: NextRequest) {
     const trips = await Promise.all(
       [...enRouteByDriver.entries()].map(async ([driverId, assignedOrders]) => {
         const first = assignedOrders[0];
+        const currentDriverLocation = driverLocationById.get(driverId);
         const originLatitude =
+          currentDriverLocation?.mapLatitude ??
           coordinate(first.driver?.driverLatitude) ??
           coordinate(first.driverLatitude);
         const originLongitude =
+          currentDriverLocation?.mapLongitude ??
           coordinate(first.driver?.driverLongitude) ??
           coordinate(first.driverLongitude);
 
@@ -349,14 +422,11 @@ export async function GET(request: NextRequest) {
           id: driver.id,
           name: driver.name,
           available: driver.driverAvailable,
-          latitude: Number(driver.driverLatitude),
-          longitude: Number(driver.driverLongitude),
-          accuracy:
-            driver.driverLocationAccuracy == null
-              ? null
-              : Number(driver.driverLocationAccuracy),
-          updatedAt: driver.driverLocationUpdatedAt?.toISOString() ?? null,
-          source: driver.driverLocationSource,
+          latitude: Number(driver.mapLatitude),
+          longitude: Number(driver.mapLongitude),
+          accuracy: driver.mapAccuracy,
+          updatedAt: driver.mapUpdatedAt?.toISOString() ?? null,
+          source: driver.mapSource,
           distanceFromStoreMeters: routeFromStore?.distanceMeters ?? null,
           durationFromStoreSeconds: routeFromStore?.durationSeconds ?? null,
         };
@@ -378,10 +448,15 @@ export async function GET(request: NextRequest) {
       orders: orders.map((order) => {
         const latitude = coordinate(order.address?.latitude);
         const longitude = coordinate(order.address?.longitude);
+        const effectiveDriver = order.driver
+          ? driverLocationById.get(order.driver.id)
+          : null;
         const driverLatitude =
+          effectiveDriver?.mapLatitude ??
           coordinate(order.driver?.driverLatitude) ??
           coordinate(order.driverLatitude);
         const driverLongitude =
+          effectiveDriver?.mapLongitude ??
           coordinate(order.driver?.driverLongitude) ??
           coordinate(order.driverLongitude);
 
@@ -429,14 +504,18 @@ export async function GET(request: NextRequest) {
                 latitude: driverLatitude,
                 longitude: driverLongitude,
                 accuracy:
+                  effectiveDriver?.mapAccuracy ??
                   order.driver.driverLocationAccuracy ??
                   order.driverLocationAccuracy ??
                   null,
                 updatedAt:
+                  effectiveDriver?.mapUpdatedAt?.toISOString() ??
                   order.driver.driverLocationUpdatedAt?.toISOString() ??
                   order.driverLocationUpdatedAt?.toISOString() ??
                   null,
-                source: order.driver.driverLocationSource,
+                source:
+                  effectiveDriver?.mapSource ??
+                  order.driver.driverLocationSource,
               }
             : null,
         };
