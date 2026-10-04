@@ -1459,7 +1459,9 @@ export default function CashPage() {
                         <p className="mt-1 alento-ui-label text-neutral-400">
                           {expense.source === "DRIVER_PAYMENT"
                             ? `Pago a repartidor · Registró: ${expense.createdByName}`
-                            : `Registró: ${expense.createdByName}`}
+                            : expense.source === "PAYROLL"
+                              ? `Pago de nómina · Registró: ${expense.createdByName}`
+                              : `Registró: ${expense.createdByName}`}
                         </p>
                       </div>
 
@@ -1470,9 +1472,15 @@ export default function CashPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(expense)}
-                          disabled={!cashOperationsOpen}
+                          disabled={!cashOperationsOpen || expense.source === "PAYROLL"}
                           className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
-                          title={!cashOperationsOpen ? "Caja sin sesión operativa abierta" : "Eliminar salida"}
+                          title={
+                            expense.source === "PAYROLL"
+                              ? "Los pagos de nómina conservan el vínculo con sus turnos"
+                              : !cashOperationsOpen
+                                ? "Caja sin sesión operativa abierta"
+                                : "Eliminar salida"
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -2336,11 +2344,16 @@ export default function CashPage() {
                 <select
                   value={expenseCategory}
                   onChange={(event) => {
-                    setExpenseCategory(event.target.value);
+                    const category = event.target.value;
+                    setExpenseCategory(category);
                     setExpenseSubcategory("");
                     setExpenseDriverId(null);
                     setExpenseAmount("");
                     setExpenseMessage("");
+
+                    if (category === "Nomina") {
+                      void openPayroll();
+                    }
                   }}
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
                 >
