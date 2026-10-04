@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 type PayrollReceipt = {
   id: number;
@@ -70,8 +70,6 @@ function shiftTime(value: string) {
 
 export default function PayrollReceiptPage() {
   const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
-  const autoPrint = searchParams.get("auto") === "1";
   const printed = useRef(false);
   const [payment, setPayment] = useState<PayrollReceipt | null>(null);
   const [error, setError] = useState("");
@@ -102,11 +100,15 @@ export default function PayrollReceiptPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (!payment || !autoPrint || printed.current) return;
+    if (!payment || printed.current) return;
+    const autoPrint =
+      new URLSearchParams(window.location.search).get("auto") === "1";
+    if (!autoPrint) return;
+
     printed.current = true;
     const timer = window.setTimeout(() => window.print(), 250);
     return () => window.clearTimeout(timer);
-  }, [autoPrint, payment]);
+  }, [payment]);
 
   if (error) {
     return <main className="p-8 text-sm font-bold text-red-700">{error}</main>;
