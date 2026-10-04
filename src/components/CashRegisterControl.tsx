@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Banknote,
   CheckCircle2,
   CircleDollarSign,
   Eye,
@@ -9,6 +10,7 @@ import {
   LockKeyhole,
   Pencil,
   Power,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -529,60 +531,114 @@ export default function CashRegisterControl({
           </div>
         </section>
       ) : session.status === "OPEN" ? (
-        <section className="overflow-hidden rounded-[20px] border border-emerald-200 bg-[linear-gradient(135deg,#ffffff,#fbfffd)] shadow-[0_8px_24px_rgba(28,23,20,.045)]">
-          <div className="grid gap-3 p-3.5 xl:grid-cols-[minmax(260px,.9fr)_minmax(0,1.6fr)_auto] xl:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700">
-                <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
+        <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
+          <div className="grid gap-3 p-3 sm:p-4 xl:grid-cols-[minmax(330px,.95fr)_minmax(0,2.1fr)_auto] xl:items-stretch">
+            <div className="flex min-w-0 items-center gap-4 rounded-[20px] border border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f7fffb)] px-4 py-4 sm:px-5">
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-[inset_0_0_0_8px_rgba(16,185,129,.06)]">
+                <CheckCircle2 className="h-7 w-7" strokeWidth={2.15} />
               </span>
+
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <b className="text-[14px] font-black text-neutral-950">Caja abierta</b>
-                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 alento-ui-micro uppercase tracking-[0.08em] text-white">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <b className="text-[18px] font-black tracking-[-0.025em] text-neutral-950 sm:text-[20px]">
+                    Caja abierta
+                  </b>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 alento-ui-micro font-black uppercase tracking-[0.08em] text-white shadow-[0_5px_14px_rgba(5,150,105,.18)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
                     Activa
                   </span>
                 </div>
-                <p className="mt-0.5 truncate alento-ui-label text-neutral-400">
+
+                <p className="mt-1.5 truncate text-[11px] font-semibold text-neutral-500">
                   Abrió {session.openedByName} · {dateTimeLabel(session.openedAt)}
                 </p>
+
                 {data?.inheritedOpenSession && (
-                  <p className="mt-1 alento-ui-micro text-amber-600">
+                  <p className="mt-1 text-[9px] font-bold text-amber-600">
                     Abierta desde {dateLabel(session.businessDate)}.
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              <MiniMetric label="Disponible inicial" value={money(openingAvailableBalance)} />
-              <MiniMetric label="Préstamos iniciales" value={money(openingLoansReceivable)} />
-              <MiniMetric label="Total apertura" value={money(openingControlledBalance)} />
-              <MiniMetric
-                label="Disponible esperado"
-                value={liveSummaryReady ? money(expectedNow) : "Actualizando…"}
-                strong
-              />
+            <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfbfa] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-neutral-100 text-neutral-600">
+                  <Banknote className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
+                    Disponible inicial
+                  </span>
+                  <b className="mt-1 block truncate text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                    {money(openingAvailableBalance)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfbfa] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-neutral-100 text-neutral-600">
+                  <Landmark className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-neutral-400">
+                    Préstamos iniciales
+                  </span>
+                  <b className="mt-1 block truncate text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                    {money(openingLoansReceivable)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f7fffb)] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-emerald-100 text-emerald-700">
+                  <CircleDollarSign className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-emerald-700/55">
+                    Total apertura
+                  </span>
+                  <b className="mt-1 block truncate text-[17px] font-black tracking-[-0.025em] text-emerald-800">
+                    {money(openingControlledBalance)}
+                  </b>
+                </div>
+              </div>
+
+              <div className="flex min-w-0 items-center gap-3 rounded-[18px] border border-amber-100 bg-[linear-gradient(135deg,#fffdf7,#fff9e8)] px-3.5 py-3.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-amber-100 text-amber-700">
+                  <WalletCards className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0">
+                  <span className="block alento-ui-micro uppercase tracking-[0.11em] text-amber-700/55">
+                    Disponible esperado
+                  </span>
+                  <b className="mt-1 block truncate text-[17px] font-black tracking-[-0.025em] text-neutral-950">
+                    {liveSummaryReady ? money(expectedNow) : "Actualizando…"}
+                  </b>
+                </div>
+              </div>
             </div>
 
-            <div className="flex gap-2 xl:justify-end">
+            <div className="flex items-center justify-end gap-2 border-t border-neutral-100 pt-3 xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
               <button
                 type="button"
                 onClick={prepareEditOpening}
                 aria-label="Editar apertura"
                 title="Editar apertura"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
+                className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-neutral-200 bg-white text-neutral-700 shadow-[0_5px_14px_rgba(28,23,20,.08)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-neutral-50"
               >
-                <Pencil className="h-4 w-4" strokeWidth={2.1} />
+                <Pencil className="h-[18px] w-[18px]" strokeWidth={2} />
               </button>
+
               <button
                 type="button"
                 onClick={prepareClose}
                 disabled={!liveSummaryReady}
                 aria-label="Cerrar caja"
                 title={liveSummaryReady ? "Cerrar caja" : "Actualizando caja"}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand-red)] text-white shadow-[0_8px_18px_rgba(226,26,34,.18)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
+                className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[var(--brand-red)] text-white shadow-[0_8px_20px_rgba(226,26,34,.24)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-wait disabled:opacity-45 disabled:hover:translate-y-0"
               >
-                <Power className="h-4 w-4" strokeWidth={2.2} />
+                <Power className="h-[19px] w-[19px]" strokeWidth={2.15} />
               </button>
             </div>
           </div>
