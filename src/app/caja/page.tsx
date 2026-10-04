@@ -2071,17 +2071,17 @@ export default function CashPage() {
                         ))}
                       </div>
                     </section>
-                    {summary.loanRecoveredTotal > 0 && (
+                    {(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal) > 0 && (
                       <section className="rounded-[20px] border border-violet-100 bg-violet-50/45 p-4 shadow-sm">
                         <p className="alento-ui-label uppercase tracking-[0.11em] text-violet-500">
-                          Préstamos recuperados
+                          Préstamos pagados en efectivo
                         </p>
                         <div className="mt-3 flex items-center justify-between gap-3">
                           <span className="text-xs font-bold text-neutral-600">
-                            {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"}
+                            Dinero que sí entró a Caja
                           </span>
                           <b className="text-sm text-violet-700">
-                            {formatCOP(summary.loanRecoveredTotal)}
+                            {formatCOP(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal)}
                           </b>
                         </div>
                       </section>
