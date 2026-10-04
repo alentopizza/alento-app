@@ -911,75 +911,151 @@ export default function DriverHome({
   const mapFocusRadiusMeters =
     serviceCoverageRadiusMeters ?? acceptanceZone?.radiusMeters ?? null;
 
+  const operationalFitKey = [
+    mapMode,
+    mapFocusRadiusMeters ?? "no-radius",
+    activeDeliveryOrder?.id ?? "no-active",
+    activeDeliveryOrder?.status ?? "no-status",
+    ownOrders.map((order) => `${order.id}:${order.status}`).join(","),
+  ].join("|");
+
+  const fitOperationalView = useCallback(
+    (map: GoogleMap, google: GoogleRuntime) => {
+      if (
+        mapMode === "DELIVERY" &&
+        activeDeliveryOrder?.address?.latitude != null &&
+        activeDeliveryOrder.address.longitude != null
+      ) {
+        const destination = {
+          lat: activeDeliveryOrder.address.latitude,
+          lng: activeDeliveryOrder.address.longitude,
+        };
+
+        if (activeDeliveryOrder.status === "ARRIVED") {
+          map.panTo(destination);
+          map.setZoom(17);
+          return;
+        }
+
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(destination);
+
+        if (
+          driver.driverLatitude != null &&
+          driver.driverLongitude != null
+        ) {
+          bounds.extend({
+            lat: driver.driverLatitude,
+            lng: driver.driverLongitude,
+          });
+        } else if (store) {
+          bounds.extend({ lat: store.latitude, lng: store.longitude });
+        }
+
+        fitBoundsWithZoom(
+          map,
+          bounds,
+          { top: 118, right: 42, bottom: 182, left: 42 },
+          17,
+        );
+        return;
+      }
+
+      if (mapMode === "ASSIGNED" && store) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: store.latitude, lng: store.longitude });
+        let destinationCount = 0;
+
+        ownOrders.forEach((order) => {
+          if (
+            order.address?.latitude == null ||
+            order.address?.longitude == null
+          ) {
+            return;
+          }
+
+          bounds.extend({
+            lat: order.address.latitude,
+            lng: order.address.longitude,
+          });
+          destinationCount += 1;
+        });
+
+        if (destinationCount > 0) {
+          fitBoundsWithZoom(
+            map,
+            bounds,
+            { top: 118, right: 44, bottom: 188, left: 44 },
+            16,
+          );
+          return;
+        }
+      }
+
+      if (store && mapFocusRadiusMeters && mapFocusRadiusMeters > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: store.latitude, lng: store.longitude });
+        extendCircleBounds(bounds, store, mapFocusRadiusMeters);
+        fitBoundsWithZoom(
+          map,
+          bounds,
+          { top: 96, right: 38, bottom: 150, left: 38 },
+          17,
+          1,
+        );
+        return;
+      }
+
+      if (store) {
+        map.panTo({ lat: store.latitude, lng: store.longitude });
+        map.setZoom(15);
+        return;
+      }
+
+      if (
+        driver.driverLatitude != null &&
+        driver.driverLongitude != null
+      ) {
+        map.panTo({
+          lat: driver.driverLatitude,
+          lng: driver.driverLongitude,
+        });
+        map.setZoom(15);
+        return;
+      }
+
+      const first = operationalOrders.find(
+        (order) =>
+          order.address?.latitude != null &&
+          order.address?.longitude != null,
+      );
+
+      if (first?.address?.latitude != null && first.address.longitude != null) {
+        map.panTo({
+          lat: first.address.latitude,
+          lng: first.address.longitude,
+        });
+        map.setZoom(14);
+      }
+    },
+    [
+      activeDeliveryOrder,
+      driver.driverLatitude,
+      driver.driverLongitude,
+      mapFocusRadiusMeters,
+      mapMode,
+      operationalOrders,
+      ownOrders,
+      store,
+    ],
+  );
+
   const recenterMap = useCallback(() => {
     const map = mapRef.current;
     const google = getGoogle();
     if (!map || !google) return;
-
-    if (store && mapFocusRadiusMeters && mapFocusRadiusMeters > 0) {
-      const serviceBounds = new google.maps.LatLngBounds();
-      serviceBounds.extend({
-        lat: store.latitude,
-        lng: store.longitude,
-      });
-      extendCircleBounds(
-        serviceBounds,
-        store,
-        mapFocusRadiusMeters,
-      );
-      map.fitBounds(serviceBounds, {
-        top: 96,
-        right: 38,
-        bottom: 150,
-        left: 38,
-      });
-      window.setTimeout(() => {
-        const fittedZoom = map.getZoom();
-        if (fittedZoom != null) {
-          map.setZoom(Math.min(17, fittedZoom + 1));
-        }
-      }, 0);
-      return;
-    }
-
-    if (
-      driver.driverLatitude != null &&
-      driver.driverLongitude != null
-    ) {
-      map.panTo({
-        lat: driver.driverLatitude,
-        lng: driver.driverLongitude,
-      });
-      map.setZoom(15);
-      return;
-    }
-
-    if (store) {
-      map.panTo({ lat: store.latitude, lng: store.longitude });
-      map.setZoom(15);
-      return;
-    }
-
-    const first = orders.find(
-      (order) =>
-        order.address?.latitude != null &&
-        order.address?.longitude != null,
-    );
-
-    if (first?.address?.latitude != null && first.address.longitude != null) {
-      map.panTo({
-        lat: first.address.latitude,
-        lng: first.address.longitude,
-      });
-      map.setZoom(14);
-    }
-  }, [
-    driver.driverLatitude,
-    driver.driverLongitude,
-    mapFocusRadiusMeters,
-    orders,
-    store,
-  ]);
+    fitOperationalView(map, google);
+  }, [fitOperationalView]);
 
   const zoomMap = useCallback((delta: number) => {
     const map = mapRef.current;
