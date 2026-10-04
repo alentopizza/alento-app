@@ -470,8 +470,8 @@ export default function DriverHome({
 
   const activeDeliveryOrder = useMemo(
     () =>
-      ownOrders.find((order) => order.status === "OUT_FOR_DELIVERY") ??
       ownOrders.find((order) => order.status === "ARRIVED") ??
+      ownOrders.find((order) => order.status === "OUT_FOR_DELIVERY") ??
       null,
     [ownOrders],
   );
@@ -492,9 +492,9 @@ export default function DriverHome({
     if (mapMode === "DELIVERY") {
       return [...ownOrders].sort((a, b) => {
         const rank = (status: string) =>
-          status === "OUT_FOR_DELIVERY"
+          status === "ARRIVED"
             ? 0
-            : status === "ARRIVED"
+            : status === "OUT_FOR_DELIVERY"
               ? 1
               : 2;
         return rank(a.status) - rank(b.status);
@@ -1381,7 +1381,7 @@ export default function DriverHome({
           );
 
         if (shouldFit && points > 0) {
-          fitOperationalView(mapRef.current, google);
+          fitOperationalView(mapRef.current!, google);
           initialMapFitDoneRef.current = true;
           lastOperationalFitKeyRef.current = operationalFitKey;
           fitForNewRequestRef.current = false;
