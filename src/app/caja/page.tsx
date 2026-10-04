@@ -590,14 +590,6 @@ export default function CashPage() {
     });
   }, [summary, expenseCategoryFilter, expenseQuery]);
 
-  const selectedPayrollWorker = useMemo(
-    () =>
-      payrollWorkerId == null
-        ? null
-        : payrollWorkers.find((worker) => worker.id === payrollWorkerId) ?? null,
-    [payrollWorkerId, payrollWorkers],
-  );
-
   const selectedPayrollWorkerShifts = useMemo(
     () =>
       payrollWorkerId == null
