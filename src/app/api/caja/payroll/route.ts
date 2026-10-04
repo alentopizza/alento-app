@@ -381,10 +381,14 @@ export async function POST(request: NextRequest) {
           month: "short",
         }).format(value);
 
-      const automaticNote =
+      const baseNote =
         shifts.length === 1
           ? `Pago de nómina · ${worker.name} · turno ${day(firstDate)}`
           : `Pago de nómina · ${worker.name} · ${shifts.length} turnos · ${day(firstDate)} – ${day(lastDate)}`;
+      const automaticNote =
+        loanDeduction > 0
+          ? `${baseNote} · bruto ${Math.round(grossAmount).toLocaleString("es-CO")} · préstamos -${Math.round(loanDeduction).toLocaleString("es-CO")} · neto ${Math.round(netAmount).toLocaleString("es-CO")}`
+          : baseNote;
 
       const expense = await tx.cashExpense.create({
         data: {
