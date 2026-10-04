@@ -61,23 +61,36 @@ export async function POST(
 
   const updatedAt = new Date();
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: {
-      driverLatitude: latitude,
-      driverLongitude: longitude,
-      driverLocationAccuracy:
-        accuracy != null && accuracy >= 0 ? accuracy : null,
-      driverLocationUpdatedAt: updatedAt,
-    },
-  });
+  const normalizedAccuracy =
+    accuracy != null && accuracy >= 0 ? accuracy : null;
+
+  await prisma.$transaction([
+    prisma.order.update({
+      where: { id: order.id },
+      data: {
+        driverLatitude: latitude,
+        driverLongitude: longitude,
+        driverLocationAccuracy: normalizedAccuracy,
+        driverLocationUpdatedAt: updatedAt,
+      },
+    }),
+    prisma.user.update({
+      where: { id: parsed.driverId },
+      data: {
+        driverLatitude: latitude,
+        driverLongitude: longitude,
+        driverLocationAccuracy: normalizedAccuracy,
+        driverLocationUpdatedAt: updatedAt,
+        driverLocationSource: "WEB",
+      },
+    }),
+  ]);
 
   return NextResponse.json({
     location: {
       latitude,
       longitude,
-      accuracy:
-        accuracy != null && accuracy >= 0 ? accuracy : null,
+      accuracy: normalizedAccuracy,
       updatedAt: updatedAt.toISOString(),
     },
   });
