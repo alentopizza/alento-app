@@ -106,7 +106,6 @@ type IncomeRow = {
   occurredAt: string;
   source: string;
   createdByName: string;
-  payrollPaymentId?: number | null;
 };
 
 type ExpenseRow = {
@@ -118,6 +117,7 @@ type ExpenseRow = {
   occurredAt: string;
   source: string;
   createdByName: string;
+  payrollPaymentId?: number | null;
 };
 
 type DriverPayoutOption = {
