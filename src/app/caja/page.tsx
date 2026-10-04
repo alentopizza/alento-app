@@ -1415,7 +1415,7 @@ export default function CashPage() {
                   <p className="mt-1 text-[11px] text-neutral-500">
                     {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"}
                     {(summary.loanRecoveredPayrollTotal ?? 0) > 0
-                      ? ` · Nómina ${formatCOP(summary.loanRecoveredPayrollTotal ?? 0)}`
+                      ? ` · Nómina ${formatCOP(summary.loanRecoveredPayrollTotal ?? 0)} (sin entrada de efectivo)`
                       : ""}
                   </p>
                 </button>
@@ -2297,12 +2297,11 @@ export default function CashPage() {
 
               {summaryDetail === "NET" && (
                 <div className="space-y-4">
-                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     {[
                       ["Cobros de ventas", summary.receivedTotal, "text-emerald-700"],
                       ["Otros ingresos", summary.otherIncomeTotal, "text-teal-700"],
                       ["Abonos préstamos en efectivo", summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal, "text-emerald-700"],
-                      ["Descuento nómina a préstamos", summary.loanRecoveredPayrollTotal ?? 0, "text-violet-700"],
                       ["Salidas reales", -summary.expensesTotal, "text-rose-700"],
                       ["Préstamos entregados", -summary.loanDisbursedTotal, "text-rose-700"],
                     ].map(([label, amount, tone]) => (
@@ -2315,6 +2314,13 @@ export default function CashPage() {
                       </div>
                     ))}
                   </section>
+
+                  {(summary.loanRecoveredPayrollTotal ?? 0) > 0 && (
+                    <div className="rounded-[18px] border border-violet-100 bg-violet-50/55 px-4 py-3 text-[11px] text-violet-800">
+                      <b>Descuento de nómina a préstamos: {formatCOP(summary.loanRecoveredPayrollTotal ?? 0)}.</b>{" "}
+                      Reduce la cartera del trabajador y ya reduce la salida de nómina, por eso no se suma otra vez como entrada de efectivo.
+                    </div>
+                  )}
 
                   <div className="grid gap-4 xl:grid-cols-2">
                     <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
