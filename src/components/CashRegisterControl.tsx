@@ -6,7 +6,6 @@ import {
   CircleDollarSign,
   Eye,
   Landmark,
-  LockKeyhole,
   Pencil,
   Power,
   X,
