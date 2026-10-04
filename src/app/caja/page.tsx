@@ -2675,15 +2675,7 @@ export default function CashPage() {
                 </button>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                  <span className="alento-ui-micro uppercase text-white/35">
-                    Trabajador
-                  </span>
-                  <b className="mt-1 block truncate text-sm">
-                    {selectedPayrollWorker?.name ?? "Sin seleccionar"}
-                  </b>
-                </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                   <span className="alento-ui-micro uppercase text-white/35">
                     Turnos seleccionados
@@ -2789,84 +2781,34 @@ export default function CashPage() {
               </aside>
 
               <div className="flex min-h-0 flex-col">
-                <div className="shrink-0 border-b border-neutral-200 bg-[#faf9f7] p-3 sm:p-4">
-                  <div className="grid gap-3 lg:grid-cols-[1fr_170px_150px] lg:items-end">
+                <div className="shrink-0 border-b border-neutral-200 bg-[#faf9f7] px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
-                        Trabajador
-                      </label>
-                      <select
-                        value={payrollWorkerId ?? ""}
-                        disabled={payrollLoading || payrollSaving}
-                        onChange={(event) => {
-                          const value = Number(event.target.value);
-                          selectPayrollWorker(
-                            Number.isInteger(value) && value > 0 ? value : null,
-                          );
-                        }}
-                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none disabled:bg-neutral-100"
-                      >
-                        <option value="">Selecciona un trabajador</option>
-                        {payrollWorkers.map((worker) => (
-                          <option key={worker.id} value={worker.id}>
-                            {worker.name} · {worker.pendingCount} turnos · {formatCOP(worker.pendingAmount)}
-                          </option>
-                        ))}
-                      </select>
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                        Turnos pendientes
+                      </p>
+                      <h3 className="mt-0.5 text-base font-black text-neutral-950">
+                        {payrollWorkerId == null
+                          ? "Selecciona un trabajador"
+                          : "Organizados por mes"}
+                      </h3>
                     </div>
 
-                    <label>
-                      <span className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
-                        Fecha pago
-                      </span>
-                      <input
-                        type="date"
-                        value={payrollDate}
-                        disabled={payrollSaving}
-                        onChange={(event) => setPayrollDate(event.target.value)}
-                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
-                      />
-                    </label>
-
-                    <label>
-                      <span className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
-                        Hora
-                      </span>
-                      <input
-                        type="time"
-                        value={payrollTime}
-                        disabled={payrollSaving}
-                        onChange={(event) => setPayrollTime(event.target.value)}
-                        className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
-                      />
-                    </label>
-                  </div>
-
-                  {selectedPayrollWorker && (
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-amber-100 bg-amber-50/65 px-3 py-2.5">
-                      <div>
-                        <span className="alento-ui-micro uppercase tracking-[0.1em] text-amber-600">
-                          Pendiente total
-                        </span>
-                        <b className="ml-2 text-sm text-amber-800">
-                          {formatCOP(selectedPayrollWorker.pendingAmount)}
-                        </b>
-                      </div>
+                    {payrollWorkerId != null && selectedPayrollWorkerShifts.length > 0 && (
                       <button
                         type="button"
                         onClick={toggleAllPayrollShifts}
-                        disabled={payrollSaving || selectedPayrollWorkerShifts.length === 0}
-                        className="h-8 rounded-lg border border-amber-200 bg-white px-3 alento-ui-micro font-black text-amber-800 disabled:opacity-40"
+                        disabled={payrollSaving}
+                        className="h-9 rounded-xl border border-neutral-200 bg-white px-3 alento-ui-micro font-black text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-40"
                       >
-                        {selectedPayrollWorkerShifts.length > 0 &&
-                        selectedPayrollWorkerShifts.every((shift) =>
+                        {selectedPayrollWorkerShifts.every((shift) =>
                           payrollSelectedShiftIds.includes(shift.id),
                         )
                           ? "Quitar todos"
                           : "Seleccionar todos"}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
@@ -2877,7 +2819,7 @@ export default function CashPage() {
                           Selecciona un trabajador
                         </b>
                         <p className="mt-1 text-[10px] text-neutral-400">
-                          Aquí aparecerán todos sus turnos pendientes para que elijas cuáles pagar.
+                          Usa las tarjetas de la izquierda. Los turnos pendientes aparecerán separados por mes.
                         </p>
                       </div>
                     </div>
@@ -2890,51 +2832,142 @@ export default function CashPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {selectedPayrollWorkerShifts.map((shift) => {
-                        const selected = payrollSelectedShiftIds.includes(shift.id);
+                    <div className="space-y-3">
+                      {selectedPayrollMonthGroups.map((group) => {
+                        const monthShiftIds = group.shifts.map((shift) => shift.id);
+                        const selectedCount = monthShiftIds.filter((id) =>
+                          payrollSelectedShiftIds.includes(id),
+                        ).length;
+                        const allSelected =
+                          monthShiftIds.length > 0 &&
+                          selectedCount === monthShiftIds.length;
+                        const expanded = payrollExpandedMonths.includes(group.key);
+
                         return (
-                          <button
-                            key={shift.id}
-                            type="button"
-                            disabled={payrollSaving}
-                            onClick={() => togglePayrollShift(shift.id)}
+                          <section
+                            key={group.key}
                             className={
-                              "grid w-full gap-3 rounded-[16px] border p-3 text-left transition sm:grid-cols-[28px_180px_minmax(0,1fr)_130px] sm:items-center " +
-                              (selected
-                                ? "border-emerald-200 bg-emerald-50/55"
-                                : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-[#faf9f7]")
+                              "overflow-hidden rounded-[20px] border bg-white transition " +
+                              (selectedCount > 0
+                                ? "border-emerald-200 shadow-[0_7px_20px_rgba(5,150,105,.06)]"
+                                : "border-neutral-200")
                             }
                           >
-                            <span
-                              className={
-                                "flex h-6 w-6 items-center justify-center rounded-[7px] border text-[13px] font-black " +
-                                (selected
-                                  ? "border-emerald-600 bg-emerald-600 text-white"
-                                  : "border-neutral-300 bg-white text-transparent")
-                              }
-                              aria-hidden="true"
-                            >
-                              ✓
-                            </span>
+                            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#faf9f7] px-4 py-3.5">
+                              <button
+                                type="button"
+                                onClick={() => togglePayrollMonth(group.key)}
+                                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              >
+                                <span
+                                  className={
+                                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] text-[15px] font-black transition " +
+                                    (expanded
+                                      ? "bg-neutral-950 text-white"
+                                      : "bg-neutral-100 text-neutral-500")
+                                  }
+                                  aria-hidden="true"
+                                >
+                                  {expanded ? "−" : "+"}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <b className="text-[14px] font-black text-neutral-950">
+                                      {group.label}
+                                    </b>
+                                    <span className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 alento-ui-micro font-bold text-neutral-500">
+                                      {group.shifts.length} turno{group.shifts.length === 1 ? "" : "s"}
+                                    </span>
+                                    {selectedCount > 0 && (
+                                      <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 alento-ui-micro font-black text-emerald-700">
+                                        {selectedCount} seleccionado{selectedCount === 1 ? "" : "s"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-[10px] text-neutral-400">
+                                    {expanded ? "Ocultar turnos" : "Ver turnos del mes"}
+                                  </p>
+                                </div>
+                              </button>
 
-                            <div>
-                              <b className="block text-xs text-neutral-950">
-                                {payrollDayLabel(shift.startsAt)}
-                              </b>
-                              <span className="mt-0.5 block text-[10px] text-neutral-400">
-                                {payrollTimeLabel(shift.startsAt)} – {payrollTimeLabel(shift.endsAt)}
-                              </span>
+                              <div className="flex shrink-0 items-center gap-3">
+                                <div className="text-right">
+                                  <span className="block alento-ui-micro uppercase tracking-[0.08em] text-neutral-400">
+                                    Total del mes
+                                  </span>
+                                  <b className="mt-0.5 block text-[15px] font-black text-neutral-950">
+                                    {formatCOP(group.total)}
+                                  </b>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => togglePayrollMonthSelection(group.key)}
+                                  disabled={payrollSaving}
+                                  className={
+                                    "h-9 rounded-xl border px-3 alento-ui-micro font-black transition disabled:opacity-40 " +
+                                    (allSelected
+                                      ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                                      : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300")
+                                  }
+                                >
+                                  {allSelected ? "Quitar mes" : "Seleccionar mes"}
+                                </button>
+                              </div>
                             </div>
 
-                            <p className="truncate text-[10px] text-neutral-500">
-                              {shift.notes || "Sin observación"}
-                            </p>
+                            {expanded && (
+                              <div className="space-y-2 border-t border-neutral-100 p-3">
+                                {group.shifts.map((shift) => {
+                                  const selected =
+                                    payrollSelectedShiftIds.includes(shift.id);
 
-                            <b className="text-right text-sm font-black text-neutral-950">
-                              {formatCOP(shift.amount)}
-                            </b>
-                          </button>
+                                  return (
+                                    <button
+                                      key={shift.id}
+                                      type="button"
+                                      disabled={payrollSaving}
+                                      onClick={() => togglePayrollShift(shift.id)}
+                                      className={
+                                        "grid w-full gap-3 rounded-[15px] border p-3 text-left transition sm:grid-cols-[28px_190px_minmax(0,1fr)_130px] sm:items-center " +
+                                        (selected
+                                          ? "border-emerald-200 bg-emerald-50/55"
+                                          : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-[#faf9f7]")
+                                      }
+                                    >
+                                      <span
+                                        className={
+                                          "flex h-6 w-6 items-center justify-center rounded-[7px] border text-[13px] font-black " +
+                                          (selected
+                                            ? "border-emerald-600 bg-emerald-600 text-white"
+                                            : "border-neutral-300 bg-white text-transparent")
+                                        }
+                                        aria-hidden="true"
+                                      >
+                                        ✓
+                                      </span>
+
+                                      <div>
+                                        <b className="block text-xs text-neutral-950">
+                                          {payrollDayLabel(shift.startsAt)}
+                                        </b>
+                                        <span className="mt-0.5 block text-[10px] text-neutral-400">
+                                          {payrollTimeLabel(shift.startsAt)} – {payrollTimeLabel(shift.endsAt)}
+                                        </span>
+                                      </div>
+
+                                      <p className="truncate text-[10px] text-neutral-500">
+                                        {shift.notes || "Sin observación"}
+                                      </p>
+
+                                      <b className="text-right text-sm font-black text-neutral-950">
+                                        {formatCOP(shift.amount)}
+                                      </b>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </section>
                         );
                       })}
                     </div>
