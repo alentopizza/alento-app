@@ -470,6 +470,7 @@ export default function CashPage() {
   const [payrollWorkers, setPayrollWorkers] = useState<PayrollWorker[]>([]);
   const [payrollShifts, setPayrollShifts] = useState<PayrollShift[]>([]);
   const [payrollLoans, setPayrollLoans] = useState<PayrollLoan[]>([]);
+  const [payrollCashAvailable, setPayrollCashAvailable] = useState<number | null>(null);
   const [payrollWorkerId, setPayrollWorkerId] = useState<number | null>(null);
   const [payrollSelectedShiftIds, setPayrollSelectedShiftIds] = useState<number[]>([]);
   const [payrollExpandedMonths, setPayrollExpandedMonths] = useState<string[]>([]);
@@ -728,6 +729,25 @@ export default function CashPage() {
     selectedPayrollTotal - selectedPayrollLoanDeductionTotal,
   );
 
+  const payrollLoanBalanceByWorker = useMemo(() => {
+    const balances = new Map<number, number>();
+
+    payrollLoans.forEach((loan) => {
+      if (loan.workerId == null) return;
+      balances.set(
+        loan.workerId,
+        (balances.get(loan.workerId) ?? 0) + loan.outstandingAmount,
+      );
+    });
+
+    return balances;
+  }, [payrollLoans]);
+
+  const payrollCashAfterSelection =
+    payrollCashAvailable == null
+      ? null
+      : payrollCashAvailable - selectedPayrollNetTotal;
+
   function applyRangePreset(preset: Exclude<RangePreset, "CUSTOM">) {
     const current = localDateInput();
 
@@ -862,14 +882,44 @@ export default function CashPage() {
     setPayrollSelectedShiftIds([]);
     setPayrollExpandedMonths([]);
     setPayrollLoanDeductions({});
+    setPayrollCashAvailable(null);
     setPayrollNote("");
 
     try {
-      const response = await fetch("/api/caja/payroll", { cache: "no-store" });
+      const [response, cashResponse] = await Promise.all([
+        fetch("/api/caja/payroll", { cache: "no-store" }),
+        fetch(
+          "/api/caja/register-session?date=" +
+            encodeURIComponent(startDate) +
+            "&includeMovement=1",
+          { cache: "no-store" },
+        ),
+      ]);
       const data = await response.json();
+      const cashData = await cashResponse.json().catch(() => null);
 
       if (!response.ok) {
         throw new Error(data.error || "No fue posible cargar la nómina pendiente.");
+      }
+
+      if (cashResponse.ok && cashData?.session?.status === "OPEN") {
+        const openingLoans = Number(
+          cashData.session.openingLoanReceivable ??
+            cashData.openingLoansReceivable ??
+            0,
+        );
+        const openingAvailable =
+          cashData.session.openingControlledBalance != null
+            ? Number(cashData.session.openingBalance ?? 0)
+            : Math.max(
+                0,
+                Number(cashData.session.openingBalance ?? 0) -
+                  openingLoans,
+              );
+        const currentMovement = Number(cashData.movement?.netMovement ?? 0);
+        setPayrollCashAvailable(
+          Math.round(openingAvailable + currentMovement),
+        );
       }
 
       const workers = (data.workers ?? []) as PayrollWorker[];
