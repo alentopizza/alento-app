@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       rawShiftIds.map((value) => Number(value)),
     ),
   ];
-  const occurredAt = new Date(String(body?.occurredAt || ""));
+  const occurredAt = new Date();
   const note =
     typeof body?.note === "string"
       ? body.note.trim().slice(0, 240) || null
@@ -182,13 +182,6 @@ export async function POST(request: NextRequest) {
   ) {
     return NextResponse.json(
       { error: "Selecciona al menos un turno pendiente." },
-      { status: 400 },
-    );
-  }
-
-  if (Number.isNaN(occurredAt.getTime())) {
-    return NextResponse.json(
-      { error: "La fecha del pago no es válida." },
       { status: 400 },
     );
   }
