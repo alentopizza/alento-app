@@ -98,16 +98,31 @@ export async function POST(
     );
   }
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: {
-      driverLatitude: latitude,
-      driverLongitude: longitude,
-      driverLocationAccuracy:
-        accuracy != null && accuracy >= 0 ? accuracy : null,
-      driverLocationUpdatedAt: new Date(),
-    },
-  });
+  const updatedAt = new Date();
+  const normalizedAccuracy =
+    accuracy != null && accuracy >= 0 ? accuracy : null;
+
+  await prisma.$transaction([
+    prisma.order.update({
+      where: { id: order.id },
+      data: {
+        driverLatitude: latitude,
+        driverLongitude: longitude,
+        driverLocationAccuracy: normalizedAccuracy,
+        driverLocationUpdatedAt: updatedAt,
+      },
+    }),
+    prisma.user.update({
+      where: { id: parsed.driverId },
+      data: {
+        driverLatitude: latitude,
+        driverLongitude: longitude,
+        driverLocationAccuracy: normalizedAccuracy,
+        driverLocationUpdatedAt: updatedAt,
+        driverLocationSource: "WEB",
+      },
+    }),
+  ]);
 
   const persistedTravelMode = normalizeDeliveryTravelMode(
     order.deliveryTravelMode,
@@ -144,9 +159,8 @@ export async function POST(
     driver: {
       latitude,
       longitude,
-      accuracy:
-        accuracy != null && accuracy >= 0 ? accuracy : null,
-      updatedAt: new Date().toISOString(),
+      accuracy: normalizedAccuracy,
+      updatedAt: updatedAt.toISOString(),
     },
     destination: {
       formattedAddress:
