@@ -167,7 +167,13 @@ type CashLoanChange = {
 };
 
 type Tab = "SUMMARY" | "EXPENSES" | "INCOMES" | "LOANS" | "CASHES";
-type SummaryDetail = "SALES" | "INFLOW" | "INCOMES" | "EXPENSES" | "NET";
+type SummaryDetail =
+  | "SALES"
+  | "INFLOW"
+  | "INCOMES"
+  | "RECOVERIES"
+  | "EXPENSES"
+  | "NET";
 type RangePreset = "TODAY" | "YESTERDAY" | "WEEK" | "MONTH" | "CUSTOM";
 
 function formatCOP(value: number) {
@@ -933,7 +939,16 @@ export default function CashPage() {
           </div>
         ) : summary ? (
           <>
-            <section className={`grid gap-3 md:grid-cols-2 ${summary.otherIncomeTotal > 0 ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
+            <section
+              className={`grid gap-3 md:grid-cols-2 ${
+                summary.otherIncomeTotal > 0 && summary.loanRecoveredTotal > 0
+                  ? "xl:grid-cols-3 2xl:grid-cols-6"
+                  : summary.otherIncomeTotal > 0 ||
+                      summary.loanRecoveredTotal > 0
+                    ? "xl:grid-cols-5"
+                    : "xl:grid-cols-4"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => openSummaryDetail("SALES")}
@@ -952,9 +967,6 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   {summary.orderCount} pedido{summary.orderCount === 1 ? "" : "s"} vendido{summary.orderCount === 1 ? "" : "s"}
                 </p>
-                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
-                  Ver detalle →
-                </span>
               </button>
 
               <button
@@ -966,18 +978,18 @@ export default function CashPage() {
                     <ArrowDownCircle className="h-5 w-5" />
                   </span>
                   <span className="alento-ui-label uppercase tracking-[0.12em] text-emerald-600">
-                    Entró total
+                    Entradas totales
                   </span>
                 </div>
                 <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
                   {formatCOP(summary.totalInflow)}
                 </b>
                 <p className="mt-1 text-[11px] text-neutral-500">
-                  Cobros de ventas {formatCOP(summary.receivedTotal)}
+                  Cobros {formatCOP(summary.receivedTotal)}
+                  {summary.loanRecoveredTotal > 0
+                    ? ` · Préstamos ${formatCOP(summary.loanRecoveredTotal)}`
+                    : ""}
                 </p>
-                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
-                  Ver detalle →
-                </span>
               </button>
 
               {summary.otherIncomeTotal > 0 && (
@@ -999,9 +1011,29 @@ export default function CashPage() {
                   <p className="mt-1 text-[11px] text-neutral-500">
                     {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
                   </p>
-                  <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
-                    Ver detalle →
-                  </span>
+                </button>
+              )}
+
+              {summary.loanRecoveredTotal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => openSummaryDetail("RECOVERIES")}
+                  className="group w-full rounded-[22px] border border-violet-100 bg-[linear-gradient(145deg,#ffffff,#f7f4ff)] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                      <CircleDollarSign className="h-5 w-5" />
+                    </span>
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-violet-600">
+                      Préstamos recuperados
+                    </span>
+                  </div>
+                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-violet-700">
+                    {formatCOP(summary.loanRecoveredTotal)}
+                  </b>
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"} recibido{summary.loanRepayments.length === 1 ? "" : "s"}
+                  </p>
                 </button>
               )}
 
@@ -1023,9 +1055,6 @@ export default function CashPage() {
                 <p className="mt-1 text-[11px] text-neutral-500">
                   {summary.expenseCount} salida{summary.expenseCount === 1 ? "" : "s"} registrada{summary.expenseCount === 1 ? "" : "s"}
                 </p>
-                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
-                  Ver detalle →
-                </span>
               </button>
 
               <button
@@ -1053,16 +1082,24 @@ export default function CashPage() {
                 }`}>
                   {formatCOP(summary.netTotal)}
                 </b>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  Cobros + otros ingresos + abonos − salidas − préstamos
-                </p>
-                {(summary.loanDisbursedTotal > 0 ||
-                  summary.loanRecoveredTotal > 0) && (
-                  <p className="mt-1 alento-ui-label font-bold text-neutral-400">
-                    Prestado {formatCOP(summary.loanDisbursedTotal)} · Recuperado{" "}
-                    {formatCOP(summary.loanRecoveredTotal)}
-                  </p>
-                )}
+                <div className="mt-2 grid gap-1.5 text-[10px] sm:grid-cols-2">
+                  <div className="rounded-lg bg-emerald-50 px-2.5 py-2">
+                    <span className="block font-bold text-emerald-600/70">
+                      Entradas
+                    </span>
+                    <b className="mt-0.5 block text-[11px] font-black text-emerald-700">
+                      + {formatCOP(summary.totalInflow)}
+                    </b>
+                  </div>
+                  <div className="rounded-lg bg-rose-50 px-2.5 py-2">
+                    <span className="block font-bold text-rose-600/70">
+                      Egresos
+                    </span>
+                    <b className="mt-0.5 block text-[11px] font-black text-rose-700">
+                      − {formatCOP(summary.expensesTotal + summary.loanDisbursedTotal)}
+                    </b>
+                  </div>
+                </div>
               </button>
             </section>
 
@@ -1281,9 +1318,11 @@ export default function CashPage() {
                         ? "Dinero que entró"
                         : summaryDetail === "INCOMES"
                           ? "Otros ingresos"
-                          : summaryDetail === "EXPENSES"
-                            ? "Salidas"
-                            : "Composición del flujo neto"}
+                          : summaryDetail === "RECOVERIES"
+                            ? "Préstamos recuperados"
+                            : summaryDetail === "EXPENSES"
+                              ? "Salidas"
+                              : "Composición del flujo neto"}
                   </h2>
                   <p className="mt-1 text-[10px] font-semibold text-white/45">
                     {summary.startDate === summary.endDate
@@ -1339,7 +1378,7 @@ export default function CashPage() {
                 {summaryDetail === "INFLOW" && (
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                      <span className="alento-ui-micro uppercase text-white/35">Entró total</span>
+                      <span className="alento-ui-micro uppercase text-white/35">Entradas totales</span>
                       <b className="mt-1 block text-lg text-emerald-300">{formatCOP(summary.totalInflow)}</b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
@@ -1351,8 +1390,8 @@ export default function CashPage() {
                       <b className="mt-1 block text-lg">{formatCOP(summary.otherIncomeTotal)}</b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                      <span className="alento-ui-micro uppercase text-white/35">Movimientos</span>
-                      <b className="mt-1 block text-lg">{summary.paymentCount + summary.otherIncomeCount}</b>
+                      <span className="alento-ui-micro uppercase text-white/35">Préstamos recuperados</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanRecoveredTotal)}</b>
                     </div>
                   </>
                 )}
@@ -1370,7 +1409,70 @@ export default function CashPage() {
                   </>
                 )}
 
-                {summaryDetail === "EXPENSES" && (
+                {summaryDetail === "RECOVERIES" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Recuperado</span>
+                      <b className="mt-1 block text-lg text-violet-300">{formatCOP(summary.loanRecoveredTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Abonos</span>
+                      <b className="mt-1 block text-lg">{summary.loanRepayments.length}</b>
+                    </div>
+                  </>
+                )}
+
+                {summaryDetail === "RECOVERIES" && (
+                <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                        Cartera
+                      </p>
+                      <h3 className="mt-0.5 text-lg font-black">Abonos recibidos de préstamos</h3>
+                    </div>
+                    <b className="text-sm text-violet-700">
+                      + {formatCOP(summary.loanRecoveredTotal)}
+                    </b>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                    {summary.loanRepayments.map((repayment) => (
+                      <article
+                        key={repayment.id}
+                        className="rounded-[15px] border border-violet-100 bg-violet-50/35 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-xs text-neutral-950">
+                              {repayment.workerName}
+                            </b>
+                            <p className="mt-1 text-[9px] text-neutral-400">
+                              {dateTimeLabel(repayment.paidAt)}
+                            </p>
+                            <span className="mt-2 inline-flex rounded-full border border-violet-100 bg-white px-2 py-1 alento-ui-micro font-bold text-violet-700">
+                              {repayment.method === "DESCUENTO_NOMINA"
+                                ? "Descuento nómina"
+                                : "Pago recibido"}
+                            </span>
+                          </div>
+                          <b className="shrink-0 text-xs text-violet-700">
+                            + {formatCOP(repayment.amount)}
+                          </b>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  {summary.loanRepayments.length === 0 && (
+                    <div className="mt-3 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-400">
+                      No hay abonos de préstamos en este período.
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {summaryDetail === "EXPENSES" && (
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                       <span className="alento-ui-micro uppercase text-white/35">Salió</span>
@@ -1583,6 +1685,21 @@ export default function CashPage() {
                         ))}
                       </div>
                     </section>
+                    {summary.loanRecoveredTotal > 0 && (
+                      <section className="rounded-[20px] border border-violet-100 bg-violet-50/45 p-4 shadow-sm">
+                        <p className="alento-ui-label uppercase tracking-[0.11em] text-violet-500">
+                          Préstamos recuperados
+                        </p>
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <span className="text-xs font-bold text-neutral-600">
+                            {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"}
+                          </span>
+                          <b className="text-sm text-violet-700">
+                            {formatCOP(summary.loanRecoveredTotal)}
+                          </b>
+                        </div>
+                      </section>
+                    )}
                     <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
                       <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Otros ingresos por tipo</p>
                       <div className="mt-4 space-y-3">
