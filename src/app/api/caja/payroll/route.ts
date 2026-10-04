@@ -155,9 +155,14 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const workerId = Number(body?.workerId);
-  const shiftIds = Array.isArray(body?.shiftIds)
-    ? [...new Set(body.shiftIds.map((value: unknown) => Number(value)))]
+  const rawShiftIds: unknown[] = Array.isArray(body?.shiftIds)
+    ? body.shiftIds
     : [];
+  const shiftIds: number[] = [
+    ...new Set<number>(
+      rawShiftIds.map((value) => Number(value)),
+    ),
+  ];
   const occurredAt = new Date(String(body?.occurredAt || ""));
   const note =
     typeof body?.note === "string"
