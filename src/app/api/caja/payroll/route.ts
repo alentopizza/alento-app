@@ -82,7 +82,7 @@ export async function GET() {
       where: {
         status: { not: "PAID" },
         payrollPaymentItem: null,
-        endsAt: { lte: new Date() },
+        startsAt: { lte: new Date() },
       },
       include: {
         user: {
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
         (shift) =>
           shift.status === "PAID" ||
           shift.payrollPaymentItem != null ||
-          shift.endsAt > occurredAt,
+          shift.startsAt > occurredAt,
       );
 
       if (unavailable) {
