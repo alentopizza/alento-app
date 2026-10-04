@@ -224,6 +224,14 @@ function formatCOP(value: number) {
   }).format(value);
 }
 
+function formatDigits(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  return new Intl.NumberFormat("es-CO", {
+    maximumFractionDigits: 0,
+  }).format(Number(digits));
+}
+
 function localDateInput(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Bogota",
@@ -1670,6 +1678,19 @@ export default function CashPage() {
                         <b className="text-base font-black text-rose-700">
                           {formatCOP(expense.amount)}
                         </b>
+                        {expense.source === "PAYROLL" &&
+                          expense.payrollPaymentId != null && (
+                            <a
+                              href={`/caja/nomina/${expense.payrollPaymentId}/imprimir`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
+                              title="Imprimir comprobante de nómina"
+                              aria-label="Imprimir comprobante de nómina"
+                            >
+                              <Printer className="h-4 w-4" />
+                            </a>
+                          )}
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(expense)}
