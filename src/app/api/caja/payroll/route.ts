@@ -126,11 +126,49 @@ export async function GET() {
       });
     }
 
+    const workerIds = [...workers.keys()];
+    const loans =
+      workerIds.length === 0
+        ? []
+        : await prisma.cashLoan.findMany({
+            where: {
+              workerId: { in: workerIds },
+              historicalPaidWithoutRepayment: false,
+            },
+            include: {
+              repayments: {
+                select: { amount: true },
+              },
+            },
+            orderBy: [{ issuedAt: "asc" }, { id: "asc" }],
+          });
+
+    const pendingLoans = loans
+      .map((loan) => {
+        const principal = Number(loan.principal);
+        const repaidAmount = loan.repayments.reduce(
+          (sum, repayment) => sum + Number(repayment.amount),
+          0,
+        );
+        return {
+          id: loan.id,
+          workerId: loan.workerId,
+          workerName: loan.workerName,
+          note: loan.note,
+          principal,
+          issuedAt: loan.issuedAt.toISOString(),
+          repaidAmount,
+          outstandingAmount: Math.max(0, principal - repaidAmount),
+        };
+      })
+      .filter((loan) => loan.outstandingAmount > 0);
+
     return NextResponse.json({
       workers: [...workers.values()].sort((a, b) =>
         a.name.localeCompare(b.name, "es"),
       ),
       shifts: shifts.map(serializePendingShift),
+      loans: pendingLoans,
     });
   } catch (error) {
     console.error("Payroll pending load error", error);
@@ -163,6 +201,32 @@ export async function POST(request: NextRequest) {
       rawShiftIds.map((value) => Number(value)),
     ),
   ];
+  const rawLoanDeductions: unknown[] = Array.isArray(body?.loanDeductions)
+    ? body.loanDeductions
+    : [];
+  const loanDeductionMap = new Map<number, number>();
+
+  for (const value of rawLoanDeductions) {
+    if (!value || typeof value !== "object") continue;
+    const row = value as { loanId?: unknown; amount?: unknown };
+    const loanId = Number(row.loanId);
+    const amount = Number(row.amount);
+    if (
+      Number.isInteger(loanId) &&
+      loanId > 0 &&
+      Number.isFinite(amount) &&
+      amount > 0
+    ) {
+      loanDeductionMap.set(
+        loanId,
+        (loanDeductionMap.get(loanId) ?? 0) + Math.round(amount),
+      );
+    }
+  }
+
+  const loanDeductions = [...loanDeductionMap.entries()].map(
+    ([loanId, amount]) => ({ loanId, amount }),
+  );
   const occurredAt = new Date();
   const note =
     typeof body?.note === "string"
@@ -234,6 +298,64 @@ export async function POST(request: NextRequest) {
         throw new Error("INVALID_PAYROLL_TOTAL");
       }
 
+      const loanIds = loanDeductions.map((deduction) => deduction.loanId);
+      const loans =
+        loanIds.length === 0
+          ? []
+          : await tx.cashLoan.findMany({
+              where: {
+                id: { in: loanIds },
+                workerId,
+                historicalPaidWithoutRepayment: false,
+              },
+              include: {
+                repayments: {
+                  select: { amount: true },
+                },
+              },
+            });
+
+      if (loans.length !== loanIds.length) {
+        throw new Error("LOAN_SELECTION_CHANGED");
+      }
+
+      const validatedLoanDeductions = loanDeductions.map((deduction) => {
+        const loan = loans.find((item) => item.id === deduction.loanId);
+        if (!loan) throw new Error("LOAN_SELECTION_CHANGED");
+
+        const principal = Number(loan.principal);
+        const repaid = loan.repayments.reduce(
+          (sum, repayment) => sum + Number(repayment.amount),
+          0,
+        );
+        const outstanding = Math.max(0, principal - repaid);
+
+        if (
+          loan.status === "PAID" ||
+          outstanding <= 0 ||
+          deduction.amount > outstanding
+        ) {
+          throw new Error("LOAN_SELECTION_CHANGED");
+        }
+
+        return {
+          loan,
+          amount: deduction.amount,
+          outstanding,
+        };
+      });
+
+      const loanDeduction = validatedLoanDeductions.reduce(
+        (sum, deduction) => sum + deduction.amount,
+        0,
+      );
+
+      if (loanDeduction > grossAmount) {
+        throw new Error("LOAN_DEDUCTION_EXCEEDS_PAYROLL");
+      }
+
+      const netAmount = Math.max(0, grossAmount - loanDeduction);
+
       const firstDate = shifts[0].startsAt;
       const lastDate = shifts[shifts.length - 1].startsAt;
       const day = (value: Date) =>
@@ -253,7 +375,7 @@ export async function POST(request: NextRequest) {
           category: "Nomina",
           subcategory: worker.name,
           note: note || automaticNote,
-          amount: Math.round(grossAmount),
+          amount: Math.round(netAmount),
           occurredAt,
           source: "PAYROLL",
           createdByName: session.name,
@@ -265,8 +387,8 @@ export async function POST(request: NextRequest) {
           workerId: worker.id,
           workerName: worker.name,
           grossAmount,
-          loanDeduction: 0,
-          netAmount: grossAmount,
+          loanDeduction,
+          netAmount,
           occurredAt,
           note,
           source: "CASH",
@@ -281,6 +403,33 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+
+      for (const deduction of validatedLoanDeductions) {
+        await tx.cashLoanRepayment.create({
+          data: {
+            loanId: deduction.loan.id,
+            payrollPaymentId: payrollPayment.id,
+            amount: deduction.amount,
+            paidAt: occurredAt,
+            method: "DESCUENTO_NOMINA",
+            note: `Descuento aplicado en pago de nómina #${payrollPayment.id}`,
+            source: "PAYROLL",
+            createdByName: session.name,
+          },
+        });
+
+        const remaining = Math.max(
+          0,
+          deduction.outstanding - deduction.amount,
+        );
+
+        if (remaining <= 0) {
+          await tx.cashLoan.update({
+            where: { id: deduction.loan.id },
+            data: { status: "PAID" },
+          });
+        }
+      }
 
       await tx.workShift.updateMany({
         where: {
@@ -301,8 +450,19 @@ export async function POST(request: NextRequest) {
         workerName: worker.name,
         shiftCount: shifts.length,
         grossAmount,
-        netAmount: grossAmount,
+        loanDeduction,
+        netAmount,
         occurredAt: occurredAt.toISOString(),
+        loanDeductions: validatedLoanDeductions.map((deduction) => ({
+          loanId: deduction.loan.id,
+          note: deduction.loan.note,
+          amount: deduction.amount,
+          remaining: Math.max(
+            0,
+            deduction.outstanding - deduction.amount,
+          ),
+        })),
+        receiptUrl: `/caja/nomina/${payrollPayment.id}/imprimir`,
       };
     });
 
@@ -337,6 +497,32 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "El total de nómina debe ser mayor a cero." },
+        { status: 400 },
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "LOAN_SELECTION_CHANGED"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Uno de los préstamos cambió o ya fue pagado. Actualiza la nómina pendiente y vuelve a intentarlo.",
+        },
+        { status: 409 },
+      );
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "LOAN_DEDUCTION_EXCEEDS_PAYROLL"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Los descuentos por préstamo no pueden superar el valor de los turnos seleccionados.",
+        },
         { status: 400 },
       );
     }
