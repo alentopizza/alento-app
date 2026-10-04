@@ -8,6 +8,7 @@ import {
   CalendarRange,
   CircleDollarSign,
   Plus,
+  Printer,
   ReceiptText,
   RefreshCcw,
   Search,
@@ -105,6 +106,7 @@ type IncomeRow = {
   occurredAt: string;
   source: string;
   createdByName: string;
+  payrollPaymentId?: number | null;
 };
 
 type ExpenseRow = {
@@ -151,6 +153,17 @@ type PayrollShift = {
   };
 };
 
+type PayrollLoan = {
+  id: number;
+  workerId: number | null;
+  workerName: string;
+  note: string | null;
+  principal: number;
+  issuedAt: string;
+  repaidAmount: number;
+  outstandingAmount: number;
+};
+
 type Summary = {
   startDate: string;
   endDate: string;
@@ -172,6 +185,8 @@ type Summary = {
   totalInflow: number;
   loanDisbursedTotal: number;
   loanRecoveredTotal: number;
+  loanRecoveredCashTotal?: number;
+  loanRecoveredPayrollTotal?: number;
   expensesTotal: number;
   expenseCount: number;
   netTotal: number;
@@ -403,9 +418,11 @@ export default function CashPage() {
   const [payrollSaving, setPayrollSaving] = useState(false);
   const [payrollWorkers, setPayrollWorkers] = useState<PayrollWorker[]>([]);
   const [payrollShifts, setPayrollShifts] = useState<PayrollShift[]>([]);
+  const [payrollLoans, setPayrollLoans] = useState<PayrollLoan[]>([]);
   const [payrollWorkerId, setPayrollWorkerId] = useState<number | null>(null);
   const [payrollSelectedShiftIds, setPayrollSelectedShiftIds] = useState<number[]>([]);
   const [payrollExpandedMonths, setPayrollExpandedMonths] = useState<string[]>([]);
+  const [payrollLoanDeductions, setPayrollLoanDeductions] = useState<Record<number, string>>({});
   const [payrollNote, setPayrollNote] = useState("");
   const [payrollMessage, setPayrollMessage] = useState("");
 
@@ -636,6 +653,28 @@ export default function CashPage() {
         .filter((shift) => payrollSelectedShiftIds.includes(shift.id))
         .reduce((sum, shift) => sum + shift.amount, 0),
     [payrollSelectedShiftIds, selectedPayrollWorkerShifts],
+  );
+
+  const selectedPayrollLoans = useMemo(
+    () =>
+      payrollWorkerId == null
+        ? []
+        : payrollLoans.filter((loan) => loan.workerId === payrollWorkerId),
+    [payrollLoans, payrollWorkerId],
+  );
+
+  const selectedPayrollLoanDeductionTotal = useMemo(
+    () =>
+      Object.values(payrollLoanDeductions).reduce(
+        (sum, value) => sum + Number(String(value).replace(/\D/g, "") || 0),
+        0,
+      ),
+    [payrollLoanDeductions],
+  );
+
+  const selectedPayrollNetTotal = Math.max(
+    0,
+    selectedPayrollTotal - selectedPayrollLoanDeductionTotal,
   );
 
   function applyRangePreset(preset: Exclude<RangePreset, "CUSTOM">) {
