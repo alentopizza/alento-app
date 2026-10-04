@@ -343,6 +343,22 @@ function extendCircleBounds(
   });
 }
 
+function fitBoundsWithZoom(
+  map: GoogleMap,
+  bounds: GoogleBounds,
+  padding: { top: number; right: number; bottom: number; left: number },
+  maxZoom: number,
+  zoomBoost = 0,
+) {
+  map.fitBounds(bounds, padding);
+
+  window.setTimeout(() => {
+    const fittedZoom = map.getZoom();
+    if (fittedZoom == null) return;
+    map.setZoom(Math.min(maxZoom, fittedZoom + zoomBoost));
+  }, 0);
+}
+
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
     CONFIRMED: "Confirmado",
@@ -394,6 +410,7 @@ export default function DriverHome({
   const pendingRouteSummaryRef = useRef<Set<string>>(new Set());
   const fitForNewRequestRef = useRef(false);
   const initialMapFitDoneRef = useRef(false);
+  const lastOperationalFitKeyRef = useRef("");
   const lastFocusedRequestRef = useRef<number | null>(null);
   const watchRef = useRef<number | null>(null);
   const lastGpsSyncRef = useRef(0);
