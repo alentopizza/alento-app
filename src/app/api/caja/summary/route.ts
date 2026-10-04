@@ -106,8 +106,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const [sales, payments, otherIncomes, expenses, loans, loanRepayments] =
-      await prisma.$transaction([
+    const [
+      sales,
+      salesOrders,
+      payments,
+      otherIncomes,
+      expenses,
+      loans,
+      loanRepayments,
+    ] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
           createdAt: { gte: queryStart, lt: queryEndExclusive },
@@ -115,6 +122,39 @@ export async function GET(request: NextRequest) {
         },
         _sum: { total: true },
         _count: { _all: true },
+      }),
+      prisma.order.findMany({
+        where: {
+          createdAt: { gte: queryStart, lt: queryEndExclusive },
+          status: { notIn: ["DRAFT", "CANCELED"] },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        select: {
+          id: true,
+          sequenceNumber: true,
+          source: true,
+          fulfillmentType: true,
+          status: true,
+          subtotal: true,
+          deliveryFee: true,
+          discount: true,
+          total: true,
+          createdAt: true,
+          customer: {
+            select: { name: true },
+          },
+          payments: {
+            where: { status: { not: "CANCELED" } },
+            orderBy: [{ paidAt: "desc" }, { id: "desc" }],
+            select: {
+              id: true,
+              method: true,
+              status: true,
+              amount: true,
+              paidAt: true,
+            },
+          },
+        },
       }),
       prisma.payment.findMany({
         where: {
@@ -274,6 +314,35 @@ export async function GET(request: NextRequest) {
         expensesTotal -
         loanDisbursedTotal,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
+      orders: salesOrders.map((order) => {
+        const paidAmount = order.payments
+          .filter((payment) => payment.status === "PAID")
+          .reduce((sum, payment) => sum + Number(payment.amount), 0);
+        const total = Number(order.total);
+
+        return {
+          id: order.id,
+          sequenceNumber: order.sequenceNumber,
+          source: order.source,
+          fulfillmentType: order.fulfillmentType,
+          status: order.status,
+          subtotal: Number(order.subtotal),
+          deliveryFee: Number(order.deliveryFee),
+          discount: Number(order.discount),
+          total,
+          createdAt: order.createdAt.toISOString(),
+          customerName: order.customer?.name ?? "Cliente ocasional",
+          paidAmount,
+          pendingAmount: Math.max(0, total - paidAmount),
+          payments: order.payments.map((payment) => ({
+            id: payment.id,
+            method: payment.method,
+            status: payment.status,
+            amount: Number(payment.amount),
+            paidAt: payment.paidAt?.toISOString() ?? null,
+          })),
+        };
+      }),
       incomeCategories: [...incomeCategories.values()].sort(
         (a, b) => b.amount - a.amount,
       ),
