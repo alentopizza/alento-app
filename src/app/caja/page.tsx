@@ -391,6 +391,10 @@ export default function CashPage() {
             0,
             current.loanRecoveredTotal + recoveredDelta,
           ),
+          totalInflow: Math.max(
+            0,
+            current.totalInflow + recoveredDelta,
+          ),
           netTotal:
             current.netTotal -
             disbursedDelta +
@@ -1422,56 +1426,6 @@ export default function CashPage() {
                   </>
                 )}
 
-                {summaryDetail === "RECOVERIES" && (
-                <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
-                        Cartera
-                      </p>
-                      <h3 className="mt-0.5 text-lg font-black">Abonos recibidos de préstamos</h3>
-                    </div>
-                    <b className="text-sm text-violet-700">
-                      + {formatCOP(summary.loanRecoveredTotal)}
-                    </b>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
-                    {summary.loanRepayments.map((repayment) => (
-                      <article
-                        key={repayment.id}
-                        className="rounded-[15px] border border-violet-100 bg-violet-50/35 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <b className="block truncate text-xs text-neutral-950">
-                              {repayment.workerName}
-                            </b>
-                            <p className="mt-1 text-[9px] text-neutral-400">
-                              {dateTimeLabel(repayment.paidAt)}
-                            </p>
-                            <span className="mt-2 inline-flex rounded-full border border-violet-100 bg-white px-2 py-1 alento-ui-micro font-bold text-violet-700">
-                              {repayment.method === "DESCUENTO_NOMINA"
-                                ? "Descuento nómina"
-                                : "Pago recibido"}
-                            </span>
-                          </div>
-                          <b className="shrink-0 text-xs text-violet-700">
-                            + {formatCOP(repayment.amount)}
-                          </b>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-
-                  {summary.loanRepayments.length === 0 && (
-                    <div className="mt-3 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-400">
-                      No hay abonos de préstamos en este período.
-                    </div>
-                  )}
-                </section>
-              )}
-
               {summaryDetail === "EXPENSES" && (
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
@@ -1807,6 +1761,52 @@ export default function CashPage() {
                     </div>
                   </section>
                 </div>
+              )}
+
+              {summaryDetail === "RECOVERIES" && (
+                <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                        Cartera
+                      </p>
+                      <h3 className="mt-0.5 text-lg font-black">
+                        Abonos recibidos de préstamos
+                      </h3>
+                    </div>
+                    <b className="text-sm text-violet-700">
+                      + {formatCOP(summary.loanRecoveredTotal)}
+                    </b>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+                    {summary.loanRepayments.map((repayment) => (
+                      <article
+                        key={repayment.id}
+                        className="rounded-[15px] border border-violet-100 bg-violet-50/35 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-xs text-neutral-950">
+                              {repayment.workerName}
+                            </b>
+                            <p className="mt-1 text-[9px] text-neutral-400">
+                              {dateTimeLabel(repayment.paidAt)}
+                            </p>
+                            <span className="mt-2 inline-flex rounded-full border border-violet-100 bg-white px-2 py-1 alento-ui-micro font-bold text-violet-700">
+                              {repayment.method === "DESCUENTO_NOMINA"
+                                ? "Descuento nómina"
+                                : "Pago recibido"}
+                            </span>
+                          </div>
+                          <b className="shrink-0 text-xs text-violet-700">
+                            + {formatCOP(repayment.amount)}
+                          </b>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
               )}
 
               {summaryDetail === "EXPENSES" && (
