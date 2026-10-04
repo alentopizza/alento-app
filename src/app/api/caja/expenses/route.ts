@@ -46,6 +46,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (category === "Nomina") {
+      return NextResponse.json(
+        {
+          error:
+            "La nómina debe pagarse desde el flujo de Nómina para vincular la salida con los turnos seleccionados.",
+        },
+        { status: 409 },
+      );
+    }
+
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { error: "El monto debe ser mayor a cero." },
