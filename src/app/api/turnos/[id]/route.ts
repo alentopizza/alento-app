@@ -40,6 +40,14 @@ export async function PATCH(
 
   const existing = await prisma.workShift.findUnique({
     where: { id },
+    include: {
+      payrollPaymentItem: {
+        select: {
+          id: true,
+          payrollPaymentId: true,
+        },
+      },
+    },
   });
 
   if (!existing) {
@@ -50,11 +58,32 @@ export async function PATCH(
 
   if (body?.action === "toggle-payment") {
     const nextPaid = existing.status !== "PAID";
+
+    if (nextPaid) {
+      return NextResponse.json(
+        {
+          error:
+            "Los turnos pendientes se pagan desde Caja → Salidas → Nómina para conservar el movimiento contable.",
+        },
+        { status: 409 },
+      );
+    }
+
+    if (existing.payrollPaymentItem) {
+      return NextResponse.json(
+        {
+          error:
+            "Este turno pertenece a un pago de nómina registrado en Caja y no puede volver a pendiente desde Turnos.",
+        },
+        { status: 409 },
+      );
+    }
+
     const updated = await prisma.workShift.update({
       where: { id },
       data: {
-        status: nextPaid ? "PAID" : "PENDING",
-        paidAt: nextPaid ? new Date() : null,
+        status: "PENDING",
+        paidAt: null,
       },
       include: {
         user: {
