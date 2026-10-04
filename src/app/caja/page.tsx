@@ -2882,8 +2882,8 @@ export default function CashPage() {
       )}
 
       {payrollOpen && (
-        <div className="fixed inset-0 z-[155] flex items-center justify-center bg-black/72 p-2 backdrop-blur-[5px] sm:p-4">
-          <section className="flex max-h-[94dvh] w-[min(98vw,1220px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f4f1] shadow-[0_34px_120px_rgba(0,0,0,.42)]">
+        <div className="fixed inset-0 z-[155] flex items-center justify-center bg-black/72 p-1.5 backdrop-blur-[5px] sm:p-2.5">
+          <section className="flex h-[calc(100dvh-12px)] max-h-[calc(100dvh-12px)] w-[min(99vw,1280px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f4f1] shadow-[0_34px_120px_rgba(0,0,0,.42)] sm:h-[calc(100dvh-20px)] sm:max-h-[calc(100dvh-20px)]">
             <header className="shrink-0 bg-[radial-gradient(circle_at_86%_0%,rgba(226,26,34,.30),transparent_30%),linear-gradient(135deg,#09090a,#191315)] px-5 py-5 text-white sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -2946,7 +2946,7 @@ export default function CashPage() {
             </header>
 
             <div className="grid min-h-0 flex-1 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <aside className="border-b border-neutral-200 bg-white p-4 xl:border-b-0 xl:border-r">
+              <aside className="flex min-h-0 flex-col border-b border-neutral-200 bg-white p-4 xl:border-b-0 xl:border-r">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
@@ -2961,6 +2961,48 @@ export default function CashPage() {
                   </span>
                 </div>
 
+                <div className="mt-3 rounded-[18px] border border-emerald-100 bg-[linear-gradient(135deg,#f0fdf7,#f8fffb)] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
+                        Disponible en caja
+                      </span>
+                      <b className="mt-1 block text-[18px] font-black tracking-[-0.02em] text-emerald-800">
+                        {payrollCashAvailable == null
+                          ? "Actualizando…"
+                          : formatCOP(payrollCashAvailable)}
+                      </b>
+                    </div>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <Banknote className="h-4 w-4" strokeWidth={2.1} />
+                    </span>
+                  </div>
+
+                  {payrollCashAfterSelection != null &&
+                    payrollSelectedShiftIds.length > 0 && (
+                      <div className="mt-2 border-t border-emerald-100 pt-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="alento-ui-micro font-bold text-emerald-700/70">
+                            Después de este pago
+                          </span>
+                          <b
+                            className={
+                              "text-xs font-black " +
+                              (payrollCashAfterSelection >= 0
+                                ? "text-emerald-800"
+                                : "text-red-700")
+                            }
+                          >
+                            {formatCOP(payrollCashAfterSelection)}
+                          </b>
+                        </div>
+                        <p className="mt-1 text-[9px] leading-4 text-emerald-700/55">
+                          Se descuenta solo la salida real de nómina después de aplicar préstamos.
+                        </p>
+                      </div>
+                    )}
+                </div>
+
                 {payrollLoading ? (
                   <div className="mt-4 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-xs text-neutral-400">
                     Cargando turnos pendientes...
@@ -2973,7 +3015,7 @@ export default function CashPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="mt-3 max-h-[42dvh] space-y-2 overflow-y-auto pr-1 xl:max-h-none">
+                  <div className="alento-scroll mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                     {payrollWorkers.map((worker) => (
                       <button
                         key={worker.id}
@@ -3013,17 +3055,114 @@ export default function CashPage() {
                             {formatCOP(worker.pendingAmount)}
                           </b>
                         </div>
-                        <p
-                          className={
-                            "mt-2 text-[9px] " +
-                            (payrollWorkerId === worker.id
-                              ? "text-white/35"
-                              : "text-neutral-400")
-                          }
-                        >
-                          Pendiente desde {payrollDayLabel(worker.oldestPendingAt)}
-                          {!worker.active ? " · trabajador inactivo" : ""}
-                        </p>
+                        {(() => {
+                          const loanBalance =
+                            payrollLoanBalanceByWorker.get(worker.id) ?? 0;
+                          const estimatedCashOut = Math.max(
+                            0,
+                            worker.pendingAmount -
+                              Math.min(worker.pendingAmount, loanBalance),
+                          );
+                          const enoughCash =
+                            payrollCashAvailable == null ||
+                            payrollCashAvailable >= estimatedCashOut;
+
+                          return (
+                            <>
+                              <div
+                                className={
+                                  "mt-2 grid grid-cols-2 gap-2 rounded-xl border px-2.5 py-2 " +
+                                  (payrollWorkerId === worker.id
+                                    ? "border-white/10 bg-white/[0.06]"
+                                    : "border-neutral-200 bg-white")
+                                }
+                              >
+                                <div>
+                                  <span
+                                    className={
+                                      "block alento-ui-micro uppercase tracking-[0.07em] " +
+                                      (payrollWorkerId === worker.id
+                                        ? "text-white/35"
+                                        : "text-neutral-400")
+                                    }
+                                  >
+                                    Préstamos
+                                  </span>
+                                  <b
+                                    className={
+                                      "mt-0.5 block text-[11px] font-black " +
+                                      (payrollWorkerId === worker.id
+                                        ? loanBalance > 0
+                                          ? "text-violet-200"
+                                          : "text-white/55"
+                                        : loanBalance > 0
+                                          ? "text-violet-700"
+                                          : "text-neutral-400")
+                                    }
+                                  >
+                                    {formatCOP(loanBalance)}
+                                  </b>
+                                </div>
+                                <div className="text-right">
+                                  <span
+                                    className={
+                                      "block alento-ui-micro uppercase tracking-[0.07em] " +
+                                      (payrollWorkerId === worker.id
+                                        ? "text-white/35"
+                                        : "text-neutral-400")
+                                    }
+                                  >
+                                    Salida estimada
+                                  </span>
+                                  <b
+                                    className={
+                                      "mt-0.5 block text-[11px] font-black " +
+                                      (payrollWorkerId === worker.id
+                                        ? enoughCash
+                                          ? "text-emerald-300"
+                                          : "text-red-300"
+                                        : enoughCash
+                                          ? "text-emerald-700"
+                                          : "text-red-700")
+                                    }
+                                  >
+                                    {formatCOP(estimatedCashOut)}
+                                  </b>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <p
+                                  className={
+                                    "text-[9px] " +
+                                    (payrollWorkerId === worker.id
+                                      ? "text-white/35"
+                                      : "text-neutral-400")
+                                  }
+                                >
+                                  Pendiente desde {payrollDayLabel(worker.oldestPendingAt)}
+                                  {!worker.active ? " · trabajador inactivo" : ""}
+                                </p>
+                                {payrollCashAvailable != null && (
+                                  <span
+                                    className={
+                                      "shrink-0 rounded-full px-2 py-0.5 alento-ui-micro font-black " +
+                                      (enoughCash
+                                        ? payrollWorkerId === worker.id
+                                          ? "bg-emerald-400/15 text-emerald-300"
+                                          : "bg-emerald-50 text-emerald-700"
+                                        : payrollWorkerId === worker.id
+                                          ? "bg-red-400/15 text-red-300"
+                                          : "bg-red-50 text-red-700")
+                                    }
+                                  >
+                                    {enoughCash ? "Alcanza" : "No alcanza"}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </button>
                     ))}
                   </div>
