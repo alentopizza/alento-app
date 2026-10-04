@@ -447,23 +447,7 @@ export default function CashRegisterControl({
     }
   }
 
-  if (!enabled) {
-    return (
-      <section className="rounded-[20px] border border-dashed border-neutral-300 bg-white/70 px-5 py-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-500">
-            <LockKeyhole className="h-5 w-5" />
-          </span>
-          <div>
-            <b className="text-sm text-neutral-800">Apertura y cierre por sesión</b>
-            <p className="mt-0.5 alento-ui-label text-neutral-500">
-              Selecciona un solo día para consultar su apertura. Una sesión puede continuar después de medianoche hasta que se cierre.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  if (!enabled) return null;
 
   if (loading) {
     return (
