@@ -830,7 +830,7 @@ export default function CashPage() {
           </div>
         ) : summary ? (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <section className={`grid gap-3 md:grid-cols-2 ${summary.otherIncomeTotal > 0 ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
               <button
                 type="button"
                 onClick={() => openSummaryDetail("SALES")}
@@ -877,28 +877,30 @@ export default function CashPage() {
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => openSummaryDetail("INCOMES")}
-                className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-                    <Banknote className="h-5 w-5" />
+              {summary.otherIncomeTotal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => openSummaryDetail("INCOMES")}
+                  className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+                      <Banknote className="h-5 w-5" />
+                    </span>
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-teal-600">
+                      Otros ingresos
+                    </span>
+                  </div>
+                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
+                    {formatCOP(summary.otherIncomeTotal)}
+                  </b>
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
+                  </p>
+                  <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
+                    Ver detalle →
                   </span>
-                  <span className="alento-ui-label uppercase tracking-[0.12em] text-teal-600">
-                    Otros ingresos
-                  </span>
-                </div>
-                <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
-                  {formatCOP(summary.otherIncomeTotal)}
-                </b>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
-                </p>
-                <span className="mt-3 inline-flex alento-ui-label font-black uppercase tracking-[0.08em] text-neutral-400 transition group-hover:text-neutral-700">
-                  Ver detalle →
-                </span>
-              </button>
+                </button>
+              )}
 
               <button
                 type="button"
