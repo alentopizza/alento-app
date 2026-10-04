@@ -923,11 +923,17 @@ export default function ShiftsManager() {
 
                     <button
                       type="button"
+                      disabled={shift.status === "PAID"}
                       onClick={() => {
                         setSelectedWorkerId(null);
                         openEdit(shift);
                       }}
-                      className="h-9 rounded-xl border border-neutral-200 bg-white px-3 alento-ui-label text-neutral-600"
+                      title={
+                        shift.status === "PAID"
+                          ? "Los turnos pagados quedan bloqueados para proteger la nómina"
+                          : "Editar turno"
+                      }
+                      className="h-9 rounded-xl border border-neutral-200 bg-white px-3 alento-ui-label text-neutral-600 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-300"
                     >
                       Editar
                     </button>
