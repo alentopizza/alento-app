@@ -110,6 +110,12 @@ type DriverAcceptanceZone = {
 };
 
 type DriverTab = "requests" | "performance" | "wallet";
+type DriverMapMode =
+  | "INACTIVE"
+  | "WAITING"
+  | "AVAILABLE"
+  | "ASSIGNED"
+  | "DELIVERY";
 
 type GoogleAdvancedMarker = {
   map: GoogleMap | null;
@@ -439,6 +445,59 @@ export default function DriverHome({
     () => orders.filter((order) => order.assignment?.own).length,
     [orders],
   );
+
+  const ownOrders = useMemo(
+    () => orders.filter((order) => order.assignment?.own),
+    [orders],
+  );
+
+  const activeDeliveryOrder = useMemo(
+    () =>
+      ownOrders.find((order) => order.status === "OUT_FOR_DELIVERY") ??
+      ownOrders.find((order) => order.status === "ARRIVED") ??
+      null,
+    [ownOrders],
+  );
+
+  const mapMode: DriverMapMode = !driver.driverAvailable
+    ? "INACTIVE"
+    : activeDeliveryOrder
+      ? "DELIVERY"
+      : ownOrders.length > 0
+        ? "ASSIGNED"
+        : availableCount > 0
+          ? "AVAILABLE"
+          : "WAITING";
+
+  const operationalOrders = useMemo(() => {
+    if (!driver.driverAvailable) return [];
+
+    if (mapMode === "DELIVERY") {
+      return [...ownOrders].sort((a, b) => {
+        const rank = (status: string) =>
+          status === "OUT_FOR_DELIVERY"
+            ? 0
+            : status === "ARRIVED"
+              ? 1
+              : 2;
+        return rank(a.status) - rank(b.status);
+      });
+    }
+
+    if (mapMode === "ASSIGNED") {
+      return [...orders].sort((a, b) => {
+        const ownDelta =
+          Number(Boolean(b.assignment?.own)) -
+          Number(Boolean(a.assignment?.own));
+        if (ownDelta !== 0) return ownDelta;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+    }
+
+    return orders.filter(
+      (order) => order.claimable || order.assignment?.own,
+    );
+  }, [driver.driverAvailable, mapMode, orders, ownOrders]);
 
   const assignedStopNumbers = useMemo(() => {
     const assigned = orders.filter(
