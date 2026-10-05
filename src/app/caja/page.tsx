@@ -196,6 +196,7 @@ type Summary = {
   payrollPendingTotal: number;
   payrollShiftCount: number;
   payrollWorkerCount: number;
+  loanReceivableBalance: number;
   methods: MethodSummary[];
   orders: OrderSummaryRow[];
   incomeCategories: IncomeCategorySummary[];
@@ -1630,12 +1631,12 @@ export default function CashPage() {
                     </div>
                   </div>
 
-                  <p className="max-w-md text-[10px] leading-4 text-neutral-400 sm:text-right">
-                    Se calcula por la fecha asignada a los turnos. No modifica las entradas, salidas ni el flujo neto de Caja.
+                  <p className="max-w-lg text-[10px] leading-4 text-neutral-400 sm:text-right">
+                    Proyección informativa: combina el flujo neto del período con la cartera de préstamos por cobrar para estimar la capacidad real de cubrir nómina. No altera la contabilidad de Caja.
                   </p>
                 </div>
 
-                <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-4">
+                <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-5">
                   <div className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5">
                     <div className="flex items-center justify-between gap-3">
                       <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
@@ -1677,9 +1678,23 @@ export default function CashPage() {
                     </p>
                   </div>
 
+                  <div className="rounded-[18px] border border-violet-100 bg-violet-50/55 p-3.5">
+                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-violet-600">
+                      Préstamos por cobrar
+                    </span>
+                    <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-violet-700">
+                      {formatCOP(summary.loanReceivableBalance)}
+                    </b>
+                    <p className="mt-1 text-[9px] text-violet-700/55">
+                      Cartera disponible para compensar nómina
+                    </p>
+                  </div>
+
                   {(() => {
+                    const resourcesForPayroll =
+                      summary.netTotal + summary.loanReceivableBalance;
                     const projected =
-                      summary.netTotal - summary.payrollPendingTotal;
+                      resourcesForPayroll - summary.payrollPendingTotal;
                     return (
                       <div
                         className={
@@ -1709,8 +1724,18 @@ export default function CashPage() {
                         >
                           {formatCOP(projected)}
                         </b>
-                        <p className="mt-1 text-[9px] text-neutral-400">
-                          Flujo neto {formatCOP(summary.netTotal)} − pendiente {formatCOP(summary.payrollPendingTotal)}
+                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">
+                          Neto {formatCOP(summary.netTotal)} + préstamos {formatCOP(summary.loanReceivableBalance)} − nómina {formatCOP(summary.payrollPendingTotal)}
+                        </p>
+                        <p
+                          className={
+                            "mt-1 text-[9px] font-bold " +
+                            (projected >= 0
+                              ? "text-sky-700/65"
+                              : "text-red-700/65")
+                          }
+                        >
+                          Recursos para nómina: {formatCOP(resourcesForPayroll)}
                         </p>
                       </div>
                     );
