@@ -7,6 +7,7 @@ import {
   Banknote,
   CalendarRange,
   CircleDollarSign,
+  Landmark,
   Plus,
   Printer,
   ReceiptText,
