@@ -13,6 +13,7 @@ import {
   RefreshCcw,
   Search,
   Trash2,
+  Users,
   WalletCards,
 } from "lucide-react";
 import { orderCode } from "@/lib/orderCode";
@@ -190,6 +191,11 @@ type Summary = {
   expensesTotal: number;
   expenseCount: number;
   netTotal: number;
+  payrollTotal: number;
+  payrollPaidTotal: number;
+  payrollPendingTotal: number;
+  payrollShiftCount: number;
+  payrollWorkerCount: number;
   methods: MethodSummary[];
   orders: OrderSummaryRow[];
   incomeCategories: IncomeCategorySummary[];
@@ -1599,6 +1605,119 @@ export default function CashPage() {
                 </div>
               </button>
             </section>
+
+            {tab === "SUMMARY" && (
+              <section className="overflow-hidden rounded-[24px] border border-violet-100 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 bg-[linear-gradient(135deg,#fbf9ff,#ffffff)] px-4 py-3.5 sm:px-5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-violet-100 text-violet-700">
+                      <Users className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="alento-ui-label uppercase tracking-[0.13em] text-violet-500">
+                          Nómina del período
+                        </p>
+                        <span className="rounded-full border border-violet-100 bg-white px-2 py-0.5 alento-ui-micro font-black text-violet-600">
+                          Informativo
+                        </span>
+                      </div>
+                      <h2 className="mt-0.5 text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                        {startDate === endDate
+                          ? `Costo laboral · ${shortDateLabel(startDate)}`
+                          : `Costo laboral · ${shortDateLabel(startDate)} — ${shortDateLabel(endDate)}`}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <p className="max-w-md text-[10px] leading-4 text-neutral-400 sm:text-right">
+                    Se calcula por la fecha asignada a los turnos. No modifica las entradas, salidas ni el flujo neto de Caja.
+                  </p>
+                </div>
+
+                <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-4">
+                  <div className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
+                        Nómina programada
+                      </span>
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 alento-ui-micro font-bold text-neutral-500">
+                        {summary.payrollShiftCount} turno{summary.payrollShiftCount === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                    <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-neutral-950">
+                      {formatCOP(summary.payrollTotal)}
+                    </b>
+                    <p className="mt-1 text-[9px] text-neutral-400">
+                      {summary.payrollWorkerCount} trabajador{summary.payrollWorkerCount === 1 ? "" : "es"} en el período
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-emerald-100 bg-emerald-50/45 p-3.5">
+                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
+                      Ya pagado
+                    </span>
+                    <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-emerald-700">
+                      {formatCOP(summary.payrollPaidTotal)}
+                    </b>
+                    <p className="mt-1 text-[9px] text-emerald-700/55">
+                      Turnos del período marcados como pagados
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-amber-100 bg-amber-50/55 p-3.5">
+                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-amber-600">
+                      Pendiente por pagar
+                    </span>
+                    <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-amber-700">
+                      {formatCOP(summary.payrollPendingTotal)}
+                    </b>
+                    <p className="mt-1 text-[9px] text-amber-700/55">
+                      Compromiso laboral aún no liquidado
+                    </p>
+                  </div>
+
+                  {(() => {
+                    const projected =
+                      summary.netTotal - summary.payrollPendingTotal;
+                    return (
+                      <div
+                        className={
+                          "rounded-[18px] border p-3.5 " +
+                          (projected >= 0
+                            ? "border-sky-100 bg-sky-50/50"
+                            : "border-red-100 bg-red-50/55")
+                        }
+                      >
+                        <span
+                          className={
+                            "alento-ui-micro uppercase tracking-[0.1em] " +
+                            (projected >= 0
+                              ? "text-sky-600"
+                              : "text-red-600")
+                          }
+                        >
+                          Proyección después de nómina
+                        </span>
+                        <b
+                          className={
+                            "mt-2 block text-[22px] font-black tracking-[-0.03em] " +
+                            (projected >= 0
+                              ? "text-sky-800"
+                              : "text-red-700")
+                          }
+                        >
+                          {formatCOP(projected)}
+                        </b>
+                        <p className="mt-1 text-[9px] text-neutral-400">
+                          Flujo neto {formatCOP(summary.netTotal)} − pendiente {formatCOP(summary.payrollPendingTotal)}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </section>
+            )}
 
             {tab === "SUMMARY" ? null : tab === "INCOMES" ? (
               <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
