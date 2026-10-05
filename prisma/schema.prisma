@@ -608,6 +608,8 @@ model CashRegisterSession {
   closingCard            Decimal? @db.Decimal(14, 2)
   closingDavivienda      Decimal? @db.Decimal(14, 2)
   closingDenominations   Json?
+  closingDraft           Json?
+  closingDraftUpdatedAt  DateTime?
   closingLoanReceivable  Decimal? @db.Decimal(14, 2)
   actualClosingBalance   Decimal? @db.Decimal(14, 2)
   difference             Decimal? @db.Decimal(14, 2)
