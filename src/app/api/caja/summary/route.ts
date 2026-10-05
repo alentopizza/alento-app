@@ -31,6 +31,15 @@ function colombiaRangeBounds(startText: string | null, endText: string | null) {
   return { startDate, endDate, start, endExclusive };
 }
 
+function payrollMonthContext(startDate: string, endDate: string) {
+  const sameMonth = startDate.slice(0, 7) === endDate.slice(0, 7);
+  const startsAtMonthBeginning = startDate.endsWith("-01");
+  return {
+    active: sameMonth && startsAtMonthBeginning,
+    month: sameMonth && startsAtMonthBeginning ? startDate.slice(0, 7) : null,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const legacyDate = request.nextUrl.searchParams.get("date");
@@ -41,6 +50,7 @@ export async function GET(request: NextRequest) {
 
     const { startDate, endDate, start, endExclusive } =
       colombiaRangeBounds(requestedStart, requestedEnd);
+    const payrollMonth = payrollMonthContext(startDate, endDate);
 
     let queryStart = start;
     let queryEndExclusive = endExclusive;
@@ -236,20 +246,28 @@ export async function GET(request: NextRequest) {
           status: true,
         },
       }),
-      // Balance de cartera al cierre del período seleccionado. Se calcula
-      // históricamente con los préstamos entregados hasta ese momento y los
-      // abonos registrados antes del fin del rango.
+      // Para nómina solo interesa la cartera asignada a ese mes.
+      // Los préstamos históricos sin payrollMonth se asignan por su fecha de
+      // entrega. El saldo es ACTUAL: si ya fue descontado/pagado después, deja
+      // de aparecer al volver a consultar ese mes.
       prisma.cashLoan.findMany({
-        where: {
-          issuedAt: { lt: endExclusive },
-          historicalPaidWithoutRepayment: false,
-        },
+        where: payrollMonth.active && payrollMonth.month
+          ? {
+              historicalPaidWithoutRepayment: false,
+              OR: [
+                { payrollMonth: payrollMonth.month },
+                {
+                  payrollMonth: null,
+                  issuedAt: { gte: start, lt: endExclusive },
+                },
+              ],
+            }
+          : {
+              id: { lt: 0 },
+            },
         select: {
           principal: true,
           repayments: {
-            where: {
-              paidAt: { lt: endExclusive },
-            },
             select: {
               amount: true,
             },
@@ -395,6 +413,8 @@ export async function GET(request: NextRequest) {
       payrollPendingTotal,
       payrollShiftCount: payrollShifts.length,
       payrollWorkerCount,
+      payrollMonthActive: payrollMonth.active,
+      payrollMonth: payrollMonth.month,
       loanReceivableBalance,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
       orders: salesOrders.map((order) => {
