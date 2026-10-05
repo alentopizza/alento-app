@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
     const category = clean(body.category);
     const subcategory = clean(body.subcategory);
     const note = clean(body.note);
+    const requestedPlanningType = clean(body.planningType).toUpperCase();
+    const planningType = ["VARIABLE", "RECURRING", "ONE_TIME"].includes(
+      requestedPlanningType,
+    )
+      ? requestedPlanningType
+      : "VARIABLE";
     const amount = Number(body.amount);
     const driverId =
       body.driverId == null || body.driverId === ""
@@ -92,6 +98,7 @@ export async function POST(request: NextRequest) {
             amount: Math.round(amount),
             occurredAt,
             source: "MANUAL",
+            planningType,
             createdByName: session.name,
           },
         });
@@ -145,6 +152,7 @@ export async function POST(request: NextRequest) {
           amount: roundedAmount,
           occurredAt,
           source: "DRIVER_PAYMENT",
+          planningType: "VARIABLE",
           createdByName: session.name,
         },
       });
