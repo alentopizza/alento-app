@@ -2154,7 +2154,7 @@ export default function CashPage() {
                       </b>
                     </div>
 
-                    <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
                       {summary.expenseCategories.map((item) => {
                         const share =
                           expenseAnalytics.totalIncome > 0
@@ -2166,27 +2166,29 @@ export default function CashPage() {
                             key={item.category}
                             type="button"
                             onClick={() => setExpenseCategoryDetail(item.category)}
-                            className="group rounded-[16px] border border-neutral-200 bg-[#fbfbfa] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-sm"
+                            className="group min-h-[150px] rounded-[20px] border border-neutral-200 bg-[#fbfbfa] p-5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-md"
                           >
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-micro font-black ${expenseTone(item.category)}`}>
+                                <span className={`inline-flex rounded-full border px-3 py-1.5 alento-ui-label font-black ${expenseTone(item.category)}`}>
                                   {item.category}
                                 </span>
-                                <p className="mt-2 alento-ui-micro text-neutral-400">
-                                  {item.count} movimiento{item.count === 1 ? "" : "s"}
+                                <p className="mt-3 text-[10px] font-semibold text-neutral-400">
+                                  {item.count} movimiento{item.count === 1 ? "" : "s"} en el período
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <b className="block text-[15px] font-black text-neutral-950">
+
+                              <div className="shrink-0 text-right">
+                                <b className="block text-[22px] font-black tracking-[-0.03em] text-neutral-950">
                                   {formatCOP(item.amount)}
                                 </b>
-                                <span className="mt-0.5 block text-[10px] font-black text-neutral-500">
+                                <span className="mt-1 inline-flex rounded-full bg-neutral-950 px-2.5 py-1 text-[11px] font-black text-white">
                                   {share.toFixed(1)}%
                                 </span>
                               </div>
                             </div>
-                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+
+                            <div className="mt-5 h-2 overflow-hidden rounded-full bg-neutral-100">
                               <div
                                 className="h-full rounded-full bg-neutral-900 transition-all group-hover:bg-neutral-700"
                                 style={{
@@ -2195,9 +2197,15 @@ export default function CashPage() {
                                 }}
                               />
                             </div>
-                            <p className="mt-2 text-[9px] font-bold text-neutral-400">
-                              del total de ingresos · ver detalle
-                            </p>
+
+                            <div className="mt-3 flex items-center justify-between gap-3">
+                              <span className="text-[10px] font-semibold text-neutral-400">
+                                Del total de ingresos
+                              </span>
+                              <span className="text-[10px] font-black text-neutral-600">
+                                Ver análisis →
+                              </span>
+                            </div>
                           </button>
                         );
                       })}
@@ -2211,198 +2219,6 @@ export default function CashPage() {
                   </div>
                 </section>
 
-                <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                    <div>
-                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                        Control de salidas
-                      </p>
-                      <h2 className="mt-1 text-xl font-black">
-                        {summary.expenseCount} movimiento{summary.expenseCount === 1 ? "" : "s"} · {formatCOP(summary.expensesTotal)}
-                      </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <label className="relative min-w-[220px]">
-                        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                        <input
-                          value={expenseQuery}
-                          onChange={(event) => setExpenseQuery(event.target.value)}
-                          placeholder="Buscar salida..."
-                          className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 text-xs outline-none focus:border-neutral-400"
-                        />
-                      </label>
-                      <select
-                        value={expenseCategoryFilter}
-                        onChange={(event) =>
-                          setExpenseCategoryFilter(event.target.value)
-                        }
-                        className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
-                      >
-                        <option value="ALL">Todas las categorías</option>
-                        {expenseFilterCategories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={expensePlanningFilter}
-                        onChange={(event) =>
-                          setExpensePlanningFilter(
-                            event.target.value as "ALL" | ExpensePlanningType,
-                          )
-                        }
-                        className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
-                      >
-                        <option value="ALL">Todos los gastos</option>
-                        <option value="VARIABLE">Variables</option>
-                        <option value="RECURRING">Recurrentes</option>
-                        <option value="ONE_TIME">Única vez</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {(expenseCategoryFilter !== "ALL" ||
-                    expensePlanningFilter !== "ALL" ||
-                    expenseQuery) && (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className="alento-ui-micro font-bold text-neutral-400">
-                        Filtros activos
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExpenseCategoryFilter("ALL");
-                          setExpensePlanningFilter("ALL");
-                          setExpenseQuery("");
-                        }}
-                        className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 alento-ui-micro font-black text-neutral-600"
-                      >
-                        Limpiar
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="mt-4 grid gap-2">
-                    {filteredExpenses.map((expense) => {
-                      const planningType =
-                        effectiveExpensePlanningType(expense);
-
-                      return (
-                        <article
-                          key={expense.id}
-                          className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
-                        >
-                          <div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-label uppercase ${expenseTone(expense.category)}`}>
-                                {expense.category}
-                              </span>
-                              <span className={`inline-flex rounded-full border px-2 py-1 alento-ui-micro font-black ${expensePlanningTone(planningType)}`}>
-                                {expensePlanningLabel(planningType)}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-[10px] text-neutral-400">
-                              {dateTimeLabel(expense.occurredAt)}
-                            </p>
-                          </div>
-
-                          <div className="min-w-0">
-                            <b className="block truncate text-sm text-neutral-900">
-                              {expense.subcategory || "Salida general"}
-                            </b>
-                            <p className="mt-1 truncate text-[11px] text-neutral-500">
-                              {expense.note || "Sin observación"}
-                            </p>
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              {expense.source === "PAYROLL" ||
-                              expense.category === "Nomina" ? (
-                                <span className="alento-ui-micro font-bold text-neutral-400">
-                                  Nómina · clasificación automática
-                                </span>
-                              ) : (
-                                <label className="inline-flex items-center gap-1.5">
-                                  <span className="alento-ui-micro font-bold text-neutral-400">
-                                    Planeación
-                                  </span>
-                                  <select
-                                    value={planningType}
-                                    disabled={planningUpdateId === expense.id}
-                                    onChange={(event) =>
-                                      void updateExpensePlanning(
-                                        expense,
-                                        event.target.value as ExpensePlanningType,
-                                      )
-                                    }
-                                    className="h-7 rounded-lg border border-neutral-200 bg-white px-2 alento-ui-micro font-black text-neutral-600 outline-none disabled:opacity-40"
-                                  >
-                                    <option value="VARIABLE">Variable</option>
-                                    <option value="RECURRING">Recurrente</option>
-                                    <option value="ONE_TIME">Única vez</option>
-                                  </select>
-                                </label>
-                              )}
-                              <span className="alento-ui-micro text-neutral-400">
-                                {expense.source === "DRIVER_PAYMENT"
-                                  ? "Pago a repartidor · "
-                                  : expense.source === "PAYROLL"
-                                    ? "Pago de nómina · "
-                                    : ""}
-                                Registró: {expense.createdByName}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between gap-3 md:justify-end">
-                            <b className="text-base font-black text-rose-700">
-                              {formatCOP(expense.amount)}
-                            </b>
-                            {expense.source === "PAYROLL" &&
-                              expense.payrollPaymentId != null && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    printPayrollReceipt(
-                                      "/caja/nomina/" +
-                                        expense.payrollPaymentId +
-                                        "/imprimir",
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
-                                  title="Imprimir comprobante de nómina"
-                                  aria-label="Imprimir comprobante de nómina"
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </button>
-                              )}
-                            <button
-                              type="button"
-                              onClick={() => setDeleteTarget(expense)}
-                              disabled={!cashOperationsOpen || expense.source === "PAYROLL"}
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
-                              title={
-                                expense.source === "PAYROLL"
-                                  ? "Los pagos de nómina conservan el vínculo con sus turnos"
-                                  : !cashOperationsOpen
-                                    ? "Caja sin sesión operativa abierta"
-                                    : "Eliminar salida"
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    })}
-
-                    {filteredExpenses.length === 0 && (
-                      <div className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
-                        No hay salidas para mostrar con estos filtros.
-                      </div>
-                    )}
-                  </div>
-                </section>
               </div>
             ) : null}
           </>
