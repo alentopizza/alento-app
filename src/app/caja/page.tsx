@@ -2465,51 +2465,72 @@ export default function CashPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="alento-ui-label uppercase tracking-[0.11em] text-amber-600">
-                        Cartera entregada
+                        Ubicación del dinero
                       </p>
                       <h3 className="mt-0.5 text-lg font-black text-neutral-950">
-                        Préstamos otorgados en el período
+                        Saldo actual en préstamos
                       </h3>
                       <p className="mt-1 text-[10px] text-neutral-400">
-                        Dinero que salió de Caja y quedó como cuenta por cobrar al trabajador.
+                        Cuando un trabajador paga, ese valor deja de estar aquí y vuelve al neto del período donde se originó el préstamo.
                       </p>
                     </div>
                     <b className="text-sm text-amber-700">
-                      − {formatCOP(summary.loanDisbursedTotal)}
+                      {formatCOP(summary.loanOutstandingTotal)}
                     </b>
                   </div>
 
                   <div className="mt-4 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
-                    {summary.loans.map((loan) => (
-                      <article
-                        key={loan.id}
-                        className="rounded-[16px] border border-amber-100 bg-amber-50/35 p-3.5"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full border border-amber-100 bg-white px-2 py-0.5 alento-ui-micro font-black text-amber-700">
-                                Préstamo #{loan.id}
+                    {summary.loans
+                      .filter((loan) => loan.outstandingAmount > 0)
+                      .map((loan) => (
+                        <article
+                          key={loan.id}
+                          className="rounded-[16px] border border-amber-100 bg-amber-50/35 p-3.5"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-amber-100 bg-white px-2 py-0.5 alento-ui-micro font-black text-amber-700">
+                                  Préstamo #{loan.id}
+                                </span>
+                                <b className="truncate text-xs text-neutral-950">
+                                  {loan.workerName}
+                                </b>
+                              </div>
+                              <p className="mt-2 text-[9px] text-neutral-400">
+                                {dateTimeLabel(loan.issuedAt)}
+                              </p>
+                            </div>
+                            <b className="shrink-0 text-sm font-black text-amber-700">
+                              {formatCOP(loan.outstandingAmount)}
+                            </b>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-amber-100 pt-2.5">
+                            <div>
+                              <span className="block alento-ui-micro uppercase text-neutral-400">
+                                Otorgado
                               </span>
-                              <b className="truncate text-xs text-neutral-950">
-                                {loan.workerName}
+                              <b className="mt-0.5 block text-[11px] text-neutral-700">
+                                {formatCOP(loan.amount)}
                               </b>
                             </div>
-                            <p className="mt-2 text-[9px] text-neutral-400">
-                              {dateTimeLabel(loan.issuedAt)}
-                            </p>
+                            <div className="text-right">
+                              <span className="block alento-ui-micro uppercase text-emerald-600/70">
+                                Recuperado
+                              </span>
+                              <b className="mt-0.5 block text-[11px] text-emerald-700">
+                                {formatCOP(loan.recoveredAmount)}
+                              </b>
+                            </div>
                           </div>
-                          <b className="shrink-0 text-sm font-black text-amber-700">
-                            − {formatCOP(loan.amount)}
-                          </b>
-                        </div>
-                      </article>
-                    ))}
+                        </article>
+                      ))}
                   </div>
 
-                  {summary.loans.length === 0 && (
-                    <div className="mt-4 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-400">
-                      No se otorgaron préstamos en este período.
+                  {summary.loanOutstandingTotal <= 0 && (
+                    <div className="mt-4 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/45 p-8 text-center text-sm font-bold text-emerald-700">
+                      Los préstamos originados en este período ya fueron recuperados.
                     </div>
                   )}
                 </section>
@@ -2571,13 +2592,14 @@ export default function CashPage() {
 
               {summaryDetail === "NET" && (
                 <div className="space-y-4">
-                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                     {[
                       ["Cobros de ventas", summary.receivedTotal, "text-emerald-700"],
                       ["Otros ingresos", summary.otherIncomeTotal, "text-teal-700"],
                       ["Abonos préstamos en efectivo", summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal, "text-emerald-700"],
                       ["Salidas reales", -summary.expensesTotal, "text-rose-700"],
-                      ["Préstamos entregados", -summary.loanDisbursedTotal, "text-rose-700"],
+                      ["Préstamos otorgados", -summary.loanDisbursedTotal, "text-rose-700"],
+                      ["Préstamos devueltos al neto", summary.loanRecoveryAdjustmentTotal, "text-violet-700"],
                     ].map(([label, amount, tone]) => (
                       <div key={String(label)} className="rounded-[18px] border border-neutral-200 bg-white p-4 shadow-sm">
                         <span className="alento-ui-label uppercase text-neutral-400">{String(label)}</span>
@@ -2601,22 +2623,26 @@ export default function CashPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">Cartera</p>
-                          <h3 className="mt-1 text-lg font-black">Préstamos entregados</h3>
+                          <h3 className="mt-1 text-lg font-black">Dinero que sigue en préstamos</h3>
                         </div>
-                        <b className="text-sm text-rose-700">− {formatCOP(summary.loanDisbursedTotal)}</b>
+                        <b className="text-sm text-amber-700">{formatCOP(summary.loanOutstandingTotal)}</b>
                       </div>
                       <div className="mt-3 space-y-2">
-                        {(summary.loans ?? []).map((loan) => (
-                          <div key={loan.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-[#faf9f7] px-3 py-3">
-                            <div>
-                              <b className="text-xs">{loan.workerName}</b>
-                              <p className="mt-0.5 text-[9px] text-neutral-400">{dateTimeLabel(loan.issuedAt)}</p>
+                        {(summary.loans ?? [])
+                          .filter((loan) => loan.outstandingAmount > 0)
+                          .map((loan) => (
+                            <div key={loan.id} className="flex items-center justify-between gap-3 rounded-[14px] bg-[#faf9f7] px-3 py-3">
+                              <div>
+                                <b className="text-xs">{loan.workerName}</b>
+                                <p className="mt-0.5 text-[9px] text-neutral-400">
+                                  {dateTimeLabel(loan.issuedAt)} · recuperado {formatCOP(loan.recoveredAmount)}
+                                </p>
+                              </div>
+                              <b className="text-xs text-amber-700">{formatCOP(loan.outstandingAmount)}</b>
                             </div>
-                            <b className="text-xs text-rose-700">− {formatCOP(loan.amount)}</b>
-                          </div>
-                        ))}
-                        {(summary.loans ?? []).length === 0 && (
-                          <p className="py-5 text-center text-xs text-neutral-400">No hubo préstamos entregados en el período.</p>
+                          ))}
+                        {summary.loanOutstandingTotal <= 0 && (
+                          <p className="py-5 text-center text-xs text-neutral-400">No queda dinero de este período pendiente en préstamos.</p>
                         )}
                       </div>
                     </section>
