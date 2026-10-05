@@ -6,7 +6,13 @@ export type CashExpenseCategory = {
 export const CASH_EXPENSE_CATEGORIES: CashExpenseCategory[] = [
   {
     name: "Maquinaria",
-    subcategories: ["Amasadora", "Procesadora", "Nevera Everest", "Nevera Freezer"],
+    subcategories: [
+      "Amasadora",
+      "Procesadora",
+      "Nevera Everest",
+      "Nevera Freezer",
+      "Mallas Para Pizza",
+    ],
   },
   {
     name: "Insumos",
@@ -67,6 +73,7 @@ export const CASH_EXPENSE_CATEGORIES: CashExpenseCategory[] = [
       "Plátano Maduro",
       "Aceite",
       "Lata Frijol",
+      "Salsa BBQ",
     ],
   },
   { name: "Nomina", subcategories: [] },
