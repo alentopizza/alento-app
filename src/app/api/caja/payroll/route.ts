@@ -416,6 +416,7 @@ export async function POST(request: NextRequest) {
           amount: Math.round(netAmount),
           occurredAt,
           source: "PAYROLL",
+          planningType: "RECURRING",
           createdByName: session.name,
         },
       });
