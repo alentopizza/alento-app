@@ -1609,21 +1609,18 @@ export default function CashPage() {
                 }`}>
                   {formatCOP(summary.netTotal)}
                 </b>
-                <div className="mt-2 grid gap-1.5 text-[10px] sm:grid-cols-2">
-                  <div className="rounded-lg bg-emerald-50 px-2.5 py-2">
-                    <span className="block font-bold text-emerald-600/70">
-                      Entradas
-                    </span>
-                    <b className="mt-0.5 block text-[11px] font-black text-emerald-700">
-                      + {formatCOP(summary.totalInflow)}
-                    </b>
-                  </div>
-                  <div className="rounded-lg bg-rose-50 px-2.5 py-2">
-                    <span className="block font-bold text-rose-600/70">
-                      Egresos
-                    </span>
-                    <b className="mt-0.5 block text-[11px] font-black text-rose-700">
-                      − {formatCOP(summary.expensesTotal + summary.loanDisbursedTotal)}
+                <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/55 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="block alento-ui-micro uppercase tracking-[0.08em] text-violet-500">
+                        Préstamos otorgados
+                      </span>
+                      <span className="mt-0.5 block truncate text-[9px] font-semibold text-violet-700/50">
+                        Cartera colocada en el período
+                      </span>
+                    </div>
+                    <b className="shrink-0 text-[12px] font-black text-violet-700">
+                      − {formatCOP(summary.loanDisbursedTotal)}
                     </b>
                   </div>
                 </div>
