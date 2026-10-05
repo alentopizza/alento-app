@@ -11,6 +11,16 @@ import {
   cashSessionRequiredResponseMessage,
 } from "@/lib/cashRegisterLock";
 
+function payrollMonthFromDate(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(value);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}`;
+}
+
 function serializePendingShift(shift: {
   id: number;
   userId: number;
@@ -170,6 +180,8 @@ export async function GET() {
           note: loan.note,
           principal,
           issuedAt: loan.issuedAt.toISOString(),
+          payrollMonth:
+            loan.payrollMonth || payrollMonthFromDate(loan.issuedAt),
           repaidAmount,
           outstandingAmount: Math.max(0, principal - repaidAmount),
         };
@@ -306,6 +318,9 @@ export async function POST(request: NextRequest) {
         (sum, shift) => sum + Number(shift.amount),
         0,
       );
+      const selectedPayrollMonths = new Set(
+        shifts.map((shift) => payrollMonthFromDate(shift.startsAt)),
+      );
 
       if (grossAmount <= 0) {
         throw new Error("INVALID_PAYROLL_TOTAL");
@@ -345,11 +360,14 @@ export async function POST(request: NextRequest) {
           0,
         );
         const outstanding = Math.max(0, principal - repaid);
+        const loanPayrollMonth =
+          loan.payrollMonth || payrollMonthFromDate(loan.issuedAt);
 
         if (
           loan.status === "PAID" ||
           outstanding <= 0 ||
-          deduction.amount > outstanding
+          deduction.amount > outstanding ||
+          !selectedPayrollMonths.has(loanPayrollMonth)
         ) {
           throw new Error("LOAN_SELECTION_CHANGED");
         }
@@ -483,6 +501,9 @@ export async function POST(request: NextRequest) {
         loanDeductions: validatedLoanDeductions.map((deduction) => ({
           loanId: deduction.loan.id,
           note: deduction.loan.note,
+          payrollMonth:
+            deduction.loan.payrollMonth ||
+            payrollMonthFromDate(deduction.loan.issuedAt),
           amount: deduction.amount,
           remaining: Math.max(
             0,
