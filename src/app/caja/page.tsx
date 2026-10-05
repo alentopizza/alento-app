@@ -1432,33 +1432,35 @@ export default function CashPage() {
           </div>
         </section>
 
-        <CashRegisterControl
-          businessDate={tab === "CASHES" ? today : startDate}
-          enabled={singleDaySelected || tab === "CASHES"}
-          currentNetMovement={selectedSummary?.netTotal ?? 0}
-          currentMovement={
-            selectedSummary
-              ? {
-                  received: selectedSummary.receivedTotal,
-                  otherIncome: selectedSummary.otherIncomeTotal,
-                  expensesTotal: selectedSummary.expensesTotal,
-                  loansTotal: selectedSummary.loanDisbursedTotal,
-                  recovered: selectedSummary.loanRecoveredTotal,
-                  netMovement: selectedSummary.netTotal,
-                }
-              : null
-          }
-          showHistory={tab === "CASHES"}
-          onChanged={() => void load(true)}
-          onSessionStateChange={setCashDayStatus}
-          onSessionClosed={(businessDate) => {
-            setStartDate(businessDate);
-            setEndDate(businessDate);
-            setRangePreset(
-              businessDate === localDateInput() ? "TODAY" : "CUSTOM",
-            );
-          }}
-        />
+        {(tab === "SUMMARY" || tab === "CASHES") && (
+          <CashRegisterControl
+            businessDate={tab === "CASHES" ? today : startDate}
+            enabled={singleDaySelected || tab === "CASHES"}
+            currentNetMovement={selectedSummary?.netTotal ?? 0}
+            currentMovement={
+              selectedSummary
+                ? {
+                    received: selectedSummary.receivedTotal,
+                    otherIncome: selectedSummary.otherIncomeTotal,
+                    expensesTotal: selectedSummary.expensesTotal,
+                    loansTotal: selectedSummary.loanDisbursedTotal,
+                    recovered: selectedSummary.loanRecoveredTotal,
+                    netMovement: selectedSummary.netTotal,
+                  }
+                : null
+            }
+            showHistory={tab === "CASHES"}
+            onChanged={() => void load(true)}
+            onSessionStateChange={setCashDayStatus}
+            onSessionClosed={(businessDate) => {
+              setStartDate(businessDate);
+              setEndDate(businessDate);
+              setRangePreset(
+                businessDate === localDateInput() ? "TODAY" : "CUSTOM",
+              );
+            }}
+          />
+        )}
 
         {loading ? (
           <div className="rounded-[24px] border border-neutral-200 bg-white p-12 text-center text-sm text-neutral-500">
