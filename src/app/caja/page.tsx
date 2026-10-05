@@ -1629,58 +1629,30 @@ export default function CashPage() {
 
             {tab === "SUMMARY" && (
               <section className="overflow-hidden rounded-[24px] border border-violet-100 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 bg-[linear-gradient(135deg,#fbf9ff,#ffffff)] px-4 py-3.5 sm:px-5">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-violet-100 text-violet-700">
-                      <Users className="h-5 w-5" strokeWidth={2} />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="alento-ui-label uppercase tracking-[0.13em] text-violet-500">
-                          Nómina del período
-                        </p>
-                        <span className="rounded-full border border-violet-100 bg-white px-2 py-0.5 alento-ui-micro font-black text-violet-600">
-                          Informativo
-                        </span>
-                      </div>
-                      <h2 className="mt-0.5 text-[16px] font-black tracking-[-0.02em] text-neutral-950">
-                        {startDate === endDate
-                          ? `Costo laboral · ${shortDateLabel(startDate)}`
-                          : `Costo laboral · ${shortDateLabel(startDate)} — ${shortDateLabel(endDate)}`}
-                      </h2>
-                    </div>
+                <div className="flex items-center gap-3 border-b border-violet-100 bg-[linear-gradient(135deg,#fbf9ff,#ffffff)] px-4 py-3.5 sm:px-5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-violet-100 text-violet-700">
+                    <Users className="h-5 w-5" strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="alento-ui-label uppercase tracking-[0.13em] text-violet-500">
+                      Nómina del período
+                    </p>
+                    <h2 className="mt-0.5 text-[16px] font-black tracking-[-0.02em] text-neutral-950">
+                      {startDate === endDate
+                        ? `Costo laboral · ${shortDateLabel(startDate)}`
+                        : `Costo laboral · ${shortDateLabel(startDate)} — ${shortDateLabel(endDate)}`}
+                    </h2>
                   </div>
-
-                  <p className="max-w-lg text-[10px] leading-4 text-neutral-400 sm:text-right">
-                    {summary.payrollMonthActive
-                      ? "Los préstamos se asignan a una nómina mensual concreta. Solo se muestra el saldo que todavía está pendiente de descontar en este mes."
-                      : "Vista informativa de turnos. Los préstamos aplicables se muestran únicamente cuando consultas un mes desde el día 1."}
-                  </p>
                 </div>
 
-                <div
-                  className={
-                    "grid gap-2 p-3 sm:grid-cols-2 sm:p-4 " +
-                    (summary.payrollMonthActive
-                      ? "xl:grid-cols-5"
-                      : "xl:grid-cols-3")
-                  }
-                >
+                <div className="grid gap-2 p-3 sm:grid-cols-3 sm:p-4">
                   <div className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
-                        Nómina programada
-                      </span>
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 alento-ui-micro font-bold text-neutral-500">
-                        {summary.payrollShiftCount} turno{summary.payrollShiftCount === 1 ? "" : "s"}
-                      </span>
-                    </div>
+                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
+                      Nómina programada
+                    </span>
                     <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-neutral-950">
                       {formatCOP(summary.payrollTotal)}
                     </b>
-                    <p className="mt-1 text-[9px] text-neutral-400">
-                      {summary.payrollWorkerCount} trabajador{summary.payrollWorkerCount === 1 ? "" : "es"} en el período
-                    </p>
                   </div>
 
                   <div className="rounded-[18px] border border-emerald-100 bg-emerald-50/45 p-3.5">
@@ -1690,9 +1662,6 @@ export default function CashPage() {
                     <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-emerald-700">
                       {formatCOP(summary.payrollPaidTotal)}
                     </b>
-                    <p className="mt-1 text-[9px] text-emerald-700/55">
-                      Turnos del período marcados como pagados
-                    </p>
                   </div>
 
                   <div className="rounded-[18px] border border-amber-100 bg-amber-50/55 p-3.5">
@@ -1702,48 +1671,7 @@ export default function CashPage() {
                     <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-amber-700">
                       {formatCOP(summary.payrollPendingTotal)}
                     </b>
-                    <p className="mt-1 text-[9px] text-amber-700/55">
-                      Compromiso laboral aún no liquidado
-                    </p>
                   </div>
-
-                  {summary.payrollMonthActive &&
-                    summary.loanReceivableBalance > 0 && (
-                      <div className="rounded-[18px] border border-violet-100 bg-violet-50/55 p-3.5">
-                        <span className="alento-ui-micro uppercase tracking-[0.1em] text-violet-600">
-                          Préstamos aplicables
-                        </span>
-                        <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-violet-700">
-                          {formatCOP(summary.loanReceivableBalance)}
-                        </b>
-                        <p className="mt-1 text-[9px] text-violet-700/55">
-                          Saldo pendiente asignado a esta nómina
-                        </p>
-                      </div>
-                    )}
-
-                  {summary.payrollMonthActive && (
-                    <div className="rounded-[18px] border border-sky-100 bg-sky-50/50 p-3.5">
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
-                        Efectivo por liquidar
-                      </span>
-                      <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-sky-800">
-                        {formatCOP(
-                          Math.max(
-                            0,
-                            summary.payrollPendingTotal -
-                              summary.loanReceivableBalance,
-                          ),
-                        )}
-                      </b>
-                      <p className="mt-1 text-[9px] leading-4 text-sky-700/55">
-                        Pendiente {formatCOP(summary.payrollPendingTotal)}
-                        {summary.loanReceivableBalance > 0
-                          ? ` − préstamos ${formatCOP(summary.loanReceivableBalance)}`
-                          : ""}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </section>
             )}
