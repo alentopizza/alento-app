@@ -1470,167 +1470,169 @@ export default function CashPage() {
           </div>
         ) : summary ? (
           <>
-            <section
-              className={`grid gap-3 md:grid-cols-2 xl:grid-cols-3 ${
-                4 +
-                  (summary.otherIncomeTotal > 0 ? 1 : 0) +
-                  (summary.loanRecoveredTotal > 0 ? 1 : 0) +
-                  (summary.loanOutstandingTotal > 0 ? 1 : 0) >=
-                7
-                  ? "2xl:grid-cols-7"
-                  : 4 +
-                        (summary.otherIncomeTotal > 0 ? 1 : 0) +
-                        (summary.loanRecoveredTotal > 0 ? 1 : 0) +
-                        (summary.loanOutstandingTotal > 0 ? 1 : 0) ===
-                      6
-                    ? "2xl:grid-cols-6"
+            {tab === "SUMMARY" && (
+              <section
+                className={`grid gap-3 md:grid-cols-2 xl:grid-cols-3 ${
+                  4 +
+                    (summary.otherIncomeTotal > 0 ? 1 : 0) +
+                    (summary.loanRecoveredTotal > 0 ? 1 : 0) +
+                    (summary.loanOutstandingTotal > 0 ? 1 : 0) >=
+                  7
+                    ? "2xl:grid-cols-7"
                     : 4 +
                           (summary.otherIncomeTotal > 0 ? 1 : 0) +
                           (summary.loanRecoveredTotal > 0 ? 1 : 0) +
                           (summary.loanOutstandingTotal > 0 ? 1 : 0) ===
-                        5
-                      ? "2xl:grid-cols-5"
-                      : "2xl:grid-cols-4"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => openSummaryDetail("SALES")}
-                className="rounded-[22px] border border-sky-100 bg-[linear-gradient(145deg,#ffffff,#f0f7ff)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
-                    <ReceiptText className="h-5 w-5" />
-                  </span>
-                  <span className="alento-ui-label uppercase tracking-[0.12em] text-sky-600">
-                    Ventas
-                  </span>
-                </div>
-                <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-neutral-950">
-                  {formatCOP(summary.salesTotal)}
-                </b>
-              </button>
-
-              {summary.otherIncomeTotal > 0 && (
+                        6
+                      ? "2xl:grid-cols-6"
+                      : 4 +
+                            (summary.otherIncomeTotal > 0 ? 1 : 0) +
+                            (summary.loanRecoveredTotal > 0 ? 1 : 0) +
+                            (summary.loanOutstandingTotal > 0 ? 1 : 0) ===
+                          5
+                        ? "2xl:grid-cols-5"
+                        : "2xl:grid-cols-4"
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={() => openSummaryDetail("INCOMES")}
-                  className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                  onClick={() => openSummaryDetail("SALES")}
+                  className="rounded-[22px] border border-sky-100 bg-[linear-gradient(145deg,#ffffff,#f0f7ff)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-                      <Banknote className="h-5 w-5" />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                      <ReceiptText className="h-5 w-5" />
                     </span>
-                    <span className="alento-ui-label uppercase tracking-[0.12em] text-teal-600">
-                      Otros ingresos
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-sky-600">
+                      Ventas
                     </span>
                   </div>
-                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
-                    {formatCOP(summary.otherIncomeTotal)}
+                  <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-neutral-950">
+                    {formatCOP(summary.salesTotal)}
                   </b>
                 </button>
-              )}
-
-              {summary.loanRecoveredTotal > 0 && (
+  
+                {summary.otherIncomeTotal > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSummaryDetail("INCOMES")}
+                    className="rounded-[22px] border border-teal-100 bg-[linear-gradient(145deg,#ffffff,#effcf9)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+                        <Banknote className="h-5 w-5" />
+                      </span>
+                      <span className="alento-ui-label uppercase tracking-[0.12em] text-teal-600">
+                        Otros ingresos
+                      </span>
+                    </div>
+                    <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
+                      {formatCOP(summary.otherIncomeTotal)}
+                    </b>
+                  </button>
+                )}
+  
+                {summary.loanRecoveredTotal > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSummaryDetail("RECOVERIES")}
+                    className="group w-full rounded-[22px] border border-violet-100 bg-[linear-gradient(145deg,#ffffff,#f7f4ff)] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                        <CircleDollarSign className="h-5 w-5" />
+                      </span>
+                      <span className="alento-ui-label uppercase tracking-[0.12em] text-violet-600">
+                        Préstamos recuperados
+                      </span>
+                    </div>
+                    <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-violet-700">
+                      {formatCOP(summary.loanRecoveredTotal)}
+                    </b>
+                  </button>
+                )}
+  
                 <button
                   type="button"
-                  onClick={() => openSummaryDetail("RECOVERIES")}
-                  className="group w-full rounded-[22px] border border-violet-100 bg-[linear-gradient(145deg,#ffffff,#f7f4ff)] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
+                  onClick={() => openSummaryDetail("INFLOW")}
+                  className="rounded-[22px] border border-emerald-100 bg-[linear-gradient(145deg,#ffffff,#effcf6)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-                      <CircleDollarSign className="h-5 w-5" />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <ArrowDownCircle className="h-5 w-5" />
                     </span>
-                    <span className="alento-ui-label uppercase tracking-[0.12em] text-violet-600">
-                      Préstamos recuperados
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-emerald-600">
+                      Entradas totales
                     </span>
                   </div>
-                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-violet-700">
-                    {formatCOP(summary.loanRecoveredTotal)}
+                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
+                    {formatCOP(summary.totalInflow)}
                   </b>
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => openSummaryDetail("INFLOW")}
-                className="rounded-[22px] border border-emerald-100 bg-[linear-gradient(145deg,#ffffff,#effcf6)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                    <ArrowDownCircle className="h-5 w-5" />
-                  </span>
-                  <span className="alento-ui-label uppercase tracking-[0.12em] text-emerald-600">
-                    Entradas totales
-                  </span>
-                </div>
-                <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
-                  {formatCOP(summary.totalInflow)}
-                </b>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openSummaryDetail("EXPENSES")}
-                className="rounded-[22px] border border-rose-100 bg-[linear-gradient(145deg,#ffffff,#fff3f4)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
-                    <ArrowUpCircle className="h-5 w-5" />
-                  </span>
-                  <span className="alento-ui-label uppercase tracking-[0.12em] text-rose-600">
-                    Salió
-                  </span>
-                </div>
-                <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-rose-700">
-                  {formatCOP(summary.expensesTotal)}
-                </b>
-              </button>
-
-              {summary.loanOutstandingTotal > 0 && (
+  
                 <button
                   type="button"
-                  onClick={() => openSummaryDetail("LOAN_OUTFLOWS")}
-                  className="group w-full rounded-[22px] border border-amber-100 bg-[linear-gradient(145deg,#ffffff,#fff9ee)] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
+                  onClick={() => openSummaryDetail("EXPENSES")}
+                  className="rounded-[22px] border border-rose-100 bg-[linear-gradient(145deg,#ffffff,#fff3f4)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                      <Landmark className="h-5 w-5" />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+                      <ArrowUpCircle className="h-5 w-5" />
                     </span>
-                    <span className="alento-ui-label uppercase tracking-[0.12em] text-amber-700">
-                      En préstamos
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-rose-600">
+                      Salió
                     </span>
                   </div>
-                  <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-amber-700">
-                    {formatCOP(summary.loanOutstandingTotal)}
+                  <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-rose-700">
+                    {formatCOP(summary.expensesTotal)}
                   </b>
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => openSummaryDetail("NET")}
-                className={`group w-full rounded-[22px] border p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                summary.netTotal >= 0
-                  ? "border-neutral-200 bg-[linear-gradient(145deg,#ffffff,#f7f7f6)]"
-                  : "border-red-200 bg-red-50"
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    summary.netTotal >= 0
-                      ? "bg-neutral-950 text-white"
-                      : "bg-red-100 text-red-700"
-                  }`}>
-                    <WalletCards className="h-5 w-5" />
-                  </span>
-                  <span className="alento-ui-label uppercase tracking-[0.12em] text-neutral-500">
-                    Flujo neto
-                  </span>
-                </div>
-                <b className={`mt-4 block text-[28px] font-black tracking-[-0.04em] ${
-                  summary.netTotal >= 0 ? "text-neutral-950" : "text-red-700"
+  
+                {summary.loanOutstandingTotal > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSummaryDetail("LOAN_OUTFLOWS")}
+                    className="group w-full rounded-[22px] border border-amber-100 bg-[linear-gradient(145deg,#ffffff,#fff9ee)] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                        <Landmark className="h-5 w-5" />
+                      </span>
+                      <span className="alento-ui-label uppercase tracking-[0.12em] text-amber-700">
+                        En préstamos
+                      </span>
+                    </div>
+                    <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-amber-700">
+                      {formatCOP(summary.loanOutstandingTotal)}
+                    </b>
+                  </button>
+                )}
+  
+                <button
+                  type="button"
+                  onClick={() => openSummaryDetail("NET")}
+                  className={`group w-full rounded-[22px] border p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                  summary.netTotal >= 0
+                    ? "border-neutral-200 bg-[linear-gradient(145deg,#ffffff,#f7f7f6)]"
+                    : "border-red-200 bg-red-50"
                 }`}>
-                  {formatCOP(summary.netTotal)}
-                </b>
-
-              </button>
-            </section>
+                  <div className="flex items-center justify-between">
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                      summary.netTotal >= 0
+                        ? "bg-neutral-950 text-white"
+                        : "bg-red-100 text-red-700"
+                    }`}>
+                      <WalletCards className="h-5 w-5" />
+                    </span>
+                    <span className="alento-ui-label uppercase tracking-[0.12em] text-neutral-500">
+                      Flujo neto
+                    </span>
+                  </div>
+                  <b className={`mt-4 block text-[28px] font-black tracking-[-0.04em] ${
+                    summary.netTotal >= 0 ? "text-neutral-950" : "text-red-700"
+                  }`}>
+                    {formatCOP(summary.netTotal)}
+                  </b>
+  
+                </button>
+              </section>
+            )}
 
             {tab === "SUMMARY" && (
               <section className="overflow-hidden rounded-[24px] border border-violet-100 bg-white shadow-[0_8px_24px_rgba(28,23,20,.04)]">
