@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 
@@ -749,7 +750,7 @@ export async function POST(request: NextRequest) {
           closingCard: card,
           closingDavivienda: davivienda,
           closingDenominations: denominationCounts,
-          closingDraft: null,
+          closingDraft: Prisma.DbNull,
           closingDraftUpdatedAt: null,
           closingLoanReceivable: Math.round(
             movement.loansReceivable,
