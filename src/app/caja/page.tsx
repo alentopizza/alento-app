@@ -509,6 +509,7 @@ export default function CashPage() {
   const [expenseTypeMessage, setExpenseTypeMessage] = useState("");
   const [planningUpdateId, setPlanningUpdateId] = useState<number | null>(null);
   const [summaryDetail, setSummaryDetail] = useState<SummaryDetail | null>(null);
+  const [expenseCategoryDetail, setExpenseCategoryDetail] = useState<string | null>(null);
 
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [incomeCategory, setIncomeCategory] = useState("Otros");
@@ -839,46 +840,65 @@ export default function CashPage() {
   }, [expenseCatalog, summary]);
 
   const expenseAnalytics = useMemo(() => {
-    const expenses = summary?.expenses ?? [];
-    const total = summary?.expensesTotal ?? 0;
-    const sales = summary?.salesTotal ?? 0;
-
-    let inputsTotal = 0;
-    let recurringTotal = 0;
-    let oneTimeTotal = 0;
-    let variableTotal = 0;
-
-    for (const expense of expenses) {
-      if (expense.category === "Insumos") inputsTotal += expense.amount;
-
-      const planningType = effectiveExpensePlanningType(expense);
-      if (planningType === "RECURRING") {
-        recurringTotal += expense.amount;
-      } else if (planningType === "ONE_TIME") {
-        oneTimeTotal += expense.amount;
-      } else {
-        variableTotal += expense.amount;
-      }
-    }
-
-    const oneTimeExpenses = expenses
-      .filter(
-        (expense) => effectiveExpensePlanningType(expense) === "ONE_TIME",
-      )
-      .sort((a, b) => b.amount - a.amount);
+    const salesTotal = summary?.salesTotal ?? 0;
+    const otherIncomeTotal = summary?.otherIncomeTotal ?? 0;
+    const totalIncome = salesTotal + otherIncomeTotal;
 
     return {
-      total,
-      inputsTotal,
-      recurringTotal,
-      oneTimeTotal,
-      variableTotal,
-      withoutOneTime: Math.max(0, total - oneTimeTotal),
-      inputsSalesPercent: sales > 0 ? (inputsTotal / sales) * 100 : 0,
-      salesAfterInputs: sales - inputsTotal,
-      oneTimeExpenses,
+      salesTotal,
+      otherIncomeTotal,
+      totalIncome,
+      expensesTotal: summary?.expensesTotal ?? 0,
     };
   }, [summary]);
+
+  const selectedExpenseCategoryDetail = useMemo(() => {
+    if (!summary || !expenseCategoryDetail) return null;
+
+    const expenses = summary.expenses.filter(
+      (expense) => expense.category === expenseCategoryDetail,
+    );
+    const amount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalIncome = expenseAnalytics.totalIncome;
+
+    const breakdownMap = new Map<
+      string,
+      { label: string; amount: number; count: number }
+    >();
+
+    expenses.forEach((expense) => {
+      const label = expense.subcategory?.trim() || "Sin subtipo";
+      const current = breakdownMap.get(label);
+      if (current) {
+        current.amount += expense.amount;
+        current.count += 1;
+      } else {
+        breakdownMap.set(label, {
+          label,
+          amount: expense.amount,
+          count: 1,
+        });
+      }
+    });
+
+    const breakdown = [...breakdownMap.values()].sort(
+      (a, b) => b.amount - a.amount,
+    );
+
+    return {
+      category: expenseCategoryDetail,
+      amount,
+      count: expenses.length,
+      average: expenses.length > 0 ? amount / expenses.length : 0,
+      shareOfIncome: totalIncome > 0 ? (amount / totalIncome) * 100 : 0,
+      breakdown,
+      expenses: [...expenses].sort(
+        (a, b) =>
+          new Date(b.occurredAt).getTime() -
+          new Date(a.occurredAt).getTime(),
+      ),
+    };
+  }, [summary, expenseCategoryDetail, expenseAnalytics.totalIncome]);
 
   const filteredExpenses = useMemo(() => {
     const query = expenseQuery.trim().toLowerCase();
