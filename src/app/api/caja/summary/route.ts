@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
       expenses,
       loans,
       loanRepayments,
+      payrollShifts,
     ] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
@@ -222,6 +223,18 @@ export async function GET(request: NextRequest) {
           },
         },
       }),
+      // Nómina is calendar-based, not cash-session based. This keeps the
+      // operational projection aligned with the dates selected in the header.
+      prisma.workShift.findMany({
+        where: {
+          startsAt: { gte: start, lt: endExclusive },
+        },
+        select: {
+          userId: true,
+          amount: true,
+          status: true,
+        },
+      }),
     ]);
 
     const methods = new Map<
@@ -301,6 +314,19 @@ export async function GET(request: NextRequest) {
       );
     const loanRecoveredCashTotal =
       loanRecoveredTotal - loanRecoveredPayrollTotal;
+    const payrollTotal = payrollShifts.reduce(
+      (sum, shift) => sum + Number(shift.amount),
+      0,
+    );
+    const payrollPaidTotal = payrollShifts
+      .filter((shift) => shift.status === "PAID")
+      .reduce((sum, shift) => sum + Number(shift.amount), 0);
+    const payrollPendingTotal = payrollShifts
+      .filter((shift) => shift.status !== "PAID")
+      .reduce((sum, shift) => sum + Number(shift.amount), 0);
+    const payrollWorkerCount = new Set(
+      payrollShifts.map((shift) => shift.userId),
+    ).size;
 
     return NextResponse.json({
       startDate,
@@ -334,6 +360,11 @@ export async function GET(request: NextRequest) {
         loanRecoveredCashTotal -
         expensesTotal -
         loanDisbursedTotal,
+      payrollTotal,
+      payrollPaidTotal,
+      payrollPendingTotal,
+      payrollShiftCount: payrollShifts.length,
+      payrollWorkerCount,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
       orders: salesOrders.map((order) => {
         const paidAmount = order.payments
