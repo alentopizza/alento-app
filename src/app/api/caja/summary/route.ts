@@ -229,6 +229,14 @@ export async function GET(request: NextRequest) {
           workerName: true,
           principal: true,
           issuedAt: true,
+          repayments: {
+            select: {
+              amount: true,
+              paidAt: true,
+              method: true,
+            },
+            orderBy: { paidAt: "asc" },
+          },
         },
       }),
       prisma.cashLoanRepayment.findMany({
@@ -352,6 +360,37 @@ export async function GET(request: NextRequest) {
       (sum, loan) => sum + Number(loan.principal),
       0,
     );
+    const loanOutstandingTotal = loans.reduce((sum, loan) => {
+      const principal = Number(loan.principal);
+      const recovered = loan.repayments.reduce(
+        (recoverySum, repayment) =>
+          recoverySum + Number(repayment.amount),
+        0,
+      );
+      return sum + Math.max(0, principal - recovered);
+    }, 0);
+    const loanRecoveredFromIssuedTotal = Math.max(
+      0,
+      loanDisbursedTotal - loanOutstandingTotal,
+    );
+    const loanRecoveryAdjustmentTotal = loans.reduce((sum, loan) => {
+      return (
+        sum +
+        loan.repayments.reduce((repaymentSum, repayment) => {
+          const alreadyCountedAsPeriodCashInflow =
+            repayment.method !== "DESCUENTO_NOMINA" &&
+            repayment.paidAt >= queryStart &&
+            repayment.paidAt < queryEndExclusive;
+
+          return (
+            repaymentSum +
+            (alreadyCountedAsPeriodCashInflow
+              ? 0
+              : Number(repayment.amount))
+          );
+        }, 0)
+      );
+    }, 0);
     const loanRecoveredTotal = loanRepayments.reduce(
       (sum, repayment) => sum + Number(repayment.amount),
       0,
@@ -411,6 +450,9 @@ export async function GET(request: NextRequest) {
         otherIncomeTotal +
         loanRecoveredCashTotal,
       loanDisbursedTotal,
+      loanOutstandingTotal,
+      loanRecoveredFromIssuedTotal,
+      loanRecoveryAdjustmentTotal,
       loanRecoveredTotal,
       loanRecoveredCashTotal,
       loanRecoveredPayrollTotal,
@@ -421,7 +463,8 @@ export async function GET(request: NextRequest) {
         otherIncomeTotal +
         loanRecoveredCashTotal -
         expensesTotal -
-        loanDisbursedTotal,
+        loanDisbursedTotal +
+        loanRecoveryAdjustmentTotal,
       payrollTotal,
       payrollPaidTotal,
       payrollPendingTotal,
@@ -491,12 +534,22 @@ export async function GET(request: NextRequest) {
         source: income.source,
         createdByName: income.createdByName,
       })),
-      loans: loans.map((loan) => ({
-        id: loan.id,
-        workerName: loan.workerName,
-        amount: Number(loan.principal),
-        issuedAt: loan.issuedAt,
-      })),
+      loans: loans.map((loan) => {
+        const amount = Number(loan.principal);
+        const recoveredAmount = loan.repayments.reduce(
+          (sum, repayment) => sum + Number(repayment.amount),
+          0,
+        );
+
+        return {
+          id: loan.id,
+          workerName: loan.workerName,
+          amount,
+          issuedAt: loan.issuedAt,
+          recoveredAmount,
+          outstandingAmount: Math.max(0, amount - recoveredAmount),
+        };
+      }),
       loanRepayments: loanRepayments.map((repayment) => ({
         id: repayment.id,
         loanId: repayment.loanId,
