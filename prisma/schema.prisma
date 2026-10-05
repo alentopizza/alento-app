@@ -565,6 +565,7 @@ model CashExpense {
   amount        Decimal  @db.Decimal(12, 2)
   occurredAt    DateTime
   source        String   @default("MANUAL")
+  planningType  String   @default("VARIABLE")
   createdByName String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -574,6 +575,19 @@ model CashExpense {
   @@index([driverId, occurredAt])
   @@index([occurredAt])
   @@index([category, occurredAt])
+}
+
+model CashExpenseCustomType {
+  id            Int      @id @default(autoincrement())
+  key           String   @unique
+  category      String
+  subcategory   String?
+  active        Boolean  @default(true)
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category, active])
 }
 
 model CashIncome {
