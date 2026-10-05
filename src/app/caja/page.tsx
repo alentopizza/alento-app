@@ -106,7 +106,6 @@ type IncomeRow = {
   amount: number;
   occurredAt: string;
   source: string;
-  planningType: ExpensePlanningType;
   createdByName: string;
 };
 
@@ -125,6 +124,7 @@ type ExpenseRow = {
   amount: number;
   occurredAt: string;
   source: string;
+  planningType: ExpensePlanningType;
   createdByName: string;
   payrollPaymentId?: number | null;
 };
