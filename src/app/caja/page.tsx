@@ -2068,7 +2068,7 @@ export default function CashPage() {
                         Lectura de gastos
                       </p>
                       <h2 className="mt-1 text-xl font-black text-neutral-950">
-                        Rentabilidad y planeación
+                        Ingresos y distribución de salidas
                       </h2>
                       <p className="mt-1 text-[10px] text-neutral-400">
                         {startDate === endDate
@@ -2077,222 +2077,137 @@ export default function CashPage() {
                       </p>
                     </div>
                     <p className="max-w-xl text-[10px] leading-4 text-neutral-400 xl:text-right">
-                      Clasifica los gastos como variables, recurrentes o de una sola vez. Así puedes separar el costo normal de operación de compras que no deberían repetirse el siguiente mes.
+                      Cada categoría de gasto se compara contra el total de ingresos del período: ventas + otros ingresos.
                     </p>
                   </div>
 
-                  <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3 2xl:grid-cols-6">
-                    <div className="rounded-[18px] border border-rose-100 bg-rose-50/45 p-3.5">
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-rose-500">
-                        Total salidas
+                  <div
+                    className={
+                      "grid gap-2 p-3 sm:grid-cols-2 sm:p-4 " +
+                      (expenseAnalytics.otherIncomeTotal > 0
+                        ? "xl:grid-cols-4"
+                        : "xl:grid-cols-3")
+                    }
+                  >
+                    <div className="rounded-[18px] border border-sky-100 bg-sky-50/45 p-4">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
+                        Ventas
                       </span>
-                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-rose-700">
-                        {formatCOP(expenseAnalytics.total)}
+                      <b className="mt-2 block text-[23px] font-black tracking-[-0.03em] text-sky-800">
+                        {formatCOP(expenseAnalytics.salesTotal)}
                       </b>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setExpenseCategoryFilter("Insumos")}
-                      className="rounded-[18px] border border-emerald-100 bg-emerald-50/45 p-3.5 text-left transition hover:-translate-y-0.5"
-                    >
+                    {expenseAnalytics.otherIncomeTotal > 0 && (
+                      <div className="rounded-[18px] border border-teal-100 bg-teal-50/45 p-4">
+                        <span className="alento-ui-micro uppercase tracking-[0.1em] text-teal-600">
+                          Otros ingresos
+                        </span>
+                        <b className="mt-2 block text-[23px] font-black tracking-[-0.03em] text-teal-700">
+                          {formatCOP(expenseAnalytics.otherIncomeTotal)}
+                        </b>
+                      </div>
+                    )}
+
+                    <div className="rounded-[18px] border border-emerald-100 bg-emerald-50/50 p-4">
                       <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
-                        Insumos
+                        Total ingresos
                       </span>
-                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-emerald-700">
-                        {formatCOP(expenseAnalytics.inputsTotal)}
+                      <b className="mt-2 block text-[23px] font-black tracking-[-0.03em] text-emerald-700">
+                        {formatCOP(expenseAnalytics.totalIncome)}
                       </b>
-                      <p className="mt-1 text-[9px] font-bold text-emerald-700/55">
-                        {expenseAnalytics.inputsSalesPercent.toFixed(1)}% de las ventas
-                      </p>
-                    </button>
-
-                    <div className="rounded-[18px] border border-sky-100 bg-sky-50/45 p-3.5">
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
-                        Ventas − insumos
-                      </span>
-                      <b
-                        className={
-                          "mt-2 block text-[21px] font-black tracking-[-0.03em] " +
-                          (expenseAnalytics.salesAfterInputs >= 0
-                            ? "text-sky-800"
-                            : "text-red-700")
-                        }
-                      >
-                        {formatCOP(expenseAnalytics.salesAfterInputs)}
-                      </b>
-                      <p className="mt-1 text-[9px] text-sky-700/50">
-                        Referencia operativa antes de otros gastos
+                      <p className="mt-1 text-[9px] text-emerald-700/55">
+                        Ventas + otros ingresos
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setExpensePlanningFilter("RECURRING")}
-                      className="rounded-[18px] border border-sky-100 bg-white p-3.5 text-left transition hover:-translate-y-0.5"
-                    >
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
-                        Recurrentes
+                    <div className="rounded-[18px] border border-rose-100 bg-rose-50/45 p-4">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-rose-600">
+                        Salidas
                       </span>
-                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-sky-800">
-                        {formatCOP(expenseAnalytics.recurringTotal)}
+                      <b className="mt-2 block text-[23px] font-black tracking-[-0.03em] text-rose-700">
+                        {formatCOP(expenseAnalytics.expensesTotal)}
                       </b>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setExpensePlanningFilter("VARIABLE")}
-                      className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5 text-left transition hover:-translate-y-0.5"
-                    >
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-500">
-                        Variables
-                      </span>
-                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-neutral-950">
-                        {formatCOP(expenseAnalytics.variableTotal)}
-                      </b>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setExpensePlanningFilter("ONE_TIME")}
-                      className="rounded-[18px] border border-amber-100 bg-amber-50/55 p-3.5 text-left transition hover:-translate-y-0.5"
-                    >
-                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-amber-600">
-                        Una sola vez
-                      </span>
-                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-amber-700">
-                        {formatCOP(expenseAnalytics.oneTimeTotal)}
-                      </b>
-                      <p className="mt-1 text-[9px] font-bold text-amber-700/55">
-                        Base sin únicos {formatCOP(expenseAnalytics.withoutOneTime)}
+                      <p className="mt-1 text-[9px] text-rose-700/55">
+                        {expenseAnalytics.totalIncome > 0
+                          ? ((expenseAnalytics.expensesTotal / expenseAnalytics.totalIncome) * 100).toFixed(1) + "% de los ingresos"
+                          : "Sin ingresos para comparar"}
                       </p>
-                    </button>
+                    </div>
                   </div>
 
-                  <div className="grid gap-3 border-t border-neutral-100 p-3 sm:p-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]">
-                    <section className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
-                            Distribución
-                          </p>
-                          <h3 className="mt-0.5 text-[15px] font-black">
-                            ¿En qué se está yendo el dinero?
-                          </h3>
-                        </div>
-                        <b className="text-xs text-neutral-400">
-                          {formatCOP(summary.expensesTotal)}
-                        </b>
+                  <div className="border-t border-neutral-100 p-3 sm:p-4">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                          Distribución
+                        </p>
+                        <h3 className="mt-0.5 text-[16px] font-black text-neutral-950">
+                          ¿En qué se está yendo el dinero?
+                        </h3>
+                        <p className="mt-1 text-[9px] text-neutral-400">
+                          Porcentaje calculado sobre {formatCOP(expenseAnalytics.totalIncome)} de ingresos.
+                        </p>
                       </div>
+                      <b className="text-xs text-neutral-400">
+                        {summary.expenseCategories.length} categoría{summary.expenseCategories.length === 1 ? "" : "s"}
+                      </b>
+                    </div>
 
-                      <div className="mt-4 grid gap-2 md:grid-cols-2">
-                        {summary.expenseCategories.map((item) => {
-                          const share =
-                            summary.expensesTotal > 0
-                              ? (item.amount / summary.expensesTotal) * 100
-                              : 0;
-                          return (
-                            <button
-                              key={item.category}
-                              type="button"
-                              onClick={() =>
-                                setExpenseCategoryFilter(item.category)
-                              }
-                              className="rounded-[14px] border border-neutral-200 bg-white px-3 py-3 text-left transition hover:border-neutral-300"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <b className="block truncate text-[11px] text-neutral-900">
-                                    {item.category}
-                                  </b>
-                                  <span className="mt-0.5 block alento-ui-micro text-neutral-400">
-                                    {item.count} movimiento{item.count === 1 ? "" : "s"}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <b className="block text-[11px] text-neutral-950">
-                                    {formatCOP(item.amount)}
-                                  </b>
-                                  <span className="alento-ui-micro font-black text-neutral-400">
-                                    {share.toFixed(1)}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                                <div
-                                  className="h-full rounded-full bg-neutral-900"
-                                  style={{
-                                    width:
-                                      Math.max(2, Math.min(100, share)) + "%",
-                                  }}
-                                />
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
+                    <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {summary.expenseCategories.map((item) => {
+                        const share =
+                          expenseAnalytics.totalIncome > 0
+                            ? (item.amount / expenseAnalytics.totalIncome) * 100
+                            : 0;
 
-                    <section className="rounded-[18px] border border-amber-100 bg-amber-50/35 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="alento-ui-label uppercase tracking-[0.1em] text-amber-600">
-                            No repetir próximo mes
-                          </p>
-                          <h3 className="mt-0.5 text-[15px] font-black text-neutral-950">
-                            Gastos de una sola vez
-                          </h3>
-                        </div>
-                        <b className="text-sm text-amber-700">
-                          {formatCOP(expenseAnalytics.oneTimeTotal)}
-                        </b>
-                      </div>
-
-                      <div className="mt-3 space-y-2">
-                        {expenseAnalytics.oneTimeExpenses
-                          .slice(0, 6)
-                          .map((expense) => (
-                            <button
-                              key={expense.id}
-                              type="button"
-                              onClick={() => {
-                                setExpensePlanningFilter("ONE_TIME");
-                                setExpenseQuery(
-                                  expense.subcategory ||
-                                    expense.note ||
-                                    expense.category,
-                                );
-                              }}
-                              className="flex w-full items-center justify-between gap-3 rounded-xl border border-amber-100 bg-white px-3 py-2.5 text-left"
-                            >
+                        return (
+                          <button
+                            key={item.category}
+                            type="button"
+                            onClick={() => setExpenseCategoryDetail(item.category)}
+                            className="group rounded-[16px] border border-neutral-200 bg-[#fbfbfa] p-3.5 text-left transition hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-white hover:shadow-sm"
+                          >
+                            <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <b className="block truncate text-[10px] text-neutral-900">
-                                  {expense.subcategory ||
-                                    expense.note ||
-                                    expense.category}
+                                <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-micro font-black ${expenseTone(item.category)}`}>
+                                  {item.category}
+                                </span>
+                                <p className="mt-2 alento-ui-micro text-neutral-400">
+                                  {item.count} movimiento{item.count === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <b className="block text-[15px] font-black text-neutral-950">
+                                  {formatCOP(item.amount)}
                                 </b>
-                                <span className="mt-0.5 block truncate text-[9px] text-neutral-400">
-                                  {expense.category}
+                                <span className="mt-0.5 block text-[10px] font-black text-neutral-500">
+                                  {share.toFixed(1)}%
                                 </span>
                               </div>
-                              <b className="shrink-0 text-[11px] text-amber-700">
-                                {formatCOP(expense.amount)}
-                              </b>
-                            </button>
-                          ))}
-
-                        {expenseAnalytics.oneTimeExpenses.length === 0 && (
-                          <div className="rounded-xl border border-dashed border-amber-200 bg-white/60 px-4 py-6 text-center">
-                            <b className="text-[11px] text-amber-800">
-                              Aún no has marcado gastos de una sola vez.
-                            </b>
-                            <p className="mt-1 text-[9px] leading-4 text-amber-700/60">
-                              Usa el selector de cada movimiento para marcar compras como mallas, adecuaciones o equipos que no esperas repetir.
+                            </div>
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                              <div
+                                className="h-full rounded-full bg-neutral-900 transition-all group-hover:bg-neutral-700"
+                                style={{
+                                  width:
+                                    Math.max(2, Math.min(100, share)) + "%",
+                                }}
+                              />
+                            </div>
+                            <p className="mt-2 text-[9px] font-bold text-neutral-400">
+                              del total de ingresos · ver detalle
                             </p>
-                          </div>
-                        )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {summary.expenseCategories.length === 0 && (
+                      <div className="mt-4 rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-400">
+                        No hay salidas registradas en este período.
                       </div>
-                    </section>
+                    )}
                   </div>
                 </section>
 
