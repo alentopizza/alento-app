@@ -1503,9 +1503,6 @@ export default function CashPage() {
                 <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-neutral-950">
                   {formatCOP(summary.salesTotal)}
                 </b>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  {summary.orderCount} pedido{summary.orderCount === 1 ? "" : "s"} vendido{summary.orderCount === 1 ? "" : "s"}
-                </p>
               </button>
 
               {summary.otherIncomeTotal > 0 && (
@@ -1524,9 +1521,6 @@ export default function CashPage() {
                   <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-teal-700">
                     {formatCOP(summary.otherIncomeTotal)}
                   </b>
-                  <p className="mt-1 text-[11px] text-neutral-500">
-                    {summary.otherIncomeCount} movimiento{summary.otherIncomeCount === 1 ? "" : "s"} adicional{summary.otherIncomeCount === 1 ? "" : "es"}
-                  </p>
                 </button>
               )}
 
@@ -1547,12 +1541,6 @@ export default function CashPage() {
                   <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-violet-700">
                     {formatCOP(summary.loanRecoveredTotal)}
                   </b>
-                  <p className="mt-1 text-[11px] text-neutral-500">
-                    {summary.loanRepayments.length} abono{summary.loanRepayments.length === 1 ? "" : "s"}
-                    {(summary.loanRecoveredPayrollTotal ?? 0) > 0
-                      ? ` · Nómina ${formatCOP(summary.loanRecoveredPayrollTotal ?? 0)} (sin entrada de efectivo)`
-                      : ""}
-                  </p>
                 </button>
               )}
 
@@ -1571,12 +1559,6 @@ export default function CashPage() {
                 <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-emerald-700">
                   {formatCOP(summary.totalInflow)}
                 </b>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  Cobros {formatCOP(summary.receivedTotal)}
-                  {(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal) > 0
-                    ? ` · Préstamos en efectivo ${formatCOP(summary.loanRecoveredCashTotal ?? summary.loanRecoveredTotal)}`
-                    : ""}
-                </p>
               </button>
 
               <button
@@ -1594,9 +1576,6 @@ export default function CashPage() {
                 <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-rose-700">
                   {formatCOP(summary.expensesTotal)}
                 </b>
-                <p className="mt-1 text-[11px] text-neutral-500">
-                  {summary.expenseCount} salida{summary.expenseCount === 1 ? "" : "s"} registrada{summary.expenseCount === 1 ? "" : "s"}
-                </p>
               </button>
 
               {summary.loanDisbursedTotal > 0 && (
@@ -1616,9 +1595,6 @@ export default function CashPage() {
                   <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-amber-700">
                     {formatCOP(summary.loanDisbursedTotal)}
                   </b>
-                  <p className="mt-1 text-[11px] text-neutral-500">
-                    {summary.loans.length} préstamo{summary.loans.length === 1 ? "" : "s"} entregado{summary.loans.length === 1 ? "" : "s"}
-                  </p>
                 </button>
               )}
 
