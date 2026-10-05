@@ -33,6 +33,7 @@ type Loan = {
   note: string | null;
   principal: number;
   issuedAt: string;
+  payrollMonth: string;
   status: "OPEN" | "PAID";
   source: string;
   createdByName: string;
@@ -101,6 +102,16 @@ function dateTimeLabel(value: string) {
   });
 }
 
+function payrollMonthLabel(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  const label = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export default function CashLoansPanel({
   cashDateLocked,
   businessDate,
@@ -128,6 +139,9 @@ export default function CashLoansPanel({
   const [loanNote, setLoanNote] = useState("");
   const [loanDate, setLoanDate] = useState(localDateInput());
   const [loanTime, setLoanTime] = useState(localTimeInput());
+  const [loanPayrollMonth, setLoanPayrollMonth] = useState(
+    localDateInput().slice(0, 7),
+  );
   const [loanBusy, setLoanBusy] = useState(false);
   const [loanMessage, setLoanMessage] = useState("");
 
@@ -172,6 +186,7 @@ export default function CashLoansPanel({
     if (createSignal <= 0 || cashDateLocked) return;
     setLoanDate(businessDate);
     setLoanTime(localTimeInput());
+    setLoanPayrollMonth(businessDate.slice(0, 7));
     setLoanMessage("");
     setNewOpen(true);
   }, [businessDate, cashDateLocked, createSignal]);
@@ -204,6 +219,7 @@ export default function CashLoansPanel({
           amount: Number(loanAmount.replace(/\D/g, "")),
           note: loanNote,
           issuedAt,
+          payrollMonth: loanPayrollMonth,
         }),
       });
       const body = await response.json();
@@ -225,6 +241,9 @@ export default function CashLoansPanel({
         note: created.note ?? (loanNote.trim() || null),
         principal,
         issuedAt: String(created.issuedAt || issuedAt),
+        payrollMonth: String(
+          created.payrollMonth || loanPayrollMonth || loanDate.slice(0, 7),
+        ),
         status: "OPEN",
         source: String(created.source || "MANUAL"),
         createdByName: String(created.createdByName || ""),
@@ -257,6 +276,7 @@ export default function CashLoansPanel({
       setWorkerId("");
       setLoanAmount("");
       setLoanNote("");
+      setLoanPayrollMonth(localDateInput().slice(0, 7));
       void Promise.resolve(
         onCashChanged({ loanDisbursedDelta: principal }),
       );
@@ -543,9 +563,14 @@ export default function CashLoansPanel({
                   </span>
                 </div>
 
-                <p className="alento-ui-micro mt-2 truncate text-neutral-500">
-                  {loan.note || "Sin observación"}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-violet-100 bg-violet-50 px-2 py-0.5 alento-ui-micro font-black text-violet-700">
+                    Nómina {payrollMonthLabel(loan.payrollMonth)}
+                  </span>
+                  <p className="alento-ui-micro truncate text-neutral-500">
+                    {loan.note || "Sin observación"}
+                  </p>
+                </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <div className="rounded-xl border border-white/80 bg-white/75 px-2.5 py-2">
@@ -671,7 +696,11 @@ export default function CashLoansPanel({
                   <input
                     type="date"
                     value={loanDate}
-                    onChange={(event) => setLoanDate(event.target.value)}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setLoanDate(value);
+                      if (value) setLoanPayrollMonth(value.slice(0, 7));
+                    }}
                     className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
@@ -686,6 +715,20 @@ export default function CashLoansPanel({
                     className="alento-ui-control h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 outline-none"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
+                  Descontar en nómina de
+                </label>
+                <input
+                  type="month"
+                  value={loanPayrollMonth}
+                  onChange={(event) => setLoanPayrollMonth(event.target.value)}
+                  className="alento-ui-control h-11 w-full rounded-xl border border-violet-100 bg-violet-50/45 px-3 font-black text-violet-800 outline-none"
+                />
+                <p className="alento-ui-micro mt-1 text-neutral-400">
+                  Define a qué mes de nómina pertenece este préstamo.
+                </p>
               </div>
               <div>
                 <label className="alento-ui-label mb-1.5 block uppercase text-neutral-500">
