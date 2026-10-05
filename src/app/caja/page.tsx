@@ -592,6 +592,120 @@ export default function CashPage() {
     }
   }
 
+  async function loadExpenseCatalog() {
+    try {
+      const response = await fetch("/api/caja/expense-types", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible cargar los tipos de salida.",
+        );
+      }
+
+      const categories = (data.categories ?? []) as ExpenseCatalogCategory[];
+      if (categories.length > 0) setExpenseCatalog(categories);
+    } catch {
+      // Se conserva el catálogo base si el catálogo configurable no carga.
+    }
+  }
+
+  async function saveExpenseType() {
+    if (expenseTypeSaving) return;
+
+    const category = expenseTypeCategory.trim();
+    const subcategory = expenseTypeSubcategory.trim();
+
+    if (!category) {
+      setExpenseTypeMessage("Escribe una categoría.");
+      return;
+    }
+
+    setExpenseTypeSaving(true);
+    setExpenseTypeMessage("");
+
+    try {
+      const response = await fetch("/api/caja/expense-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, subcategory }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible guardar el tipo de salida.",
+        );
+      }
+
+      const categories = (data.categories ?? []) as ExpenseCatalogCategory[];
+      if (categories.length > 0) setExpenseCatalog(categories);
+      setExpenseCategory(category);
+      setExpenseSubcategory(subcategory);
+      setExpenseTypeCategory(category);
+      setExpenseTypeSubcategory("");
+      setExpenseTypeMessage(
+        subcategory
+          ? "Se agregó " + subcategory + " a " + category + "."
+          : "Se agregó la categoría " + category + ".",
+      );
+    } catch (saveError) {
+      setExpenseTypeMessage(
+        saveError instanceof Error
+          ? saveError.message
+          : "No fue posible guardar el tipo de salida.",
+      );
+    } finally {
+      setExpenseTypeSaving(false);
+    }
+  }
+
+  async function updateExpensePlanning(
+    expense: ExpenseRow,
+    planningType: ExpensePlanningType,
+  ) {
+    if (
+      planningUpdateId != null ||
+      expense.source === "PAYROLL" ||
+      expense.category === "Nomina"
+    ) {
+      return;
+    }
+
+    setPlanningUpdateId(expense.id);
+    try {
+      const response = await fetch("/api/caja/expenses/" + expense.id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planningType }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible clasificar el gasto.",
+        );
+      }
+
+      setSummary((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          expenses: current.expenses.map((item) =>
+            item.id === expense.id ? { ...item, planningType } : item,
+          ),
+        };
+      });
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "No fue posible clasificar el gasto.",
+      );
+    } finally {
+      setPlanningUpdateId(null);
+    }
+  }
+
   function handleLoanCashChanged(change: CashLoanChange = {}) {
     const disbursedDelta = Number(change.loanDisbursedDelta ?? 0);
     const recoveredDelta = Number(change.loanRecoveredDelta ?? 0);
@@ -628,6 +742,10 @@ export default function CashPage() {
   useEffect(() => {
     void load();
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    void loadExpenseCatalog();
+  }, []);
 
   useEffect(() => {
     if (!expenseOpen || expenseCategory !== "Domicilios") return;
