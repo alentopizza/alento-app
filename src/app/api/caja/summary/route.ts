@@ -115,6 +115,7 @@ export async function GET(request: NextRequest) {
       loans,
       loanRepayments,
       payrollShifts,
+      loanPortfolio,
     ] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
@@ -235,6 +236,26 @@ export async function GET(request: NextRequest) {
           status: true,
         },
       }),
+      // Balance de cartera al cierre del período seleccionado. Se calcula
+      // históricamente con los préstamos entregados hasta ese momento y los
+      // abonos registrados antes del fin del rango.
+      prisma.cashLoan.findMany({
+        where: {
+          issuedAt: { lt: endExclusive },
+          historicalPaidWithoutRepayment: false,
+        },
+        select: {
+          principal: true,
+          repayments: {
+            where: {
+              paidAt: { lt: endExclusive },
+            },
+            select: {
+              amount: true,
+            },
+          },
+        },
+      }),
     ]);
 
     const methods = new Map<
@@ -327,6 +348,15 @@ export async function GET(request: NextRequest) {
     const payrollWorkerCount = new Set(
       payrollShifts.map((shift) => shift.userId),
     ).size;
+    const loanReceivableBalance = loanPortfolio.reduce((sum, loan) => {
+      const principal = Number(loan.principal);
+      const recovered = loan.repayments.reduce(
+        (repaymentSum, repayment) =>
+          repaymentSum + Number(repayment.amount),
+        0,
+      );
+      return sum + Math.max(0, principal - recovered);
+    }, 0);
 
     return NextResponse.json({
       startDate,
@@ -365,6 +395,7 @@ export async function GET(request: NextRequest) {
       payrollPendingTotal,
       payrollShiftCount: payrollShifts.length,
       payrollWorkerCount,
+      loanReceivableBalance,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
       orders: salesOrders.map((order) => {
         const paidAmount = order.payments
