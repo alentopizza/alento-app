@@ -32,11 +32,25 @@ function colombiaRangeBounds(startText: string | null, endText: string | null) {
 }
 
 function payrollMonthContext(startDate: string, endDate: string) {
-  const sameMonth = startDate.slice(0, 7) === endDate.slice(0, 7);
+  const month = startDate.slice(0, 7);
+  const sameMonth = month === endDate.slice(0, 7);
   const startsAtMonthBeginning = startDate.endsWith("-01");
+  const [year, monthNumber] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0))
+    .getUTCDate()
+    .toString()
+    .padStart(2, "0");
+  const fullMonth = endDate === `${month}-${lastDay}`;
+  const currentMonthToDate =
+    month === todayBogota().slice(0, 7) && endDate === todayBogota();
+  const active =
+    sameMonth &&
+    startsAtMonthBeginning &&
+    (fullMonth || currentMonthToDate);
+
   return {
-    active: sameMonth && startsAtMonthBeginning,
-    month: sameMonth && startsAtMonthBeginning ? startDate.slice(0, 7) : null,
+    active,
+    month: active ? month : null,
   };
 }
 
