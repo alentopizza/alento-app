@@ -31,6 +31,20 @@ function colombiaRangeBounds(startText: string | null, endText: string | null) {
   return { startDate, endDate, start, endExclusive };
 }
 
+function expensePlanningType(
+  category: string,
+  source: string,
+  stored: string,
+) {
+  if (source === "PAYROLL" || category === "Nomina") return "RECURRING";
+  if (stored && stored !== "AUTO") return stored;
+  if (["Arriendo", "Servicios Públicos", "Plataformas"].includes(category)) {
+    return "RECURRING";
+  }
+  if (category === "Maquinaria") return "ONE_TIME";
+  return "VARIABLE";
+}
+
 function payrollMonthContext(startDate: string, endDate: string) {
   const month = startDate.slice(0, 7);
   const sameMonth = month === endDate.slice(0, 7);
@@ -566,10 +580,11 @@ export async function GET(request: NextRequest) {
         amount: Number(expense.amount),
         occurredAt: expense.occurredAt,
         source: expense.source,
-        planningType:
-          expense.source === "PAYROLL" || expense.category === "Nomina"
-            ? "RECURRING"
-            : expense.planningType,
+        planningType: expensePlanningType(
+          expense.category,
+          expense.source,
+          expense.planningType,
+        ),
         createdByName: expense.createdByName,
         payrollPaymentId: expense.payrollPayment?.id ?? null,
       })),
