@@ -829,6 +829,57 @@ export default function CashPage() {
     [summary],
   );
 
+  const expenseFilterCategories = useMemo(() => {
+    const names = new Set<string>([
+      ...expenseCatalog.map((item) => item.name),
+      "Nomina",
+      ...(summary?.expenses.map((expense) => expense.category) ?? []),
+    ]);
+    return [...names].sort((a, b) => a.localeCompare(b, "es"));
+  }, [expenseCatalog, summary]);
+
+  const expenseAnalytics = useMemo(() => {
+    const expenses = summary?.expenses ?? [];
+    const total = summary?.expensesTotal ?? 0;
+    const sales = summary?.salesTotal ?? 0;
+
+    let inputsTotal = 0;
+    let recurringTotal = 0;
+    let oneTimeTotal = 0;
+    let variableTotal = 0;
+
+    for (const expense of expenses) {
+      if (expense.category === "Insumos") inputsTotal += expense.amount;
+
+      const planningType = effectiveExpensePlanningType(expense);
+      if (planningType === "RECURRING") {
+        recurringTotal += expense.amount;
+      } else if (planningType === "ONE_TIME") {
+        oneTimeTotal += expense.amount;
+      } else {
+        variableTotal += expense.amount;
+      }
+    }
+
+    const oneTimeExpenses = expenses
+      .filter(
+        (expense) => effectiveExpensePlanningType(expense) === "ONE_TIME",
+      )
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      total,
+      inputsTotal,
+      recurringTotal,
+      oneTimeTotal,
+      variableTotal,
+      withoutOneTime: Math.max(0, total - oneTimeTotal),
+      inputsSalesPercent: sales > 0 ? (inputsTotal / sales) * 100 : 0,
+      salesAfterInputs: sales - inputsTotal,
+      oneTimeExpenses,
+    };
+  }, [summary]);
+
   const filteredExpenses = useMemo(() => {
     const query = expenseQuery.trim().toLowerCase();
     return (summary?.expenses ?? []).filter((expense) => {
@@ -838,6 +889,14 @@ export default function CashPage() {
       ) {
         return false;
       }
+
+      if (
+        expensePlanningFilter !== "ALL" &&
+        effectiveExpensePlanningType(expense) !== expensePlanningFilter
+      ) {
+        return false;
+      }
+
       if (!query) return true;
 
       return [
@@ -849,7 +908,12 @@ export default function CashPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
-  }, [summary, expenseCategoryFilter, expenseQuery]);
+  }, [
+    summary,
+    expenseCategoryFilter,
+    expensePlanningFilter,
+    expenseQuery,
+  ]);
 
   const selectedPayrollWorkerShifts = useMemo(
     () =>
@@ -1401,7 +1465,9 @@ export default function CashPage() {
     singleDaySelected && cashDayStatus === "CLOSED";
   const cashOperationsOpen =
     singleDaySelected && cashDayStatus === "OPEN";
-  const selectedSubcategories = cashExpenseSubcategories(expenseCategory);
+  const selectedSubcategories =
+    expenseCatalog.find((item) => item.name === expenseCategory)
+      ?.subcategories ?? [];
   const selectedSummary =
     summary?.startDate === startDate &&
     summary?.endDate === endDate
