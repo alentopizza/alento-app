@@ -495,7 +495,19 @@ export default function CashPage() {
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState("ALL");
   const [incomeQuery, setIncomeQuery] = useState("");
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("ALL");
+  const [expensePlanningFilter, setExpensePlanningFilter] = useState<
+    "ALL" | ExpensePlanningType
+  >("ALL");
   const [expenseQuery, setExpenseQuery] = useState("");
+  const [expenseCatalog, setExpenseCatalog] = useState<ExpenseCatalogCategory[]>(
+    CASH_EXPENSE_CATEGORIES.filter((item) => item.name !== "Nomina"),
+  );
+  const [expenseTypeOpen, setExpenseTypeOpen] = useState(false);
+  const [expenseTypeCategory, setExpenseTypeCategory] = useState("Insumos");
+  const [expenseTypeSubcategory, setExpenseTypeSubcategory] = useState("");
+  const [expenseTypeSaving, setExpenseTypeSaving] = useState(false);
+  const [expenseTypeMessage, setExpenseTypeMessage] = useState("");
+  const [planningUpdateId, setPlanningUpdateId] = useState<number | null>(null);
   const [summaryDetail, setSummaryDetail] = useState<SummaryDetail | null>(null);
 
   const [incomeOpen, setIncomeOpen] = useState(false);
@@ -518,6 +530,8 @@ export default function CashPage() {
   const [driverPayoutLoading, setDriverPayoutLoading] = useState(false);
   const [expenseNote, setExpenseNote] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
+  const [expensePlanningType, setExpensePlanningType] =
+    useState<ExpensePlanningType>("VARIABLE");
   const [expenseDate, setExpenseDate] = useState(today);
   const [expenseTime, setExpenseTime] = useState(localTimeInput());
   const [expenseSaving, setExpenseSaving] = useState(false);
