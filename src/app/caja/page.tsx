@@ -3271,6 +3271,42 @@ export default function CashPage() {
 
               <div>
                 <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
+                  Comportamiento del gasto
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    ["VARIABLE", "Variable", "Se mueve con la operación"],
+                    ["RECURRING", "Recurrente", "Volverá a aparecer"],
+                    ["ONE_TIME", "Única vez", "No debería repetirse"],
+                  ] as [ExpensePlanningType, string, string][]).map(
+                    ([value, label, description]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setExpensePlanningType(value)}
+                        className={
+                          "rounded-xl border px-2.5 py-2.5 text-left transition " +
+                          (expensePlanningType === value
+                            ? value === "ONE_TIME"
+                              ? "border-amber-300 bg-amber-50 text-amber-800"
+                              : value === "RECURRING"
+                                ? "border-sky-300 bg-sky-50 text-sky-800"
+                                : "border-neutral-400 bg-neutral-100 text-neutral-900"
+                            : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300")
+                        }
+                      >
+                        <b className="block text-[11px] font-black">{label}</b>
+                        <span className="mt-0.5 block text-[8px] leading-3 opacity-70">
+                          {description}
+                        </span>
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block alento-ui-label uppercase text-neutral-500">
                   Observación
                 </label>
                 <input
