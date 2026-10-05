@@ -14,6 +14,15 @@ import {
   X,
 } from "lucide-react";
 
+type ClosingDraft = {
+  denominations?: Record<string, string>;
+  nequi?: string;
+  daviplata?: string;
+  card?: string;
+  davivienda?: string;
+  note?: string;
+};
+
 type CashRegisterSession = {
   id: number;
   businessDate: string;
@@ -31,6 +40,8 @@ type CashRegisterSession = {
   closingCard: number | null;
   closingDavivienda: number | null;
   closingDenominations: Record<string, number> | null;
+  closingDraft: ClosingDraft | null;
+  closingDraftUpdatedAt: string | null;
   closingLoanReceivable: number | null;
   actualClosingBalance: number | null;
   difference: number | null;
@@ -141,6 +152,11 @@ export default function CashRegisterControl({
   const [card, setCard] = useState("");
   const [davivienda, setDavivienda] = useState("");
   const [closeNote, setCloseNote] = useState("");
+  const [closeDraftSessionId, setCloseDraftSessionId] = useState<number | null>(null);
+  const [closeDraftStatus, setCloseDraftStatus] = useState<
+    "IDLE" | "SAVING" | "SAVED" | "ERROR"
+  >("IDLE");
+  const [closeDraftUpdatedAt, setCloseDraftUpdatedAt] = useState<string | null>(null);
 
   async function load() {
     if (!enabled) {
@@ -194,6 +210,35 @@ export default function CashRegisterControl({
       setOpeningBalance(String(Math.round(suggested)));
     }
   }, [data, openingBalance]);
+
+  useEffect(() => {
+    if (
+      !closeModal ||
+      !data?.session ||
+      data.session.status !== "OPEN" ||
+      closeDraftSessionId !== data.session.id
+    ) {
+      return;
+    }
+
+    setCloseDraftStatus((current) =>
+      current === "IDLE" ? "IDLE" : "SAVING",
+    );
+    const timer = window.setTimeout(() => {
+      void persistCloseDraft();
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    closeModal,
+    closeDraftSessionId,
+    counts,
+    nequi,
+    daviplata,
+    card,
+    davivienda,
+    closeNote,
+  ]);
 
   const session = data?.session ?? null;
   const liveSummaryReady =
@@ -337,18 +382,81 @@ export default function CashRegisterControl({
   }
 
   function prepareClose() {
-    if (!liveSummaryReady) return;
+    if (!liveSummaryReady || !session) return;
 
-    setCounts(
-      Object.fromEntries(ALL_DENOMINATIONS.map((value) => [String(value), ""])),
-    );
-    setNequi("");
-    setDaviplata("");
-    setCard("");
-    setDavivienda("");
-    setCloseNote("");
+    if (closeDraftSessionId !== session.id) {
+      const draft = session.closingDraft;
+      setCounts(
+        Object.fromEntries(
+          ALL_DENOMINATIONS.map((value) => [
+            String(value),
+            String(draft?.denominations?.[String(value)] ?? ""),
+          ]),
+        ),
+      );
+      setNequi(String(draft?.nequi ?? ""));
+      setDaviplata(String(draft?.daviplata ?? ""));
+      setCard(String(draft?.card ?? ""));
+      setDavivienda(String(draft?.davivienda ?? ""));
+      setCloseNote(String(draft?.note ?? ""));
+      setCloseDraftSessionId(session.id);
+      setCloseDraftUpdatedAt(session.closingDraftUpdatedAt ?? null);
+      setCloseDraftStatus(draft ? "SAVED" : "IDLE");
+    }
+
     setError("");
     setCloseModal(true);
+  }
+
+  function currentCloseDraft(): ClosingDraft {
+    return {
+      denominations: Object.fromEntries(
+        ALL_DENOMINATIONS.map((value) => [
+          String(value),
+          counts[String(value)] || "",
+        ]),
+      ),
+      nequi,
+      daviplata,
+      card,
+      davivienda,
+      note: closeNote,
+    };
+  }
+
+  async function persistCloseDraft() {
+    if (!session || session.status !== "OPEN") return;
+
+    setCloseDraftStatus("SAVING");
+    try {
+      const response = await fetch("/api/caja/register-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "SAVE_CLOSE_DRAFT",
+          sessionId: session.id,
+          businessDate: session.businessDate,
+          draft: currentCloseDraft(),
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "No fue posible guardar el borrador.");
+      }
+
+      setCloseDraftUpdatedAt(
+        String(result.closingDraftUpdatedAt || new Date().toISOString()),
+      );
+      setCloseDraftStatus("SAVED");
+    } catch {
+      setCloseDraftStatus("ERROR");
+    }
+  }
+
+  function dismissCloseModal() {
+    if (actionBusy) return;
+    void persistCloseDraft();
+    setCloseModal(false);
   }
 
   async function saveOpening() {
@@ -435,6 +543,9 @@ export default function CashRegisterControl({
       }
 
       setCloseModal(false);
+      setCloseDraftSessionId(null);
+      setCloseDraftStatus("IDLE");
+      setCloseDraftUpdatedAt(null);
       onSessionClosed?.(result.session?.businessDate ?? session?.businessDate ?? businessDate);
       await load();
       onChanged?.();
@@ -1425,7 +1536,7 @@ export default function CashRegisterControl({
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-2 backdrop-blur-[3px] sm:p-4"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !actionBusy) setCloseModal(false);
+            if (event.target === event.currentTarget && !actionBusy) dismissCloseModal();
           }}
         >
           <div className="flex max-h-[96dvh] w-full max-w-[1280px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f6f5f2] shadow-[0_30px_100px_rgba(0,0,0,.38)]">
@@ -1439,7 +1550,7 @@ export default function CashRegisterControl({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setCloseModal(false)}
+                  onClick={dismissCloseModal}
                   disabled={actionBusy}
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07]"
                 >
@@ -1625,13 +1736,33 @@ export default function CashRegisterControl({
             </div>
 
             <div className="flex shrink-0 flex-col gap-2 border-t border-neutral-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <p className="alento-ui-micro text-neutral-400">
-                Solo compara el dinero disponible que debes tener contra lo que realmente contaste.
-              </p>
+              <div className="min-w-0">
+                <p className="alento-ui-micro text-neutral-400">
+                  El conteo se guarda automáticamente como borrador hasta confirmar el cierre.
+                </p>
+                <p
+                  className={
+                    "mt-0.5 alento-ui-micro font-bold " +
+                    (closeDraftStatus === "ERROR"
+                      ? "text-red-600"
+                      : closeDraftStatus === "SAVING"
+                        ? "text-amber-600"
+                        : "text-emerald-600")
+                  }
+                >
+                  {closeDraftStatus === "SAVING"
+                    ? "Guardando borrador..."
+                    : closeDraftStatus === "ERROR"
+                      ? "No se pudo guardar el borrador."
+                      : closeDraftUpdatedAt
+                        ? `Borrador guardado · ${dateTimeLabel(closeDraftUpdatedAt)}`
+                        : "Borrador listo para guardar"}
+                </p>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setCloseModal(false)}
+                  onClick={dismissCloseModal}
                   disabled={actionBusy}
                   className="h-11 flex-1 rounded-xl border border-neutral-200 bg-white px-5 alento-ui-label font-black text-neutral-600 sm:flex-none"
                 >
