@@ -2409,6 +2409,196 @@ export default function CashPage() {
         ) : null}
       </div>
 
+      {selectedExpenseCategoryDetail && (
+        <div
+          className="fixed inset-0 z-[148] flex items-center justify-center bg-black/72 p-2 backdrop-blur-[5px] sm:p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setExpenseCategoryDetail(null);
+            }
+          }}
+        >
+          <section className="flex max-h-[92dvh] w-[min(97vw,1480px)] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#f5f4f1] shadow-[0_34px_120px_rgba(0,0,0,.42)]">
+            <header className="shrink-0 bg-[radial-gradient(circle_at_88%_0%,rgba(226,26,34,.24),transparent_30%),linear-gradient(135deg,#0a0a0b,#171315)] px-5 py-5 text-white sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="alento-ui-label uppercase tracking-[0.18em] text-[#ff6267]">
+                    Caja · análisis de salidas
+                  </p>
+                  <h2 className="mt-1 truncate text-[24px] font-black tracking-[-0.03em] sm:text-[28px]">
+                    {selectedExpenseCategoryDetail.category}
+                  </h2>
+                  <p className="mt-1 text-[10px] font-semibold text-white/45">
+                    {startDate === endDate
+                      ? shortDateLabel(startDate)
+                      : shortDateLabel(startDate) + " — " + shortDateLabel(endDate)}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setExpenseCategoryDetail(null)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-lg font-bold text-white/70 transition hover:bg-white/[0.10]"
+                  aria-label="Cerrar detalle"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Total categoría
+                  </span>
+                  <b className="mt-1 block text-lg text-white">
+                    {formatCOP(selectedExpenseCategoryDetail.amount)}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Sobre ingresos
+                  </span>
+                  <b className="mt-1 block text-lg text-emerald-300">
+                    {selectedExpenseCategoryDetail.shareOfIncome.toFixed(1)}%
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Movimientos
+                  </span>
+                  <b className="mt-1 block text-lg text-white">
+                    {selectedExpenseCategoryDetail.count}
+                  </b>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                  <span className="alento-ui-micro uppercase text-white/35">
+                    Promedio
+                  </span>
+                  <b className="mt-1 block text-lg text-white">
+                    {formatCOP(selectedExpenseCategoryDetail.average)}
+                  </b>
+                </div>
+              </div>
+            </header>
+
+            <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]">
+                <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                        Composición
+                      </p>
+                      <h3 className="mt-1 text-lg font-black text-neutral-950">
+                        ¿Qué compone {selectedExpenseCategoryDetail.category}?
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-neutral-400">
+                      % categoría · % ingresos
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {selectedExpenseCategoryDetail.breakdown.map((item) => {
+                      const categoryShare =
+                        selectedExpenseCategoryDetail.amount > 0
+                          ? (item.amount /
+                              selectedExpenseCategoryDetail.amount) *
+                            100
+                          : 0;
+                      const incomeShare =
+                        expenseAnalytics.totalIncome > 0
+                          ? (item.amount / expenseAnalytics.totalIncome) * 100
+                          : 0;
+
+                      return (
+                        <article
+                          key={item.label}
+                          className="rounded-[16px] border border-neutral-200 bg-[#fbfaf8] p-3.5"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <b className="block truncate text-[12px] text-neutral-950">
+                                {item.label}
+                              </b>
+                              <span className="mt-1 block text-[9px] text-neutral-400">
+                                {item.count} movimiento{item.count === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <b className="block text-[13px] font-black text-neutral-950">
+                                {formatCOP(item.amount)}
+                              </b>
+                              <span className="mt-0.5 block text-[9px] font-bold text-neutral-400">
+                                {categoryShare.toFixed(1)}% · {incomeShare.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                            <div
+                              className="h-full rounded-full bg-neutral-900"
+                              style={{
+                                width:
+                                  Math.max(
+                                    2,
+                                    Math.min(100, categoryShare),
+                                  ) + "%",
+                              }}
+                            />
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.11em] text-neutral-400">
+                        Movimientos
+                      </p>
+                      <h3 className="mt-1 text-lg font-black text-neutral-950">
+                        Detalle registrado
+                      </h3>
+                    </div>
+                    <b className="text-xs text-neutral-400">
+                      {selectedExpenseCategoryDetail.count}
+                    </b>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {selectedExpenseCategoryDetail.expenses.map((expense) => (
+                      <article
+                        key={expense.id}
+                        className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-[11px] text-neutral-950">
+                              {expense.subcategory || "Sin subtipo"}
+                            </b>
+                            <p className="mt-1 truncate text-[9px] text-neutral-500">
+                              {expense.note || "Sin observación"}
+                            </p>
+                            <p className="mt-1 text-[8px] text-neutral-400">
+                              {dateTimeLabel(expense.occurredAt)}
+                            </p>
+                          </div>
+                          <b className="shrink-0 text-[11px] font-black text-rose-700">
+                            {formatCOP(expense.amount)}
+                          </b>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+
       {summaryDetail && summary && (
         <div
           className="fixed inset-0 z-[145] flex items-center justify-center bg-black/72 p-2 backdrop-blur-[5px] sm:p-4"
