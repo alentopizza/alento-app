@@ -89,6 +89,8 @@ type CashLoanRow = {
   workerName: string;
   amount: number;
   issuedAt: string;
+  recoveredAmount: number;
+  outstandingAmount: number;
 };
 
 type CashLoanRepaymentRow = {
@@ -187,6 +189,9 @@ type Summary = {
   otherIncomeCount: number;
   totalInflow: number;
   loanDisbursedTotal: number;
+  loanOutstandingTotal: number;
+  loanRecoveredFromIssuedTotal: number;
+  loanRecoveryAdjustmentTotal: number;
   loanRecoveredTotal: number;
   loanRecoveredCashTotal?: number;
   loanRecoveredPayrollTotal?: number;
@@ -1470,19 +1475,19 @@ export default function CashPage() {
                 4 +
                   (summary.otherIncomeTotal > 0 ? 1 : 0) +
                   (summary.loanRecoveredTotal > 0 ? 1 : 0) +
-                  (summary.loanDisbursedTotal > 0 ? 1 : 0) >=
+                  (summary.loanOutstandingTotal > 0 ? 1 : 0) >=
                 7
                   ? "2xl:grid-cols-7"
                   : 4 +
                         (summary.otherIncomeTotal > 0 ? 1 : 0) +
                         (summary.loanRecoveredTotal > 0 ? 1 : 0) +
-                        (summary.loanDisbursedTotal > 0 ? 1 : 0) ===
+                        (summary.loanOutstandingTotal > 0 ? 1 : 0) ===
                       6
                     ? "2xl:grid-cols-6"
                     : 4 +
                           (summary.otherIncomeTotal > 0 ? 1 : 0) +
                           (summary.loanRecoveredTotal > 0 ? 1 : 0) +
-                          (summary.loanDisbursedTotal > 0 ? 1 : 0) ===
+                          (summary.loanOutstandingTotal > 0 ? 1 : 0) ===
                         5
                       ? "2xl:grid-cols-5"
                       : "2xl:grid-cols-4"
@@ -1578,7 +1583,7 @@ export default function CashPage() {
                 </b>
               </button>
 
-              {summary.loanDisbursedTotal > 0 && (
+              {summary.loanOutstandingTotal > 0 && (
                 <button
                   type="button"
                   onClick={() => openSummaryDetail("LOAN_OUTFLOWS")}
@@ -1589,11 +1594,11 @@ export default function CashPage() {
                       <Landmark className="h-5 w-5" />
                     </span>
                     <span className="alento-ui-label uppercase tracking-[0.12em] text-amber-700">
-                      Préstamos otorgados
+                      En préstamos
                     </span>
                   </div>
                   <b className="mt-4 block text-[26px] font-black tracking-[-0.04em] text-amber-700">
-                    {formatCOP(summary.loanDisbursedTotal)}
+                    {formatCOP(summary.loanOutstandingTotal)}
                   </b>
                 </button>
               )}
@@ -1920,7 +1925,7 @@ export default function CashPage() {
                             : summaryDetail === "EXPENSES"
                               ? "Salidas"
                               : summaryDetail === "LOAN_OUTFLOWS"
-                                ? "Préstamos otorgados"
+                                ? "Dinero en préstamos"
                                 : "Composición del flujo neto"}
                   </h2>
                   <p className="mt-1 text-[10px] font-semibold text-white/45">
@@ -2046,18 +2051,26 @@ export default function CashPage() {
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                       <span className="alento-ui-micro uppercase text-white/35">
-                        Prestado
+                        En préstamos
                       </span>
                       <b className="mt-1 block text-lg text-amber-300">
+                        {formatCOP(summary.loanOutstandingTotal)}
+                      </b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">
+                        Otorgado originalmente
+                      </span>
+                      <b className="mt-1 block text-lg">
                         {formatCOP(summary.loanDisbursedTotal)}
                       </b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                       <span className="alento-ui-micro uppercase text-white/35">
-                        Préstamos
+                        Recuperado
                       </span>
-                      <b className="mt-1 block text-lg">
-                        {summary.loans.length}
+                      <b className="mt-1 block text-lg text-emerald-300">
+                        {formatCOP(summary.loanRecoveredFromIssuedTotal)}
                       </b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
@@ -2065,7 +2078,13 @@ export default function CashPage() {
                         Trabajadores
                       </span>
                       <b className="mt-1 block text-lg">
-                        {new Set(summary.loans.map((loan) => loan.workerName)).size}
+                        {
+                          new Set(
+                            summary.loans
+                              .filter((loan) => loan.outstandingAmount > 0)
+                              .map((loan) => loan.workerName),
+                          ).size
+                        }
                       </b>
                     </div>
                   </>
@@ -2080,8 +2099,8 @@ export default function CashPage() {
                       </b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
-                      <span className="alento-ui-micro uppercase text-white/35">Prestado</span>
-                      <b className="mt-1 block text-lg">{formatCOP(summary.loanDisbursedTotal)}</b>
+                      <span className="alento-ui-micro uppercase text-white/35">En préstamos</span>
+                      <b className="mt-1 block text-lg">{formatCOP(summary.loanOutstandingTotal)}</b>
                     </div>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
                       <span className="alento-ui-micro uppercase text-white/35">Recuperado</span>
