@@ -2040,135 +2040,435 @@ export default function CashPage() {
                 onCashChanged={handleLoanCashChanged}
               />
             ) : tab === "EXPENSES" ? (
-              <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div>
-                    <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
-                      Control de salidas
+              <div className="space-y-4">
+                <section className="overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-sm">
+                  <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 md:px-5 xl:flex-row xl:items-end xl:justify-between">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
+                        Lectura de gastos
+                      </p>
+                      <h2 className="mt-1 text-xl font-black text-neutral-950">
+                        Rentabilidad y planeación
+                      </h2>
+                      <p className="mt-1 text-[10px] text-neutral-400">
+                        {startDate === endDate
+                          ? shortDateLabel(startDate)
+                          : shortDateLabel(startDate) + " — " + shortDateLabel(endDate)}
+                      </p>
+                    </div>
+                    <p className="max-w-xl text-[10px] leading-4 text-neutral-400 xl:text-right">
+                      Clasifica los gastos como variables, recurrentes o de una sola vez. Así puedes separar el costo normal de operación de compras que no deberían repetirse el siguiente mes.
                     </p>
-                    <h2 className="mt-1 text-xl font-black">
-                      {summary.expenseCount} movimiento{summary.expenseCount === 1 ? "" : "s"} · {formatCOP(summary.expensesTotal)}
-                    </h2>
                   </div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <label className="relative min-w-[240px]">
-                      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                      <input
-                        value={expenseQuery}
-                        onChange={(event) => setExpenseQuery(event.target.value)}
-                        placeholder="Buscar salida..."
-                        className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 text-xs outline-none focus:border-neutral-400"
-                      />
-                    </label>
-                    <select
-                      value={expenseCategoryFilter}
-                      onChange={(event) =>
-                        setExpenseCategoryFilter(event.target.value)
-                      }
-                      className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                  <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-3 2xl:grid-cols-6">
+                    <div className="rounded-[18px] border border-rose-100 bg-rose-50/45 p-3.5">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-rose-500">
+                        Total salidas
+                      </span>
+                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-rose-700">
+                        {formatCOP(expenseAnalytics.total)}
+                      </b>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpenseCategoryFilter("Insumos")}
+                      className="rounded-[18px] border border-emerald-100 bg-emerald-50/45 p-3.5 text-left transition hover:-translate-y-0.5"
                     >
-                      <option value="ALL">Todas las categorías</option>
-                      {expenseFilterCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={expensePlanningFilter}
-                      onChange={(event) =>
-                        setExpensePlanningFilter(
-                          event.target.value as "ALL" | ExpensePlanningType,
-                        )
-                      }
-                      className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-emerald-600">
+                        Insumos
+                      </span>
+                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-emerald-700">
+                        {formatCOP(expenseAnalytics.inputsTotal)}
+                      </b>
+                      <p className="mt-1 text-[9px] font-bold text-emerald-700/55">
+                        {expenseAnalytics.inputsSalesPercent.toFixed(1)}% de las ventas
+                      </p>
+                    </button>
+
+                    <div className="rounded-[18px] border border-sky-100 bg-sky-50/45 p-3.5">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
+                        Ventas − insumos
+                      </span>
+                      <b
+                        className={
+                          "mt-2 block text-[21px] font-black tracking-[-0.03em] " +
+                          (expenseAnalytics.salesAfterInputs >= 0
+                            ? "text-sky-800"
+                            : "text-red-700")
+                        }
+                      >
+                        {formatCOP(expenseAnalytics.salesAfterInputs)}
+                      </b>
+                      <p className="mt-1 text-[9px] text-sky-700/50">
+                        Referencia operativa antes de otros gastos
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpensePlanningFilter("RECURRING")}
+                      className="rounded-[18px] border border-sky-100 bg-white p-3.5 text-left transition hover:-translate-y-0.5"
                     >
-                      <option value="ALL">Todos los gastos</option>
-                      <option value="VARIABLE">Variables</option>
-                      <option value="RECURRING">Recurrentes</option>
-                      <option value="ONE_TIME">Única vez</option>
-                    </select>
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
+                        Recurrentes
+                      </span>
+                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-sky-800">
+                        {formatCOP(expenseAnalytics.recurringTotal)}
+                      </b>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpensePlanningFilter("VARIABLE")}
+                      className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5 text-left transition hover:-translate-y-0.5"
+                    >
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-500">
+                        Variables
+                      </span>
+                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-neutral-950">
+                        {formatCOP(expenseAnalytics.variableTotal)}
+                      </b>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpensePlanningFilter("ONE_TIME")}
+                      className="rounded-[18px] border border-amber-100 bg-amber-50/55 p-3.5 text-left transition hover:-translate-y-0.5"
+                    >
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-amber-600">
+                        Una sola vez
+                      </span>
+                      <b className="mt-2 block text-[21px] font-black tracking-[-0.03em] text-amber-700">
+                        {formatCOP(expenseAnalytics.oneTimeTotal)}
+                      </b>
+                      <p className="mt-1 text-[9px] font-bold text-amber-700/55">
+                        Base sin únicos {formatCOP(expenseAnalytics.withoutOneTime)}
+                      </p>
+                    </button>
                   </div>
-                </div>
 
-                <div className="mt-4 grid gap-2">
-                  {filteredExpenses.map((expense) => (
-                    <article
-                      key={expense.id}
-                      className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
-                    >
-                      <div>
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-label uppercase ${expenseTone(expense.category)}`}>
-                          {expense.category}
-                        </span>
-                        <p className="mt-2 text-[10px] text-neutral-400">
-                          {dateTimeLabel(expense.occurredAt)}
-                        </p>
+                  <div className="grid gap-3 border-t border-neutral-100 p-3 sm:p-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,.65fr)]">
+                    <section className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-400">
+                            Distribución
+                          </p>
+                          <h3 className="mt-0.5 text-[15px] font-black">
+                            ¿En qué se está yendo el dinero?
+                          </h3>
+                        </div>
+                        <b className="text-xs text-neutral-400">
+                          {formatCOP(summary.expensesTotal)}
+                        </b>
                       </div>
 
-                      <div className="min-w-0">
-                        <b className="block truncate text-sm text-neutral-900">
-                          {expense.subcategory || "Salida general"}
-                        </b>
-                        <p className="mt-1 truncate text-[11px] text-neutral-500">
-                          {expense.note || "Sin observación"}
-                        </p>
-                        <p className="mt-1 alento-ui-label text-neutral-400">
-                          {expense.source === "DRIVER_PAYMENT"
-                            ? `Pago a repartidor · Registró: ${expense.createdByName}`
-                            : expense.source === "PAYROLL"
-                              ? `Pago de nómina · Registró: ${expense.createdByName}`
-                              : `Registró: ${expense.createdByName}`}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 md:justify-end">
-                        <b className="text-base font-black text-rose-700">
-                          {formatCOP(expense.amount)}
-                        </b>
-                        {expense.source === "PAYROLL" &&
-                          expense.payrollPaymentId != null && (
+                      <div className="mt-4 grid gap-2 md:grid-cols-2">
+                        {summary.expenseCategories.map((item) => {
+                          const share =
+                            summary.expensesTotal > 0
+                              ? (item.amount / summary.expensesTotal) * 100
+                              : 0;
+                          return (
                             <button
+                              key={item.category}
                               type="button"
                               onClick={() =>
-                                printPayrollReceipt(
-                                  `/caja/nomina/${expense.payrollPaymentId}/imprimir`,
-                                )
+                                setExpenseCategoryFilter(item.category)
                               }
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
-                              title="Imprimir comprobante de nómina"
-                              aria-label="Imprimir comprobante de nómina"
+                              className="rounded-[14px] border border-neutral-200 bg-white px-3 py-3 text-left transition hover:border-neutral-300"
                             >
-                              <Printer className="h-4 w-4" />
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <b className="block truncate text-[11px] text-neutral-900">
+                                    {item.category}
+                                  </b>
+                                  <span className="mt-0.5 block alento-ui-micro text-neutral-400">
+                                    {item.count} movimiento{item.count === 1 ? "" : "s"}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <b className="block text-[11px] text-neutral-950">
+                                    {formatCOP(item.amount)}
+                                  </b>
+                                  <span className="alento-ui-micro font-black text-neutral-400">
+                                    {share.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+                                <div
+                                  className="h-full rounded-full bg-neutral-900"
+                                  style={{
+                                    width:
+                                      Math.max(2, Math.min(100, share)) + "%",
+                                  }}
+                                />
+                              </div>
                             </button>
-                          )}
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTarget(expense)}
-                          disabled={!cashOperationsOpen || expense.source === "PAYROLL"}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
-                          title={
-                            expense.source === "PAYROLL"
-                              ? "Los pagos de nómina conservan el vínculo con sus turnos"
-                              : !cashOperationsOpen
-                                ? "Caja sin sesión operativa abierta"
-                                : "Eliminar salida"
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                          );
+                        })}
                       </div>
-                    </article>
-                  ))}
+                    </section>
 
-                  {filteredExpenses.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
-                      No hay salidas para mostrar con estos filtros.
+                    <section className="rounded-[18px] border border-amber-100 bg-amber-50/35 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="alento-ui-label uppercase tracking-[0.1em] text-amber-600">
+                            No repetir próximo mes
+                          </p>
+                          <h3 className="mt-0.5 text-[15px] font-black text-neutral-950">
+                            Gastos de una sola vez
+                          </h3>
+                        </div>
+                        <b className="text-sm text-amber-700">
+                          {formatCOP(expenseAnalytics.oneTimeTotal)}
+                        </b>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        {expenseAnalytics.oneTimeExpenses
+                          .slice(0, 6)
+                          .map((expense) => (
+                            <button
+                              key={expense.id}
+                              type="button"
+                              onClick={() => {
+                                setExpensePlanningFilter("ONE_TIME");
+                                setExpenseQuery(
+                                  expense.subcategory ||
+                                    expense.note ||
+                                    expense.category,
+                                );
+                              }}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl border border-amber-100 bg-white px-3 py-2.5 text-left"
+                            >
+                              <div className="min-w-0">
+                                <b className="block truncate text-[10px] text-neutral-900">
+                                  {expense.subcategory ||
+                                    expense.note ||
+                                    expense.category}
+                                </b>
+                                <span className="mt-0.5 block truncate text-[9px] text-neutral-400">
+                                  {expense.category}
+                                </span>
+                              </div>
+                              <b className="shrink-0 text-[11px] text-amber-700">
+                                {formatCOP(expense.amount)}
+                              </b>
+                            </button>
+                          ))}
+
+                        {expenseAnalytics.oneTimeExpenses.length === 0 && (
+                          <div className="rounded-xl border border-dashed border-amber-200 bg-white/60 px-4 py-6 text-center">
+                            <b className="text-[11px] text-amber-800">
+                              Aún no has marcado gastos de una sola vez.
+                            </b>
+                            <p className="mt-1 text-[9px] leading-4 text-amber-700/60">
+                              Usa el selector de cada movimiento para marcar compras como mallas, adecuaciones o equipos que no esperas repetir.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </section>
+
+                <section className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                      <p className="alento-ui-label uppercase tracking-[0.12em] text-neutral-400">
+                        Control de salidas
+                      </p>
+                      <h2 className="mt-1 text-xl font-black">
+                        {summary.expenseCount} movimiento{summary.expenseCount === 1 ? "" : "s"} · {formatCOP(summary.expensesTotal)}
+                      </h2>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <label className="relative min-w-[220px]">
+                        <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                        <input
+                          value={expenseQuery}
+                          onChange={(event) => setExpenseQuery(event.target.value)}
+                          placeholder="Buscar salida..."
+                          className="h-11 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 text-xs outline-none focus:border-neutral-400"
+                        />
+                      </label>
+                      <select
+                        value={expenseCategoryFilter}
+                        onChange={(event) =>
+                          setExpenseCategoryFilter(event.target.value)
+                        }
+                        className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                      >
+                        <option value="ALL">Todas las categorías</option>
+                        {expenseFilterCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={expensePlanningFilter}
+                        onChange={(event) =>
+                          setExpensePlanningFilter(
+                            event.target.value as "ALL" | ExpensePlanningType,
+                          )
+                        }
+                        className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                      >
+                        <option value="ALL">Todos los gastos</option>
+                        <option value="VARIABLE">Variables</option>
+                        <option value="RECURRING">Recurrentes</option>
+                        <option value="ONE_TIME">Única vez</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(expenseCategoryFilter !== "ALL" ||
+                    expensePlanningFilter !== "ALL" ||
+                    expenseQuery) && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="alento-ui-micro font-bold text-neutral-400">
+                        Filtros activos
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpenseCategoryFilter("ALL");
+                          setExpensePlanningFilter("ALL");
+                          setExpenseQuery("");
+                        }}
+                        className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 alento-ui-micro font-black text-neutral-600"
+                      >
+                        Limpiar
+                      </button>
                     </div>
                   )}
-                </div>
-              </section>
+
+                  <div className="mt-4 grid gap-2">
+                    {filteredExpenses.map((expense) => {
+                      const planningType =
+                        effectiveExpensePlanningType(expense);
+
+                      return (
+                        <article
+                          key={expense.id}
+                          className="grid gap-3 rounded-[18px] border border-neutral-200 bg-[#fbfaf8] p-4 md:grid-cols-[170px_1fr_auto] md:items-center"
+                        >
+                          <div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className={`inline-flex rounded-full border px-2.5 py-1 alento-ui-label uppercase ${expenseTone(expense.category)}`}>
+                                {expense.category}
+                              </span>
+                              <span className={`inline-flex rounded-full border px-2 py-1 alento-ui-micro font-black ${expensePlanningTone(planningType)}`}>
+                                {expensePlanningLabel(planningType)}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-[10px] text-neutral-400">
+                              {dateTimeLabel(expense.occurredAt)}
+                            </p>
+                          </div>
+
+                          <div className="min-w-0">
+                            <b className="block truncate text-sm text-neutral-900">
+                              {expense.subcategory || "Salida general"}
+                            </b>
+                            <p className="mt-1 truncate text-[11px] text-neutral-500">
+                              {expense.note || "Sin observación"}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {expense.source === "PAYROLL" ||
+                              expense.category === "Nomina" ? (
+                                <span className="alento-ui-micro font-bold text-neutral-400">
+                                  Nómina · clasificación automática
+                                </span>
+                              ) : (
+                                <label className="inline-flex items-center gap-1.5">
+                                  <span className="alento-ui-micro font-bold text-neutral-400">
+                                    Planeación
+                                  </span>
+                                  <select
+                                    value={planningType}
+                                    disabled={planningUpdateId === expense.id}
+                                    onChange={(event) =>
+                                      void updateExpensePlanning(
+                                        expense,
+                                        event.target.value as ExpensePlanningType,
+                                      )
+                                    }
+                                    className="h-7 rounded-lg border border-neutral-200 bg-white px-2 alento-ui-micro font-black text-neutral-600 outline-none disabled:opacity-40"
+                                  >
+                                    <option value="VARIABLE">Variable</option>
+                                    <option value="RECURRING">Recurrente</option>
+                                    <option value="ONE_TIME">Única vez</option>
+                                  </select>
+                                </label>
+                              )}
+                              <span className="alento-ui-micro text-neutral-400">
+                                {expense.source === "DRIVER_PAYMENT"
+                                  ? "Pago a repartidor · "
+                                  : expense.source === "PAYROLL"
+                                    ? "Pago de nómina · "
+                                    : ""}
+                                Registró: {expense.createdByName}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3 md:justify-end">
+                            <b className="text-base font-black text-rose-700">
+                              {formatCOP(expense.amount)}
+                            </b>
+                            {expense.source === "PAYROLL" &&
+                              expense.payrollPaymentId != null && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    printPayrollReceipt(
+                                      "/caja/nomina/" +
+                                        expense.payrollPaymentId +
+                                        "/imprimir",
+                                    )
+                                  }
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
+                                  title="Imprimir comprobante de nómina"
+                                  aria-label="Imprimir comprobante de nómina"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </button>
+                              )}
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(expense)}
+                              disabled={!cashOperationsOpen || expense.source === "PAYROLL"}
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
+                              title={
+                                expense.source === "PAYROLL"
+                                  ? "Los pagos de nómina conservan el vínculo con sus turnos"
+                                  : !cashOperationsOpen
+                                    ? "Caja sin sesión operativa abierta"
+                                    : "Eliminar salida"
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+
+                    {filteredExpenses.length === 0 && (
+                      <div className="rounded-2xl border border-dashed border-neutral-300 p-10 text-center text-sm text-neutral-400">
+                        No hay salidas para mostrar con estos filtros.
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
             ) : null}
           </>
         ) : null}
