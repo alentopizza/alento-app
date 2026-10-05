@@ -627,6 +627,7 @@ model CashLoan {
   note                            String?
   principal                       Decimal             @db.Decimal(12, 2)
   issuedAt                        DateTime
+  payrollMonth                    String?
   status                          String              @default("OPEN")
   source                          String              @default("MANUAL")
   createdByName                   String
@@ -637,6 +638,7 @@ model CashLoan {
   worker                          User?               @relation(fields: [workerId], references: [id], onDelete: SetNull)
 
   @@index([workerId, issuedAt])
+  @@index([payrollMonth])
   @@index([issuedAt])
   @@index([status, issuedAt])
   @@index([workerName, issuedAt])
