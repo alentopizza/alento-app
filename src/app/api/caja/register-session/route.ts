@@ -56,6 +56,8 @@ function serializeSession(session: {
   closingCard: unknown | null;
   closingDavivienda: unknown | null;
   closingDenominations: unknown | null;
+  closingDraft: unknown | null;
+  closingDraftUpdatedAt: Date | null;
   closingLoanReceivable: unknown | null;
   actualClosingBalance: unknown | null;
   difference: unknown | null;
@@ -94,6 +96,9 @@ function serializeSession(session: {
       session.closingDavivienda == null
         ? null
         : Number(session.closingDavivienda),
+    closingDraft: session.closingDraft ?? null,
+    closingDraftUpdatedAt:
+      session.closingDraftUpdatedAt?.toISOString() ?? null,
     closingLoanReceivable:
       session.closingLoanReceivable == null
         ? null
@@ -533,6 +538,88 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (action === "SAVE_CLOSE_DRAFT") {
+      const sessionId = Number(body?.sessionId);
+      const session =
+        Number.isInteger(sessionId) && sessionId > 0
+          ? await prisma.cashRegisterSession.findUnique({
+              where: { id: sessionId },
+            })
+          : validDate(businessDate)
+            ? await prisma.cashRegisterSession.findUnique({
+                where: { businessDate },
+              })
+            : null;
+
+      if (!session) {
+        return NextResponse.json(
+          { error: "No encontramos una caja abierta para guardar el borrador." },
+          { status: 409 },
+        );
+      }
+
+      if (session.status !== "OPEN") {
+        return NextResponse.json(
+          { error: "La caja ya está cerrada." },
+          { status: 409 },
+        );
+      }
+
+      const rawDraft =
+        body?.draft &&
+        typeof body.draft === "object" &&
+        !Array.isArray(body.draft)
+          ? (body.draft as Record<string, unknown>)
+          : {};
+
+      const rawCounts =
+        rawDraft.denominations &&
+        typeof rawDraft.denominations === "object" &&
+        !Array.isArray(rawDraft.denominations)
+          ? (rawDraft.denominations as Record<string, unknown>)
+          : {};
+
+      const denominations = Object.fromEntries(
+        DENOMINATIONS.map((denomination) => {
+          const raw = String(rawCounts[String(denomination)] ?? "")
+            .replace(/\D/g, "")
+            .slice(0, 8);
+          return [String(denomination), raw];
+        }),
+      );
+
+      const cleanMoneyInput = (value: unknown) =>
+        String(value ?? "").replace(/\D/g, "").slice(0, 12);
+
+      const draft = {
+        denominations,
+        nequi: cleanMoneyInput(rawDraft.nequi),
+        daviplata: cleanMoneyInput(rawDraft.daviplata),
+        card: cleanMoneyInput(rawDraft.card),
+        davivienda: cleanMoneyInput(rawDraft.davivienda),
+        note:
+          typeof rawDraft.note === "string"
+            ? rawDraft.note.slice(0, 1000)
+            : "",
+      };
+
+      const closingDraftUpdatedAt = new Date();
+      await prisma.cashRegisterSession.update({
+        where: { id: session.id },
+        data: {
+          closingDraft: draft,
+          closingDraftUpdatedAt,
+        },
+      });
+
+      return NextResponse.json({
+        ok: true,
+        closingDraft: draft,
+        closingDraftUpdatedAt:
+          closingDraftUpdatedAt.toISOString(),
+      });
+    }
+
     if (action === "CLOSE") {
       const sessionId = Number(body?.sessionId);
       const session =
@@ -662,6 +749,8 @@ export async function POST(request: NextRequest) {
           closingCard: card,
           closingDavivienda: davivienda,
           closingDenominations: denominationCounts,
+          closingDraft: null,
+          closingDraftUpdatedAt: null,
           closingLoanReceivable: Math.round(
             movement.loansReceivable,
           ),
