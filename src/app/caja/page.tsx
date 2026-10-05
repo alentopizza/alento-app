@@ -161,6 +161,7 @@ type PayrollLoan = {
   note: string | null;
   principal: number;
   issuedAt: string;
+  payrollMonth: string;
   repaidAmount: number;
   outstandingAmount: number;
 };
@@ -196,6 +197,8 @@ type Summary = {
   payrollPendingTotal: number;
   payrollShiftCount: number;
   payrollWorkerCount: number;
+  payrollMonthActive: boolean;
+  payrollMonth: string | null;
   loanReceivableBalance: number;
   methods: MethodSummary[];
   orders: OrderSummaryRow[];
@@ -715,13 +718,28 @@ export default function CashPage() {
     [payrollSelectedShiftIds, selectedPayrollWorkerShifts],
   );
 
-  const selectedPayrollLoans = useMemo(
-    () =>
-      payrollWorkerId == null
-        ? []
-        : payrollLoans.filter((loan) => loan.workerId === payrollWorkerId),
-    [payrollLoans, payrollWorkerId],
-  );
+  const selectedPayrollLoans = useMemo(() => {
+    if (payrollWorkerId == null) return [];
+
+    const selectedMonths = new Set(
+      selectedPayrollWorkerShifts
+        .filter((shift) => payrollSelectedShiftIds.includes(shift.id))
+        .map((shift) => payrollMonthKey(shift.startsAt)),
+    );
+
+    if (selectedMonths.size === 0) return [];
+
+    return payrollLoans.filter(
+      (loan) =>
+        loan.workerId === payrollWorkerId &&
+        selectedMonths.has(loan.payrollMonth),
+    );
+  }, [
+    payrollLoans,
+    payrollSelectedShiftIds,
+    payrollWorkerId,
+    selectedPayrollWorkerShifts,
+  ]);
 
   const selectedPayrollLoanDeductionTotal = useMemo(
     () =>
@@ -1632,11 +1650,20 @@ export default function CashPage() {
                   </div>
 
                   <p className="max-w-lg text-[10px] leading-4 text-neutral-400 sm:text-right">
-                    Proyección informativa: combina el flujo neto del período con la cartera de préstamos por cobrar para estimar la capacidad real de cubrir nómina. No altera la contabilidad de Caja.
+                    {summary.payrollMonthActive
+                      ? "Los préstamos se asignan a una nómina mensual concreta. Solo se muestra el saldo que todavía está pendiente de descontar en este mes."
+                      : "Vista informativa de turnos. Los préstamos aplicables se muestran únicamente cuando consultas un mes desde el día 1."}
                   </p>
                 </div>
 
-                <div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-5">
+                <div
+                  className={
+                    "grid gap-2 p-3 sm:grid-cols-2 sm:p-4 " +
+                    (summary.payrollMonthActive
+                      ? "xl:grid-cols-5"
+                      : "xl:grid-cols-3")
+                  }
+                >
                   <div className="rounded-[18px] border border-neutral-200 bg-[#fbfbfa] p-3.5">
                     <div className="flex items-center justify-between gap-3">
                       <span className="alento-ui-micro uppercase tracking-[0.1em] text-neutral-400">
@@ -1678,68 +1705,43 @@ export default function CashPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-[18px] border border-violet-100 bg-violet-50/55 p-3.5">
-                    <span className="alento-ui-micro uppercase tracking-[0.1em] text-violet-600">
-                      Préstamos por cobrar
-                    </span>
-                    <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-violet-700">
-                      {formatCOP(summary.loanReceivableBalance)}
-                    </b>
-                    <p className="mt-1 text-[9px] text-violet-700/55">
-                      Cartera disponible para compensar nómina
-                    </p>
-                  </div>
-
-                  {(() => {
-                    const resourcesForPayroll =
-                      summary.netTotal + summary.loanReceivableBalance;
-                    const projected =
-                      resourcesForPayroll - summary.payrollPendingTotal;
-                    return (
-                      <div
-                        className={
-                          "rounded-[18px] border p-3.5 " +
-                          (projected >= 0
-                            ? "border-sky-100 bg-sky-50/50"
-                            : "border-red-100 bg-red-50/55")
-                        }
-                      >
-                        <span
-                          className={
-                            "alento-ui-micro uppercase tracking-[0.1em] " +
-                            (projected >= 0
-                              ? "text-sky-600"
-                              : "text-red-600")
-                          }
-                        >
-                          Proyección después de nómina
+                  {summary.payrollMonthActive &&
+                    summary.loanReceivableBalance > 0 && (
+                      <div className="rounded-[18px] border border-violet-100 bg-violet-50/55 p-3.5">
+                        <span className="alento-ui-micro uppercase tracking-[0.1em] text-violet-600">
+                          Préstamos aplicables
                         </span>
-                        <b
-                          className={
-                            "mt-2 block text-[22px] font-black tracking-[-0.03em] " +
-                            (projected >= 0
-                              ? "text-sky-800"
-                              : "text-red-700")
-                          }
-                        >
-                          {formatCOP(projected)}
+                        <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-violet-700">
+                          {formatCOP(summary.loanReceivableBalance)}
                         </b>
-                        <p className="mt-1 text-[9px] leading-4 text-neutral-400">
-                          Neto {formatCOP(summary.netTotal)} + préstamos {formatCOP(summary.loanReceivableBalance)} − nómina {formatCOP(summary.payrollPendingTotal)}
-                        </p>
-                        <p
-                          className={
-                            "mt-1 text-[9px] font-bold " +
-                            (projected >= 0
-                              ? "text-sky-700/65"
-                              : "text-red-700/65")
-                          }
-                        >
-                          Recursos para nómina: {formatCOP(resourcesForPayroll)}
+                        <p className="mt-1 text-[9px] text-violet-700/55">
+                          Saldo pendiente asignado a esta nómina
                         </p>
                       </div>
-                    );
-                  })()}
+                    )}
+
+                  {summary.payrollMonthActive && (
+                    <div className="rounded-[18px] border border-sky-100 bg-sky-50/50 p-3.5">
+                      <span className="alento-ui-micro uppercase tracking-[0.1em] text-sky-600">
+                        Efectivo por liquidar
+                      </span>
+                      <b className="mt-2 block text-[22px] font-black tracking-[-0.03em] text-sky-800">
+                        {formatCOP(
+                          Math.max(
+                            0,
+                            summary.payrollPendingTotal -
+                              summary.loanReceivableBalance,
+                          ),
+                        )}
+                      </b>
+                      <p className="mt-1 text-[9px] leading-4 text-sky-700/55">
+                        Pendiente {formatCOP(summary.payrollPendingTotal)}
+                        {summary.loanReceivableBalance > 0
+                          ? ` − préstamos ${formatCOP(summary.loanReceivableBalance)}`
+                          : ""}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
