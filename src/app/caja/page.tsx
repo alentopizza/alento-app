@@ -18,10 +18,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { orderCode } from "@/lib/orderCode";
-import {
-  CASH_EXPENSE_CATEGORIES,
-  cashExpenseSubcategories,
-} from "@/lib/cashExpenseCatalog";
+import { CASH_EXPENSE_CATEGORIES } from "@/lib/cashExpenseCatalog";
 import { CASH_INCOME_CATEGORIES } from "@/lib/cashIncomeCatalog";
 import CashLoansPanel from "@/components/CashLoansPanel";
 import CashRegisterControl from "@/components/CashRegisterControl";
@@ -109,7 +106,15 @@ type IncomeRow = {
   amount: number;
   occurredAt: string;
   source: string;
+  planningType: ExpensePlanningType;
   createdByName: string;
+};
+
+type ExpensePlanningType = "VARIABLE" | "RECURRING" | "ONE_TIME";
+
+type ExpenseCatalogCategory = {
+  name: string;
+  subcategories: string[];
 };
 
 type ExpenseRow = {
@@ -435,6 +440,43 @@ function expenseTone(category: string) {
     "Consumo Interno": "border-fuchsia-100 bg-fuchsia-50 text-fuchsia-700",
   };
   return tones[category] ?? "border-neutral-200 bg-neutral-100 text-neutral-700";
+}
+
+function defaultExpensePlanningType(
+  category: string,
+): ExpensePlanningType {
+  if (
+    ["Arriendo", "Servicios Públicos", "Plataformas"].includes(category)
+  ) {
+    return "RECURRING";
+  }
+  if (category === "Maquinaria") return "ONE_TIME";
+  return "VARIABLE";
+}
+
+function expensePlanningLabel(value: ExpensePlanningType) {
+  if (value === "RECURRING") return "Recurrente";
+  if (value === "ONE_TIME") return "Única vez";
+  return "Variable";
+}
+
+function expensePlanningTone(value: ExpensePlanningType) {
+  if (value === "RECURRING") {
+    return "border-sky-100 bg-sky-50 text-sky-700";
+  }
+  if (value === "ONE_TIME") {
+    return "border-amber-100 bg-amber-50 text-amber-700";
+  }
+  return "border-neutral-200 bg-neutral-100 text-neutral-600";
+}
+
+function effectiveExpensePlanningType(
+  expense: ExpenseRow,
+): ExpensePlanningType {
+  if (expense.source === "PAYROLL" || expense.category === "Nomina") {
+    return "RECURRING";
+  }
+  return expense.planningType || "VARIABLE";
 }
 
 export default function CashPage() {
