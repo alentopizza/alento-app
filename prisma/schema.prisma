@@ -565,7 +565,7 @@ model CashExpense {
   amount        Decimal  @db.Decimal(12, 2)
   occurredAt    DateTime
   source        String   @default("MANUAL")
-  planningType  String   @default("VARIABLE")
+  planningType  String   @default("AUTO")
   createdByName String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
