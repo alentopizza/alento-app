@@ -1143,6 +1143,7 @@ export default function CashPage() {
     setDriverPayoutOptions([]);
     setExpenseNote("");
     setExpenseAmount("");
+    setExpensePlanningType(defaultExpensePlanningType("Insumos"));
     setExpenseDate(localDateInput());
     setExpenseTime(localTimeInput());
     setExpenseMessage("");
@@ -1411,6 +1412,7 @@ export default function CashPage() {
               ? expenseDriverId
               : null,
           note: expenseNote,
+          planningType: expensePlanningType,
           amount: Number(expenseAmount.replace(/\D/g, "")),
           occurredAt,
         }),
