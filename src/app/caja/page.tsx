@@ -1646,6 +1646,21 @@ export default function CashPage() {
               </button>
             )}
 
+            {tab === "EXPENSES" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setExpenseTypeCategory(expenseCategory || "Insumos");
+                  setExpenseTypeSubcategory("");
+                  setExpenseTypeMessage("");
+                  setExpenseTypeOpen(true);
+                }}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-neutral-200 bg-white px-3 alento-ui-label font-black text-neutral-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-neutral-50"
+              >
+                Tipos
+              </button>
+            )}
+
             {tab === "EXPENSES" && cashOperationsOpen && (
               <>
                 <button
@@ -2054,11 +2069,25 @@ export default function CashPage() {
                       className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
                     >
                       <option value="ALL">Todas las categorías</option>
-                      {CASH_EXPENSE_CATEGORIES.map((category) => (
-                        <option key={category.name} value={category.name}>
-                          {category.name}
+                      {expenseFilterCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
                         </option>
                       ))}
+                    </select>
+                    <select
+                      value={expensePlanningFilter}
+                      onChange={(event) =>
+                        setExpensePlanningFilter(
+                          event.target.value as "ALL" | ExpensePlanningType,
+                        )
+                      }
+                      className="h-11 rounded-xl border border-neutral-200 bg-white px-3 text-xs font-bold text-neutral-700 outline-none"
+                    >
+                      <option value="ALL">Todos los gastos</option>
+                      <option value="VARIABLE">Variables</option>
+                      <option value="RECURRING">Recurrentes</option>
+                      <option value="ONE_TIME">Única vez</option>
                     </select>
                   </div>
                 </div>
@@ -3135,15 +3164,14 @@ export default function CashPage() {
                     setExpenseSubcategory("");
                     setExpenseDriverId(null);
                     setExpenseAmount("");
+                    setExpensePlanningType(
+                      defaultExpensePlanningType(category),
+                    );
                     setExpenseMessage("");
-
-                    if (category === "Nomina") {
-                      void openPayroll();
-                    }
                   }}
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
                 >
-                  {CASH_EXPENSE_CATEGORIES.map((category) => (
+                  {expenseCatalog.map((category) => (
                     <option key={category.name} value={category.name}>
                       {category.name}
                     </option>
