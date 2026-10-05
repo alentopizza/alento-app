@@ -15,6 +15,20 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function payrollMonthFromDate(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(value);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}`;
+}
+
+function validPayrollMonth(value: string) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
 export async function GET() {
   try {
     await requireStaffSession(["ADMIN", "CASHIER"]);
@@ -78,6 +92,8 @@ export async function GET() {
         note: loan.note,
         principal,
         issuedAt: loan.issuedAt,
+        payrollMonth:
+          loan.payrollMonth || payrollMonthFromDate(loan.issuedAt),
         status: outstanding > 0 ? "OPEN" : "PAID",
         source: loan.source,
         createdByName: loan.createdByName,
@@ -144,6 +160,7 @@ export async function POST(request: NextRequest) {
     const note = clean(body.note);
     const amount = Number(body.amount);
     const issuedAt = new Date(clean(body.issuedAt));
+    const requestedPayrollMonth = clean(body.payrollMonth);
 
     if (!Number.isInteger(workerId) || workerId <= 0) {
       return NextResponse.json(
@@ -178,6 +195,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const payrollMonth =
+      requestedPayrollMonth || payrollMonthFromDate(issuedAt);
+
+    if (!validPayrollMonth(payrollMonth)) {
+      return NextResponse.json(
+        { error: "El mes de nómina no es válido." },
+        { status: 400 },
+      );
+    }
+
     await assertCashDateEditable(issuedAt);
 
     const loan = await prisma.cashLoan.create({
@@ -187,6 +214,7 @@ export async function POST(request: NextRequest) {
         note: note || null,
         principal: Math.round(amount),
         issuedAt,
+        payrollMonth,
         status: "OPEN",
         source: "MANUAL",
         createdByName: session.name,
