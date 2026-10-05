@@ -566,6 +566,10 @@ export async function GET(request: NextRequest) {
         amount: Number(expense.amount),
         occurredAt: expense.occurredAt,
         source: expense.source,
+        planningType:
+          expense.source === "PAYROLL" || expense.category === "Nomina"
+            ? "RECURRING"
+            : expense.planningType,
         createdByName: expense.createdByName,
         payrollPaymentId: expense.payrollPayment?.id ?? null,
       })),
