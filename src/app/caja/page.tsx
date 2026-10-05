@@ -743,11 +743,16 @@ export default function CashPage() {
 
   const selectedPayrollLoanDeductionTotal = useMemo(
     () =>
-      Object.values(payrollLoanDeductions).reduce(
-        (sum, value) => sum + Number(String(value).replace(/\D/g, "") || 0),
+      selectedPayrollLoans.reduce(
+        (sum, loan) =>
+          sum +
+          Number(
+            String(payrollLoanDeductions[loan.id] ?? "").replace(/\D/g, "") ||
+              0,
+          ),
         0,
       ),
-    [payrollLoanDeductions],
+    [payrollLoanDeductions, selectedPayrollLoans],
   );
 
   const selectedPayrollNetTotal = Math.max(
@@ -3518,7 +3523,9 @@ export default function CashPage() {
 
                         {selectedPayrollLoans.length === 0 ? (
                           <div className="px-4 py-5 text-center text-[11px] font-semibold text-neutral-400">
-                            Este trabajador no tiene préstamos pendientes.
+                            {payrollSelectedShiftIds.length === 0
+                              ? "Selecciona los turnos que vas a pagar para ver los préstamos asignados a esa nómina."
+                              : "No hay préstamos pendientes asignados al mes de los turnos seleccionados."}
                           </div>
                         ) : (
                           <div className="space-y-2 border-t border-violet-100 p-3">
