@@ -64,7 +64,13 @@ type Order = {
 };
 type Settings = { deliveryBands: { id: string; name: string; fee: number; active: boolean }[]; paymentMethods: { id: string; name: string; active: boolean }[] };
 type CatalogProduct = { id: number; name: string; type: string; basePrice: number | null };
-type CatalogResponse = { categories: { products: CatalogProduct[] }[] };
+type CatalogCategory = {
+  id?: number;
+  name?: string;
+  slug?: string;
+  products: CatalogProduct[];
+};
+type CatalogResponse = { categories: CatalogCategory[] };
 type Filter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELED";
 type ConfirmAction =
   | { kind: "cancel-order"; order: Order }
@@ -407,14 +413,74 @@ export default function OrdersCardsDashboardV3() {
     return [displayOrderCode(order), order.customer?.name, order.customer?.phone, order.driver?.name, statusLabel(order.status), fulfillmentLabel(order.fulfillmentType), paymentHint(order)].filter(Boolean).some((field) => String(field).toLowerCase().includes(value));
   }), [orders, filter, query]);
 
-  const simpleProducts = useMemo(() => {
-    const all = catalog?.categories.flatMap((category) => category.products) ?? [];
+  const snackProducts = useMemo(() => {
     const unique = new Map<number, CatalogProduct>();
-    all.forEach((product) => {
-      if (!["PIZZA_SINGLE", "PIZZA_TWO_FLAVORS", "COMBO", "MODIFIER", "INTERNAL"].includes(product.type) && product.basePrice != null) unique.set(product.id, product);
+
+    (catalog?.categories ?? []).forEach((category) => {
+      const categoryKey = `${category.slug ?? ""} ${category.name ?? ""}`
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("es");
+
+      const isSnackCategory =
+        categoryKey.includes("antojo") ||
+        categoryKey.includes("acompan") ||
+        categoryKey.includes("snack");
+
+      if (!isSnackCategory) return;
+
+      category.products.forEach((product) => {
+        if (
+          product.basePrice != null &&
+          ![
+            "PIZZA_SINGLE",
+            "PIZZA_TWO_FLAVORS",
+            "COMBO",
+            "INTERNAL",
+          ].includes(product.type)
+        ) {
+          unique.set(product.id, product);
+        }
+      });
     });
-    return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+    return [...unique.values()].sort((a, b) =>
+      a.name.localeCompare(b.name, "es"),
+    );
   }, [catalog]);
+
+  const simpleProducts = useMemo(() => {
+    const all =
+      catalog?.categories.flatMap((category) => category.products) ?? [];
+    const unique = new Map<number, CatalogProduct>();
+    const snackIds = new Set(snackProducts.map((product) => product.id));
+
+    all.forEach((product) => {
+      const regularSimple =
+        ![
+          "PIZZA_SINGLE",
+          "PIZZA_TWO_FLAVORS",
+          "COMBO",
+          "MODIFIER",
+          "INTERNAL",
+        ].includes(product.type) && product.basePrice != null;
+
+      if (regularSimple || snackIds.has(product.id)) {
+        unique.set(product.id, product);
+      }
+    });
+
+    snackProducts.forEach((product) => unique.set(product.id, product));
+
+    return [...unique.values()].sort((a, b) =>
+      a.name.localeCompare(b.name, "es"),
+    );
+  }, [catalog, snackProducts]);
+
+  const quickProducts = useMemo(() => {
+    const snackIds = new Set(snackProducts.map((product) => product.id));
+    return simpleProducts.filter((product) => !snackIds.has(product.id));
+  }, [simpleProducts, snackProducts]);
 
   const editPreview = useMemo(() => {
     if (!editing) {
@@ -2607,7 +2673,84 @@ export default function OrdersCardsDashboardV3() {
                   />
                 </div>
 
-                {simpleProducts.length > 0 && (
+                {snackProducts.length > 0 && (
+                  <div className="rounded-[24px] border border-amber-100 bg-[linear-gradient(145deg,#ffffff,#fffaf0)] p-4 shadow-[0_10px_30px_rgba(20,18,16,.045)] sm:p-5">
+                    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-amber-100 pb-4">
+                      <div>
+                        <p className="alento-ui-label uppercase tracking-[.12em] text-amber-600">
+                          Antojos
+                        </p>
+                        <h4 className="mt-1 text-[18px] font-black tracking-[-0.02em] text-neutral-950">
+                          Palitos, canelones y más
+                        </h4>
+                        <p className="mt-1 text-[11px] text-neutral-400">
+                          Agrégalos directamente al pedido.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-2.5 lg:grid-cols-2">
+                      {snackProducts.map((product) => {
+                        const quantity = additions[product.id] ?? 0;
+                        return (
+                          <div
+                            key={product.id}
+                            className={`flex min-h-[72px] items-center justify-between gap-3 rounded-2xl border p-3.5 transition ${
+                              quantity > 0
+                                ? "border-amber-200 bg-amber-50/70"
+                                : "border-amber-100 bg-white"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <b className="block truncate text-[13px] font-bold text-neutral-950">
+                                {product.name}
+                              </b>
+                              <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+                                {money(product.basePrice)}
+                              </p>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-neutral-200 bg-white p-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdditions((current) => ({
+                                    ...current,
+                                    [product.id]: Math.max(
+                                      0,
+                                      (current[product.id] ?? 0) - 1,
+                                    ),
+                                  }))
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-neutral-100"
+                              >
+                                <Icon name="minus" />
+                              </button>
+                              <b className="w-6 text-center text-[13px] tabular-nums">
+                                {quantity}
+                              </b>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdditions((current) => ({
+                                    ...current,
+                                    [product.id]:
+                                      (current[product.id] ?? 0) + 1,
+                                  }))
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-neutral-100"
+                              >
+                                <Icon name="plus" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {quickProducts.length > 0 && (
                   <div className="rounded-[24px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,18,16,.045)] sm:p-5">
                     <div className="flex flex-wrap items-end justify-between gap-3 border-b border-neutral-100 pb-4">
                       <div>
@@ -2624,7 +2767,7 @@ export default function OrdersCardsDashboardV3() {
                     </div>
 
                     <div className="mt-4 grid gap-2.5 lg:grid-cols-2">
-                      {simpleProducts.map((product) => {
+                      {quickProducts.map((product) => {
                         const quantity = additions[product.id] ?? 0;
                         return (
                           <div
