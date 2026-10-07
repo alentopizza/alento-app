@@ -757,7 +757,7 @@ export default function PublicProductConfigurator({
   function renderPizzaStep() {
     if (step === 0) {
       return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {catalog.sizes.map((size) => (
             <ChoiceButton
               key={size.id}
@@ -789,7 +789,7 @@ export default function PublicProductConfigurator({
 
       return (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {catalog.pizzaFlavors.map((flavor) => {
               const disabled = !first && firstFlavorId === flavor.id;
               return (
@@ -831,7 +831,7 @@ export default function PublicProductConfigurator({
           <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-white/45">
             El Mundo De Los Bordes®
           </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {catalog.crusts.map((crust) => {
               const price = crustPriceForSize(crust, sizeId);
               return (
@@ -866,7 +866,7 @@ export default function PublicProductConfigurator({
             Ingredientes extra · opcional
           </p>
           {catalog.modifiers.length ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {catalog.modifiers.map((modifier) => (
                 <ChoiceButton
                   key={modifier.id}
@@ -912,7 +912,7 @@ export default function PublicProductConfigurator({
       const selection = comboPizzaSelections[key];
 
       return (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {current.rule.sizes.map((size) => (
             <ChoiceButton
               key={size.id}
@@ -941,7 +941,7 @@ export default function PublicProductConfigurator({
 
       return (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {current.rule.flavors.map((flavor) => (
               <ChoiceButton
                 key={flavor.id}
@@ -983,7 +983,7 @@ export default function PublicProductConfigurator({
               {selected.length}/{current.group.maxSelections}
             </b>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {current.group.options.map((option) => (
               <ChoiceButton
                 key={option.id}
@@ -1038,6 +1038,105 @@ export default function PublicProductConfigurator({
     ? activeComboStep?.title ?? "Compra Asistida"
     : pizzaSteps[step];
 
+  const selectedSize = catalog.sizes.find((size) => size.id === sizeId);
+  const selectedFirstFlavor = catalog.pizzaFlavors.find(
+    (flavor) => flavor.id === firstFlavorId,
+  );
+  const selectedSecondFlavor = catalog.pizzaFlavors.find(
+    (flavor) => flavor.id === secondFlavorId,
+  );
+  const selectedCrust = catalog.crusts.find(
+    (crust) => crust.id === crustId,
+  );
+
+  const stepHeading = (() => {
+    const normalized = currentTitle.toLocaleLowerCase("es");
+
+    if (normalized.includes("primer sabor")) return "Elige el primer sabor";
+    if (normalized.includes("segundo sabor")) return "Elige el segundo sabor";
+    if (normalized.includes("sabor")) return "Elige el sabor";
+    if (normalized.includes("tamaño")) return "Elige el tamaño";
+    if (normalized.includes("borde")) return "Elige tu borde";
+    if (normalized.includes("ingredientes")) return "Personaliza tu pizza";
+    if (normalized.includes("nota")) return "Indicaciones para cocina";
+    if (normalized.includes("listo")) return "Tu combo está listo";
+
+    return "Elige " + currentTitle.toLocaleLowerCase("es");
+  })();
+
+  const stepHint = (() => {
+    if (
+      activeComboStep?.kind === "combo-group"
+    ) {
+      const min = activeComboStep.group.minSelections;
+      const max = activeComboStep.group.maxSelections;
+      return min === max
+        ? `Selecciona ${min} opción${min === 1 ? "" : "es"}`
+        : `Selecciona de ${min} a ${max} opciones`;
+    }
+
+    if (
+      currentTitle.toLocaleLowerCase("es").includes("nota") ||
+      currentTitle.toLocaleLowerCase("es").includes("ingredientes")
+    ) {
+      return "Opcional";
+    }
+
+    return "Selecciona 1 opción";
+  })();
+
+  const selectionSummary = (() => {
+    if (isCombo) {
+      const parts: string[] = [];
+
+      for (const rule of product.comboPizzaRules ?? []) {
+        for (let unit = 0; unit < rule.quantity; unit += 1) {
+          const selection =
+            comboPizzaSelections[comboSelectionKey(rule, unit)];
+          const size = rule.sizes.find(
+            (item) => item.id === selection?.sizeId,
+          );
+          const flavor = rule.flavors.find(
+            (item) => item.id === selection?.flavorId,
+          );
+
+          if (size?.name) parts.push(size.name);
+          if (flavor?.name) parts.push(flavor.name);
+
+          if (parts.length >= 2) break;
+        }
+        if (parts.length >= 2) break;
+      }
+
+      if (!parts.length && activeComboStep?.kind === "combo-group") {
+        const selected =
+          comboGroupSelections[activeComboStep.group.id] ?? [];
+        const names = activeComboStep.group.options
+          .filter((option) => selected.includes(option.productId))
+          .map((option) => option.productName);
+        parts.push(...names.slice(0, 2));
+      }
+
+      return parts.length
+        ? { label: "Tu combo", value: parts.join(" · ") }
+        : null;
+    }
+
+    const parts = [
+      selectedSize?.name,
+      selectedFirstFlavor?.name,
+      selectedSecondFlavor?.name,
+      selectedCrust?.name ? "Borde " + selectedCrust.name : null,
+    ].filter(Boolean) as string[];
+
+    return parts.length
+      ? {
+          label: twoFlavors ? "Tu pizza" : "Tu elección",
+          value: parts.join(" · "),
+        }
+      : null;
+  })();
+
   const finalStep = step === totalSteps - 1;
   const pizzaPriceVisible = twoFlavors
     ? Boolean(
@@ -1084,26 +1183,27 @@ export default function PublicProductConfigurator({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/80 backdrop-blur-sm md:items-center md:p-5"
+      className="fixed inset-0 z-[110] flex items-end justify-center bg-black/78 backdrop-blur-[6px] md:items-center md:p-5"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#111] font-sans text-white shadow-[0_28px_80px_rgba(0,0,0,.52)] md:max-w-[700px] md:rounded-[28px]">
-        <header className="border-b border-white/10 px-5 py-4">
+      <div className="flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[30px] border border-white/[0.12] bg-[radial-gradient(circle_at_82%_0%,rgba(226,26,34,.12),transparent_24%),linear-gradient(180deg,#111214_0%,#0d0e10_100%)] font-sans text-white shadow-[0_30px_90px_rgba(0,0,0,.58)] md:max-w-[760px] md:rounded-[30px]">
+        <header className="shrink-0 border-b border-white/[0.08] px-5 pb-4 pt-5 sm:px-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e21a22]">
-                Compra Asistida
+              <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff454b]">
+                Compra asistida
               </p>
-              <h2 className="mt-1 truncate text-[21px] font-bold tracking-[-0.01em]">
+              <h2 className="mt-1.5 truncate text-[23px] font-black tracking-[-0.035em] text-white sm:text-[26px]">
                 {product.name}
               </h2>
             </div>
+
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/70"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.055] text-[18px] text-white/65 transition hover:bg-white/[0.09] hover:text-white"
               aria-label="Cerrar"
             >
               ×
@@ -1111,36 +1211,54 @@ export default function PublicProductConfigurator({
           </div>
 
           <div className="mt-4">
-            <Progress current={step} total={totalSteps} />
+            <Progress current={step} total={totalSteps} title={currentTitle} />
           </div>
         </header>
 
-        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 md:overflow-y-visible">
-          <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4 sm:p-5">
-            <div className="mb-4">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/30">
-                Te guiamos paso a paso
-              </p>
-              <h3 className="mt-1 text-[18px] font-bold">{currentTitle}</h3>
-            </div>
+        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+          <div>
+            <h3 className="text-[24px] font-black leading-none tracking-[-0.035em] text-white sm:text-[27px]">
+              {stepHeading}
+            </h3>
+            <p className="mt-2 text-[11px] font-medium text-white/38">
+              {stepHint}
+            </p>
+          </div>
 
+          <div className="mt-5">
             {isCombo ? renderComboStep() : renderPizzaStep()}
+          </div>
 
-            {error && (
-              <div className="mt-4 flex items-start gap-2 rounded-[15px] border border-red-500/25 bg-red-500/10 p-3 text-[11px] font-semibold leading-5 text-red-200">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-[12px]">
-                  !
+          {selectionSummary && (
+            <div className="mt-5 flex items-center gap-3 rounded-[17px] border border-red-400/20 bg-[linear-gradient(100deg,rgba(226,26,34,.11),rgba(255,255,255,.035))] px-4 py-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-red-400/15 bg-red-400/10 text-[18px]">
+                🍕
+              </span>
+              <div className="min-w-0">
+                <span className="block text-[9px] font-bold uppercase tracking-[0.1em] text-white/30">
+                  {selectionSummary.label}
                 </span>
-                <span>{error}</span>
+                <b className="mt-0.5 block truncate text-[12px] font-black text-white/84">
+                  {selectionSummary.value}
+                </b>
               </div>
-            )}
-          </section>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 flex items-start gap-2 rounded-[15px] border border-red-500/25 bg-red-500/10 p-3 text-[11px] font-semibold leading-5 text-red-200">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-[12px]">
+                !
+              </span>
+              <span>{error}</span>
+            </div>
+          )}
         </div>
 
-        <footer className="border-t border-white/10 bg-[#0c0c0c] p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <span className="block text-[8px] font-bold uppercase tracking-[0.13em] text-white/30">
+        <footer className="shrink-0 border-t border-white/[0.08] bg-[#090a0b]/96 px-5 py-4 backdrop-blur-xl sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <span className="block text-[8px] font-black uppercase tracking-[0.15em] text-white/28">
                 {isCombo
                   ? comboHasAllSizes
                     ? "Precio del combo"
@@ -1149,47 +1267,50 @@ export default function PublicProductConfigurator({
                     ? "Precio de tu pizza"
                     : "Precio"}
               </span>
+
               {isCombo || pizzaPriceVisible ? (
-                <b className="mt-0.5 block text-[20px] text-[#ff3439]">
+                <b className="mt-1 block whitespace-nowrap text-[23px] font-black tracking-[-0.035em] text-[#ff3439] sm:text-[25px]">
                   {money(isCombo ? comboPrice : pizzaPrice)}
                 </b>
               ) : (
-                <span className="mt-1 block text-[11px] font-semibold text-white/35">
+                <span className="mt-1 block max-w-[170px] text-[9px] font-semibold leading-4 text-white/35">
                   Completa los sabores para ver el valor
                 </span>
               )}
             </div>
-            {step > 0 && (
-              <button
-                type="button"
-                onClick={back}
-                className="h-10 rounded-full border border-white/10 bg-white/[0.04] px-4 text-[10px] font-bold text-white/60"
-              >
-                ← Regresar
-              </button>
-            )}
-          </div>
 
-          {finalStep ? (
-            <button
-              type="button"
-              disabled={!finalReady}
-              onClick={isCombo ? addComboToCart : addPizzaToCart}
-              className="h-12 w-full rounded-full bg-[#e21a22] px-5 text-[11px] font-bold uppercase tracking-[0.06em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:bg-[#ef1c25] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35 disabled:shadow-none"
-            >
-              {finalReady ? "Agregar al carrito" : "Completa lo que falta"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={isCombo ? nextCombo : nextPizza}
-              className="h-12 w-full rounded-full bg-white px-5 text-[11px] font-bold uppercase tracking-[0.06em] text-black transition hover:bg-neutral-100"
-            >
-              Siguiente →
-            </button>
-          )}
+            <div className="flex shrink-0 items-center gap-2">
+              {step > 0 && (
+                <button
+                  type="button"
+                  onClick={back}
+                  className="h-11 rounded-full border border-white/[0.13] bg-white/[0.035] px-4 text-[10px] font-bold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                >
+                  ← Regresar
+                </button>
+              )}
+
+              {finalStep ? (
+                <button
+                  type="button"
+                  disabled={!finalReady}
+                  onClick={isCombo ? addComboToCart : addPizzaToCart}
+                  className="h-11 rounded-full bg-[linear-gradient(135deg,#e21a22,#ff2933)] px-5 text-[10px] font-black uppercase tracking-[0.04em] text-white shadow-[0_10px_24px_rgba(226,26,34,.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35 disabled:shadow-none"
+                >
+                  {finalReady ? "Agregar al carrito" : "Completa lo que falta"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={isCombo ? nextCombo : nextPizza}
+                  className="h-11 rounded-full bg-[linear-gradient(135deg,#e21a22,#ff2933)] px-5 text-[10px] font-black uppercase tracking-[0.04em] text-white shadow-[0_10px_24px_rgba(226,26,34,.20)] transition hover:brightness-110"
+                >
+                  Siguiente →
+                </button>
+              )}
+            </div>
+          </div>
         </footer>
       </div>
     </div>
-  );
-}
+  );}
