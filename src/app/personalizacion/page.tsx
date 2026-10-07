@@ -223,7 +223,7 @@ export default function PersonalizationPage() {
       const imageUrl = await prepareImage(
         file,
         1920,
-        730,
+        1080,
       );
       setSettings((current) =>
         current
@@ -552,8 +552,8 @@ export default function PersonalizationPage() {
           <InfoCard
             icon={ImageIcon}
             label="Portada menú"
-            value="1920 × 730"
-            detail="2.63:1 · menú público"
+            value="1920 × 1080"
+            detail="16:9 · menú público"
             active={Boolean(
               settings.menuHero.active &&
                 settings.menuHero.imageUrl,
@@ -696,9 +696,9 @@ export default function PersonalizationPage() {
           <div className="p-3">
             <VisualAssetCard
               title="Portada del menú"
-              subtitle="1920 × 730 px · 2.63:1"
+              subtitle="1920 × 1080 px · 16:9"
               imageUrl={settings.menuHero.imageUrl}
-              aspectClass="aspect-[1920/730]"
+              aspectClass="aspect-video"
               stateLabel={
                 settings.menuHero.active &&
                 settings.menuHero.imageUrl
