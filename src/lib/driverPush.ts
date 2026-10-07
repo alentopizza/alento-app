@@ -73,7 +73,18 @@ export async function migrateLegacyCustomerPushSubscriptions() {
     },
   });
 
-  if (!legacy.length) return 0;
+  if (!legacy.length) {
+    await prisma.driverPushSubscription.updateMany({
+      where: {
+        userId: null,
+        staffOptIn: true,
+      },
+      data: {
+        staffOptIn: false,
+      },
+    });
+    return 0;
+  }
 
   for (const subscription of legacy) {
     await prisma.driverPushSubscription.upsert({
