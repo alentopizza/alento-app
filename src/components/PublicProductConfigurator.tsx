@@ -197,6 +197,18 @@ function ChoiceButton({
           : "border-white/[0.10] bg-white/[0.045] text-white/76 hover:border-white/20 hover:bg-white/[0.065]")
       }
     >
+      <span
+        className={
+          "absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border text-[13px] font-black shadow-[0_5px_14px_rgba(0,0,0,.24)] backdrop-blur-md transition " +
+          (selected
+            ? "border-[#ff3439] bg-[#ff2630] text-white"
+            : "border-white/35 bg-black/35 text-transparent")
+        }
+        aria-hidden="true"
+      >
+        ✓
+      </span>
+
       {imageUrl ? (
         <div className="relative aspect-[16/10] overflow-hidden border-b border-white/[0.07] bg-black/20">
           <img
@@ -209,30 +221,14 @@ function ChoiceButton({
       ) : null}
 
       <div className={imageUrl ? "p-3.5" : "min-h-[96px] p-4"}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <span className="block truncate text-[13px] font-black text-white">
-              {title}
-            </span>
-            {detail && (
-              <span className="mt-1 block text-[10px] leading-4 text-white/40">
-                {detail}
-              </span>
-            )}
-          </div>
-
-          <span
-            className={
-              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[12px] font-black transition " +
-              (selected
-                ? "border-[#ff3439] bg-[#ff2630] text-white"
-                : "border-white/25 bg-black/15 text-transparent")
-            }
-            aria-hidden="true"
-          >
-            ✓
+        <span className="block pr-8 text-[13px] font-black leading-5 text-white">
+          {title}
+        </span>
+        {detail && (
+          <span className="mt-1.5 block text-[10px] leading-[1.45] text-white/40">
+            {detail}
           </span>
-        </div>
+        )}
       </div>
     </button>
   );
