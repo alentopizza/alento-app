@@ -100,7 +100,6 @@ function categoryEmoji(slug: string) {
 export default function PublicMenuPage() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [home, setHome] = useState<PublicHomeSettings | null>(null);
-  const [activeCategory, setActiveCategory] = useState("");
   const [query, setQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
   const [configurableProduct, setConfigurableProduct] = useState<CatalogProduct | null>(null);
@@ -115,22 +114,6 @@ export default function PublicMenuPage() {
   useEffect(() => {
     function applyCatalog(catalogData: CatalogResponse) {
       setCatalog(catalogData);
-      const first =
-        catalogData.categories?.find(
-          (category: CatalogCategory) =>
-            category.slug === "pizzas" && category.products.length > 0,
-        ) ??
-        catalogData.categories?.find(
-          (category: CatalogCategory) =>
-            category.slug.includes("pizza") && category.products.length > 0,
-        ) ??
-        catalogData.categories?.find(
-          (category: CatalogCategory) => category.products.length > 0,
-        );
-
-      if (first) {
-        setActiveCategory((current) => current || first.slug);
-      }
     }
 
     const cachedCatalog = readPublicCache<CatalogResponse>("catalog");
@@ -209,39 +192,49 @@ export default function PublicMenuPage() {
     [catalog],
   );
 
+  const catalogCategories = useMemo(
+    () =>
+      categories.filter(
+        (category) => category.slug !== "destacados",
+      ),
+    [categories],
+  );
+
   const allProducts = useMemo(() => {
     const map = new Map<number, CatalogProduct>();
 
-    for (const category of categories) {
+    for (const category of catalogCategories) {
       for (const product of category.products) {
         if (!map.has(product.id)) map.set(product.id, product);
       }
     }
 
     return [...map.values()];
-  }, [categories]);
+  }, [catalogCategories]);
 
-  const activeProducts = useMemo(() => {
+  const searchResults = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("es");
+    if (!value) return [];
 
-    if (value) {
-      return allProducts.filter((product) =>
-        `${product.name} ${product.description ?? ""}`
-          .toLocaleLowerCase("es")
-          .includes(value),
-      );
-    }
-
-    return (
-      categories.find((category) => category.slug === activeCategory)?.products ??
-      allProducts
+    return allProducts.filter((product) =>
+      `${product.name} ${product.description ?? ""}`
+        .toLocaleLowerCase("es")
+        .includes(value),
     );
-  }, [activeCategory, allProducts, categories, query]);
+  }, [allProducts, query]);
 
   const featuredProducts = useMemo(() => {
+    const featuredCategory = categories.find(
+      (category) => category.slug === "destacados",
+    );
+
+    if (featuredCategory?.products.length) {
+      return featuredCategory.products.slice(0, 4);
+    }
+
     const highlighted = allProducts.filter((product) => product.featured);
     return (highlighted.length ? highlighted : allProducts).slice(0, 4);
-  }, [allProducts]);
+  }, [allProducts, categories]);
 
   function productPriceValue(product: CatalogProduct): number | null {
     const minSize = catalog?.sizes.length
@@ -409,47 +402,7 @@ export default function PublicMenuPage() {
           </div>
         </section>
 
-        <section id="categorias-menu" className="relative z-20 mx-auto -mt-5 max-w-[1180px] px-2 sm:-mt-7 sm:px-4 lg:-mt-10 lg:px-7">
-          <div
-            className="grid overflow-hidden rounded-[16px] border border-black/10 bg-white text-[#111] shadow-[0_18px_44px_rgba(0,0,0,.24)] sm:rounded-[18px] lg:rounded-[22px]"
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(1, categories.length)}, minmax(0, 1fr))`,
-            }}
-          >
-            {categories.map((category) => {
-              const active = activeCategory === category.slug;
-
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveCategory(category.slug);
-                    setQuery("");
-                    document.getElementById("catalogo-menu")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className={`group relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 border-r border-neutral-200 px-1 text-center transition last:border-r-0 sm:min-h-[68px] sm:px-2 lg:min-h-[82px] lg:gap-1 lg:px-3 ${active ? "bg-[linear-gradient(180deg,#fff7f7,#ffeded)]" : "bg-white hover:bg-neutral-50"}`}
-                >
-                  {active && <span className="absolute inset-x-0 top-0 h-[3px] bg-[#d71920]" />}
-
-                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-[16px] transition sm:h-9 sm:w-9 sm:text-[20px] lg:h-11 lg:w-11 lg:text-[24px] ${active ? "bg-white shadow-[0_5px_16px_rgba(215,25,32,.13)] ring-1 ring-red-100" : "bg-neutral-50"}`}>
-                    {category.imageUrl ? (
-                      <img src={category.imageUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{categoryEmoji(category.slug)}</span>
-                    )}
-                  </div>
-
-                  <span className={`block w-full truncate text-[10px] font-extrabold uppercase leading-none tracking-[-0.01em] sm:text-[11px] lg:text-[11px] ${active ? "text-[#c6161c]" : "text-neutral-900"}`}>
-                    {category.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-[1180px] px-3 pt-4 sm:px-4 sm:pt-5 lg:px-7">
+        <section className="mx-auto max-w-[1180px] px-3 pt-3 sm:px-4 sm:pt-4 lg:px-7">
           <PublicActiveOrderBanner />
         </section>
 
@@ -518,12 +471,17 @@ export default function PublicMenuPage() {
         </section>
 
         <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-16 lg:px-8">
-          <div className="mb-3 flex flex-col gap-2.5 sm:mb-4 md:flex-row md:items-center md:justify-between">
+          <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/35 lg:text-[11px]">Catálogo</p>
-              <h2 className="mt-0.5 text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[25px] lg:text-[27px]">
-                {categories.find((category) => category.slug === activeCategory)?.name || "Menú"}
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/35 lg:text-[11px]">
+                Catálogo
+              </p>
+              <h2 className="mt-1 text-[25px] font-black leading-none tracking-[-0.04em] text-white sm:text-[28px] lg:text-[31px]">
+                Todo nuestro menú
               </h2>
+              <p className="mt-2 max-w-[560px] text-[10px] leading-4 text-white/32">
+                Pizzas, antojos, bebidas y demás categorías aparecen juntas en el orden definido desde Menú.
+              </p>
             </div>
 
             <div className="flex h-10 w-full items-center gap-2.5 rounded-full border border-white/12 bg-white/[0.05] px-3.5 md:w-[310px]">
@@ -531,11 +489,16 @@ export default function PublicMenuPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar en el menú..."
+                placeholder="Buscar en todo el menú..."
                 className="min-w-0 flex-1 bg-transparent text-[11px] text-white outline-none placeholder:text-white/25"
               />
               {query && (
-                <button type="button" onClick={() => setQuery("")} className="text-white/40" aria-label="Limpiar búsqueda">
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="text-white/40"
+                  aria-label="Limpiar búsqueda"
+                >
                   ×
                 </button>
               )}
@@ -546,62 +509,172 @@ export default function PublicMenuPage() {
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/40">
               Cargando menú...
             </div>
-          ) : activeProducts.length ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              {activeProducts.map((product) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => setSelectedProduct(product)}
-                  className="alento-product-card group text-left"
-                >
-                  <div className="alento-product-card-media">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="alento-product-card-image"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">🍕</div>
-                    )}
-                  </div>
-
-                  <div className="alento-product-card-body antialiased">
-                    <h3 className="alento-product-card-title">
-                      {product.name}
+          ) : query.trim() ? (
+            searchResults.length ? (
+              <section>
+                <div className="mb-3 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#ff454b]">
+                      Resultados
+                    </p>
+                    <h3 className="mt-1 text-[20px] font-black tracking-[-0.03em] text-white">
+                      {searchResults.length} producto{searchResults.length === 1 ? "" : "s"}
                     </h3>
-                    <div className="alento-product-card-footer">
-                      <span className="alento-product-card-price">
-                        {displayPrice(product)}
-                      </span>
-                      <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSelectedProduct(product);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setSelectedProduct(product);
-                        }
-                      }}
-                      className="alento-product-card-action"
-                      aria-label={`Agregar ${product.name} al carrito`}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                  {searchResults.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => setSelectedProduct(product)}
+                      className="alento-product-card group text-left"
                     >
-                      +
-                    </span>
+                      <div className="alento-product-card-media">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="alento-product-card-image"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">
+                            🍕
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="alento-product-card-body antialiased">
+                        <h3 className="alento-product-card-title">
+                          {product.name}
+                        </h3>
+                        <div className="alento-product-card-footer">
+                          <span className="alento-product-card-price">
+                            {displayPrice(product)}
+                          </span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedProduct(product);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setSelectedProduct(product);
+                              }
+                            }}
+                            className="alento-product-card-action"
+                            aria-label={`Agregar ${product.name} al carrito`}
+                          >
+                            +
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/45">
+                No encontramos productos con esa búsqueda.
+              </div>
+            )
+          ) : catalogCategories.length ? (
+            <div className="space-y-10 sm:space-y-12">
+              {catalogCategories.map((category) => (
+                <section
+                  key={category.id}
+                  id={`categoria-${category.slug}`}
+                  className="scroll-mt-24"
+                >
+                  <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-white/[0.06] text-[20px]">
+                        {category.imageUrl ? (
+                          <img
+                            src={category.imageUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span>{categoryEmoji(category.slug)}</span>
+                        )}
+                      </span>
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/28">
+                          {category.products.length} producto{category.products.length === 1 ? "" : "s"}
+                        </p>
+                        <h3 className="mt-0.5 text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[26px]">
+                          {category.name}
+                        </h3>
+                      </div>
                     </div>
                   </div>
-                </button>
+
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                    {category.products.map((product) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => setSelectedProduct(product)}
+                        className="alento-product-card group text-left"
+                      >
+                        <div className="alento-product-card-media">
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="alento-product-card-image"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-5xl lg:text-7xl">
+                              {categoryEmoji(category.slug)}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="alento-product-card-body antialiased">
+                          <h3 className="alento-product-card-title">
+                            {product.name}
+                          </h3>
+                          <div className="alento-product-card-footer">
+                            <span className="alento-product-card-price">
+                              {displayPrice(product)}
+                            </span>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedProduct(product);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  setSelectedProduct(product);
+                                }
+                              }}
+                              className="alento-product-card-action"
+                              aria-label={`Agregar ${product.name} al carrito`}
+                            >
+                              +
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           ) : (
             <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-10 text-center text-white/45">
-              No encontramos productos con esa búsqueda.
+              No hay productos disponibles en este momento.
             </div>
           )}
         </section>
