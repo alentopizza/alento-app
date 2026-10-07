@@ -798,7 +798,12 @@ export default function PublicProductConfigurator({
                   disabled={disabled}
                   selected={currentId === flavor.id}
                   title={flavor.name}
-                  detail={disabled ? "Ya elegido como primer sabor" : undefined}
+                  detail={
+                    disabled
+                      ? "Ya elegido como primer sabor"
+                      : flavor.description || undefined
+                  }
+                  imageUrl={flavor.imageUrl}
                   onClick={() => {
                     setError("");
                     if (first) {
@@ -815,23 +820,7 @@ export default function PublicProductConfigurator({
             })}
           </div>
 
-          {currentId && (() => {
-            const selectedFlavor = catalog.pizzaFlavors.find(
-              (flavor) => flavor.id === currentId,
-            );
-            if (!selectedFlavor?.description) return null;
 
-            return (
-              <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
-                  {selectedFlavor.name}
-                </p>
-                <p className="mt-1.5 text-[11px] leading-5 text-white/58">
-                  {selectedFlavor.description}
-                </p>
-              </div>
-            );
-          })()}
         </>
       );
     }
@@ -884,6 +873,7 @@ export default function PublicProductConfigurator({
                   selected={modifierIds.includes(modifier.id)}
                   title={modifier.name}
                   detail={"+" + money(modifier.basePrice)}
+                  imageUrl={modifier.imageUrl}
                   onClick={() => toggleModifier(modifier.id)}
                 />
               ))}
@@ -957,7 +947,8 @@ export default function PublicProductConfigurator({
                 key={flavor.id}
                 selected={selection?.flavorId === flavor.id}
                 title={flavor.name}
-                detail={undefined}
+                detail={flavor.description || undefined}
+                imageUrl={flavor.imageUrl}
                 onClick={() => {
                   setError("");
                   setComboPizzaSelections((state) => ({
@@ -972,23 +963,7 @@ export default function PublicProductConfigurator({
             ))}
           </div>
 
-          {selection?.flavorId && (() => {
-            const selectedFlavor = current.rule.flavors.find(
-              (flavor) => flavor.id === selection.flavorId,
-            );
-            if (!selectedFlavor?.description) return null;
 
-            return (
-              <div className="mt-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-3.5">
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#ff454b]">
-                  {selectedFlavor.name}
-                </p>
-                <p className="mt-1.5 text-[11px] leading-5 text-white/58">
-                  {selectedFlavor.description}
-                </p>
-              </div>
-            );
-          })()}
         </>
       );
     }
@@ -1019,6 +994,7 @@ export default function PublicProductConfigurator({
                     ? "Incluye ×" + String(option.quantity)
                     : "Incluido"
                 }
+                imageUrl={option.imageUrl}
                 onClick={() =>
                   toggleComboGroupOption(current.group, option.productId)
                 }
