@@ -285,7 +285,7 @@ export default function StaffStoreStatus() {
                   <p
                     className={
                       "text-[9px] font-black uppercase tracking-[0.13em] " +
-                      (status.open ? "text-emerald-700" : "text-red-700")
+                      (status.open ? "text-emerald-300" : "text-red-300")
                     }
                   >
                     Estado de la tienda
@@ -335,7 +335,7 @@ export default function StaffStoreStatus() {
                     "rounded-full px-3 py-1.5 text-[9px] font-black " +
                     (soundEnabled
                       ? "bg-emerald-600 text-white"
-                      : "bg-neutral-200 text-neutral-500")
+                      : "bg-white/[0.08] text-white/40")
                   }
                 >
                   {soundEnabled ? "Activo" : "Apagado"}
@@ -381,11 +381,11 @@ export default function StaffStoreStatus() {
       {openingToast && (
         <div className="fixed right-2.5 top-[126px] z-[160] w-[min(92vw,350px)] rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:right-4 lg:top-[66px]">
           <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-emerald-400/15 bg-emerald-400/10 text-emerald-300">
               <BellRing className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[9px] font-black uppercase tracking-[0.13em] text-emerald-700">
+              <p className="text-[9px] font-black uppercase tracking-[0.13em] text-emerald-300">
                 Servicio iniciado
               </p>
               <b className="mt-1 block text-[14px] font-black text-white">
