@@ -12,6 +12,10 @@ import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import { createOrderTrackingToken } from "@/lib/orderTracking";
 import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
+import {
+  formatServiceTime,
+  getStoreServiceStatus,
+} from "@/lib/storeServiceHours";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -23,6 +27,9 @@ type PaymentMethod = {
 
 type SettingsValue = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
+  store?: {
+    serviceHours?: unknown;
+  };
 };
 
 function digits(value: unknown) {
@@ -62,8 +69,21 @@ export async function GET() {
     });
     const value = (saved?.value ?? null) as SettingsValue | null;
 
+    const storeStatus = getStoreServiceStatus(
+      value?.store?.serviceHours,
+    );
+
     return NextResponse.json({
       paymentMethods: activePayments(value),
+      storeStatus: {
+        open: storeStatus.open,
+        nextOpening: storeStatus.nextOpening
+          ? {
+              relativeLabel: storeStatus.nextOpening.relativeLabel,
+              timeLabel: formatServiceTime(storeStatus.nextOpening.time),
+            }
+          : null,
+      },
     });
   } catch (error) {
     console.error("Public checkout settings error", error);
@@ -122,6 +142,31 @@ export async function POST(request: NextRequest) {
       where: { key: SETTINGS_KEY },
     });
     const settings = (saved?.value ?? null) as SettingsValue | null;
+    const storeStatus = getStoreServiceStatus(
+      settings?.store?.serviceHours,
+    );
+
+    if (!storeStatus.open) {
+      return NextResponse.json(
+        {
+          error: storeStatus.nextOpening
+            ? `El local está cerrado. Volvemos a recibir pedidos ${storeStatus.nextOpening.relativeLabel.toLowerCase()} a las ${formatServiceTime(storeStatus.nextOpening.time)}.`
+            : "El local está cerrado en este momento.",
+          code: "STORE_CLOSED",
+          storeStatus: {
+            open: false,
+            nextOpening: storeStatus.nextOpening
+              ? {
+                  relativeLabel: storeStatus.nextOpening.relativeLabel,
+                  timeLabel: formatServiceTime(storeStatus.nextOpening.time),
+                }
+              : null,
+          },
+        },
+        { status: 409 },
+      );
+    }
+
     const paymentMethods = activePayments(settings);
     const paymentMethod = paymentMethods.find(
       (method) => method.id === text(body?.paymentMethodId),
