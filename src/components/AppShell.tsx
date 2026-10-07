@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import PublicMobileNav from "@/components/PublicMobileNav";
+import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -296,6 +297,7 @@ export default function AppShell({
       return (
         <>
           {children}
+          <PublicStoreClosedNotice />
           <PublicMobileNav
             active={publicNavActive}
             cartCount={publicCartCount}
