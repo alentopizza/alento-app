@@ -479,8 +479,8 @@ export default function SettingsPage() {
       icon: Store,
       status:
         settings.store.latitude != null && settings.store.longitude != null
-          ? "Validada"
-          : "Pendiente",
+          ? `Validada · ${settings.store.serviceHours.filter((item) => item.enabled).length} días`
+          : `Pendiente · ${settings.store.serviceHours.filter((item) => item.enabled).length} días`,
     },
     {
       id: "DELIVERY",
