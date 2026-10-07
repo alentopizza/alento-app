@@ -417,23 +417,15 @@ export default function PublicMenuPage() {
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
             {homeLoaded ? (
-              <>
+              <div className="aspect-video w-full overflow-hidden bg-black">
                 <img
                   src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
                   alt="Alentó Pizza"
-                  className="block h-auto w-full object-contain md:hidden"
+                  className="h-full w-full object-contain object-center"
                 />
-                <img
-                  src={home?.menuHero?.active && home.menuHero.imageUrl ? home.menuHero.imageUrl : DESKTOP_HERO_IMAGE}
-                  alt="Alentó Pizza"
-                  className="hidden aspect-[2/1] w-full object-cover object-center md:block lg:aspect-[1920/730]"
-                />
-              </>
+              </div>
             ) : (
-              <>
-                <div className="aspect-[1920/730] w-full bg-black md:hidden" aria-hidden="true" />
-                <div className="hidden aspect-[2/1] w-full bg-black md:block lg:aspect-[1920/730]" aria-hidden="true" />
-              </>
+              <div className="aspect-video w-full bg-black" aria-hidden="true" />
             )}
           </div>
         </section>
@@ -642,14 +634,9 @@ export default function PublicMenuPage() {
                           <span>{categoryEmoji(category.slug)}</span>
                         )}
                       </span>
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-white/28">
-                          {category.products.length} producto{category.products.length === 1 ? "" : "s"}
-                        </p>
-                        <h3 className="mt-0.5 text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[26px]">
-                          {category.name}
-                        </h3>
-                      </div>
+                      <h3 className="text-[23px] font-black leading-none tracking-[-0.035em] text-white sm:text-[26px]">
+                        {category.name}
+                      </h3>
                     </div>
                   </div>
 
