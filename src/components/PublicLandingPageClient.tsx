@@ -104,14 +104,6 @@ export default function PublicLandingPageClient() {
     };
   }, []);
 
-  const orderingEnabled = storeStatusLoaded && storeStatus?.open === true;
-
-  useEffect(() => {
-    if (orderingEnabled) return;
-    setProgress(0);
-    setDragging(false);
-  }, [orderingEnabled]);
-
   const mobileImage = home?.landing?.mobileImageUrl || FALLBACK_INTRO_IMAGE;
   const desktopImage =
     home?.landing?.desktopImageUrl ||
@@ -119,7 +111,6 @@ export default function PublicLandingPageClient() {
     FALLBACK_INTRO_IMAGE;
 
   function updateFromPointer(clientX: number) {
-    if (!orderingEnabled) return 0;
     const track = trackRef.current;
     if (!track) return 0;
 
@@ -135,10 +126,6 @@ export default function PublicLandingPageClient() {
 
   function finish(nextProgress = progress) {
     setDragging(false);
-    if (!orderingEnabled) {
-      setProgress(0);
-      return;
-    }
 
     if (nextProgress >= 0.82) {
       setProgress(1);
@@ -153,8 +140,8 @@ export default function PublicLandingPageClient() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-black">
-      <div className="relative min-h-[100dvh] w-full overflow-hidden bg-white">
+    <main className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black overscroll-none">
+      <div className="absolute inset-0 overflow-hidden bg-white">
         {homeLoaded ? (
           <picture>
             <source media="(min-width: 900px)" srcSet={desktopImage} />
@@ -350,18 +337,10 @@ export default function PublicLandingPageClient() {
         >
           <div
             ref={trackRef}
-            className={
-              "landing-menu-slider relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md transition " +
-              (orderingEnabled
-                ? "border-white/80 bg-white/95"
-                : "border-white/45 bg-neutral-200/95")
-            }
+            className="landing-menu-slider relative mx-auto h-[62px] w-full max-w-[520px] overflow-hidden rounded-full border border-white/80 bg-white/95 shadow-[0_16px_44px_rgba(0,0,0,.20)] backdrop-blur-md"
           >
             <div
-              className={
-                "absolute inset-y-1 left-1 z-[1] rounded-full " +
-                (orderingEnabled ? "bg-[#df1f26]" : "bg-neutral-400")
-              }
+              className="absolute inset-y-1 left-1 z-[1] rounded-full bg-[#df1f26]"
               style={{
                 width: `calc(54px + (100% - 62px) * ${progress})`,
                 transition: dragging ? "none" : "width 220ms cubic-bezier(.2,.8,.2,1)",
@@ -376,50 +355,38 @@ export default function PublicLandingPageClient() {
               }}
             >
               <span className="landing-menu-slider-text whitespace-nowrap text-[10px] font-black uppercase tracking-[0.06em] text-black/75 min-[360px]:text-[11px] min-[430px]:text-[12px] min-[430px]:tracking-[0.08em]">
-                {storeStatusLoaded
-                  ? orderingEnabled
-                    ? "Desliza y descubre el menú"
-                    : "Local cerrado · pedidos pausados"
-                  : "Consultando horario..."}
+                Desliza y descubre el menú
               </span>
             </div>
 
             <button
               type="button"
-              disabled={!orderingEnabled}
-              aria-label={
-                orderingEnabled
-                  ? "Desliza y descubre el menú"
-                  : "Local cerrado. Los pedidos están pausados."
-              }
-              className={`landing-menu-slider-knob ${orderingEnabled && !dragging && progress === 0 ? "landing-menu-slider-knob-idle" : ""} absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 active:scale-[.98] disabled:cursor-not-allowed ${orderingEnabled ? "bg-black" : "bg-neutral-600"}`}
+              aria-label="Desliza y descubre el menú"
+              className={`landing-menu-slider-knob ${!dragging && progress === 0 ? "landing-menu-slider-knob-idle" : ""} absolute top-1 z-[4] flex h-[54px] w-[54px] touch-none select-none items-center justify-center rounded-full bg-black text-white shadow-[0_8px_18px_rgba(0,0,0,.28)] outline-none transition-transform focus-visible:ring-2 focus-visible:ring-[#e51c11] focus-visible:ring-offset-2 active:scale-[.98]`}
               style={{
                 left: `calc(4px + (100% - 62px) * ${progress})`,
                 transition: dragging ? "none" : "left 220ms cubic-bezier(.2,.8,.2,1)",
               }}
               onPointerDown={(event) => {
-                if (leaving || !orderingEnabled) return;
+                if (leaving) return;
                 event.currentTarget.setPointerCapture(event.pointerId);
                 setDragging(true);
                 updateFromPointer(event.clientX);
               }}
               onPointerMove={(event) => {
-                if (!dragging || leaving || !orderingEnabled) return;
+                if (!dragging || leaving) return;
                 updateFromPointer(event.clientX);
               }}
               onPointerUp={(event) => {
-                if (!dragging || leaving || !orderingEnabled) return;
+                if (!dragging || leaving) return;
                 const next = updateFromPointer(event.clientX);
                 finish(next);
               }}
               onPointerCancel={() => {
-                if (!leaving && orderingEnabled) finish(0);
+                if (!leaving) finish(0);
               }}
               onKeyDown={(event) => {
-                if (
-                  orderingEnabled &&
-                  (event.key === "Enter" || event.key === " ")
-                ) {
+                if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();
                   setProgress(1);
                   setLeaving(true);
