@@ -220,7 +220,7 @@ export default function StaffStoreStatus() {
         <button
           type="button"
           onClick={() => setDetailsOpen((current) => !current)}
-          className="flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/10 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-white/15 hover:bg-[#111113]"
+          className="flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/55 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32),0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-white/75 hover:bg-[#111113]"
           title="Estado de servicio de la tienda"
           aria-expanded={detailsOpen}
         >
