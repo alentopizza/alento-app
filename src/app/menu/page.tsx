@@ -164,6 +164,42 @@ export default function PublicMenuPage() {
   }, []);
 
   useEffect(() => {
+    if (loading) return;
+
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        ".alento-public-menu .alento-product-card",
+      ),
+    );
+
+    cards.forEach((card, index) => {
+      card.style.setProperty(
+        "--alento-card-delay",
+        `${Math.min(index % 4, 3) * 55}ms`,
+      );
+    });
+
+    if (!("IntersectionObserver" in window)) {
+      cards.forEach((card) => card.classList.add("alento-card-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("alento-card-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -6% 0px" },
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [loading, query, featuredProducts.length, catalogCategories.length]);
+
+  useEffect(() => {
     try {
       const saved = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
       if (saved) {
@@ -376,7 +412,7 @@ export default function PublicMenuPage() {
 
 
   return (
-    <main className="min-h-screen bg-[#090909] pb-24 text-white">
+    <main className="alento-public-menu min-h-screen bg-[#090909] pb-24 text-white">
       <section className="min-h-screen bg-[#090909]">
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
@@ -417,14 +453,19 @@ export default function PublicMenuPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-4">
-            {featuredProducts.map((product) => (
+            {featuredProducts.map((product, index) => (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => setSelectedProduct(product)}
-                className="alento-product-card group text-left"
+                className="alento-product-card alento-product-card-featured group text-left"
               >
                 <div className="alento-product-card-media">
+                  {index < 2 && (
+                    <span className="alento-product-card-badge">
+                      Favorita
+                    </span>
+                  )}
                   {product.imageUrl ? (
                     <img
                       src={product.imageUrl}
@@ -685,8 +726,8 @@ export default function PublicMenuPage() {
               ✓
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-300">
-                Agregado al carrito
+              <p className="alento-ui-micro font-bold uppercase tracking-[0.1em] text-emerald-300">
+                Buenísima elección · al carrito
               </p>
               <p className="truncate text-[11px] font-semibold text-white/70">
                 {cartFeedback}
@@ -756,10 +797,10 @@ export default function PublicMenuPage() {
               </button>
             </div>
 
-            <div className="mx-5 overflow-hidden rounded-[20px] bg-[#0b0b0b]">
+            <div className="alento-product-spotlight-media relative mx-5 overflow-hidden rounded-[20px] bg-[#0b0b0b]">
               <div className="aspect-square">
                 {selectedProduct.imageUrl ? (
-                  <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="h-full w-full object-cover" />
+                  <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="alento-product-spotlight-image h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center text-7xl">🍕</div>
                 )}
