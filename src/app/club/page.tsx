@@ -1,7 +1,6 @@
 import Link from "next/link";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import LivePageRefresh from "@/components/LivePageRefresh";
-import ClubTicTacToeChallenge from "@/components/ClubTicTacToeChallenge";
 import { getCustomerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -210,8 +209,6 @@ export default async function ClubPage() {
           </div>
 
         </header>
-
-        <ClubTicTacToeChallenge />
 
         <section className="rounded-[26px] border border-white/10 bg-[#111] p-5">
           <div>
