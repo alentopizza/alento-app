@@ -44,6 +44,14 @@ export async function GET() {
             timeLabel: formatServiceTime(status.nextOpening.time),
           }
         : null,
+      address:
+        typeof store.formattedAddress === "string" && store.formattedAddress.trim()
+          ? store.formattedAddress.trim()
+          : typeof store.address === "string" && store.address.trim()
+            ? store.address.trim()
+            : "Av. Calle 43 Sur #79A-33, Bogotá",
+      whatsapp: "324 333 4009",
+      whatsappHref: "https://wa.me/573243334009",
       hours: hours.map((schedule) => ({
         ...schedule,
         dayLabel: SERVICE_DAY_LABELS[schedule.day],
