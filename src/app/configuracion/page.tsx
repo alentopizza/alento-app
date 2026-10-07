@@ -36,6 +36,13 @@ type PaymentMethodSetting = {
   active: boolean;
 };
 
+type ServiceHour = {
+  day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  enabled: boolean;
+  open: string;
+  close: string;
+};
+
 type PaymentUsageStat = {
   id: string;
   name: string;
@@ -64,6 +71,7 @@ type PosSettings = {
     latitude: number | null;
     longitude: number | null;
     formattedAddress: string;
+    serviceHours: ServiceHour[];
   };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
@@ -319,6 +327,35 @@ export default function SettingsPage() {
     });
   }
 
+  function updateServiceHour(
+    day: ServiceHour["day"],
+    patch: Partial<ServiceHour>,
+  ) {
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            store: {
+              ...current.store,
+              serviceHours: current.store.serviceHours.map((item) =>
+                item.day === day ? { ...item, ...patch } : item,
+              ),
+            },
+          }
+        : current,
+    );
+  }
+
+  const serviceDayLabels: Record<ServiceHour["day"], string> = {
+    MON: "Lunes",
+    TUE: "Martes",
+    WED: "Miércoles",
+    THU: "Jueves",
+    FRI: "Viernes",
+    SAT: "Sábado",
+    SUN: "Domingo",
+  };
+
   function removeDeliveryBand(id: string) {
     setSettings((current) =>
       current
@@ -438,7 +475,7 @@ export default function SettingsPage() {
     {
       id: "STORE",
       title: "Sede",
-      description: "Origen oficial y ubicación",
+      description: "Origen, ubicación y horario",
       icon: Store,
       status:
         settings.store.latitude != null && settings.store.longitude != null
