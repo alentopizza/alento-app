@@ -280,14 +280,14 @@ export default function CartPage() {
   return (
     <main
       className={
-        "min-h-screen bg-[#090909] text-white " +
+        "min-h-screen w-full max-w-full overflow-x-hidden bg-[#090909] text-white " +
         (checkoutStep === "cart" ? "pb-28" : "pb-0")
       }
     >
       <PublicBrandHeader />
 
       {checkoutStep === "cart" && (
-      <section className="mx-auto w-full max-w-[1040px] px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-6">
+      <section className="mx-auto w-full min-w-0 max-w-[1040px] overflow-x-hidden px-4 pb-8 pt-5 sm:px-6 md:pb-14 md:pt-6">
         <PublicActiveOrderBanner className="mb-4" />
 
         {!ready ? (
@@ -312,8 +312,8 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div className="mt-2 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="space-y-3 pb-[250px] lg:pb-0">
+          <div className="mt-2 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="min-w-0 space-y-3 pb-[250px] lg:pb-0">
               {cart.map((item) => (
                 <article key={item.key} className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4">
                   <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
@@ -374,7 +374,7 @@ export default function CartPage() {
                 <section
                   ref={upsellRef}
                   className={
-                    "mt-5 overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,#151515,#101010)] transition-all duration-300 " +
+                    "mt-5 w-full min-w-0 max-w-full overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,#151515,#101010)] transition-all duration-300 " +
                     (upsellPrompted
                       ? "border-red-400/35 shadow-[0_0_0_1px_rgba(226,26,34,.18),0_16px_40px_rgba(0,0,0,.22)]"
                       : "border-white/[0.08]")
@@ -403,13 +403,13 @@ export default function CartPage() {
                     </div>
                   )}
 
-                  <div className="alento-scroll flex gap-2.5 overflow-x-auto px-4 pb-4">
+                  <div className="alento-scroll flex w-full min-w-0 max-w-full gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-4">
                     {visibleUpsellProducts.map((product) => (
                       <article
                         key={product.id}
                         className="w-[142px] shrink-0 overflow-hidden rounded-[17px] border border-white/[0.08] bg-white/[0.035]"
                       >
-                        <div className="relative aspect-[4/3] overflow-hidden bg-black/25">
+                        <div className="relative aspect-square overflow-hidden bg-black/25">
                           {product.imageUrl ? (
                             <img
                               src={product.imageUrl}
