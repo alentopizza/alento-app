@@ -443,6 +443,14 @@ export default function PreparationPage() {
                           </span>
                           <button
                             type="button"
+                            onClick={() => openEditPreparation(preparation)}
+                            disabled={deletingId === preparation.id}
+                            className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] text-emerald-100 transition hover:border-emerald-300/30 hover:bg-emerald-400/20 disabled:opacity-50"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => void deletePreparation(preparation)}
                             disabled={deletingId === preparation.id}
                             className="rounded-full border border-white/15 bg-white/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] text-white/70 transition hover:border-red-300/30 hover:bg-red-500/20 hover:text-red-100 disabled:cursor-wait disabled:opacity-50"
@@ -542,15 +550,17 @@ export default function PreparationPage() {
         >
           <form
             onSubmit={submitPreparation}
-            className="alento-card w-full max-w-2xl overflow-hidden rounded-[28px] bg-white"
+            className="alento-card w-full max-w-5xl overflow-hidden rounded-[28px] bg-white"
           >
             <div className="flex items-start justify-between gap-4 border-b border-neutral-200 px-5 py-5 md:px-6">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                  Nueva preparación
+                  {editingPreparation
+                    ? `Editar preparación #${String(editingPreparation.id).padStart(4, "0")}`
+                    : "Nueva preparación"}
                 </p>
                 <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-neutral-950">
-                  Cantidad de bolas
+                  Cantidad de bolas y receta
                 </h2>
                 <p className="mt-1 text-sm text-neutral-500">
                   La hidratación y los porcentajes de la receta son fijos.
@@ -566,7 +576,7 @@ export default function PreparationPage() {
               </button>
             </div>
 
-            <div className="max-h-[65vh] space-y-3 overflow-y-auto p-5 md:p-6">
+            <div className="max-h-[68vh] space-y-4 overflow-y-auto p-5 md:p-6">
               {PIZZA_SIZES.map((size) => (
                 <div
                   key={size.key}
@@ -622,6 +632,76 @@ export default function PreparationPage() {
                 </div>
               </div>
 
+              <section className="rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_28px_rgba(22,20,18,.05)]">
+                <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-emerald-600">
+                      Cálculo en vivo
+                    </p>
+                    <h3 className="mt-1 text-[17px] font-black text-neutral-950">
+                      Ingredientes necesarios
+                    </h3>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                      Se recalcula automáticamente mientras cambias la cantidad de bolas.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[9px] font-black text-emerald-700">
+                    {formatGrams(totalWeightGrams)} g de masa
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <IngredientTile
+                    icon="🌾"
+                    name="Harina"
+                    percentage="100%"
+                    grams={liveIngredients.flour}
+                  />
+                  <IngredientTile
+                    icon="💧"
+                    name="Agua fría"
+                    percentage="58%"
+                    grams={liveIngredients.water}
+                  />
+                  <IngredientTile
+                    icon="🌿"
+                    name="ADN de sabor"
+                    percentage="5%"
+                    grams={liveIngredients.adn}
+                  />
+                  <IngredientTile
+                    icon="🍬"
+                    name="Azúcar"
+                    percentage="2%"
+                    grams={liveIngredients.sugar}
+                  />
+                  <IngredientTile
+                    icon="🧂"
+                    name="Sal"
+                    percentage="1%"
+                    grams={liveIngredients.salt}
+                  />
+                  <IngredientTile
+                    icon="🧪"
+                    name="Levadura seca activa"
+                    percentage="0.5%"
+                    grams={liveIngredients.yeast}
+                    accent
+                  />
+                </div>
+
+                <div className="mt-3 rounded-[16px] border border-neutral-200 bg-[#faf9f7] px-4 py-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-400">
+                      Comprobación
+                    </span>
+                    <b className="text-[11px] text-neutral-800">
+                      {formatGrams(liveIngredientSum)} g calculados = {formatGrams(totalWeightGrams)} g solicitados
+                    </b>
+                  </div>
+                </div>
+              </section>
+
               <div className="rounded-[18px] border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-800">
                 Fórmula fija: 58% agua · 5% ADN · 2% azúcar · 1% sal · 0.5% levadura.
               </div>
@@ -647,7 +727,13 @@ export default function PreparationPage() {
                 disabled={saving || totalBalls <= 0}
                 className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 text-sm font-black text-white shadow-[0_10px_22px_rgba(229,28,17,.2)] disabled:bg-neutral-300 disabled:shadow-none"
               >
-                {saving ? "Guardando..." : "Guardar preparación"}
+                {saving
+                  ? editingPreparation
+                    ? "Actualizando..."
+                    : "Guardando..."
+                  : editingPreparation
+                    ? "Guardar cambios"
+                    : "Guardar preparación"}
               </button>
             </div>
           </form>
