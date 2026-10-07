@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
 import PublicCheckoutCustomer from "@/components/PublicCheckoutCustomer";
@@ -20,6 +20,29 @@ function money(value: number) {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+type UpsellProduct = {
+  id: number;
+  name: string;
+  imageUrl: string | null;
+  basePrice: number;
+  categoryLabel: string;
+};
+
+type CatalogResponse = {
+  categories?: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    products: Array<{
+      id: number;
+      name: string;
+      imageUrl: string | null;
+      type: string;
+      basePrice: number | null;
+    }>;
+  }>;
+};
 
 export default function CartPage() {
   const [cart, setCart] = useState<PublicCartItem[]>([]);
@@ -40,6 +63,12 @@ export default function CartPage() {
     authenticatedCustomer?: boolean;
   } | null>(null);
 
+  const [upsellProducts, setUpsellProducts] = useState<UpsellProduct[]>([]);
+  const [upsellReviewed, setUpsellReviewed] = useState(false);
+  const [upsellPrompted, setUpsellPrompted] = useState(false);
+  const [addedUpsellId, setAddedUpsellId] = useState<number | null>(null);
+  const upsellRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
@@ -56,9 +85,90 @@ export default function CartPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadUpsellProducts() {
+      try {
+        const response = await fetch("/api/catalog", { cache: "no-store" });
+        const data = (await response.json()) as CatalogResponse;
+        if (cancelled || !response.ok) return;
+
+        const normalized = (value: string) =>
+          value
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLocaleLowerCase("es");
+
+        const snackCategories = (data.categories ?? []).filter((category) => {
+          const key = normalized(category.slug + " " + category.name);
+          return (
+            key.includes("antojo") ||
+            key.includes("acompan") ||
+            key.includes("snack")
+          );
+        });
+
+        const drinkCategories = (data.categories ?? []).filter((category) => {
+          const key = normalized(category.slug + " " + category.name);
+          return key.includes("bebida") || key.includes("drink");
+        });
+
+        const pick = (
+          categories: NonNullable<CatalogResponse["categories"]>,
+          limit: number,
+        ) =>
+          categories
+            .flatMap((category) =>
+              category.products.map((product) => ({
+                product,
+                categoryLabel: category.name,
+              })),
+            )
+            .filter(
+              ({ product }) =>
+                product.type === "STANDARD" &&
+                product.basePrice != null &&
+                product.basePrice > 0,
+            )
+            .slice(0, limit)
+            .map(({ product, categoryLabel }) => ({
+              id: product.id,
+              name: product.name,
+              imageUrl: product.imageUrl,
+              basePrice: Number(product.basePrice),
+              categoryLabel,
+            }));
+
+        const recommendations = [
+          ...pick(snackCategories, 3),
+          ...pick(drinkCategories, 3),
+        ];
+
+        const unique = new Map<number, UpsellProduct>();
+        recommendations.forEach((product) => unique.set(product.id, product));
+
+        setUpsellProducts([...unique.values()]);
+      } catch {
+        // La recomendación no debe impedir usar el carrito.
+      }
+    }
+
+    void loadUpsellProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!ready) return;
     window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
     window.dispatchEvent(new Event("alento-cart-updated"));
+
+    if (cart.length === 0) {
+      setUpsellReviewed(false);
+      setUpsellPrompted(false);
+    }
   }, [cart, ready]);
 
   useEffect(() => {
@@ -76,6 +186,80 @@ export default function CartPage() {
     () => cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0),
     [cart],
   );
+
+  const visibleUpsellProducts = useMemo(() => {
+    const cartProductIds = new Set(cart.map((item) => item.productId));
+    return upsellProducts
+      .filter((product) => !cartProductIds.has(product.id))
+      .slice(0, 5);
+  }, [cart, upsellProducts]);
+
+  function addUpsellProduct(product: UpsellProduct) {
+    setCart((current) => {
+      const existing = current.find(
+        (item) =>
+          item.productId === product.id &&
+          !item.configuration &&
+          !item.notes,
+      );
+
+      if (existing) {
+        return current.map((item) =>
+          item.key === existing.key
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
+        );
+      }
+
+      return [
+        ...current,
+        {
+          key:
+            "upsell-" +
+            String(product.id) +
+            "-" +
+            String(Date.now()),
+          productId: product.id,
+          name: product.name,
+          imageUrl: product.imageUrl,
+          unitPrice: product.basePrice,
+          quantity: 1,
+        },
+      ];
+    });
+
+    setUpsellReviewed(true);
+    setUpsellPrompted(false);
+    setAddedUpsellId(product.id);
+    window.dispatchEvent(new Event("alento-cart-added"));
+
+    window.setTimeout(() => {
+      setAddedUpsellId((current) =>
+        current === product.id ? null : current,
+      );
+    }, 1200);
+  }
+
+  function continueOrder() {
+    if (visibleUpsellProducts.length > 0 && !upsellReviewed) {
+      setUpsellPrompted(true);
+      window.requestAnimationFrame(() => {
+        upsellRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
+      return;
+    }
+
+    setCheckoutStep("delivery");
+  }
+
+  function continueWithoutUpsell() {
+    setUpsellReviewed(true);
+    setUpsellPrompted(false);
+    setCheckoutStep("delivery");
+  }
 
   function changeQuantity(key: string, delta: number) {
     setCart((current) =>
@@ -129,7 +313,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="mt-2 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-            <div className="space-y-3 pb-[230px] lg:pb-0">
+            <div className="space-y-3 pb-[250px] lg:pb-0">
               {cart.map((item) => (
                 <article key={item.key} className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4">
                   <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
@@ -185,6 +369,108 @@ export default function CartPage() {
                   </div>
                 </article>
               ))}
+
+              {visibleUpsellProducts.length > 0 && (
+                <section
+                  ref={upsellRef}
+                  className={
+                    "mt-5 overflow-hidden rounded-[22px] border bg-[linear-gradient(145deg,#151515,#101010)] transition-all duration-300 " +
+                    (upsellPrompted
+                      ? "border-red-400/35 shadow-[0_0_0_1px_rgba(226,26,34,.18),0_16px_40px_rgba(0,0,0,.22)]"
+                      : "border-white/[0.08]")
+                  }
+                >
+                  <div className="flex items-end justify-between gap-3 px-4 pb-3 pt-4">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#ff454b]">
+                        ¿Algo para acompañar?
+                      </p>
+                      <h3 className="mt-1 text-[15px] font-black text-white">
+                        Antojos y bebidas
+                      </h3>
+                      <p className="mt-1 text-[9px] leading-4 text-white/34">
+                        Agrégalos con un toque antes de continuar.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[8px] font-bold text-white/30">
+                      Opcional
+                    </span>
+                  </div>
+
+                  {upsellPrompted && (
+                    <div className="mx-4 mb-3 rounded-[13px] border border-red-400/15 bg-red-400/[0.07] px-3 py-2 text-[9px] font-semibold leading-4 text-red-100/75">
+                      Antes de continuar, agrega algo o confirma que lo quieres así.
+                    </div>
+                  )}
+
+                  <div className="alento-scroll flex gap-2.5 overflow-x-auto px-4 pb-4">
+                    {visibleUpsellProducts.map((product) => (
+                      <article
+                        key={product.id}
+                        className="w-[142px] shrink-0 overflow-hidden rounded-[17px] border border-white/[0.08] bg-white/[0.035]"
+                      >
+                        <div className="relative aspect-[4/3] overflow-hidden bg-black/25">
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-3xl">
+                              {product.categoryLabel
+                                .toLocaleLowerCase("es")
+                                .includes("bebida")
+                                ? "🥤"
+                                : "🍟"}
+                            </div>
+                          )}
+                          <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] text-white/70 backdrop-blur-sm">
+                            {product.categoryLabel}
+                          </span>
+                        </div>
+
+                        <div className="p-2.5">
+                          <h4 className="line-clamp-2 min-h-[30px] text-[10.5px] font-black leading-[15px] text-white">
+                            {product.name}
+                          </h4>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <b className="text-[10px] text-[#ff454b]">
+                              {money(product.basePrice)}
+                            </b>
+                            <button
+                              type="button"
+                              onClick={() => addUpsellProduct(product)}
+                              className={
+                                "flex h-8 w-8 items-center justify-center rounded-full border text-[16px] font-black transition " +
+                                (addedUpsellId === product.id
+                                  ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-300"
+                                  : "border-red-400/20 bg-[#e21a22] text-white hover:bg-[#ef1c25]")
+                              }
+                              aria-label={`Agregar ${product.name}`}
+                            >
+                              {addedUpsellId === product.id ? "✓" : "+"}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
+                    <span className="text-[9px] text-white/30">
+                      ¿Lo quieres así?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={continueWithoutUpsell}
+                      className="rounded-full border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 text-[9px] font-bold text-white/55 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                    >
+                      No, gracias · continuar
+                    </button>
+                  </div>
+                </section>
+              )}
             </div>
 
             <aside className="fixed inset-x-3 bottom-[92px] z-[70] mx-auto max-w-[470px] rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_90%_5%,rgba(226,26,34,.14),transparent_30%),linear-gradient(145deg,#161616,#0f0f0f)] p-4 shadow-[0_20px_50px_rgba(0,0,0,.42)] backdrop-blur-xl lg:sticky lg:inset-auto lg:top-6 lg:z-auto lg:mx-0 lg:max-w-none lg:rounded-[24px] lg:p-5 lg:shadow-[0_18px_46px_rgba(0,0,0,.20)]">
@@ -219,9 +505,7 @@ export default function CartPage() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setCheckoutStep("delivery");
-                }}
+                onClick={continueOrder}
                 className="mt-3 h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#ef1c25] lg:mt-5 lg:h-12 lg:text-[12px]"
               >
                 Continuar pedido
