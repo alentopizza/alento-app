@@ -138,21 +138,31 @@ function crustPriceForSize(crust: Crust, sizeId: number | null) {
   return pizzaCrustPrice(crust, sizeId);
 }
 
-function Progress({ current, total }: { current: number; total: number }) {
+function Progress({
+  current,
+  total,
+  title,
+}: {
+  current: number;
+  total: number;
+  title: string;
+}) {
   const safeTotal = Math.max(1, total);
   const percent = Math.min(100, Math.max(0, ((current + 1) / safeTotal) * 100));
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 text-[9px] font-bold uppercase tracking-[0.12em]">
-        <span className="text-white/40">
-          Paso {Math.min(current + 1, safeTotal)} de {safeTotal}
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate text-[10px] font-semibold text-white/48">
+          Paso {Math.min(current + 1, safeTotal)} de {safeTotal} · {title}
         </span>
-        <span className="text-[#ff454b]">{Math.round(percent)}%</span>
+        <span className="shrink-0 text-[10px] font-black text-[#ff454b]">
+          {Math.round(percent)}%
+        </span>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/[0.10]">
         <div
-          className="h-full rounded-full bg-[#e21a22] transition-all duration-300"
+          className="h-full rounded-full bg-[linear-gradient(90deg,#e21a22,#ff3941)] transition-all duration-300"
           style={{ width: String(percent) + "%" }}
         />
       </div>
@@ -165,12 +175,14 @@ function ChoiceButton({
   disabled = false,
   title,
   detail,
+  imageUrl,
   onClick,
 }: {
   selected: boolean;
   disabled?: boolean;
   title: string;
   detail?: string;
+  imageUrl?: string | null;
   onClick: () => void;
 }) {
   return (
@@ -179,18 +191,49 @@ function ChoiceButton({
       disabled={disabled}
       onClick={onClick}
       className={
-        "rounded-[16px] border p-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-30 " +
+        "group relative overflow-hidden rounded-[18px] border text-left transition duration-200 disabled:cursor-not-allowed disabled:opacity-30 " +
         (selected
-          ? "border-[#e21a22] bg-[#e21a22]/14 text-white shadow-[0_10px_24px_rgba(226,26,34,.12)]"
-          : "border-white/10 bg-black/25 text-white/70 hover:border-white/20")
+          ? "border-[#ff3439] bg-[linear-gradient(145deg,rgba(226,26,34,.18),rgba(255,255,255,.055))] text-white shadow-[0_12px_32px_rgba(226,26,34,.16)]"
+          : "border-white/[0.10] bg-white/[0.045] text-white/76 hover:border-white/20 hover:bg-white/[0.065]")
       }
     >
-      <span className="block text-[13px] font-bold">{title}</span>
-      {detail && (
-        <span className="mt-1 block text-[10px] leading-4 text-white/40">
-          {detail}
-        </span>
-      )}
+      {imageUrl ? (
+        <div className="relative aspect-[16/10] overflow-hidden border-b border-white/[0.07] bg-black/20">
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+        </div>
+      ) : null}
+
+      <div className={imageUrl ? "p-3.5" : "min-h-[96px] p-4"}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="block truncate text-[13px] font-black text-white">
+              {title}
+            </span>
+            {detail && (
+              <span className="mt-1 block text-[10px] leading-4 text-white/40">
+                {detail}
+              </span>
+            )}
+          </div>
+
+          <span
+            className={
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[12px] font-black transition " +
+              (selected
+                ? "border-[#ff3439] bg-[#ff2630] text-white"
+                : "border-white/25 bg-black/15 text-transparent")
+            }
+            aria-hidden="true"
+          >
+            ✓
+          </span>
+        </div>
+      </div>
     </button>
   );
 }
