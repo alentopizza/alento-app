@@ -17,6 +17,14 @@ type CustomerData = {
   email: string;
 };
 
+type StoreCheckoutStatus = {
+  open: boolean;
+  nextOpening: {
+    relativeLabel: string;
+    timeLabel: string;
+  } | null;
+};
+
 type CreatedOrder = {
   id: number;
   code: string;
@@ -70,6 +78,7 @@ export default function PublicCheckoutCustomer({
   });
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [storeStatus, setStoreStatus] = useState<StoreCheckoutStatus | null>(null);
   const [cashReceived, setCashReceived] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -145,6 +154,7 @@ export default function PublicCheckoutCustomer({
 
         if (!cancelled) {
           setPaymentMethods(checkoutData.paymentMethods ?? []);
+          setStoreStatus(checkoutData.storeStatus ?? null);
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -387,6 +397,21 @@ export default function PublicCheckoutCustomer({
             </div>
           ) : (
             <div className="space-y-4">
+              {storeStatus?.open === false && (
+                <div className="rounded-[18px] border border-red-500/25 bg-red-500/10 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#ff5a60]">
+                    Local cerrado
+                  </p>
+                  <b className="mt-1 block text-[13px] text-white">
+                    Los pedidos están pausados por horario.
+                  </b>
+                  <p className="mt-1 text-[10px] leading-4 text-white/42">
+                    {storeStatus.nextOpening
+                      ? `Volvemos a recibir pedidos ${storeStatus.nextOpening.relativeLabel.toLowerCase()} a las ${storeStatus.nextOpening.timeLabel}.`
+                      : "Consulta el horario de servicio en la pantalla principal."}
+                  </p>
+                </div>
+              )}
               <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -626,10 +651,14 @@ export default function PublicCheckoutCustomer({
           <button
             type="button"
             onClick={() => void createOrder()}
-            disabled={loading || creating}
+            disabled={loading || creating || storeStatus?.open === false}
             className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-bold uppercase tracking-[0.05em] text-white disabled:bg-white/10 disabled:text-white/30"
           >
-            {creating ? "Creando pedido..." : "Confirmar compra"}
+            {storeStatus?.open === false
+              ? "Local cerrado"
+              : creating
+                ? "Creando pedido..."
+                : "Confirmar compra"}
           </button>
         </footer>
       </div>
