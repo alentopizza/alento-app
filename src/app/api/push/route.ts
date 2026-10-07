@@ -136,6 +136,9 @@ export async function POST(request: NextRequest) {
     p256dh,
     auth,
     userAgent: request.headers.get("user-agent"),
+    // Si un dispositivo se sincroniza como cliente sin una sesión interna
+    // vigente, no puede conservar una asociación Staff heredada.
+    clearStaffOwner: scope === "customer" && !staffSession,
   });
 
   return NextResponse.json({ ok: true, subscription });
