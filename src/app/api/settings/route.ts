@@ -32,6 +32,13 @@ type PaymentMethodSetting = {
   active: boolean;
 };
 
+type ServiceHour = {
+  day: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  enabled: boolean;
+  open: string;
+  close: string;
+};
+
 type PosSettings = {
   store: {
     address: string;
@@ -39,6 +46,7 @@ type PosSettings = {
     latitude: number | null;
     longitude: number | null;
     formattedAddress: string;
+    serviceHours: ServiceHour[];
   };
   deliveryBands: DeliveryBand[];
   paymentMethods: PaymentMethodSetting[];
@@ -65,6 +73,15 @@ const DEFAULT_POS_SETTINGS: PosSettings = {
     latitude: null,
     longitude: null,
     formattedAddress: "",
+    serviceHours: [
+      { day: "MON", enabled: true, open: "14:00", close: "22:00" },
+      { day: "TUE", enabled: true, open: "14:00", close: "22:00" },
+      { day: "WED", enabled: true, open: "14:00", close: "22:00" },
+      { day: "THU", enabled: true, open: "14:00", close: "22:00" },
+      { day: "FRI", enabled: true, open: "14:00", close: "22:00" },
+      { day: "SAT", enabled: true, open: "14:00", close: "22:00" },
+      { day: "SUN", enabled: true, open: "14:00", close: "22:00" },
+    ],
   },
   deliveryBands: [
     { id: "band-1", name: "Zona cercana", minMeters: 0, maxMeters: 200, fee: 0, active: true },
@@ -90,6 +107,47 @@ function normalizeSettings(value: unknown): PosSettings {
   if (!value || typeof value !== "object") return DEFAULT_POS_SETTINGS;
   const raw = value as Partial<PosSettings>;
 
+  const normalizeTime = (value: unknown, fallback: string) => {
+    if (
+      typeof value === "string" &&
+      /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)
+    ) {
+      return value;
+    }
+    return fallback;
+  };
+
+  const dayOrder: ServiceHour["day"][] = [
+    "MON",
+    "TUE",
+    "WED",
+    "THU",
+    "FRI",
+    "SAT",
+    "SUN",
+  ];
+
+  const rawServiceHours =
+    raw.store &&
+    typeof raw.store === "object" &&
+    Array.isArray(raw.store.serviceHours)
+      ? raw.store.serviceHours
+      : [];
+
+  const serviceHours = dayOrder.map((day) => {
+    const fallback = DEFAULT_POS_SETTINGS.store.serviceHours.find(
+      (item) => item.day === day,
+    )!;
+    const saved = rawServiceHours.find((item) => item?.day === day);
+
+    return {
+      day,
+      enabled: saved?.enabled !== false,
+      open: normalizeTime(saved?.open, fallback.open),
+      close: normalizeTime(saved?.close, fallback.close),
+    };
+  });
+
   const store = raw.store && typeof raw.store === "object"
     ? {
         address: typeof raw.store.address === "string" ? raw.store.address : DEFAULT_POS_SETTINGS.store.address,
@@ -97,6 +155,7 @@ function normalizeSettings(value: unknown): PosSettings {
         latitude: Number.isFinite(Number(raw.store.latitude)) ? Number(raw.store.latitude) : null,
         longitude: Number.isFinite(Number(raw.store.longitude)) ? Number(raw.store.longitude) : null,
         formattedAddress: typeof raw.store.formattedAddress === "string" ? raw.store.formattedAddress : "",
+        serviceHours,
       }
     : DEFAULT_POS_SETTINGS.store;
 
@@ -224,6 +283,18 @@ export async function PUT(request: NextRequest) {
 
   if (!settings.paymentMethods.some((method) => method.active)) {
     return NextResponse.json({ error: "Debe existir al menos un medio de pago activo." }, { status: 400 });
+  }
+
+  for (const schedule of settings.store.serviceHours) {
+    if (schedule.enabled && schedule.open === schedule.close) {
+      return NextResponse.json(
+        {
+          error:
+            "En los días activos, la hora de apertura y cierre no pueden ser iguales.",
+        },
+        { status: 400 },
+      );
+    }
   }
 
   const saved = await prisma.appSetting.upsert({
