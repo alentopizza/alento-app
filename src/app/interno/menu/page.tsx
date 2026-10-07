@@ -680,7 +680,9 @@ export default function MenuPage() {
               <div>
                 <b className="text-[13px] font-semibold text-neutral-900">Categorías</b>
                 <span className="ml-2 text-[11px] text-neutral-400">
-                  {savingCategoryOrder ? "Guardando orden..." : "Arrastra para reorganizar"}
+                  {savingCategoryOrder
+                    ? "Guardando orden..."
+                    : "Arrastra para definir el orden del menú del cliente y POS"}
                 </span>
               </div>
               <button
@@ -775,7 +777,7 @@ export default function MenuPage() {
                           ? "Guardando nuevo orden..."
                           : activeCategory.slug === "destacados"
                             ? "Arrastra desde ⋮⋮ para reorganizar Destacados."
-                            : "Arrastra desde ⋮⋮ para reorganizar el POS."}
+                            : "Arrastra desde ⋮⋮ para reorganizar el menú del cliente y POS."}
                     </p>
                   )}
                 </div>
