@@ -1284,9 +1284,9 @@ export default function PublicProductConfigurator({
                 <button
                   type="button"
                   onClick={back}
-                  className="h-11 rounded-full border border-white/[0.13] bg-white/[0.035] px-4 text-[10px] font-bold text-white/62 transition hover:bg-white/[0.07] hover:text-white"
+                  className="h-11 min-w-11 rounded-full border border-white/[0.13] bg-white/[0.035] px-3 text-[10px] font-bold text-white/62 transition hover:bg-white/[0.07] hover:text-white sm:px-4"
                 >
-                  ← Regresar
+                  ← <span className="hidden sm:inline">Regresar</span>
                 </button>
               )}
 
