@@ -895,7 +895,6 @@ export default function PublicProductConfigurator({
                   selected={modifierIds.includes(modifier.id)}
                   title={modifier.name}
                   detail={"+" + money(modifier.basePrice)}
-                  imageUrl={modifier.imageUrl}
                   onClick={() => toggleModifier(modifier.id)}
                 />
               ))}
