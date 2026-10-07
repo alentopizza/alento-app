@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   buildComboConfiguration,
   estimateComboPrice,
@@ -173,6 +173,7 @@ function Progress({
 function ChoiceButton({
   selected,
   disabled = false,
+  compact = false,
   title,
   detail,
   imageUrl,
@@ -180,6 +181,7 @@ function ChoiceButton({
 }: {
   selected: boolean;
   disabled?: boolean;
+  compact?: boolean;
   title: string;
   detail?: string;
   imageUrl?: string | null;
@@ -220,7 +222,15 @@ function ChoiceButton({
         </div>
       ) : null}
 
-      <div className={imageUrl ? "p-3.5" : "min-h-[96px] p-4"}>
+      <div
+        className={
+          imageUrl
+            ? "p-3.5"
+            : compact
+              ? "min-h-[72px] px-4 py-3"
+              : "min-h-[96px] p-4"
+        }
+      >
         <span className="block pr-8 text-[13px] font-black leading-5 text-white">
           {title}
         </span>
@@ -251,6 +261,7 @@ export default function PublicProductConfigurator({
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const [sizeId, setSizeId] = useState<number | null>(null);
   const [firstFlavorId, setFirstFlavorId] = useState<number | null>(
@@ -399,6 +410,18 @@ export default function PublicProductConfigurator({
     setError(message);
   }
 
+  function goToStep(nextStep: number) {
+    setStep(Math.max(0, Math.min(totalSteps - 1, nextStep)));
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        contentRef.current?.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      });
+    });
+  }
+
   function nextPizza() {
     setError("");
 
@@ -431,7 +454,7 @@ export default function PublicProductConfigurator({
     }
 
     if (step < totalSteps - 1) {
-      setStep((current) => current + 1);
+      goToStep(step + 1);
     }
   }
 
@@ -480,12 +503,12 @@ export default function PublicProductConfigurator({
   function nextCombo() {
     setError("");
     if (!validateComboStep(activeComboStep)) return;
-    if (step < totalSteps - 1) setStep((current) => current + 1);
+    if (step < totalSteps - 1) goToStep(step + 1);
   }
 
   function back() {
     setError("");
-    setStep((current) => Math.max(0, current - 1));
+    goToStep(step - 1);
   }
 
   function toggleModifier(modifierId: number) {
@@ -758,6 +781,7 @@ export default function PublicProductConfigurator({
             <ChoiceButton
               key={size.id}
               selected={sizeId === size.id}
+              compact
               title={size.name}
               detail={String(size.diameterCm) + " cm"}
               onClick={() => {
@@ -807,6 +831,7 @@ export default function PublicProductConfigurator({
                       if (secondFlavorId === flavor.id) {
                         setSecondFlavorId(null);
                       }
+                      goToStep(2);
                     } else {
                       setSecondFlavorId(flavor.id);
                     }
@@ -835,6 +860,7 @@ export default function PublicProductConfigurator({
                   key={crust.id}
                   disabled={price == null}
                   selected={crustId === crust.id}
+                  compact
                   title={crust.name}
                   detail={
                     price == null
@@ -913,6 +939,7 @@ export default function PublicProductConfigurator({
             <ChoiceButton
               key={size.id}
               selected={selection?.sizeId === size.id}
+              compact
               title={size.name}
               detail={String(size.diameterCm) + " cm"}
               onClick={() => {
@@ -1082,11 +1109,14 @@ export default function PublicProductConfigurator({
   })();
 
   const selectionSummary = (() => {
+    const lines: Array<{ label: string; value: string }> = [];
+
     if (isCombo) {
-      const parts: string[] = [];
+      let pizzaNumber = 0;
 
       for (const rule of product.comboPizzaRules ?? []) {
         for (let unit = 0; unit < rule.quantity; unit += 1) {
+          pizzaNumber += 1;
           const selection =
             comboPizzaSelections[comboSelectionKey(rule, unit)];
           const size = rule.sizes.find(
@@ -1095,40 +1125,63 @@ export default function PublicProductConfigurator({
           const flavor = rule.flavors.find(
             (item) => item.id === selection?.flavorId,
           );
+          const prefix =
+            (product.comboPizzaRules ?? []).reduce(
+              (sum, item) => sum + item.quantity,
+              0,
+            ) > 1
+              ? `Pizza ${pizzaNumber} · `
+              : "";
 
-          if (size?.name) parts.push(size.name);
-          if (flavor?.name) parts.push(flavor.name);
-
-          if (parts.length >= 2) break;
+          if (size?.name) {
+            lines.push({ label: prefix + "Tamaño", value: size.name });
+          }
+          if (flavor?.name) {
+            lines.push({ label: prefix + "Sabor", value: flavor.name });
+          }
         }
-        if (parts.length >= 2) break;
       }
 
-      if (!parts.length && activeComboStep?.kind === "combo-group") {
-        const selected =
-          comboGroupSelections[activeComboStep.group.id] ?? [];
-        const names = activeComboStep.group.options
+      for (const group of product.comboGroups ?? []) {
+        const selected = comboGroupSelections[group.id] ?? [];
+        const names = group.options
           .filter((option) => selected.includes(option.productId))
           .map((option) => option.productName);
-        parts.push(...names.slice(0, 2));
+
+        if (names.length) {
+          lines.push({
+            label: group.name,
+            value: names.join(", "),
+          });
+        }
       }
 
-      return parts.length
-        ? { label: "Tu combo", value: parts.join(" · ") }
-        : null;
+      return lines.length ? { label: "Tu combo", lines } : null;
     }
 
-    const parts = [
-      selectedSize?.name,
-      selectedFirstFlavor?.name,
-      selectedSecondFlavor?.name,
-      selectedCrust?.name ? "Borde " + selectedCrust.name : null,
-    ].filter(Boolean) as string[];
+    if (selectedSize?.name) {
+      lines.push({ label: "Tamaño", value: selectedSize.name });
+    }
 
-    return parts.length
+    if (selectedFirstFlavor?.name) {
+      lines.push({
+        label: twoFlavors ? "Sabor 1" : "Sabor",
+        value: selectedFirstFlavor.name,
+      });
+    }
+
+    if (selectedSecondFlavor?.name) {
+      lines.push({ label: "Sabor 2", value: selectedSecondFlavor.name });
+    }
+
+    if (selectedCrust?.name) {
+      lines.push({ label: "Borde", value: selectedCrust.name });
+    }
+
+    return lines.length
       ? {
           label: twoFlavors ? "Tu pizza" : "Tu elección",
-          value: parts.join(" · "),
+          lines,
         }
       : null;
   })();
@@ -1211,7 +1264,10 @@ export default function PublicProductConfigurator({
           </div>
         </header>
 
-        <div className="alento-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
+        <div
+          ref={contentRef}
+          className="alento-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6"
+        >
           <div>
             <h3 className="text-[24px] font-black leading-none tracking-[-0.035em] text-white sm:text-[27px]">
               {stepHeading}
@@ -1226,17 +1282,29 @@ export default function PublicProductConfigurator({
           </div>
 
           {selectionSummary && (
-            <div className="mt-5 flex items-center gap-3 rounded-[17px] border border-red-400/20 bg-[linear-gradient(100deg,rgba(226,26,34,.11),rgba(255,255,255,.035))] px-4 py-3">
+            <div className="mt-5 flex items-start gap-3 rounded-[17px] border border-red-400/20 bg-[linear-gradient(100deg,rgba(226,26,34,.11),rgba(255,255,255,.035))] px-4 py-3.5">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-red-400/15 bg-red-400/10 text-[18px]">
                 🍕
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className="block text-[9px] font-bold uppercase tracking-[0.1em] text-white/30">
                   {selectionSummary.label}
                 </span>
-                <b className="mt-0.5 block truncate text-[12px] font-black text-white/84">
-                  {selectionSummary.value}
-                </b>
+                <div className="mt-1.5 space-y-1">
+                  {selectionSummary.lines.map((line) => (
+                    <p
+                      key={line.label}
+                      className="flex items-start gap-2 text-[10.5px] leading-4"
+                    >
+                      <span className="shrink-0 font-semibold text-white/38">
+                        {line.label}:
+                      </span>
+                      <b className="min-w-0 font-black text-white/88">
+                        {line.value}
+                      </b>
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           )}
