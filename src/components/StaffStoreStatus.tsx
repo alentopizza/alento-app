@@ -216,7 +216,7 @@ export default function StaffStoreStatus() {
 
   return (
     <>
-      <div className="fixed right-2.5 top-[74px] z-[155] lg:right-4 lg:top-3">
+      <div className="fixed left-1/2 top-[74px] z-[155] -translate-x-1/2 lg:top-3">
         <button
           type="button"
           onClick={() => setDetailsOpen((current) => !current)}
@@ -271,7 +271,7 @@ export default function StaffStoreStatus() {
         </button>
 
         {detailsOpen && (
-          <section className="absolute right-0 mt-2 w-[min(92vw,330px)] overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)]">
+          <section className="absolute left-1/2 mt-2 w-[min(92vw,330px)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)]">
             <div
               className={
                 "border-b px-4 py-3.5 " +
@@ -379,7 +379,7 @@ export default function StaffStoreStatus() {
       </div>
 
       {openingToast && (
-        <div className="fixed right-2.5 top-[126px] z-[160] w-[min(92vw,350px)] rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:right-4 lg:top-[66px]">
+        <div className="fixed left-1/2 top-[126px] z-[160] w-[min(92vw,350px)] -translate-x-1/2 rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:top-[66px]">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-emerald-400/15 bg-emerald-400/10 text-emerald-300">
               <BellRing className="h-5 w-5" />
