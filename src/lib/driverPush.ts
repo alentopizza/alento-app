@@ -107,6 +107,18 @@ export async function migrateLegacyCustomerPushSubscriptions() {
     where: { id: { in: legacy.map((item) => item.id) } },
   });
 
+  // Una fila sin usuario interno nunca debe pertenecer a la audiencia Staff.
+  // Limpia flags heredados de la migración inicial, cuyo default histórico era true.
+  await prisma.driverPushSubscription.updateMany({
+    where: {
+      userId: null,
+      staffOptIn: true,
+    },
+    data: {
+      staffOptIn: false,
+    },
+  });
+
   return legacy.length;
 }
 
@@ -116,6 +128,7 @@ export async function upsertPushSubscription(input: {
   p256dh: string;
   auth: string;
   userAgent?: string | null;
+  clearStaffOwner?: boolean;
 }) {
   const updateOwnerData =
     input.owner.kind === "staff"
@@ -126,6 +139,12 @@ export async function upsertPushSubscription(input: {
       : {
           customerId: input.owner.customerId ?? null,
           customerOptIn: true,
+          ...(input.clearStaffOwner
+            ? {
+                userId: null,
+                staffOptIn: false,
+              }
+            : {}),
         };
 
   const createOwnerData =
