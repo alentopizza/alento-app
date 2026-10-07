@@ -328,11 +328,17 @@ export default function CartPage() {
     setCheckoutStep("delivery");
   }
 
+  function canAdjustQuantity(item: PublicCartItem) {
+    const snackIds = new Set(upsellCategoryProductIds.snack);
+    const drinkIds = new Set(upsellCategoryProductIds.drink);
+    return snackIds.has(item.productId) || drinkIds.has(item.productId);
+  }
+
   function changeQuantity(key: string, delta: number) {
     setCart((current) =>
       current
         .map((item) =>
-          item.key === key
+          item.key === key && canAdjustQuantity(item)
             ? { ...item, quantity: Math.max(0, item.quantity + delta) }
             : item,
         )
@@ -381,61 +387,94 @@ export default function CartPage() {
         ) : (
           <div className="mt-2 grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="min-w-0 space-y-3 pb-[250px] lg:pb-0">
-              {cart.map((item) => (
-                <article key={item.key} className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4">
-                  <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-4xl">🍕</div>
-                    )}
-                  </div>
+              {cart.map((item) => {
+                const adjustableQuantity = canAdjustQuantity(item);
+                const totalPrice = item.unitPrice * item.quantity;
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h2 className="text-[15px] font-semibold leading-5 sm:text-[17px]">{item.name}</h2>
-                        {item.detail && (
-                          <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-white/38 sm:text-[11px]">{item.detail}</p>
-                        )}
-                        {item.notes && (
-                          <p className="mt-1 text-[10px] text-white/28">Nota: {item.notes}</p>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.key)}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-[18px] text-white/35"
-                        aria-label={`Eliminar ${item.name}`}
-                      >
-                        ×
-                      </button>
+                return (
+                  <article
+                    key={item.key}
+                    className="flex gap-3 rounded-[22px] border border-white/10 bg-[linear-gradient(145deg,#171717,#111)] p-3.5 shadow-[0_14px_34px_rgba(0,0,0,.16)] transition hover:border-white/15 sm:p-4"
+                  >
+                    <div className="h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[15px] bg-black sm:h-[96px] sm:w-[96px]">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-4xl">
+                          🍕
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-3 flex items-end justify-between gap-3">
-                      <div>
-                        <span className="block text-[13px] font-bold text-[#ff3439]">{money(item.unitPrice)}</span>
-                        {item.configuration?.kind === "PIZZA" && (
-                          <span className="mt-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-white/30">
-                            Pizza configurada
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h2 className="text-[15px] font-semibold leading-5 sm:text-[17px]">
+                            {item.name}
+                          </h2>
+                          {item.detail && (
+                            <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-white/38 sm:text-[11px]">
+                              {item.detail}
+                            </p>
+                          )}
+                          {item.notes && (
+                            <p className="mt-1 text-[10px] text-white/28">
+                              Nota: {item.notes}
+                            </p>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.key)}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-[18px] text-white/35"
+                          aria-label={`Eliminar ${item.name}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between gap-3">
+                        <b className="text-[14px] font-bold text-[#ff3439] sm:text-[15px]">
+                          {money(totalPrice)}
+                        </b>
+
+                        {adjustableQuantity ? (
+                          <div className="flex items-center rounded-full border border-white/10 bg-black/30">
+                            <button
+                              type="button"
+                              onClick={() => changeQuantity(item.key, -1)}
+                              className="flex h-9 w-9 items-center justify-center text-white/65"
+                              aria-label="Disminuir cantidad"
+                            >
+                              −
+                            </button>
+                            <span className="min-w-8 text-center text-[12px] font-bold">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => changeQuantity(item.key, 1)}
+                              className="flex h-9 w-9 items-center justify-center text-white/65"
+                              aria-label="Aumentar cantidad"
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : item.quantity > 1 ? (
+                          <span className="alento-ui-micro text-white/30">
+                            × {item.quantity}
                           </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center rounded-full border border-white/10 bg-black/30">
-                        <button type="button" onClick={() => changeQuantity(item.key, -1)} className="flex h-9 w-9 items-center justify-center text-white/65" aria-label="Disminuir cantidad">−</button>
-                        <span className="min-w-8 text-center text-[12px] font-bold">{item.quantity}</span>
-                        <button type="button" onClick={() => changeQuantity(item.key, 1)} className="flex h-9 w-9 items-center justify-center text-white/65" aria-label="Aumentar cantidad">+</button>
+                        ) : null}
                       </div>
                     </div>
-
-                    <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3">
-                      <span className="text-[10px] text-white/30">Total producto</span>
-                      <b className="text-[14px]">{money(item.unitPrice * item.quantity)}</b>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
 
               {visibleUpsellProducts.length > 0 && (
                 <section
