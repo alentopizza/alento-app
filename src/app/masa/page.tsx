@@ -51,6 +51,22 @@ const EMPTY_COUNTS: DoughCounts = {
   extra: 0,
 };
 
+const DOUGH_RECIPE = {
+  hydration: 0.58,
+  adn: 0.05,
+  sugar: 0.02,
+  salt: 0.01,
+  yeast: 0.005,
+};
+
+const DOUGH_FACTOR =
+  1 +
+  DOUGH_RECIPE.hydration +
+  DOUGH_RECIPE.adn +
+  DOUGH_RECIPE.sugar +
+  DOUGH_RECIPE.salt +
+  DOUGH_RECIPE.yeast;
+
 function formatGrams(value: number) {
   const rounded = Math.round(value * 10) / 10;
   return new Intl.NumberFormat("es-CO", {
@@ -127,6 +143,8 @@ export default function PreparationPage() {
   const [preparations, setPreparations] = useState<DoughPreparation[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingPreparation, setEditingPreparation] =
+    useState<DoughPreparation | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -143,6 +161,41 @@ export default function PreparationPage() {
         0,
       ),
     [counts],
+  );
+
+  const liveIngredients = useMemo<DoughIngredients>(() => {
+    if (totalWeightGrams <= 0) {
+      return {
+        flour: 0,
+        water: 0,
+        adn: 0,
+        sugar: 0,
+        salt: 0,
+        yeast: 0,
+      };
+    }
+
+    const flour = totalWeightGrams / DOUGH_FACTOR;
+
+    return {
+      flour,
+      water: flour * DOUGH_RECIPE.hydration,
+      adn: flour * DOUGH_RECIPE.adn,
+      sugar: flour * DOUGH_RECIPE.sugar,
+      salt: flour * DOUGH_RECIPE.salt,
+      yeast: flour * DOUGH_RECIPE.yeast,
+    };
+  }, [totalWeightGrams]);
+
+  const liveIngredientSum = useMemo(
+    () =>
+      liveIngredients.flour +
+      liveIngredients.water +
+      liveIngredients.adn +
+      liveIngredients.sugar +
+      liveIngredients.salt +
+      liveIngredients.yeast,
+    [liveIngredients],
   );
 
   async function loadPreparations() {
@@ -172,9 +225,24 @@ export default function PreparationPage() {
     setCounts((current) => ({ ...current, [key]: next }));
   }
 
+  function openNewPreparation() {
+    setEditingPreparation(null);
+    setCounts({ ...EMPTY_COUNTS });
+    setError("");
+    setFormOpen(true);
+  }
+
+  function openEditPreparation(preparation: DoughPreparation) {
+    setEditingPreparation(preparation);
+    setCounts({ ...preparation.counts });
+    setError("");
+    setFormOpen(true);
+  }
+
   function closeForm() {
     if (saving) return;
     setFormOpen(false);
+    setEditingPreparation(null);
     setCounts({ ...EMPTY_COUNTS });
     setError("");
   }
@@ -191,19 +259,31 @@ export default function PreparationPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/dough-preparations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(counts),
-      });
+      const response = await fetch(
+        editingPreparation
+          ? `/api/dough-preparations?id=${editingPreparation.id}`
+          : "/api/dough-preparations",
+        {
+          method: editingPreparation ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(counts),
+        },
+      );
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || "No fue posible guardar la preparación.");
       }
 
-      setPreparations((current) => [data.preparation, ...current]);
+      setPreparations((current) =>
+        editingPreparation
+          ? current.map((item) =>
+              item.id === editingPreparation.id ? data.preparation : item,
+            )
+          : [data.preparation, ...current],
+      );
       setCounts({ ...EMPTY_COUNTS });
+      setEditingPreparation(null);
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible guardar la preparación.");
@@ -262,11 +342,7 @@ export default function PreparationPage() {
 
           <button
             type="button"
-            onClick={() => {
-              setCounts({ ...EMPTY_COUNTS });
-              setError("");
-              setFormOpen(true);
-            }}
+            onClick={openNewPreparation}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_rgba(229,28,17,.24)] hover:bg-[var(--brand-red-dark)]"
           >
             <span className="text-lg leading-none">+</span>
