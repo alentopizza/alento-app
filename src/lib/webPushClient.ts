@@ -213,3 +213,30 @@ export async function disableWebPush(endpoint: string) {
 
   await subscription.unsubscribe();
 }
+
+
+export async function detachWebPushScope(endpoint: string) {
+  if (!webPushSupported()) return;
+
+  const registration = await getWebPushRegistration();
+  const subscription =
+    await registration.pushManager.getSubscription();
+
+  if (!subscription) return;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "unsubscribe",
+      endpoint: subscription.endpoint,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(
+      body.error || "No fue posible desvincular este dispositivo.",
+    );
+  }
+}
