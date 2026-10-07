@@ -30,11 +30,14 @@ export default function CustomerPushPrompt() {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
-        if (window.localStorage.getItem(DISMISSED_KEY) === "1") return;
+        const dismissed =
+          window.localStorage.getItem(DISMISSED_KEY) === "1";
         const result = await loadWebPushState("/api/push?scope=customer");
         if (cancelled) return;
         setPublicKey(result.publicKey);
-        if (result.state === "off") setVisible(true);
+        if (!dismissed && result.state === "off") {
+          setVisible(true);
+        }
       } catch {
         // El permiso push nunca debe interrumpir la navegación.
       }
