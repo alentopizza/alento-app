@@ -669,7 +669,8 @@ export default function SettingsPage() {
           <div className="p-4 md:p-5">
 
           {activeSection === "STORE" && (
-            <div className="grid gap-4 xl:grid-cols-[minmax(360px,.78fr)_minmax(0,1.22fr)] xl:items-start">
+            <div className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-[minmax(360px,.78fr)_minmax(0,1.22fr)] xl:items-start">
               <div className="space-y-3">
                 <div>
                   <p className="alento-ui-label uppercase text-neutral-400">
@@ -797,6 +798,124 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+
+            <section className="overflow-hidden rounded-[20px] border border-neutral-200 bg-[#faf9f7]">
+              <div className="flex flex-col gap-3 border-b border-neutral-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-950 text-white">
+                    <CalendarDays className="h-4 w-4" strokeWidth={2} />
+                  </span>
+                  <div>
+                    <p className="alento-ui-label uppercase text-neutral-400">
+                      Horario de servicio
+                    </p>
+                    <h3 className="alento-ui-title mt-0.5 text-neutral-950">
+                      Apertura y cierre por día
+                    </h3>
+                    <p className="alento-ui-micro mt-1 text-neutral-500">
+                      Configura de lunes a domingo cuándo la sede está disponible para atender pedidos.
+                    </p>
+                  </div>
+                </div>
+
+                <span className="alento-ui-label rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-700">
+                  {settings.store.serviceHours.filter((item) => item.enabled).length} días activos
+                </span>
+              </div>
+
+              <div className="grid gap-2 p-3 sm:grid-cols-2 md:p-4 xl:grid-cols-4">
+                {settings.store.serviceHours.map((schedule) => (
+                  <article
+                    key={schedule.day}
+                    className={
+                      "rounded-[16px] border p-3.5 transition " +
+                      (schedule.enabled
+                        ? "border-emerald-200 bg-white"
+                        : "border-neutral-200 bg-neutral-100/70")
+                    }
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <b className="alento-ui-status block text-neutral-950">
+                          {serviceDayLabels[schedule.day]}
+                        </b>
+                        <span
+                          className={
+                            "alento-ui-micro mt-0.5 block font-bold " +
+                            (schedule.enabled
+                              ? "text-emerald-600"
+                              : "text-neutral-400")
+                          }
+                        >
+                          {schedule.enabled ? "Servicio activo" : "Cerrado"}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateServiceHour(schedule.day, {
+                            enabled: !schedule.enabled,
+                          })
+                        }
+                        className={
+                          "alento-ui-label h-8 rounded-full px-3 transition " +
+                          (schedule.enabled
+                            ? "bg-emerald-600 text-white"
+                            : "bg-neutral-200 text-neutral-500")
+                        }
+                        aria-pressed={schedule.enabled}
+                      >
+                        {schedule.enabled ? "Abierto" : "Cerrado"}
+                      </button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <label>
+                        <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
+                          Apertura
+                        </span>
+                        <input
+                          type="time"
+                          value={schedule.open}
+                          disabled={!schedule.enabled}
+                          onChange={(event) =>
+                            updateServiceHour(schedule.day, {
+                              open: event.target.value,
+                            })
+                          }
+                          className="alento-ui-control h-10 w-full rounded-[10px] border border-neutral-200 bg-white px-2.5 outline-none disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
+                        />
+                      </label>
+
+                      <label>
+                        <span className="alento-ui-micro mb-1 block uppercase text-neutral-400">
+                          Cierre
+                        </span>
+                        <input
+                          type="time"
+                          value={schedule.close}
+                          disabled={!schedule.enabled}
+                          onChange={(event) =>
+                            updateServiceHour(schedule.day, {
+                              close: event.target.value,
+                            })
+                          }
+                          className="alento-ui-control h-10 w-full rounded-[10px] border border-neutral-200 bg-white px-2.5 outline-none disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
+                        />
+                      </label>
+                    </div>
+
+                    {schedule.enabled && schedule.close < schedule.open && (
+                      <p className="alento-ui-micro mt-2 rounded-lg bg-blue-50 px-2 py-1.5 text-blue-700">
+                        El cierre se interpreta para el día siguiente.
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
           )}
 
           {activeSection === "DELIVERY" && (
