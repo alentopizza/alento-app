@@ -164,42 +164,6 @@ export default function PublicMenuPage() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
-
-    const cards = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        ".alento-public-menu .alento-product-card",
-      ),
-    );
-
-    cards.forEach((card, index) => {
-      card.style.setProperty(
-        "--alento-card-delay",
-        `${Math.min(index % 4, 3) * 55}ms`,
-      );
-    });
-
-    if (!("IntersectionObserver" in window)) {
-      cards.forEach((card) => card.classList.add("alento-card-visible"));
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add("alento-card-visible");
-          observer.unobserve(entry.target);
-        });
-      },
-      { threshold: 0.16, rootMargin: "0px 0px -6% 0px" },
-    );
-
-    cards.forEach((card) => observer.observe(card));
-    return () => observer.disconnect();
-  }, [loading, query, featuredProducts.length, catalogCategories.length]);
-
-  useEffect(() => {
     try {
       const saved = window.localStorage.getItem(PUBLIC_CART_STORAGE_KEY);
       if (saved) {
@@ -271,6 +235,42 @@ export default function PublicMenuPage() {
     const highlighted = allProducts.filter((product) => product.featured);
     return (highlighted.length ? highlighted : allProducts).slice(0, 4);
   }, [allProducts, categories]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const cards = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        ".alento-public-menu .alento-product-card",
+      ),
+    );
+
+    cards.forEach((card, index) => {
+      card.style.setProperty(
+        "--alento-card-delay",
+        `${Math.min(index % 4, 3) * 55}ms`,
+      );
+    });
+
+    if (!("IntersectionObserver" in window)) {
+      cards.forEach((card) => card.classList.add("alento-card-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("alento-card-visible");
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -6% 0px" },
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [loading, query, featuredProducts.length, catalogCategories.length]);
 
   function productPriceValue(product: CatalogProduct): number | null {
     const minSize = catalog?.sizes.length
