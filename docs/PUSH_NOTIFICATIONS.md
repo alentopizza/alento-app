@@ -55,7 +55,13 @@ Campos relevantes:
 - `customerOptIn`: el dispositivo participa en audiencias de clientes.
 - `lastSuccessAt`: última entrega aceptada por Web Push.
 
-Una sola suscripción puede tener ambos opt-in activos. No duplicar filas para el mismo `endpoint`.
+Una sola suscripción puede tener ambos opt-in activos mientras exista una asociación Staff válida. No duplicar filas para el mismo `endpoint`.
+
+Regla de aislamiento:
+
+- una suscripción sin `userId` nunca puede tener `staffOptIn = true`;
+- al sincronizar el scope Cliente sin una sesión Staff vigente, cualquier asociación Staff heredada del mismo endpoint se elimina;
+- al cerrar sesión interna se retira el scope Staff del navegador sin destruir una posible suscripción de Cliente.
 
 ### Servicio de envío
 
