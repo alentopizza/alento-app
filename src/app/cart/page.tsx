@@ -248,37 +248,16 @@ export default function CartPage() {
       .slice(0, 6);
   }, [cart, cartProductPresence, upsellProducts]);
 
-  const upsellCopy = useMemo(() => {
+  const upsellTitle = useMemo(() => {
     if (!cartProductPresence.snack && !cartProductPresence.drink) {
-      return {
-        kicker: "¿Algo para acompañar?",
-        title: "Antojos y bebidas",
-        description: "Completa tu pedido con algo para picar o tomar.",
-        prompt:
-          "Antes de continuar, agrega algo o confirma que prefieres seguir así.",
-        skip: "No, gracias · continuar",
-      };
+      return "Antojos y bebidas";
     }
 
     if (!cartProductPresence.snack) {
-      return {
-        kicker: "Le falta un toque",
-        title: "¿Un antojo para acompañar?",
-        description: "Te mostramos opciones rápidas para completar el pedido.",
-        prompt:
-          "Ya tienes bebida. Agrega un antojo o confirma que prefieres seguir sin él.",
-        skip: "Seguir sin antojo",
-      };
+      return "¿Un antojo para acompañar?";
     }
 
-    return {
-      kicker: "Para acompañar",
-      title: "¿Algo para tomar?",
-      description: "Tu pedido ya tiene antojo; puedes sumar una bebida con un toque.",
-      prompt:
-        "Ya tienes antojo. Agrega una bebida o confirma que prefieres seguir sin ella.",
-      skip: "Seguir sin bebida",
-    };
+    return "¿Algo para tomar?";
   }, [cartProductPresence]);
 
   function addUpsellProduct(product: UpsellProduct) {
@@ -329,6 +308,13 @@ export default function CartPage() {
 
   function continueOrder() {
     if (visibleUpsellProducts.length > 0 && !upsellReviewed) {
+      if (upsellPrompted) {
+        setUpsellReviewed(true);
+        setUpsellPrompted(false);
+        setCheckoutStep("delivery");
+        return;
+      }
+
       setUpsellPrompted(true);
       window.requestAnimationFrame(() => {
         upsellRef.current?.scrollIntoView({
@@ -339,12 +325,6 @@ export default function CartPage() {
       return;
     }
 
-    setCheckoutStep("delivery");
-  }
-
-  function continueWithoutUpsell() {
-    setUpsellReviewed(true);
-    setUpsellPrompted(false);
     setCheckoutStep("delivery");
   }
 
@@ -467,28 +447,11 @@ export default function CartPage() {
                       : "border-white/[0.08]")
                   }
                 >
-                  <div className="flex items-end justify-between gap-3 px-4 pb-3 pt-4">
-                    <div>
-                      <p className="alento-ui-label uppercase tracking-[0.13em] text-[#ff454b]">
-                        {upsellCopy.kicker}
-                      </p>
-                      <h3 className="mt-1 text-[15px] font-black text-white">
-                        {upsellCopy.title}
-                      </h3>
-                      <p className="alento-ui-micro mt-1 leading-4 text-white/34">
-                        {upsellCopy.description}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[8px] font-bold text-white/30">
-                      Opcional
-                    </span>
+                  <div className="px-4 pb-3 pt-4">
+                    <h3 className="text-[16px] font-extrabold tracking-[-0.02em] text-white">
+                      {upsellTitle}
+                    </h3>
                   </div>
-
-                  {upsellPrompted && (
-                    <div className="alento-ui-micro mx-4 mb-3 rounded-[13px] border border-red-400/15 bg-red-400/[0.07] px-3 py-2 leading-4 text-red-100/75">
-                      {upsellCopy.prompt}
-                    </div>
-                  )}
 
                   <div className="alento-scroll flex w-full min-w-0 max-w-full gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-4">
                     {visibleUpsellProducts.map((product) => (
@@ -515,16 +478,13 @@ export default function CartPage() {
                                 : "🍟"}
                             </div>
                           )}
-                          <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] text-white/70 backdrop-blur-sm">
-                            {product.categoryLabel}
-                          </span>
                         </div>
 
                         <div className="p-2.5">
-                          <h4 className="line-clamp-2 min-h-[30px] text-[10.5px] font-black leading-[15px] text-white">
+                          <h4 className="line-clamp-1 text-[11px] font-bold leading-[15px] text-white">
                             {product.name}
                           </h4>
-                          <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="mt-1.5 flex items-center justify-between gap-2">
                             <b className="text-[10px] text-[#ff454b]">
                               {money(product.basePrice)}
                             </b>
@@ -547,18 +507,6 @@ export default function CartPage() {
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
-                    <span className="alento-ui-micro text-white/30">
-                      ¿Lo quieres así?
-                    </span>
-                    <button
-                      type="button"
-                      onClick={continueWithoutUpsell}
-                      className="alento-ui-micro rounded-full border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 font-bold text-white/55 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
-                    >
-                      {upsellCopy.skip}
-                    </button>
-                  </div>
                 </section>
               )}
             </div>
