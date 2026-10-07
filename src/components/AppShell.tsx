@@ -27,6 +27,7 @@ import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
+import { detachWebPushScope } from "@/lib/webPushClient";
 
 const LOGO_DARK =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
@@ -288,6 +289,13 @@ export default function AppShell({
     setMobileMenuOpen(false);
 
     try {
+      // Cerrar sesión también retira este navegador de la audiencia interna.
+      // No anulamos la PushSubscription del navegador porque podría seguir
+      // usándose para notificaciones de cliente.
+      await detachWebPushScope("/api/push?scope=staff").catch(
+        () => undefined,
+      );
+
       await fetch("/api/auth/staff/logout", {
         method: "POST",
       });
