@@ -25,6 +25,9 @@ type PublicStoreStatus = {
     time: string;
     timeLabel: string;
   } | null;
+  address: string;
+  whatsapp: string;
+  whatsappHref: string;
   hours: Array<{
     day: string;
     dayLabel: string;
@@ -45,6 +48,7 @@ export default function PublicLandingPageClient() {
   const [homeLoaded, setHomeLoaded] = useState(false);
   const [storeStatus, setStoreStatus] = useState<PublicStoreStatus | null>(null);
   const [storeStatusLoaded, setStoreStatusLoaded] = useState(false);
+  const [storeInfoOpen, setStoreInfoOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,55 +172,174 @@ export default function PublicLandingPageClient() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[190px] bg-gradient-to-t from-black/30 via-black/5 to-transparent" />
 
         {storeStatusLoaded && storeStatus && !storeStatus.open && (
-          <div className="absolute inset-x-0 top-[max(14px,env(safe-area-inset-top))] z-10 px-4 sm:px-6">
-            <section className="mx-auto w-full max-w-[620px] overflow-hidden rounded-[22px] border border-white/15 bg-black/82 text-white shadow-[0_18px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-3.5 sm:px-5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#e21a22] shadow-[0_0_16px_rgba(226,26,34,.85)]" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#ff454b]">
-                      Local cerrado
+          <div className="absolute inset-x-0 top-[max(16px,env(safe-area-inset-top))] z-10 px-4 sm:px-6">
+            <section className="mx-auto w-full max-w-[620px] overflow-hidden rounded-[24px] border border-red-200 bg-white text-neutral-950 shadow-[0_22px_70px_rgba(0,0,0,.32)]">
+              <div className="h-1.5 w-full bg-[#e21a22]" />
+              <div className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#e21a22] shadow-[0_0_0_5px_rgba(226,26,34,.10)]" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#d71920]">
+                        Local cerrado
+                      </p>
+                    </div>
+                    <h2 className="mt-2 text-[21px] font-black leading-tight tracking-[-0.035em] sm:text-[25px]">
+                      En este momento no estamos recibiendo pedidos.
+                    </h2>
+                    <p className="mt-2 text-[11px] font-semibold leading-5 text-neutral-500 sm:text-[12px]">
+                      {storeStatus.nextOpening
+                        ? `Abrimos ${storeStatus.nextOpening.relativeLabel.toLowerCase()} a las ${storeStatus.nextOpening.timeLabel}.`
+                        : "Consulta nuestros horarios de servicio."}
                     </p>
                   </div>
-                  <h2 className="mt-1.5 text-[19px] font-black tracking-[-0.03em] sm:text-[22px]">
-                    En este momento no estamos recibiendo pedidos.
-                  </h2>
-                  <p className="mt-1 text-[10px] leading-4 text-white/48 sm:text-[11px]">
-                    {storeStatus.nextOpening
-                      ? `Abrimos ${storeStatus.nextOpening.relativeLabel.toLowerCase()} a las ${storeStatus.nextOpening.timeLabel}.`
-                      : "Consulta nuestros horarios de servicio."}
-                  </p>
+
+                  <span className="shrink-0 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-red-700">
+                    Cerrado
+                  </span>
                 </div>
 
-                <span className="shrink-0 rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.1em] text-red-200">
-                  Cerrado
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-4 py-3 sm:grid-cols-4 sm:px-5">
-                {storeStatus.hours.map((schedule) => (
-                  <div
-                    key={schedule.day}
-                    className={
-                      "flex min-w-0 items-center justify-between gap-2 rounded-lg px-2 py-1.5 " +
-                      (schedule.day === storeStatus.currentDay
-                        ? "bg-white/[0.08]"
-                        : "bg-white/[0.025]")
-                    }
-                  >
-                    <span className="truncate text-[9px] font-black text-white/65">
-                      {schedule.dayLabel}
+                <button
+                  type="button"
+                  onClick={() => setStoreInfoOpen(true)}
+                  className="mt-4 flex h-11 w-full items-center justify-between rounded-[14px] bg-neutral-950 px-4 text-left text-white transition hover:bg-neutral-800"
+                >
+                  <span>
+                    <b className="block text-[10px] font-black uppercase tracking-[0.1em]">
+                      Más información
+                    </b>
+                    <span className="mt-0.5 block text-[9px] text-white/45">
+                      Horarios, WhatsApp y ubicación
                     </span>
-                    <span
-                      className={
-                        "shrink-0 text-[8px] font-semibold " +
-                        (schedule.enabled ? "text-white/40" : "text-red-300/70")
-                      }
-                    >
-                      {schedule.rangeLabel}
+                  </span>
+                  <span className="text-lg text-white/70">→</span>
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {storeInfoOpen && storeStatus && (
+          <div
+            className="fixed inset-0 z-[180] flex items-end justify-center bg-black/72 p-0 backdrop-blur-[5px] sm:items-center sm:p-5"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setStoreInfoOpen(false);
+              }
+            }}
+          >
+            <section className="max-h-[92dvh] w-full overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#f6f3ee] text-neutral-950 shadow-[0_30px_100px_rgba(0,0,0,.45)] sm:max-w-[620px] sm:rounded-[28px]">
+              <header className="bg-[radial-gradient(circle_at_90%_0%,rgba(226,26,34,.22),transparent_30%),linear-gradient(135deg,#0b0b0c,#171315)] px-5 py-5 text-white sm:px-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.17em] text-[#ff565c]">
+                      Alentó Pizza
+                    </p>
+                    <h2 className="mt-1 text-[24px] font-black tracking-[-0.035em]">
+                      Horarios y contacto
+                    </h2>
+                    <p className="mt-1 text-[10px] leading-4 text-white/42">
+                      Consulta cuándo atendemos y cómo encontrarnos.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStoreInfoOpen(false)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-xl text-white/65"
+                    aria-label="Cerrar información"
+                  >
+                    ×
+                  </button>
+                </div>
+              </header>
+
+              <div className="space-y-4 p-4 sm:p-5">
+                <section className="rounded-[20px] border border-neutral-200 bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                        Horario de servicio
+                      </p>
+                      <h3 className="mt-1 text-[16px] font-black">
+                        Lunes a domingo
+                      </h3>
+                    </div>
+                    <span className="rounded-full border border-red-100 bg-red-50 px-3 py-1.5 text-[9px] font-black uppercase text-red-700">
+                      Hoy {storeStatus.open ? "abierto" : "cerrado"}
                     </span>
                   </div>
-                ))}
+
+                  <div className="mt-4 overflow-hidden rounded-[16px] border border-neutral-200">
+                    {storeStatus.hours.map((schedule, index) => (
+                      <div
+                        key={schedule.day}
+                        className={
+                          "flex items-center justify-between gap-4 px-4 py-3 " +
+                          (index > 0 ? "border-t border-neutral-100 " : "") +
+                          (schedule.day === storeStatus.currentDay
+                            ? "bg-red-50/65"
+                            : "bg-white")
+                        }
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={
+                              "h-2 w-2 rounded-full " +
+                              (schedule.enabled ? "bg-emerald-500" : "bg-neutral-300")
+                            }
+                          />
+                          <b className="text-[11px] text-neutral-900">
+                            {schedule.dayLabel}
+                          </b>
+                        </div>
+                        <span
+                          className={
+                            "text-[10px] font-bold " +
+                            (schedule.enabled ? "text-neutral-600" : "text-neutral-400")
+                          }
+                        >
+                          {schedule.rangeLabel}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="grid gap-3 sm:grid-cols-2">
+                  <a
+                    href={storeStatus.whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-[20px] border border-emerald-100 bg-emerald-50 p-4 transition hover:-translate-y-0.5"
+                  >
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-emerald-600">
+                      WhatsApp
+                    </p>
+                    <b className="mt-2 block text-[17px] font-black text-emerald-800">
+                      {storeStatus.whatsapp}
+                    </b>
+                    <span className="mt-1 block text-[9px] font-semibold text-emerald-700/55">
+                      Escríbenos directamente
+                    </span>
+                  </a>
+
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeStatus.address)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-[20px] border border-sky-100 bg-sky-50 p-4 transition hover:-translate-y-0.5"
+                  >
+                    <p className="text-[9px] font-black uppercase tracking-[0.12em] text-sky-600">
+                      Ubicación
+                    </p>
+                    <b className="mt-2 block text-[12px] font-black leading-5 text-sky-900">
+                      {storeStatus.address}
+                    </b>
+                    <span className="mt-1 block text-[9px] font-semibold text-sky-700/55">
+                      Abrir en el mapa
+                    </span>
+                  </a>
+                </section>
               </div>
             </section>
           </div>
