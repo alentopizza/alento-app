@@ -1219,3 +1219,218 @@ main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
     width: 36px;
   }
 }
+
+
+/* Microinteracciones de deseo y recompensa en el menú público.
+   Se mantienen sutiles, de una sola pasada y respetan reduced-motion. */
+@keyframes alentoProductReveal {
+  from {
+    opacity: 0.35;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes alentoFoodShine {
+  from {
+    transform: translateX(-170%) skewX(-18deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.45;
+  }
+  55% {
+    opacity: 0.2;
+  }
+  to {
+    transform: translateX(190%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes alentoFeaturedInvite {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  48% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes alentoUpsellAdded {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.975);
+  }
+  72% {
+    transform: scale(1.025);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes alentoSpotlightOpen {
+  from {
+    transform: scale(1.035);
+    filter: saturate(0.92) brightness(0.92);
+  }
+  to {
+    transform: scale(1);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+.alento-public-menu .alento-product-card.alento-card-visible {
+  animation: alentoProductReveal 460ms cubic-bezier(.2,.82,.24,1)
+    var(--alento-card-delay, 0ms) backwards;
+}
+
+.alento-public-menu .alento-product-card-media::after,
+.alento-product-spotlight-media::after,
+.alento-upsell-media::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: -12% auto -12% -38%;
+  width: 28%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 22%,
+    rgba(255, 244, 218, 0.30) 50%,
+    rgba(255, 255, 255, 0.06) 76%,
+    transparent 100%
+  );
+  transform: translateX(-170%) skewX(-18deg);
+  mix-blend-mode: screen;
+}
+
+.alento-public-menu
+  .alento-product-card.alento-card-visible
+  .alento-product-card-media::after {
+  animation: alentoFoodShine 900ms ease-out
+    calc(var(--alento-card-delay, 0ms) + 130ms) both;
+}
+
+.alento-public-menu .alento-product-card:active {
+  transform: scale(0.985);
+}
+
+.alento-public-menu .alento-product-card:active .alento-product-card-image {
+  transform: scale(1.035);
+}
+
+.alento-public-menu .alento-product-card-featured {
+  border-color: rgba(226, 26, 34, 0.26);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.24),
+    0 0 28px rgba(226, 26, 34, 0.07);
+}
+
+.alento-public-menu
+  .alento-product-card-featured.alento-card-visible:nth-child(-n + 2)
+  .alento-product-card-action {
+  animation: alentoFeaturedInvite 520ms cubic-bezier(.2,.8,.2,1)
+    calc(var(--alento-card-delay, 0ms) + 720ms) 1;
+}
+
+.alento-product-card-badge {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.72);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--ui-text-micro);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.alento-product-spotlight-media::after {
+  animation: alentoFoodShine 1050ms ease-out 120ms both;
+}
+
+.alento-product-spotlight-image {
+  animation: alentoSpotlightOpen 520ms cubic-bezier(.2,.82,.24,1) both;
+}
+
+.alento-upsell-card {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.alento-upsell-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(226, 26, 34, 0.30);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+.alento-upsell-card:active {
+  transform: scale(0.985);
+}
+
+.alento-upsell-image {
+  transition:
+    transform 260ms ease,
+    filter 260ms ease;
+}
+
+.alento-upsell-card:hover .alento-upsell-image,
+.alento-upsell-card:active .alento-upsell-image {
+  transform: scale(1.035);
+  filter: saturate(1.05) brightness(1.03);
+}
+
+.alento-upsell-media::after {
+  animation: alentoFoodShine 920ms ease-out 180ms both;
+}
+
+.alento-upsell-added {
+  animation: alentoUpsellAdded 420ms cubic-bezier(.2,.8,.2,1);
+  border-color: rgba(52, 211, 153, 0.28) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alento-public-menu .alento-product-card.alento-card-visible,
+  .alento-public-menu
+    .alento-product-card-featured.alento-card-visible:nth-child(-n + 2)
+    .alento-product-card-action,
+  .alento-product-spotlight-image,
+  .alento-upsell-added {
+    animation: none !important;
+  }
+
+  .alento-public-menu .alento-product-card-media::after,
+  .alento-product-spotlight-media::after,
+  .alento-upsell-media::after {
+    animation: none !important;
+    display: none;
+  }
+
+  .alento-public-menu .alento-product-card,
+  .alento-public-menu .alento-product-card-image,
+  .alento-upsell-card,
+  .alento-upsell-image {
+    transition: none !important;
+  }
+}
