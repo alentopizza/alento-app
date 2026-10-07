@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
+import StaffStoreStatus from "@/components/StaffStoreStatus";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -751,6 +752,7 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
+      <StaffStoreStatus />
     </div>
   );
 }
