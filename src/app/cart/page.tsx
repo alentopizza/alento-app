@@ -21,12 +21,15 @@ function money(value: number) {
   }).format(value);
 }
 
+type UpsellKind = "snack" | "drink";
+
 type UpsellProduct = {
   id: number;
   name: string;
   imageUrl: string | null;
   basePrice: number;
   categoryLabel: string;
+  kind: UpsellKind;
 };
 
 type CatalogResponse = {
@@ -64,6 +67,10 @@ export default function CartPage() {
   } | null>(null);
 
   const [upsellProducts, setUpsellProducts] = useState<UpsellProduct[]>([]);
+  const [upsellCategoryProductIds, setUpsellCategoryProductIds] = useState<{
+    snack: number[];
+    drink: number[];
+  }>({ snack: [], drink: [] });
   const [upsellReviewed, setUpsellReviewed] = useState(false);
   const [upsellPrompted, setUpsellPrompted] = useState(false);
   const [addedUpsellId, setAddedUpsellId] = useState<number | null>(null);
@@ -113,9 +120,26 @@ export default function CartPage() {
           return key.includes("bebida") || key.includes("drink");
         });
 
+        const collectProductIds = (
+          categories: NonNullable<CatalogResponse["categories"]>,
+        ) =>
+          Array.from(
+            new Set(
+              categories.flatMap((category) =>
+                category.products.map((product) => product.id),
+              ),
+            ),
+          );
+
+        setUpsellCategoryProductIds({
+          snack: collectProductIds(snackCategories),
+          drink: collectProductIds(drinkCategories),
+        });
+
         const pick = (
           categories: NonNullable<CatalogResponse["categories"]>,
           limit: number,
+          kind: UpsellKind,
         ) =>
           categories
             .flatMap((category) =>
@@ -137,11 +161,12 @@ export default function CartPage() {
               imageUrl: product.imageUrl,
               basePrice: Number(product.basePrice),
               categoryLabel,
+              kind,
             }));
 
         const recommendations = [
-          ...pick(snackCategories, 3),
-          ...pick(drinkCategories, 3),
+          ...pick(snackCategories, 3, "snack"),
+          ...pick(drinkCategories, 3, "drink"),
         ];
 
         const unique = new Map<number, UpsellProduct>();
@@ -187,12 +212,74 @@ export default function CartPage() {
     [cart],
   );
 
+  const cartProductPresence = useMemo(() => {
+    const snackIds = new Set(upsellCategoryProductIds.snack);
+    const drinkIds = new Set(upsellCategoryProductIds.drink);
+
+    const hasKind = (ids: Set<number>) =>
+      cart.some((item) => {
+        if (ids.has(item.productId)) return true;
+
+        if (item.configuration?.kind === "COMBO") {
+          return item.configuration.groups.some((group) =>
+            group.selections.some((selection) => ids.has(selection.productId)),
+          );
+        }
+
+        return false;
+      });
+
+    return {
+      snack: hasKind(snackIds),
+      drink: hasKind(drinkIds),
+    };
+  }, [cart, upsellCategoryProductIds]);
+
   const visibleUpsellProducts = useMemo(() => {
     const cartProductIds = new Set(cart.map((item) => item.productId));
+
     return upsellProducts
       .filter((product) => !cartProductIds.has(product.id))
-      .slice(0, 5);
-  }, [cart, upsellProducts]);
+      .filter(
+        (product) =>
+          (product.kind === "snack" && !cartProductPresence.snack) ||
+          (product.kind === "drink" && !cartProductPresence.drink),
+      )
+      .slice(0, 6);
+  }, [cart, cartProductPresence, upsellProducts]);
+
+  const upsellCopy = useMemo(() => {
+    if (!cartProductPresence.snack && !cartProductPresence.drink) {
+      return {
+        kicker: "¿Algo para acompañar?",
+        title: "Antojos y bebidas",
+        description: "Completa tu pedido con algo para picar o tomar.",
+        prompt:
+          "Antes de continuar, agrega algo o confirma que prefieres seguir así.",
+        skip: "No, gracias · continuar",
+      };
+    }
+
+    if (!cartProductPresence.snack) {
+      return {
+        kicker: "Le falta un toque",
+        title: "¿Un antojo para acompañar?",
+        description: "Te mostramos opciones rápidas para completar el pedido.",
+        prompt:
+          "Ya tienes bebida. Agrega un antojo o confirma que prefieres seguir sin él.",
+        skip: "Seguir sin antojo",
+      };
+    }
+
+    return {
+      kicker: "Para acompañar",
+      title: "¿Algo para tomar?",
+      description: "Tu pedido ya tiene antojo; puedes sumar una bebida con un toque.",
+      prompt:
+        "Ya tienes antojo. Agrega una bebida o confirma que prefieres seguir sin ella.",
+      skip: "Seguir sin bebida",
+    };
+  }, [cartProductPresence]);
 
   function addUpsellProduct(product: UpsellProduct) {
     setCart((current) => {
@@ -228,7 +315,7 @@ export default function CartPage() {
       ];
     });
 
-    setUpsellReviewed(true);
+    setUpsellReviewed(false);
     setUpsellPrompted(false);
     setAddedUpsellId(product.id);
     window.dispatchEvent(new Event("alento-cart-added"));
@@ -382,14 +469,14 @@ export default function CartPage() {
                 >
                   <div className="flex items-end justify-between gap-3 px-4 pb-3 pt-4">
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#ff454b]">
-                        ¿Algo para acompañar?
+                      <p className="alento-ui-label uppercase tracking-[0.13em] text-[#ff454b]">
+                        {upsellCopy.kicker}
                       </p>
                       <h3 className="mt-1 text-[15px] font-black text-white">
-                        Antojos y bebidas
+                        {upsellCopy.title}
                       </h3>
-                      <p className="mt-1 text-[9px] leading-4 text-white/34">
-                        Agrégalos con un toque antes de continuar.
+                      <p className="alento-ui-micro mt-1 leading-4 text-white/34">
+                        {upsellCopy.description}
                       </p>
                     </div>
                     <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[8px] font-bold text-white/30">
@@ -398,8 +485,8 @@ export default function CartPage() {
                   </div>
 
                   {upsellPrompted && (
-                    <div className="mx-4 mb-3 rounded-[13px] border border-red-400/15 bg-red-400/[0.07] px-3 py-2 text-[9px] font-semibold leading-4 text-red-100/75">
-                      Antes de continuar, agrega algo o confirma que lo quieres así.
+                    <div className="alento-ui-micro mx-4 mb-3 rounded-[13px] border border-red-400/15 bg-red-400/[0.07] px-3 py-2 leading-4 text-red-100/75">
+                      {upsellCopy.prompt}
                     </div>
                   )}
 
@@ -407,14 +494,17 @@ export default function CartPage() {
                     {visibleUpsellProducts.map((product) => (
                       <article
                         key={product.id}
-                        className="w-[142px] shrink-0 overflow-hidden rounded-[17px] border border-white/[0.08] bg-white/[0.035]"
+                        className={
+                          "alento-upsell-card w-[142px] shrink-0 overflow-hidden rounded-[17px] border border-white/[0.08] bg-white/[0.035] " +
+                          (addedUpsellId === product.id ? "alento-upsell-added" : "")
+                        }
                       >
-                        <div className="relative aspect-square overflow-hidden bg-black/25">
+                        <div className="alento-upsell-media relative aspect-square overflow-hidden bg-black/25">
                           {product.imageUrl ? (
                             <img
                               src={product.imageUrl}
                               alt={product.name}
-                              className="h-full w-full object-cover"
+                              className="alento-upsell-image h-full w-full object-cover"
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center text-3xl">
@@ -458,15 +548,15 @@ export default function CartPage() {
                   </div>
 
                   <div className="flex items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
-                    <span className="text-[9px] text-white/30">
+                    <span className="alento-ui-micro text-white/30">
                       ¿Lo quieres así?
                     </span>
                     <button
                       type="button"
                       onClick={continueWithoutUpsell}
-                      className="rounded-full border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 text-[9px] font-bold text-white/55 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                      className="alento-ui-micro rounded-full border border-white/[0.10] bg-white/[0.04] px-3.5 py-2 font-bold text-white/55 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
                     >
-                      No, gracias · continuar
+                      {upsellCopy.skip}
                     </button>
                   </div>
                 </section>
