@@ -141,7 +141,7 @@ model DriverPushSubscription {
   auth          String
   userAgent     String?
   lastSuccessAt DateTime?
-  staffOptIn    Boolean   @default(true)
+  staffOptIn    Boolean   @default(false)
   customerOptIn Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
