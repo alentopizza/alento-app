@@ -1291,9 +1291,9 @@ export default function PublicProductConfigurator({
                   {selectionSummary.label}
                 </span>
                 <div className="mt-1.5 space-y-1">
-                  {selectionSummary.lines.map((line) => (
+                  {selectionSummary.lines.map((line, index) => (
                     <p
-                      key={line.label}
+                      key={line.label + "-" + String(index)}
                       className="flex items-start gap-2 text-[10.5px] leading-4"
                     >
                       <span className="shrink-0 font-semibold text-white/38">
