@@ -13,18 +13,16 @@ export default function CustomerPushPrompt() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const internalPrefixes = [
-      "/interno",
-      "/repartidor",
-      "/cocina",
-      "/notificaciones",
-      "/pedidos",
-      "/caja",
-      "/usuarios",
-      "/clientes",
-      "/preparacion",
-    ];
-    if (internalPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    const customerSurfaces =
+      pathname === "/" ||
+      pathname.startsWith("/menu") ||
+      pathname.startsWith("/cart") ||
+      pathname === "/club" ||
+      pathname.startsWith("/club/") ||
+      pathname.startsWith("/cuenta") ||
+      pathname.startsWith("/seguimiento/");
+
+    if (!customerSurfaces) {
       setVisible(false);
       return;
     }
