@@ -226,6 +226,6 @@ Piezas configurables actuales:
 
 - Home móvil: 1080 × 2160 px.
 - Home PC: 1920 × 1080 px.
-- Portada del menú: 1920 × 730 px.
+- Portada del menú: 1920 × 1080 px (16:9).
 
 No agregar controles de personalización que no tengan un consumidor real en la experiencia pública. El antiguo `brand.logoUrl` fue retirado porque ninguna superficie lo renderizaba.
