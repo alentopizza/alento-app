@@ -473,14 +473,11 @@ export default function PublicMenuPage() {
         <section id="catalogo-menu" className="mx-auto max-w-[1320px] px-3 pb-32 sm:px-5 md:pb-16 lg:px-8">
           <div className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/35 lg:text-[11px]">
-                Catálogo
-              </p>
-              <h2 className="mt-1 text-[25px] font-black leading-none tracking-[-0.04em] text-white sm:text-[28px] lg:text-[31px]">
-                Todo nuestro menú
+              <h2 className="text-[25px] font-black leading-none tracking-[-0.04em] text-white sm:text-[28px] lg:text-[31px]">
+                Menú
               </h2>
               <p className="mt-2 max-w-[560px] text-[10px] leading-4 text-white/32">
-                Pizzas, antojos, bebidas y demás categorías aparecen juntas en el orden definido desde Menú.
+                Pizzas, antojos y bebidas
               </p>
             </div>
 
