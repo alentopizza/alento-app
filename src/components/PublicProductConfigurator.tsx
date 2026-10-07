@@ -1177,6 +1177,17 @@ export default function PublicProductConfigurator({
       lines.push({ label: "Borde", value: selectedCrust.name });
     }
 
+    const selectedModifiers = catalog.modifiers
+      .filter((modifier) => modifierIds.includes(modifier.id))
+      .map((modifier) => modifier.name);
+
+    if (selectedModifiers.length) {
+      lines.push({
+        label: "Adicionales",
+        value: selectedModifiers.join(", "),
+      });
+    }
+
     return lines.length
       ? {
           label: twoFlavors ? "Tu pizza" : "Tu elección",
