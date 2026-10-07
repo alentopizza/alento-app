@@ -216,73 +216,68 @@ export default function StaffStoreStatus() {
 
   return (
     <>
-      <div className="fixed right-3 top-[76px] z-[155] lg:right-5 lg:top-4">
+      <div className="fixed right-2.5 top-[74px] z-[155] lg:right-4 lg:top-3">
         <button
           type="button"
           onClick={() => setDetailsOpen((current) => !current)}
-          className={
-            "flex min-h-[48px] items-center gap-3 rounded-[16px] border px-3.5 py-2.5 shadow-[0_12px_34px_rgba(0,0,0,.18)] backdrop-blur-xl transition hover:-translate-y-0.5 " +
-            (status.open
-              ? "border-emerald-200 bg-white text-neutral-950"
-              : "border-red-200 bg-white text-neutral-950")
-          }
+          className="flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/10 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-white/15 hover:bg-[#111113]"
           title="Estado de servicio de la tienda"
           aria-expanded={detailsOpen}
         >
           <span
             className={
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] " +
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] border " +
               (status.open
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-red-50 text-red-700")
+                ? "border-emerald-400/15 bg-emerald-400/10 text-emerald-300"
+                : "border-red-400/15 bg-red-400/10 text-red-300")
             }
           >
-            <Store className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            <Store className="h-[14px] w-[14px]" strokeWidth={2.2} />
           </span>
 
-          <span className="min-w-0 text-left">
+          <span className="min-w-0 text-left leading-none">
             <span
               className={
-                "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.11em] " +
-                (status.open ? "text-emerald-700" : "text-red-700")
+                "flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] " +
+                (status.open ? "text-emerald-300" : "text-red-300")
               }
             >
               <span
                 className={
-                  "h-2 w-2 rounded-full " +
+                  "h-1.5 w-1.5 rounded-full " +
                   (status.open
-                    ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,.65)]"
-                    : "bg-red-500")
+                    ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]"
+                    : "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,.55)]")
                 }
               />
               {status.open ? "Tienda abierta" : "Tienda cerrada"}
             </span>
-            <span className="mt-0.5 block max-w-[190px] truncate text-[9px] font-semibold text-neutral-500">
+            <span className="mt-1 block max-w-[150px] truncate text-[8.5px] font-medium leading-[11px] text-white/42">
               {status.open
                 ? status.closesAt
                   ? `Cierra a las ${status.closesAt}`
                   : "Servicio activo"
                 : status.nextOpening
                   ? `Abre ${status.nextOpening.relativeLabel.toLowerCase()} a las ${status.nextOpening.timeLabel}`
-                  : "Fuera del horario de servicio"}
+                  : "Fuera del horario"}
             </span>
           </span>
 
           {soundEnabled ? (
-            <Volume2 className="h-4 w-4 shrink-0 text-neutral-400" />
+            <Volume2 className="h-3.5 w-3.5 shrink-0 text-white/35" />
           ) : (
-            <VolumeX className="h-4 w-4 shrink-0 text-neutral-300" />
+            <VolumeX className="h-3.5 w-3.5 shrink-0 text-white/20" />
           )}
         </button>
 
         {detailsOpen && (
-          <section className="absolute right-0 mt-2 w-[min(92vw,360px)] overflow-hidden rounded-[20px] border border-neutral-200 bg-white text-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.24)]">
+          <section className="absolute right-0 mt-2 w-[min(92vw,330px)] overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)]">
             <div
               className={
-                "border-b px-4 py-4 " +
+                "border-b px-4 py-3.5 " +
                 (status.open
-                  ? "border-emerald-100 bg-emerald-50/65"
-                  : "border-red-100 bg-red-50/65")
+                  ? "border-emerald-400/10 bg-emerald-400/[0.05]"
+                  : "border-red-400/10 bg-red-400/[0.05]")
               }
             >
               <div className="flex items-start justify-between gap-3">
@@ -295,10 +290,10 @@ export default function StaffStoreStatus() {
                   >
                     Estado de la tienda
                   </p>
-                  <h3 className="mt-1 text-[18px] font-black">
+                  <h3 className="mt-1 text-[16px] font-black text-white">
                     {status.open ? "Servicio abierto" : "Servicio cerrado"}
                   </h3>
-                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                  <p className="mt-1 text-[9px] leading-4 text-white/42">
                     {status.open
                       ? status.closesAt
                         ? `Los clientes pueden pedir. Cierre programado: ${status.closesAt}.`
@@ -312,7 +307,7 @@ export default function StaffStoreStatus() {
                 <button
                   type="button"
                   onClick={() => setDetailsOpen(false)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-white/45"
                   aria-label="Cerrar estado"
                 >
                   <X className="h-4 w-4" />
@@ -320,15 +315,15 @@ export default function StaffStoreStatus() {
               </div>
             </div>
 
-            <div className="p-3.5">
-              <div className="flex items-center justify-between gap-3 rounded-[14px] border border-neutral-200 bg-[#faf9f7] p-3">
+            <div className="p-3">
+              <div className="flex items-center justify-between gap-3 rounded-[13px] border border-white/10 bg-white/[0.04] p-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-neutral-700 shadow-sm">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.05] text-white/65">
                     <BellRing className="h-4 w-4" />
                   </span>
                   <div>
-                    <b className="block text-[10px]">Aviso de apertura</b>
-                    <span className="mt-0.5 block text-[9px] text-neutral-400">
+                    <b className="block text-[10px] text-white">Aviso de apertura</b>
+                    <span className="mt-0.5 block text-[8.5px] text-white/35">
                       Sonido especial cuando cambia a abierto
                     </span>
                   </div>
@@ -347,21 +342,21 @@ export default function StaffStoreStatus() {
                 </button>
               </div>
 
-              <div className="mt-3 overflow-hidden rounded-[14px] border border-neutral-200">
+              <div className="mt-3 overflow-hidden rounded-[13px] border border-white/10">
                 {status.hours.map((schedule, index) => (
                   <div
                     key={schedule.day}
                     className={
                       "flex items-center justify-between gap-3 px-3 py-2.5 " +
-                      (index > 0 ? "border-t border-neutral-100 " : "") +
+                      (index > 0 ? "border-t border-white/[0.06] " : "") +
                       (schedule.day === status.currentDay
-                        ? "bg-neutral-50"
-                        : "bg-white")
+                        ? "bg-white/[0.06]"
+                        : "bg-transparent")
                     }
                   >
                     <div className="flex items-center gap-2">
-                      <Clock3 className="h-3.5 w-3.5 text-neutral-300" />
-                      <b className="text-[10px] text-neutral-700">
+                      <Clock3 className="h-3.5 w-3.5 text-white/20" />
+                      <b className="text-[10px] text-white/70">
                         {schedule.dayLabel}
                       </b>
                     </div>
@@ -369,8 +364,8 @@ export default function StaffStoreStatus() {
                       className={
                         "text-[9px] font-bold " +
                         (schedule.enabled
-                          ? "text-neutral-500"
-                          : "text-neutral-300")
+                          ? "text-white/42"
+                          : "text-white/20")
                       }
                     >
                       {schedule.rangeLabel}
@@ -384,7 +379,7 @@ export default function StaffStoreStatus() {
       </div>
 
       {openingToast && (
-        <div className="fixed right-3 top-[136px] z-[160] w-[min(92vw,390px)] rounded-[20px] border border-emerald-200 bg-white p-4 text-neutral-950 shadow-[0_24px_70px_rgba(0,0,0,.25)] lg:right-5 lg:top-[76px]">
+        <div className="fixed right-2.5 top-[126px] z-[160] w-[min(92vw,350px)] rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:right-4 lg:top-[66px]">
           <div className="flex items-start gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-emerald-50 text-emerald-700">
               <BellRing className="h-5 w-5" />
@@ -393,17 +388,17 @@ export default function StaffStoreStatus() {
               <p className="text-[9px] font-black uppercase tracking-[0.13em] text-emerald-700">
                 Servicio iniciado
               </p>
-              <b className="mt-1 block text-[15px] font-black">
+              <b className="mt-1 block text-[14px] font-black text-white">
                 La tienda acaba de abrir
               </b>
-              <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+              <p className="mt-1 text-[9px] leading-4 text-white/40">
                 Los clientes ya pueden enviar pedidos desde la aplicación.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setOpeningToast(false)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white/35 hover:bg-white/[0.06]"
               aria-label="Cerrar aviso de apertura"
             >
               <X className="h-4 w-4" />
