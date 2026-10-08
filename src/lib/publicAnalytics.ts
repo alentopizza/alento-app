@@ -184,6 +184,18 @@ export function trackCatalogEvent(
     });
   } catch {}
 
+  const queueWindow = window as typeof window & {
+    __alentoAnalyticsQueue?: Array<typeof event>;
+  };
+  queueWindow.__alentoAnalyticsQueue ??= [];
+  queueWindow.__alentoAnalyticsQueue.push(event);
+  if (queueWindow.__alentoAnalyticsQueue.length > 80) {
+    queueWindow.__alentoAnalyticsQueue.splice(
+      0,
+      queueWindow.__alentoAnalyticsQueue.length - 80,
+    );
+  }
+
   window.dispatchEvent(
     new CustomEvent("alento-analytics-event", { detail: event }),
   );
