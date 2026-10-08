@@ -294,10 +294,8 @@ export default function ThermalReceiptPage() {
   const [error, setError] = useState("");
   const [imageBusy, setImageBusy] = useState(false);
   const autoPrinted = useRef(false);
-  const autoImageDownloaded = useRef(false);
   const embedded = searchParams.get("embedded") === "1";
   const autoPrint = searchParams.get("autoprint") === "1";
-  const autoImage = searchParams.get("autoimage") === "1";
 
   useEffect(() => {
     async function load() {
@@ -320,75 +318,32 @@ export default function ThermalReceiptPage() {
     return () => window.clearTimeout(timer);
   }, [order, autoPrint]);
 
-  async function downloadReceiptImage(options?: { silent?: boolean }) {
+  async function downloadReceiptImage() {
     if (!order || imageBusy) return;
-
-    const receipt = document.querySelector<HTMLElement>(".thermal-receipt");
-    if (!receipt) return;
 
     setImageBusy(true);
     setError("");
 
     try {
-      const blob = await renderReceiptPng(receipt);
       const displayNumber = order.sequenceNumber ?? order.id;
       const displayCode = orderCode(displayNumber, order.source);
-      const filename = `${displayCode}-factura.png`;
-
-      if (options?.silent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "ALENTO_RECEIPT_IMAGE_READY",
-            orderId: order.id,
-            filename,
-            blob,
-          },
-          window.location.origin,
-        );
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = filename;
+      anchor.href = `/api/orders/${order.id}/receipt-image`;
+      anchor.download = `${displayCode}-factura.png`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (downloadError) {
-      const message =
+      setError(
         downloadError instanceof Error
           ? downloadError.message
-          : "No fue posible descargar la factura como imagen.";
-
-      if (options?.silent && window.parent !== window) {
-        window.parent.postMessage(
-          {
-            type: "ALENTO_RECEIPT_IMAGE_ERROR",
-            orderId: order.id,
-            message,
-          },
-          window.location.origin,
-        );
-      } else {
-        setError(message);
-      }
+          : "No fue posible descargar la factura como imagen.",
+      );
     } finally {
       setImageBusy(false);
     }
   }
 
-  useEffect(() => {
-    if (!order || !autoImage || autoImageDownloaded.current) return;
-    autoImageDownloaded.current = true;
-
-    const timer = window.setTimeout(() => {
-      void downloadReceiptImage({ silent: true });
-    }, 350);
-
-    return () => window.clearTimeout(timer);
-  }, [order, autoImage]);
 
   function downloadReceipt() {
     if (!order) return;
