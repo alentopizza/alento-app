@@ -44,7 +44,11 @@ export async function GET(request: NextRequest) {
   const requested = Number(request.nextUrl.searchParams.get("days") || 7);
   const days = [1, 7, 30, 90].includes(requested) ? requested : 7;
   const now = new Date();
-  const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const today = bogotaDate(now);
+  const todayStart = new Date(`${today}T00:00:00-05:00`);
+  const start = new Date(
+    todayStart.getTime() - (days - 1) * 24 * 60 * 60 * 1000,
+  );
 
   const events = await prisma.catalogAnalyticsEvent.findMany({
     where: { createdAt: { gte: start, lte: now } },
