@@ -44,7 +44,11 @@ function createAudioContext() {
   return AudioContextCtor ? new AudioContextCtor() : null;
 }
 
-export default function StaffStoreStatus() {
+export default function StaffStoreStatus({
+  sidebarCollapsed = false,
+}: {
+  sidebarCollapsed?: boolean;
+}) {
   const [status, setStatus] = useState<StoreStatus | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -216,11 +220,24 @@ export default function StaffStoreStatus() {
 
   return (
     <>
-      <div className="fixed left-1/2 top-[74px] z-[155] -translate-x-1/2 lg:top-3">
+      <div
+        className={
+          "fixed left-1/2 top-[74px] z-[155] -translate-x-1/2 " +
+          "lg:bottom-[126px] lg:left-0 lg:top-auto lg:translate-x-0 " +
+          (sidebarCollapsed
+            ? "lg:w-[84px] lg:px-3"
+            : "lg:w-[212px] lg:px-3")
+        }
+      >
         <button
           type="button"
           onClick={() => setDetailsOpen((current) => !current)}
-          className="flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/55 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32),0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-white/75 hover:bg-[#111113]"
+          className={
+            "flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/55 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32),0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-xl transition hover:border-white/75 hover:bg-[#111113] " +
+            (sidebarCollapsed
+              ? "lg:w-full lg:justify-center lg:px-0"
+              : "lg:w-full")
+          }
           title="Estado de servicio de la tienda"
           aria-expanded={detailsOpen}
         >
@@ -235,7 +252,12 @@ export default function StaffStoreStatus() {
             <Store className="h-[14px] w-[14px]" strokeWidth={2.2} />
           </span>
 
-          <span className="min-w-0 text-left leading-none">
+          <span
+            className={
+              "min-w-0 text-left leading-none " +
+              (sidebarCollapsed ? "lg:hidden" : "")
+            }
+          >
             <span
               className={
                 "flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] " +
@@ -263,15 +285,17 @@ export default function StaffStoreStatus() {
             </span>
           </span>
 
-          {soundEnabled ? (
-            <Volume2 className="h-3.5 w-3.5 shrink-0 text-white/35" />
-          ) : (
-            <VolumeX className="h-3.5 w-3.5 shrink-0 text-white/20" />
-          )}
+          <span className={sidebarCollapsed ? "lg:hidden" : ""}>
+            {soundEnabled ? (
+              <Volume2 className="h-3.5 w-3.5 shrink-0 text-white/35" />
+            ) : (
+              <VolumeX className="h-3.5 w-3.5 shrink-0 text-white/20" />
+            )}
+          </span>
         </button>
 
         {detailsOpen && (
-          <section className="absolute left-1/2 mt-2 w-[min(92vw,330px)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)]">
+          <section className="absolute left-1/2 mt-2 w-[min(92vw,330px)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:bottom-0 lg:left-full lg:ml-2 lg:mt-0 lg:w-[330px] lg:translate-x-0">
             <div
               className={
                 "border-b px-4 py-3.5 " +
