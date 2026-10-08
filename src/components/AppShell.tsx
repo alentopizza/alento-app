@@ -171,11 +171,6 @@ export default function AppShell({
     pathname.startsWith("/repartidor") ||
     pathname.startsWith("/sin-acceso");
 
-  const showStaffStoreStatus =
-    pathname === "/interno" ||
-    pathname.startsWith("/pedidos") ||
-    pathname.startsWith("/caja");
-
   useEffect(() => {
     try {
       setSidebarCollapsed(
@@ -765,7 +760,7 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      {showStaffStoreStatus && <StaffStoreStatus />}
+      <StaffStoreStatus sidebarCollapsed={sidebarCollapsed} />
     </div>
   );
 }
