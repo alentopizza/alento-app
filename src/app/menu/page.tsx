@@ -415,7 +415,7 @@ export default function PublicMenuPage() {
     <main className="alento-public-menu min-h-screen bg-[#090909] pb-24 text-white">
       <section className="min-h-screen bg-[#090909]">
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
-          <div className="mx-auto w-full max-w-[1320px] overflow-hidden">
+          <div className="mx-auto w-full max-w-[1080px] overflow-hidden">
             {homeLoaded ? (
               <div className="aspect-video w-full overflow-hidden bg-black">
                 <img
