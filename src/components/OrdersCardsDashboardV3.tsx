@@ -774,33 +774,18 @@ export default function OrdersCardsDashboardV3() {
   }
 
   function downloadReceiptImage(order: Order) {
-    const frame = document.createElement("iframe");
-    Object.assign(frame.style, {
-      position: "fixed",
-      width: "1px",
-      height: "1px",
-      opacity: "0",
-      pointerEvents: "none",
-    });
-    frame.src = `/pedidos/${order.id}/imprimir?autoimage=1&embedded=1`;
-    document.body.appendChild(frame);
+    // Chrome puede bloquear descargas disparadas desde iframes invisibles.
+    // Abrimos la factura desde el clic real del usuario; la página descarga
+    // el PNG automáticamente y se cierra si todo sale bien. Si el navegador
+    // bloquea la descarga, queda visible el botón manual como respaldo.
+    const url = `/pedidos/${order.id}/imprimir?autoimage=1&autoclose=1`;
+    const opened = window.open(url, "_blank");
 
-    const cleanup = (event: MessageEvent) => {
-      if (
-        event.origin === window.location.origin &&
-        event.data?.type === "ALENTO_RECEIPT_IMAGE_DOWNLOADED" &&
-        Number(event.data?.orderId) === order.id
-      ) {
-        window.removeEventListener("message", cleanup);
-        frame.remove();
-      }
-    };
-
-    window.addEventListener("message", cleanup);
-    window.setTimeout(() => {
-      window.removeEventListener("message", cleanup);
-      frame.remove();
-    }, 30000);
+    if (!opened) {
+      window.location.assign(
+        `/pedidos/${order.id}/imprimir?autoimage=1`,
+      );
+    }
   }
 
   async function cancelOrder(order: Order) {
