@@ -186,14 +186,18 @@ export function trackCatalogEvent(
 
   const queueWindow = window as typeof window & {
     __alentoAnalyticsQueue?: Array<typeof event>;
+    __alentoTrackingReady?: boolean;
   };
-  queueWindow.__alentoAnalyticsQueue ??= [];
-  queueWindow.__alentoAnalyticsQueue.push(event);
-  if (queueWindow.__alentoAnalyticsQueue.length > 80) {
-    queueWindow.__alentoAnalyticsQueue.splice(
-      0,
-      queueWindow.__alentoAnalyticsQueue.length - 80,
-    );
+
+  if (!queueWindow.__alentoTrackingReady) {
+    queueWindow.__alentoAnalyticsQueue ??= [];
+    queueWindow.__alentoAnalyticsQueue.push(event);
+    if (queueWindow.__alentoAnalyticsQueue.length > 80) {
+      queueWindow.__alentoAnalyticsQueue.splice(
+        0,
+        queueWindow.__alentoAnalyticsQueue.length - 80,
+      );
+    }
   }
 
   window.dispatchEvent(
