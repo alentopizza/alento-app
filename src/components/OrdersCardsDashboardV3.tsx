@@ -774,75 +774,12 @@ export default function OrdersCardsDashboardV3() {
   }
 
   function downloadReceiptImage(order: Order) {
-    const frame = document.createElement("iframe");
-    Object.assign(frame.style, {
-      position: "fixed",
-      left: "-10000px",
-      top: "0",
-      width: "320px",
-      height: "1200px",
-      opacity: "0",
-      pointerEvents: "none",
-      border: "0",
-    });
-
-    let finished = false;
-
-    const cleanup = () => {
-      if (finished) return;
-      finished = true;
-      window.removeEventListener("message", onMessage);
-      frame.remove();
-    };
-
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (Number(event.data?.orderId) !== order.id) return;
-
-      if (
-        event.data?.type === "ALENTO_RECEIPT_IMAGE_READY" &&
-        event.data?.blob instanceof Blob
-      ) {
-        const url = URL.createObjectURL(event.data.blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download =
-          String(event.data?.filename || "").trim() ||
-          `${displayOrderCode(order)}-factura.png`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-        cleanup();
-        return;
-      }
-
-      if (event.data?.type === "ALENTO_RECEIPT_IMAGE_ERROR") {
-        setFeedbackModal({
-          tone: "error",
-          title: "No fue posible descargar la factura",
-          message:
-            String(event.data?.message || "").trim() ||
-            "No fue posible generar la factura como imagen.",
-        });
-        cleanup();
-      }
-    };
-
-    window.addEventListener("message", onMessage);
-    frame.src = `/pedidos/${order.id}/imprimir?autoimage=1&embedded=1`;
-    document.body.appendChild(frame);
-
-    window.setTimeout(() => {
-      if (finished) return;
-      setFeedbackModal({
-        tone: "error",
-        title: "La descarga tardó demasiado",
-        message:
-          "No fue posible generar la factura como imagen. Intenta nuevamente.",
-      });
-      cleanup();
-    }, 20000);
+    const anchor = document.createElement("a");
+    anchor.href = `/api/orders/${order.id}/receipt-image`;
+    anchor.download = `${displayOrderCode(order)}-factura.png`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   async function cancelOrder(order: Order) {
