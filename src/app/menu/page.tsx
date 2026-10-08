@@ -8,6 +8,7 @@ import {
   type PublicCartItem,
 } from "@/lib/publicCart";
 import { readPublicCache, writePublicCache } from "@/lib/publicBrowserCache";
+import { trackCatalogEvent } from "@/lib/publicAnalytics";
 import type { StandardOrderConfiguration } from "@/lib/orderConfiguration";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
@@ -110,6 +111,10 @@ export default function PublicMenuPage() {
   const [cartReady, setCartReady] = useState(false);
   const [cartFeedback, setCartFeedback] = useState("");
   const cartFeedbackTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    trackCatalogEvent("MENU_VIEW");
+  }, []);
 
   useEffect(() => {
     function applyCatalog(catalogData: CatalogResponse) {
@@ -298,6 +303,15 @@ export default function PublicMenuPage() {
     return money(value);
   }
 
+  function openProduct(product: CatalogProduct) {
+    setSelectedProduct(product);
+    trackCatalogEvent("PRODUCT_VIEW", {
+      productId: product.id,
+      productName: product.name,
+      value: productPriceValue(product),
+    });
+  }
+
   function triggerCartFeedback(productName: string) {
     setCartFeedback(productName);
 
@@ -350,13 +364,19 @@ export default function PublicMenuPage() {
 
   function addItemToCart(item: CartItem) {
     setCart((current) => [...current, item]);
+    trackCatalogEvent("ADD_TO_CART", {
+      productId: item.productId,
+      productName: item.name,
+      value: item.unitPrice * item.quantity,
+      quantity: item.quantity,
+    });
     triggerCartFeedback(item.name);
   }
 
   function addSimpleProduct(product: CatalogProduct) {
     const unitPrice = product.basePrice;
     if (unitPrice == null) {
-      setSelectedProduct(product);
+      openProduct(product);
       return;
     }
 
@@ -391,6 +411,12 @@ export default function PublicMenuPage() {
       ];
     });
 
+    trackCatalogEvent("ADD_TO_CART", {
+      productId: product.id,
+      productName: product.name,
+      value: unitPrice,
+      quantity: 1,
+    });
     triggerCartFeedback(product.name);
     setSelectedProduct(null);
   }
@@ -449,7 +475,7 @@ export default function PublicMenuPage() {
               <button
                 key={product.id}
                 type="button"
-                onClick={() => setSelectedProduct(product)}
+                onClick={() => openProduct(product)}
                 className="alento-product-card alento-product-card-featured group text-left"
               >
                 <div className="alento-product-card-media">
@@ -482,13 +508,13 @@ export default function PublicMenuPage() {
                       tabIndex={0}
                       onClick={(event) => {
                         event.stopPropagation();
-                        setSelectedProduct(product);
+                        openProduct(product);
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           event.stopPropagation();
-                          setSelectedProduct(product);
+                          openProduct(product);
                         }
                       }}
                       className="alento-product-card-action"
@@ -558,7 +584,7 @@ export default function PublicMenuPage() {
                     <button
                       key={product.id}
                       type="button"
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => openProduct(product)}
                       className="alento-product-card group text-left"
                     >
                       <div className="alento-product-card-media">
@@ -588,13 +614,13 @@ export default function PublicMenuPage() {
                             tabIndex={0}
                             onClick={(event) => {
                               event.stopPropagation();
-                              setSelectedProduct(product);
+                              openProduct(product);
                             }}
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                setSelectedProduct(product);
+                                openProduct(product);
                               }
                             }}
                             className="alento-product-card-action"
@@ -645,7 +671,7 @@ export default function PublicMenuPage() {
                       <button
                         key={product.id}
                         type="button"
-                        onClick={() => setSelectedProduct(product)}
+                        onClick={() => openProduct(product)}
                         className="alento-product-card group text-left"
                       >
                         <div className="alento-product-card-media">
@@ -675,13 +701,13 @@ export default function PublicMenuPage() {
                               tabIndex={0}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                setSelectedProduct(product);
+                                openProduct(product);
                               }}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") {
                                   event.preventDefault();
                                   event.stopPropagation();
-                                  setSelectedProduct(product);
+                                  openProduct(product);
                                 }
                               }}
                               className="alento-product-card-action"
