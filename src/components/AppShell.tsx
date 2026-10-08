@@ -165,6 +165,15 @@ export default function AppShell({
     return null;
   }, [pathname]);
 
+  const publicTrackingSurface =
+    pathname === "/" ||
+    pathname.startsWith("/menu") ||
+    pathname.startsWith("/cart") ||
+    pathname === "/club" ||
+    pathname.startsWith("/club/") ||
+    pathname.startsWith("/cuenta") ||
+    pathname.startsWith("/seguimiento/");
+
   const publicSurface =
     pathname.startsWith("/login") ||
     pathname.startsWith("/setup/") ||
@@ -314,7 +323,7 @@ export default function AppShell({
       return (
         <>
           {children}
-          <PublicTracking />
+          {publicTrackingSurface && <PublicTracking />}
           <PublicStoreClosedNotice />
           <PublicMobileNav
             active={publicNavActive}
@@ -327,7 +336,7 @@ export default function AppShell({
     return (
       <>
         {children}
-        <PublicTracking />
+        {publicTrackingSurface && <PublicTracking />}
       </>
     );
   }
