@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import sharp from "sharp";
+import opentype from "opentype.js";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
@@ -10,6 +11,77 @@ export const dynamic = "force-dynamic";
 
 const LOGO_URL =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+
+const FONT_URLS = {
+  regular:
+    "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Regular.ttf",
+  bold:
+    "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Bold.ttf",
+  black:
+    "https://raw.githubusercontent.com/google/fonts/main/ofl/lato/Lato-Black.ttf",
+} as const;
+
+type ReceiptFont = ReturnType<typeof opentype.parse>;
+type ReceiptFonts = {
+  regular: ReceiptFont;
+  bold: ReceiptFont;
+  black: ReceiptFont;
+};
+
+let receiptFontsPromise: Promise<ReceiptFonts> | null = null;
+
+async function fetchReceiptFont(url: string) {
+  const response = await fetch(url, { cache: "force-cache" });
+  if (!response.ok) {
+    throw new Error(`No fue posible cargar la tipografía de la factura (${response.status}).`);
+  }
+  return opentype.parse(await response.arrayBuffer());
+}
+
+async function loadReceiptFonts(): Promise<ReceiptFonts> {
+  if (!receiptFontsPromise) {
+    receiptFontsPromise = Promise.all([
+      fetchReceiptFont(FONT_URLS.regular),
+      fetchReceiptFont(FONT_URLS.bold),
+      fetchReceiptFont(FONT_URLS.black),
+    ]).then(([regular, bold, black]) => ({ regular, bold, black }));
+  }
+
+  try {
+    return await receiptFontsPromise;
+  } catch (error) {
+    receiptFontsPromise = null;
+    throw error;
+  }
+}
+
+function fontForWeight(fonts: ReceiptFonts, weight: number) {
+  if (weight >= 850) return fonts.black;
+  if (weight >= 650) return fonts.bold;
+  return fonts.regular;
+}
+
+function textAsPath(
+  fonts: ReceiptFonts,
+  value: string,
+  x: number,
+  y: number,
+  size: number,
+  weight = 700,
+  anchor: "start" | "middle" | "end" = "start",
+) {
+  const font = fontForWeight(fonts, weight);
+  const advance = font.getAdvanceWidth(value, size);
+  const startX =
+    anchor === "middle"
+      ? x - advance / 2
+      : anchor === "end"
+        ? x - advance
+        : x;
+  const path = font.getPath(value, startX, y, size);
+
+  return `<path d="${path.toPathData(2)}" fill="#000"/>`;
+}
 
 type JsonObject = Record<string, unknown>;
 
@@ -73,14 +145,6 @@ function pizzaCrustSnapshot(configuration: unknown) {
   return name ? { name, price } : null;
 }
 
-function escapeXml(value: unknown) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 function wrapText(value: string, maxChars: number) {
   const clean = value.replace(/\s+/g, " ").trim();
@@ -165,7 +229,28 @@ export async function GET(
   const displayCode = orderCode(displayNumber, order.source);
   const address = compactDeliveryAddress(order.address?.address);
   const deliveryInstructions = order.address?.notes?.trim() || "";
-  const logo = await logoDataUri();
+
+  let fonts: ReceiptFonts;
+  let logo: string | null;
+
+  try {
+    [fonts, logo] = await Promise.all([
+      loadReceiptFonts(),
+      logoDataUri(),
+    ]);
+  } catch (assetError) {
+    console.error("Receipt assets failed to load", {
+      orderId: order.id,
+      error:
+        assetError instanceof Error
+          ? assetError.message
+          : "Unknown asset error",
+    });
+    return new Response(
+      "No fue posible preparar la tipografía de la factura.",
+      { status: 500 },
+    );
+  }
 
   const width = 840;
   const left = 72;
@@ -190,7 +275,7 @@ export async function GET(
   ) => {
     y += size;
     parts.push(
-      `<text x="${width / 2}" y="${y}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="#000">${escapeXml(text)}</text>`,
+      textAsPath(fonts, text, width / 2, y, size, weight, "middle"),
     );
     y += gap;
   };
@@ -204,7 +289,7 @@ export async function GET(
   ) => {
     y += size;
     parts.push(
-      `<text x="${left + indent}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="#000">${escapeXml(text)}</text>`,
+      textAsPath(fonts, text, left + indent, y, size, weight, "start"),
     );
     y += gap;
   };
@@ -217,10 +302,10 @@ export async function GET(
   ) => {
     y += size;
     parts.push(
-      `<text x="${left}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="#000">${escapeXml(label)}</text>`,
+      textAsPath(fonts, label, left, y, size, weight, "start"),
     );
     parts.push(
-      `<text x="${right}" y="${y}" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="${size}" font-weight="${weight}" fill="#000">${escapeXml(value)}</text>`,
+      textAsPath(fonts, value, right, y, size, weight, "end"),
     );
     y += 10;
   };
@@ -239,7 +324,15 @@ export async function GET(
     let textY = y + padding + fontSize;
     for (const text of lines) {
       parts.push(
-        `<text x="${width / 2}" y="${textY}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="${weight}" fill="#000">${escapeXml(text)}</text>`,
+        textAsPath(
+          fonts,
+          text,
+          width / 2,
+          textY,
+          fontSize,
+          weight,
+          "middle",
+        ),
       );
       textY += lineHeight;
     }
@@ -267,7 +360,7 @@ export async function GET(
     `<rect x="${(width - modeWidth) / 2}" y="${y}" width="${modeWidth}" height="64" fill="#fff" stroke="#000" stroke-width="4"/>`,
   );
   parts.push(
-    `<text x="${width / 2}" y="${y + 43}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="900" fill="#000">${escapeXml(mode)}</text>`,
+    textAsPath(fonts, mode, width / 2, y + 43, 31, 900, "middle"),
   );
   y += 76;
 
@@ -341,10 +434,26 @@ export async function GET(
 
     y += 31;
     parts.push(
-      `<text x="${left}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="900" fill="#000">${escapeXml(productLines[0] || "")}</text>`,
+      textAsPath(
+        fonts,
+        productLines[0] || "",
+        left,
+        y,
+        29,
+        900,
+        "start",
+      ),
     );
     parts.push(
-      `<text x="${right}" y="${y}" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="900" fill="#000">$ ${escapeXml(money(baseLineTotal))}</text>`,
+      textAsPath(
+        fonts,
+        `$ ${money(baseLineTotal)}`,
+        right,
+        y,
+        30,
+        900,
+        "end",
+      ),
     );
     y += 7;
 
@@ -364,11 +473,19 @@ export async function GET(
       const crustText = `BORDE: ${crust.name.toUpperCase()}`;
       y += 25;
       parts.push(
-        `<text x="${left + 28}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" fill="#000">${escapeXml(crustText)}</text>`,
+        textAsPath(fonts, crustText, left + 28, y, 24, 700, "start"),
       );
       if (crustTotal > 0) {
         parts.push(
-          `<text x="${right}" y="${y}" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="900" fill="#000">$ ${escapeXml(money(crustTotal))}</text>`,
+          textAsPath(
+            fonts,
+            `$ ${money(crustTotal)}`,
+            right,
+            y,
+            25,
+            900,
+            "end",
+          ),
         );
       }
       y += 4;
@@ -387,7 +504,15 @@ export async function GET(
       let noteY = y + 20 + 22;
       for (const noteLine of noteLines) {
         parts.push(
-          `<text x="${left + 44}" y="${noteY}" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="900" fill="#000">${escapeXml(noteLine)}</text>`,
+          textAsPath(
+            fonts,
+            noteLine,
+            left + 44,
+            noteY,
+            22,
+            900,
+            "start",
+          ),
         );
         noteY += 28;
       }
@@ -409,10 +534,18 @@ export async function GET(
   );
   y += 48;
   parts.push(
-    `<text x="${left}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="900" fill="#000">TOTAL</text>`,
+    textAsPath(fonts, "TOTAL", left, y, 48, 900, "start"),
   );
   parts.push(
-    `<text x="${right}" y="${y}" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="900" fill="#000">$ ${escapeXml(money(Number(order.total)))}</text>`,
+    textAsPath(
+      fonts,
+      `$ ${money(Number(order.total))}`,
+      right,
+      y,
+      48,
+      900,
+      "end",
+    ),
   );
   y += 28;
 
