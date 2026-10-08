@@ -137,6 +137,10 @@ export default async function TrackingPage({
   const { stages, current } = trackingStages(order.fulfillmentType, order.status);
   const activeLabel = STATUS_LABEL[order.status] ?? order.status;
   const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
+  const deliveryMapVisible =
+    order.fulfillmentType === "DELIVERY" &&
+    ["OUT_FOR_DELIVERY", "ARRIVED"].includes(order.status);
+  const showPromoBanner = !deliveryMapVisible;
 
   return (
     <main className="min-h-screen bg-[#080808] px-4 pb-8 pt-3 text-white sm:px-6 sm:pb-10 sm:pt-4 lg:pt-5">
@@ -254,10 +258,64 @@ export default async function TrackingPage({
           </div>
 
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
-            {order.fulfillmentType === "DELIVERY" &&
-              ["OUT_FOR_DELIVERY", "ARRIVED"].includes(order.status) && (
-                <CustomerDeliveryLiveMap token={token} orderCode={code} />
-              )}
+            {deliveryMapVisible && (
+              <CustomerDeliveryLiveMap token={token} orderCode={code} />
+            )}
+
+            {showPromoBanner && (
+              <Link
+                href="/menu?utm_source=seguimiento&utm_medium=app&utm_campaign=promociones_activas"
+                className="group relative mb-4 block overflow-hidden rounded-[22px] border border-[#e21a22]/70 bg-[#100808] shadow-[0_18px_46px_rgba(226,26,34,.14)] transition hover:-translate-y-0.5 hover:border-[#ff454b] hover:shadow-[0_22px_56px_rgba(226,26,34,.20)] active:scale-[.995]"
+                aria-label="Descubre promociones activas en el menú de Alentó Pizza"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(226,26,34,.30),transparent_28%),linear-gradient(105deg,#150707_0%,#120909_52%,#080808_100%)]" />
+
+                <div className="absolute inset-y-0 right-0 w-[46%] overflow-hidden sm:w-[42%]">
+                  <img
+                    src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-full w-full scale-[1.35] object-cover object-[78%_62%] opacity-75 saturate-125 transition duration-500 group-hover:scale-[1.42]"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(90deg,#100808_0%,rgba(16,8,8,.74)_20%,rgba(16,8,8,.12)_70%,rgba(16,8,8,.04)_100%)]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
+                </div>
+
+                <div className="relative z-10 min-h-[184px] px-5 py-5 pr-[36%] sm:min-h-[196px] sm:px-6 sm:py-6 sm:pr-[38%]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-[#ff454b] sm:text-[10px]">
+                      Sigue descubriendo
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ff454b]/35 bg-[#e21a22]/10 px-2.5 py-1 text-[8px] font-bold text-red-100/85 backdrop-blur-sm">
+                      <span aria-hidden="true">🎁</span>
+                      En la app
+                    </span>
+                  </div>
+
+                  <h3 className="mt-3 max-w-[330px] text-[21px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[26px]">
+                    Descubre
+                    <span className="block text-[#ff3439]">
+                      promociones activas
+                    </span>
+                  </h3>
+
+                  <p className="mt-3 max-w-[300px] text-[10px] leading-4 text-white/56 sm:text-[11px] sm:leading-[18px]">
+                    Explora el menú, encuentra combos y aprovecha beneficios de la app.
+                  </p>
+
+                  <span className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[#e21a22] px-4 text-[10px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.28)] transition group-hover:bg-[#f01f28] sm:h-11 sm:px-5 sm:text-[11px]">
+                    Ir al menú
+                    <span className="text-base leading-none" aria-hidden="true">
+                      →
+                    </span>
+                  </span>
+                </div>
+
+                <div className="pointer-events-none absolute right-[11%] top-[34%] z-10 flex h-12 w-12 -rotate-6 items-center justify-center rounded-[16px] border border-[#ff454b]/70 bg-black/58 text-[21px] font-black text-[#ff454b] shadow-[0_0_28px_rgba(226,26,34,.34)] backdrop-blur-sm sm:h-14 sm:w-14 sm:text-[24px]">
+                  %
+                </div>
+              </Link>
+            )}
 
             <section className="overflow-hidden rounded-[22px] border border-white/10 bg-white text-neutral-950 shadow-[0_18px_46px_rgba(0,0,0,.26)]">
               <div className="border-b border-neutral-200 px-4 py-4 sm:px-5">
