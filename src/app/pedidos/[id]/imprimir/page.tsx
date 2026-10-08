@@ -130,11 +130,169 @@ function itemReceiptBreakdown(item: Order["items"][number]) {
   };
 }
 
+function copyComputedStyles(source: Element, target: Element) {
+  if (!(target instanceof HTMLElement || target instanceof SVGElement)) {
+    return;
+  }
+
+  const computed = window.getComputedStyle(source);
+  for (let index = 0; index < computed.length; index += 1) {
+    const property = computed.item(index);
+    target.style.setProperty(
+      property,
+      computed.getPropertyValue(property),
+      computed.getPropertyPriority(property),
+    );
+  }
+
+  const sourceChildren = Array.from(source.children);
+  const targetChildren = Array.from(target.children);
+
+  sourceChildren.forEach((child, index) => {
+    const targetChild = targetChildren[index];
+    if (targetChild) copyComputedStyles(child, targetChild);
+  });
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () =>
+      reject(new Error("No fue posible preparar una imagen del comprobante."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function inlineReceiptImages(source: HTMLElement, clone: HTMLElement) {
+  const sourceImages = Array.from(source.querySelectorAll("img"));
+  const cloneImages = Array.from(clone.querySelectorAll("img"));
+
+  await Promise.all(
+    sourceImages.map(async (image, index) => {
+      const target = cloneImages[index];
+      if (!target) return;
+
+      const url = image.currentSrc || image.src;
+      if (!url) return;
+
+      try {
+        const response = await fetch(url, { mode: "cors" });
+        if (!response.ok) return;
+        target.src = await blobToDataUrl(await response.blob());
+      } catch {
+        // Si un recurso externo no admite CORS, conservamos su URL original.
+      }
+    }),
+  );
+}
+
+async function renderReceiptPng(element: HTMLElement) {
+  await document.fonts?.ready;
+
+  const images = Array.from(element.querySelectorAll("img"));
+  await Promise.all(
+    images.map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          const done = () => resolve();
+          image.addEventListener("load", done, { once: true });
+          image.addEventListener("error", done, { once: true });
+        }),
+    ),
+  );
+
+  const rect = element.getBoundingClientRect();
+  const width = Math.ceil(rect.width);
+  const height = Math.ceil(Math.max(rect.height, element.scrollHeight));
+  const clone = element.cloneNode(true) as HTMLElement;
+
+  copyComputedStyles(element, clone);
+  await inlineReceiptImages(element, clone);
+
+  clone.style.margin = "0";
+  clone.style.width = `${width}px`;
+  clone.style.maxWidth = `${width}px`;
+  clone.style.background = "#ffffff";
+
+  const wrapper = document.createElementNS(
+    "http://www.w3.org/1999/xhtml",
+    "div",
+  );
+  wrapper.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  wrapper.style.width = `${width}px`;
+  wrapper.style.height = `${height}px`;
+  wrapper.style.margin = "0";
+  wrapper.style.padding = "0";
+  wrapper.style.background = "#ffffff";
+  wrapper.appendChild(clone);
+
+  const serialized = new XMLSerializer().serializeToString(wrapper);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="100%" height="100%">${serialized}</foreignObject></svg>`;
+  const svgUrl = URL.createObjectURL(
+    new Blob([svg], { type: "image/svg+xml;charset=utf-8" }),
+  );
+
+  try {
+    const image = new window.Image();
+    image.src = svgUrl;
+
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () =>
+        reject(new Error("No fue posible generar la imagen del comprobante."));
+    });
+
+    const scale = 3;
+    const canvas = document.createElement("canvas");
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("No fue posible generar la imagen del comprobante.");
+    }
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      image,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) =>
+          blob
+            ? resolve(blob)
+            : reject(
+                new Error(
+                  "No fue posible guardar la imagen del comprobante.",
+                ),
+              ),
+        "image/png",
+        1,
+      );
+    });
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
 export default function ThermalReceiptPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
   const autoPrinted = useRef(false);
   const embedded = searchParams.get("embedded") === "1";
   const autoPrint = searchParams.get("autoprint") === "1";
@@ -159,6 +317,38 @@ export default function ThermalReceiptPage() {
     const timer = window.setTimeout(() => window.print(), 250);
     return () => window.clearTimeout(timer);
   }, [order, autoPrint]);
+
+  async function downloadReceiptImage() {
+    if (!order || imageBusy) return;
+
+    const receipt = document.querySelector<HTMLElement>(".thermal-receipt");
+    if (!receipt) return;
+
+    setImageBusy(true);
+    setError("");
+
+    try {
+      const blob = await renderReceiptPng(receipt);
+      const displayNumber = order.sequenceNumber ?? order.id;
+      const displayCode = orderCode(displayNumber, order.source);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${displayCode}-factura.png`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (downloadError) {
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "No fue posible descargar la factura como imagen.",
+      );
+    } finally {
+      setImageBusy(false);
+    }
+  }
 
   function downloadReceipt() {
     if (!order) return;
@@ -202,9 +392,16 @@ export default function ThermalReceiptPage() {
 
   return (
     <main className="thermal-page mx-auto min-h-screen bg-white px-[5mm] py-[5mm] text-black">
-      {!embedded && <div className="no-print mb-4 flex justify-center gap-2">
+      {!embedded && <div className="no-print mb-4 flex flex-wrap justify-center gap-2">
         <button onClick={() => window.print()} className="rounded-xl bg-black px-5 py-2.5 text-sm font-black text-white">Imprimir</button>
-        <button onClick={downloadReceipt} className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-sm font-black text-white">Descargar comprobante</button>
+        <button
+          onClick={() => void downloadReceiptImage()}
+          disabled={imageBusy}
+          className="rounded-xl bg-[var(--brand-red)] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50"
+        >
+          {imageBusy ? "Generando imagen..." : "Descargar imagen"}
+        </button>
+        <button onClick={downloadReceipt} className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-black text-black">Descargar HTML</button>
         <button onClick={() => window.close()} className="rounded-xl border px-5 py-2.5 text-sm font-black">Cerrar</button>
       </div>}
 
