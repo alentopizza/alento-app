@@ -774,18 +774,75 @@ export default function OrdersCardsDashboardV3() {
   }
 
   function downloadReceiptImage(order: Order) {
-    // Chrome puede bloquear descargas disparadas desde iframes invisibles.
-    // Abrimos la factura desde el clic real del usuario; la página descarga
-    // el PNG automáticamente y se cierra si todo sale bien. Si el navegador
-    // bloquea la descarga, queda visible el botón manual como respaldo.
-    const url = `/pedidos/${order.id}/imprimir?autoimage=1&autoclose=1`;
-    const opened = window.open(url, "_blank");
+    const frame = document.createElement("iframe");
+    Object.assign(frame.style, {
+      position: "fixed",
+      left: "-10000px",
+      top: "0",
+      width: "320px",
+      height: "1200px",
+      opacity: "0",
+      pointerEvents: "none",
+      border: "0",
+    });
 
-    if (!opened) {
-      window.location.assign(
-        `/pedidos/${order.id}/imprimir?autoimage=1`,
-      );
-    }
+    let finished = false;
+
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      window.removeEventListener("message", onMessage);
+      frame.remove();
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (Number(event.data?.orderId) !== order.id) return;
+
+      if (
+        event.data?.type === "ALENTO_RECEIPT_IMAGE_READY" &&
+        event.data?.blob instanceof Blob
+      ) {
+        const url = URL.createObjectURL(event.data.blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download =
+          String(event.data?.filename || "").trim() ||
+          `${displayOrderCode(order)}-factura.png`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        cleanup();
+        return;
+      }
+
+      if (event.data?.type === "ALENTO_RECEIPT_IMAGE_ERROR") {
+        setFeedbackModal({
+          tone: "error",
+          title: "No fue posible descargar la factura",
+          message:
+            String(event.data?.message || "").trim() ||
+            "No fue posible generar la factura como imagen.",
+        });
+        cleanup();
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    frame.src = `/pedidos/${order.id}/imprimir?autoimage=1&embedded=1`;
+    document.body.appendChild(frame);
+
+    window.setTimeout(() => {
+      if (finished) return;
+      setFeedbackModal({
+        tone: "error",
+        title: "La descarga tardó demasiado",
+        message:
+          "No fue posible generar la factura como imagen. Intenta nuevamente.",
+      });
+      cleanup();
+    }, 20000);
   }
 
   async function cancelOrder(order: Order) {
