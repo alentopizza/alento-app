@@ -12,6 +12,7 @@ import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
 } from "@/lib/publicCart";
+import { trackCatalogEvent } from "@/lib/publicAnalytics";
 
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -75,6 +76,8 @@ export default function CartPage() {
   const [upsellPrompted, setUpsellPrompted] = useState(false);
   const [addedUpsellId, setAddedUpsellId] = useState<number | null>(null);
   const upsellRef = useRef<HTMLDivElement | null>(null);
+  const cartViewTrackedRef = useRef(false);
+  const previousCartLengthRef = useRef(0);
 
   useEffect(() => {
     try {
@@ -190,6 +193,33 @@ export default function CartPage() {
     window.localStorage.setItem(PUBLIC_CART_STORAGE_KEY, JSON.stringify(cart));
     window.dispatchEvent(new Event("alento-cart-updated"));
 
+    const itemCount = cart.reduce(
+      (total, item) => total + item.quantity,
+      0,
+    );
+    const cartValue = cart.reduce(
+      (total, item) => total + item.unitPrice * item.quantity,
+      0,
+    );
+
+    if (cart.length > 0 && !cartViewTrackedRef.current) {
+      cartViewTrackedRef.current = true;
+      trackCatalogEvent("CART_VIEW", {
+        value: cartValue,
+        itemCount,
+      });
+    }
+
+    if (
+      previousCartLengthRef.current > 0 &&
+      cart.length === 0
+    ) {
+      cartViewTrackedRef.current = false;
+      trackCatalogEvent("CART_EMPTIED");
+    }
+
+    previousCartLengthRef.current = cart.length;
+
     if (cart.length === 0) {
       setUpsellReviewed(false);
       setUpsellPrompted(false);
@@ -297,6 +327,14 @@ export default function CartPage() {
     setUpsellReviewed(false);
     setUpsellPrompted(false);
     setAddedUpsellId(product.id);
+    trackCatalogEvent("ADD_TO_CART", {
+      productId: product.id,
+      productName: product.name,
+      value: product.basePrice,
+      quantity: 1,
+      itemCount:
+        cart.reduce((total, item) => total + item.quantity, 0) + 1,
+    });
     window.dispatchEvent(new Event("alento-cart-added"));
 
     window.setTimeout(() => {
@@ -306,12 +344,23 @@ export default function CartPage() {
     }, 1200);
   }
 
+  function startCheckout() {
+    trackCatalogEvent("CHECKOUT_STARTED", {
+      value: subtotal,
+      itemCount: cart.reduce(
+        (total, item) => total + item.quantity,
+        0,
+      ),
+    });
+    setCheckoutStep("delivery");
+  }
+
   function continueOrder() {
     if (visibleUpsellProducts.length > 0 && !upsellReviewed) {
       if (upsellPrompted) {
         setUpsellReviewed(true);
         setUpsellPrompted(false);
-        setCheckoutStep("delivery");
+        startCheckout();
         return;
       }
 
@@ -325,7 +374,7 @@ export default function CartPage() {
       return;
     }
 
-    setCheckoutStep("delivery");
+    startCheckout();
   }
 
   function canAdjustQuantity(item: PublicCartItem) {
@@ -335,6 +384,19 @@ export default function CartPage() {
   }
 
   function changeQuantity(key: string, delta: number) {
+    const target = cart.find((item) => item.key === key);
+
+    if (delta > 0 && target && canAdjustQuantity(target)) {
+      trackCatalogEvent("ADD_TO_CART", {
+        productId: target.productId,
+        productName: target.name,
+        value: target.unitPrice,
+        quantity: 1,
+        itemCount:
+          cart.reduce((total, item) => total + item.quantity, 0) + 1,
+      });
+    }
+
     setCart((current) =>
       current
         .map((item) =>
@@ -614,6 +676,18 @@ export default function CartPage() {
           fullPage
           onBack={() => setCheckoutStep("delivery")}
           onComplete={(order) => {
+            trackCatalogEvent("ORDER_CREATED", {
+              orderId: order.id,
+              value: order.total,
+              itemCount: cart.reduce(
+                (total, item) => total + item.quantity,
+                0,
+              ),
+              metadata: {
+                fulfillmentType: order.fulfillmentType,
+                paymentMethod: order.paymentMethod,
+              },
+            });
             setCreatedOrder(order);
             setCheckoutStep("cart");
             setCart([]);
