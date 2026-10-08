@@ -294,8 +294,10 @@ export default function ThermalReceiptPage() {
   const [error, setError] = useState("");
   const [imageBusy, setImageBusy] = useState(false);
   const autoPrinted = useRef(false);
+  const autoImageDownloaded = useRef(false);
   const embedded = searchParams.get("embedded") === "1";
   const autoPrint = searchParams.get("autoprint") === "1";
+  const autoImage = searchParams.get("autoimage") === "1";
 
   useEffect(() => {
     async function load() {
@@ -318,7 +320,7 @@ export default function ThermalReceiptPage() {
     return () => window.clearTimeout(timer);
   }, [order, autoPrint]);
 
-  async function downloadReceiptImage() {
+  async function downloadReceiptImage(options?: { silent?: boolean }) {
     if (!order || imageBusy) return;
 
     const receipt = document.querySelector<HTMLElement>(".thermal-receipt");
@@ -339,6 +341,17 @@ export default function ThermalReceiptPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+
+      if (options?.silent) {
+        window.setTimeout(() => {
+          try {
+            window.parent?.postMessage(
+              { type: "ALENTO_RECEIPT_IMAGE_DOWNLOADED", orderId: order.id },
+              window.location.origin,
+            );
+          } catch {}
+        }, 150);
+      }
     } catch (downloadError) {
       setError(
         downloadError instanceof Error
@@ -349,6 +362,17 @@ export default function ThermalReceiptPage() {
       setImageBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!order || !autoImage || autoImageDownloaded.current) return;
+    autoImageDownloaded.current = true;
+
+    const timer = window.setTimeout(() => {
+      void downloadReceiptImage({ silent: true });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [order, autoImage]);
 
   function downloadReceipt() {
     if (!order) return;
