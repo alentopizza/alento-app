@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BadgePercent,
+  BarChart3,
   Bell,
   BookOpen,
   CalendarClock,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
+import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
 import {
   PUBLIC_CART_STORAGE_KEY,
@@ -91,6 +93,12 @@ const items = [
     href: "/notificaciones",
     label: "Notificaciones",
     icon: Bell,
+    roles: ["ADMIN"],
+  },
+  {
+    href: "/metricas",
+    label: "Métricas",
+    icon: BarChart3,
     roles: ["ADMIN"],
   },
   {
@@ -306,6 +314,7 @@ export default function AppShell({
       return (
         <>
           {children}
+          <PublicTracking />
           <PublicStoreClosedNotice />
           <PublicMobileNav
             active={publicNavActive}
@@ -315,7 +324,12 @@ export default function AppShell({
       );
     }
 
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <PublicTracking />
+      </>
+    );
   }
 
   const visibleItems = roles.length
