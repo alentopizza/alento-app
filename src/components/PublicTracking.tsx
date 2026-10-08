@@ -56,9 +56,10 @@ function appendInlineScript(id: string, content: string) {
 function initGoogle(settings: PublicTrackingSettings) {
   const target = window as TrackingWindow;
   const dataLayer = (target.dataLayer ??= []);
-  target.gtag ??= (...args: unknown[]) => {
-    dataLayer.push(args);
-  };
+  const gtag =
+    (target.gtag ??= (...args: unknown[]) => {
+      dataLayer.push(args);
+    });
 
   const primary =
     settings.googleAnalyticsId || settings.googleAdsId;
@@ -68,16 +69,16 @@ function initGoogle(settings: PublicTrackingSettings) {
       "alento-google-gtag",
       `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(primary)}`,
     );
-    target.gtag("js", new Date());
+    gtag("js", new Date());
 
     if (settings.googleAnalyticsId) {
-      target.gtag("config", settings.googleAnalyticsId, {
+      gtag("config", settings.googleAnalyticsId, {
         send_page_view: false,
       });
     }
 
     if (settings.googleAdsId) {
-      target.gtag("config", settings.googleAdsId);
+      gtag("config", settings.googleAdsId);
     }
   }
 
