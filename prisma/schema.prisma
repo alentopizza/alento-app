@@ -724,6 +724,36 @@ model NotificationImage {
   @@index([createdAt])
 }
 
+
+model CatalogAnalyticsEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String
+  visitorId   String
+  sessionId   String
+  cartId      String?
+  productId   Int?
+  productName String?
+  path        String?
+  referrer    String?
+  source      String?
+  medium      String?
+  campaign    String?
+  value       Decimal? @db.Decimal(14, 2)
+  quantity    Int?
+  itemCount   Int?
+  orderId     Int?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([visitorId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([cartId, createdAt])
+  @@index([productId, eventType, createdAt])
+}
+
 model AppSetting {
   key       String   @id
   value     Json
