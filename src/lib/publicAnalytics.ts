@@ -105,12 +105,13 @@ function referrerHost() {
   }
 }
 
-function attribution() {
+function attribution(currentSessionId: string) {
   const params = new URLSearchParams(window.location.search);
   const fromUrl = {
     source: (params.get("utm_source") || "").slice(0, 120),
     medium: (params.get("utm_medium") || "").slice(0, 120),
     campaign: (params.get("utm_campaign") || "").slice(0, 160),
+    sessionId: currentSessionId,
   };
 
   if (fromUrl.source || fromUrl.medium || fromUrl.campaign) {
@@ -122,11 +123,14 @@ function attribution() {
     const saved = readLocal(ATTRIBUTION_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as typeof fromUrl;
-      return {
-        source: String(parsed.source || "").slice(0, 120),
-        medium: String(parsed.medium || "").slice(0, 120),
-        campaign: String(parsed.campaign || "").slice(0, 160),
-      };
+      if (parsed.sessionId === currentSessionId) {
+        return {
+          source: String(parsed.source || "").slice(0, 120),
+          medium: String(parsed.medium || "").slice(0, 120),
+          campaign: String(parsed.campaign || "").slice(0, 160),
+          sessionId: currentSessionId,
+        };
+      }
     }
   } catch {}
 
@@ -135,6 +139,7 @@ function attribution() {
     source: referrer || "direct",
     medium: referrer ? "referral" : "direct",
     campaign: "",
+    sessionId: currentSessionId,
   };
 }
 
@@ -154,12 +159,13 @@ export function trackCatalogEvent(
 
   if (eventType === "CART_EMPTIED" && !currentCartId) return;
 
-  const attr = attribution();
+  const currentSessionId = sessionId();
+  const attr = attribution(currentSessionId);
   const event = {
     eventId: id("event"),
     eventType,
     visitorId: visitorId(),
-    sessionId: sessionId(),
+    sessionId: currentSessionId,
     cartId: currentCartId,
     productId: payload.productId ?? null,
     productName: payload.productName ?? null,
