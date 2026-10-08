@@ -10,8 +10,14 @@ import {
   ShoppingCart,
   TrendingUp,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import type { TrackingSettings } from "@/lib/trackingSettings";
+
+type TextTrackingKey = Exclude<
+  keyof TrackingSettings,
+  "enabled" | "requireConsent"
+>;
 
 type Dashboard = {
   period: { days: number; start: string; end: string };
@@ -90,7 +96,7 @@ function MetricCard({
   label: string;
   value: string;
   detail: string;
-  icon: typeof Users;
+  icon: LucideIcon;
 }) {
   return (
     <article className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,15,12,.04)]">
@@ -167,6 +173,16 @@ export default function MetricsPage() {
       ),
     [dashboard],
   );
+
+  function updateTextSetting(
+    key: TextTrackingKey,
+    value: string,
+  ) {
+    setSettings((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
 
   async function saveSettings() {
     setSaving(true);
@@ -504,21 +520,20 @@ export default function MetricsPage() {
                 />
               </label>
 
-              {[
-                ["Google Tag Manager", "googleTagManagerId", "GTM-XXXXXXX"],
-                ["Google Analytics 4", "googleAnalyticsId", "G-XXXXXXXXXX"],
-                ["Google Ads", "googleAdsId", "AW-123456789"],
-                ["Google Ads · etiqueta compra", "googleAdsPurchaseLabel", "AbCdEFghijk"],
-              ].map(([label, key, placeholder]) => (
+              {(
+                [
+                  ["Google Tag Manager", "googleTagManagerId", "GTM-XXXXXXX"],
+                  ["Google Analytics 4", "googleAnalyticsId", "G-XXXXXXXXXX"],
+                  ["Google Ads", "googleAdsId", "AW-123456789"],
+                  ["Google Ads · etiqueta compra", "googleAdsPurchaseLabel", "AbCdEFghijk"],
+                ] satisfies Array<[string, TextTrackingKey, string]>
+              ).map(([label, key, placeholder]) => (
                 <label key={key} className="block">
                   <span className="mb-1.5 block text-[10px] font-bold">{label}</span>
                   <input
-                    value={String(settings[key as keyof TrackingSettings])}
+                    value={settings[key]}
                     onChange={(event) =>
-                      setSettings((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
+                      updateTextSetting(key, event.target.value)
                     }
                     placeholder={placeholder}
                     className="h-11 w-full rounded-[12px] border border-neutral-200 bg-neutral-50 px-3 text-[11px] outline-none transition focus:border-neutral-400 focus:bg-white"
@@ -528,20 +543,19 @@ export default function MetricsPage() {
             </div>
 
             <div className="space-y-4">
-              {[
-                ["Meta Pixel", "metaPixelId", "123456789012345"],
-                ["TikTok Pixel", "tiktokPixelId", "CXXXXXXXXXXXXXXX"],
-                ["Microsoft Clarity", "clarityId", "abcdefghij"],
-              ].map(([label, key, placeholder]) => (
+              {(
+                [
+                  ["Meta Pixel", "metaPixelId", "123456789012345"],
+                  ["TikTok Pixel", "tiktokPixelId", "CXXXXXXXXXXXXXXX"],
+                  ["Microsoft Clarity", "clarityId", "abcdefghij"],
+                ] satisfies Array<[string, TextTrackingKey, string]>
+              ).map(([label, key, placeholder]) => (
                 <label key={key} className="block">
                   <span className="mb-1.5 block text-[10px] font-bold">{label}</span>
                   <input
-                    value={String(settings[key as keyof TrackingSettings])}
+                    value={settings[key]}
                     onChange={(event) =>
-                      setSettings((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
+                      updateTextSetting(key, event.target.value)
                     }
                     placeholder={placeholder}
                     className="h-11 w-full rounded-[12px] border border-neutral-200 bg-neutral-50 px-3 text-[11px] outline-none transition focus:border-neutral-400 focus:bg-white"
