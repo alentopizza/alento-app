@@ -33,6 +33,7 @@ type TrackingWindow = Window & {
   };
   clarity?: (...args: unknown[]) => void;
   __alentoAnalyticsQueue?: AnalyticsDetail[];
+  __alentoTrackingReady?: boolean;
 };
 
 function appendScript(id: string, src: string) {
@@ -54,9 +55,9 @@ function appendInlineScript(id: string, content: string) {
 
 function initGoogle(settings: PublicTrackingSettings) {
   const target = window as TrackingWindow;
-  target.dataLayer ??= [];
+  const dataLayer = (target.dataLayer ??= []);
   target.gtag ??= (...args: unknown[]) => {
-    target.dataLayer?.push(args);
+    dataLayer.push(args);
   };
 
   const primary =
@@ -81,7 +82,7 @@ function initGoogle(settings: PublicTrackingSettings) {
   }
 
   if (settings.googleTagManagerId) {
-    target.dataLayer.push({
+    dataLayer.push({
       "gtm.start": Date.now(),
       event: "gtm.js",
     });
@@ -285,6 +286,8 @@ export default function PublicTracking() {
 
     const target = window as TrackingWindow;
     (target.__alentoAnalyticsQueue ?? []).forEach(forward);
+    target.__alentoAnalyticsQueue = [];
+    target.__alentoTrackingReady = true;
 
     const listener = (event: Event) => {
       forward(
@@ -298,6 +301,7 @@ export default function PublicTracking() {
     );
 
     return () => {
+      target.__alentoTrackingReady = false;
       window.removeEventListener(
         "alento-analytics-event",
         listener as EventListener,
