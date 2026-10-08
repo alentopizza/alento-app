@@ -158,11 +158,12 @@ function fulfillmentTone(type: FulfillmentType) {
   return "border-emerald-200 bg-emerald-50 text-emerald-700";
 }
 
-function Icon({ name }: { name: "search" | "refresh" | "print" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" | "status" }) {
+function Icon({ name }: { name: "search" | "refresh" | "print" | "download" | "info" | "close" | "edit" | "trash" | "cancel" | "minus" | "plus" | "wallet" | "status" }) {
   const c = "h-[17px] w-[17px]";
   if (name === "search") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>;
   if (name === "refresh") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18.5 9A7 7 0 0 0 6.3 6.3L4 11M20 13l-2.3 4.7A7 7 0 0 1 5.5 15"/></svg>;
   if (name === "print") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>;
+  if (name === "download") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>;
   if (name === "info") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/></svg>;
   if (name === "close") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="m6 6 12 12M18 6 6 18"/></svg>;
   if (name === "edit") return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={c}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>;
@@ -770,6 +771,36 @@ export default function OrdersCardsDashboardV3() {
     frame.src = `/pedidos/${order.id}/imprimir?autoprint=1&embedded=1`;
     document.body.appendChild(frame);
     window.setTimeout(() => frame.remove(), 30000);
+  }
+
+  function downloadReceiptImage(order: Order) {
+    const frame = document.createElement("iframe");
+    Object.assign(frame.style, {
+      position: "fixed",
+      width: "1px",
+      height: "1px",
+      opacity: "0",
+      pointerEvents: "none",
+    });
+    frame.src = `/pedidos/${order.id}/imprimir?autoimage=1&embedded=1`;
+    document.body.appendChild(frame);
+
+    const cleanup = (event: MessageEvent) => {
+      if (
+        event.origin === window.location.origin &&
+        event.data?.type === "ALENTO_RECEIPT_IMAGE_DOWNLOADED" &&
+        Number(event.data?.orderId) === order.id
+      ) {
+        window.removeEventListener("message", cleanup);
+        frame.remove();
+      }
+    };
+
+    window.addEventListener("message", cleanup);
+    window.setTimeout(() => {
+      window.removeEventListener("message", cleanup);
+      frame.remove();
+    }, 30000);
   }
 
   async function cancelOrder(order: Order) {
@@ -1414,6 +1445,14 @@ export default function OrdersCardsDashboardV3() {
                 <button onClick={() => setSelected(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Detalle"><Icon name="info" /></button>
                 <button onClick={() => void openEdit(order)} disabled={["COMPLETED", "CANCELED", "DELIVERED"].includes(order.status)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600 disabled:opacity-30" title="Editar"><Icon name="edit" /></button>
                 <button onClick={() => print(order)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600" title="Imprimir"><Icon name="print" /></button>
+                <button
+                  onClick={() => downloadReceiptImage(order)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-600"
+                  title="Descargar factura en imagen"
+                  aria-label="Descargar factura en imagen"
+                >
+                  <Icon name="download" />
+                </button>
                 {["CANCELED", "COMPLETED"].includes(order.status) ? (
                   canDeleteOrders ? (
                     <button
