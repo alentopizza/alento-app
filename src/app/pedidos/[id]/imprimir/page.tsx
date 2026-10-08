@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 
-const LOGO = "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+const LOGO = "/api/receipt-logo";
 
 type Order = {
   id: number;
@@ -298,7 +298,6 @@ export default function ThermalReceiptPage() {
   const embedded = searchParams.get("embedded") === "1";
   const autoPrint = searchParams.get("autoprint") === "1";
   const autoImage = searchParams.get("autoimage") === "1";
-  const autoClose = searchParams.get("autoclose") === "1";
 
   useEffect(() => {
     async function load() {
@@ -334,26 +333,47 @@ export default function ThermalReceiptPage() {
       const blob = await renderReceiptPng(receipt);
       const displayNumber = order.sequenceNumber ?? order.id;
       const displayCode = orderCode(displayNumber, order.source);
+      const filename = `${displayCode}-factura.png`;
+
+      if (options?.silent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: "ALENTO_RECEIPT_IMAGE_READY",
+            orderId: order.id,
+            filename,
+            blob,
+          },
+          window.location.origin,
+        );
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${displayCode}-factura.png`;
+      anchor.download = filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(url);
-
-      if (options?.silent && autoClose) {
-        window.setTimeout(() => {
-          window.close();
-        }, 700);
-      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (downloadError) {
-      setError(
+      const message =
         downloadError instanceof Error
           ? downloadError.message
-          : "No fue posible descargar la factura como imagen.",
-      );
+          : "No fue posible descargar la factura como imagen.";
+
+      if (options?.silent && window.parent !== window) {
+        window.parent.postMessage(
+          {
+            type: "ALENTO_RECEIPT_IMAGE_ERROR",
+            orderId: order.id,
+            message,
+          },
+          window.location.origin,
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setImageBusy(false);
     }
@@ -368,7 +388,7 @@ export default function ThermalReceiptPage() {
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [order, autoImage, autoClose]);
+  }, [order, autoImage]);
 
   function downloadReceipt() {
     if (!order) return;
