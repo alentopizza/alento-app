@@ -260,7 +260,7 @@ export default function StaffStoreStatus({
           >
             <span
               className={
-                "flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] " +
+                "flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.10em] leading-none " +
                 (status.open ? "text-emerald-300" : "text-red-300")
               }
             >
@@ -272,9 +272,9 @@ export default function StaffStoreStatus({
                     : "bg-red-400 shadow-[0_0_8px_rgba(248,113,113,.55)]")
                 }
               />
-              {status.open ? "Tienda abierta" : "Tienda cerrada"}
+              {status.open ? "ABIERTA" : "CERRADA"}
             </span>
-            <span className="mt-1 block max-w-[150px] truncate text-[8.5px] font-medium leading-[11px] text-white/42">
+            <span className="mt-1.5 block max-w-[150px] truncate text-[9px] font-medium leading-[12px] text-white/46">
               {status.open
                 ? status.closesAt
                   ? `Cierra a las ${status.closesAt}`
