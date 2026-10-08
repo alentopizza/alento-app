@@ -298,6 +298,7 @@ export default function ThermalReceiptPage() {
   const embedded = searchParams.get("embedded") === "1";
   const autoPrint = searchParams.get("autoprint") === "1";
   const autoImage = searchParams.get("autoimage") === "1";
+  const autoClose = searchParams.get("autoclose") === "1";
 
   useEffect(() => {
     async function load() {
@@ -342,15 +343,10 @@ export default function ThermalReceiptPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
 
-      if (options?.silent) {
+      if (options?.silent && autoClose) {
         window.setTimeout(() => {
-          try {
-            window.parent?.postMessage(
-              { type: "ALENTO_RECEIPT_IMAGE_DOWNLOADED", orderId: order.id },
-              window.location.origin,
-            );
-          } catch {}
-        }, 150);
+          window.close();
+        }, 700);
       }
     } catch (downloadError) {
       setError(
@@ -372,7 +368,7 @@ export default function ThermalReceiptPage() {
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [order, autoImage]);
+  }, [order, autoImage, autoClose]);
 
   function downloadReceipt() {
     if (!order) return;
