@@ -14,7 +14,8 @@ Inventario/Costos     ⏳ FUTURO
 Experiencia pública   ✅ CHECKOUT + SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA
 Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
 Producción             🟡 HARDENING Y VALIDACIÓN
-Integraciones externas 🔒 OPCIONALES / ALENTÓ-ESPECÍFICAS
+Métricas/medición      ✅ V1 IMPLEMENTADA
+Integraciones marketplace 🔒 OPCIONALES / FUTURAS
 ```
 
 Los módulos cerrados pueden recibir correcciones de bugs y pequeños ajustes de UX, pero no deben reabrirse como fase de diseño sin una solicitud explícita.
@@ -137,17 +138,22 @@ Roles iniciales propuestos:
 - sustitución de Glide;
 - migración de `alentopizza.com`;
 - parametrización para replicar/comercializar;
-- integraciones externas al final.
 
 ---
 
-# Integraciones
+# Métricas e integraciones
 
-Estado: **ÚLTIMA FASE DEL DESARROLLO**
+Estado de medición: **V1 IMPLEMENTADA**
+
+Documento: `docs/METRICS_AND_TRACKING.md`.
+
+Ya existe analítica interna del catálogo y configuración guiada para Meta Pixel, GA4, TikTok Pixel, Microsoft Clarity, Google Tag Manager y Google Ads. La analítica interna es independiente de los rastreadores externos.
+
+Estado de marketplace/proveedores: **FUTURO / OPCIONAL**
 
 No existe integración activa con Rappi/DiDi en el código actual.
 
-No reintroducir la implementación experimental sin:
+No reintroducir una integración de marketplace sin:
 
 - credenciales/API oficial;
 - flujo aprobado por proveedor;
