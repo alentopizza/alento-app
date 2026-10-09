@@ -329,6 +329,12 @@ export default function MetricsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [activeIntegrationId, setActiveIntegrationId] =
+    useState<IntegrationId | null>(null);
+  const [verifying, setVerifying] = useState<IntegrationId | null>(null);
+  const [verification, setVerification] = useState<
+    Partial<Record<IntegrationId, VerificationResult>>
+  >({});
 
   async function loadDashboard(selectedDays = days) {
     setLoading(true);
@@ -402,16 +408,83 @@ export default function MetricsPage() {
       }
       setSettings(data.settings as TrackingSettings);
       setMessage("Integraciones guardadas.");
+      return true;
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
           : "No fue posible guardar las integraciones.",
       );
+      return false;
     } finally {
       setSaving(false);
     }
   }
+
+  async function verifyIntegration(id: IntegrationId) {
+    setVerifying(id);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/metrics/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: id }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "No fue posible comprobar la integración.",
+        );
+      }
+
+      setVerification((current) => ({
+        ...current,
+        [id]: data as VerificationResult,
+      }));
+    } catch (error) {
+      setVerification((current) => ({
+        ...current,
+        [id]: {
+          status: "invalid",
+          title: "No pudimos completar la prueba",
+          detail:
+            error instanceof Error
+              ? error.message
+              : "Revisa los datos e intenta nuevamente.",
+        },
+      }));
+    } finally {
+      setVerifying(null);
+    }
+  }
+
+  async function saveAndVerify(id: IntegrationId) {
+    const saved = await saveSettings();
+    if (saved) {
+      await verifyIntegration(id);
+    }
+  }
+
+  function integrationConfigured(integration: IntegrationDefinition) {
+    const requiredFields = integration.fields.filter(
+      (field) => field.required !== false,
+    );
+
+    return requiredFields.every((field) =>
+      String(settings[field.key] || "").trim(),
+    );
+  }
+
+  const activeIntegration =
+    INTEGRATIONS.find(
+      (integration) => integration.id === activeIntegrationId,
+    ) ?? null;
+
+  const configuredCount = INTEGRATIONS.filter((integration) =>
+    integrationConfigured(integration),
+  ).length;
 
   const summary = dashboard?.summary;
 
