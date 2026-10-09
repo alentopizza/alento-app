@@ -2,14 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  BadgeCheck,
   BarChart3,
   CheckCircle2,
+  ChevronRight,
+  CircleAlert,
+  ExternalLink,
   Eye,
+  Link2,
   MousePointerClick,
   Settings2,
   ShoppingCart,
   TrendingUp,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import type { TrackingSettings } from "@/lib/trackingSettings";
@@ -18,6 +24,38 @@ type TextTrackingKey = Exclude<
   keyof TrackingSettings,
   "enabled" | "requireConsent"
 >;
+
+type IntegrationId =
+  | "gtm"
+  | "ga4"
+  | "googleAds"
+  | "meta"
+  | "tiktok"
+  | "clarity";
+
+type VerificationResult = {
+  status: "verified" | "configured" | "invalid";
+  title: string;
+  detail: string;
+};
+
+type IntegrationDefinition = {
+  id: IntegrationId;
+  name: string;
+  short: string;
+  description: string;
+  externalUrl: string;
+  externalLabel: string;
+  fields: Array<{
+    key: TextTrackingKey;
+    label: string;
+    placeholder: string;
+    help: string;
+    required?: boolean;
+  }>;
+  steps: string[];
+  note: string;
+};
 
 type Dashboard = {
   period: { days: number; start: string; end: string };
@@ -74,6 +112,171 @@ const EMPTY_SETTINGS: TrackingSettings = {
   tiktokPixelId: "",
   clarityId: "",
 };
+
+const INTEGRATIONS: IntegrationDefinition[] = [
+  {
+    id: "gtm",
+    name: "Google Tag Manager",
+    short: "GTM",
+    description:
+      "Administra etiquetas de marketing y analítica desde un solo contenedor.",
+    externalUrl: "https://tagmanager.google.com/",
+    externalLabel: "Abrir Tag Manager",
+    fields: [
+      {
+        key: "googleTagManagerId",
+        label: "ID del contenedor",
+        placeholder: "GTM-XXXXXXX",
+        help: "Empieza por GTM-. Lo encuentras en la parte superior del contenedor.",
+        required: true,
+      },
+    ],
+    steps: [
+      "Entra a Google Tag Manager y crea una cuenta si todavía no tienes una.",
+      "Crea un contenedor para alentopizza.com y elige Web como plataforma.",
+      "Copia el identificador que empieza por GTM- y pégalo aquí.",
+      "Publica el contenedor en Tag Manager para que sus etiquetas queden activas.",
+    ],
+    note:
+      "Si instalas Analytics, Meta o TikTok desde GTM, no los configures también de forma directa en Alentó para evitar eventos duplicados.",
+  },
+  {
+    id: "ga4",
+    name: "Google Analytics 4",
+    short: "GA4",
+    description:
+      "Mide visitas, productos, carrito, checkout y compras en Google Analytics.",
+    externalUrl: "https://analytics.google.com/",
+    externalLabel: "Abrir Analytics",
+    fields: [
+      {
+        key: "googleAnalyticsId",
+        label: "Measurement ID",
+        placeholder: "G-XXXXXXXXXX",
+        help: "Debe empezar por G-. Es el identificador del flujo de datos web.",
+        required: true,
+      },
+    ],
+    steps: [
+      "Entra a Google Analytics y abre la propiedad de Alentó.",
+      "Ve a Administrar > Flujos de datos > Web.",
+      "Crea o abre el flujo de alentopizza.com.",
+      "Copia el Measurement ID que empieza por G- y pégalo aquí.",
+    ],
+    note:
+      "Después de guardar y probar, genera una visita al menú y confirma la recepción en Informes > Tiempo real o en DebugView.",
+  },
+  {
+    id: "googleAds",
+    name: "Google Ads",
+    short: "ADS",
+    description:
+      "Envía compras a Google Ads para atribución y optimización de campañas.",
+    externalUrl: "https://ads.google.com/",
+    externalLabel: "Abrir Google Ads",
+    fields: [
+      {
+        key: "googleAdsId",
+        label: "Google tag ID",
+        placeholder: "AW-123456789",
+        help: "Debe empezar por AW-.",
+        required: true,
+      },
+      {
+        key: "googleAdsPurchaseLabel",
+        label: "Etiqueta de conversión de compra",
+        placeholder: "AbCdEFghijk",
+        help: "Es la parte que aparece después de AW-XXXXXXXXX/ en el send_to del evento de compra.",
+      },
+    ],
+    steps: [
+      "En Google Ads abre Objetivos > Conversiones.",
+      "Crea o abre la acción de conversión de Compra del sitio web.",
+      "En la configuración de etiqueta localiza el Google tag ID AW-XXXXXXXXX.",
+      "En el fragmento de evento de compra copia también la etiqueta que aparece después de la barra en send_to.",
+    ],
+    note:
+      "El ID AW permite cargar Google Ads; la etiqueta de conversión es la que relaciona Purchase con la acción de compra elegida.",
+  },
+  {
+    id: "meta",
+    name: "Meta Pixel",
+    short: "META",
+    description:
+      "Envía ViewContent, AddToCart, InitiateCheckout y Purchase a Meta.",
+    externalUrl: "https://www.facebook.com/events_manager2/",
+    externalLabel: "Abrir Events Manager",
+    fields: [
+      {
+        key: "metaPixelId",
+        label: "Pixel ID",
+        placeholder: "123456789012345",
+        help: "Solo números. No pegues el código completo del píxel.",
+        required: true,
+      },
+    ],
+    steps: [
+      "Abre Meta Events Manager.",
+      "Conecta una fuente de datos Web y crea o selecciona tu Pixel.",
+      "En Configuración busca el ID del conjunto de datos / Pixel.",
+      "Copia únicamente el número y pégalo aquí.",
+    ],
+    note:
+      "Meta confirma la recepción exacta desde Events Manager > Probar eventos. Alentó enviará los eventos estándar del embudo.",
+  },
+  {
+    id: "tiktok",
+    name: "TikTok Pixel",
+    short: "TT",
+    description:
+      "Permite medir contenido, carrito, checkout y pago para campañas de TikTok.",
+    externalUrl: "https://ads.tiktok.com/i18n/events_manager/",
+    externalLabel: "Abrir Events Manager",
+    fields: [
+      {
+        key: "tiktokPixelId",
+        label: "Pixel ID",
+        placeholder: "CXXXXXXXXXXXXXXX",
+        help: "Copia el identificador del píxel, no el script completo.",
+        required: true,
+      },
+    ],
+    steps: [
+      "En TikTok Ads Manager abre Events Manager.",
+      "Crea una fuente Web y elige Pixel como método de conexión.",
+      "Selecciona instalación manual.",
+      "Copia el Pixel ID y pégalo aquí.",
+    ],
+    note:
+      "Después de configurarlo, TikTok puede confirmar la llegada de eventos en Events Manager > Test Events.",
+  },
+  {
+    id: "clarity",
+    name: "Microsoft Clarity",
+    short: "CL",
+    description:
+      "Añade mapas de calor, grabaciones de sesión y señales de comportamiento.",
+    externalUrl: "https://clarity.microsoft.com/",
+    externalLabel: "Abrir Clarity",
+    fields: [
+      {
+        key: "clarityId",
+        label: "Project ID",
+        placeholder: "abcdefghij",
+        help: "Es el identificador corto del proyecto de Clarity.",
+        required: true,
+      },
+    ],
+    steps: [
+      "Entra a Microsoft Clarity y crea un proyecto para alentopizza.com.",
+      "Abre Configuración > Setup.",
+      "En instalación manual localiza el Project ID.",
+      "Copia el identificador y pégalo aquí.",
+    ],
+    note:
+      "Las grabaciones y mapas de calor aparecerán cuando haya sesiones con consentimiento de medición.",
+  },
+];
 
 function number(value: number) {
   return new Intl.NumberFormat("es-CO").format(value || 0);
