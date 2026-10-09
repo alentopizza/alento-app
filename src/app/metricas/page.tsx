@@ -886,54 +886,146 @@ export default function MetricsPage() {
         </section>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-2">
-          <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
-            <h2 className="alento-ui-status text-neutral-950">Embudo del catálogo</h2>
-            <p className="alento-ui-control mt-1 leading-5 text-neutral-600">
-              De descubrir el menú a terminar el pedido.
-            </p>
+          <article className="flex h-full flex-col rounded-[22px] border border-neutral-200 bg-white p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="alento-ui-status text-neutral-950">Embudo del catálogo</h2>
+                <p className="alento-ui-control mt-1 leading-5 text-neutral-600">
+                  Cómo avanzan los clientes desde la visita hasta el pedido.
+                </p>
+              </div>
+              <span className="alento-ui-label shrink-0 rounded-full bg-neutral-950 px-2.5 py-1 text-white">
+                {summary?.conversionRate ?? 0}% conversión
+              </span>
+            </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-4 grid flex-1 gap-2.5 sm:grid-cols-2">
               {[
-                ["Visitantes", summary?.uniqueVisitors ?? 0, 100],
-                [
-                  "Carrito",
-                  summary?.cartsStarted ?? 0,
-                  summary?.menuToCartRate ?? 0,
-                ],
-                [
-                  "Checkout",
-                  summary?.checkoutStarted ?? 0,
-                  summary?.uniqueVisitors
+                {
+                  label: "Visitantes",
+                  value: summary?.uniqueVisitors ?? 0,
+                  rate: 100,
+                  stepRate: 100,
+                  stepLabel: "Base del embudo",
+                  icon: Users,
+                },
+                {
+                  label: "Carrito",
+                  value: summary?.cartsStarted ?? 0,
+                  rate: summary?.menuToCartRate ?? 0,
+                  stepRate: summary?.menuToCartRate ?? 0,
+                  stepLabel: "De visitantes",
+                  icon: ShoppingCart,
+                },
+                {
+                  label: "Checkout",
+                  value: summary?.checkoutStarted ?? 0,
+                  rate: summary?.uniqueVisitors
                     ? Math.round(
                         ((summary?.checkoutStarted ?? 0) /
                           summary.uniqueVisitors) *
                           1000,
                       ) / 10
                     : 0,
-                ],
-                [
-                  "Pedido",
-                  summary?.orders ?? 0,
-                  summary?.conversionRate ?? 0,
-                ],
-              ].map(([label, value, rate]) => (
-                <div key={String(label)}>
-                  <div className="alento-ui-control flex items-center justify-between gap-3">
-                    <b className="text-neutral-900">{label}</b>
-                    <span className="tabular-nums text-neutral-600">
-                      {number(Number(value))} · {Number(rate)}%
-                    </span>
+                  stepRate: summary?.cartsStarted
+                    ? Math.round(
+                        ((summary?.checkoutStarted ?? 0) /
+                          summary.cartsStarted) *
+                          1000,
+                      ) / 10
+                    : 0,
+                  stepLabel: "Desde carrito",
+                  icon: MousePointerClick,
+                },
+                {
+                  label: "Pedido",
+                  value: summary?.orders ?? 0,
+                  rate: summary?.conversionRate ?? 0,
+                  stepRate: summary?.checkoutStarted
+                    ? Math.round(
+                        ((summary?.orders ?? 0) /
+                          summary.checkoutStarted) *
+                          1000,
+                      ) / 10
+                    : 0,
+                  stepLabel: "Desde checkout",
+                  icon: CheckCircle2,
+                },
+              ].map((stage, index) => {
+                const Icon = stage.icon;
+
+                return (
+                  <div
+                    key={stage.label}
+                    className="relative overflow-hidden rounded-[16px] border border-neutral-100 bg-neutral-50 p-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-white text-neutral-700 shadow-[0_5px_14px_rgba(20,15,12,.06)]">
+                        <Icon className="h-4 w-4" strokeWidth={2.1} />
+                      </span>
+
+                      <span className="alento-ui-micro rounded-full bg-white px-2 py-1 tabular-nums text-neutral-600">
+                        Paso {index + 1}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="alento-ui-control font-bold text-neutral-900">
+                          {stage.label}
+                        </p>
+                        <strong className="mt-0.5 block text-[25px] font-black tracking-[-0.04em] text-neutral-950">
+                          {number(stage.value)}
+                        </strong>
+                      </div>
+
+                      <span className="alento-ui-status tabular-nums text-neutral-950">
+                        {stage.rate}%
+                      </span>
+                    </div>
+
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-200">
+                      <div
+                        className="h-full rounded-full bg-neutral-950"
+                        style={{
+                          width: `${Math.min(100, Math.max(stage.rate > 0 ? 3 : 0, stage.rate))}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="alento-ui-micro text-neutral-500">
+                        {stage.stepLabel}
+                      </span>
+                      <b className="alento-ui-micro tabular-nums text-neutral-700">
+                        {stage.stepRate}%
+                      </b>
+                    </div>
                   </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-neutral-100">
-                    <div
-                      className="h-full rounded-full bg-neutral-950"
-                      style={{
-                        width: `${Math.min(100, Math.max(1, Number(rate)))}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+
+            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+              <div className="rounded-[14px] border border-neutral-100 bg-[#faf9f7] px-3.5 py-3">
+                <p className="alento-ui-micro uppercase tracking-[0.08em] text-neutral-500">
+                  Llegan a checkout
+                </p>
+                <p className="alento-ui-control mt-1 text-neutral-800">
+                  <b className="text-neutral-950">{number(summary?.checkoutStarted ?? 0)}</b>{" "}
+                  de {number(summary?.uniqueVisitors ?? 0)} visitantes.
+                </p>
+              </div>
+
+              <div className="rounded-[14px] border border-neutral-100 bg-[#faf9f7] px-3.5 py-3">
+                <p className="alento-ui-micro uppercase tracking-[0.08em] text-neutral-500">
+                  Conversión final
+                </p>
+                <p className="alento-ui-control mt-1 text-neutral-800">
+                  <b className="text-neutral-950">{number(summary?.orders ?? 0)}</b>{" "}
+                  pedidos · {summary?.conversionRate ?? 0}% del total.
+                </p>
+              </div>
             </div>
           </article>
           <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
