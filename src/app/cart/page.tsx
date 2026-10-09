@@ -207,6 +207,12 @@ export default function CartPage() {
       trackCatalogEvent("CART_VIEW", {
         value: cartValue,
         itemCount,
+        items: cart.map((item) => ({
+          productId: item.productId,
+          productName: item.name,
+          value: item.unitPrice,
+          quantity: item.quantity,
+        })),
       });
     }
 
@@ -351,6 +357,12 @@ export default function CartPage() {
         (total, item) => total + item.quantity,
         0,
       ),
+      items: cart.map((item) => ({
+        productId: item.productId,
+        productName: item.name,
+        value: item.unitPrice,
+        quantity: item.quantity,
+      })),
     });
     setCheckoutStep("delivery");
   }
@@ -683,6 +695,12 @@ export default function CartPage() {
                 (total, item) => total + item.quantity,
                 0,
               ),
+              items: cart.map((item) => ({
+                productId: item.productId,
+                productName: item.name,
+                value: item.unitPrice,
+                quantity: item.quantity,
+              })),
               metadata: {
                 fulfillmentType: order.fulfillmentType,
                 paymentMethod: order.paymentMethod,
