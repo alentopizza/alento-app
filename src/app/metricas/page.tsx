@@ -138,7 +138,7 @@ const INTEGRATIONS: IntegrationDefinition[] = [
       "Publica el contenedor en Tag Manager para que sus etiquetas queden activas.",
     ],
     note:
-      "Si instalas Analytics, Meta o TikTok desde GTM, no los configures también de forma directa en Alentó para evitar eventos duplicados.",
+      "Tag Manager es una forma alternativa de instalar etiquetas. Si dentro de GTM creas una etiqueta de Analytics, Meta o TikTok, no conectes esa misma plataforma también de forma directa en Alentó. Usa un solo método por plataforma para evitar eventos duplicados.",
   },
   {
     id: "ga4",
@@ -835,8 +835,13 @@ export default function MetricsPage() {
               </button>
             </div>
 
-            <div className="mt-4 rounded-[15px] border border-amber-200 bg-amber-50 px-4 py-3 text-[9.5px] leading-4 text-amber-900/75">
-              Si usas Google Tag Manager para instalar Analytics, Meta, TikTok u otra etiqueta, evita configurar la misma herramienta también de forma directa para no duplicar PageView, AddToCart o Purchase.
+            <div className="mt-4 rounded-[15px] border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="alento-ui-label text-amber-900">
+                Una sola conexión por plataforma
+              </p>
+              <p className="alento-ui-body mt-1 text-amber-900/75">
+                Google Tag Manager puede instalar Analytics, Meta o TikTok por dentro. Si haces eso, no conectes esa misma plataforma también en su botón directo de Alentó. Elige GTM o conexión directa para cada plataforma; usar ambos enviaría eventos duplicados.
+              </p>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -913,17 +918,17 @@ export default function MetricsPage() {
             <div className="flex max-h-[92vh] w-full max-w-[940px] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_30px_100px_rgba(0,0,0,.38)]">
               <div className="flex items-start justify-between gap-4 border-b border-neutral-200 bg-[#0d0d0e] px-5 py-4 text-white sm:px-6">
                 <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex h-11 min-w-11 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.07] px-2 text-[9px] font-black tracking-[0.04em]">
+                  <span className="alento-ui-label flex h-11 min-w-11 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.07] px-2 tracking-[0.04em]">
                     {activeIntegration.short}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#ff454b]">
+                    <p className="alento-ui-label uppercase tracking-[0.16em] text-[#ff454b]">
                       Integración
                     </p>
-                    <h2 className="mt-0.5 text-[20px] font-black tracking-[-0.025em]">
+                    <h2 className="alento-ui-title mt-0.5 tracking-[-0.025em]">
                       {activeIntegration.name}
                     </h2>
-                    <p className="mt-1 max-w-[600px] text-[10px] leading-4 text-white/48">
+                    <p className="alento-ui-body mt-1 max-w-[600px] leading-5 text-white/60">
                       {activeIntegration.description}
                     </p>
                   </div>
@@ -943,10 +948,10 @@ export default function MetricsPage() {
                 <aside className="border-b border-neutral-200 bg-[#f7f6f4] p-5 sm:p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.13em] text-neutral-400">
+                      <p className="alento-ui-label uppercase tracking-[0.13em] text-neutral-500">
                         Cómo obtenerlo
                       </p>
-                      <h3 className="mt-1 text-[15px] font-black">
+                      <h3 className="alento-ui-status mt-1">
                         Configuración paso a paso
                       </h3>
                     </div>
@@ -954,7 +959,7 @@ export default function MetricsPage() {
                       href={activeIntegration.externalUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-[9px] font-bold text-neutral-700 transition hover:border-neutral-300"
+                      className="alento-ui-control inline-flex h-10 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3.5 text-neutral-700 transition hover:border-neutral-300"
                     >
                       {activeIntegration.externalLabel}
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -964,10 +969,10 @@ export default function MetricsPage() {
                   <div className="mt-5 space-y-3">
                     {activeIntegration.steps.map((step, index) => (
                       <div key={step} className="flex gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-[9px] font-black text-white">
+                        <span className="alento-ui-label flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-white">
                           {index + 1}
                         </span>
-                        <p className="pt-0.5 text-[10px] leading-4 text-neutral-600">
+                        <p className="alento-ui-body pt-0.5 leading-5 text-neutral-650">
                           {step}
                         </p>
                       </div>
@@ -975,10 +980,10 @@ export default function MetricsPage() {
                   </div>
 
                   <div className="mt-5 rounded-[15px] border border-neutral-200 bg-white p-3">
-                    <p className="text-[9px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                    <p className="alento-ui-label uppercase tracking-[0.1em] text-neutral-500">
                       Importante
                     </p>
-                    <p className="mt-1.5 text-[9.5px] leading-4 text-neutral-600">
+                    <p className="alento-ui-body mt-1.5 leading-5 text-neutral-650">
                       {activeIntegration.note}
                     </p>
                   </div>
@@ -986,13 +991,13 @@ export default function MetricsPage() {
 
                 <section className="p-5 sm:p-6 lg:overflow-y-auto">
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#e21a22]">
+                    <p className="alento-ui-label uppercase tracking-[0.13em] text-[#e21a22]">
                       Vincular con Alentó
                     </p>
-                    <h3 className="mt-1 text-[16px] font-black">
+                    <h3 className="alento-ui-title mt-1">
                       Identificadores de la integración
                     </h3>
-                    <p className="mt-1 text-[10px] leading-4 text-neutral-400">
+                    <p className="alento-ui-body mt-1 leading-5 text-neutral-500">
                       No pegues scripts completos. Solo necesitamos los identificadores públicos que indica cada campo.
                     </p>
                   </div>
@@ -1000,7 +1005,7 @@ export default function MetricsPage() {
                   <div className="mt-5 space-y-4">
                     {activeIntegration.fields.map((field) => (
                       <label key={field.key} className="block">
-                        <span className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-neutral-800">
+                        <span className="alento-ui-label mb-1.5 flex items-center gap-1 text-neutral-800">
                           {field.label}
                           {field.required && (
                             <span className="text-[#e21a22]">*</span>
@@ -1018,9 +1023,9 @@ export default function MetricsPage() {
                           }}
                           placeholder={field.placeholder}
                           autoComplete="off"
-                          className="h-12 w-full rounded-[13px] border border-neutral-200 bg-neutral-50 px-3.5 text-[12px] font-semibold outline-none transition placeholder:font-normal placeholder:text-neutral-300 focus:border-neutral-400 focus:bg-white"
+                          className="alento-ui-control h-12 w-full rounded-[13px] border border-neutral-200 bg-neutral-50 px-3.5 outline-none transition placeholder:font-normal placeholder:text-neutral-300 focus:border-neutral-400 focus:bg-white"
                         />
-                        <span className="mt-1.5 block text-[9px] leading-4 text-neutral-400">
+                        <span className="alento-ui-micro mt-1.5 block leading-4 text-neutral-500">
                           {field.help}
                         </span>
                       </label>
@@ -1047,10 +1052,10 @@ export default function MetricsPage() {
                           <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                         )}
                         <div>
-                          <b className="block text-[10.5px]">
+                          <b className="alento-ui-label block">
                             {verification[activeIntegration.id]?.title}
                           </b>
-                          <p className="mt-1 text-[9.5px] leading-4 text-neutral-600">
+                          <p className="alento-ui-body mt-1 leading-5 text-neutral-650">
                             {verification[activeIntegration.id]?.detail}
                           </p>
                         </div>
@@ -1061,7 +1066,7 @@ export default function MetricsPage() {
                   <div className="mt-5 rounded-[15px] border border-neutral-200 bg-[#faf9f7] p-3">
                     <div className="flex items-start gap-2">
                       <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
-                      <p className="text-[9.5px] leading-4 text-neutral-500">
+                      <p className="alento-ui-body leading-5 text-neutral-600">
                         <b className="text-neutral-700">Qué verifica Alentó:</b>{" "}
                         guardamos el ID, comprobamos su formato, confirmamos que nuestra integración quedó preparada y, cuando la plataforma permite una comprobación pública, probamos también su script. La recepción definitiva de eventos se confirma dentro del panel de cada plataforma después de generar tráfico.
                       </p>
@@ -1072,7 +1077,7 @@ export default function MetricsPage() {
                     <button
                       type="button"
                       onClick={() => setActiveIntegrationId(null)}
-                      className="h-11 rounded-full border border-neutral-200 px-5 text-[10px] font-bold text-neutral-500 transition hover:bg-neutral-50"
+                      className="alento-ui-control h-11 rounded-full border border-neutral-200 px-5 text-neutral-600 transition hover:bg-neutral-50"
                     >
                       Cerrar
                     </button>
@@ -1081,7 +1086,7 @@ export default function MetricsPage() {
                         type="button"
                         onClick={() => void verifyIntegration(activeIntegration.id)}
                         disabled={verifying === activeIntegration.id || saving}
-                        className="h-11 rounded-full border border-neutral-950 px-5 text-[10px] font-bold text-neutral-950 transition hover:bg-neutral-50 disabled:opacity-50"
+                        className="alento-ui-control h-11 rounded-full border border-neutral-950 px-5 text-neutral-950 transition hover:bg-neutral-50 disabled:opacity-50"
                       >
                         {verifying === activeIntegration.id
                           ? "Comprobando..."
@@ -1092,7 +1097,7 @@ export default function MetricsPage() {
                       type="button"
                       onClick={() => void saveAndVerify(activeIntegration.id)}
                       disabled={saving || verifying === activeIntegration.id}
-                      className="h-11 rounded-full bg-[#e21a22] px-6 text-[10px] font-bold text-white transition hover:bg-[#c9151c] disabled:opacity-50"
+                      className="alento-ui-control h-11 rounded-full bg-[#e21a22] px-6 text-white transition hover:bg-[#c9151c] disabled:opacity-50"
                     >
                       {saving
                         ? "Guardando..."
