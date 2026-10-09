@@ -489,45 +489,64 @@ export default function MetricsPage() {
   const summary = dashboard?.summary;
 
   return (
-    <main className="min-h-screen bg-[#f4f3f1] p-4 text-neutral-950 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-[1280px]">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#e21a22]">
-              <BarChart3 className="h-4 w-4" />
-              Catálogo y conversión
-            </div>
-            <h1 className="mt-2 text-[30px] font-black tracking-[-0.04em] sm:text-[36px]">
-              Métricas
-            </h1>
-            <p className="mt-1 max-w-[650px] text-[12px] leading-5 text-neutral-500">
-              Visitas al menú, productos vistos, carritos, abandono, pedidos y origen del tráfico. La medición propia de Alentó no depende de Google ni de Meta.
-            </p>
-          </div>
+    <main className="min-h-screen w-full p-3 text-neutral-950 md:p-5 xl:p-6">
+      <div className="w-full">
+        <section className="relative min-h-[116px] w-full overflow-hidden rounded-[24px] border border-black/5 bg-[#0a0a0b] text-white shadow-[0_14px_36px_rgba(20,16,14,.11)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_42%,rgba(226,26,34,.55),transparent_25%),radial-gradient(circle_at_68%_100%,rgba(132,12,16,.36),transparent_34%),linear-gradient(105deg,#111319_0%,#101116_43%,#1a0b0d_67%,#5a090c_100%)]" />
+          <div className="absolute inset-y-0 right-0 w-[46%] opacity-70 [background:linear-gradient(115deg,transparent_0%,rgba(255,255,255,.025)_28%,transparent_29%),repeating-linear-gradient(90deg,transparent_0_54px,rgba(255,255,255,.025)_55px_56px)]" />
+          <div className="absolute right-[24%] top-[-18px] h-20 w-20 rounded-full bg-red-500/10 blur-2xl" />
+          <div className="absolute right-[9%] top-[22px] h-[2px] w-[30%] bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
 
-          <div className="flex rounded-[14px] border border-neutral-200 bg-white p-1">
-            {[
-              { value: 1, label: "Hoy" },
-              { value: 7, label: "7 días" },
-              { value: 30, label: "30 días" },
-              { value: 90, label: "90 días" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setDays(option.value)}
-                className={
-                  "rounded-[10px] px-3 py-2 text-[10px] font-bold transition " +
-                  (days === option.value
-                    ? "bg-neutral-950 text-white"
-                    : "text-neutral-500 hover:bg-neutral-100")
-                }
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="relative flex min-h-[116px] flex-col justify-between gap-4 px-5 py-4 md:flex-row md:items-center md:px-6 xl:px-7">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-3">
+                <span className="h-[2px] w-7 rounded-full bg-[var(--brand-red)]" />
+                <p className="alento-ui-label uppercase tracking-[0.2em] text-white/55">
+                  Catálogo y conversión
+                </p>
+              </div>
+              <h1 className="alento-ui-hero-title mt-1.5">Métricas</h1>
+              <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
+                Visitas, productos, carrito, abandono, pedidos y origen del tráfico del menú público.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end gap-2 self-end md:self-auto">
+              <div className="flex items-center gap-2">
+                <div className="flex h-[56px] min-w-[82px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 backdrop-blur-sm">
+                  <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                    Integraciones
+                  </span>
+                  <b className="alento-ui-metric mt-0.5 tabular-nums text-white">
+                    {configuredCount}/{INTEGRATIONS.length}
+                  </b>
+                </div>
+                <div className="flex rounded-[14px] border border-white/14 bg-white/[0.08] p-1 backdrop-blur-sm">
+                  {[
+                    { value: 1, label: "Hoy" },
+                    { value: 7, label: "7 días" },
+                    { value: 30, label: "30 días" },
+                    { value: 90, label: "90 días" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setDays(option.value)}
+                      className={
+                        "rounded-[10px] px-3 py-2 text-[9px] font-bold transition sm:text-[10px] " +
+                        (days === option.value
+                          ? "bg-white text-neutral-950 shadow-sm"
+                          : "text-white/55 hover:bg-white/[0.08] hover:text-white")
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </header>
+        </section>
 
         {message && (
           <div className="mt-5 rounded-[14px] border border-neutral-200 bg-white px-4 py-3 text-[11px] font-semibold text-neutral-600">
