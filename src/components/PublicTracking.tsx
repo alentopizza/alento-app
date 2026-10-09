@@ -34,6 +34,7 @@ type TrackingWindow = Window & {
   clarity?: (...args: unknown[]) => void;
   __alentoAnalyticsQueue?: AnalyticsDetail[];
   __alentoTrackingReady?: boolean;
+  __alentoGaInitialPageViewPath?: string | null;
 };
 
 function appendScript(id: string, src: string) {
@@ -56,13 +57,17 @@ function appendInlineScript(id: string, content: string) {
 function initGoogle(settings: PublicTrackingSettings) {
   const target = window as TrackingWindow;
   const dataLayer = (target.dataLayer ??= []);
-  const gtag =
-    (target.gtag ??= function gtag() {
-      // Google gtag.js uses the native arguments object as its command queue.
+
+  if (!target.gtag) {
+    target.gtag = function gtag() {
+      // This mirrors Google's official gtag.js bootstrap exactly:
+      // commands are queued until gtag.js finishes loading.
       // eslint-disable-next-line prefer-rest-params
       dataLayer.push(arguments);
-    });
+    };
+  }
 
+  const gtag = target.gtag;
   const primary =
     settings.googleAnalyticsId || settings.googleAdsId;
 
@@ -71,11 +76,17 @@ function initGoogle(settings: PublicTrackingSettings) {
       "alento-google-gtag",
       `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(primary)}`,
     );
+
     gtag("js", new Date());
 
     if (settings.googleAnalyticsId) {
+      // Let GA4 emit the initial page_view exactly as the official
+      // installation snippet does. This makes Realtime independent from
+      // Alentó's own MENU_VIEW event queue.
+      target.__alentoGaInitialPageViewPath = window.location.pathname;
       gtag("config", settings.googleAnalyticsId, {
-        send_page_view: false,
+        page_title: document.title,
+        page_location: window.location.href,
       });
     }
 
@@ -153,12 +164,19 @@ function forwardEvent(
     };
 
     if (detail.eventType === "MENU_VIEW") {
-      target.gtag("event", "page_view", {
-        send_to: settings.googleAnalyticsId,
-        page_path: detail.path || "/menu",
-        page_location: window.location.href,
-        page_title: document.title,
-      });
+      const eventPath = detail.path || "/menu";
+
+      if (target.__alentoGaInitialPageViewPath === eventPath) {
+        // The config command above already emitted this initial page_view.
+        target.__alentoGaInitialPageViewPath = null;
+      } else {
+        target.gtag("event", "page_view", {
+          send_to: settings.googleAnalyticsId,
+          page_path: eventPath,
+          page_location: window.location.href,
+          page_title: document.title,
+        });
+      }
     } else if (detail.eventType === "PRODUCT_VIEW") {
       target.gtag("event", "view_item", {
         ...gaBase,
