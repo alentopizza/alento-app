@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-09-23.
+Última actualización: 2026-10-09.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -69,7 +69,53 @@ La primera versión de autenticación y autorización por roles ya está impleme
 
 Cupones, Caja y Configuración existen, pero no están incluidos en el grupo de cinco módulos declarados cerrados en esta actualización.
 
-Las integraciones externas no bloquean el núcleo. Chatwoot y el ecosistema WhatsApp/notifier actual se consideran extensiones exclusivas de Alentó; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+Las integraciones externas no bloquean el núcleo. El módulo `/metricas` ya implementa analítica propia y conexiones opcionales de medición/publicidad para Meta Pixel, Google Analytics 4, TikTok Pixel, Microsoft Clarity, Google Tag Manager y Google Ads. Chatwoot y el ecosistema WhatsApp/notifier continúan siendo extensiones exclusivas de Alentó; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
+
+## Métricas y medición — V1 implementada
+
+Ruta: `/metricas`
+
+Documento canónico: `docs/METRICS_AND_TRACKING.md`.
+
+El módulo separa:
+
+- **Métricas internas**: visitas, personas únicas, productos, carrito, checkout, pedidos, abandono, venta atribuida, mapa de calor día/hora, embudo y origen del tráfico;
+- **Integraciones externas**: configuración guiada, verificación y consentimiento para plataformas de medición/publicidad.
+
+Eventos internos soportados:
+
+```text
+MENU_VIEW
+PRODUCT_VIEW
+ADD_TO_CART
+CART_VIEW
+CHECKOUT_STARTED
+CART_EMPTIED
+ORDER_CREATED
+```
+
+Conexiones disponibles:
+
+- Meta Pixel;
+- Google Analytics 4;
+- TikTok Pixel;
+- Microsoft Clarity;
+- Google Tag Manager;
+- Google Ads.
+
+Estado actual de la instalación de Alentó:
+
+- Meta Pixel configurado y validado hasta checkout;
+- Google Analytics 4 configurado y validado en tiempo real hasta checkout;
+- TikTok Pixel configurado y validado hasta `InitiateCheckout`;
+- Microsoft Clarity configurado;
+- Google Tag Manager pendiente/no necesario mientras se usen conexiones directas;
+- Google Ads pendiente por decisión de negocio.
+
+Regla crítica: no conectar la misma plataforma de forma directa y además dentro de Google Tag Manager, porque duplicaría eventos.
+
+La analítica interna debe seguir funcionando aunque los rastreadores externos estén desactivados o el usuario no otorgue consentimiento.
 
 ## Infraestructura
 
