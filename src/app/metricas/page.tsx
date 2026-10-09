@@ -83,6 +83,16 @@ type Dashboard = {
     adds: number;
     orders: number;
   }>;
+  hourlyByDay: Array<{
+    date: string;
+    hours: Array<{
+      hour: number;
+      menuViews: number;
+      productViews: number;
+      adds: number;
+      orders: number;
+    }>;
+  }>;
   trend: Array<{
     date: string;
     menuViews: number;
@@ -378,14 +388,55 @@ export default function MetricsPage() {
       .catch(() => {});
   }, []);
 
-  const maxHourly = useMemo(
+  const maxHourlyByDay = useMemo(
     () =>
       Math.max(
         1,
-        ...(dashboard?.hourly ?? []).map((item) => item.menuViews),
+        ...(dashboard?.hourlyByDay ?? []).flatMap((day) =>
+          day.hours.map((item) => item.menuViews),
+        ),
       ),
     [dashboard],
   );
+
+  function heatCellStyle(value: number) {
+    if (value <= 0) {
+      return {
+        backgroundColor: "#f3f2ef",
+        color: "#8a857f",
+      };
+    }
+
+    const strength = Math.max(0.18, Math.min(1, value / maxHourlyByDay));
+    const alpha = 0.16 + strength * 0.84;
+
+    return {
+      backgroundColor: `rgba(226, 26, 34, ${alpha})`,
+      color: strength > 0.5 ? "#ffffff" : "#7f1014",
+    };
+  }
+
+  function heatDayLabel(date: string) {
+    const value = new Date(`${date}T12:00:00-05:00`);
+    const weekday = new Intl.DateTimeFormat("es-CO", {
+      weekday: "short",
+      timeZone: "America/Bogota",
+    })
+      .format(value)
+      .replace(".", "");
+    const day = new Intl.DateTimeFormat("es-CO", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "America/Bogota",
+    })
+      .format(value)
+      .replace(".", "");
+
+    return {
+      weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
+      day,
+    };
+  }
 
   function updateTextSetting(
     key: TextTrackingKey,
@@ -699,37 +750,81 @@ export default function MetricsPage() {
         </section>
 
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
-          <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
-            <div>
-              <h2 className="alento-ui-status text-neutral-950">Carga del menú por hora</h2>
-              <p className="alento-ui-control mt-1 max-w-[760px] leading-5 text-neutral-600">
-                Horario Colombia. Permite ver a qué hora comienza y alcanza su pico la intención de compra.
-              </p>
+          <article className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white">
+            <div className="flex flex-col gap-3 border-b border-neutral-100 px-5 py-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="alento-ui-status text-neutral-950">
+                  Actividad del menú por día y hora
+                </h2>
+                <p className="alento-ui-control mt-1 max-w-[760px] leading-5 text-neutral-600">
+                  Cada celda muestra cuántas veces cargaron el menú en esa hora. Más rojo significa mayor actividad.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-auto">
+                <span className="alento-ui-micro text-neutral-500">Menor</span>
+                {[0.14, 0.32, 0.52, 0.74, 1].map((opacity) => (
+                  <span
+                    key={opacity}
+                    className="h-3.5 w-5 rounded-[4px]"
+                    style={{ backgroundColor: `rgba(226, 26, 34, ${opacity})` }}
+                  />
+                ))}
+                <span className="alento-ui-micro text-neutral-500">Mayor</span>
+              </div>
             </div>
 
-            <div className="mt-6 flex h-[220px] items-end gap-1.5 border-b border-neutral-200 pb-1">
-              {(dashboard?.hourly ?? []).map((item) => (
-                <div
-                  key={item.hour}
-                  className="group flex min-w-0 flex-1 flex-col items-center justify-end"
-                  title={`${item.label}: ${item.menuViews} visitas · ${item.orders} pedidos`}
-                >
-                  <div
-                    className="w-full rounded-t-[5px] bg-[#e21a22] transition group-hover:bg-[#bf1118]"
-                    style={{
-                      height: `${Math.max(
-                        item.menuViews ? 4 : 0,
-                        (item.menuViews / maxHourly) * 188,
-                      )}px`,
-                    }}
-                  />
-                  <span className="alento-ui-micro mt-2 tabular-nums text-neutral-500">
-                    {item.hour % 3 === 0
-                      ? `${String(item.hour).padStart(2, "0")}:00`
-                      : ""}
-                  </span>
+            <div className="alento-scroll max-h-[460px] overflow-auto px-4 pb-4 pt-3">
+              <div className="min-w-[820px]">
+                <div className="grid grid-cols-[86px_repeat(24,minmax(28px,1fr))] gap-1">
+                  <div className="sticky left-0 z-20 bg-white" />
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <div
+                      key={hour}
+                      className="alento-ui-micro flex h-7 items-center justify-center tabular-nums text-neutral-500"
+                    >
+                      {String(hour).padStart(2, "0")}
+                    </div>
+                  ))}
+
+                  {(dashboard?.hourlyByDay ?? []).map((day) => {
+                    const label = heatDayLabel(day.date);
+
+                    return (
+                      <div key={day.date} className="contents">
+                        <div className="sticky left-0 z-10 flex min-h-8 items-center gap-1.5 bg-white pr-2">
+                          <b className="alento-ui-micro w-7 text-neutral-900">
+                            {label.weekday}
+                          </b>
+                          <span className="alento-ui-micro whitespace-nowrap text-neutral-500">
+                            {label.day}
+                          </span>
+                        </div>
+
+                        {day.hours.map((item) => (
+                          <div
+                            key={`${day.date}-${item.hour}`}
+                            className="group relative flex h-8 items-center justify-center rounded-[5px] border border-black/[0.035] text-[10px] font-bold tabular-nums transition hover:z-20 hover:scale-110 hover:shadow-[0_6px_18px_rgba(20,15,12,.16)]"
+                            style={heatCellStyle(item.menuViews)}
+                            title={`${label.weekday} ${label.day} · ${String(item.hour).padStart(2, "0")}:00 · ${item.menuViews} visitas · ${item.productViews} productos vistos · ${item.adds} agregados · ${item.orders} pedidos`}
+                          >
+                            {item.menuViews > 0 ? item.menuViews : ""}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 bg-neutral-50 px-5 py-3">
+              <p className="alento-ui-micro text-neutral-500">
+                Hora local de Colombia · 00 a 23
+              </p>
+              <p className="alento-ui-micro text-neutral-500">
+                Pasa el cursor sobre una celda para ver visitas, productos, carrito y pedidos.
+              </p>
             </div>
           </article>
 
