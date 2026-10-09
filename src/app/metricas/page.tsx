@@ -33,6 +33,8 @@ type IntegrationId =
   | "tiktok"
   | "clarity";
 
+type MetricsSection = "INTERNAL" | "EXTERNAL";
+
 type VerificationResult = {
   status: "verified" | "configured" | "invalid";
   title: string;
@@ -323,6 +325,8 @@ function MetricCard({
 
 export default function MetricsPage() {
   const [days, setDays] = useState(7);
+  const [activeMetricsSection, setActiveMetricsSection] =
+    useState<MetricsSection>("INTERNAL");
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [settings, setSettings] =
     useState<TrackingSettings>(EMPTY_SETTINGS);
@@ -512,8 +516,41 @@ export default function MetricsPage() {
             </div>
 
             <div className="flex flex-col items-end gap-2 self-end md:self-auto">
-              <div className="flex items-center gap-2">
-                <div className="flex h-[56px] min-w-[82px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 backdrop-blur-sm">
+              {activeMetricsSection === "INTERNAL" ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex h-[56px] min-w-[82px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-3 backdrop-blur-sm">
+                    <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
+                      Periodo
+                    </span>
+                    <b className="alento-ui-label mt-0.5 whitespace-nowrap text-white">
+                      {days === 1 ? "Hoy" : `${days} días`}
+                    </b>
+                  </div>
+                  <div className="flex rounded-[14px] border border-white/14 bg-white/[0.08] p-1 backdrop-blur-sm">
+                    {[
+                      { value: 1, label: "Hoy" },
+                      { value: 7, label: "7 días" },
+                      { value: 30, label: "30 días" },
+                      { value: 90, label: "90 días" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setDays(option.value)}
+                        className={
+                          "alento-ui-control rounded-[10px] px-3 py-2 transition " +
+                          (days === option.value
+                            ? "bg-white text-neutral-950 shadow-sm"
+                            : "text-white/55 hover:bg-white/[0.08] hover:text-white")
+                        }
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex h-[56px] min-w-[118px] flex-col items-center justify-center rounded-[16px] border border-white/14 bg-white/[0.08] px-4 backdrop-blur-sm">
                   <span className="alento-ui-micro uppercase tracking-[0.14em] text-white/50">
                     Integraciones
                   </span>
@@ -521,40 +558,96 @@ export default function MetricsPage() {
                     {configuredCount}/{INTEGRATIONS.length}
                   </b>
                 </div>
-                <div className="flex rounded-[14px] border border-white/14 bg-white/[0.08] p-1 backdrop-blur-sm">
-                  {[
-                    { value: 1, label: "Hoy" },
-                    { value: 7, label: "7 días" },
-                    { value: 30, label: "30 días" },
-                    { value: 90, label: "90 días" },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setDays(option.value)}
-                      className={
-                        "alento-ui-control rounded-[10px] px-3 py-2 transition " +
-                        (days === option.value
-                          ? "bg-white text-neutral-950 shadow-sm"
-                          : "text-white/55 hover:bg-white/[0.08] hover:text-white")
-                      }
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
 
         {message && (
-          <div className="mt-5 rounded-[14px] border border-neutral-200 bg-white px-4 py-3 text-[11px] font-semibold text-neutral-600">
-            {message}
+          <div className="mt-5 rounded-[14px] border border-neutral-200 bg-white px-4 py-3">
+            <p className="alento-ui-control font-semibold text-neutral-700">
+              {message}
+            </p>
           </div>
         )}
 
-        <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mt-5 grid gap-2.5 sm:grid-cols-2">
+          {[
+            {
+              id: "INTERNAL" as const,
+              title: "Métricas internas",
+              description: "Catálogo, embudo, productos y ventas",
+              status: days === 1 ? "Hoy" : `${days} días analizados`,
+              icon: BarChart3,
+            },
+            {
+              id: "EXTERNAL" as const,
+              title: "Integraciones externas",
+              description: "Meta, Google, TikTok y Clarity",
+              status: `${configuredCount} de ${INTEGRATIONS.length} configuradas`,
+              icon: Link2,
+            },
+          ].map((section) => {
+            const Icon = section.icon;
+            const selected = activeMetricsSection === section.id;
+
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => setActiveMetricsSection(section.id)}
+                className={
+                  "group flex min-h-[104px] items-center gap-3 rounded-[20px] border p-3.5 text-left transition " +
+                  (selected
+                    ? "border-red-200 bg-[linear-gradient(135deg,#171113,#100d0e)] text-white shadow-[0_12px_28px_rgba(110,10,14,.14)]"
+                    : "border-neutral-200 bg-white text-neutral-950 shadow-[0_7px_20px_rgba(28,23,20,.04)] hover:-translate-y-0.5 hover:border-neutral-300")
+                }
+              >
+                <span
+                  className={
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border " +
+                    (selected
+                      ? "border-white/10 bg-white/[0.08] text-red-300"
+                      : "border-neutral-200 bg-[#faf9f7] text-neutral-600")
+                  }
+                >
+                  <Icon className="h-5 w-5" strokeWidth={2} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="alento-ui-status block truncate">
+                    {section.title}
+                  </span>
+                  <span
+                    className={
+                      "alento-ui-micro mt-0.5 block truncate " +
+                      (selected ? "text-white/45" : "text-neutral-500")
+                    }
+                  >
+                    {section.description}
+                  </span>
+                  <span
+                    className={
+                      "alento-ui-label mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1 " +
+                      (selected
+                        ? "bg-white/[0.08] text-white/65"
+                        : "bg-neutral-100 text-neutral-500")
+                    }
+                  >
+                    {selected && (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                    )}
+                    {section.status}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
+        {activeMetricsSection === "INTERNAL" && (
+          <>
+        <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Visitas al menú"
             value={loading ? "…" : number(summary?.menuViews ?? 0)}
@@ -760,7 +853,11 @@ export default function MetricsPage() {
           </article>
         </section>
 
-        <section className="mt-6 overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.05)]">
+          </>
+        )}
+
+        {activeMetricsSection === "EXTERNAL" && (
+        <section className="mt-5 overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.05)]">
           <div className="flex flex-col gap-4 border-b border-neutral-100 px-5 py-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-neutral-950 text-white">
@@ -768,7 +865,7 @@ export default function MetricsPage() {
               </span>
               <div>
                 <h2 className="alento-ui-title">
-                  Integraciones de medición y publicidad
+                  Integraciones externas
                 </h2>
                 <p className="alento-ui-control mt-1 max-w-[820px] leading-5 text-neutral-600">
                   Conecta las plataformas que quieras usar. Alentó valida los identificadores y envía los eventos del embudo sin obligarte a pegar scripts manualmente.
@@ -957,6 +1054,7 @@ export default function MetricsPage() {
             </div>
           </div>
         </section>
+        )}
 
         {activeIntegration && (
           <div
