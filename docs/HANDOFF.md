@@ -19,7 +19,7 @@ Leer en este orden:
 11. `docs/MENU.md`
 12. `docs/ARCHITECTURE.md`
 13. `docs/METRICS_AND_TRACKING.md`
-15. `docs/PUSH_NOTIFICATIONS.md`
+14. `docs/PUSH_NOTIFICATIONS.md`
 15. `docs/ORDER_DATA_INTEGRITY.md`
 16. `docs/ORDER_NUMBERING.md`
 17. `docs/PAYMENTS.md`
