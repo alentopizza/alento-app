@@ -281,31 +281,21 @@ export default async function TrackingPage({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
                 </div>
 
-                <div className="relative z-10 min-h-[132px] px-4 py-3.5 pr-[36%] sm:min-h-[140px] sm:px-5 sm:py-4 sm:pr-[36%]">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[8px] font-black uppercase tracking-[0.14em] text-[#ff454b] sm:text-[9px]">
-                      Sigue descubriendo
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#ff454b]/30 bg-[#e21a22]/10 px-2 py-0.5 text-[7px] font-bold text-red-100/80 backdrop-blur-sm">
-                      <span aria-hidden="true">🎁</span>
-                      En la app
-                    </span>
-                  </div>
-
-                  <h3 className="mt-1.5 max-w-[310px] text-[18px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[21px]">
+                <div className="relative z-10 min-h-[104px] px-4 py-3 pr-[36%] sm:min-h-[112px] sm:px-5 sm:py-3.5 sm:pr-[36%]">
+                  <h3 className="max-w-[310px] text-[17px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[20px]">
                     Descubre
                     <span className="block text-[#ff3439]">
                       promociones activas
                     </span>
                   </h3>
 
-                  <p className="mt-1.5 max-w-[270px] text-[8.5px] leading-[13px] text-white/52 sm:text-[9.5px] sm:leading-[14px]">
+                  <p className="mt-1 max-w-[270px] text-[8.5px] leading-[12px] text-white/52 sm:text-[9px] sm:leading-[13px]">
                     Explora combos, promociones y beneficios de la app.
                   </p>
 
-                  <span className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#e21a22] px-3.5 text-[9px] font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.24)] transition group-hover:bg-[#f01f28] sm:h-9 sm:px-4 sm:text-[10px]">
+                  <span className="mt-2 inline-flex h-7 items-center gap-1.5 rounded-full bg-[#e21a22] px-3 text-[8.5px] font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.24)] transition group-hover:bg-[#f01f28] sm:h-8 sm:px-3.5 sm:text-[9px]">
                     Ir al menú
-                    <span className="text-sm leading-none" aria-hidden="true">
+                    <span className="text-[13px] leading-none" aria-hidden="true">
                       →
                     </span>
                   </span>
