@@ -270,48 +270,48 @@ export default async function TrackingPage({
               >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(226,26,34,.30),transparent_28%),linear-gradient(105deg,#150707_0%,#120909_52%,#080808_100%)]" />
 
-                <div className="absolute inset-y-0 right-0 w-[46%] overflow-hidden sm:w-[42%]">
+                <div className="absolute inset-y-0 right-0 w-[44%] overflow-hidden sm:w-[40%]">
                   <img
                     src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png"
                     alt=""
                     aria-hidden="true"
-                    className="h-full w-full scale-[1.35] object-cover object-[78%_62%] opacity-75 saturate-125 transition duration-500 group-hover:scale-[1.42]"
+                    className="h-full w-full scale-[1.42] object-cover object-[80%_60%] opacity-75 saturate-125 transition duration-500 group-hover:scale-[1.48]"
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(90deg,#100808_0%,rgba(16,8,8,.74)_20%,rgba(16,8,8,.12)_70%,rgba(16,8,8,.04)_100%)]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15" />
                 </div>
 
-                <div className="relative z-10 min-h-[184px] px-5 py-5 pr-[36%] sm:min-h-[196px] sm:px-6 sm:py-6 sm:pr-[38%]">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-[0.16em] text-[#ff454b] sm:text-[10px]">
+                <div className="relative z-10 min-h-[132px] px-4 py-3.5 pr-[36%] sm:min-h-[140px] sm:px-5 sm:py-4 sm:pr-[36%]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[8px] font-black uppercase tracking-[0.14em] text-[#ff454b] sm:text-[9px]">
                       Sigue descubriendo
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ff454b]/35 bg-[#e21a22]/10 px-2.5 py-1 text-[8px] font-bold text-red-100/85 backdrop-blur-sm">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#ff454b]/30 bg-[#e21a22]/10 px-2 py-0.5 text-[7px] font-bold text-red-100/80 backdrop-blur-sm">
                       <span aria-hidden="true">🎁</span>
                       En la app
                     </span>
                   </div>
 
-                  <h3 className="mt-3 max-w-[330px] text-[21px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[26px]">
+                  <h3 className="mt-1.5 max-w-[310px] text-[18px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-[21px]">
                     Descubre
                     <span className="block text-[#ff3439]">
                       promociones activas
                     </span>
                   </h3>
 
-                  <p className="mt-3 max-w-[300px] text-[10px] leading-4 text-white/56 sm:text-[11px] sm:leading-[18px]">
-                    Explora el menú, encuentra combos y aprovecha beneficios de la app.
+                  <p className="mt-1.5 max-w-[270px] text-[8.5px] leading-[13px] text-white/52 sm:text-[9.5px] sm:leading-[14px]">
+                    Explora combos, promociones y beneficios de la app.
                   </p>
 
-                  <span className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-[#e21a22] px-4 text-[10px] font-black text-white shadow-[0_10px_24px_rgba(226,26,34,.28)] transition group-hover:bg-[#f01f28] sm:h-11 sm:px-5 sm:text-[11px]">
+                  <span className="mt-2.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#e21a22] px-3.5 text-[9px] font-black text-white shadow-[0_8px_18px_rgba(226,26,34,.24)] transition group-hover:bg-[#f01f28] sm:h-9 sm:px-4 sm:text-[10px]">
                     Ir al menú
-                    <span className="text-base leading-none" aria-hidden="true">
+                    <span className="text-sm leading-none" aria-hidden="true">
                       →
                     </span>
                   </span>
                 </div>
 
-                <div className="pointer-events-none absolute right-[11%] top-[34%] z-10 flex h-12 w-12 -rotate-6 items-center justify-center rounded-[16px] border border-[#ff454b]/70 bg-black/58 text-[21px] font-black text-[#ff454b] shadow-[0_0_28px_rgba(226,26,34,.34)] backdrop-blur-sm sm:h-14 sm:w-14 sm:text-[24px]">
+                <div className="pointer-events-none absolute right-[10%] top-[31%] z-10 flex h-9 w-9 -rotate-6 items-center justify-center rounded-[12px] border border-[#ff454b]/65 bg-black/58 text-[17px] font-black text-[#ff454b] shadow-[0_0_22px_rgba(226,26,34,.30)] backdrop-blur-sm sm:h-10 sm:w-10 sm:text-[18px]">
                   %
                 </div>
               </Link>
