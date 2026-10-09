@@ -146,12 +146,47 @@ export async function GET(request: NextRequest) {
     orders: 0,
   }));
 
+  const hourlyByDay = Array.from({ length: days }, (_, dayOffset) => {
+    const dateValue = new Date(start.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+    const date = bogotaDate(dateValue);
+
+    return {
+      date,
+      hours: Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        menuViews: 0,
+        productViews: 0,
+        adds: 0,
+        orders: 0,
+      })),
+    };
+  });
+
+  const hourlyByDayMap = new Map(
+    hourlyByDay.map((day) => [day.date, day]),
+  );
+
   for (const event of events) {
-    const bucket = hourly[bogotaHour(event.createdAt)];
-    if (event.eventType === "MENU_VIEW") bucket.menuViews += 1;
-    if (event.eventType === "PRODUCT_VIEW") bucket.productViews += 1;
-    if (event.eventType === "ADD_TO_CART") bucket.adds += 1;
-    if (event.eventType === "ORDER_CREATED") bucket.orders += 1;
+    const hour = bogotaHour(event.createdAt);
+    const bucket = hourly[hour];
+    const dayBucket = hourlyByDayMap.get(bogotaDate(event.createdAt))?.hours[hour];
+
+    if (event.eventType === "MENU_VIEW") {
+      bucket.menuViews += 1;
+      if (dayBucket) dayBucket.menuViews += 1;
+    }
+    if (event.eventType === "PRODUCT_VIEW") {
+      bucket.productViews += 1;
+      if (dayBucket) dayBucket.productViews += 1;
+    }
+    if (event.eventType === "ADD_TO_CART") {
+      bucket.adds += 1;
+      if (dayBucket) dayBucket.adds += 1;
+    }
+    if (event.eventType === "ORDER_CREATED") {
+      bucket.orders += 1;
+      if (dayBucket) dayBucket.orders += 1;
+    }
   }
 
   const productMap = new Map<
@@ -264,6 +299,7 @@ export async function GET(request: NextRequest) {
       conversionRate: pct(orderEvents.length, uniqueVisitors.size),
     },
     hourly,
+    hourlyByDay,
     trend,
     topProducts,
     sources,
