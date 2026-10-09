@@ -34,6 +34,45 @@ function pct(value: number, total: number) {
   return total > 0 ? Math.round((value / total) * 1000) / 10 : 0;
 }
 
+function normalizeTrafficSource(value: string | null) {
+  const source = String(value || "direct").trim().toLowerCase();
+
+  if (!source || source === "direct") return "direct";
+  if (source === "seguimiento") return "seguimiento";
+  if (
+    source === "alentopizza.com" ||
+    source === "www.alentopizza.com" ||
+    source.endsWith(".alentopizza.com")
+  ) {
+    return "internal";
+  }
+  if (
+    source === "facebook" ||
+    source.includes("facebook.com") ||
+    source.includes("fb.com")
+  ) {
+    return "facebook";
+  }
+  if (source === "instagram" || source.includes("instagram.com")) {
+    return "instagram";
+  }
+  if (source === "tiktok" || source.includes("tiktok.com")) {
+    return "tiktok";
+  }
+  if (source === "google" || source.includes("google.")) {
+    return "google";
+  }
+  if (
+    source === "whatsapp" ||
+    source.includes("whatsapp.com") ||
+    source.includes("wa.me")
+  ) {
+    return "whatsapp";
+  }
+
+  return source;
+}
+
 export async function GET(request: NextRequest) {
   try {
     await requireStaffSession(["ADMIN"]);
@@ -225,7 +264,7 @@ export async function GET(request: NextRequest) {
 
   const sourceMap = new Map<string, { source: string; views: number; visitors: Set<string> }>();
   for (const event of menuViews) {
-    const key = event.source || "direct";
+    const key = normalizeTrafficSource(event.source);
     const current = sourceMap.get(key) ?? {
       source: key,
       views: 0,
