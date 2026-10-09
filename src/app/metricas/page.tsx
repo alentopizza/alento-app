@@ -302,21 +302,21 @@ function MetricCard({
   icon: LucideIcon;
 }) {
   return (
-    <article className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-[0_10px_30px_rgba(20,15,12,.04)]">
+    <article className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-[0_12px_32px_rgba(20,15,12,.045)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_38px_rgba(20,15,12,.07)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-neutral-400">
+        <div className="min-w-0">
+          <p className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
             {label}
           </p>
           <strong className="mt-2 block text-[28px] font-black tracking-[-0.04em] text-neutral-950">
             {value}
           </strong>
         </div>
-        <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-neutral-950 text-white">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-neutral-950 text-white shadow-[0_8px_18px_rgba(0,0,0,.12)]">
           <Icon className="h-[18px] w-[18px]" />
         </span>
       </div>
-      <p className="mt-2 text-[10px] leading-4 text-neutral-400">{detail}</p>
+      <p className="alento-ui-control mt-2 leading-5 text-neutral-600">{detail}</p>
     </article>
   );
 }
@@ -533,7 +533,7 @@ export default function MetricsPage() {
                       type="button"
                       onClick={() => setDays(option.value)}
                       className={
-                        "rounded-[10px] px-3 py-2 text-[9px] font-bold transition sm:text-[10px] " +
+                        "alento-ui-control rounded-[10px] px-3 py-2 transition " +
                         (days === option.value
                           ? "bg-white text-neutral-950 shadow-sm"
                           : "text-white/55 hover:bg-white/[0.08] hover:text-white")
@@ -608,8 +608,8 @@ export default function MetricsPage() {
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
           <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
             <div>
-              <h2 className="text-[16px] font-black">Carga del menú por hora</h2>
-              <p className="mt-1 text-[10px] text-neutral-400">
+              <h2 className="alento-ui-status text-neutral-950">Carga del menú por hora</h2>
+              <p className="alento-ui-control mt-1 max-w-[760px] leading-5 text-neutral-600">
                 Horario Colombia. Permite ver a qué hora comienza y alcanza su pico la intención de compra.
               </p>
             </div>
@@ -630,9 +630,9 @@ export default function MetricsPage() {
                       )}px`,
                     }}
                   />
-                  <span className="mt-2 text-[8px] text-neutral-350">
+                  <span className="alento-ui-micro mt-2 tabular-nums text-neutral-500">
                     {item.hour % 3 === 0
-                      ? String(item.hour).padStart(2, "0")
+                      ? `${String(item.hour).padStart(2, "0")}:00`
                       : ""}
                   </span>
                 </div>
@@ -641,8 +641,8 @@ export default function MetricsPage() {
           </article>
 
           <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
-            <h2 className="text-[16px] font-black">Embudo del catálogo</h2>
-            <p className="mt-1 text-[10px] text-neutral-400">
+            <h2 className="alento-ui-status text-neutral-950">Embudo del catálogo</h2>
+            <p className="alento-ui-control mt-1 leading-5 text-neutral-600">
               De descubrir el menú a terminar el pedido.
             </p>
 
@@ -672,9 +672,9 @@ export default function MetricsPage() {
                 ],
               ].map(([label, value, rate]) => (
                 <div key={String(label)}>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <b>{label}</b>
-                    <span className="text-neutral-400">
+                  <div className="alento-ui-control flex items-center justify-between gap-3">
+                    <b className="text-neutral-900">{label}</b>
+                    <span className="tabular-nums text-neutral-600">
                       {number(Number(value))} · {Number(rate)}%
                     </span>
                   </div>
@@ -695,14 +695,14 @@ export default function MetricsPage() {
         <section className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
           <article className="overflow-hidden rounded-[22px] border border-neutral-200 bg-white">
             <div className="border-b border-neutral-100 px-5 py-4">
-              <h2 className="text-[16px] font-black">Productos con más interés</h2>
-              <p className="mt-1 text-[10px] text-neutral-400">
+              <h2 className="alento-ui-status text-neutral-950">Productos con más interés</h2>
+              <p className="alento-ui-control mt-1 leading-5 text-neutral-600">
                 Qué productos abren y cuáles convierten mejor en agregar al carrito.
               </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left">
-                <thead className="bg-neutral-50 text-[9px] uppercase tracking-[0.1em] text-neutral-400">
+                <thead className="alento-ui-label bg-neutral-50 uppercase tracking-[0.08em] text-neutral-600">
                   <tr>
                     <th className="px-5 py-3">Producto</th>
                     <th className="px-4 py-3 text-right">Vistas</th>
@@ -713,15 +713,15 @@ export default function MetricsPage() {
                 <tbody>
                   {(dashboard?.topProducts ?? []).map((product) => (
                     <tr key={product.productId ?? product.name} className="border-t border-neutral-100">
-                      <td className="px-5 py-3 text-[11px] font-bold">{product.name}</td>
-                      <td className="px-4 py-3 text-right text-[11px]">{number(product.views)}</td>
-                      <td className="px-4 py-3 text-right text-[11px]">{number(product.adds)}</td>
-                      <td className="px-5 py-3 text-right text-[11px] font-bold">{product.addRate}%</td>
+                      <td className="alento-ui-control px-5 py-3 font-bold text-neutral-900">{product.name}</td>
+                      <td className="alento-ui-control px-4 py-3 text-right tabular-nums text-neutral-700">{number(product.views)}</td>
+                      <td className="alento-ui-control px-4 py-3 text-right tabular-nums text-neutral-700">{number(product.adds)}</td>
+                      <td className="alento-ui-control px-5 py-3 text-right font-bold tabular-nums text-neutral-900">{product.addRate}%</td>
                     </tr>
                   ))}
                   {!dashboard?.topProducts?.length && (
                     <tr>
-                      <td colSpan={4} className="px-5 py-10 text-center text-[11px] text-neutral-400">
+                      <td colSpan={4} className="alento-ui-control px-5 py-10 text-center text-neutral-500">
                         Todavía no hay suficientes eventos de producto.
                       </td>
                     </tr>
@@ -732,8 +732,8 @@ export default function MetricsPage() {
           </article>
 
           <article className="rounded-[22px] border border-neutral-200 bg-white p-5">
-            <h2 className="text-[16px] font-black">Origen del tráfico</h2>
-            <p className="mt-1 text-[10px] text-neutral-400">
+            <h2 className="alento-ui-status text-neutral-950">Origen del tráfico</h2>
+            <p className="alento-ui-control mt-1 leading-5 text-neutral-600">
               UTM, referidos y tráfico directo detectado al entrar al menú.
             </p>
             <div className="mt-4 space-y-2">
@@ -743,16 +743,16 @@ export default function MetricsPage() {
                   className="flex items-center justify-between rounded-[13px] border border-neutral-100 bg-neutral-50 px-3 py-2.5"
                 >
                   <div className="min-w-0">
-                    <b className="block truncate text-[10px]">{source.source}</b>
-                    <span className="mt-0.5 block text-[9px] text-neutral-400">
+                    <b className="alento-ui-control block truncate text-neutral-900">{source.source}</b>
+                    <span className="alento-ui-micro mt-1 block text-neutral-600">
                       {number(source.visitors)} visitantes
                     </span>
                   </div>
-                  <strong className="text-[12px]">{number(source.views)}</strong>
+                  <strong className="alento-ui-status tabular-nums text-neutral-950">{number(source.views)}</strong>
                 </div>
               ))}
               {!dashboard?.sources?.length && (
-                <p className="py-8 text-center text-[10px] text-neutral-400">
+                <p className="alento-ui-control py-8 text-center text-neutral-500">
                   El origen aparecerá cuando empiecen a llegar visitas.
                 </p>
               )}
@@ -767,81 +767,131 @@ export default function MetricsPage() {
                 <Settings2 className="h-[18px] w-[18px]" />
               </span>
               <div>
-                <h2 className="text-[17px] font-black">
+                <h2 className="alento-ui-title">
                   Integraciones de medición y publicidad
                 </h2>
-                <p className="mt-1 max-w-[780px] text-[10px] leading-4 text-neutral-400">
-                  Abre cada plataforma para configurarla con instrucciones paso a paso. Al guardar, Alentó puede comprobar que el identificador quedó instalado y listo para enviar eventos.
+                <p className="alento-ui-control mt-1 max-w-[820px] leading-5 text-neutral-600">
+                  Conecta las plataformas que quieras usar. Alentó valida los identificadores y envía los eventos del embudo sin obligarte a pegar scripts manualmente.
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[9px] font-bold text-neutral-500">
+              <span className="alento-ui-control rounded-full border border-neutral-200 bg-neutral-50 px-3.5 py-2 font-bold text-neutral-700">
                 {configuredCount} de {INTEGRATIONS.length} configuradas
               </span>
             </div>
           </div>
 
           <div className="p-5">
-            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
-              <label className="flex items-center justify-between gap-4 rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-                <span>
-                  <b className="block text-[11px]">Rastreadores externos</b>
-                  <span className="mt-0.5 block text-[9px] leading-4 text-neutral-400">
-                    La analítica propia de Alentó funciona aunque estén apagados.
+            <div className="grid gap-4 xl:grid-cols-[1.05fr_.95fr]">
+              <article className="overflow-hidden rounded-[20px] border border-neutral-200 bg-[#faf9f7]">
+                <div className="flex items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-neutral-950 text-white">
+                      <Settings2 className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h3 className="alento-ui-status text-neutral-950">Ajustes de métricas</h3>
+                      <p className="alento-ui-micro mt-0.5 text-neutral-500">
+                        Controla cuándo se cargan las plataformas externas.
+                      </p>
+                    </div>
+                  </div>
+                  <span className={
+                    "alento-ui-micro rounded-full px-2.5 py-1 font-bold " +
+                    (settings.enabled
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-neutral-100 text-neutral-600")
+                  }>
+                    {settings.enabled ? "Medición activa" : "Solo Alentó"}
                   </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={settings.enabled}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      enabled: event.target.checked,
-                    }))
-                  }
-                  className="h-5 w-5 shrink-0 accent-[#e21a22]"
-                />
-              </label>
+                </div>
 
-              <label className="flex items-center justify-between gap-4 rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-                <span>
-                  <b className="block text-[11px]">Solicitar consentimiento</b>
-                  <span className="mt-0.5 block text-[9px] leading-4 text-neutral-400">
-                    Recomendado para analítica publicitaria y privacidad.
+                <div className="divide-y divide-neutral-200">
+                  <label className="flex cursor-pointer items-center justify-between gap-5 px-4 py-4 transition hover:bg-white/70">
+                    <span className="min-w-0">
+                      <b className="alento-ui-control block text-neutral-950">
+                        Rastreadores externos
+                      </b>
+                      <span className="alento-ui-micro mt-1 block max-w-[520px] leading-4 text-neutral-600">
+                        Activa Meta, Google Analytics, TikTok y Clarity. La analítica propia de Alentó continúa funcionando si los apagas.
+                      </span>
+                    </span>
+                    <span className="relative inline-flex shrink-0 items-center">
+                      <input
+                        type="checkbox"
+                        checked={settings.enabled}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            enabled: event.target.checked,
+                          }))
+                        }
+                        className="peer sr-only"
+                      />
+                      <span className="h-7 w-12 rounded-full bg-neutral-300 transition peer-checked:bg-[#e21a22]" />
+                      <span className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                    </span>
+                  </label>
+
+                  <label className="flex cursor-pointer items-center justify-between gap-5 px-4 py-4 transition hover:bg-white/70">
+                    <span className="min-w-0">
+                      <b className="alento-ui-control block text-neutral-950">
+                        Solicitar consentimiento
+                      </b>
+                      <span className="alento-ui-micro mt-1 block max-w-[520px] leading-4 text-neutral-600">
+                        Antes de cargar herramientas externas, permite que el cliente acepte o continúe sin medición publicitaria.
+                      </span>
+                    </span>
+                    <span className="relative inline-flex shrink-0 items-center">
+                      <input
+                        type="checkbox"
+                        checked={settings.requireConsent}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            requireConsent: event.target.checked,
+                          }))
+                        }
+                        className="peer sr-only"
+                      />
+                      <span className="h-7 w-12 rounded-full bg-neutral-300 transition peer-checked:bg-[#e21a22]" />
+                      <span className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end border-t border-neutral-200 bg-white px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => void saveSettings()}
+                    disabled={saving}
+                    className="alento-ui-control h-10 rounded-full bg-neutral-950 px-5 text-white transition hover:bg-black disabled:opacity-50"
+                  >
+                    {saving ? "Guardando..." : "Guardar ajustes"}
+                  </button>
+                </div>
+              </article>
+
+              <article className="rounded-[20px] border border-amber-200 bg-[linear-gradient(145deg,#fffaf0,#fff7df)] p-4.5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-amber-950 text-amber-50">
+                    <CircleAlert className="h-4 w-4" />
                   </span>
-                </span>
-                <input
-                  type="checkbox"
-                  checked={settings.requireConsent}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      requireConsent: event.target.checked,
-                    }))
-                  }
-                  className="h-5 w-5 shrink-0 accent-[#e21a22]"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => void saveSettings()}
-                disabled={saving}
-                className="h-full min-h-[58px] rounded-[16px] bg-neutral-950 px-5 text-[10px] font-bold text-white transition hover:bg-black disabled:opacity-50"
-              >
-                {saving ? "Guardando..." : "Guardar preferencias"}
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-[15px] border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="alento-ui-label text-amber-900">
-                Una sola conexión por plataforma
-              </p>
-              <p className="alento-ui-body mt-1 text-amber-900/75">
-                Google Tag Manager puede instalar Analytics, Meta o TikTok por dentro. Si haces eso, no conectes esa misma plataforma también en su botón directo de Alentó. Elige GTM o conexión directa para cada plataforma; usar ambos enviaría eventos duplicados.
-              </p>
+                  <div>
+                    <h3 className="alento-ui-status text-amber-950">
+                      Evita eventos duplicados
+                    </h3>
+                    <p className="alento-ui-control mt-1.5 leading-5 text-amber-950/75">
+                      Usa una sola conexión por plataforma. Si instalas Analytics, Meta o TikTok dentro de Google Tag Manager, no conectes esa misma herramienta también de forma directa en Alentó.
+                    </p>
+                    <p className="alento-ui-micro mt-3 rounded-[11px] border border-amber-200/80 bg-white/65 px-3 py-2 leading-4 text-amber-900">
+                      Recomendación actual: mantén las conexiones directas que ya configuraste y deja GTM sin configurar mientras no lo necesites.
+                    </p>
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -854,16 +904,16 @@ export default function MetricsPage() {
                     key={integration.id}
                     type="button"
                     onClick={() => setActiveIntegrationId(integration.id)}
-                    className="group flex min-h-[142px] flex-col rounded-[19px] border border-neutral-200 bg-white p-4 text-left shadow-[0_8px_22px_rgba(28,23,20,.035)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_14px_30px_rgba(28,23,20,.07)]"
+                    className="group flex min-h-[154px] flex-col rounded-[20px] border border-neutral-200 bg-white p-4.5 text-left shadow-[0_9px_24px_rgba(28,23,20,.04)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_16px_34px_rgba(28,23,20,.08)]"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <span className="flex h-10 min-w-10 items-center justify-center rounded-[12px] bg-neutral-950 px-2 text-[9px] font-black tracking-[0.04em] text-white">
+                      <span className="flex h-10 min-w-10 items-center justify-center rounded-[12px] bg-neutral-950 px-2 text-[11px] font-black tracking-[0.04em] text-white">
                         {integration.short}
                       </span>
 
                       <span
                         className={
-                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[8px] font-bold " +
+                          "alento-ui-micro inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold " +
                           (result?.status === "verified"
                             ? "bg-emerald-50 text-emerald-700"
                             : result?.status === "invalid"
@@ -890,14 +940,14 @@ export default function MetricsPage() {
                       </span>
                     </div>
 
-                    <h3 className="mt-3 text-[13px] font-black text-neutral-950">
+                    <h3 className="alento-ui-status mt-3 text-neutral-950">
                       {integration.name}
                     </h3>
-                    <p className="mt-1 line-clamp-2 text-[9.5px] leading-4 text-neutral-400">
+                    <p className="alento-ui-control mt-1 line-clamp-2 leading-5 text-neutral-600">
                       {integration.description}
                     </p>
 
-                    <span className="mt-auto flex items-center justify-between pt-3 text-[9px] font-bold text-[#e21a22]">
+                    <span className="alento-ui-control mt-auto flex items-center justify-between pt-3 font-bold text-[#e21a22]">
                       {configured ? "Revisar configuración" : "Configurar"}
                       <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
                     </span>
