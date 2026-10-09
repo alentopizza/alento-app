@@ -16,6 +16,12 @@ export type CatalogAnalyticsPayload = {
   quantity?: number | null;
   itemCount?: number | null;
   orderId?: number | null;
+  items?: Array<{
+    productId: number;
+    productName?: string | null;
+    value?: number | null;
+    quantity?: number | null;
+  }>;
   metadata?: Record<string, unknown>;
 };
 
@@ -178,6 +184,7 @@ export function trackCatalogEvent(
     quantity: payload.quantity ?? null,
     itemCount: payload.itemCount ?? null,
     orderId: payload.orderId ?? null,
+    items: payload.items ?? null,
     metadata: payload.metadata ?? null,
   };
 
