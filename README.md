@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Integraciones externas permanece reservada para la última fase del desarrollo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Las integraciones de medición y publicidad ya tienen una primera versión operativa desde `/metricas`. Las integraciones de marketplace/proveedores externos (por ejemplo Rappi/DiDi) continúan siendo opcionales y futuras.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -80,6 +80,7 @@ Ya están implementados, entre otros:
 - pagos parciales y cuenta dividida entre varios medios;
 - Caja basada en dinero realmente recibido;
 - impresión térmica de 80 mm;
+- módulo `/metricas` con analítica interna, mapa de calor día/hora, embudo, productos, fuentes de tráfico e integraciones externas guiadas;
 - eliminación física controlada de pedidos y pagos;
 - consecutivo comercial global independiente del `Order.id`;
 - códigos visibles como `POS-0001` y, en el futuro, `WEB-0002` compartiendo la misma secuencia.
@@ -213,6 +214,7 @@ Documentos principales:
 - [`docs/KITCHEN.md`](docs/KITCHEN.md): funcionamiento completo de Cocina.
 - [`docs/CUSTOMERS.md`](docs/CUSTOMERS.md): funcionamiento completo de Clientes.
 - [`docs/MENU.md`](docs/MENU.md): funcionamiento completo de Menú, categorías, productos, destacados y backlog futuro.
+- [`docs/METRICS_AND_TRACKING.md`](docs/METRICS_AND_TRACKING.md): métricas internas, atribución y guías para conectar Meta, GA4, TikTok, Clarity, GTM y Google Ads.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): orden de implementación por fases y criterios de cierre.
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): arquitectura y responsabilidades.
@@ -273,7 +275,7 @@ Prioridades vigentes:
 8. GPS en vivo del repartidor y tracking cartográfico;
 9. sustituir Glide y migrar `alentopizza.com`;
 10. parametrización/replicabilidad;
-11. integraciones externas al final.
+11. integraciones de marketplace/proveedores externos solo cuando exista acceso oficial y necesidad operativa.
 
 ## Rutas principales vigentes
 
@@ -297,6 +299,7 @@ Superficie interna:
 - `/caja`;
 - `/cupones`;
 - `/configuracion`;
+- `/metricas`;
 - `/personalizacion`;
 - `/usuarios`.
 
