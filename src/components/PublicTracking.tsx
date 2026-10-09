@@ -18,6 +18,12 @@ type AnalyticsDetail = {
   quantity?: number | null;
   itemCount?: number | null;
   orderId?: number | null;
+  items?: Array<{
+    productId: number;
+    productName?: string | null;
+    value?: number | null;
+    quantity?: number | null;
+  }> | null;
   path?: string | null;
   source?: string | null;
   medium?: string | null;
@@ -140,6 +146,23 @@ function itemPayload(detail: AnalyticsDetail) {
   };
 }
 
+function detailItems(detail: AnalyticsDetail) {
+  if (detail.items?.length) {
+    return detail.items.map((item) => ({
+      item_id: String(item.productId),
+      item_name: item.productName || undefined,
+      quantity: item.quantity || 1,
+      price: item.value ?? undefined,
+    }));
+  }
+
+  if (detail.productId) {
+    return [itemPayload(detail)];
+  }
+
+  return [];
+}
+
 function forwardEvent(
   settings: PublicTrackingSettings,
   detail: AnalyticsDetail,
@@ -188,13 +211,20 @@ function forwardEvent(
         items: [itemPayload(detail)],
       });
     } else if (detail.eventType === "CART_VIEW") {
-      target.gtag("event", "view_cart", gaBase);
+      target.gtag("event", "view_cart", {
+        ...gaBase,
+        items: detailItems(detail),
+      });
     } else if (detail.eventType === "CHECKOUT_STARTED") {
-      target.gtag("event", "begin_checkout", gaBase);
+      target.gtag("event", "begin_checkout", {
+        ...gaBase,
+        items: detailItems(detail),
+      });
     } else if (detail.eventType === "ORDER_CREATED") {
       target.gtag("event", "purchase", {
         transaction_id: String(detail.orderId || detail.eventId),
         ...gaBase,
+        items: detailItems(detail),
       });
 
     }
@@ -238,32 +268,48 @@ function forwardEvent(
         ...base,
       });
     } else if (detail.eventType === "CHECKOUT_STARTED") {
-      target.fbq("track", "InitiateCheckout", base);
+      target.fbq("track", "InitiateCheckout", {
+        ...base,
+        content_ids: detailItems(detail)
+          .map((item) => item.item_id)
+          .filter(Boolean),
+        content_type: "product",
+        num_items: detail.itemCount ?? undefined,
+      });
     } else if (detail.eventType === "ORDER_CREATED") {
-      target.fbq("track", "Purchase", base);
+      target.fbq("track", "Purchase", {
+        ...base,
+        content_ids: detailItems(detail)
+          .map((item) => item.item_id)
+          .filter(Boolean),
+        content_type: "product",
+        num_items: detail.itemCount ?? undefined,
+      });
     }
   }
 
   if (target.ttq?.track) {
-    const content = detail.productId
-      ? [
-          {
-            content_id: String(detail.productId),
-            content_name: detail.productName || undefined,
-            quantity: detail.quantity || 1,
-            price: detail.value ?? undefined,
-          },
-        ]
-      : undefined;
+    const contents = detailItems(detail).map((item) => ({
+      content_id: item.item_id,
+      content_name: item.item_name,
+      quantity: item.quantity,
+      price: item.price,
+    }));
 
     if (detail.eventType === "PRODUCT_VIEW") {
-      target.ttq.track("ViewContent", { ...base, contents: content });
+      target.ttq.track("ViewContent", { ...base, contents });
     } else if (detail.eventType === "ADD_TO_CART") {
-      target.ttq.track("AddToCart", { ...base, contents: content });
+      target.ttq.track("AddToCart", { ...base, contents });
     } else if (detail.eventType === "CHECKOUT_STARTED") {
-      target.ttq.track("InitiateCheckout", base);
+      target.ttq.track("InitiateCheckout", {
+        ...base,
+        contents,
+      });
     } else if (detail.eventType === "ORDER_CREATED") {
-      target.ttq.track("CompletePayment", base);
+      target.ttq.track("CompletePayment", {
+        ...base,
+        contents,
+      });
     }
   }
 
