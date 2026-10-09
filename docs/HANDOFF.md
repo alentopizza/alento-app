@@ -18,17 +18,18 @@ Leer en este orden:
 10. `docs/CUSTOMERS.md`
 11. `docs/MENU.md`
 12. `docs/ARCHITECTURE.md`
-13. `docs/PUSH_NOTIFICATIONS.md`
-14. `docs/ORDER_DATA_INTEGRITY.md`
-15. `docs/ORDER_NUMBERING.md`
-16. `docs/PAYMENTS.md`
-17. `docs/PAYMENTS_AND_CASH.md`
-18. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-19. `docs/DEPLOYMENT.md`
-20. `docs/MAPS_VISUAL_SYSTEM.md`
-21. `docs/UI_VISUAL_SYSTEM.md`
-22. `prisma/schema.prisma`
-23. archivos del módulo que se vaya a modificar.
+13. `docs/METRICS_AND_TRACKING.md`
+15. `docs/PUSH_NOTIFICATIONS.md`
+15. `docs/ORDER_DATA_INTEGRITY.md`
+16. `docs/ORDER_NUMBERING.md`
+17. `docs/PAYMENTS.md`
+18. `docs/PAYMENTS_AND_CASH.md`
+19. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+20. `docs/DEPLOYMENT.md`
+21. `docs/MAPS_VISUAL_SYSTEM.md`
+22. `docs/UI_VISUAL_SYSTEM.md`
+23. `prisma/schema.prisma`
+24. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -345,11 +346,33 @@ Regla obligatoria:
 - no duplicar marcadores en componentes ni volver a pines predeterminados de Google para estas entidades;
 - mapas nuevos deben consumir `src/lib/alentoMapMarker.ts`.
 
-## Integraciones
+## Métricas e integraciones
 
-Integraciones externas son la última fase.
+Documento canónico: `docs/METRICS_AND_TRACKING.md`.
 
-No reintroducir Rappi/DiDi experimentalmente sin acceso oficial y diseño aprobado.
+`/metricas` ya está implementado y separa:
+
+- métricas internas propias de Alentó;
+- integraciones externas de medición/publicidad.
+
+Archivos críticos:
+
+- `src/app/metricas/page.tsx`;
+- `src/lib/publicAnalytics.ts`;
+- `src/components/PublicTracking.tsx`;
+- `src/lib/trackingSettings.ts`;
+- `src/app/api/metrics/**`.
+
+Reglas de no regresión:
+
+- la analítica interna no depende de Meta/Google/TikTok/Clarity;
+- una plataforma no debe conectarse a la vez de forma directa y mediante GTM;
+- los eventos de checkout/compra conservan líneas reales del carrito;
+- UTM tiene prioridad sobre referrer;
+- el consentimiento externo no bloquea la compra;
+- “Guardar y probar” valida configuración técnica, pero la recepción final se confirma en el panel del proveedor.
+
+Rappi/DiDi siguen siendo integraciones futuras. No reintroducirlas experimentalmente sin acceso oficial y diseño aprobado.
 
 ## Activación pendiente después del cambio de autenticación
 
