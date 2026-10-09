@@ -57,7 +57,9 @@ function initGoogle(settings: PublicTrackingSettings) {
   const target = window as TrackingWindow;
   const dataLayer = (target.dataLayer ??= []);
   const gtag =
-    (target.gtag ??= function (..._args: unknown[]) {
+    (target.gtag ??= function gtag() {
+      // Google gtag.js uses the native arguments object as its command queue.
+      // eslint-disable-next-line prefer-rest-params
       dataLayer.push(arguments);
     });
 
