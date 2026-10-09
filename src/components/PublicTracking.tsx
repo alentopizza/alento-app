@@ -57,8 +57,8 @@ function initGoogle(settings: PublicTrackingSettings) {
   const target = window as TrackingWindow;
   const dataLayer = (target.dataLayer ??= []);
   const gtag =
-    (target.gtag ??= (...args: unknown[]) => {
-      dataLayer.push(args);
+    (target.gtag ??= function (..._args: unknown[]) {
+      dataLayer.push(arguments);
     });
 
   const primary =
@@ -144,45 +144,56 @@ function forwardEvent(
     value: detail.value ?? undefined,
   };
 
-  if (target.gtag) {
+  if (target.gtag && settings.googleAnalyticsId) {
+    const gaBase = {
+      ...base,
+      send_to: settings.googleAnalyticsId,
+    };
+
     if (detail.eventType === "MENU_VIEW") {
       target.gtag("event", "page_view", {
+        send_to: settings.googleAnalyticsId,
         page_path: detail.path || "/menu",
+        page_location: window.location.href,
+        page_title: document.title,
       });
     } else if (detail.eventType === "PRODUCT_VIEW") {
       target.gtag("event", "view_item", {
-        ...base,
+        ...gaBase,
         items: [itemPayload(detail)],
       });
     } else if (detail.eventType === "ADD_TO_CART") {
       target.gtag("event", "add_to_cart", {
-        ...base,
+        ...gaBase,
         items: [itemPayload(detail)],
       });
     } else if (detail.eventType === "CART_VIEW") {
-      target.gtag("event", "view_cart", base);
+      target.gtag("event", "view_cart", gaBase);
     } else if (detail.eventType === "CHECKOUT_STARTED") {
-      target.gtag("event", "begin_checkout", base);
+      target.gtag("event", "begin_checkout", gaBase);
     } else if (detail.eventType === "ORDER_CREATED") {
       target.gtag("event", "purchase", {
         transaction_id: String(detail.orderId || detail.eventId),
-        ...base,
+        ...gaBase,
       });
 
-      if (
-        settings.googleAdsId &&
-        settings.googleAdsPurchaseLabel
-      ) {
-        target.gtag("event", "conversion", {
-          send_to:
-            settings.googleAdsId +
-            "/" +
-            settings.googleAdsPurchaseLabel,
-          transaction_id: String(detail.orderId || detail.eventId),
-          ...base,
-        });
-      }
     }
+  }
+
+  if (
+    target.gtag &&
+    detail.eventType === "ORDER_CREATED" &&
+    settings.googleAdsId &&
+    settings.googleAdsPurchaseLabel
+  ) {
+    target.gtag("event", "conversion", {
+      send_to:
+        settings.googleAdsId +
+        "/" +
+        settings.googleAdsPurchaseLabel,
+      transaction_id: String(detail.orderId || detail.eventId),
+      ...base,
+    });
   }
 
   if (target.fbq) {
