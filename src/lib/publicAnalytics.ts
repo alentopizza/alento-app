@@ -111,6 +111,27 @@ function referrerHost() {
   }
 }
 
+function normalizedReferrerSource() {
+  const referrer = referrerHost().toLowerCase();
+  const currentHost = window.location.hostname.toLowerCase();
+
+  if (!referrer) return "direct";
+  if (referrer === currentHost || referrer.endsWith(`.${currentHost}`)) {
+    return "internal";
+  }
+  if (referrer.includes("facebook.com") || referrer.includes("fb.com")) {
+    return "facebook";
+  }
+  if (referrer.includes("instagram.com")) return "instagram";
+  if (referrer.includes("tiktok.com")) return "tiktok";
+  if (referrer.includes("google.")) return "google";
+  if (referrer.includes("whatsapp.com") || referrer.includes("wa.me")) {
+    return "whatsapp";
+  }
+
+  return referrer;
+}
+
 function attribution(currentSessionId: string) {
   const params = new URLSearchParams(window.location.search);
   const fromUrl = {
@@ -141,9 +162,15 @@ function attribution(currentSessionId: string) {
   } catch {}
 
   const referrer = referrerHost();
+  const source = normalizedReferrerSource();
   return {
-    source: referrer || "direct",
-    medium: referrer ? "referral" : "direct",
+    source,
+    medium:
+      source === "direct"
+        ? "direct"
+        : source === "internal"
+          ? "internal"
+          : "referral",
     campaign: "",
     sessionId: currentSessionId,
   };
