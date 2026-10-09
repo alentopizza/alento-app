@@ -760,26 +760,36 @@ export default function MetricsPage() {
           </article>
         </section>
 
-        <section className="mt-6 rounded-[24px] border border-neutral-200 bg-white">
-          <div className="flex items-start gap-3 border-b border-neutral-100 px-5 py-5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-neutral-950 text-white">
-              <Settings2 className="h-[18px] w-[18px]" />
-            </span>
-            <div>
-              <h2 className="text-[17px] font-black">Integraciones de medición y publicidad</h2>
-              <p className="mt-1 max-w-[760px] text-[10px] leading-4 text-neutral-400">
-                Conecta los identificadores públicos de tus plataformas. Los eventos de producto, carrito, checkout y compra se enviarán también a las redes activadas para ayudar a medir y optimizar campañas.
-              </p>
+        <section className="mt-6 overflow-hidden rounded-[24px] border border-neutral-200 bg-white shadow-[0_8px_24px_rgba(28,23,20,.05)]">
+          <div className="flex flex-col gap-4 border-b border-neutral-100 px-5 py-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-neutral-950 text-white">
+                <Settings2 className="h-[18px] w-[18px]" />
+              </span>
+              <div>
+                <h2 className="text-[17px] font-black">
+                  Integraciones de medición y publicidad
+                </h2>
+                <p className="mt-1 max-w-[780px] text-[10px] leading-4 text-neutral-400">
+                  Abre cada plataforma para configurarla con instrucciones paso a paso. Al guardar, Alentó puede comprobar que el identificador quedó instalado y listo para enviar eventos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[9px] font-bold text-neutral-500">
+                {configuredCount} de {INTEGRATIONS.length} configuradas
+              </span>
             </div>
           </div>
 
-          <div className="grid gap-5 p-5 xl:grid-cols-2">
-            <div className="space-y-4">
-              <label className="flex items-center justify-between rounded-[15px] border border-neutral-200 p-3">
+          <div className="p-5">
+            <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+              <label className="flex items-center justify-between gap-4 rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                 <span>
                   <b className="block text-[11px]">Rastreadores externos</b>
-                  <span className="mt-0.5 block text-[9px] text-neutral-400">
-                    La medición propia de Alentó funciona aunque esto esté apagado.
+                  <span className="mt-0.5 block text-[9px] leading-4 text-neutral-400">
+                    La analítica propia de Alentó funciona aunque estén apagados.
                   </span>
                 </span>
                 <input
@@ -791,15 +801,15 @@ export default function MetricsPage() {
                       enabled: event.target.checked,
                     }))
                   }
-                  className="h-5 w-5 accent-[#e21a22]"
+                  className="h-5 w-5 shrink-0 accent-[#e21a22]"
                 />
               </label>
 
-              <label className="flex items-center justify-between rounded-[15px] border border-neutral-200 p-3">
+              <label className="flex items-center justify-between gap-4 rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                 <span>
                   <b className="block text-[11px]">Solicitar consentimiento</b>
-                  <span className="mt-0.5 block text-[9px] text-neutral-400">
-                    Recomendado para analítica publicitaria y protección de privacidad.
+                  <span className="mt-0.5 block text-[9px] leading-4 text-neutral-400">
+                    Recomendado para analítica publicitaria y privacidad.
                   </span>
                 </span>
                 <input
@@ -811,68 +821,292 @@ export default function MetricsPage() {
                       requireConsent: event.target.checked,
                     }))
                   }
-                  className="h-5 w-5 accent-[#e21a22]"
+                  className="h-5 w-5 shrink-0 accent-[#e21a22]"
                 />
               </label>
-
-              {(
-                [
-                  ["Google Tag Manager", "googleTagManagerId", "GTM-XXXXXXX"],
-                  ["Google Analytics 4", "googleAnalyticsId", "G-XXXXXXXXXX"],
-                  ["Google Ads", "googleAdsId", "AW-123456789"],
-                  ["Google Ads · etiqueta compra", "googleAdsPurchaseLabel", "AbCdEFghijk"],
-                ] satisfies Array<[string, TextTrackingKey, string]>
-              ).map(([label, key, placeholder]) => (
-                <label key={key} className="block">
-                  <span className="mb-1.5 block text-[10px] font-bold">{label}</span>
-                  <input
-                    value={settings[key]}
-                    onChange={(event) =>
-                      updateTextSetting(key, event.target.value)
-                    }
-                    placeholder={placeholder}
-                    className="h-11 w-full rounded-[12px] border border-neutral-200 bg-neutral-50 px-3 text-[11px] outline-none transition focus:border-neutral-400 focus:bg-white"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              {(
-                [
-                  ["Meta Pixel", "metaPixelId", "123456789012345"],
-                  ["TikTok Pixel", "tiktokPixelId", "CXXXXXXXXXXXXXXX"],
-                  ["Microsoft Clarity", "clarityId", "abcdefghij"],
-                ] satisfies Array<[string, TextTrackingKey, string]>
-              ).map(([label, key, placeholder]) => (
-                <label key={key} className="block">
-                  <span className="mb-1.5 block text-[10px] font-bold">{label}</span>
-                  <input
-                    value={settings[key]}
-                    onChange={(event) =>
-                      updateTextSetting(key, event.target.value)
-                    }
-                    placeholder={placeholder}
-                    className="h-11 w-full rounded-[12px] border border-neutral-200 bg-neutral-50 px-3 text-[11px] outline-none transition focus:border-neutral-400 focus:bg-white"
-                  />
-                </label>
-              ))}
-
-              <div className="rounded-[15px] border border-amber-200 bg-amber-50 p-3 text-[9.5px] leading-4 text-amber-900/75">
-                Si utilizas Google Tag Manager para instalar Analytics, Meta, TikTok u otras etiquetas, evita configurar la misma herramienta también de forma directa para no duplicar eventos. GTM queda disponible precisamente para integrar plataformas adicionales sin cambiar el código de Alentó.
-              </div>
 
               <button
                 type="button"
                 onClick={() => void saveSettings()}
                 disabled={saving}
-                className="h-11 w-full rounded-full bg-[#e21a22] text-[11px] font-bold text-white transition hover:bg-[#c9151c] disabled:opacity-50"
+                className="h-full min-h-[58px] rounded-[16px] bg-neutral-950 px-5 text-[10px] font-bold text-white transition hover:bg-black disabled:opacity-50"
               >
-                {saving ? "Guardando..." : "Guardar integraciones"}
+                {saving ? "Guardando..." : "Guardar preferencias"}
               </button>
+            </div>
+
+            <div className="mt-4 rounded-[15px] border border-amber-200 bg-amber-50 px-4 py-3 text-[9.5px] leading-4 text-amber-900/75">
+              Si usas Google Tag Manager para instalar Analytics, Meta, TikTok u otra etiqueta, evita configurar la misma herramienta también de forma directa para no duplicar PageView, AddToCart o Purchase.
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {INTEGRATIONS.map((integration) => {
+                const configured = integrationConfigured(integration);
+                const result = verification[integration.id];
+
+                return (
+                  <button
+                    key={integration.id}
+                    type="button"
+                    onClick={() => setActiveIntegrationId(integration.id)}
+                    className="group flex min-h-[142px] flex-col rounded-[19px] border border-neutral-200 bg-white p-4 text-left shadow-[0_8px_22px_rgba(28,23,20,.035)] transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-[0_14px_30px_rgba(28,23,20,.07)]"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-10 min-w-10 items-center justify-center rounded-[12px] bg-neutral-950 px-2 text-[9px] font-black tracking-[0.04em] text-white">
+                        {integration.short}
+                      </span>
+
+                      <span
+                        className={
+                          "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[8px] font-bold " +
+                          (result?.status === "verified"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : result?.status === "invalid"
+                              ? "bg-red-50 text-red-700"
+                              : configured
+                                ? "bg-blue-50 text-blue-700"
+                                : "bg-neutral-100 text-neutral-500")
+                        }
+                      >
+                        {result?.status === "verified" ? (
+                          <BadgeCheck className="h-3 w-3" />
+                        ) : result?.status === "invalid" ? (
+                          <CircleAlert className="h-3 w-3" />
+                        ) : configured ? (
+                          <Link2 className="h-3 w-3" />
+                        ) : null}
+                        {result?.status === "verified"
+                          ? "Verificada"
+                          : result?.status === "invalid"
+                            ? "Revisar"
+                            : configured
+                              ? "Configurada"
+                              : "Sin configurar"}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-3 text-[13px] font-black text-neutral-950">
+                      {integration.name}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-[9.5px] leading-4 text-neutral-400">
+                      {integration.description}
+                    </p>
+
+                    <span className="mt-auto flex items-center justify-between pt-3 text-[9px] font-bold text-[#e21a22]">
+                      {configured ? "Revisar configuración" : "Configurar"}
+                      <ChevronRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
+
+        {activeIntegration && (
+          <div
+            className="fixed inset-0 z-[260] flex items-center justify-center bg-black/65 p-3 backdrop-blur-sm sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Configurar ${activeIntegration.name}`}
+          >
+            <div className="flex max-h-[92vh] w-full max-w-[940px] flex-col overflow-hidden rounded-[26px] border border-white/10 bg-white shadow-[0_30px_100px_rgba(0,0,0,.38)]">
+              <div className="flex items-start justify-between gap-4 border-b border-neutral-200 bg-[#0d0d0e] px-5 py-4 text-white sm:px-6">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-11 min-w-11 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.07] px-2 text-[9px] font-black tracking-[0.04em]">
+                    {activeIntegration.short}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#ff454b]">
+                      Integración
+                    </p>
+                    <h2 className="mt-0.5 text-[20px] font-black tracking-[-0.025em]">
+                      {activeIntegration.name}
+                    </h2>
+                    <p className="mt-1 max-w-[600px] text-[10px] leading-4 text-white/48">
+                      {activeIntegration.description}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveIntegrationId(null)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/60 transition hover:bg-white/[0.1] hover:text-white"
+                  aria-label="Cerrar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[.9fr_1.1fr] lg:overflow-hidden">
+                <aside className="border-b border-neutral-200 bg-[#f7f6f4] p-5 sm:p-6 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.13em] text-neutral-400">
+                        Cómo obtenerlo
+                      </p>
+                      <h3 className="mt-1 text-[15px] font-black">
+                        Configuración paso a paso
+                      </h3>
+                    </div>
+                    <a
+                      href={activeIntegration.externalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 text-[9px] font-bold text-neutral-700 transition hover:border-neutral-300"
+                    >
+                      {activeIntegration.externalLabel}
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {activeIntegration.steps.map((step, index) => (
+                      <div key={step} className="flex gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-[9px] font-black text-white">
+                          {index + 1}
+                        </span>
+                        <p className="pt-0.5 text-[10px] leading-4 text-neutral-600">
+                          {step}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 rounded-[15px] border border-neutral-200 bg-white p-3">
+                    <p className="text-[9px] font-black uppercase tracking-[0.1em] text-neutral-400">
+                      Importante
+                    </p>
+                    <p className="mt-1.5 text-[9.5px] leading-4 text-neutral-600">
+                      {activeIntegration.note}
+                    </p>
+                  </div>
+                </aside>
+
+                <section className="p-5 sm:p-6 lg:overflow-y-auto">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#e21a22]">
+                      Vincular con Alentó
+                    </p>
+                    <h3 className="mt-1 text-[16px] font-black">
+                      Identificadores de la integración
+                    </h3>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-400">
+                      No pegues scripts completos. Solo necesitamos los identificadores públicos que indica cada campo.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-4">
+                    {activeIntegration.fields.map((field) => (
+                      <label key={field.key} className="block">
+                        <span className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-neutral-800">
+                          {field.label}
+                          {field.required && (
+                            <span className="text-[#e21a22]">*</span>
+                          )}
+                        </span>
+                        <input
+                          value={settings[field.key]}
+                          onChange={(event) => {
+                            updateTextSetting(field.key, event.target.value);
+                            setVerification((current) => {
+                              const next = { ...current };
+                              delete next[activeIntegration.id];
+                              return next;
+                            });
+                          }}
+                          placeholder={field.placeholder}
+                          autoComplete="off"
+                          className="h-12 w-full rounded-[13px] border border-neutral-200 bg-neutral-50 px-3.5 text-[12px] font-semibold outline-none transition placeholder:font-normal placeholder:text-neutral-300 focus:border-neutral-400 focus:bg-white"
+                        />
+                        <span className="mt-1.5 block text-[9px] leading-4 text-neutral-400">
+                          {field.help}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {verification[activeIntegration.id] && (
+                    <div
+                      className={
+                        "mt-5 rounded-[15px] border p-3.5 " +
+                        (verification[activeIntegration.id]?.status === "verified"
+                          ? "border-emerald-200 bg-emerald-50"
+                          : verification[activeIntegration.id]?.status === "invalid"
+                            ? "border-red-200 bg-red-50"
+                            : "border-blue-200 bg-blue-50")
+                      }
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {verification[activeIntegration.id]?.status === "verified" ? (
+                          <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                        ) : verification[activeIntegration.id]?.status === "invalid" ? (
+                          <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                        ) : (
+                          <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                        )}
+                        <div>
+                          <b className="block text-[10.5px]">
+                            {verification[activeIntegration.id]?.title}
+                          </b>
+                          <p className="mt-1 text-[9.5px] leading-4 text-neutral-600">
+                            {verification[activeIntegration.id]?.detail}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-5 rounded-[15px] border border-neutral-200 bg-[#faf9f7] p-3">
+                    <div className="flex items-start gap-2">
+                      <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
+                      <p className="text-[9.5px] leading-4 text-neutral-500">
+                        <b className="text-neutral-700">Qué verifica Alentó:</b>{" "}
+                        guardamos el ID, comprobamos su formato, confirmamos que nuestra integración quedó preparada y, cuando la plataforma permite una comprobación pública, probamos también su script. La recepción definitiva de eventos se confirma dentro del panel de cada plataforma después de generar tráfico.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setActiveIntegrationId(null)}
+                      className="h-11 rounded-full border border-neutral-200 px-5 text-[10px] font-bold text-neutral-500 transition hover:bg-neutral-50"
+                    >
+                      Cerrar
+                    </button>
+                    {integrationConfigured(activeIntegration) && (
+                      <button
+                        type="button"
+                        onClick={() => void verifyIntegration(activeIntegration.id)}
+                        disabled={verifying === activeIntegration.id || saving}
+                        className="h-11 rounded-full border border-neutral-950 px-5 text-[10px] font-bold text-neutral-950 transition hover:bg-neutral-50 disabled:opacity-50"
+                      >
+                        {verifying === activeIntegration.id
+                          ? "Comprobando..."
+                          : "Probar conexión"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void saveAndVerify(activeIntegration.id)}
+                      disabled={saving || verifying === activeIntegration.id}
+                      className="h-11 rounded-full bg-[#e21a22] px-6 text-[10px] font-bold text-white transition hover:bg-[#c9151c] disabled:opacity-50"
+                    >
+                      {saving
+                        ? "Guardando..."
+                        : verifying === activeIntegration.id
+                          ? "Comprobando..."
+                          : "Guardar y probar"}
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </main>
   );
