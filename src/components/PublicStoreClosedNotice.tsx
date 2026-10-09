@@ -63,7 +63,13 @@ export default function PublicStoreClosedNotice() {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 top-[max(10px,env(safe-area-inset-top))] z-[120] px-3 sm:px-4">
+      <div
+        className="pointer-events-none fixed inset-x-0 z-[120] px-3 sm:px-4"
+        style={{
+          bottom:
+            "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+        }}
+      >
         <section className="pointer-events-auto mx-auto flex w-full max-w-[720px] items-center gap-3 rounded-[18px] border border-red-200 bg-white px-3.5 py-3 text-neutral-950 shadow-[0_16px_44px_rgba(0,0,0,.26)]">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-red-50 text-[18px] text-red-600">
             ◷
