@@ -327,25 +327,33 @@ export default function PublicTracking() {
   }
 
   return (
-    <div className="fixed bottom-[92px] left-1/2 z-[220] w-[min(92vw,430px)] -translate-x-1/2 rounded-[20px] border border-white/12 bg-[#101011]/97 p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,.48)] backdrop-blur-xl md:bottom-5">
-      <p className="text-[12px] font-bold">Medición para mejorar tu experiencia</p>
-      <p className="mt-1 text-[10px] leading-4 text-white/48">
-        Usamos analítica y herramientas publicitarias para entender qué productos interesan y medir campañas. Puedes continuar solo con la medición esencial de Alentó.
+    <div
+      className="fixed left-1/2 z-[220] w-[min(92vw,440px)] -translate-x-1/2 rounded-[18px] border border-white/12 bg-[#101011]/97 p-3.5 text-white shadow-[0_20px_55px_rgba(0,0,0,.42)] backdrop-blur-xl md:bottom-5"
+      style={{
+        bottom:
+          "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+      }}
+    >
+      <p className="alento-ui-control font-bold">
+        🍕 Ayúdanos a mejorar tu experiencia
       </p>
-      <div className="mt-3 flex gap-2">
+      <p className="alento-ui-micro mt-1 leading-4 text-white/58">
+        Usamos herramientas de medición para saber qué productos interesan y mejorar nuestras promociones.
+      </p>
+      <div className="mt-2.5 flex gap-2">
         <button
           type="button"
           onClick={() => choose("granted")}
-          className="h-10 flex-1 rounded-full bg-[#e21a22] text-[10px] font-bold text-white"
+          className="alento-ui-control h-9 flex-1 rounded-full bg-[#e21a22] px-4 text-white transition hover:bg-[#f01f28]"
         >
-          Aceptar medición
+          Aceptar
         </button>
         <button
           type="button"
           onClick={() => choose("denied")}
-          className="h-10 flex-1 rounded-full border border-white/10 bg-white/[0.05] text-[10px] font-semibold text-white/65"
+          className="alento-ui-control h-9 flex-1 rounded-full border border-white/10 bg-white/[0.05] px-4 text-white/72 transition hover:bg-white/[0.08] hover:text-white"
         >
-          Solo esencial
+          Gracias 😔
         </button>
       </div>
     </div>
