@@ -39,9 +39,9 @@ export async function getPublicStoreSeoData() {
       ? (saved.value as RawSettings)
       : {};
 
-  const store =
-    raw.store && typeof raw.store === "object"
-      ? raw.store
+  const store: Record<string, unknown> =
+    raw.store && typeof raw.store === "object" && !Array.isArray(raw.store)
+      ? (raw.store as Record<string, unknown>)
       : {};
 
   const address =
