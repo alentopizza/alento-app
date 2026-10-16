@@ -22,24 +22,26 @@ import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import CustomerPushPrompt from "@/components/CustomerPushPrompt";
+import {
+  SEO_ADDRESS,
+  SEO_BUSINESS_NAME,
+  SEO_CITY,
+  SEO_ICON,
+  SEO_LOCALITY,
+  SEO_PHONE_E164,
+  SEO_SHARE_IMAGE,
+  SEO_SITE_URL,
+} from "@/lib/seo";
 
-const ALENTO_ICON =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
-
-const ALENTO_APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://alentopizza.com";
-
-const ALENTO_SHARE_IMAGE =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
+const ALENTO_ICON = SEO_ICON;
+const ALENTO_APP_URL = SEO_SITE_URL;
+const ALENTO_SHARE_IMAGE = SEO_SHARE_IMAGE;
 
 const ALENTO_DESCRIPTION =
   "Pide pizzas, combos, antojos y bebidas en Alentó Pizza. Domicilios y recogida en Kennedy, Bogotá. Consulta el menú y haz tu pedido en línea.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(ALENTO_APP_URL),
-  alternates: {
-    canonical: "/",
-  },
   title: {
     default: "Alentó Pizza | Pizzería en Kennedy, Bogotá",
     template: "%s | Alentó Pizza",
@@ -61,6 +63,25 @@ export const metadata: Metadata = {
   authors: [{ name: "Alentó Pizza", url: ALENTO_APP_URL }],
   creator: "Alentó Pizza",
   publisher: "Alentó Pizza",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+      : {}),
+    ...(process.env.BING_SITE_VERIFICATION
+      ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } }
+      : {}),
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: ALENTO_ICON, type: "image/png" }],
@@ -99,28 +120,43 @@ export const viewport: Viewport = {
   colorScheme: "light",
 };
 
-const localBusinessJsonLd = {
+const siteJsonLd = {
   "@context": "https://schema.org",
-  "@type": "PizzaPlace",
-  name: "Alentó Pizza",
-  url: ALENTO_APP_URL,
-  logo: ALENTO_ICON,
-  image: ALENTO_SHARE_IMAGE,
-  telephone: "+57 324 333 4009",
-  slogan: "Sabor Que Te Hace Volver",
-  servesCuisine: ["Pizza", "Comida rápida"],
-  hasMenu: `${ALENTO_APP_URL}/menu`,
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "Av. Calle 43 Sur #79A-33, Nuevo Kennedy Sector 3",
-    addressLocality: "Bogotá",
-    addressRegion: "Bogotá D.C.",
-    addressCountry: "CO",
-  },
-  areaServed: {
-    "@type": "AdministrativeArea",
-    name: "Kennedy, Bogotá",
-  },
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${ALENTO_APP_URL}/#website`,
+      url: ALENTO_APP_URL,
+      name: SEO_BUSINESS_NAME,
+      inLanguage: "es-CO",
+      publisher: {
+        "@id": `${ALENTO_APP_URL}/#business`,
+      },
+    },
+    {
+      "@type": ["Restaurant", "PizzaPlace"],
+      "@id": `${ALENTO_APP_URL}/#business`,
+      name: SEO_BUSINESS_NAME,
+      url: ALENTO_APP_URL,
+      logo: ALENTO_ICON,
+      image: ALENTO_SHARE_IMAGE,
+      telephone: SEO_PHONE_E164,
+      slogan: "Sabor Que Te Hace Volver",
+      servesCuisine: ["Pizza", "Pizzería", "Comida rápida"],
+      hasMenu: `${ALENTO_APP_URL}/menu`,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: SEO_ADDRESS,
+        addressLocality: SEO_CITY,
+        addressRegion: "Bogotá D.C.",
+        addressCountry: "CO",
+      },
+      areaServed: {
+        "@type": "AdministrativeArea",
+        name: `${SEO_LOCALITY}, ${SEO_CITY}`,
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -134,7 +170,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(localBusinessJsonLd).replace(/</g, "\\u003c"),
+            __html: JSON.stringify(siteJsonLd).replace(/</g, "\\u003c"),
           }}
         />
         <PwaRegister />
