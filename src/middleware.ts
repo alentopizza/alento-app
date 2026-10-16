@@ -32,6 +32,25 @@ const PROTECTED_API_PREFIXES = [
   "/api/discount",
 ];
 
+function isIndexablePublicPage(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/menu" ||
+    pathname.startsWith("/menu/") ||
+    pathname === "/club"
+  );
+}
+
+function applySearchHeaders(response: NextResponse, pathname: string) {
+  if (!isIndexablePublicPage(pathname)) {
+    response.headers.set(
+      "X-Robots-Tag",
+      "noindex, nofollow, noarchive, nosnippet",
+    );
+  }
+  return response;
+}
+
 function isProtectedPage(pathname: string) {
   if (pathname === "/interno" || pathname.startsWith("/interno/")) {
     return true;
@@ -215,12 +234,12 @@ export async function middleware(request: NextRequest) {
   // El middleware ahora cubre también la web pública para poder filtrar
   // Next-Action, pero no debe exigir sesión en rutas públicas.
   if (!protectedPage && !protectedApi) {
-    return NextResponse.next();
+    return applySearchHeaders(NextResponse.next(), pathname);
   }
 
   // Cotización pública del checkout: no requiere sesión de colaborador.
   if (isPublicStaffApiException(pathname, request.method)) {
-    return NextResponse.next();
+    return applySearchHeaders(NextResponse.next(), pathname);
   }
 
   const session = await readStaffSession(request);
@@ -267,7 +286,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response;
+  return applySearchHeaders(response, pathname);
 }
 
 export const config = {
