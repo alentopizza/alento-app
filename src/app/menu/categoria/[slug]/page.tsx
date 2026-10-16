@@ -110,6 +110,21 @@ export default async function CategorySeoPage({ params }: PageProps) {
 
   const canonicalUrl = `${SEO_SITE_URL}/menu/categoria/${category.slug}`;
   const description = categorySeoDescription(category.name);
+  const smallestPizzaSize = await prisma.pizzaSize.findFirst({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
+  });
+
+  function displayProductPrice(product: (typeof category.products)[number]) {
+    if (product.basePrice == null) return null;
+    const base = Number(product.basePrice);
+
+    if (product.type === "PIZZA_SINGLE" && smallestPizzaSize) {
+      return Number(smallestPizzaSize.basePrice) + base;
+    }
+
+    return base;
+  }
 
   const itemListJsonLd = {
     "@context": "https://schema.org",
@@ -239,12 +254,13 @@ export default async function CategorySeoPage({ params }: PageProps) {
                       {product.description}
                     </p>
                   )}
-                  {product.basePrice != null && Number(product.basePrice) > 0 && (
-                    <b className="mt-3 block text-[13px] text-[#ff3439]">
-                      {product.type === "PIZZA_SINGLE" ? "Base " : ""}
-                      {money(Number(product.basePrice))}
-                    </b>
-                  )}
+                  {displayProductPrice(product) != null &&
+                    Number(displayProductPrice(product)) > 0 && (
+                      <b className="mt-3 block text-[13px] text-[#ff3439]">
+                        {product.type === "PIZZA_SINGLE" ? "Desde " : ""}
+                        {money(Number(displayProductPrice(product)))}
+                      </b>
+                    )}
                   <span className="mt-3 inline-flex text-[9px] font-bold text-white/55">
                     Ver producto →
                   </span>
