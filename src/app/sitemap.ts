@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: {
         active: true,
         visibleInPos: true,
-        slug: { notIn: ["insumos", "ingredientes"] },
+        slug: { notIn: ["insumos", "ingredientes", "destacados"] },
       },
       select: {
         slug: true,
@@ -55,6 +55,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.7,
+    },
+    {
+      url: `${SEO_SITE_URL}/ubicacion`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${SEO_SITE_URL}/domicilios`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
     },
     ...categories.map((category) => ({
       url: `${SEO_SITE_URL}/menu/categoria/${category.slug}`,
