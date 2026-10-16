@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import PublicProductConfigurator from "@/components/PublicProductConfigurator";
 import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
@@ -216,6 +217,24 @@ export default function PublicMenuPage() {
 
     return [...map.values()];
   }, [catalogCategories]);
+
+  useEffect(() => {
+    if (loading || !allProducts.length) return;
+
+    const match = window.location.hash.match(/^#producto-(\d+)$/);
+    if (!match) return;
+
+    const productId = Number(match[1]);
+    const product = allProducts.find((item) => item.id === productId);
+    if (!product) return;
+
+    setSelectedProduct(product);
+    trackCatalogEvent("PRODUCT_VIEW", {
+      productId: product.id,
+      productName: product.name,
+      value: productPriceValue(product),
+    });
+  }, [allProducts, loading]);
 
   const searchResults = useMemo(() => {
     const value = query.trim().toLocaleLowerCase("es");
@@ -439,6 +458,9 @@ export default function PublicMenuPage() {
 
   return (
     <main className="alento-public-menu min-h-screen bg-[#090909] pb-24 text-white">
+      <h1 className="sr-only">
+        Alentó Pizza en Kennedy, Bogotá: pizzas, combos, antojos y domicilios
+      </h1>
       <section className="min-h-screen bg-[#090909]">
         <section id="inicio-menu" className="relative overflow-hidden border-b border-white/10 bg-black">
           <div className="mx-auto w-full max-w-[1080px] overflow-hidden">
@@ -729,6 +751,56 @@ export default function PublicMenuPage() {
             </div>
           )}
         </section>
+
+        {!loading && catalogCategories.length > 0 && (
+          <section className="mx-auto max-w-[1320px] px-3 pb-28 sm:px-5 md:pb-20 lg:px-8">
+            <div className="grid gap-5 rounded-[26px] border border-white/10 bg-[#111] p-5 sm:p-6 lg:grid-cols-[1.25fr_.75fr] lg:p-7">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#ff454b]">
+                  Alentó Pizza · Kennedy, Bogotá
+                </p>
+                <h2 className="mt-2 text-[22px] font-black tracking-[-0.035em] text-white sm:text-[26px]">
+                  Pizza artesanal, combos y antojos para pedir en línea
+                </h2>
+                <p className="mt-3 max-w-[720px] text-[11px] leading-5 text-white/42">
+                  Preparamos pizzas con masa artesanal madurada, queso mozzarella y sabores clásicos y especiales.
+                  Pide para domicilio o recogida desde nuestro menú en línea.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {catalogCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/menu/categoria/${category.slug}`}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[9px] font-bold text-white/65 transition hover:bg-white/[0.08] hover:text-white"
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <address className="not-italic lg:text-right">
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
+                  Visítanos o escríbenos
+                </p>
+                <p className="mt-2 text-[11px] font-bold leading-5 text-white/70">
+                  Av. Calle 43 Sur #79A-33
+                  <br />
+                  Nuevo Kennedy Sector 3 · Bogotá D.C.
+                </p>
+                <a
+                  href="https://wa.me/573243334009"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-[11px] font-black text-[#ff454b]"
+                >
+                  WhatsApp 324 333 4009 →
+                </a>
+              </address>
+            </div>
+          </section>
+        )}
       </section>
 
 
