@@ -789,6 +789,20 @@ export default function PublicMenuPage() {
                   <br />
                   Nuevo Kennedy Sector 3 · Bogotá D.C.
                 </p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 lg:justify-end">
+                  <Link
+                    href="/ubicacion"
+                    className="text-[10px] font-bold text-white/55 transition hover:text-white"
+                  >
+                    Ubicación y horarios
+                  </Link>
+                  <Link
+                    href="/domicilios"
+                    className="text-[10px] font-bold text-white/55 transition hover:text-white"
+                  >
+                    Domicilios
+                  </Link>
+                </div>
                 <a
                   href="https://wa.me/573243334009"
                   target="_blank"
