@@ -37,7 +37,9 @@ function isIndexablePublicPage(pathname: string) {
     pathname === "/" ||
     pathname === "/menu" ||
     pathname.startsWith("/menu/") ||
-    pathname === "/club"
+    pathname === "/club" ||
+    pathname === "/ubicacion" ||
+    pathname === "/domicilios"
   );
 }
 
