@@ -132,13 +132,37 @@ export default async function CategorySeoPage({ params }: PageProps) {
     name: `${category.name} de Alentó Pizza`,
     itemListOrder: "https://schema.org/ItemListOrderAscending",
     numberOfItems: category.products.length,
-    itemListElement: category.products.map((product, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      url: `${SEO_SITE_URL}${productSeoPath(product.id, product.name)}`,
-      name: product.name,
-      ...(product.imageUrl ? { image: product.imageUrl } : {}),
-    })),
+    itemListElement: category.products.map((product, index) => {
+      const price = displayProductPrice(product);
+      const url = `${SEO_SITE_URL}${productSeoPath(product.id, product.name)}`;
+
+      return {
+        "@type": "ListItem",
+        position: index + 1,
+        item: {
+          "@type": "Product",
+          name: product.name,
+          url,
+          ...(product.description ? { description: product.description } : {}),
+          ...(product.imageUrl ? { image: product.imageUrl } : {}),
+          brand: {
+            "@type": "Brand",
+            name: SEO_BUSINESS_NAME,
+          },
+          ...(price != null && price > 0
+            ? {
+                offers: {
+                  "@type": "Offer",
+                  url,
+                  priceCurrency: "COP",
+                  price,
+                  availability: "https://schema.org/InStock",
+                },
+              }
+            : {}),
+        },
+      };
+    }),
   };
 
   const breadcrumbJsonLd = {
