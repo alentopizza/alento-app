@@ -1,6 +1,39 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getStaffSession } from "@/lib/auth";
 import PublicLandingPageClient from "@/components/PublicLandingPageClient";
+import { SEO_SHARE_IMAGE } from "@/lib/seo";
+
+const HOME_DESCRIPTION =
+  "Alentó Pizza en Kennedy, Bogotá. Pizzas con masa artesanal madurada, combos, antojos, bebidas, domicilio y recogida. Consulta el menú y pide en línea.";
+
+export const metadata: Metadata = {
+  title: "Pizza en Kennedy, Bogotá | Domicilios y recogida",
+  description: HOME_DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    url: "/",
+    siteName: "Alentó Pizza",
+    title: "Alentó Pizza | Pizza en Kennedy, Bogotá",
+    description: HOME_DESCRIPTION,
+    images: [
+      {
+        url: SEO_SHARE_IMAGE,
+        alt: "Alentó Pizza en Kennedy, Bogotá",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Alentó Pizza | Pizza en Kennedy, Bogotá",
+    description: HOME_DESCRIPTION,
+    images: [SEO_SHARE_IMAGE],
+  },
+};
 
 function staffHome(roles: string[]) {
   if (
