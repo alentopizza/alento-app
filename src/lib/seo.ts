@@ -1,11 +1,12 @@
 export const SEO_SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://alentopizza.com";
 
-export const SEO_SHARE_IMAGE =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
-
 export const SEO_ICON =
   "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/esHVvv9U23OXjH5ATQqA.png";
+
+// Imagen oficial de marca para WhatsApp/Open Graph.
+// El sufijo versionado fuerza a los crawlers sociales a refrescar la miniatura.
+export const SEO_SHARE_IMAGE = `${SEO_ICON}?v=alento-official-20261016`;
 
 export const SEO_BUSINESS_NAME = "Alentó Pizza";
 export const SEO_PHONE_DISPLAY = "324 333 4009";
