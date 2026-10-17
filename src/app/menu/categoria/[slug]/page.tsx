@@ -42,6 +42,8 @@ async function getCategory(slug: string) {
   };
 }
 
+type SeoCategory = NonNullable<Awaited<ReturnType<typeof getCategory>>>;
+
 function money(value: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -115,7 +117,7 @@ export default async function CategorySeoPage({ params }: PageProps) {
     orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
   });
 
-  function displayProductPrice(product: (typeof category)["products"][number]) {
+  function displayProductPrice(product: SeoCategory["products"][number]) {
     if (product.basePrice == null) return null;
     const base = Number(product.basePrice);
 
