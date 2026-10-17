@@ -115,7 +115,7 @@ export default async function CategorySeoPage({ params }: PageProps) {
     orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
   });
 
-  function displayProductPrice(product: (typeof category.products)[number]) {
+  function displayProductPrice(product: (typeof category)["products"][number]) {
     if (product.basePrice == null) return null;
     const base = Number(product.basePrice);
 
