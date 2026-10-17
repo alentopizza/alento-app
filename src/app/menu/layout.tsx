@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { SEO_SHARE_IMAGE } from "@/lib/seo";
 
-const SHARE_IMAGE =
-  "https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/ka91FhewP8WCQ2jD9VzF/pub/Vyme6Gd1y8prrWS7X3wu.png";
+const SHARE_IMAGE = SEO_SHARE_IMAGE;
 
 const DESCRIPTION =
   "Explora el menú de Alentó Pizza: pizzas, combos, antojos, bebidas y bordes. Pide en línea para domicilio o recogida en Kennedy, Bogotá.";
