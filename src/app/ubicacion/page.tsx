@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublicStoreSeoData } from "@/lib/publicStoreSeo";
+
+export const dynamic = "force-dynamic";
 import {
   SEO_BUSINESS_NAME,
   SEO_PHONE_DISPLAY,
