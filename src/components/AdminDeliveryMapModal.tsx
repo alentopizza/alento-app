@@ -297,6 +297,9 @@ export default function AdminDeliveryMapModal({
   const [selectedAssignDriverId, setSelectedAssignDriverId] =
     useState<number | null>(null);
   const [assigningOrderId, setAssigningOrderId] = useState<number | null>(null);
+  const [driverManagerOpen, setDriverManagerOpen] = useState(false);
+  const [availabilityBusyDriverId, setAvailabilityBusyDriverId] =
+    useState<number | null>(null);
   const [actionNotice, setActionNotice] = useState<{
     tone: "success" | "error";
     message: string;
@@ -772,6 +775,8 @@ export default function AdminDeliveryMapModal({
     setExpandedLocationCluster(null);
     setSelectedAssignDriverId(null);
     setAssigningOrderId(null);
+    setDriverManagerOpen(false);
+    setAvailabilityBusyDriverId(null);
     setActionNotice(null);
     setMapFilter("ALL");
     setError("");
@@ -908,6 +913,59 @@ export default function AdminDeliveryMapModal({
     }
   }
 
+  async function setDriverAvailability(
+    driver: AssignableDriver,
+    active: boolean,
+  ) {
+    if (availabilityBusyDriverId != null) return;
+
+    setAvailabilityBusyDriverId(driver.id);
+    setActionNotice(null);
+
+    try {
+      const response = await fetch(
+        `/api/drivers/${driver.id}/availability`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active }),
+        },
+      );
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "No fue posible cambiar el estado del repartidor.",
+        );
+      }
+
+      if (!active && selectedDriverId === driver.id) {
+        setSelectedDriverId(null);
+      }
+
+      setActionNotice({
+        tone: "success",
+        message:
+          payload.message ||
+          (active
+            ? `${driver.name} quedó habilitado para reparto.`
+            : `${driver.name} quedó desconectado del reparto.`),
+      });
+
+      await load(true, true);
+    } catch (availabilityError) {
+      setActionNotice({
+        tone: "error",
+        message:
+          availabilityError instanceof Error
+            ? availabilityError.message
+            : "No fue posible cambiar el estado del repartidor.",
+      });
+    } finally {
+      setAvailabilityBusyDriverId(null);
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -947,14 +1005,32 @@ export default function AdminDeliveryMapModal({
                   {unassigned.length}
                 </b>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setDriverManagerOpen((current) => !current);
+                  setSelectedDriverId(null);
+                  setSelectedOrderId(null);
+                  setExpandedLocationCluster(null);
+                  setActionNotice(null);
+                }}
+                className={
+                  "rounded-xl border px-3 py-2 text-center transition " +
+                  (driverManagerOpen
+                    ? "border-white/25 bg-white/[0.13]"
+                    : "border-white/10 bg-white/[0.06] hover:bg-white/[0.10]")
+                }
+                title="Administrar repartidores"
+              >
                 <span className="alento-ui-micro block uppercase text-white/35">
                   Repartidores
                 </span>
                 <b className="alento-ui-control mt-0.5 block text-white">
-                  {data?.drivers.length ?? 0}
+                  {data
+                    ? `${data.assignableDrivers.filter((driver) => driver.available).length}/${data.assignableDrivers.length}`
+                    : "0/0"}
                 </b>
-              </div>
+              </button>
               <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-center">
                 <span className="alento-ui-micro block uppercase text-white/35">
                   En camino
@@ -1047,6 +1123,156 @@ export default function AdminDeliveryMapModal({
               </div>
             )}
           </div>
+
+          {driverManagerOpen && data && (
+            <div className="absolute right-4 top-4 z-30 max-h-[calc(100%-2rem)] w-[min(390px,calc(100%-2rem))] overflow-y-auto rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
+              <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5">
+                <div>
+                  <p className="text-[7px] font-black uppercase tracking-[.13em] text-[#ff5a60]">
+                    Control de reparto
+                  </p>
+                  <h3 className="mt-1 text-[17px] font-black leading-5">
+                    Repartidores
+                  </h3>
+                  <p className="mt-1 text-[9px] font-semibold text-white/42">
+                    {data.assignableDrivers.filter((driver) => driver.available).length} activos ·{" "}
+                    {data.assignableDrivers.length} registrados
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDriverManagerOpen(false);
+                    setActionNotice(null);
+                  }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-base text-white/55 transition hover:bg-white/10 hover:text-white"
+                  aria-label="Cerrar control de repartidores"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-2 p-3">
+                {data.assignableDrivers.map((driver) => {
+                  const liveDriver = data.drivers.find(
+                    (item) => item.id === driver.id,
+                  );
+                  const gps = liveDriver
+                    ? gpsFreshness(liveDriver.updatedAt, gpsNow)
+                    : null;
+                  const canDisconnect =
+                    driver.available && driver.assignedDeliveries === 0;
+                  const busy = availabilityBusyDriverId === driver.id;
+
+                  return (
+                    <div
+                      key={driver.id}
+                      className="rounded-[15px] border border-white/10 bg-white/[0.045] p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={
+                                "h-2.5 w-2.5 shrink-0 rounded-full " +
+                                (driver.available
+                                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.65)]"
+                                  : "bg-white/20")
+                              }
+                            />
+                            <b className="truncate text-[12px] font-black">
+                              {driver.name}
+                            </b>
+                          </div>
+                          <p className="mt-1 text-[8px] font-semibold text-white/38">
+                            {driver.available
+                              ? liveDriver
+                                ? `Activo · ${gps?.label ?? "GPS pendiente"}`
+                                : "Activo · esperando GPS"
+                              : "Inactivo"}
+                            {" · "}
+                            {driver.assignedDeliveries} pedido
+                            {driver.assignedDeliveries === 1 ? "" : "s"}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={
+                            busy ||
+                            (driver.available && !canDisconnect)
+                          }
+                          onClick={() =>
+                            void setDriverAvailability(
+                              driver,
+                              !driver.available,
+                            )
+                          }
+                          className={
+                            "h-9 shrink-0 rounded-xl border px-3 text-[9px] font-black transition disabled:cursor-not-allowed disabled:opacity-35 " +
+                            (driver.available
+                              ? "border-red-400/20 bg-red-400/10 text-red-200 hover:bg-red-400/15"
+                              : "border-emerald-400/20 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15")
+                          }
+                          title={
+                            driver.available && !canDisconnect
+                              ? "Desasigna o finaliza sus pedidos antes de desconectarlo"
+                              : driver.available
+                                ? "Desconectar del reparto"
+                                : "Activar para reparto"
+                          }
+                        >
+                          {busy
+                            ? "Guardando…"
+                            : driver.available
+                              ? "Desconectar"
+                              : "Activar"}
+                        </button>
+                      </div>
+
+                      {driver.available && liveDriver && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDriverManagerOpen(false);
+                            setSelectedDriverId(driver.id);
+                            setActionNotice(null);
+                          }}
+                          className="mt-2.5 w-full rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-[8px] font-bold text-white/55 transition hover:bg-white/[0.08] hover:text-white"
+                        >
+                          Ver ubicación en el mapa
+                        </button>
+                      )}
+
+                      {driver.available &&
+                        driver.assignedDeliveries > 0 && (
+                          <p className="mt-2 text-[8px] leading-4 text-amber-200/70">
+                            No se puede desconectar mientras tenga domicilios asignados.
+                          </p>
+                        )}
+                    </div>
+                  );
+                })}
+
+                {actionNotice && (
+                  <div
+                    className={
+                      "rounded-xl border px-3 py-2.5 text-[9px] font-semibold leading-4 " +
+                      (actionNotice.tone === "success"
+                        ? "border-emerald-400/15 bg-emerald-400/10 text-emerald-200"
+                        : "border-red-400/15 bg-red-400/10 text-red-200")
+                    }
+                  >
+                    {actionNotice.message}
+                  </div>
+                )}
+
+                <p className="px-1 pt-1 text-[8px] leading-4 text-white/28">
+                  Al activar desde aquí, la ubicación comienza cuando la app del repartidor esté abierta y tenga permiso de GPS.
+                </p>
+              </div>
+            </div>
+          )}
 
           {selectedDriver && (
             <div className="absolute right-4 top-4 z-30 max-h-[calc(100%-2rem)] w-[min(380px,calc(100%-2rem))] overflow-y-auto rounded-[22px] border border-white/15 bg-[#111]/95 text-white shadow-[0_20px_55px_rgba(0,0,0,.34)] backdrop-blur-xl">
@@ -1278,6 +1504,49 @@ export default function AdminDeliveryMapModal({
                   </div>
                 </div>
               )}
+
+              <div className="border-t border-white/10 px-4 py-3">
+                <button
+                  type="button"
+                  disabled={
+                    availabilityBusyDriverId === selectedDriver.id ||
+                    selectedDriverOrders.length > 0
+                  }
+                  onClick={() => {
+                    const row = data?.assignableDrivers.find(
+                      (driver) => driver.id === selectedDriver.id,
+                    );
+                    if (row) void setDriverAvailability(row, false);
+                  }}
+                  className="h-10 w-full rounded-xl border border-red-400/20 bg-red-400/10 text-[9px] font-black text-red-200 transition hover:bg-red-400/15 disabled:cursor-not-allowed disabled:opacity-35"
+                  title={
+                    selectedDriverOrders.length > 0
+                      ? "Desasigna o finaliza sus pedidos antes de desconectarlo"
+                      : "Desconectar del reparto"
+                  }
+                >
+                  {availabilityBusyDriverId === selectedDriver.id
+                    ? "Desconectando…"
+                    : "Desconectar repartidor"}
+                </button>
+                {selectedDriverOrders.length > 0 && (
+                  <p className="mt-2 text-center text-[8px] text-amber-200/60">
+                    Tiene pedidos asignados. Finalízalos o desasígnalos primero.
+                  </p>
+                )}
+                {actionNotice && (
+                  <div
+                    className={
+                      "mt-2 rounded-xl border px-3 py-2.5 text-[9px] font-semibold leading-4 " +
+                      (actionNotice.tone === "success"
+                        ? "border-emerald-400/15 bg-emerald-400/10 text-emerald-200"
+                        : "border-red-400/15 bg-red-400/10 text-red-200")
+                    }
+                  >
+                    {actionNotice.message}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
