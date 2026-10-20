@@ -112,7 +112,22 @@ export async function DELETE(
   try {
     const existing = await prisma.cashExpense.findUnique({
       where: { id },
-      select: { id: true, occurredAt: true, source: true },
+      select: {
+        id: true,
+        occurredAt: true,
+        source: true,
+        payrollPayment: {
+          select: {
+            id: true,
+            shifts: {
+              select: { shiftId: true },
+            },
+            loanRepayments: {
+              select: { loanId: true },
+            },
+          },
+        },
+      },
     });
 
     if (!existing) {
@@ -124,14 +139,72 @@ export async function DELETE(
 
     await assertCashDateEditable(existing.occurredAt);
 
-    if (existing.source === "PAYROLL") {
-      return NextResponse.json(
-        {
-          error:
-            "Este movimiento corresponde a un pago de nómina y está vinculado a turnos pagados. No puede eliminarse como una salida manual.",
-        },
-        { status: 409 },
+    if (existing.source === "PAYROLL" && existing.payrollPayment) {
+      const payrollPaymentId = existing.payrollPayment.id;
+      const shiftIds = existing.payrollPayment.shifts.map(
+        (item) => item.shiftId,
       );
+      const affectedLoanIds = [
+        ...new Set(
+          existing.payrollPayment.loanRepayments.map(
+            (item) => item.loanId,
+          ),
+        ),
+      ];
+
+      await prisma.$transaction(async (tx) => {
+        if (shiftIds.length > 0) {
+          await tx.workShift.updateMany({
+            where: { id: { in: shiftIds } },
+            data: {
+              status: "PENDING",
+              paidAt: null,
+            },
+          });
+        }
+
+        await tx.cashLoanRepayment.deleteMany({
+          where: { payrollPaymentId },
+        });
+
+        await tx.payrollPayment.delete({
+          where: { id: payrollPaymentId },
+        });
+
+        await tx.cashExpense.delete({ where: { id } });
+
+        for (const loanId of affectedLoanIds) {
+          const loan = await tx.cashLoan.findUnique({
+            where: { id: loanId },
+            select: {
+              principal: true,
+              repayments: {
+                select: { amount: true },
+              },
+            },
+          });
+
+          if (!loan) continue;
+
+          const repaid = loan.repayments.reduce(
+            (sum, repayment) => sum + Number(repayment.amount),
+            0,
+          );
+          const principal = Number(loan.principal);
+
+          await tx.cashLoan.update({
+            where: { id: loanId },
+            data: {
+              status: repaid >= principal ? "PAID" : "OPEN",
+            },
+          });
+        }
+      });
+
+      return NextResponse.json({
+        ok: true,
+        payrollReversed: true,
+      });
     }
 
     await prisma.cashExpense.delete({ where: { id } });
