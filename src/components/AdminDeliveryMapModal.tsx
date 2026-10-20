@@ -941,6 +941,7 @@ export default function AdminDeliveryMapModal({
 
       if (!active && selectedDriverId === driver.id) {
         setSelectedDriverId(null);
+        setDriverManagerOpen(true);
       }
 
       setActionNotice({
