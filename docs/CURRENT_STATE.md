@@ -538,3 +538,7 @@ La ubicación GPS en vivo del repartidor, las rutas y su representación sobre e
 3. Mejorar la edición/selección de direcciones guardadas.
 4. Definir y conectar el canje real de Club Alentó dentro del checkout.
 5. Mantener la lógica comercial única: no duplicar catálogo, configuradores, tarifas ni normalización de pedidos.
+
+
+## Caja
+- Las salidas pueden eliminarse mientras la sesión de caja correspondiente siga abierta. Al cerrar caja, los movimientos quedan bloqueados. Si la salida es de nómina, la eliminación revierte de forma transaccional los turnos pagados y los descuentos de préstamo asociados; si es pago a repartidor, el saldo vuelve a su cartera.
