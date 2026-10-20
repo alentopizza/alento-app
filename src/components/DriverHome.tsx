@@ -661,8 +661,14 @@ export default function DriverHome({
 
     if (!next.driverAvailable && watchRef.current != null) {
       stopGps(true);
+      return;
     }
-  }, [stopGps]);
+
+    if (next.driverAvailable && watchRef.current == null) {
+      window.localStorage.setItem(HOME_GPS_KEY, "1");
+      startGps();
+    }
+  }, [startGps, stopGps]);
 
   const refreshOrders = useCallback(async () => {
     const response = await fetch("/api/repartidor/requests", {
