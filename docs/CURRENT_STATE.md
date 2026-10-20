@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-09.
+Última actualización: 2026-10-19.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -15,6 +15,7 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - el repartidor ya dispone de home propia, disponibilidad, GPS, autoasignación, límite simultáneo, checklist, navegación, rutas múltiples y cierre de entrega;
 - el cliente ya ve seguimiento en vivo del repartidor con mapa, distancia y ETA;
 - Pedidos ya dispone de Mapa De Entregas, asignación/desasignación y rutas múltiples;
+- Desde el Mapa De Entregas, operación puede activar o desconectar repartidores. La desconexión remota limpia el GPS y se bloquea si el repartidor aún tiene domicilios asignados; la activación inicia GPS cuando la app del repartidor está abierta y con permisos.
 - el domicilio se calcula automáticamente con Google Routes tanto al crear como al editar;
 - Caja básica y pagos parciales/mixtos están implementados;
 - Club acumula y muestra puntos, pero el canje transaccional sigue pendiente;
