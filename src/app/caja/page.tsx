@@ -1483,18 +1483,21 @@ export default function CashPage() {
   }
 
   const singleDaySelected = startDate === endDate;
-  const selectedDayClosed =
-    singleDaySelected && cashDayStatus === "CLOSED";
-  const cashOperationsOpen =
-    singleDaySelected && cashDayStatus === "OPEN";
-  const selectedSubcategories =
-    expenseCatalog.find((item) => item.name === expenseCategory)
-      ?.subcategories ?? [];
   const selectedSummary =
     summary?.startDate === startDate &&
     summary?.endDate === endDate
       ? summary
       : null;
+  const selectedCashStatus = selectedSummary
+    ? selectedSummary.sessionScope?.status ?? "NONE"
+    : cashDayStatus;
+  const selectedDayClosed =
+    singleDaySelected && selectedCashStatus === "CLOSED";
+  const cashOperationsOpen =
+    singleDaySelected && selectedCashStatus === "OPEN";
+  const selectedSubcategories =
+    expenseCatalog.find((item) => item.name === expenseCategory)
+      ?.subcategories ?? [];
 
   return (
     <main className="min-h-screen w-full bg-[#f4f4f2] p-3 md:p-5 xl:p-6">
@@ -2401,9 +2404,25 @@ export default function CashPage() {
                               {dateTimeLabel(expense.occurredAt)}
                             </p>
                           </div>
-                          <b className="shrink-0 text-[11px] font-black text-rose-700">
-                            {formatCOP(expense.amount)}
-                          </b>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <b className="text-[11px] font-black text-rose-700">
+                              {formatCOP(expense.amount)}
+                            </b>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(expense)}
+                              disabled={!cashOperationsOpen}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
+                              title={
+                                cashOperationsOpen
+                                  ? "Eliminar salida"
+                                  : "Solo se puede eliminar mientras la caja esté abierta"
+                              }
+                              aria-label={`Eliminar salida ${expense.subcategory || expense.category}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </article>
                     ))}
@@ -3097,7 +3116,23 @@ export default function CashPage() {
                               <p className="mt-2 truncate text-[10px] text-neutral-500">{expense.note || "Sin observación"}</p>
                               <p className="mt-1 text-[9px] text-neutral-400">{dateTimeLabel(expense.occurredAt)} · {expense.createdByName}</p>
                             </div>
-                            <b className="shrink-0 text-xs text-rose-700">− {formatCOP(expense.amount)}</b>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <b className="text-xs text-rose-700">− {formatCOP(expense.amount)}</b>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(expense)}
+                                disabled={!cashOperationsOpen}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:bg-neutral-100 disabled:text-neutral-300"
+                                title={
+                                  cashOperationsOpen
+                                    ? "Eliminar salida"
+                                    : "Solo se puede eliminar mientras la caja esté abierta"
+                                }
+                                aria-label={`Eliminar salida ${expense.subcategory || expense.category}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </article>
                       ))}
@@ -4452,7 +4487,9 @@ export default function CashPage() {
               <p className="mt-2 text-[11px] text-neutral-400">
                 {deleteTarget.source === "DRIVER_PAYMENT"
                   ? "Se eliminará de salidas y el monto volverá al saldo de la cartera del repartidor."
-                  : "Se descontará inmediatamente del resumen de salidas."}
+                  : deleteTarget.source === "PAYROLL"
+                    ? "Se revertirá el pago de nómina: los turnos volverán a pendientes y cualquier descuento de préstamo asociado será restaurado."
+                    : "Se descontará inmediatamente del resumen de salidas."}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 border-t p-4">
