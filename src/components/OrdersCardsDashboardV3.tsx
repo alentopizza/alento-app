@@ -99,9 +99,9 @@ const displayOrderCode = (order: Order) => orderCode(order.sequenceNumber ?? ord
 const scheduledLabel = (value: string) =>
   new Intl.DateTimeFormat("es-CO", {
     timeZone: "America/Bogota",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
