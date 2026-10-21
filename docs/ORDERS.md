@@ -235,6 +235,7 @@ Si una nota cambia después de que una línea fue preparada, el backend reinicia
 Reglas operativas:
 
 - un pedido sin `scheduledFor` se trata como **Lo antes posible**;
+- la fecha/hora programada debe caer dentro del horario de servicio configurado para ese día en Configuración; la apertura es inclusiva y la hora de cierre marca el fin del servicio;
 - un pedido programado aparece en Pedidos desde el momento en que se crea;
 - las tarjetas y el drawer lo identifican con reloj y acento violeta;
 - el texto visible muestra `PROGRAMADO` y la fecha/hora objetivo;
