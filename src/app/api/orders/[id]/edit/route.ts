@@ -105,10 +105,22 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
     }
 
+    const beverageCategory = await prisma.category.findUnique({
+      where: { slug: "bebidas" },
+      select: { id: true },
+    });
+    const beverageCategoryId = beverageCategory?.id ?? null;
+    const requiresKitchen = (categoryId: number | null | undefined) =>
+      beverageCategoryId == null || categoryId !== beverageCategoryId;
+
     if (
       scheduledFor &&
       !isInKitchenWindow(scheduledFor) &&
-      current.items.some((item) => Number(item.preparedQuantity ?? 0) > 0)
+      current.items.some(
+        (item) =>
+          requiresKitchen(item.product?.categoryId) &&
+          Number(item.preparedQuantity ?? 0) > 0,
+      )
     ) {
       return NextResponse.json(
         {
