@@ -208,6 +208,7 @@ Incluye:
 - notas visibles en mayúsculas visuales;
 - controles ocultos al completar una línea.
 - entrada automática de pedidos programados 30 minutos antes de la hora solicitada;
+- los pedidos programados solo aceptan fechas/horas incluidas en el horario de servicio configurado para cada día; creación y edición lo validan también en backend;
 - alerta sonora al entrar a Cocina, cuando las alertas están habilitadas en el dispositivo;
 - bloqueo de preparación anticipada y exclusión temporal de despacho/repartidores.
 
