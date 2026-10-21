@@ -9,6 +9,7 @@ import {
   isInKitchenWindow,
   parseScheduledFor,
   validateFutureSchedule,
+  validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
 import {
   deliveryPricingHttpStatus,
@@ -22,6 +23,9 @@ type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type PaymentMethod = { id: string; name: string; active?: boolean };
 type PosSettings = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
+  store?: {
+    serviceHours?: unknown;
+  };
 };
 type ExistingLinePatch = { id: number; quantity: number; notes?: unknown };
 type Addition = { productId: number; quantity: number; configuration?: unknown; notes?: unknown };
@@ -392,6 +396,24 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
     const settings = parseSettings(settingsRow?.value ?? null);
+
+    try {
+      validateScheduledServiceHours(
+        scheduledFor,
+        settings.store?.serviceHours,
+      );
+    } catch (scheduleError) {
+      return NextResponse.json(
+        {
+          error:
+            scheduleError instanceof Error
+              ? scheduleError.message
+              : "La hora programada está fuera del horario de servicio.",
+        },
+        { status: 400 },
+      );
+    }
+
     const beveragesCategory = await prisma.category.findUnique({
       where: { slug: "bebidas" },
       select: { id: true },
