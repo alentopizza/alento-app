@@ -7,6 +7,7 @@ import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 import { orderCode } from "@/lib/orderCode";
 import { orderDeliveryStopsByProximity } from "@/lib/deliveryStopOrder";
 import { driverMaxConcurrentFromSettings } from "@/lib/driverCapacity";
+import { ORDER_KITCHEN_LEAD_MS } from "@/lib/orderScheduling";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
           status: { in: [...ACTIVE_DELIVERY_STATUSES] },
           OR: [
             { scheduledFor: null },
-            { scheduledFor: { lte: new Date(Date.now() + 30 * 60 * 1000) } },
+            { scheduledFor: { lte: new Date(Date.now() + ORDER_KITCHEN_LEAD_MS) } },
           ],
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
