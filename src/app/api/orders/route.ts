@@ -47,20 +47,21 @@ export async function GET(request: NextRequest) {
       Date.now() + 30 * 60 * 1000,
     );
 
-    const orders = await prisma.order.findMany({
-      ...(kitchenScope
+    const kitchenWhere: Prisma.OrderWhereInput | undefined =
+      kitchenScope
         ? {
-            where: {
-              status: { in: ["CONFIRMED", "PREPARING"] as const },
-              OR: [
-                { scheduledFor: null },
-                { scheduledFor: { lte: kitchenScheduleCutoff } },
-              ],
-            },
+            status: { in: ["CONFIRMED", "PREPARING"] },
+            OR: [
+              { scheduledFor: null },
+              { scheduledFor: { lte: kitchenScheduleCutoff } },
+            ],
           }
-        : {}),
+        : undefined;
+
+    const orders = await prisma.order.findMany({
+      where: kitchenWhere,
       orderBy: { createdAt: "desc" },
-      ...(kitchenScope ? {} : { take: 100 }),
+      take: kitchenScope ? undefined : 100,
       include: {
         customer: true,
         address: true,
