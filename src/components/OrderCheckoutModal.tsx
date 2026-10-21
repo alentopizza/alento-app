@@ -10,6 +10,7 @@ import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
+type ScheduleMode = "ASAP" | "SCHEDULED";
 type CouponType = "FIXED" | "PERCENTAGE";
 
 type CustomerAddress = {
@@ -63,6 +64,7 @@ type CreatedOrder = {
   deliveryFee: number;
   discount: number;
   total: number;
+  scheduledFor?: string | null;
 };
 
 type Props = {
@@ -78,6 +80,44 @@ type Props = {
 
 function formatCOP(value: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
+}
+
+function toDateTimeLocalValue(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    "-",
+    pad(date.getMonth() + 1),
+    "-",
+    pad(date.getDate()),
+    "T",
+    pad(date.getHours()),
+    ":",
+    pad(date.getMinutes()),
+  ].join("");
+}
+
+function defaultScheduledInput() {
+  const date = new Date(Date.now() + 60 * 60 * 1000);
+  date.setSeconds(0, 0);
+  const minutes = Math.ceil(date.getMinutes() / 15) * 15;
+  if (minutes === 60) {
+    date.setHours(date.getHours() + 1, 0, 0, 0);
+  } else {
+    date.setMinutes(minutes, 0, 0);
+  }
+  return toDateTimeLocalValue(date);
+}
+
+function scheduleLabel(value: string | Date) {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function fulfillmentLabel(type: FulfillmentType | null) {
@@ -225,6 +265,8 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const [couponId, setCouponId] = useState<number | null>(null);
   const [discountInput, setDiscountInput] = useState("");
   const [cashReceivedInput, setCashReceivedInput] = useState("");
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("ASAP");
+  const [scheduledForInput, setScheduledForInput] = useState("");
   const [error, setError] = useState("");
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
@@ -240,6 +282,8 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     setCouponId(null);
     setDiscountInput("");
     setCashReceivedInput("");
+    setScheduleMode("ASAP");
+    setScheduledForInput("");
     setCreatedOrder(null);
     const defaultAddress =
       customer?.addresses?.find((item) => item.isDefault) ??
@@ -439,6 +483,21 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
     if (discountMode === "COUPON" && !selectedCoupon) return setError("Selecciona un cupón.");
     if ((discountMode === "COUPON" || discountMode === "MANUAL") && eligibleSubtotal <= 0) return setError("Este pedido no tiene productos elegibles para descuento.");
     if (discountMode === "MANUAL" && manualDiscount > eligibleSubtotal) return setError(`El descuento manual no puede superar la base elegible de ${formatCOP(eligibleSubtotal)}.`);
+    let scheduledFor: string | null = null;
+    if (scheduleMode === "SCHEDULED") {
+      if (!scheduledForInput) {
+        return setError("Selecciona la fecha y hora del pedido programado.");
+      }
+      const scheduledDate = new Date(scheduledForInput);
+      if (
+        !Number.isFinite(scheduledDate.getTime()) ||
+        scheduledDate.getTime() <= Date.now()
+      ) {
+        return setError("La hora programada debe estar en el futuro.");
+      }
+      scheduledFor = scheduledDate.toISOString();
+    }
+
     if (!paymentMethodId) return setError("Selecciona un medio de pago.");
     if (!selectedPaymentMethod) return setError("El medio de pago seleccionado ya no está disponible.");
     if (cashPayment && !validCashReceived) return setError(`En efectivo, "Paga con" debe ser igual o mayor al total de ${formatCOP(total)}.`);
@@ -460,6 +519,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
               ? deliveryFee
               : null,
           paymentMethodId,
+          scheduledFor,
           cashReceived: cashPayment ? cashReceived : null,
           items: cart.map((item) => ({
             productId: item.productId,
@@ -494,7 +554,11 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/45">Pedido creado</p>
                 <h2 className="mt-1.5 text-[34px] font-black tracking-[-0.04em]">{createdOrder.code}</h2>
-                <p className="mt-1 max-w-[300px] text-[12px] leading-5 text-white/60">Guardado correctamente y listo para continuar en la operación.</p>
+                <p className="mt-1 max-w-[300px] text-[12px] leading-5 text-white/60">
+                  {createdOrder.scheduledFor
+                    ? `Programado para ${scheduleLabel(createdOrder.scheduledFor)}.`
+                    : "Guardado correctamente y listo para continuar en la operación."}
+                </p>
               </div>
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-2xl font-black text-emerald-300 shadow-inner">
                 ✓
@@ -519,8 +583,14 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
             <div className="mt-3 flex items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-3 text-left">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white">✓</div>
               <div>
-                <b className="block text-[11px] text-emerald-900">Listo para operación</b>
-                <span className="text-[10px] leading-4 text-emerald-700">El pedido ya está disponible en Pedidos y, cuando corresponde, en Cocina.</span>
+                <b className="block text-[11px] text-emerald-900">
+                  {createdOrder.scheduledFor ? "Pedido programado" : "Listo para operación"}
+                </b>
+                <span className="text-[10px] leading-4 text-emerald-700">
+                  {createdOrder.scheduledFor
+                    ? `Visible en Pedidos desde ahora. Entrará a Cocina 30 minutos antes de ${scheduleLabel(createdOrder.scheduledFor)}.`
+                    : "El pedido ya está disponible en Pedidos y, cuando corresponde, en Cocina."}
+                </span>
               </div>
             </div>
 
@@ -535,8 +605,6 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
       </div>
     );
   }
-
-  const sectionNumber = (base: number) => base - 1;
 
   return (
     <div className="checkout-overlay">
@@ -560,7 +628,85 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
               <div className="checkout-left">
                 <section className="checkout-panel">
                   <div className="checkout-panel-head">
-                    <div><span>{sectionNumber(2)}. Descuento</span><h3>¿Aplica descuento?</h3></div>
+                    <div>
+                      <span>1. Horario</span>
+                      <h3>¿Cuándo lo necesita?</h3>
+                    </div>
+                    {scheduleMode === "SCHEDULED" && scheduledForInput && (
+                      <p>
+                        <small>Programado</small>
+                        <b>{scheduleLabel(new Date(scheduledForInput))}</b>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScheduleMode("ASAP");
+                        setError("");
+                      }}
+                      className={
+                        "min-h-[54px] rounded-[16px] border px-3 text-left transition " +
+                        (scheduleMode === "ASAP"
+                          ? "border-neutral-950 bg-neutral-950 text-white"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300")
+                      }
+                    >
+                      <b className="block text-[12px]">Lo antes posible</b>
+                      <span className="mt-1 block text-[9px] opacity-60">
+                        Entra a Cocina ahora
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScheduleMode("SCHEDULED");
+                        setScheduledForInput((current) =>
+                          current || defaultScheduledInput(),
+                        );
+                        setError("");
+                      }}
+                      className={
+                        "min-h-[54px] rounded-[16px] border px-3 text-left transition " +
+                        (scheduleMode === "SCHEDULED"
+                          ? "border-violet-500 bg-violet-50 text-violet-950"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300")
+                      }
+                    >
+                      <b className="block text-[12px]">Programar pedido</b>
+                      <span className="mt-1 block text-[9px] opacity-60">
+                        Cocina recibe aviso 30 min antes
+                      </span>
+                    </button>
+                  </div>
+
+                  {scheduleMode === "SCHEDULED" && (
+                    <div className="mt-3 rounded-[16px] border border-violet-200 bg-violet-50/70 p-3">
+                      <label className="block text-[9px] font-black uppercase tracking-[0.1em] text-violet-700">
+                        Fecha y hora solicitada
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={scheduledForInput}
+                        min={toDateTimeLocalValue(new Date())}
+                        onChange={(event) => {
+                          setScheduledForInput(event.target.value);
+                          setError("");
+                        }}
+                        className="mt-2 h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-[12px] font-bold text-neutral-900 outline-none focus:border-violet-400"
+                      />
+                      <p className="mt-2 text-[9px] leading-4 text-violet-800/70">
+                        El pedido queda visible en Pedidos desde ahora y aparece en Cocina 30 minutos antes de esta hora.
+                      </p>
+                    </div>
+                  )}
+                </section>
+
+                <section className="checkout-panel">
+                  <div className="checkout-panel-head">
+                    <div><span>2. Descuento</span><h3>¿Aplica descuento?</h3></div>
                     <p><small>Base elegible</small><b>{formatCOP(eligibleSubtotal)}</b></p>
                   </div>
                   <div className="checkout-discount-tabs">
@@ -591,7 +737,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                 </section>
 
                 <section className="checkout-panel">
-                  <div className="checkout-panel-head"><div><span>{sectionNumber(3)}. Forma de pago</span><h3>¿Cómo paga el cliente?</h3></div></div>
+                  <div className="checkout-panel-head"><div><span>3. Forma de pago</span><h3>¿Cómo paga el cliente?</h3></div></div>
                   <div className="checkout-choice-grid checkout-payment-grid">
                     {activePaymentMethods.map((method) => {
                       const selected = paymentMethodId === method.id;
@@ -632,6 +778,12 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                         </b>
                       </>
                     )}
+                  {scheduleMode === "SCHEDULED" && scheduledForInput && (
+                    <>
+                      <span>Horario</span>
+                      <b className="text-violet-700">🕒 {scheduleLabel(new Date(scheduledForInput))}</b>
+                    </>
+                  )}
                   {selectedCoupon && discountMode === "COUPON" && <><span>Cupón</span><b>{selectedCoupon.name}</b></>}
                   {selectedPaymentMethod && <><span>Pago</span><b>{selectedPaymentMethod.name}</b></>}
                   {cashPayment && validCashReceived && <><span>Paga con</span><b>{formatCOP(cashReceived)}</b><span>Vueltas</span><b className="green">{formatCOP(changeDue)}</b></>}
