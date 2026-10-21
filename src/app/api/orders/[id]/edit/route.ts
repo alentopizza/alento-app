@@ -105,6 +105,20 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
     }
 
+    if (
+      scheduledFor &&
+      !isInKitchenWindow(scheduledFor) &&
+      current.items.some((item) => Number(item.preparedQuantity ?? 0) > 0)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido ya comenzó preparación en Cocina. No puede reprogramarse para más adelante.",
+        },
+        { status: 409 },
+      );
+    }
+
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) {
       return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
