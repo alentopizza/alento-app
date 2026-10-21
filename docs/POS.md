@@ -258,6 +258,28 @@ Se validan, entre otros:
 
 No confiar en `unitPrice` enviado por el cliente para pizzas/combos.
 
+## Horario del pedido
+
+En el cierre del POS se elige una de dos opciones:
+
+- **Lo antes posible**;
+- **Programar pedido**.
+
+Cuando se programa:
+
+- se exige una fecha/hora futura;
+- se guarda en `Order.scheduledFor`;
+- el pedido queda visible inmediatamente en Pedidos;
+- si contiene preparación de Cocina y faltan más de 30 minutos, no entra todavía a Cocina;
+- al llegar a los 30 minutos previos aparece en Cocina y activa la alerta de pedido nuevo;
+- la confirmación del POS informa la hora programada.
+
+Ejemplo:
+
+`Pedido creado 16:35 → programado 18:30 → entra a Cocina 18:00`
+
+La edición posterior se realiza desde Pedidos y puede cambiar entre inmediato y programado sin cancelar ni recrear la orden.
+
 ## Pagos al crear el pedido
 
 Seleccionar un medio de pago en POS no implica que el dinero ya haya sido recibido.
@@ -286,9 +308,15 @@ Guarda:
 
 ### Estado inicial
 
-Un pedido con productos que requieren Cocina nace en:
+Un pedido inmediato con productos que requieren Cocina nace en:
 
 `PREPARING`
+
+Un pedido programado que todavía está fuera de su ventana de 30 minutos se conserva en:
+
+`CONFIRMED`
+
+y solo se presenta a Cocina cuando llega la ventana de preparación.
 
 Las bebidas se crean como atendidas para preparación y no bloquean Cocina.
 
