@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
 import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
+import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
+import {
+  isInKitchenWindow,
+  parseScheduledFor,
+  validateFutureSchedule,
+} from "@/lib/orderScheduling";
 import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
@@ -361,6 +367,43 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       });
     }
 
+    let scheduledFor: Date | null = current.scheduledFor;
+    if (Object.prototype.hasOwnProperty.call(body, "scheduledFor")) {
+      try {
+        scheduledFor = validateFutureSchedule(
+          parseScheduledFor(body.scheduledFor),
+        );
+      } catch (scheduleError) {
+        return NextResponse.json(
+          {
+            error:
+              scheduleError instanceof Error
+                ? scheduleError.message
+                : "La fecha programada no es válida.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (
+      scheduledFor &&
+      !isInKitchenWindow(scheduledFor) &&
+      current.items.some(
+        (item) =>
+          Number(item.preparedQuantity ?? 0) > 0 &&
+          item.product?.categoryId != null,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido ya comenzó preparación y no puede reprogramarse para más adelante.",
+        },
+        { status: 409 },
+      );
+    }
+
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
     if ((fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP") && !current.customerId) return NextResponse.json({ error: "Este pedido necesita un cliente antes de cambiar a esa modalidad." }, { status: 400 });
@@ -522,6 +565,26 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       return (nextQuantity !== item.quantity || notesChanged) && requiresKitchen(item.product?.categoryId);
     }) || normalizedAdditions.some((addition) => requiresKitchen(addition.product.categoryId));
 
+    const hasKitchenItems =
+      updatedExisting.some((entry) =>
+        requiresKitchen(entry.item.product?.categoryId),
+      ) ||
+      normalizedAdditions.some((addition) =>
+        requiresKitchen(addition.product.categoryId),
+      );
+
+    const scheduledOutsideKitchenWindow =
+      Boolean(scheduledFor) && !isInKitchenWindow(scheduledFor);
+
+    const nextStatus =
+      hasKitchenItems && scheduledOutsideKitchenWindow
+        ? "CONFIRMED"
+        : hasKitchenItems &&
+            (current.status === "CONFIRMED" ||
+              (kitchenProductChanges && current.status !== "PREPARING"))
+          ? "PREPARING"
+          : current.status;
+
     await prisma.$transaction(async (tx) => {
       for (const entry of current.items) {
         const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
@@ -560,7 +623,22 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           notes: rawNote ? rawNote.slice(0, 120) : null,
         } });
       }
-      await tx.order.update({ where: { id: current.id }, data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryDistanceMeters, deliveryFee, subtotal, discount, total, status: kitchenProductChanges && current.status !== "PREPARING" ? "PREPARING" : current.status } });
+      await tx.order.update({
+        where: { id: current.id },
+        data: {
+          fulfillmentType,
+          addressId,
+          deliveryZoneId,
+          deliveryZoneName,
+          deliveryDistanceMeters,
+          deliveryFee,
+          subtotal,
+          discount,
+          total,
+          scheduledFor,
+          status: nextStatus,
+        },
+      });
 
       if (outstanding > 0) {
         if (pendingPayment) {
@@ -574,6 +652,37 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     });
 
     const updated = await loadOrder(current.id);
+
+    if (
+      updated &&
+      updated.status === "PREPARING" &&
+      current.status !== "PREPARING"
+    ) {
+      try {
+        const kitchenPush = await sendKitchenOrderCreatedPush({
+          orderId: updated.id,
+          orderCode: `${updated.source}-${String(
+            updated.sequenceNumber ?? updated.id,
+          ).padStart(4, "0")}`,
+          fulfillmentType: updated.fulfillmentType,
+        });
+
+        if (!kitchenPush.ok) {
+          console.warn("Kitchen edited-order push", {
+            orderId: updated.id,
+            reason: kitchenPush.reason,
+          });
+        }
+      } catch (pushError) {
+        console.warn("Kitchen edited-order push failed", {
+          orderId: updated.id,
+          error:
+            pushError instanceof Error
+              ? pushError.message
+              : "Unknown push error",
+        });
+      }
+    }
 
     if (
       updated?.customerId &&
