@@ -268,6 +268,7 @@ En el cierre del POS se elige una de dos opciones:
 Cuando se programa:
 
 - se exige una fecha/hora futura;
+- la fecha/hora debe estar dentro de la apertura y cierre configurados para ese día; el backend vuelve a validar esta regla al crear o editar para impedir bypass desde la interfaz;
 - se guarda en `Order.scheduledFor`;
 - el pedido queda visible inmediatamente en Pedidos;
 - si contiene preparación de Cocina y faltan más de 30 minutos, no entra todavía a Cocina;
