@@ -16,6 +16,7 @@ import {
   parseScheduledFor,
   scheduleStatusForKitchen,
   validateFutureSchedule,
+  validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
 
 const SETTINGS_KEY = "pos_settings";
@@ -25,6 +26,9 @@ type DiscountMode = "NONE" | "COUPON" | "MANUAL";
 type PaymentMethod = { id: string; name: string; active?: boolean };
 type PosSettings = DeliveryPricingSettings & {
   paymentMethods?: PaymentMethod[];
+  store?: {
+    serviceHours?: unknown;
+  };
 };
 
 function money(value: number) {
@@ -142,6 +146,24 @@ export async function POST(request: NextRequest) {
 
     const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
     const settings = parseSettings(settingsRow?.value ?? null);
+
+    try {
+      validateScheduledServiceHours(
+        scheduledFor,
+        settings.store?.serviceHours,
+      );
+    } catch (scheduleError) {
+      return NextResponse.json(
+        {
+          error:
+            scheduleError instanceof Error
+              ? scheduleError.message
+              : "La hora programada está fuera del horario de servicio.",
+        },
+        { status: 400 },
+      );
+    }
+
     const paymentMethod = settings.paymentMethods?.find((method) => method.id === String(body.paymentMethodId) && method.active !== false);
     if (!paymentMethod) return NextResponse.json({ error: "El medio de pago seleccionado ya no está activo." }, { status: 400 });
 
