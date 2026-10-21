@@ -39,11 +39,28 @@ function isCash(method: PaymentMethod) {
   return method.id.toLowerCase() === "cash" || method.name.trim().toLowerCase() === "efectivo";
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const kitchenScope =
+      request.nextUrl.searchParams.get("scope") === "kitchen";
+    const kitchenScheduleCutoff = new Date(
+      Date.now() + 30 * 60 * 1000,
+    );
+
     const orders = await prisma.order.findMany({
+      ...(kitchenScope
+        ? {
+            where: {
+              status: { in: ["CONFIRMED", "PREPARING"] as const },
+              OR: [
+                { scheduledFor: null },
+                { scheduledFor: { lte: kitchenScheduleCutoff } },
+              ],
+            },
+          }
+        : {}),
       orderBy: { createdAt: "desc" },
-      take: 100,
+      ...(kitchenScope ? {} : { take: 100 }),
       include: {
         customer: true,
         address: true,
