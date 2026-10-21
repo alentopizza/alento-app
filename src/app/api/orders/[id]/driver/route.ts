@@ -6,6 +6,7 @@ import { sendDriverPush } from "@/lib/driverPush";
 import { createDriverOrderToken } from "@/lib/driverTracking";
 import { getDriverDeliveryCapacity } from "@/lib/driverCapacity";
 import { orderCode as formatOrderCode } from "@/lib/orderCode";
+import { isInKitchenWindow } from "@/lib/orderScheduling";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         driverId: true,
         fulfillmentType: true,
         status: true,
+        scheduledFor: true,
         total: true,
       },
     }),
@@ -61,6 +63,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
   if (["CANCELED", "COMPLETED"].includes(order.status)) {
     return NextResponse.json({ error: "Este pedido ya no permite asignar repartidor." }, { status: 409 });
+  }
+  if (order.scheduledFor && !isInKitchenWindow(order.scheduledFor)) {
+    return NextResponse.json(
+      {
+        error:
+          "Este domicilio está programado. Podrás asignar repartidor cuando falten 30 minutos o menos.",
+      },
+      { status: 409 },
+    );
   }
   if (!driver) return NextResponse.json({ error: "El repartidor no está disponible." }, { status: 404 });
   if (!driver.whatsappPhone) {
