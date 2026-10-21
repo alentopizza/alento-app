@@ -182,6 +182,14 @@ export default function KitchenOrderAlerts({
       (orderId) => !knownOrderIdsRef.current.has(orderId),
     );
 
+    // Si un pedido salió de Cocina (por ejemplo, porque fue reprogramado),
+    // permitimos que vuelva a generar alerta cuando entre nuevamente.
+    alertedOrderIdsRef.current.forEach((orderId) => {
+      if (!nextIds.has(orderId)) {
+        alertedOrderIdsRef.current.delete(orderId);
+      }
+    });
+
     knownOrderIdsRef.current = nextIds;
 
     if (!newIds.length) return;
