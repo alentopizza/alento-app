@@ -44,6 +44,23 @@ Convención importante:
 - `PREPARED` = Horneando, fuera de Cocina;
 - `READY` = salió del horno / listo.
 
+## Pedidos programados
+
+Cocina respeta `Order.scheduledFor`.
+
+Regla vigente:
+
+- el pedido programado no aparece durante toda la espera;
+- entra al tablero exactamente al comenzar la ventana de **30 minutos antes** de la hora solicitada;
+- se identifica con borde/acento violeta, icono de reloj y texto `PROGRAMADO`;
+- el cronómetro de Cocina empieza a contar desde la entrada a la ventana, no desde la hora de facturación;
+- el refresco operativo se realiza cada 5 segundos, por lo que la aparición ocurre con una tolerancia máxima aproximada de ese intervalo;
+- al aparecer como un ID nuevo, `KitchenOrderAlerts` reproduce la alerta sonora si las alertas de Cocina están habilitadas en ese dispositivo;
+- si el pedido se reprograma fuera de Cocina y luego vuelve a entrar, puede volver a generar la alerta;
+- el endpoint de preparación bloquea cualquier intento de preparación antes de la ventana.
+
+Esto evita que un pedido de las 18:30, tomado a las 16:35, sea preparado inmediatamente: Cocina lo recibe alrededor de las 18:00.
+
 ## Bebidas
 
 Las bebidas **no son tareas de Cocina**.
@@ -303,7 +320,7 @@ Si Pedidos modifica una línea que requiere preparación:
 
 ## Refresco
 
-La pantalla refresca pedidos periódicamente sin necesitar un botón manual de actualización.
+La pantalla refresca pedidos cada 5 segundos sin necesitar un botón manual de actualización. Este intervalo también controla la entrada visual y sonora de pedidos programados.
 
 ## Consecutivo
 
