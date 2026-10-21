@@ -454,7 +454,19 @@ export default function OrdersCardsDashboardV3() {
     if (filter === "CANCELED" && order.status !== "CANCELED") return false;
     const value = query.trim().toLowerCase();
     if (!value) return true;
-    return [displayOrderCode(order), order.customer?.name, order.customer?.phone, order.driver?.name, statusLabel(order.status), fulfillmentLabel(order.fulfillmentType), paymentHint(order)].filter(Boolean).some((field) => String(field).toLowerCase().includes(value));
+    return [
+      displayOrderCode(order),
+      order.customer?.name,
+      order.customer?.phone,
+      order.driver?.name,
+      statusLabel(order.status),
+      fulfillmentLabel(order.fulfillmentType),
+      paymentHint(order),
+      order.scheduledFor ? "programado" : null,
+      order.scheduledFor ? scheduledLabel(order.scheduledFor) : null,
+    ]
+      .filter(Boolean)
+      .some((field) => String(field).toLowerCase().includes(value));
   }), [orders, filter, query]);
 
   const snackProducts = useMemo(() => {
