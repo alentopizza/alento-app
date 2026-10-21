@@ -62,6 +62,10 @@ export async function GET(request: NextRequest) {
         where: {
           fulfillmentType: "DELIVERY",
           status: { in: [...ACTIVE_DELIVERY_STATUSES] },
+          OR: [
+            { scheduledFor: null },
+            { scheduledFor: { lte: new Date(Date.now() + 30 * 60 * 1000) } },
+          ],
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: {
@@ -70,6 +74,7 @@ export async function GET(request: NextRequest) {
           source: true,
           status: true,
           createdAt: true,
+          scheduledFor: true,
           total: true,
           deliveryFee: true,
           deliveryZoneName: true,
@@ -471,6 +476,7 @@ export async function GET(request: NextRequest) {
           code: orderCode(order.sequenceNumber ?? order.id, order.source),
           status: order.status,
           createdAt: order.createdAt.toISOString(),
+          scheduledFor: order.scheduledFor?.toISOString() ?? null,
           customerName: order.customer?.name ?? "Cliente",
           total,
           deliveryFee: Number(order.deliveryFee),
