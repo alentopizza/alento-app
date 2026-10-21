@@ -6,6 +6,7 @@ import {
   isInKitchenWindow,
   parseScheduledFor,
   validateFutureSchedule,
+  validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
 
 const SETTINGS_KEY = "pos_settings";
@@ -23,6 +24,7 @@ type PosSettings = {
   store?: {
     latitude?: number | null;
     longitude?: number | null;
+    serviceHours?: unknown;
   };
   deliveryBands?: DeliveryBand[];
 };
@@ -105,6 +107,28 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
     }
 
+    const settingsRow = await prisma.appSetting.findUnique({
+      where: { key: SETTINGS_KEY },
+    });
+    const settings = parseSettings(settingsRow?.value ?? null);
+
+    try {
+      validateScheduledServiceHours(
+        scheduledFor,
+        settings.store?.serviceHours,
+      );
+    } catch (scheduleError) {
+      return NextResponse.json(
+        {
+          error:
+            scheduleError instanceof Error
+              ? scheduleError.message
+              : "La hora programada está fuera del horario de servicio.",
+        },
+        { status: 400 },
+      );
+    }
+
     const beverageCategory = await prisma.category.findUnique({
       where: { slug: "bebidas" },
       select: { id: true },
@@ -164,10 +188,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         );
       }
 
-      const settingsRow = await prisma.appSetting.findUnique({
-        where: { key: SETTINGS_KEY },
-      });
-      const settings = parseSettings(settingsRow?.value ?? null);
       const latitude = Number(address.latitude);
       const longitude = Number(address.longitude);
       const storeLatitude = Number(settings.store?.latitude);
