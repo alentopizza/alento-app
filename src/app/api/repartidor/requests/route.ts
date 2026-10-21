@@ -68,9 +68,19 @@ export async function GET() {
         where: {
           fulfillmentType: "DELIVERY",
           status: { in: [...PROCESS_STATUSES] },
-          OR: [
-            { driverId: null },
-            { driverId: session.userId },
+          AND: [
+            {
+              OR: [
+                { scheduledFor: null },
+                { scheduledFor: { lte: new Date(Date.now() + 30 * 60 * 1000) } },
+              ],
+            },
+            {
+              OR: [
+                { driverId: null },
+                { driverId: session.userId },
+              ],
+            },
           ],
         },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -84,6 +94,7 @@ export async function GET() {
           discount: true,
           total: true,
           createdAt: true,
+          scheduledFor: true,
           driverId: true,
           driver: {
             select: { id: true, name: true },
@@ -204,6 +215,7 @@ export async function GET() {
           discount: Number(order.discount),
           total: Number(order.total),
           createdAt: order.createdAt.toISOString(),
+          scheduledFor: order.scheduledFor?.toISOString() ?? null,
           customerName: order.customer?.name ?? "Cliente",
           customerPhone: order.customer?.phone
             ? `${order.customer.countryCode || ""}${order.customer.phone}`
