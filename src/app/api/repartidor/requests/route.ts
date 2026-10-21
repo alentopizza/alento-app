@@ -8,6 +8,7 @@ import {
   calculateDriverEarning,
   normalizeDriverCompensationSettings,
 } from "@/lib/driverCompensation";
+import { ORDER_KITCHEN_LEAD_MS } from "@/lib/orderScheduling";
 import {
   normalizeDeliveryBands,
   type DeliveryPricingSettings,
@@ -72,7 +73,7 @@ export async function GET() {
             {
               OR: [
                 { scheduledFor: null },
-                { scheduledFor: { lte: new Date(Date.now() + 30 * 60 * 1000) } },
+                { scheduledFor: { lte: new Date(Date.now() + ORDER_KITCHEN_LEAD_MS) } },
               ],
             },
             {
