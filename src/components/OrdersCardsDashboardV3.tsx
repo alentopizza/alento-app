@@ -16,6 +16,14 @@ import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
+import {
+  scheduledServiceWindow,
+  validateScheduledServiceHours,
+} from "@/lib/orderScheduling";
+import {
+  formatServiceRange,
+  type ServiceHour,
+} from "@/lib/storeServiceHours";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
 
@@ -63,7 +71,13 @@ type Order = {
   items: OrderItem[];
   payments: Payment[];
 };
-type Settings = { deliveryBands: { id: string; name: string; fee: number; active: boolean }[]; paymentMethods: { id: string; name: string; active: boolean }[] };
+type Settings = {
+  deliveryBands: { id: string; name: string; fee: number; active: boolean }[];
+  paymentMethods: { id: string; name: string; active: boolean }[];
+  store?: {
+    serviceHours?: ServiceHour[];
+  };
+};
 type CatalogProduct = { id: number; name: string; type: string; basePrice: number | null };
 type CatalogCategory = {
   id?: number;
@@ -1016,6 +1030,21 @@ export default function OrdersCardsDashboardV3() {
       }
       if (new Date(scheduledFor).getTime() <= Date.now()) {
         setEditError("La hora programada debe estar en el futuro.");
+        setSaving(false);
+        return;
+      }
+
+      try {
+        validateScheduledServiceHours(
+          new Date(scheduledFor),
+          settings?.store?.serviceHours,
+        );
+      } catch (scheduleError) {
+        setEditError(
+          scheduleError instanceof Error
+            ? scheduleError.message
+            : "La hora seleccionada está fuera del horario de servicio.",
+        );
         setSaving(false);
         return;
       }
@@ -2711,8 +2740,54 @@ export default function OrdersCardsDashboardV3() {
                       }}
                       className="alento-input mt-2 h-11 w-full rounded-xl bg-white px-3 text-[12px] font-bold"
                     />
-                    <p className="mt-2 text-[9px] leading-4 text-violet-700/70">
-                      Cocina lo mostrará y hará sonar la alerta al entrar en la ventana de 30 minutos.
+                    {editScheduledForInput &&
+                    settings?.store?.serviceHours ? (
+                      (() => {
+                        const iso =
+                          bogotaLocalInputToIso(editScheduledForInput);
+                        const window = iso
+                          ? scheduledServiceWindow(
+                              new Date(iso),
+                              settings.store!.serviceHours,
+                            )
+                          : null;
+
+                        if (!window) {
+                          return (
+                            <p className="mt-2 text-[9px] leading-4 text-violet-700/70">
+                              Selecciona una fecha y hora válida.
+                            </p>
+                          );
+                        }
+
+                        return (
+                          <p
+                            className={
+                              "mt-2 text-[9px] font-semibold leading-4 " +
+                              (window.valid
+                                ? "text-emerald-700"
+                                : "text-rose-700")
+                            }
+                          >
+                            {window.valid
+                              ? `Horario válido · ${formatServiceRange(
+                                  window.schedule,
+                                )}`
+                              : window.schedule.enabled
+                                ? `Fuera de horario · ${formatServiceRange(
+                                    window.schedule,
+                                  )}`
+                                : `${window.dayLabel}: cerrado`}
+                          </p>
+                        );
+                      })()
+                    ) : (
+                      <p className="mt-2 text-[9px] leading-4 text-violet-700/70">
+                        Cocina lo mostrará y hará sonar la alerta al entrar en la ventana de 30 minutos.
+                      </p>
+                    )}
+                    <p className="mt-1 text-[9px] leading-4 text-violet-700/60">
+                      Solo se aceptan horas dentro del horario de servicio configurado.
                     </p>
                   </div>
                 )}
