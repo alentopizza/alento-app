@@ -7,6 +7,14 @@ import type {
   PizzaOrderConfiguration,
 } from "@/lib/orderConfiguration";
 import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
+import {
+  scheduledServiceWindow,
+  validateScheduledServiceHours,
+} from "@/lib/orderScheduling";
+import {
+  formatServiceRange,
+  type ServiceHour,
+} from "@/lib/storeServiceHours";
 
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type DiscountMode = "NONE" | "COUPON" | "MANUAL";
@@ -29,7 +37,12 @@ type CustomerAddress = {
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
 type CartItem = { key: string; productId: number; name: string; detail: string; unitPrice: number; quantity: number; configuration?: unknown; notes?: string };
 type PaymentMethodSetting = { id: string; name: string; active: boolean };
-type PosSettings = { paymentMethods: PaymentMethodSetting[] };
+type PosSettings = {
+  paymentMethods: PaymentMethodSetting[];
+  store?: {
+    serviceHours?: ServiceHour[];
+  };
+};
 type DeliveryQuote = {
   covered: boolean;
   distanceMeters: number;
@@ -333,6 +346,15 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const activePaymentMethods = useMemo(() => settings?.paymentMethods.filter((method) => method.active) ?? [], [settings]);
   const selectedCoupon = coupons.find((coupon) => coupon.id === couponId) ?? null;
   const selectedPaymentMethod = activePaymentMethods.find((method) => method.id === paymentMethodId);
+  const scheduledService =
+    scheduleMode === "SCHEDULED" &&
+    scheduledForInput &&
+    settings?.store?.serviceHours
+      ? scheduledServiceWindow(
+          new Date(scheduledForInput),
+          settings.store.serviceHours,
+        )
+      : null;
   const automaticDeliveryFee =
     fulfillmentType === "DELIVERY"
       ? Number(deliveryQuote?.deliveryFee ?? 0)
@@ -496,6 +518,19 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
         return setError("La hora programada debe estar en el futuro.");
       }
       scheduledFor = scheduledDate.toISOString();
+
+      try {
+        validateScheduledServiceHours(
+          scheduledDate,
+          settings?.store?.serviceHours,
+        );
+      } catch (scheduleError) {
+        return setError(
+          scheduleError instanceof Error
+            ? scheduleError.message
+            : "La hora seleccionada está fuera del horario de servicio.",
+        );
+      }
     }
 
     if (!paymentMethodId) return setError("Selecciona un medio de pago.");
@@ -697,8 +732,32 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                         }}
                         className="mt-2 h-11 w-full rounded-xl border border-violet-200 bg-white px-3 text-[12px] font-bold text-neutral-900 outline-none focus:border-violet-400"
                       />
-                      <p className="mt-2 text-[9px] leading-4 text-violet-800/70">
-                        El pedido queda visible en Pedidos desde ahora y aparece en Cocina 30 minutos antes de esta hora.
+                      {scheduledService ? (
+                        <p
+                          className={
+                            "mt-2 text-[9px] font-semibold leading-4 " +
+                            (scheduledService.valid
+                              ? "text-emerald-700"
+                              : "text-rose-700")
+                          }
+                        >
+                          {scheduledService.valid
+                            ? `Horario válido · ${formatServiceRange(
+                                scheduledService.schedule,
+                              )}`
+                            : scheduledService.schedule.enabled
+                              ? `Fuera de horario · ${formatServiceRange(
+                                  scheduledService.schedule,
+                                )}`
+                              : `${scheduledService.dayLabel}: cerrado`}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-[9px] leading-4 text-violet-800/70">
+                          El pedido queda visible en Pedidos desde ahora y aparece en Cocina 30 minutos antes de esta hora.
+                        </p>
+                      )}
+                      <p className="mt-1 text-[9px] leading-4 text-violet-800/60">
+                        Solo se aceptan pedidos programados dentro del horario de apertura y cierre configurado.
                       </p>
                     </div>
                   )}
