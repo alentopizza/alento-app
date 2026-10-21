@@ -314,7 +314,7 @@ export default function KitchenPage() {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/orders", { cache: "no-store" });
+      const response = await fetch("/api/orders?scope=kitchen", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible cargar Cocina.");
       setOrders(data.orders ?? []);
