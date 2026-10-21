@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, MapPinned, UserRound, Users } from "lucide-react";
+import { Clock3, MapPin, MapPinned, UserRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
@@ -55,6 +55,7 @@ type Order = {
   deliveryZoneId?: string | null;
   deliveryZoneName: string | null;
   createdAt: string;
+  scheduledFor?: string | null;
   customer: { id: number; name: string; countryCode: string; phone: string | null; addresses?: CustomerAddress[] } | null;
   address: CustomerAddress | null;
   driver: { id: number; name: string } | null;
@@ -81,6 +82,45 @@ type ConfirmAction =
 const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
 const dateTime = (value: string) => new Date(value).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
 const displayOrderCode = (order: Order) => orderCode(order.sequenceNumber ?? order.id, order.source);
+const scheduledLabel = (value: string) =>
+  new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+
+function toDateTimeLocalValue(value: Date | string) {
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+}
+
+function bogotaLocalInputToIso(value: string) {
+  if (!value) return null;
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/,
+  );
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute] = match;
+  const iso = new Date(
+    `${year}-${month}-${day}T${hour}:${minute}:00-05:00`,
+  );
+  return Number.isFinite(iso.getTime()) ? iso.toISOString() : null;
+}
 const activePayments = (order: Order) => order.payments.filter((payment) => payment.status !== "CANCELED");
 const paidPayments = (order: Order) => order.payments.filter((payment) => payment.status === "PAID");
 const paidAmount = (order: Order) => paidPayments(order).reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -255,6 +295,9 @@ export default function OrdersCardsDashboardV3() {
   const [paymentError, setPaymentError] = useState("");
   const [editing, setEditing] = useState<Order | null>(null);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("PICKUP");
+  const [editScheduleMode, setEditScheduleMode] =
+    useState<"ASAP" | "SCHEDULED">("ASAP");
+  const [editScheduledForInput, setEditScheduledForInput] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
   const [additions, setAdditions] = useState<Record<number, number>>({});
@@ -929,6 +972,10 @@ export default function OrdersCardsDashboardV3() {
       setCatalog(catalogData);
       setEditing(full);
       setFulfillment(full.fulfillmentType);
+      setEditScheduleMode(full.scheduledFor ? "SCHEDULED" : "ASAP");
+      setEditScheduledForInput(
+        full.scheduledFor ? toDateTimeLocalValue(full.scheduledFor) : "",
+      );
       setQuantities(Object.fromEntries(full.items.map((item) => [item.id, item.quantity])));
       setItemNotes(Object.fromEntries(full.items.map((item) => [item.id, item.notes ?? ""])));
       setAdditions({});
@@ -943,12 +990,32 @@ export default function OrdersCardsDashboardV3() {
     if (!editing) return;
     setSaving(true);
     setEditError("");
+
+    const scheduledFor =
+      editScheduleMode === "SCHEDULED"
+        ? bogotaLocalInputToIso(editScheduledForInput)
+        : null;
+
+    if (editScheduleMode === "SCHEDULED") {
+      if (!scheduledFor) {
+        setEditError("Selecciona una fecha y hora válida.");
+        setSaving(false);
+        return;
+      }
+      if (new Date(scheduledFor).getTime() <= Date.now()) {
+        setEditError("La hora programada debe estar en el futuro.");
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch(`/api/orders/${editing.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fulfillmentType: fulfillment,
+          scheduledFor,
           addressId: fulfillment === "DELIVERY" ? editing.address?.id ?? editing.customer?.addresses?.[0]?.id ?? null : null,
           items: editing.items.map((item) => ({ id: item.id, quantity: quantities[item.id] ?? item.quantity, notes: isPizzaItem(item) ? (itemNotes[item.id] ?? "").trim().slice(0, 120) : item.notes ?? null })),
           additions: [
@@ -1359,7 +1426,7 @@ export default function OrdersCardsDashboardV3() {
           const busyOrder = busy === order.id;
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
-          return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:border-neutral-300 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
+          return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100 hover:border-violet-400" : "border-neutral-200 hover:border-neutral-300"} ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
             <div className={`${statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
               <span className="alento-ui-label shrink-0 uppercase tracking-[0.08em]">
                 {statusLabel(order.status)}
@@ -1385,6 +1452,12 @@ export default function OrdersCardsDashboardV3() {
             <div className="px-3.5 pb-3.5 pt-3">
               <div className="[font-synthesis:none]">
                 <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
+                {order.scheduledFor && (
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.04em] text-violet-700">
+                    <Clock3 className="h-3 w-3" strokeWidth={2.2} />
+                    Programado · {scheduledLabel(order.scheduledFor)}
+                  </div>
+                )}
                 <div className="mt-0.5 flex items-end justify-between gap-3">
                   <h2 className="min-w-0 text-[21px] font-bold leading-6 tracking-[-0.035em] text-neutral-950">{displayOrderCode(order)}</h2>
                   <b className="shrink-0 pb-[1px] text-[16px] font-semibold leading-5 tabular-nums tracking-[-0.015em] text-[var(--brand-red)]">{money(order.total)}</b>
@@ -1508,6 +1581,12 @@ export default function OrdersCardsDashboardV3() {
                   >
                     {statusLabel(selected.status)}
                   </span>
+                  {selected.scheduledFor && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 alento-ui-label font-black uppercase text-violet-100">
+                      <Clock3 className="h-3 w-3" />
+                      Programado · {scheduledLabel(selected.scheduledFor)}
+                    </span>
+                  )}
                   <span
                     className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase ${fulfillmentTone(selected.fulfillmentType)}`}
                   >
@@ -2539,6 +2618,81 @@ export default function OrdersCardsDashboardV3() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-violet-200 bg-[linear-gradient(145deg,#ffffff,#faf7ff)] p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
+                <div>
+                  <p className="alento-ui-label uppercase tracking-[.12em] text-violet-500">
+                    Horario
+                  </p>
+                  <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
+                    Preparación del pedido
+                  </h4>
+                  <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                    Puedes cambiar un pedido ya creado entre inmediato y programado.
+                  </p>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditScheduleMode("ASAP");
+                      setEditError("");
+                    }}
+                    className={`min-h-[50px] rounded-2xl border px-3 text-left transition ${
+                      editScheduleMode === "ASAP"
+                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        : "border-neutral-200 bg-white text-neutral-700"
+                    }`}
+                  >
+                    <b className="block text-[11px]">Lo antes posible</b>
+                    <span className="mt-1 block text-[9px] opacity-55">
+                      Cocina ahora
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditScheduleMode("SCHEDULED");
+                      if (!editScheduledForInput) {
+                        const next = new Date(Date.now() + 60 * 60 * 1000);
+                        setEditScheduledForInput(toDateTimeLocalValue(next));
+                      }
+                      setEditError("");
+                    }}
+                    className={`min-h-[50px] rounded-2xl border px-3 text-left transition ${
+                      editScheduleMode === "SCHEDULED"
+                        ? "border-violet-500 bg-violet-100 text-violet-950"
+                        : "border-neutral-200 bg-white text-neutral-700"
+                    }`}
+                  >
+                    <b className="block text-[11px]">Programar pedido</b>
+                    <span className="mt-1 block text-[9px] opacity-55">
+                      Aviso 30 min antes
+                    </span>
+                  </button>
+                </div>
+
+                {editScheduleMode === "SCHEDULED" && (
+                  <div className="mt-3 rounded-2xl border border-violet-200 bg-white p-3">
+                    <label className="alento-ui-label font-black uppercase tracking-[.08em] text-violet-600">
+                      Fecha y hora solicitada
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={editScheduledForInput}
+                      onChange={(event) => {
+                        setEditScheduledForInput(event.target.value);
+                        setEditError("");
+                      }}
+                      className="alento-input mt-2 h-11 w-full rounded-xl bg-white px-3 text-[12px] font-bold"
+                    />
+                    <p className="mt-2 text-[9px] leading-4 text-violet-700/70">
+                      Cocina lo mostrará y hará sonar la alerta al entrar en la ventana de 30 minutos.
+                    </p>
                   </div>
                 )}
               </section>
