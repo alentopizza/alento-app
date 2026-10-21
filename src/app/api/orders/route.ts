@@ -10,6 +10,12 @@ import {
   resolveDeliveryPricing,
   type DeliveryPricingSettings,
 } from "@/lib/deliveryPricing";
+import {
+  isInKitchenWindow,
+  parseScheduledFor,
+  scheduleStatusForKitchen,
+  validateFutureSchedule,
+} from "@/lib/orderScheduling";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -71,6 +77,23 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    let scheduledFor: Date | null = null;
+    try {
+      scheduledFor = validateFutureSchedule(
+        parseScheduledFor(body.scheduledFor),
+      );
+    } catch (scheduleError) {
+      return NextResponse.json(
+        {
+          error:
+            scheduleError instanceof Error
+              ? scheduleError.message
+              : "La fecha programada no es válida.",
+        },
+        { status: 400 },
+      );
+    }
+
     const fulfillmentType = body.fulfillmentType as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) {
       return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
@@ -223,7 +246,10 @@ export async function POST(request: NextRequest) {
           deliveryZoneName,
           deliveryDistanceMeters,
           discountSource: discountMode,
-          status: hasKitchenPreparation ? "PREPARING" : "READY",
+          status: scheduleStatusForKitchen(
+            hasKitchenPreparation,
+            scheduledFor,
+          ),
           fulfillmentType,
           source: "POS",
           subtotal,
@@ -231,6 +257,7 @@ export async function POST(request: NextRequest) {
           discount,
           total,
           notes: typeof body.notes === "string" && body.notes.trim() ? body.notes.trim() : null,
+          scheduledFor,
           items: {
             create: normalizedLines.map((line, index) => {
               const rawNote = typeof lines[index]?.notes === "string" ? lines[index].notes.trim() : "";
@@ -303,7 +330,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (hasKitchenPreparation) {
+    if (
+      hasKitchenPreparation &&
+      isInKitchenWindow(order.scheduledFor)
+    ) {
       try {
         const kitchenPush = await sendKitchenOrderCreatedPush({
           orderId: order.id,
@@ -368,6 +398,7 @@ export async function POST(request: NextRequest) {
         deliveryFee: Number(order.deliveryFee),
         discount: Number(order.discount),
         total: Number(order.total),
+        scheduledFor: order.scheduledFor,
         createdAt: order.createdAt,
       },
       notification,
