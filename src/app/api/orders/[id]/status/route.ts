@@ -17,6 +17,7 @@ import { calculateDriverEarning } from "@/lib/driverCompensation";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import { orderCode } from "@/lib/orderCode";
+import { isInKitchenWindow } from "@/lib/orderScheduling";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -34,6 +35,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         source: true,
         customerId: true,
         status: true,
+        scheduledFor: true,
         fulfillmentType: true,
         subtotal: true,
         discount: true,
@@ -101,6 +103,19 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           fulfillmentType: order.fulfillmentType,
         },
       });
+    }
+
+    if (
+      order.scheduledFor &&
+      !isInKitchenWindow(order.scheduledFor)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido está programado y todavía no entra en su ventana operativa de 30 minutos.",
+        },
+        { status: 409 },
+      );
     }
 
     const currentIndex = flow.indexOf(current);
