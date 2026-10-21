@@ -12,6 +12,7 @@ import {
 } from "@/lib/deliveryPricing";
 import {
   isInKitchenWindow,
+  ORDER_KITCHEN_LEAD_MS,
   parseScheduledFor,
   scheduleStatusForKitchen,
   validateFutureSchedule,
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     const kitchenScope =
       request.nextUrl.searchParams.get("scope") === "kitchen";
     const kitchenScheduleCutoff = new Date(
-      Date.now() + 30 * 60 * 1000,
+      Date.now() + ORDER_KITCHEN_LEAD_MS,
     );
 
     const kitchenWhere: Prisma.OrderWhereInput | undefined =
