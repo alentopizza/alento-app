@@ -9,6 +9,7 @@ import {
   presentOrderItemConfiguration,
 } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
+import { ORDER_KITCHEN_LEAD_MS } from "@/lib/orderScheduling";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type KitchenOrderItem = {
@@ -41,11 +42,9 @@ function displayOrderCode(order: KitchenOrder) {
   return orderCode(order.sequenceNumber ?? order.id, order.source);
 }
 
-const KITCHEN_LEAD_MS = 30 * 60 * 1000;
-
 function kitchenEntryTime(order: KitchenOrder) {
   return order.scheduledFor
-    ? new Date(order.scheduledFor).getTime() - KITCHEN_LEAD_MS
+    ? new Date(order.scheduledFor).getTime() - ORDER_KITCHEN_LEAD_MS
     : new Date(order.createdAt).getTime();
 }
 
