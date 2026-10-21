@@ -364,6 +364,18 @@ export async function GET(
   );
   y += 76;
 
+  if (order.scheduledFor) {
+    boxedCentered(
+      [
+        "PROGRAMADO PARA",
+        receiptDateTime(order.scheduledFor).toUpperCase(),
+      ],
+      27,
+      900,
+      18,
+    );
+  }
+
   line();
 
   centered(
