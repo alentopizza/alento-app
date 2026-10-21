@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { directDistanceMeters } from "@/lib/deliveryDistance";
+import {
+  isInKitchenWindow,
+  parseScheduledFor,
+  validateFutureSchedule,
+} from "@/lib/orderScheduling";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -81,6 +86,25 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     const body = await request.json();
+    let scheduledFor: Date | null = current.scheduledFor;
+    if (Object.prototype.hasOwnProperty.call(body, "scheduledFor")) {
+      try {
+        scheduledFor = validateFutureSchedule(
+          parseScheduledFor(body.scheduledFor),
+        );
+      } catch (scheduleError) {
+        return NextResponse.json(
+          {
+            error:
+              scheduleError instanceof Error
+                ? scheduleError.message
+                : "La fecha programada no es válida.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) {
       return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
@@ -260,9 +284,26 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         });
       }
 
+      const nextStatus =
+        scheduledFor && !isInKitchenWindow(scheduledFor)
+          ? "CONFIRMED"
+          : "PREPARING";
+
       await tx.order.update({
         where: { id: current.id },
-        data: { fulfillmentType, addressId, deliveryZoneId, deliveryZoneName, deliveryDistanceMeters, deliveryFee, subtotal, discount, total },
+        data: {
+          fulfillmentType,
+          addressId,
+          deliveryZoneId,
+          deliveryZoneName,
+          deliveryDistanceMeters,
+          deliveryFee,
+          subtotal,
+          discount,
+          total,
+          scheduledFor,
+          status: nextStatus,
+        },
       });
 
       if (payment) {
