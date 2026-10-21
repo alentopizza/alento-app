@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-19.
+Última actualización: 2026-10-21.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -157,6 +157,7 @@ Soporta:
 - creación transaccional del pedido;
 - consecutivo comercial global;
 - recálculo server-side.
+- pedidos inmediatos o programados desde el cierre del POS;
 
 Ver `docs/POS.md`.
 
@@ -182,6 +183,8 @@ Permite:
 - cancelación;
 - eliminación definitiva después de cancelar;
 - continuación de estados posteriores a Cocina.
+- edición del horario entre **Lo antes posible** y **Programar pedido** sin recrear la orden;
+- identificación visual de pedidos programados con reloj y acento violeta.
 
 La tarjeta muestra un solo estado financiero: `PAGO PENDIENTE` o `PAGADO`.
 
@@ -204,6 +207,9 @@ Incluye:
 - jerarquía tamaño/borde/sabores/extras/nota;
 - notas visibles en mayúsculas visuales;
 - controles ocultos al completar una línea.
+- entrada automática de pedidos programados 30 minutos antes de la hora solicitada;
+- alerta sonora al entrar a Cocina, cuando las alertas están habilitadas en el dispositivo;
+- bloqueo de preparación anticipada y exclusión temporal de despacho/repartidores.
 
 Ver `docs/KITCHEN.md`.
 
@@ -289,6 +295,20 @@ Combos conservan:
 
 Ver `docs/ORDER_DATA_INTEGRITY.md`.
 
+## Pedidos programados
+
+`Order.scheduledFor` es opcional.
+
+Para pedidos con preparación:
+
+```text
+Programado fuera de ventana → CONFIRMED
+30 min antes → visible en Cocina
+Preparación completa → PREPARED
+```
+
+La ventana compartida es de 30 minutos y vive en `src/lib/orderScheduling.ts`. Pedidos siempre ve la orden; Cocina, Mapa De Entregas y Repartidores la reciben únicamente cuando corresponde operativamente.
+
 ## Flujo de estados
 
 Domicilio:
@@ -369,7 +389,7 @@ El start actual todavía ejecuta `prisma db push`. Antes de producción estable 
 
 No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
-El cierre documental de los cinco módulos no requiere un cambio de schema.
+La funcionalidad de pedidos programados añade `Order.scheduledFor` y su índice mediante `prisma/migrations/20261021170000_order_scheduling/migration.sql`. El arranque vigente de producción continúa usando `prisma db push`; no ejecutar `prisma migrate deploy` hasta completar el baseline documentado.
 
 ## Trabajo futuro
 
