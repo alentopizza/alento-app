@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
-import { CircleCheck, CookingPot, Pizza, Sparkles } from "lucide-react";
+import { CircleCheck, Clock3, CookingPot, Pizza, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   presentComboOrderConfiguration,
@@ -32,6 +32,7 @@ type KitchenOrder = {
   status: OrderStatus;
   fulfillmentType: FulfillmentType;
   createdAt: string;
+  scheduledFor?: string | null;
   customer: { name: string } | null;
   items: KitchenOrderItem[];
 };
@@ -40,8 +41,27 @@ function displayOrderCode(order: KitchenOrder) {
   return orderCode(order.sequenceNumber ?? order.id, order.source);
 }
 
-function ageMinutes(createdAt: string) {
-  return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
+const KITCHEN_LEAD_MS = 30 * 60 * 1000;
+
+function kitchenEntryTime(order: KitchenOrder) {
+  return order.scheduledFor
+    ? new Date(order.scheduledFor).getTime() - KITCHEN_LEAD_MS
+    : new Date(order.createdAt).getTime();
+}
+
+function ageMinutes(order: KitchenOrder) {
+  return Math.max(
+    0,
+    Math.floor((Date.now() - kitchenEntryTime(order)) / 60000),
+  );
+}
+
+function scheduledLabel(value: string) {
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function isKitchenItem(item: KitchenOrderItem) {
@@ -309,7 +329,7 @@ export default function KitchenPage() {
     void loadOrders();
     const timer = window.setInterval(
       () => void loadOrders(true),
-      15000,
+      5000,
     );
     return () => window.clearInterval(timer);
   }, [loadOrders]);
@@ -322,7 +342,12 @@ export default function KitchenPage() {
     () => orders
       .filter((order) => ["PREPARING", "CONFIRMED"].includes(order.status))
       .filter((order) => kitchenItemsFor(order).length > 0)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+      .filter(
+        (order) =>
+          !order.scheduledFor ||
+          kitchenEntryTime(order) <= Date.now(),
+      )
+      .sort((a, b) => kitchenEntryTime(a) - kitchenEntryTime(b)),
     [orders],
   );
 
@@ -437,7 +462,7 @@ export default function KitchenPage() {
               const kitchenItems = kitchenItemsFor(order);
 
               return (
-                <article key={order.id} className="self-start overflow-hidden rounded-[22px] border border-neutral-200 bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)]">
+                <article key={order.id} className={`self-start overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100" : "border-neutral-200"}`}>
                   <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 [font-synthesis:none]">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -446,6 +471,12 @@ export default function KitchenPage() {
                         <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-amber-700">
                           {statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
                         </span>
+                        {order.scheduledFor && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.02em] text-violet-700">
+                            <Clock3 className="h-3.5 w-3.5" strokeWidth={2.2} />
+                            Programado · {scheduledLabel(order.scheduledFor)}
+                          </span>
+                        )}
                       </div>
                       {order.customer?.name && (
                         <p className="mt-1 truncate text-[11px] font-medium leading-4 tracking-[-0.005em] text-neutral-500 [font-synthesis:none]">
