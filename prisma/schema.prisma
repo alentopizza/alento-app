@@ -481,6 +481,7 @@ model Order {
   discount         Decimal           @default(0) @db.Decimal(12, 2)
   total            Decimal           @default(0) @db.Decimal(12, 2)
   notes            String?
+  scheduledFor     DateTime?
   driverAssignedAt       DateTime?
   deliveredAt            DateTime?
   driverEarningAmount    Decimal?          @db.Decimal(12, 2)
@@ -509,6 +510,7 @@ model Order {
   @@index([driverId])
   @@index([driverId, driverEarningCreditedAt])
   @@index([status])
+  @@index([scheduledFor])
   @@index([createdAt])
   @@index([fulfillmentType, createdAt])
   @@index([deliveryZoneId, createdAt])
