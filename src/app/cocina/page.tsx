@@ -458,7 +458,7 @@ export default function KitchenPage() {
         ) : (
           <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {kitchenOrders.map((order) => {
-              const minutes = ageMinutes(order.createdAt);
+              const minutes = ageMinutes(order);
               const kitchenItems = kitchenItemsFor(order);
 
               return (
