@@ -228,11 +228,32 @@ Máximo vigente:
 
 Si una nota cambia después de que una línea fue preparada, el backend reinicia la preparación de esa línea y devuelve el pedido a Cocina cuando corresponda.
 
+## Pedidos programados
+
+`Order.scheduledFor` guarda opcionalmente la fecha/hora solicitada por el cliente.
+
+Reglas operativas:
+
+- un pedido sin `scheduledFor` se trata como **Lo antes posible**;
+- un pedido programado aparece en Pedidos desde el momento en que se crea;
+- las tarjetas y el drawer lo identifican con reloj y acento violeta;
+- el texto visible muestra `PROGRAMADO` y la fecha/hora objetivo;
+- un pedido programado con preparación de Cocina permanece fuera del tablero hasta 30 minutos antes;
+- los pedidos DELIVERY programados tampoco aparecen antes de tiempo en Mapa De Entregas ni a Repartidores;
+- al entrar en la ventana de Cocina se incorpora al tablero y el sistema de alertas locales lo trata como un pedido nuevo;
+- no se permite marcar preparación antes de la ventana;
+- si una línea ya comenzó preparación, el pedido no puede reprogramarse para más adelante.
+
+La ventana vigente es de **30 minutos** y su fuente compartida está en:
+
+`src/lib/orderScheduling.ts`
+
 ## Editar pedido
 
 Desde Pedidos se puede:
 
 - cambiar Domicilio / Recoger / Local;
+- cambiar entre **Lo antes posible** y **Programar pedido**, incluyendo fecha/hora;
 - seleccionar tarifa de domicilio;
 - cambiar cantidades;
 - eliminar una línea llevando cantidad a cero;
