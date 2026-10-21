@@ -1463,13 +1463,22 @@ export default function OrdersCardsDashboardV3() {
             </div>
             <div className="px-3.5 pb-3.5 pt-3">
               <div className="[font-synthesis:none]">
-                <p className="text-[10px] font-medium leading-4 text-neutral-400">{dateTime(order.createdAt)}</p>
-                {order.scheduledFor && (
-                  <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.04em] text-violet-700">
-                    <Clock3 className="h-3 w-3" strokeWidth={2.2} />
-                    Programado · {scheduledLabel(order.scheduledFor)}
-                  </div>
-                )}
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <p className="shrink-0 text-[10px] font-medium leading-4 text-neutral-400">
+                    {dateTime(order.createdAt)}
+                  </p>
+                  {order.scheduledFor && (
+                    <div
+                      className="inline-flex min-w-0 items-center justify-end gap-1 text-[9px] font-bold leading-4 text-violet-500"
+                      title={`Programado para ${scheduledLabel(order.scheduledFor)}`}
+                    >
+                      <Clock3 className="h-3 w-3 shrink-0" strokeWidth={2} />
+                      <span className="truncate">
+                        Programado · {scheduledLabel(order.scheduledFor)}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="mt-0.5 flex items-end justify-between gap-3">
                   <h2 className="min-w-0 text-[21px] font-bold leading-6 tracking-[-0.035em] text-neutral-950">{displayOrderCode(order)}</h2>
                   <b className="shrink-0 pb-[1px] text-[16px] font-semibold leading-5 tabular-nums tracking-[-0.015em] text-[var(--brand-red)]">{money(order.total)}</b>
