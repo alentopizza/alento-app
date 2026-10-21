@@ -386,24 +386,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
     }
 
-    if (
-      scheduledFor &&
-      !isInKitchenWindow(scheduledFor) &&
-      current.items.some(
-        (item) =>
-          Number(item.preparedQuantity ?? 0) > 0 &&
-          item.product?.categoryId != null,
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Este pedido ya comenzó preparación y no puede reprogramarse para más adelante.",
-        },
-        { status: 409 },
-      );
-    }
-
     const fulfillmentType = String(body.fulfillmentType ?? current.fulfillmentType) as FulfillmentType;
     if (!(["DELIVERY", "PICKUP", "STORE"] as string[]).includes(fulfillmentType)) return NextResponse.json({ error: "Tipo de pedido inválido." }, { status: 400 });
     if ((fulfillmentType === "DELIVERY" || fulfillmentType === "PICKUP") && !current.customerId) return NextResponse.json({ error: "Este pedido necesita un cliente antes de cambiar a esa modalidad." }, { status: 400 });
@@ -416,6 +398,24 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     });
     const beverageCategoryId = beveragesCategory?.id ?? null;
     const requiresKitchen = (categoryId: number | null | undefined) => beverageCategoryId == null || categoryId !== beverageCategoryId;
+
+    if (
+      scheduledFor &&
+      !isInKitchenWindow(scheduledFor) &&
+      current.items.some(
+        (item) =>
+          requiresKitchen(item.product?.categoryId) &&
+          Number(item.preparedQuantity ?? 0) > 0,
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido ya comenzó preparación en Cocina. No puede reprogramarse para más adelante.",
+        },
+        { status: 409 },
+      );
+    }
 
     let addressId: number | null = null;
     let deliveryFee = 0;
