@@ -1,14 +1,14 @@
 # Checkout público + Google Maps Platform
 
-Estado: **IMPLEMENTADO — VALIDACIÓN PRODUCTIVA PENDIENTE**
+Estado: **IMPLEMENTADO Y OPERATIVO — VALIDACIÓN CONTINUA**
 
-Este documento define cómo Alentó App resolverá dirección, geolocalización, cobertura y tarifa de domicilio en el checkout público.
+Este documento define cómo Alentó App resuelve dirección, geolocalización, cobertura y tarifa de domicilio en el checkout público.
 
 Regla central: **el navegador nunca decide la distancia ni la tarifa oficial del domicilio**. El cliente selecciona o comparte una ubicación; el servidor valida esa ubicación, calcula la ruta y aplica las bandas configuradas en Alentó.
 
 ## Objetivo
 
-Flujo objetivo:
+Flujo vigente:
 
 1. Carrito → Continuar pedido.
 2. Elegir Domicilio, Recoger o Local.
