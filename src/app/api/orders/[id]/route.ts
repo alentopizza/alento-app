@@ -199,6 +199,19 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     if (["COMPLETED", "CANCELED", "DELIVERED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya está cerrado y no puede editarse." }, { status: 409 });
 
+    if (
+      current.pickerDelivery?.bookingId &&
+      current.pickerDelivery.status !== "CANCELED"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido tiene un envío Picker activo. Cancela Picker antes de editar cliente, dirección, productos o modalidad.",
+        },
+        { status: 409 },
+      );
+    }
+
     if (body?.action === "change-customer") {
       const customerId = Number(body.customerId);
       if (!Number.isInteger(customerId) || customerId <= 0) {
