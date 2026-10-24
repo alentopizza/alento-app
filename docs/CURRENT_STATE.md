@@ -349,7 +349,7 @@ WEB-0003
 
 ## Integraciones — pospuestas
 
-Rappi, DiDi y otras integraciones externas no forman parte del código operativo activo.
+Las integraciones de marketplace y otros proveedores externos no forman parte del código operativo activo.
 
 La implementación experimental fue retirada.
 
