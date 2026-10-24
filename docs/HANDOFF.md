@@ -9,27 +9,23 @@ Leer en este orden:
 1. `AGENTS.md`
 2. `README.md`
 3. `docs/CURRENT_STATE.md`
-4. `docs/PRODUCTION_READINESS.md`
-5. `docs/ALENTO_EXCLUSIVE_MODULES.md`
-6. `docs/ROADMAP.md`
-7. `docs/POS.md`
-8. `docs/ORDERS.md`
-9. `docs/KITCHEN.md`
-10. `docs/CUSTOMERS.md`
-11. `docs/MENU.md`
-12. `docs/ARCHITECTURE.md`
-13. `docs/METRICS_AND_TRACKING.md`
-14. `docs/PUSH_NOTIFICATIONS.md`
-15. `docs/ORDER_DATA_INTEGRITY.md`
-16. `docs/ORDER_NUMBERING.md`
-17. `docs/PAYMENTS.md`
-18. `docs/PAYMENTS_AND_CASH.md`
-19. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-20. `docs/DEPLOYMENT.md`
-21. `docs/MAPS_VISUAL_SYSTEM.md`
-22. `docs/UI_VISUAL_SYSTEM.md`
-23. `prisma/schema.prisma`
-24. archivos del módulo que se vaya a modificar.
+4. `docs/FEATURE_INVENTORY.md`
+5. `docs/PRODUCTION_READINESS.md` como baseline histórico
+6. `docs/ALENTO_EXCLUSIVE_MODULES.md`
+7. `docs/ROADMAP.md`
+8. documento canónico del módulo a modificar
+9. `docs/ARCHITECTURE.md`
+10. `docs/ORDER_DATA_INTEGRITY.md`
+11. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+12. `docs/CONFIGURATION.md`
+13. `docs/DRIVERS.md`
+14. `docs/PAYMENTS_AND_CASH.md`
+15. `docs/METRICS_AND_TRACKING.md`
+16. `docs/PUSH_NOTIFICATIONS.md`
+17. `docs/MAPS_VISUAL_SYSTEM.md`
+18. `docs/DEPLOYMENT.md`
+19. `prisma/schema.prisma`
+20. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -70,6 +66,8 @@ Durante la implementación:
 - si una decisión afecta varias superficies, actualizar todas en el mismo bloque: UI, API, persistencia, documentación y estados derivados.
 
 Antes de considerar terminado un cambio:
+
+- actualizar `docs/FEATURE_INVENTORY.md` si cambió una ruta, módulo, acceso o capacidad transversal;
 
 - buscar referencias antiguas que hayan quedado obsoletas;
 - revisar inicializadores, ramas alternativas y estados vacíos;
@@ -586,7 +584,7 @@ Efectivo:
 - **Autoasignarme** vive únicamente dentro del detalle de la solicitud; no reintroducir la acción directa en la tarjeta;
 - la autoasignación usa una actualización atómica con `driverId: null` para evitar que dos repartidores tomen el mismo pedido;
 - pedidos ya asignados a otro repartidor siguen visibles pero no se pueden reclamar; los propios permiten abrir directamente su ficha;
-- navegación inferior exclusiva del repartidor: **Solicitudes / Desempeño / Cartera**; las dos últimas quedan como shell visual para completar luego;
+- navegación inferior exclusiva del repartidor: **Solicitudes / Desempeño / Cartera**; Desempeño y Cartera ya consumen `/api/repartidor/finances` y muestran entregas, ganancias, pagos y saldo;
 - `/seguimiento/[token]` se refresca automáticamente;
 - durante `OUT_FOR_DELIVERY`, el seguimiento del cliente muestra nombre del repartidor, distancia restante, ETA y mapa en vivo con la moto;
 - el endpoint firmado `/api/seguimiento/[token]/delivery-live` expone únicamente la ubicación de esa orden y puede recalcular ruta con Routes API;
