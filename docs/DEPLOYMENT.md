@@ -28,11 +28,7 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 - `latitude`;
 - `longitude`.
 
-Antes de probar este cambio en un despliegue existente ejecutar:
-
-```bash
-npx prisma db push
-```
+Nota histórica: este cambio requería sincronizar Prisma. En el despliegue vigente esa sincronización ocurre automáticamente dentro de `npm run start`; revisar el impacto del schema antes de redeploy.
 
 La lógica de aplicación utiliza una sola dirección operativa por cliente. Los registros múltiples históricos se depuran cuando el cliente actualiza/valida su dirección o genera un nuevo domicilio.
 
@@ -72,13 +68,7 @@ Antes de cualquier `db push`, revisar siempre el cambio de schema y confirmar qu
 
 ## AppSetting
 
-La configuración operativa utiliza el modelo `AppSetting`. Si una instalación existente todavía no tiene esa tabla, después de desplegar el código ejecutar:
-
-```bash
-npx prisma db push
-```
-
-La tabla almacena la configuración `pos_settings` en JSON.
+La configuración operativa utiliza el modelo `AppSetting`. El arranque vigente sincroniza esta tabla mediante `prisma db push` antes de iniciar Next.js. La tabla almacena la configuración `pos_settings` en JSON.
 
 ## Migraciones futuras
 
@@ -151,20 +141,14 @@ Significa que se intentó aplicar migraciones a una base no vacía sin baseline.
 
 ### La UI de Configuración falla con tabla inexistente
 
-Ejecutar `npx prisma db push` y reiniciar el servicio si fuera necesario.
+Revisar primero los logs del `prisma db push` que ejecuta `npm run start`. Solo usar una sincronización manual como diagnóstico controlado después de revisar el impacto del schema.
 
 
 ## Activación de autenticación (2026-09-20)
 
 La primera versión de autenticación agrega tablas y enum nuevos.
 
-Después de desplegar el código ejecutar:
-
-```bash
-npx prisma db push
-```
-
-Luego definir en EasyPanel:
+El schema se sincroniza al arrancar mediante `npm run start`. Antes del redeploy revisar el cambio de Prisma y luego definir en EasyPanel:
 
 ```text
 AUTH_SESSION_SECRET=<secreto aleatorio de al menos 32 caracteres>
@@ -204,16 +188,14 @@ Estas integraciones están delimitadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 Orden recomendado de activación:
 
-1. desplegar código;
-2. ejecutar `npx prisma db push`;
-3. configurar `AUTH_SESSION_SECRET`;
-4. configurar `AUTH_BOOTSTRAP_KEY`;
-5. reiniciar/redeploy;
-6. abrir `/login`;
-7. usar `Configurar primer administrador`;
-8. crear el ADMIN;
-9. entrar a `/usuarios` y crear colaboradores;
-10. cuando WhatsApp esté listo, configurar sus variables y probar `/cuenta/login`.
+1. revisar el diff de `prisma/schema.prisma`;
+2. configurar `AUTH_SESSION_SECRET` y `AUTH_BOOTSTRAP_KEY` si la instalación aún no los tiene;
+3. desplegar/redeploy — `npm run start` ejecutará la sincronización de Prisma;
+4. revisar logs de arranque;
+5. abrir `/login`;
+6. en una instalación nueva, usar `Configurar primer administrador`;
+7. crear colaboradores desde `/usuarios`;
+8. cuando WhatsApp esté listo, configurar sus variables y probar el login de cliente desde `/login`.
 
 Después de crear el primer ADMIN, `/setup/admin` deja de aceptar creación porque el backend exige `User.count() === 0`.
 
