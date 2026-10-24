@@ -36,7 +36,7 @@ Documentación oficial usada:
 | Comparación tarifa Alentó / Picker | IMPLEMENTADO | Drawer de pedido |
 | ETA Picker | IMPLEMENTADO | Se guarda con la cotización |
 | Crear Booking Picker | IMPLEMENTADO | Solo manual |
-| Evitar doble despacho | IMPLEMENTADO | Bloquea Picker si hay `driverId` |
+| Evitar doble despacho | IMPLEMENTADO | Bloqueo en ambas direcciones |
 | Cancelar Booking Picker | IMPLEMENTADO | Endpoint propio |
 | Guardar tracking Picker | IMPLEMENTADO | Si Picker lo retorna |
 | Guardar conductor/proveedor externo | IMPLEMENTADO | Vía webhook |
@@ -64,7 +64,12 @@ Pedido DELIVERY
 
 Nunca deben operar ambos simultáneamente.
 
-El endpoint de creación Picker rechaza el pedido si existe `order.driverId`.
+Protecciones implementadas:
+
+- el endpoint de creación Picker rechaza el pedido si existe `order.driverId`;
+- el endpoint de asignación de repartidor Alentó rechaza la asignación si existe un booking Picker activo;
+- un pedido con Picker activo no puede editar cliente, dirección, productos o modalidad;
+- un pedido con Picker activo no puede cancelarse en Alentó hasta cancelar primero el booking Picker.
 
 ### Persistencia
 
