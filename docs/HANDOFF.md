@@ -372,16 +372,16 @@ Reglas de no regresión:
 
 Las integraciones con marketplaces externos siguen fuera del alcance actual. No reintroducirlas experimentalmente sin acceso oficial y diseño aprobado.
 
-## Activación pendiente después del cambio de autenticación
+## Configuración de autenticación en una instalación nueva
 
-Antes de probar login en un despliegue existente:
+La autenticación ya está implementada y activa en la instalación operativa. Para una instalación nueva:
 
 1. configurar `AUTH_SESSION_SECRET`;
 2. configurar `AUTH_BOOTSTRAP_KEY`;
-3. ejecutar `npx prisma db push`;
+3. revisar el diff de Prisma y desplegar; `npm run start` ejecuta `prisma db push` automáticamente;
 4. crear el primer ADMIN desde `/setup/admin`;
 5. crear colaboradores desde `/usuarios`;
-6. configurar `MAKE_WHATSAPP_OTP_WEBHOOK_URL` únicamente cuando se vaya a habilitar el login OTP de clientes en la infraestructura de Alentó.
+6. configurar `MAKE_WHATSAPP_OTP_WEBHOOK_URL` únicamente cuando se vaya a habilitar el login OTP de clientes.
 
 ## Prisma en producción
 
