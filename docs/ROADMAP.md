@@ -9,11 +9,11 @@ Cocina                ✅ CERRADO
 Clientes              ✅ CERRADO
 Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
-Caja básica           ✅ IMPLEMENTADA / CIERRE AVANZADO PENDIENTE
+Caja / Nómina         ✅ OPERATIVA / REFUND Y HARDENING PENDIENTES
 Inventario/Costos     ⏳ FUTURO
-Experiencia pública   ✅ CHECKOUT + SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA
+Experiencia pública   ✅ EN PRODUCCIÓN / MEJORA CONTINUA
 Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
-Producción             🟡 HARDENING Y VALIDACIÓN
+Producción             ✅ ACTIVA / HARDENING CONTINUO
 Métricas/medición      ✅ V1 IMPLEMENTADA
 Integraciones marketplace 🔒 OPCIONALES / FUTURAS
 ```
@@ -111,7 +111,7 @@ Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
 Documento: `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-Ya existe login interno, roles, sesiones firmadas, navegación por rol, protección inicial de páginas/APIs y administración de usuarios. Antes de la exposición definitiva todavía conviene completar recuperación de contraseña, auditoría y revocación inmediata de sesiones.
+Ya existe login interno, roles, sesiones firmadas, navegación por rol, protección inicial de páginas/APIs y administración de usuarios. Como hardening futuro conviene completar recuperación de contraseña, auditoría y revocación inmediata de sesiones.
 
 Roles iniciales propuestos:
 
@@ -134,9 +134,8 @@ Roles iniciales propuestos:
 - recetas;
 - costos;
 - rentabilidad;
-- experiencia pública;
-- sustitución de Glide;
-- migración de `alentopizza.com`;
+- canje transaccional de Club Alentó;
+- CI y baseline formal de Prisma;
 - parametrización para replicar/comercializar;
 
 ---
@@ -185,7 +184,7 @@ La documentación del repositorio debe tener prioridad sobre el historial de cha
 
 # Experiencia pública — V1
 
-Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA PENDIENTE**.
+Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓN CONTINUA**.
 
 ### Implementado
 
@@ -221,13 +220,13 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS / VALIDACIÓN PRODUCTIVA PEND
 - enlace firmado de seguimiento;
 - notificación de pedido creado cuando el notifier está configurado.
 
-### Pendiente para cerrar la validación productiva
+### Pendientes de evolución y hardening
 
-1. Ejecutar el checklist end-to-end de `docs/PRODUCTION_READINESS.md`.
-2. Validar producción en móvil, PWA, tablet y escritorio.
-3. Decidir el alcance de lanzamiento del canje de Club Alentó.
-4. Endurecer despliegue/Prisma y automatizar build/lint.
-5. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
+1. Mantener pruebas end-to-end periódicas en móvil, PWA, tablet y escritorio.
+2. Completar el canje transaccional de Club Alentó.
+3. Endurecer despliegue/Prisma y automatizar lint/build/pruebas críticas.
+4. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
+5. Mantener `docs/FEATURE_INVENTORY.md` alineado con nuevas rutas y capacidades.
 
 Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
 
