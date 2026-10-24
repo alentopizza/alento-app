@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { directDistanceMeters } from "@/lib/deliveryDistance";
+import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import {
   isInKitchenWindow,
   parseScheduledFor,
@@ -28,8 +29,18 @@ type PosSettings = {
   };
   deliveryBands?: DeliveryBand[];
 };
-type ExistingLinePatch = { id: number; quantity: number };
-type Addition = { productId: number; quantity: number };
+type ExistingLinePatch = {
+  id: number;
+  quantity: number;
+  configuration?: unknown;
+  notes?: unknown;
+};
+type Addition = {
+  productId: number;
+  quantity: number;
+  configuration?: unknown;
+  notes?: unknown;
+};
 
 function parseSettings(value: Prisma.JsonValue | null): PosSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -233,60 +244,148 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       deliveryDistanceMeters = Math.round(commercialDistanceMeters);
     }
 
-    const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
-    const quantityById = new Map<number, number>();
+    const patches = Array.isArray(body.items)
+      ? (body.items as ExistingLinePatch[])
+      : [];
+    const patchById = new Map<number, ExistingLinePatch>();
+
     for (const patch of patches) {
       const itemId = Number(patch.id);
-      const quantity = Math.max(0, Math.floor(Number(patch.quantity ?? 0)));
-      if (Number.isInteger(itemId)) quantityById.set(itemId, quantity);
+      if (Number.isInteger(itemId)) {
+        patchById.set(itemId, patch);
+      }
     }
 
-    const additions = Array.isArray(body.additions) ? body.additions as Addition[] : [];
-    const addedProducts = additions.length
-      ? await prisma.product.findMany({
-          where: { id: { in: additions.map((item) => Number(item.productId)) }, active: true, visibleInPos: true },
-        })
+    const updatedExisting: Array<{
+      itemId: number;
+      quantity: number;
+      unitPrice: number;
+      lineTotal: number;
+      configuration: unknown;
+      notes: string | null;
+      eligible: boolean;
+      changed: boolean;
+    }> = [];
+
+    for (const item of current.items) {
+      const patch = patchById.get(item.id);
+      const quantity = Math.max(
+        0,
+        Math.floor(Number(patch?.quantity ?? item.quantity)),
+      );
+      if (quantity <= 0) continue;
+
+      const nextNotes =
+        typeof patch?.notes === "string"
+          ? patch.notes.trim().slice(0, 120) || null
+          : patch?.notes === null
+            ? null
+            : item.notes;
+
+      if (patch && Object.prototype.hasOwnProperty.call(patch, "configuration")) {
+        const normalized = await normalizeOrderLine({
+          productId: item.productId,
+          quantity,
+          configuration: patch.configuration,
+        });
+
+        updatedExisting.push({
+          itemId: item.id,
+          quantity,
+          unitPrice: normalized.unitPrice,
+          lineTotal: normalized.lineTotal,
+          configuration: normalized.configuration,
+          notes: nextNotes,
+          eligible: normalized.eligible,
+          changed: true,
+        });
+        continue;
+      }
+
+      const unitPrice = Number(item.unitPrice);
+      updatedExisting.push({
+        itemId: item.id,
+        quantity,
+        unitPrice,
+        lineTotal: unitPrice * quantity,
+        configuration: item.configuration,
+        notes: nextNotes,
+        eligible: Boolean(
+          item.product &&
+            item.product.type !== "COMBO" &&
+            item.product.couponEligible,
+        ),
+        changed:
+          quantity !== item.quantity ||
+          nextNotes !== item.notes,
+      });
+    }
+
+    const additions = Array.isArray(body.additions)
+      ? (body.additions as Addition[])
       : [];
 
+    const normalizedAdditions = [];
     for (const addition of additions) {
-      const product = addedProducts.find((item) => item.id === Number(addition.productId));
-      if (!product) return NextResponse.json({ error: "Uno de los productos adicionales ya no está disponible." }, { status: 400 });
-      if (["PIZZA_SINGLE", "PIZZA_TWO_FLAVORS", "COMBO"].includes(product.type)) {
-        return NextResponse.json({ error: `Para agregar ${product.name} debes crear su configuración estructurada desde el POS.` }, { status: 400 });
-      }
-      if (product.basePrice == null) return NextResponse.json({ error: `${product.name} no tiene precio.` }, { status: 400 });
+      const quantity = Math.max(
+        0,
+        Math.floor(Number(addition.quantity ?? 0)),
+      );
+      if (!quantity) continue;
+
+      const normalized = await normalizeOrderLine({
+        productId: Number(addition.productId),
+        quantity,
+        configuration: addition.configuration,
+      });
+
+      normalizedAdditions.push({
+        ...normalized,
+        notes:
+          typeof addition.notes === "string"
+            ? addition.notes.trim().slice(0, 120) || null
+            : null,
+      });
     }
 
-    const updatedExisting = current.items
-      .map((item) => ({ item, quantity: quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity }))
-      .filter((entry) => entry.quantity > 0);
-
-    if (!updatedExisting.length && !additions.some((item) => Number(item.quantity) > 0)) {
-      return NextResponse.json({ error: "El pedido debe conservar al menos un producto." }, { status: 400 });
+    if (!updatedExisting.length && !normalizedAdditions.length) {
+      return NextResponse.json(
+        { error: "El pedido debe conservar al menos un producto." },
+        { status: 400 },
+      );
     }
 
-    const existingSubtotal = updatedExisting.reduce((sum, entry) => sum + Number(entry.item.unitPrice) * entry.quantity, 0);
-    const additionsSubtotal = additions.reduce((sum, addition) => {
-      const product = addedProducts.find((item) => item.id === Number(addition.productId));
-      const quantity = Math.max(0, Math.floor(Number(addition.quantity ?? 0)));
-      return sum + (product ? Number(product.basePrice ?? 0) * quantity : 0);
-    }, 0);
+    const existingSubtotal = updatedExisting.reduce(
+      (sum, entry) => sum + entry.lineTotal,
+      0,
+    );
+    const additionsSubtotal = normalizedAdditions.reduce(
+      (sum, entry) => sum + entry.lineTotal,
+      0,
+    );
     const subtotal = money(existingSubtotal + additionsSubtotal);
 
-    const existingEligible = updatedExisting.reduce((sum, entry) => {
-      const product = entry.item.product;
-      const eligible = product && product.type !== "COMBO" && product.couponEligible;
-      return sum + (eligible ? Number(entry.item.unitPrice) * entry.quantity : 0);
-    }, 0);
-    const additionsEligible = additions.reduce((sum, addition) => {
-      const product = addedProducts.find((item) => item.id === Number(addition.productId));
-      const quantity = Math.max(0, Math.floor(Number(addition.quantity ?? 0)));
-      const eligible = product && product.type !== "COMBO" && product.couponEligible;
-      return sum + (eligible ? Number(product.basePrice ?? 0) * quantity : 0);
-    }, 0);
-    const eligibleSubtotal = money(existingEligible + additionsEligible);
-    const discount = Math.min(Number(current.discount), eligibleSubtotal);
-    const total = Math.max(0, subtotal + deliveryFee - discount);
+    const existingEligible = updatedExisting.reduce(
+      (sum, entry) =>
+        sum + (entry.eligible ? entry.lineTotal : 0),
+      0,
+    );
+    const additionsEligible = normalizedAdditions.reduce(
+      (sum, entry) =>
+        sum + (entry.eligible ? entry.lineTotal : 0),
+      0,
+    );
+    const eligibleSubtotal = money(
+      existingEligible + additionsEligible,
+    );
+    const discount = Math.min(
+      Number(current.discount),
+      eligibleSubtotal,
+    );
+    const total = Math.max(
+      0,
+      subtotal + deliveryFee - discount,
+    );
 
     const payment = current.payments[0];
     const cashReceivedInput = body.cashReceived == null
@@ -299,33 +398,48 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const changeDue = isCash && cashReceivedInput != null ? cashReceivedInput - total : null;
 
     await prisma.$transaction(async (tx) => {
-      for (const entry of current.items) {
-        const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
-        if (quantity <= 0) await tx.orderItem.delete({ where: { id: entry.id } });
-        else if (quantity !== entry.quantity) {
-          await tx.orderItem.update({ where: { id: entry.id }, data: { quantity, lineTotal: Number(entry.unitPrice) * quantity } });
+      const existingIds = new Set(
+        updatedExisting.map((entry) => entry.itemId),
+      );
+
+      for (const item of current.items) {
+        if (!existingIds.has(item.id)) {
+          await tx.orderItem.delete({ where: { id: item.id } });
         }
       }
 
-      for (const addition of additions) {
-        const quantity = Math.max(0, Math.floor(Number(addition.quantity ?? 0)));
-        if (!quantity) continue;
-        const product = addedProducts.find((item) => item.id === Number(addition.productId))!;
-        const unitPrice = money(Number(product.basePrice));
+      for (const entry of updatedExisting) {
+        if (!entry.changed) continue;
+
+        await tx.orderItem.update({
+          where: { id: entry.itemId },
+          data: {
+            quantity: entry.quantity,
+            unitPrice: entry.unitPrice,
+            lineTotal: entry.lineTotal,
+            configuration: entry.configuration as Prisma.InputJsonValue,
+            notes: entry.notes,
+          },
+        });
+      }
+
+      for (const addition of normalizedAdditions) {
         await tx.orderItem.create({
           data: {
             orderId: current.id,
-            productId: product.id,
-            productName: product.name,
-            unitPrice,
-            quantity,
-            lineTotal: unitPrice * quantity,
-            configuration: {
-              schemaVersion: 1,
-              kind: "STANDARD",
-              productId: product.id,
-              productName: product.name,
-            },
+            productId: addition.product.id,
+            productName: addition.product.name,
+            unitPrice: addition.unitPrice,
+            quantity: addition.quantity,
+            preparedQuantity: requiresKitchen(
+              addition.product.categoryId,
+            )
+              ? 0
+              : addition.quantity,
+            lineTotal: addition.lineTotal,
+            configuration:
+              addition.configuration as Prisma.InputJsonValue,
+            notes: addition.notes,
           },
         });
       }
