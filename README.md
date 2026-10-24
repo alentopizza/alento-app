@@ -1,8 +1,8 @@
 # Alentó App
 
-Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración y la experiencia pública de pedidos en desarrollo.
+Aplicación operativa propia de Alentó Pizza para centralizar punto de venta, clientes, catálogo, pedidos, cocina, pagos, caja, configuración, reparto y la experiencia pública de pedidos.
 
-El proyecto busca reemplazar gradualmente Glide y consolidar en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
+El proyecto consolida en una sola plataforma el sistema interno del restaurante y la app/web pública para clientes.
 
 ## Visión de producto
 
@@ -31,7 +31,7 @@ alentopizza.com/interno
 └── Configuración
 ```
 
-Actualmente `alentopizza.com` continúa ocupado por la solución construida en Glide. Alentó App se mantiene en infraestructura temporal mientras se completa y valida. Cuando el sistema esté listo para producción, el dominio principal debe migrarse a Alentó App.
+Alentó App está en producción. La URL pública canónica configurada en el repositorio es `https://alentopizza.com`; las superficies internas conviven por rutas y permisos dentro de la misma aplicación.
 
 No se busca un dominio diferente para cada módulo. La separación entre experiencia pública e interna se realizará por rutas, autenticación y permisos.
 
@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Las integraciones de medición y publicidad ya tienen una primera versión operativa desde `/metricas`. Las integraciones de marketplace/proveedores externos continúan siendo opcionales y futuras.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline de Prisma/CI, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -79,7 +79,11 @@ Ya están implementados, entre otros:
 - registro y eliminación de pagos;
 - pagos parciales y cuenta dividida entre varios medios;
 - Caja basada en dinero realmente recibido;
-- impresión térmica de 80 mm;
+- impresión térmica de 80 mm y descarga de comprobante PNG server-side;
+- pedidos programados con horario de servicio y liberación a Cocina 30 minutos antes;
+- reparto con disponibilidad, GPS, autoasignación, rutas múltiples, seguimiento, desempeño y cartera;
+- Turnos integrados con pago de Nómina desde Caja y descuentos de préstamos;
+- Centro Push con campañas manuales y métricas de entrega/apertura;
 - módulo `/metricas` con analítica interna, mapa de calor día/hora, embudo, productos, fuentes de tráfico e integraciones externas guiadas;
 - eliminación física controlada de pedidos y pagos;
 - consecutivo comercial global independiente del `Order.id`;
@@ -102,7 +106,7 @@ POS-0004
 
 Ver `docs/ORDER_NUMBERING.md`.
 
-## Bloque estratégico actual: consolidar checkout público
+## Checkout público y operación actual
 
 Autenticación y Roles ya tienen una primera versión operativa y la app pública ya puede crear pedidos reales `WEB`.
 
@@ -121,7 +125,7 @@ El flujo público vigente incluye:
 
 ## Experiencia pública
 
-La experiencia pública está en desarrollo activo y ya incluye:
+La experiencia pública está operativa y continúa en mejora incremental. Incluye:
 
 - Home principal aprobada en `/`;
 - slider de acceso hacia `/menu`;
@@ -157,10 +161,10 @@ Las órdenes originadas por la experiencia pública ya usan `Order.source=WEB` y
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Acceso temporal actual del POS: `https://pos.alentopizza.com/`.
-- Dominio comercial principal actual: `alentopizza.com`, todavía servido por Glide.
+- URL pública canónica del proyecto: `https://alentopizza.com`.
+- `NEXT_PUBLIC_APP_URL` y SEO usan `https://alentopizza.com`.
 
-Los dominios/subdominios actuales deben entenderse como una etapa de transición. La arquitectura objetivo es un solo dominio principal.
+Si existe un subdominio operativo adicional en EasyPanel, debe considerarse alias/entrada técnica y no reemplazar la URL canónica documentada.
 
 ## Tipos de pedido
 
@@ -266,17 +270,18 @@ Los cinco módulos operativos principales cerrados son POS, Pedidos, Cocina, Cli
 
 Prioridades vigentes:
 
-1. terminar y validar checkout público de domicilio;
-2. persistir direcciones enriquecidas de Google;
-3. crear de forma segura pedidos WEB;
-4. conectar pago, Club, notificaciones y seguimiento al flujo WEB;
-5. cierre/conciliación avanzada de Caja;
-6. inventario, recetas, costos y rentabilidad;
-7. endurecimiento adicional de autenticación y auditoría;
-8. GPS en vivo del repartidor y tracking cartográfico;
-9. sustituir Glide y migrar `alentopizza.com`;
-10. parametrización/replicabilidad;
-11. integraciones de marketplace/proveedores externos solo cuando exista acceso oficial y necesidad operativa.
+1. baseline formal de Prisma y retirar `db push` del arranque cuando exista un plan seguro;
+2. CI automatizada con lint/build y pruebas críticas;
+3. flujo auditable de refund/devoluciones;
+4. completar canje transaccional de Club Alentó;
+5. inventario, recetas, costos y rentabilidad;
+6. hardening adicional de autenticación, auditoría y sesiones;
+7. mejorar observabilidad y validación productiva continua;
+8. evolución estructural de modificadores/tipos de producto cuando se apruebe;
+9. parametrización/replicabilidad futura;
+10. integraciones externas solo con acceso oficial, necesidad operativa y conciliación definida.
+
+Inventario canónico de funciones y rutas: `docs/FEATURE_INVENTORY.md`.
 
 ## Rutas principales vigentes
 
@@ -284,11 +289,13 @@ Superficie pública:
 
 - `/`: Home;
 - `/menu`: catálogo y configurador;
-- `/cart`: carrito;
+- `/menu/[slug]` y `/menu/categoria/[slug]`: páginas SEO;
+- `/cart`: carrito/checkout;
 - `/club`: Club Alentó;
 - `/login`: acceso unificado;
 - `/cuenta`: perfil privado;
-- `/seguimiento/[token]`: seguimiento firmado.
+- `/seguimiento/[token]`: seguimiento firmado;
+- `/ubicacion` y `/domicilios`: landings locales SEO.
 
 Superficie interna:
 
@@ -298,15 +305,22 @@ Superficie interna:
 - `/cocina`;
 - `/clientes`;
 - `/caja`;
+- `/turnos`;
 - `/cupones`;
-- `/configuracion`;
+- `/club-alento`;
+- `/notificaciones`;
 - `/metricas`;
+- `/configuracion`;
 - `/personalizacion`;
-- `/usuarios`.
+- `/usuarios`;
+- `/masa` (módulo exclusivo Alentó).
 
 Repartidor:
 
-- `/repartidor/pedido/[token]`: enlace firmado de una entrega asignada.
+- `/repartidor`: home autenticada;
+- `/repartidor/pedido/[token]`: detalle firmado de una entrega.
+
+Ver `docs/FEATURE_INVENTORY.md` para el mapa completo y su documento canónico.
 
 ## Personalización pública
 
