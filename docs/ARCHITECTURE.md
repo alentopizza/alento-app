@@ -52,14 +52,14 @@ Ver `AGENTS.md` para las reglas operativas completas y el mapa de fuentes compar
 - Proyecto EasyPanel: `app_alento`.
 - Servicio web: `alento-app`.
 - PostgreSQL: `alento-db`.
-- Acceso temporal actual: `pos.alentopizza.com`.
-- `alentopizza.com` continúa ocupado por Glide durante la transición.
+- URL pública canónica: `https://alentopizza.com`.
+- EasyPanel aloja el servicio `alento-app`; cualquier subdominio técnico adicional debe tratarse como alias y no como fuente canónica.
 
-## Arquitectura objetivo de dominio
+## Arquitectura de dominio vigente
 
 La decisión de producto es utilizar un solo dominio principal.
 
-Objetivo:
+Estructura canónica:
 
 ```text
 alentopizza.com/
