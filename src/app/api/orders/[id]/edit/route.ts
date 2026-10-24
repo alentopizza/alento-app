@@ -283,7 +283,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             ? null
             : item.notes;
 
-      if (patch && Object.prototype.hasOwnProperty.call(patch, "configuration")) {
+      const hasConfigurationPatch =
+        patch &&
+        Object.prototype.hasOwnProperty.call(patch, "configuration");
+
+      if (hasConfigurationPatch && item.productId != null) {
         const normalized = await normalizeOrderLine({
           productId: item.productId,
           quantity,
