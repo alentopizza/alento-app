@@ -62,6 +62,15 @@ type PaymentSummary = {
   unclassifiedAmount: number;
 };
 
+type PickerIntegrationStatus = {
+  enabled: boolean;
+  configured: boolean;
+  environment: "production" | "development";
+  sendTrackingLink: boolean;
+  vehicle: "BIKE" | "LITE";
+  missing: string[];
+};
+
 type SettingsSection = "STORE" | "DELIVERY" | "DRIVERS" | "CUSTOMERS" | "PAYMENTS";
 
 type PosSettings = {
@@ -138,6 +147,8 @@ export default function SettingsPage() {
   );
   const [paymentStatsLoading, setPaymentStatsLoading] = useState(false);
   const [paymentStatsError, setPaymentStatsError] = useState("");
+  const [pickerIntegration, setPickerIntegration] =
+    useState<PickerIntegrationStatus | null>(null);
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary>({
     startDate: monthStartBogotaText(),
     endDate: todayBogotaText(),
@@ -146,6 +157,24 @@ export default function SettingsPage() {
     unclassifiedTransactions: 0,
     unclassifiedAmount: 0,
   });
+
+  useEffect(() => {
+    async function loadPicker() {
+      try {
+        const response = await fetch("/api/integrations/picker/status", {
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (response.ok && data.picker) {
+          setPickerIntegration(data.picker as PickerIntegrationStatus);
+        }
+      } catch {
+        setPickerIntegration(null);
+      }
+    }
+
+    void loadPicker();
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -921,6 +950,49 @@ export default function SettingsPage() {
           {activeSection === "DELIVERY" && (
             <div className="grid gap-4 xl:grid-cols-[minmax(620px,1fr)_minmax(0,1fr)] xl:items-start">
               <div>
+                <section className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-sky-100 bg-sky-50/60 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <b className="alento-ui-control text-neutral-950">
+                        Picker Express
+                      </b>
+                      <span
+                        className={`alento-ui-micro rounded-full px-2 py-0.5 font-bold ${
+                          !pickerIntegration?.enabled
+                            ? "bg-neutral-200 text-neutral-600"
+                            : pickerIntegration.configured
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {!pickerIntegration?.enabled
+                          ? "Opcional · desactivado"
+                          : pickerIntegration.configured
+                            ? pickerIntegration.environment === "development"
+                              ? "Sandbox listo"
+                              : "Producción activa"
+                            : "Configuración incompleta"}
+                      </span>
+                    </div>
+                    <p className="alento-ui-micro mt-1 text-neutral-500">
+                      Respaldo externo para cotizar y cubrir domicilios cuando la flota propia no esté disponible.
+                    </p>
+                  </div>
+
+                  {pickerIntegration?.enabled && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="alento-ui-micro rounded-lg border border-sky-100 bg-white px-2 py-1 font-bold text-sky-700">
+                        {pickerIntegration.vehicle === "BIKE" ? "Moto" : "Auto"}
+                      </span>
+                      <span className="alento-ui-micro rounded-lg border border-sky-100 bg-white px-2 py-1 font-bold text-sky-700">
+                        {pickerIntegration.sendTrackingLink
+                          ? "Tracking Picker"
+                          : "Tracking Alentó"}
+                      </span>
+                    </div>
+                  )}
+                </section>
+
                 <div className="mb-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="alento-ui-label uppercase text-neutral-400">
