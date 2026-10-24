@@ -3279,7 +3279,7 @@ export default function CashPage() {
                   value={incomeCategory}
                   onChange={(event) => setIncomeCategory(event.target.value)}
                   className="h-11 w-full rounded-xl border border-neutral-200 bg-white px-3 text-sm font-bold outline-none"
-                  placeholder="Ej. Rappi, préstamo, ajuste..."
+                  placeholder="Ej. préstamo, ajuste, otro ingreso..."
                 />
                 <datalist id="cash-income-categories">
                   {CASH_INCOME_CATEGORIES.map((category) => (
