@@ -88,7 +88,6 @@ export async function GET(request: NextRequest) {
           },
         },
         payments: true,
-        pickerDelivery: true,
       },
     });
     return NextResponse.json({ orders });

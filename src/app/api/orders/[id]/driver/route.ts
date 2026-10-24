@@ -40,12 +40,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         status: true,
         scheduledFor: true,
         total: true,
-        pickerDelivery: {
-          select: {
-            bookingId: true,
-            status: true,
-          },
-        },
       },
     }),
     prisma.user.findFirst({
@@ -79,19 +73,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       { status: 409 },
     );
   }
-  if (
-    order.pickerDelivery?.bookingId &&
-    order.pickerDelivery.status !== "CANCELED"
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "Este pedido tiene un envío Picker activo. Cancela Picker antes de asignar un repartidor de Alentó.",
-      },
-      { status: 409 },
-    );
-  }
-
   if (!driver) return NextResponse.json({ error: "El repartidor no está disponible." }, { status: 404 });
   if (!driver.whatsappPhone) {
     return NextResponse.json({ error: "El repartidor no tiene número de WhatsApp configurado." }, { status: 409 });

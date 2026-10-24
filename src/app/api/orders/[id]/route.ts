@@ -82,7 +82,6 @@ function loadOrder(id: number) {
       },
       items: { include: { product: true }, orderBy: { id: "asc" } },
       payments: { orderBy: { id: "asc" } },
-      pickerDelivery: true,
     },
   });
 }
@@ -123,19 +122,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         return NextResponse.json({ error: "No tienes permiso para cancelar pedidos." }, { status: 403 });
       }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
-
-      if (
-        current.pickerDelivery?.bookingId &&
-        current.pickerDelivery.status !== "CANCELED"
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Este pedido tiene un envío Picker activo. Cancela Picker antes de cancelar el pedido en Alentó.",
-          },
-          { status: 409 },
-        );
-      }
 
       const receivedAmount = current.payments
         .filter((payment) => payment.status === "PAID")
@@ -198,19 +184,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     if (["COMPLETED", "CANCELED", "DELIVERED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya está cerrado y no puede editarse." }, { status: 409 });
-
-    if (
-      current.pickerDelivery?.bookingId &&
-      current.pickerDelivery.status !== "CANCELED"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Este pedido tiene un envío Picker activo. Cancela Picker antes de editar cliente, dirección, productos o modalidad.",
-        },
-        { status: 409 },
-      );
-    }
 
     if (body?.action === "change-customer") {
       const customerId = Number(body.customerId);

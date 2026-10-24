@@ -53,32 +53,6 @@ type CustomerSearchResult = {
 };
 type OrderItem = { id: number; productId: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
 type Payment = { id: number; method: string; amount: number | string; cashReceived: number | string | null; changeDue: number | string | null; status: string; reference?: string | null; paidAt?: string | null; createdAt?: string };
-type PickerDelivery = {
-  id: number;
-  status: string;
-  bookingId?: string | null;
-  bookingNumericId?: number | null;
-  quoteAmount?: number | string | null;
-  quoteAmountWithTax?: number | string | null;
-  quoteCurrency?: string | null;
-  quoteEtaMinutes?: number | null;
-  quoteDistanceKm?: number | string | null;
-  pickerStatus?: string | null;
-  deliveryProvider?: string | null;
-  externalDriverName?: string | null;
-  externalDriverPhone?: string | null;
-  trackingUrl?: string | null;
-  bookingDetailUrl?: string | null;
-  lastError?: string | null;
-};
-type PickerIntegrationStatus = {
-  enabled: boolean;
-  configured: boolean;
-  environment: "production" | "development";
-  sendTrackingLink: boolean;
-  vehicle: "BIKE" | "LITE";
-  missing: string[];
-};
 type Order = {
   id: number;
   sequenceNumber: number | null;
@@ -100,7 +74,6 @@ type Order = {
   driverAssignedAt?: string | null;
   items: OrderItem[];
   payments: Payment[];
-  pickerDelivery?: PickerDelivery | null;
 };
 type Settings = {
   deliveryBands: { id: string; name: string; fee: number; active: boolean }[];
@@ -403,11 +376,6 @@ export default function OrdersCardsDashboardV3() {
   const [customerSaving, setCustomerSaving] = useState(false);
   const [customerError, setCustomerError] = useState("");
   const [staffAccess, setStaffAccess] = useState<{ isAdmin: boolean; permissions: string[] }>({ isAdmin: false, permissions: [] });
-  const [pickerIntegration, setPickerIntegration] =
-    useState<PickerIntegrationStatus | null>(null);
-  const [pickerBusy, setPickerBusy] = useState<
-    "QUOTE" | "CREATE" | "CANCEL" | null
-  >(null);
 
   const canCancelOrders = staffAccess.isAdmin || staffAccess.permissions.includes("CANCEL_ORDERS");
   const canDeleteOrders = staffAccess.isAdmin || staffAccess.permissions.includes("DELETE_ORDERS");
@@ -424,20 +392,6 @@ export default function OrdersCardsDashboardV3() {
       }
     } catch {
       setStaffAccess({ isAdmin: false, permissions: [] });
-    }
-  }
-
-  async function loadPickerIntegration() {
-    try {
-      const response = await fetch("/api/integrations/picker/status", {
-        cache: "no-store",
-      });
-      const data = await response.json();
-      if (response.ok && data.picker) {
-        setPickerIntegration(data.picker as PickerIntegrationStatus);
-      }
-    } catch {
-      setPickerIntegration(null);
     }
   }
 
@@ -515,11 +469,9 @@ export default function OrdersCardsDashboardV3() {
   useEffect(() => {
     void load();
     void loadStaffAccess();
-    void loadPickerIntegration();
     const timer = window.setInterval(() => {
       void load(true);
       void loadStaffAccess();
-      void loadPickerIntegration();
     }, 15000);
     return () => window.clearInterval(timer);
   }, []);
@@ -1412,126 +1364,6 @@ export default function OrdersCardsDashboardV3() {
     }
   }
 
-  async function quotePicker(order: Order) {
-    if (pickerBusy) return;
-    setPickerBusy("QUOTE");
-    try {
-      const response = await fetch(
-        `/api/orders/${order.id}/picker/quote`,
-        { method: "POST" },
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible cotizar Picker.");
-      }
-
-      await load(true);
-      setFeedbackModal({
-        tone: "success",
-        title: "Cotización Picker lista",
-        message: `${money(data.quote?.deliveryFeeWithTax ?? data.quote?.deliveryFee ?? 0)} · ETA ${Number(data.quote?.eta ?? 0)} min`,
-        detail: `Distancia Picker: ${Number(data.quote?.distance ?? 0).toFixed(1)} km. Esta cotización no crea un envío.`,
-      });
-    } catch (actionError) {
-      setFeedbackModal({
-        tone: "error",
-        title: "No fue posible cotizar Picker",
-        message:
-          actionError instanceof Error
-            ? actionError.message
-            : "No fue posible cotizar Picker.",
-      });
-    } finally {
-      setPickerBusy(null);
-    }
-  }
-
-  async function createPickerDelivery(order: Order) {
-    if (pickerBusy) return;
-    const quote = order.pickerDelivery?.quoteAmountWithTax ??
-      order.pickerDelivery?.quoteAmount;
-    const accepted = window.confirm(
-      `¿Solicitar Picker para ${displayOrderCode(order)}?${quote != null ? `\nCotización actual: ${money(quote)}` : ""}\n\nEsto creará un servicio real de reparto externo.`,
-    );
-    if (!accepted) return;
-
-    setPickerBusy("CREATE");
-    try {
-      const response = await fetch(
-        `/api/orders/${order.id}/picker/create`,
-        { method: "POST" },
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible solicitar Picker.");
-      }
-
-      await load(true);
-      emitLiveDataChange(["orders"]);
-      setFeedbackModal({
-        tone: "success",
-        title: "Picker solicitado",
-        message: `El envío ${data.booking?.bookingNumericId ? `#${data.booking.bookingNumericId}` : ""} quedó creado.`,
-        detail:
-          "Alentó conserva su flujo de pedido; Picker queda asociado únicamente como proveedor logístico.",
-      });
-    } catch (actionError) {
-      setFeedbackModal({
-        tone: "error",
-        title: "No fue posible solicitar Picker",
-        message:
-          actionError instanceof Error
-            ? actionError.message
-            : "No fue posible solicitar Picker.",
-      });
-    } finally {
-      setPickerBusy(null);
-    }
-  }
-
-  async function cancelPickerDelivery(order: Order) {
-    if (pickerBusy || !order.pickerDelivery?.bookingId) return;
-    const accepted = window.confirm(
-      `¿Cancelar el envío Picker de ${displayOrderCode(order)}?`,
-    );
-    if (!accepted) return;
-
-    setPickerBusy("CANCEL");
-    try {
-      const response = await fetch(
-        `/api/orders/${order.id}/picker/cancel`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: "CANCELADO_DESDE_ALENTO" }),
-        },
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "No fue posible cancelar Picker.");
-      }
-
-      await load(true);
-      emitLiveDataChange(["orders"]);
-      setFeedbackModal({
-        tone: "success",
-        title: "Picker cancelado",
-        message: "El servicio externo fue cancelado.",
-      });
-    } catch (actionError) {
-      setFeedbackModal({
-        tone: "error",
-        title: "No fue posible cancelar Picker",
-        message:
-          actionError instanceof Error
-            ? actionError.message
-            : "No fue posible cancelar Picker.",
-      });
-    } finally {
-      setPickerBusy(null);
-    }
-  }
-
   async function resendNewOrderTemplate(order: Order) {
     if (!order.customer?.phone) {
       setFeedbackModal({
@@ -1940,174 +1772,6 @@ export default function OrdersCardsDashboardV3() {
                 </button>
               </div>
             </section>
-
-            {selected.fulfillmentType === "DELIVERY" &&
-              pickerIntegration?.enabled && (
-                <section className="mt-3 rounded-[20px] border border-sky-200 bg-[linear-gradient(135deg,#f7fbff,#ffffff)] p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] sm:p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="alento-ui-label uppercase tracking-[0.1em] text-sky-600">
-                          Logística externa
-                        </span>
-                        <span className="alento-ui-micro rounded-full border border-sky-200 bg-white px-2 py-0.5 font-bold text-sky-700">
-                          Picker
-                        </span>
-                      </div>
-                      <h3 className="alento-ui-status mt-1 text-neutral-950">
-                        Respaldo de entrega
-                      </h3>
-                      <p className="alento-ui-micro mt-1 text-neutral-500">
-                        Cotiza sin crear el envío. Úsalo solo cuando no puedas cubrir el domicilio con Alentó.
-                      </p>
-                    </div>
-
-                    {!pickerIntegration.configured && (
-                      <span className="alento-ui-micro rounded-full bg-amber-100 px-2.5 py-1 font-bold text-amber-700">
-                        Falta configuración
-                      </span>
-                    )}
-                  </div>
-
-                  {selected.pickerDelivery?.quoteAmount != null && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <div className="rounded-[12px] border border-neutral-200 bg-white px-3 py-2.5">
-                        <span className="alento-ui-micro block uppercase text-neutral-400">
-                          Alentó cobra
-                        </span>
-                        <b className="alento-ui-status mt-1 block text-neutral-950">
-                          {money(selected.deliveryFee)}
-                        </b>
-                      </div>
-                      <div className="rounded-[12px] border border-sky-100 bg-sky-50 px-3 py-2.5">
-                        <span className="alento-ui-micro block uppercase text-sky-500">
-                          Picker estima
-                        </span>
-                        <b className="alento-ui-status mt-1 block text-sky-800">
-                          {money(
-                            selected.pickerDelivery.quoteAmountWithTax ??
-                              selected.pickerDelivery.quoteAmount,
-                          )}
-                        </b>
-                      </div>
-                      <div className="rounded-[12px] border border-neutral-200 bg-white px-3 py-2.5">
-                        <span className="alento-ui-micro block uppercase text-neutral-400">
-                          ETA
-                        </span>
-                        <b className="alento-ui-status mt-1 block text-neutral-950">
-                          {selected.pickerDelivery.quoteEtaMinutes ?? 0} min
-                        </b>
-                      </div>
-                    </div>
-                  )}
-
-                  {selected.pickerDelivery?.bookingId &&
-                  selected.pickerDelivery.status !== "CANCELED" ? (
-                    <div className="mt-3 rounded-[13px] border border-sky-200 bg-white px-3 py-2.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="alento-ui-micro font-bold uppercase text-sky-600">
-                            Envío Picker activo
-                          </span>
-                          <p className="alento-ui-control mt-1 font-black text-neutral-950">
-                            {selected.pickerDelivery.pickerStatus ||
-                              selected.pickerDelivery.status}
-                            {selected.pickerDelivery.deliveryProvider
-                              ? ` · ${selected.pickerDelivery.deliveryProvider}`
-                              : ""}
-                          </p>
-                          {selected.pickerDelivery.externalDriverName && (
-                            <p className="alento-ui-micro mt-1 text-neutral-500">
-                              🏍️ {selected.pickerDelivery.externalDriverName}
-                              {selected.pickerDelivery.externalDriverPhone
-                                ? ` · ${selected.pickerDelivery.externalDriverPhone}`
-                                : ""}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {selected.pickerDelivery.trackingUrl && (
-                            <a
-                              href={selected.pickerDelivery.trackingUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="alento-ui-micro rounded-[10px] border border-sky-200 bg-sky-50 px-3 py-2 font-bold text-sky-700"
-                            >
-                              Tracking
-                            </a>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => void cancelPickerDelivery(selected)}
-                            disabled={pickerBusy != null}
-                            className="alento-ui-micro rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 font-bold text-red-600 disabled:opacity-40"
-                          >
-                            {pickerBusy === "CANCEL"
-                              ? "Cancelando..."
-                              : "Cancelar Picker"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void quotePicker(selected)}
-                        disabled={
-                          pickerBusy != null ||
-                          !pickerIntegration.configured
-                        }
-                        className="h-10 rounded-[12px] border border-sky-200 bg-white px-4 alento-ui-control font-bold text-sky-700 transition hover:bg-sky-50 disabled:opacity-40"
-                      >
-                        {pickerBusy === "QUOTE"
-                          ? "Cotizando..."
-                          : selected.pickerDelivery?.quoteAmount != null
-                            ? "Actualizar cotización"
-                            : "Cotizar Picker"}
-                      </button>
-
-                      {selected.pickerDelivery?.quoteAmount != null && (
-                        <button
-                          type="button"
-                          onClick={() => void createPickerDelivery(selected)}
-                          disabled={
-                            pickerBusy != null ||
-                            !pickerIntegration.configured ||
-                            Boolean(selected.driver) ||
-                            !["PREPARED", "READY"].includes(selected.status)
-                          }
-                          className="h-10 rounded-[12px] bg-sky-600 px-4 alento-ui-control font-black text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-35"
-                          title={
-                            selected.driver
-                              ? "Desasigna primero el repartidor de Alentó."
-                              : !["PREPARED", "READY"].includes(selected.status)
-                                ? "Disponible cuando el pedido esté horneando o listo."
-                                : "Crear servicio real en Picker"
-                          }
-                        >
-                          {pickerBusy === "CREATE"
-                            ? "Solicitando..."
-                            : "Usar Picker"}
-                        </button>
-                      )}
-
-                      {selected.driver && (
-                        <span className="alento-ui-micro text-amber-700">
-                          Desasigna a {selected.driver.name} antes de usar Picker.
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {selected.pickerDelivery?.lastError && (
-                    <p className="alento-ui-micro mt-2 rounded-[10px] bg-red-50 px-2.5 py-2 text-red-700">
-                      {selected.pickerDelivery.lastError}
-                    </p>
-                  )}
-                </section>
-              )}
 
             <section className="mt-3 rounded-[20px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] sm:p-4">
               <div className="flex items-end justify-between gap-3">
