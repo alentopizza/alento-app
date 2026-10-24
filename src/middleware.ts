@@ -15,6 +15,8 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/masa", roles: ["ADMIN", "KITCHEN"] },
   { prefix: "/notificaciones", roles: ["ADMIN"] },
   { prefix: "/club-alento", roles: ["ADMIN"] },
+  { prefix: "/turnos", roles: ["ADMIN"] },
+  { prefix: "/metricas", roles: ["ADMIN"] },
   { prefix: "/clientes", roles: ["ADMIN", "POS"] },
   { prefix: "/pedidos", roles: ["ADMIN", "POS", "CASHIER"] },
 ];
