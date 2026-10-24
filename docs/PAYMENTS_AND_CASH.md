@@ -286,6 +286,45 @@ Los abonos pueden ser parciales. Métodos vigentes:
 Algunos registros anteriores a la operación actual pueden estar marcados como pagados sin una fecha verificable de devolución. Esos registros se conservan para mantener la cartera correcta, pero no generan un movimiento sintético de Caja.
 
 
+## Nómina integrada con Turnos
+
+Nómina ya forma parte del flujo real de Caja.
+
+Fuente de jornadas:
+
+- `WorkShift` desde `/turnos`.
+
+Carga pendiente:
+
+- `GET /api/caja/payroll` lista turnos no pagados y préstamos pendientes asociados.
+
+Pago:
+
+- `POST /api/caja/payroll`;
+- exige una sesión de Caja editable;
+- selecciona uno o varios turnos pendientes del mismo trabajador;
+- calcula bruto, descuentos de préstamos y neto;
+- crea una salida `CashExpense` con `source = PAYROLL`;
+- crea `PayrollPayment`;
+- relaciona cada turno mediante `PayrollPaymentShift`;
+- registra descuentos de préstamo como `CashLoanRepayment` con `source = PAYROLL`;
+- marca los turnos `PAID` con `paidAt`;
+- genera comprobante en `/caja/nomina/[id]/imprimir`.
+
+Protecciones:
+
+- un turno futuro no puede pagarse;
+- un turno ya incluido en nómina no puede pagarse otra vez;
+- descuentos de préstamos no pueden superar el bruto;
+- los préstamos descontados deben corresponder al trabajador/período validado;
+- un turno vinculado a `PayrollPayment` queda bloqueado contra edición/eliminación desde Turnos.
+
+Reversión:
+
+Si la salida de Nómina se elimina mientras la sesión de Caja correspondiente sigue abierta, la operación revierte transaccionalmente los turnos y los descuentos de préstamo. Después del cierre, el movimiento queda bloqueado.
+
+Documento funcional: `docs/SHIFTS.md`.
+
 ## Cartera de repartidores
 
 La cartera de repartidores se integra con pedidos y Salidas de Caja.
