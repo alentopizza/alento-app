@@ -75,12 +75,7 @@ export async function POST(
         quoteDistanceKm: Number(quote.distance) || 0,
         quotedAt: new Date(),
         lastError: null,
-        metadata: {
-          ...(order.pickerDelivery?.metadata && typeof order.pickerDelivery.metadata === "object"
-            ? order.pickerDelivery.metadata as Record<string, unknown>
-            : {}),
-          lastQuote: quote,
-        },
+        metadata: { lastQuote: quote },
       },
       create: {
         orderId: order.id,
