@@ -203,7 +203,7 @@ Caja contabiliza únicamente movimientos realmente recibidos (`PAID`). Por ello 
 
 Los pagos creados por error pueden eliminarse físicamente y dejan de formar parte de Caja.
 
-Ver [`docs/PAYMENTS.md`](docs/PAYMENTS.md) para la semántica completa de intención, abonos, cuenta dividida, efectivo y saldo. La documentación histórica de Caja se mantiene en [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md).
+Ver [`docs/PAYMENTS.md`](docs/PAYMENTS.md) para la semántica completa de intención, abonos, cuenta dividida, efectivo y saldo. La operación completa de Caja, préstamos, nómina y cartera de repartidores está en [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md).
 
 ## Documentación técnica
 
@@ -212,6 +212,12 @@ La documentación forma parte del producto y debe mantenerse junto con el códig
 Si estás retomando el proyecto en otro chat/equipo, empieza por [`docs/HANDOFF.md`](docs/HANDOFF.md).
 
 Documentos principales:
+
+- [`docs/FEATURE_INVENTORY.md`](docs/FEATURE_INVENTORY.md): inventario canónico de rutas, módulos, accesos y documentación.
+- [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md): configuración operativa central.
+- [`docs/DRIVERS.md`](docs/DRIVERS.md): reparto, GPS, autoasignación, seguimiento, desempeño y cartera.
+- [`docs/SHIFTS.md`](docs/SHIFTS.md): Turnos y relación con Nómina.
+- [`docs/PUSH_NOTIFICATIONS.md`](docs/PUSH_NOTIFICATIONS.md): Push y automatizaciones de notificación.
 
 - [`docs/POS.md`](docs/POS.md): funcionamiento completo del Punto de Venta.
 - [`docs/ORDERS.md`](docs/ORDERS.md): funcionamiento completo de Pedidos.
@@ -237,11 +243,13 @@ Documentos principales:
 
 La base de producción existía antes de un historial formal de migraciones.
 
-Cuando un cambio modifique el schema se usa manualmente:
+El arranque vigente ejecuta:
 
 ```bash
-npx prisma db push
+prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
 ```
+
+Por ello, un cambio de `prisma/schema.prisma` puede aplicarse automáticamente en el siguiente redeploy. Revisar el impacto **antes** de desplegar y no añadir un segundo `db push` manual como rutina.
 
 No usar `prisma migrate deploy` hasta realizar un baseline formal.
 
