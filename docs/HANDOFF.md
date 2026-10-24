@@ -1,5 +1,7 @@
 # Handoff y continuidad del proyecto
 
+Última auditoría: **2026-10-24**
+
 Este documento permite que una nueva persona, desarrollador o IA retome Alentó App sin depender del historial de conversaciones.
 
 ## Lectura obligatoria
@@ -418,14 +420,14 @@ Registrar:
 - endpoints;
 - datos/modelos involucrados;
 - reglas de no regresión;
-- necesidad o no de `npx prisma db push`;
+- impacto de schema y efecto del `prisma db push` automático del arranque;
 - prueba mínima después de redeploy.
 
 La documentación del repositorio tiene prioridad sobre el historial de chats.
 
 ## Experiencia pública actual
 
-Estado reconstruido al 2026-09-22.
+Estado funcional auditado al 2026-10-24.
 
 ### Home pública
 
