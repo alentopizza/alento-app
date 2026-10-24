@@ -1,12 +1,12 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-21.
+Última actualización: 2026-10-24.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
-## Corte de producción 2026-09-23
+## Baseline de producción 2026-09-23
 
-La revisión funcional actual está en `docs/PRODUCTION_READINESS.md`.
+`docs/PRODUCTION_READINESS.md` conserva la revisión funcional de salida realizada en septiembre. Para el estado vigente usar este documento y `docs/FEATURE_INVENTORY.md`.
 
 Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de este documento:
 
@@ -73,6 +73,21 @@ Cupones, Caja y Configuración existen, pero no están incluidos en el grupo de 
 Las integraciones externas no bloquean el núcleo. El módulo `/metricas` ya implementa analítica propia y conexiones opcionales de medición/publicidad para Meta Pixel, Google Analytics 4, TikTok Pixel, Microsoft Clarity, Google Tag Manager y Google Ads. Chatwoot y el ecosistema WhatsApp/notifier continúan siendo extensiones exclusivas de Alentó; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 
+## Módulos operativos adicionales ya implementados
+
+Además de los cinco módulos cerrados:
+
+- **Configuración** (`/configuracion`): sede, horarios, cobertura/tarifas, repartidores, clientes y medios de pago. Documento: `docs/CONFIGURATION.md`.
+- **Turnos** (`/turnos`): calendario, costos y estados de pago. Documento: `docs/SHIFTS.md`.
+- **Nómina en Caja**: pago de turnos, descuentos de préstamos, comprobante y reversión transaccional mientras la sesión siga abierta.
+- **Notificaciones** (`/notificaciones`): campañas Web Push manuales y automatizaciones WhatsApp. Documento: `docs/PUSH_NOTIFICATIONS.md`.
+- **Repartidor** (`/repartidor`): disponibilidad, GPS, autoasignación, navegación, seguimiento, desempeño y cartera. Documento: `docs/DRIVERS.md`.
+- **Cupones** (`/cupones`): administración y métricas de uso.
+- **Personalización** (`/personalizacion`): imágenes públicas de Home y hero.
+- **SEO local**: páginas indexables de producto/categoría más `/ubicacion` y `/domicilios`. Documento: `docs/SEO.md`.
+
+El inventario completo de rutas, capacidades y documentos canónicos vive en `docs/FEATURE_INVENTORY.md`.
+
 ## Métricas y medición — V1 implementada
 
 Ruta: `/metricas`
@@ -127,9 +142,9 @@ La analítica interna debe seguir funcionando aunque los rastreadores externos e
 - Proyecto EasyPanel: `app_alento`.
 - Servicio: `alento-app`.
 - Base: `alento-db`.
-- URL temporal: `https://pos.alentopizza.com/`.
+- URL pública canónica configurada: `https://alentopizza.com/`.
 
-`alentopizza.com` continúa servido por Glide mientras se completa la migración futura.
+`.env.example` y `src/lib/seo.ts` usan `https://alentopizza.com` como URL pública. No documentar Glide como plataforma pública vigente ni tratar un alias/subdominio técnico como dominio canónico.
 
 ## Punto de venta — cerrado
 
@@ -553,14 +568,25 @@ Existe:
 
 La ubicación GPS en vivo del repartidor, las rutas y su representación sobre el mapa del cliente ya están implementadas.
 
-## Pendientes inmediatos de la experiencia pública
+## Pendientes inmediatos / mejora continua
 
-1. Validar en producción el flujo completo: modalidad → datos → pago → creación WEB → seguimiento.
-2. Completar persistencia enriquecida de `CustomerAddress` con placeId y coordenadas.
-3. Mejorar la edición/selección de direcciones guardadas.
-4. Definir y conectar el canje real de Club Alentó dentro del checkout.
-5. Mantener la lógica comercial única: no duplicar catálogo, configuradores, tarifas ni normalización de pedidos.
+La experiencia pública y el checkout WEB ya están implementados. Los pendientes actuales son de evolución y hardening:
 
+1. mantener validación productiva continua en móvil/PWA/tablet/escritorio;
+2. completar el canje transaccional de Club Alentó;
+3. implementar refund/devoluciones auditables;
+4. formalizar baseline Prisma y CI;
+5. mejorar edición/selección de direcciones sin duplicar la fuente comercial;
+6. mantener SEO, analítica y Push alineados con cambios de la experiencia pública.
 
 ## Caja
-- Las salidas pueden eliminarse mientras la sesión de caja correspondiente siga abierta. Al cerrar caja, los movimientos quedan bloqueados. Si la salida es de nómina, la eliminación revierte de forma transaccional los turnos pagados y los descuentos de préstamo asociados; si es pago a repartidor, el saldo vuelve a su cartera.
+
+## Caja
+
+- Las salidas pueden eliminarse mientras la sesión de caja correspondiente siga abierta. Al cerrar caja, los movimientos quedan bloqueados.
+- Nómina consume `WorkShift` pendientes, crea `PayrollPayment`, salida de Caja y descuentos de préstamos cuando aplican.
+- El comprobante de nómina vive en `/caja/nomina/[id]/imprimir`.
+- Si una salida de nómina se elimina con Caja abierta, la reversión devuelve turnos a pendientes y revierte descuentos de préstamo.
+- Si se elimina un pago a repartidor con Caja abierta, el saldo vuelve a su cartera.
+
+Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
