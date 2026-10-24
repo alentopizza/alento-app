@@ -503,6 +503,7 @@ model Order {
   payments         Payment[]
   clubPoint        ClubPointTransaction?
   notificationJobs NotificationJob[]
+  pickerDelivery   PickerDelivery?
 
   @@index([customerId])
   @@index([addressId])
@@ -514,6 +515,41 @@ model Order {
   @@index([createdAt])
   @@index([fulfillmentType, createdAt])
   @@index([deliveryZoneId, createdAt])
+}
+
+model PickerDelivery {
+  id                    Int      @id @default(autoincrement())
+  orderId               Int      @unique
+  status                String   @default("QUOTED")
+  bookingId             String?  @unique
+  bookingNumericId      Int?
+  externalBookingId     String?
+  quoteAmount           Decimal? @db.Decimal(12, 2)
+  quoteAmountWithTax    Decimal? @db.Decimal(12, 2)
+  quoteTax              Decimal? @db.Decimal(12, 2)
+  quoteCurrency         String?
+  quoteEtaMinutes       Int?
+  quoteDistanceKm       Decimal? @db.Decimal(10, 3)
+  quotedAt              DateTime?
+  requestedAt           DateTime?
+  canceledAt            DateTime?
+  pickerStatus          String?
+  deliveryProvider      String?
+  externalDriverName    String?
+  externalDriverPhone   String?
+  trackingUrl           String?
+  bookingDetailUrl      String?
+  lastWebhookAt         DateTime?
+  lastError             String?
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([pickerStatus])
+  @@index([bookingNumericId])
+  @@index([createdAt])
 }
 
 model OrderItem {
