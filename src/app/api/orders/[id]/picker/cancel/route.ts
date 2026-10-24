@@ -51,13 +51,7 @@ export async function POST(
         pickerStatus: "CANCELED",
         canceledAt: new Date(),
         lastError: null,
-        metadata: {
-          ...(pickerDelivery.metadata &&
-          typeof pickerDelivery.metadata === "object"
-            ? pickerDelivery.metadata as Record<string, unknown>
-            : {}),
-          cancelResult: result,
-        },
+        metadata: { cancelResult: result },
       },
     });
 
