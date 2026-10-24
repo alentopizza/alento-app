@@ -151,7 +151,7 @@ Ya existe analítica interna del catálogo y configuración guiada para Meta Pix
 
 Estado de marketplace/proveedores: **FUTURO / OPCIONAL**
 
-No existe integración activa con Rappi/DiDi en el código actual.
+No existe integración activa con marketplaces externos en el código actual.
 
 No reintroducir una integración de marketplace sin:
 
