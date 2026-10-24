@@ -38,7 +38,7 @@ La base de datos de producción existía antes de empezar a mantener un historia
 
 Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáticamente al arrancar la aplicación.
 
-### Estado real del arranque al 2026-09-22
+### Estado real del arranque al 2026-10-24
 
 El `package.json` vigente ejecuta:
 
