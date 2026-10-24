@@ -74,13 +74,6 @@ export async function POST(request: NextRequest) {
     text(body.bookingDetailUrl) ||
     text(body.booking_detail_url);
 
-  const priorMetadata =
-    pickerDelivery.metadata &&
-    typeof pickerDelivery.metadata === "object" &&
-    !Array.isArray(pickerDelivery.metadata)
-      ? pickerDelivery.metadata as Record<string, unknown>
-      : {};
-
   const saved = await prisma.pickerDelivery.update({
     where: { id: pickerDelivery.id },
     data: {
@@ -98,10 +91,7 @@ export async function POST(request: NextRequest) {
         bookingDetailUrl || pickerDelivery.bookingDetailUrl,
       lastWebhookAt: new Date(),
       lastError: null,
-      metadata: {
-        ...priorMetadata,
-        lastWebhook: body,
-      },
+      metadata: { lastWebhook: body },
     },
   });
 
