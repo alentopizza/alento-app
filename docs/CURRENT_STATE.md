@@ -581,8 +581,6 @@ La experiencia pública y el checkout WEB ya están implementados. Los pendiente
 
 ## Caja
 
-## Caja
-
 - Las salidas pueden eliminarse mientras la sesión de caja correspondiente siga abierta. Al cerrar caja, los movimientos quedan bloqueados.
 - Nómina consume `WorkShift` pendientes, crea `PayrollPayment`, salida de Caja y descuentos de préstamos cuando aplican.
 - El comprobante de nómina vive en `/caja/nomina/[id]/imprimir`.
