@@ -645,3 +645,22 @@ No incluye el detalle de productos: su función es exclusivamente operativa para
 La segunda hoja usa `break-before: page` / `page-break-before: always`. El sistema envía factura y comanda como páginas separadas; el corte físico entre ambas depende de que el driver de la impresora térmica esté configurado para **cortar al finalizar cada página**.
 
 Los pedidos que no son domicilio imprimen únicamente el comprobante.
+
+
+## Picker Express
+
+Los pedidos `DELIVERY` pueden usar Picker Express como respaldo logístico opcional sin reemplazar el sistema propio de repartidores.
+
+Reglas operativas:
+
+- cotizar Picker no crea servicio;
+- la tarifa Picker se compara contra el domicilio ya cobrado por Alentó;
+- no se crea Picker si existe `driverId`;
+- solo se crea Picker desde estados `PREPARED` o `READY`;
+- el booking Picker se guarda en `PickerDelivery`;
+- webhooks Picker no cambian automáticamente `Order.status`;
+- la integración se activa únicamente con `PICKER_ENABLED=true`.
+
+Documentación completa:
+
+`docs/PICKER_INTEGRATION.md`
