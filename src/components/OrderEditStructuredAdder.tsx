@@ -70,9 +70,29 @@ export type StructuredEditAddition = {
   notes?: string;
 };
 
+export type ExistingPizzaEditRequest = {
+  requestId: number;
+  itemId: number;
+  productId: number;
+  productName: string;
+  configuration: unknown;
+  notes?: string | null;
+};
+
+export type ExistingPizzaEditUpdate = {
+  itemId: number;
+  summary: string;
+  estimatedUnitPrice: number;
+  configuration: PizzaOrderConfiguration;
+  notes?: string;
+};
+
 type Props = {
   additions: StructuredEditAddition[];
   onChange: (items: StructuredEditAddition[]) => void;
+  editRequest?: ExistingPizzaEditRequest | null;
+  onEditComplete?: (update: ExistingPizzaEditUpdate) => void;
+  onEditCancel?: () => void;
 };
 
 const money = (value: number) => new Intl.NumberFormat("es-CO", {
@@ -87,7 +107,13 @@ const isTwoFlavor = (product: CatalogProduct) =>
 const crustPrice = (crust: Crust, sizeId: number | null) =>
   pizzaCrustPrice(crust, sizeId);
 
-export default function OrderEditStructuredAdder({ additions, onChange }: Props) {
+export default function OrderEditStructuredAdder({
+  additions,
+  onChange,
+  editRequest = null,
+  onEditComplete,
+  onEditCancel,
+}: Props) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -96,6 +122,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
   const [pizza, setPizza] = useState<PizzaDraft | null>(null);
   const [combo, setCombo] = useState<ComboDraft | null>(null);
   const [configError, setConfigError] = useState("");
+  const [editingExistingItemId, setEditingExistingItemId] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -116,6 +143,80 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!catalog || !editRequest) return;
+
+    const allProducts = catalog.categories.flatMap(
+      (category) => category.products,
+    );
+    const product =
+      allProducts.find((item) => item.id === editRequest.productId) ?? null;
+
+    if (!product) {
+      setConfigError(
+        "La pizza original ya no está disponible en el catálogo.",
+      );
+      return;
+    }
+
+    const configuration =
+      editRequest.configuration &&
+      typeof editRequest.configuration === "object" &&
+      !Array.isArray(editRequest.configuration)
+        ? (editRequest.configuration as {
+            size?: { id?: unknown };
+            flavors?: Array<{ productId?: unknown }>;
+            crust?: { id?: unknown };
+            modifiers?: Array<{ productId?: unknown }>;
+          })
+        : null;
+
+    const sizeId = Number(configuration?.size?.id);
+    const crustId = Number(configuration?.crust?.id);
+    const flavorIds = Array.isArray(configuration?.flavors)
+      ? configuration!.flavors!
+          .map((flavor) => Number(flavor?.productId))
+          .filter((id) => Number.isInteger(id) && id > 0)
+      : [];
+    const modifierIds = Array.isArray(configuration?.modifiers)
+      ? configuration!.modifiers!
+          .map((modifier) => Number(modifier?.productId))
+          .filter((id) => Number.isInteger(id) && id > 0)
+      : [];
+
+    const fallbackSize = catalog.sizes[0] ?? null;
+    const resolvedSizeId =
+      Number.isInteger(sizeId) && sizeId > 0
+        ? sizeId
+        : fallbackSize?.id ?? null;
+    const fallbackCrust =
+      catalog.crusts.find(
+        (item) =>
+          item.name.toLowerCase().includes("tradicional") &&
+          crustPrice(item, resolvedSizeId) != null,
+      ) ??
+      catalog.crusts.find(
+        (item) => crustPrice(item, resolvedSizeId) != null,
+      ) ??
+      null;
+
+    setConfigError("");
+    setEditingExistingItemId(editRequest.itemId);
+    setPizza({
+      product,
+      sizeId: resolvedSizeId,
+      firstFlavorId:
+        flavorIds[0] ?? (isTwoFlavor(product) ? null : product.id),
+      secondFlavorId: flavorIds[1] ?? null,
+      crustId:
+        Number.isInteger(crustId) && crustId > 0
+          ? crustId
+          : fallbackCrust?.id ?? null,
+      modifierIds,
+      note: editRequest.notes?.trim().slice(0, 120) ?? "",
+    });
+  }, [catalog, editRequest?.requestId]);
 
   const products = useMemo(() => catalog?.categories.flatMap((category) => category.products) ?? [], [catalog]);
 
@@ -144,6 +245,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
 
   function startPizza(product: CatalogProduct) {
     if (!catalog) return;
+    setEditingExistingItemId(null);
     const defaultSize = catalog.sizes[0] ?? null;
     const defaultCrust = catalog.crusts.find(
       (item) => item.name.toLowerCase().includes("tradicional") && crustPrice(item, defaultSize?.id ?? null) != null,
@@ -195,19 +297,30 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
         modifiers: catalog.modifiers,
       });
 
-      onChange([
-        ...additions,
-        {
-          key: `pizza-${Date.now()}-${Math.random()}`,
-          productId: pizza.product.id,
-          quantity: 1,
-          name: pizza.product.name,
+      if (editingExistingItemId != null && onEditComplete) {
+        onEditComplete({
+          itemId: editingExistingItemId,
           summary: result.summary,
           estimatedUnitPrice: result.estimatedUnitPrice,
           configuration: result.configuration,
           notes: pizza.note.trim().slice(0, 120) || undefined,
-        },
-      ]);
+        });
+      } else {
+        onChange([
+          ...additions,
+          {
+            key: `pizza-${Date.now()}-${Math.random()}`,
+            productId: pizza.product.id,
+            quantity: 1,
+            name: pizza.product.name,
+            summary: result.summary,
+            estimatedUnitPrice: result.estimatedUnitPrice,
+            configuration: result.configuration,
+            notes: pizza.note.trim().slice(0, 120) || undefined,
+          },
+        ]);
+      }
+      setEditingExistingItemId(null);
       setPizza(null);
       setConfigError("");
     } catch (error) {
@@ -456,11 +569,19 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
     )}
 
     {pizza && catalog && (
-      <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/65 p-4" onClick={() => setPizza(null)}>
+      <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/65 p-4" onClick={() => {
+          setPizza(null);
+          setEditingExistingItemId(null);
+          if (editingExistingItemId != null) onEditCancel?.();
+        }}>
         <div onClick={(event) => event.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px] bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b bg-black px-5 py-4 text-white">
-            <div><p className="text-[9px] font-black uppercase tracking-[.12em] text-white/45">Configurar pizza</p><h3 className="text-xl font-black">{pizza.product.name}</h3></div>
-            <button type="button" onClick={() => setPizza(null)} className="h-9 w-9 rounded-xl bg-white/10">×</button>
+            <div><p className="text-[9px] font-black uppercase tracking-[.12em] text-white/45">{editingExistingItemId != null ? "Editar pizza" : "Configurar pizza"}</p><h3 className="text-xl font-black">{pizza.product.name}</h3></div>
+            <button type="button" onClick={() => {
+          setPizza(null);
+          setEditingExistingItemId(null);
+          if (editingExistingItemId != null) onEditCancel?.();
+        }} className="h-9 w-9 rounded-xl bg-white/10">×</button>
           </div>
           <div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
             <section>
@@ -509,7 +630,7 @@ export default function OrderEditStructuredAdder({ additions, onChange }: Props)
             </section>
             {configError && <p className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{configError}</p>}
           </div>
-          <div className="flex items-center justify-between border-t p-4"><b className="text-xl text-[var(--brand-red)]">{money(pizzaPrice(pizza))}</b><button type="button" onClick={confirmPizza} className="rounded-xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">Agregar pizza</button></div>
+          <div className="flex items-center justify-between border-t p-4"><b className="text-xl text-[var(--brand-red)]">{money(pizzaPrice(pizza))}</b><button type="button" onClick={confirmPizza} className="rounded-xl bg-[var(--brand-red)] px-5 py-3 text-sm font-black text-white">{editingExistingItemId != null ? "Guardar cambios" : "Agregar pizza"}</button></div>
         </div>
       </div>
     )}
