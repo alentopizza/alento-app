@@ -87,6 +87,12 @@ Antes de considerar terminado un ajuste:
 - revisar las pantallas activas que muestran o consumen el dato modificado;
 - verificar imports y referencias de las rutas activas;
 - comprobar que la corrección no cambie comportamiento no relacionado;
-- documentar cualquier nueva fuente de verdad compartida.
+- documentar cualquier nueva fuente de verdad compartida;
+- actualizar el documento canónico del módulo cuando cambie comportamiento, reglas, endpoints o persistencia;
+- actualizar `docs/FEATURE_INVENTORY.md` cuando cambie una ruta, acceso, módulo o capacidad transversal;
+- actualizar `docs/CURRENT_STATE.md` cuando cambie el estado general del producto;
+- actualizar `docs/DEPLOYMENT.md` cuando cambien variables, scripts de arranque, infraestructura o estrategia de Prisma.
+
+**Un cambio funcional no se considera terminado si el código y la documentación quedan desalineados.**
 
 Si existe duda entre crear algo nuevo o extender un flujo actual, la opción por defecto es extender/reutilizar el flujo actual.
