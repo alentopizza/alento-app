@@ -27,7 +27,12 @@ type PosSettings = DeliveryPricingSettings & {
     serviceHours?: unknown;
   };
 };
-type ExistingLinePatch = { id: number; quantity: number; notes?: unknown };
+type ExistingLinePatch = {
+  id: number;
+  quantity: number;
+  notes?: unknown;
+  configuration?: unknown;
+};
 type Addition = { productId: number; quantity: number; configuration?: unknown; notes?: unknown };
 
 function parseSettings(value: Prisma.JsonValue | null): PosSettings {
@@ -521,40 +526,151 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       );
     }
 
-    const patches = Array.isArray(body.items) ? body.items as ExistingLinePatch[] : [];
+    const patches = Array.isArray(body.items)
+      ? (body.items as ExistingLinePatch[])
+      : [];
     const quantityById = new Map<number, number>();
     const notesById = new Map<number, string | null>();
+    const configurationById = new Map<number, unknown>();
+
     for (const patch of patches) {
       const itemId = Number(patch.id);
-      const quantity = Math.max(0, Math.floor(Number(patch.quantity ?? 0)));
+      const quantity = Math.max(
+        0,
+        Math.floor(Number(patch.quantity ?? 0)),
+      );
       if (!Number.isInteger(itemId)) continue;
+
       quantityById.set(itemId, quantity);
+
       if (typeof patch.notes === "string") {
         const note = patch.notes.trim().slice(0, 120);
         notesById.set(itemId, note || null);
       } else if (patch.notes === null) {
         notesById.set(itemId, null);
       }
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          patch,
+          "configuration",
+        )
+      ) {
+        configurationById.set(itemId, patch.configuration);
+      }
     }
 
-    const additions = Array.isArray(body.additions) ? body.additions as Addition[] : [];
+    const normalizedExistingEdits = new Map<
+      number,
+      Awaited<ReturnType<typeof normalizeOrderLine>>
+    >();
+
+    for (const item of current.items) {
+      if (!configurationById.has(item.id)) continue;
+
+      const quantity = quantityById.has(item.id)
+        ? quantityById.get(item.id)!
+        : item.quantity;
+
+      if (quantity <= 0) continue;
+
+      const normalized = await normalizeOrderLine({
+        productId: item.productId,
+        quantity,
+        configuration: configurationById.get(item.id),
+      });
+
+      normalizedExistingEdits.set(item.id, normalized);
+    }
+
+    const additions = Array.isArray(body.additions)
+      ? (body.additions as Addition[])
+      : [];
     const activeAdditions = additions
-      .map((addition) => ({ ...addition, productId: Number(addition.productId), quantity: Math.max(0, Math.floor(Number(addition.quantity ?? 0))) }))
-      .filter((addition) => Number.isInteger(addition.productId) && addition.productId > 0 && addition.quantity > 0);
-    const normalizedAdditions = await Promise.all(activeAdditions.map((addition) => normalizeOrderLine({
-      productId: addition.productId,
-      quantity: addition.quantity,
-      configuration: addition.configuration,
-    })));
+      .map((addition) => ({
+        ...addition,
+        productId: Number(addition.productId),
+        quantity: Math.max(
+          0,
+          Math.floor(Number(addition.quantity ?? 0)),
+        ),
+      }))
+      .filter(
+        (addition) =>
+          Number.isInteger(addition.productId) &&
+          addition.productId > 0 &&
+          addition.quantity > 0,
+      );
+    const normalizedAdditions = await Promise.all(
+      activeAdditions.map((addition) =>
+        normalizeOrderLine({
+          productId: addition.productId,
+          quantity: addition.quantity,
+          configuration: addition.configuration,
+        }),
+      ),
+    );
 
-    const updatedExisting = current.items.map((item) => ({ item, quantity: quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity })).filter((entry) => entry.quantity > 0);
-    if (!updatedExisting.length && !normalizedAdditions.length) return NextResponse.json({ error: "El pedido debe conservar al menos un producto." }, { status: 400 });
+    const updatedExisting = current.items
+      .map((item) => ({
+        item,
+        quantity: quantityById.has(item.id)
+          ? quantityById.get(item.id)!
+          : item.quantity,
+        normalized: normalizedExistingEdits.get(item.id) ?? null,
+      }))
+      .filter((entry) => entry.quantity > 0);
 
-    const existingSubtotal = updatedExisting.reduce((sum, entry) => sum + Number(entry.item.unitPrice) * entry.quantity, 0);
-    const additionsSubtotal = normalizedAdditions.reduce((sum, addition) => sum + addition.lineTotal, 0);
+    if (!updatedExisting.length && !normalizedAdditions.length) {
+      return NextResponse.json(
+        { error: "El pedido debe conservar al menos un producto." },
+        { status: 400 },
+      );
+    }
+
+    const existingSubtotal = updatedExisting.reduce(
+      (sum, entry) =>
+        sum +
+        (entry.normalized
+          ? entry.normalized.lineTotal
+          : Number(entry.item.unitPrice) * entry.quantity),
+      0,
+    );
+    const additionsSubtotal = normalizedAdditions.reduce(
+      (sum, addition) => sum + addition.lineTotal,
+      0,
+    );
     const subtotal = money(existingSubtotal + additionsSubtotal);
-    const existingEligible = updatedExisting.reduce((sum, entry) => { const product = entry.item.product; const eligible = product && product.type !== "COMBO" && product.couponEligible; return sum + (eligible ? Number(entry.item.unitPrice) * entry.quantity : 0); }, 0);
-    const additionsEligible = normalizedAdditions.filter((addition) => addition.eligible).reduce((sum, addition) => sum + addition.lineTotal, 0);
+
+    const existingEligible = updatedExisting.reduce(
+      (sum, entry) => {
+        if (entry.normalized) {
+          return (
+            sum +
+            (entry.normalized.eligible
+              ? entry.normalized.lineTotal
+              : 0)
+          );
+        }
+
+        const product = entry.item.product;
+        const eligible =
+          product &&
+          product.type !== "COMBO" &&
+          product.couponEligible;
+
+        return (
+          sum +
+          (eligible
+            ? Number(entry.item.unitPrice) * entry.quantity
+            : 0)
+        );
+      },
+      0,
+    );
+    const additionsEligible = normalizedAdditions
+      .filter((addition) => addition.eligible)
+      .reduce((sum, addition) => sum + addition.lineTotal, 0);
     const eligibleSubtotal = money(existingEligible + additionsEligible);
     const discount = Math.min(Number(current.discount), eligibleSubtotal);
     const total = Math.max(0, subtotal + deliveryFee - discount);
@@ -580,12 +696,29 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const nextCashReceived = canPreserveCashTender ? cashReceivedCandidate : null;
     const nextChangeDue = canPreserveCashTender ? cashReceivedCandidate - total : null;
 
-    const kitchenProductChanges = current.items.some((item) => {
-      const nextQuantity = quantityById.has(item.id) ? quantityById.get(item.id)! : item.quantity;
-      const nextNotes = notesById.has(item.id) ? notesById.get(item.id)! : item.notes;
-      const notesChanged = (nextNotes ?? null) !== (item.notes ?? null);
-      return (nextQuantity !== item.quantity || notesChanged) && requiresKitchen(item.product?.categoryId);
-    }) || normalizedAdditions.some((addition) => requiresKitchen(addition.product.categoryId));
+    const kitchenProductChanges =
+      current.items.some((item) => {
+        const nextQuantity = quantityById.has(item.id)
+          ? quantityById.get(item.id)!
+          : item.quantity;
+        const nextNotes = notesById.has(item.id)
+          ? notesById.get(item.id)!
+          : item.notes;
+        const notesChanged =
+          (nextNotes ?? null) !== (item.notes ?? null);
+        const configurationChanged =
+          normalizedExistingEdits.has(item.id);
+
+        return (
+          (nextQuantity !== item.quantity ||
+            notesChanged ||
+            configurationChanged) &&
+          requiresKitchen(item.product?.categoryId)
+        );
+      }) ||
+      normalizedAdditions.some((addition) =>
+        requiresKitchen(addition.product.categoryId),
+      );
 
     const hasKitchenItems =
       updatedExisting.some((entry) =>
@@ -609,22 +742,50 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     await prisma.$transaction(async (tx) => {
       for (const entry of current.items) {
-        const quantity = quantityById.has(entry.id) ? quantityById.get(entry.id)! : entry.quantity;
-        const notes = notesById.has(entry.id) ? notesById.get(entry.id)! : entry.notes;
+        const quantity = quantityById.has(entry.id)
+          ? quantityById.get(entry.id)!
+          : entry.quantity;
+        const notes = notesById.has(entry.id)
+          ? notesById.get(entry.id)!
+          : entry.notes;
+        const normalizedEdit =
+          normalizedExistingEdits.get(entry.id) ?? null;
         const quantityChanged = quantity !== entry.quantity;
-        const notesChanged = (notes ?? null) !== (entry.notes ?? null);
+        const notesChanged =
+          (notes ?? null) !== (entry.notes ?? null);
+        const configurationChanged = Boolean(normalizedEdit);
+
         if (quantity <= 0) {
-          await tx.orderItem.delete({ where: { id: entry.id } });
-        } else if (quantityChanged || notesChanged) {
+          await tx.orderItem.delete({
+            where: { id: entry.id },
+          });
+        } else if (
+          quantityChanged ||
+          notesChanged ||
+          configurationChanged
+        ) {
           await tx.orderItem.update({
             where: { id: entry.id },
             data: {
               quantity,
-              lineTotal: Number(entry.unitPrice) * quantity,
+              unitPrice: normalizedEdit
+                ? normalizedEdit.unitPrice
+                : Number(entry.unitPrice),
+              lineTotal: normalizedEdit
+                ? normalizedEdit.lineTotal
+                : Number(entry.unitPrice) * quantity,
+              configuration: normalizedEdit
+                ? normalizedEdit.configuration
+                : entry.configuration,
               notes,
-              preparedQuantity: notesChanged && requiresKitchen(entry.product?.categoryId)
-                ? 0
-                : Math.min(entry.preparedQuantity, quantity),
+              preparedQuantity:
+                (notesChanged || configurationChanged) &&
+                requiresKitchen(entry.product?.categoryId)
+                  ? 0
+                  : Math.min(
+                      entry.preparedQuantity,
+                      quantity,
+                    ),
             },
           });
         }
