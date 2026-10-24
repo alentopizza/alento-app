@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Permitir que `pos.alentopizza.com` pueda instalarse como aplicación desde navegadores compatibles sin cambiar la lógica del POS ni la base de datos.
+Permitir que la aplicación canónica de Alentó en `alentopizza.com` pueda instalarse como PWA desde navegadores compatibles sin cambiar la lógica operativa ni la base de datos.
 
 ## Implementación actual
 
