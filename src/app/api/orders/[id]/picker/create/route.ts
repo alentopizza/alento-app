@@ -108,7 +108,7 @@ export async function POST(
   const { firstName, lastName } = splitPickerCustomerName(
     order.customer.name,
   );
-  const phone = order.customer.phone.replace(/\D/g, "");
+  const phone = (order.customer.phone || "").replace(/\D/g, "");
   const countryCode = order.customer.countryCode?.trim() || "+57";
   const paymentMethod = pickerPaymentMethod(order);
   const orderAmount = pickerOrderAmount(order);
