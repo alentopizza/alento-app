@@ -341,11 +341,11 @@ Rutas de menú:
 - `/interno/menu`: administración interna del catálogo.
 
 
-## Preparación para producción
+## Operación y despliegue
 
-Antes de un go-live leer:
+Antes de un despliegue relevante o cambio de infraestructura leer:
 
-- `docs/PRODUCTION_READINESS.md` — revisión funcional proceso por proceso y checklist de salida.
+- `docs/PRODUCTION_READINESS.md` — baseline histórico de revisión funcional y checklist; contrastar siempre con `docs/CURRENT_STATE.md`.
 - `docs/ALENTO_EXCLUSIVE_MODULES.md` — límites entre el núcleo reutilizable y los módulos exclusivos de Alentó Pizza.
 
 La operación genérica no debe depender de Chatwoot, plantillas Meta/notifier ni de la receta de masa de Alentó.
