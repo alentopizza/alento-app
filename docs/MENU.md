@@ -2,7 +2,7 @@
 
 Estado: **CERRADO PARA LA ETAPA OPERATIVA ACTUAL**
 
-Ruta: `/menu`
+Ruta: `/interno/menu`
 
 Este documento es la referencia canónica del catálogo administrativo de Alentó App. Debe permitir que una persona o una IA reconstruya el módulo sin depender del historial de conversaciones.
 
@@ -27,7 +27,7 @@ El módulo no crea pedidos. Su responsabilidad es definir y mantener el catálog
 Flujo principal:
 
 ```text
-/menu
+/interno/menu
 → GET /api/menu-admin
 → Category + Product + reglas de combo + tamaños
 → administración visual
@@ -434,7 +434,7 @@ Menú es por tanto la fuente administrativa; `/api/catalog` es la proyección op
 
 ## Archivos principales
 
-- `src/app/menu/page.tsx`
+- `src/app/interno/menu/page.tsx`
 - `src/app/api/menu-admin/route.ts`
 - `src/app/api/catalog/route.ts`
 - `src/components/AppShell.tsx`
