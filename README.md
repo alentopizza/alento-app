@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Las integraciones de medición y publicidad ya tienen una primera versión operativa desde `/metricas`. Las integraciones de marketplace/proveedores externos (por ejemplo Rappi/DiDi) continúan siendo opcionales y futuras.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. Antes de exposición definitiva todavía deben completarse endurecimientos de seguridad y la app pública. Las integraciones de medición y publicidad ya tienen una primera versión operativa desde `/metricas`. Las integraciones de marketplace/proveedores externos continúan siendo opcionales y futuras.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
