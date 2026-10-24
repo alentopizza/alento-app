@@ -265,6 +265,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       notes: string | null;
       eligible: boolean;
       changed: boolean;
+      configurationChanged: boolean;
     }> = [];
 
     for (const item of current.items) {
@@ -298,6 +299,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           notes: nextNotes,
           eligible: normalized.eligible,
           changed: true,
+          configurationChanged: true,
         });
         continue;
       }
@@ -318,6 +320,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         changed:
           quantity !== item.quantity ||
           nextNotes !== item.notes,
+        configurationChanged: false,
       });
     }
 
@@ -325,7 +328,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       ? (body.additions as Addition[])
       : [];
 
-    const normalizedAdditions = [];
+    const normalizedAdditions: Array<
+      Awaited<ReturnType<typeof normalizeOrderLine>> & {
+        notes: string | null;
+      }
+    > = [];
     for (const addition of additions) {
       const quantity = Math.max(
         0,
@@ -417,7 +424,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             quantity: entry.quantity,
             unitPrice: entry.unitPrice,
             lineTotal: entry.lineTotal,
-            configuration: entry.configuration as Prisma.InputJsonValue,
+            ...(entry.configurationChanged
+              ? {
+                  configuration:
+                    entry.configuration as Prisma.InputJsonValue,
+                }
+              : {}),
             notes: entry.notes,
           },
         });
