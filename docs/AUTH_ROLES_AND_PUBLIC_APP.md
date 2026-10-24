@@ -2,7 +2,7 @@
 
 Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
-Última actualización: 2026-09-23.
+Última actualización: 2026-10-24.
 
 Este documento describe la autenticación vigente de Alentó App y la separación entre colaboradores internos y clientes.
 
@@ -171,7 +171,9 @@ Rutas principales:
 - `/cupones`: ADMIN;
 - `/masa`: ADMIN, KITCHEN;
 - `/notificaciones`: ADMIN;
-- `/club-alento`: ADMIN.
+- `/club-alento`: ADMIN;
+- `/turnos`: ADMIN;
+- `/metricas`: ADMIN.
 
 Las APIs internas principales también se validan por rol en middleware y/o servidor.
 
