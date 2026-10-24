@@ -336,13 +336,7 @@ Esta implementación agrega:
 - model `CustomerAuthCode`;
 - relación `Customer.account`.
 
-Después del deploy:
-
-```bash
-npx prisma db push
-```
-
-Es obligatorio antes de probar login.
+El despliegue vigente sincroniza el schema mediante `prisma db push` dentro de `npm run start`. Antes de desplegar cambios de autenticación se debe revisar el diff de `prisma/schema.prisma`; no ejecutar un segundo `db push` manual como requisito rutinario.
 
 ## Limitaciones conocidas de esta primera versión
 
