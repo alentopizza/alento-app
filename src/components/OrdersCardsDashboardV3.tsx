@@ -13,7 +13,11 @@ import CustomerAddressEditor, {
   type CustomerAddressEditorValue,
 } from "@/components/CustomerAddressEditor";
 import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
-import OrderEditStructuredAdder, { type StructuredEditAddition } from "@/components/OrderEditStructuredAdder";
+import OrderEditStructuredAdder, {
+  type ExistingPizzaEditRequest,
+  type ExistingPizzaEditUpdate,
+  type StructuredEditAddition,
+} from "@/components/OrderEditStructuredAdder";
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import {
@@ -47,7 +51,7 @@ type CustomerSearchResult = {
   email?: string | null;
   addresses: CustomerAddress[];
 };
-type OrderItem = { id: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
+type OrderItem = { id: number; productId: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
 type Payment = { id: number; method: string; amount: number | string; cashReceived: number | string | null; changeDue: number | string | null; status: string; reference?: string | null; paidAt?: string | null; createdAt?: string };
 type Order = {
   id: number;
@@ -147,6 +151,20 @@ const isPizzaItem = (item: OrderItem) => Boolean(
   && !Array.isArray(item.configuration)
   && String((item.configuration as { kind?: unknown }).kind).toUpperCase() === "PIZZA"
 );
+
+const isTwoFlavorOrderItem = (item: OrderItem) => {
+  if (!isPizzaItem(item)) return false;
+  if (item.productName.toLocaleLowerCase("es").includes("2 sabores")) {
+    return true;
+  }
+
+  const configuration = item.configuration as {
+    flavors?: unknown[];
+  };
+
+  return Array.isArray(configuration.flavors) &&
+    configuration.flavors.length >= 2;
+};
 
 function addressSelectionFromCustomerAddress(
   address: CustomerAddress | null | undefined,
@@ -316,6 +334,11 @@ export default function OrdersCardsDashboardV3() {
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
   const [additions, setAdditions] = useState<Record<number, number>>({});
   const [structuredAdditions, setStructuredAdditions] = useState<StructuredEditAddition[]>([]);
+  const [existingPizzaEdits, setExistingPizzaEdits] = useState<
+    Record<number, ExistingPizzaEditUpdate>
+  >({});
+  const [existingPizzaEditRequest, setExistingPizzaEditRequest] =
+    useState<ExistingPizzaEditRequest | null>(null);
   const [editError, setEditError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -564,7 +587,10 @@ export default function OrdersCardsDashboardV3() {
           quantities[item.id] ?? item.quantity,
         );
         summary.itemCount += quantity;
-        summary.productsSubtotal += Number(item.unitPrice) * quantity;
+        const editedUnitPrice =
+          existingPizzaEdits[item.id]?.estimatedUnitPrice ??
+          Number(item.unitPrice);
+        summary.productsSubtotal += editedUnitPrice * quantity;
         return summary;
       },
       { itemCount: 0, productsSubtotal: 0 },
@@ -600,6 +626,7 @@ export default function OrdersCardsDashboardV3() {
   }, [
     additions,
     editing,
+    existingPizzaEdits,
     quantities,
     simpleProducts,
     structuredAdditions,
@@ -1006,6 +1033,8 @@ export default function OrdersCardsDashboardV3() {
       setItemNotes(Object.fromEntries(full.items.map((item) => [item.id, item.notes ?? ""])));
       setAdditions({});
       setStructuredAdditions([]);
+      setExistingPizzaEdits({});
+      setExistingPizzaEditRequest(null);
       setEditError("");
     } catch (openError) {
       window.alert(openError instanceof Error ? openError.message : "No fue posible abrir la edición.");
@@ -1058,7 +1087,19 @@ export default function OrdersCardsDashboardV3() {
           fulfillmentType: fulfillment,
           scheduledFor,
           addressId: fulfillment === "DELIVERY" ? editing.address?.id ?? editing.customer?.addresses?.[0]?.id ?? null : null,
-          items: editing.items.map((item) => ({ id: item.id, quantity: quantities[item.id] ?? item.quantity, notes: isPizzaItem(item) ? (itemNotes[item.id] ?? "").trim().slice(0, 120) : item.notes ?? null })),
+          items: editing.items.map((item) => {
+            const structuredEdit = existingPizzaEdits[item.id];
+            return {
+              id: item.id,
+              quantity: quantities[item.id] ?? item.quantity,
+              notes: isPizzaItem(item)
+                ? (itemNotes[item.id] ?? "").trim().slice(0, 120)
+                : item.notes ?? null,
+              ...(structuredEdit
+                ? { configuration: structuredEdit.configuration }
+                : {}),
+            };
+          }),
           additions: [
             ...Object.entries(additions).filter(([, quantity]) => quantity > 0).map(([productId, quantity]) => ({ productId: Number(productId), quantity })),
             ...structuredAdditions.map((item) => ({ productId: item.productId, quantity: item.quantity, configuration: item.configuration, notes: item.notes ?? null })),
@@ -1069,6 +1110,8 @@ export default function OrdersCardsDashboardV3() {
       if (!response.ok) throw new Error(data.error || "No fue posible guardar los cambios.");
       setEditing(null);
       setStructuredAdditions([]);
+      setExistingPizzaEdits({});
+      setExistingPizzaEditRequest(null);
       await load(true);
       emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (saveError) {
@@ -2827,7 +2870,7 @@ export default function OrdersCardsDashboardV3() {
                               {item.productName}
                             </b>
                             <p className="mt-0.5 text-[11px] font-medium text-neutral-400">
-                              {money(item.unitPrice)} c/u
+                              {money(existingPizzaEdits[item.id]?.estimatedUnitPrice ?? item.unitPrice)} c/u
                             </p>
                           </div>
 
@@ -2867,6 +2910,43 @@ export default function OrdersCardsDashboardV3() {
                             </button>
                           </div>
                         </div>
+
+                        {isTwoFlavorOrderItem(item) && currentQuantity > 0 && (
+                          <div className="mt-3 border-t border-neutral-100 pt-2.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExistingPizzaEditRequest({
+                                  requestId: Date.now(),
+                                  itemId: item.id,
+                                  productId: item.productId,
+                                  productName: item.productName,
+                                  configuration:
+                                    existingPizzaEdits[item.id]?.configuration ??
+                                    item.configuration,
+                                  notes:
+                                    itemNotes[item.id] ??
+                                    item.notes ??
+                                    "",
+                                })
+                              }
+                              className="flex w-full items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-left transition hover:border-violet-300 hover:bg-violet-100"
+                            >
+                              <span>
+                                <span className="alento-ui-label block uppercase tracking-[.08em] text-violet-600">
+                                  Pizza 2 sabores
+                                </span>
+                                <b className="mt-0.5 block text-[12px] text-violet-950">
+                                  {existingPizzaEdits[item.id]?.summary ||
+                                    "Cambiar Sabor 1 y Sabor 2"}
+                                </b>
+                              </span>
+                              <span className="shrink-0 rounded-lg bg-violet-700 px-2.5 py-1.5 alento-ui-micro font-black uppercase text-white">
+                                Cambiar
+                              </span>
+                            </button>
+                          </div>
+                        )}
 
                         {isPizzaItem(item) && currentQuantity > 0 && (
                           <div className="mt-3 border-t border-neutral-100 pt-2.5">
@@ -2938,6 +3018,19 @@ export default function OrdersCardsDashboardV3() {
                   <OrderEditStructuredAdder
                     additions={structuredAdditions}
                     onChange={setStructuredAdditions}
+                    editRequest={existingPizzaEditRequest}
+                    onEditCancel={() => setExistingPizzaEditRequest(null)}
+                    onEditComplete={(update) => {
+                      setExistingPizzaEdits((current) => ({
+                        ...current,
+                        [update.itemId]: update,
+                      }));
+                      setItemNotes((current) => ({
+                        ...current,
+                        [update.itemId]: update.notes ?? "",
+                      }));
+                      setExistingPizzaEditRequest(null);
+                    }}
                   />
                 </div>
 
