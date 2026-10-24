@@ -258,7 +258,7 @@ Ver `docs/CUSTOMERS.md`.
 
 ## Menú — cerrado
 
-Ruta: `/menu`
+Ruta: `/interno/menu`
 
 Incluye:
 
@@ -401,7 +401,7 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 La base de producción no tiene baseline formal de Prisma Migrate.
 
-El start actual todavía ejecuta `prisma db push`. Antes de producción estable debe realizarse backup + baseline y separar la evolución del schema del arranque normal.
+El start actual ejecuta `prisma db push`, el backfill de ganancias de repartidores y luego `next start`. Antes de retirar `db push` del arranque debe realizarse backup + baseline y separar la evolución del schema del inicio normal.
 
 No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
@@ -421,7 +421,6 @@ Pendientes estratégicos conocidos:
 - rentabilidad;
 - mejoras futuras de Menú: tipos de producto y modificadores;
 - validación productiva de la experiencia pública ya implementada;
-- sustitución de Glide donde todavía aplique;
 - integraciones externas solo como extensiones opcionales.
 
 ## Experiencia pública — estado vigente 2026-09-23
