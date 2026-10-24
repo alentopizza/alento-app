@@ -258,9 +258,17 @@ Reglas:
 
 No reintroducir lógica de Casa/Trabajo/múltiples direcciones en el checkout público.
 
-## Próximo paso
+## Mejora continua
 
-Validar en producción el flujo completo desde carrito hasta creación `WEB`, incluyendo invitado, recuperación por WhatsApp, efectivo y seguimiento. Después completar Fase C con persistencia enriquecida de `CustomerAddress` y mejorar selección/edición de direcciones.
+El flujo carrito → creación `WEB` → seguimiento y la persistencia enriquecida de `CustomerAddress` ya están implementados.
+
+Pendientes actuales:
+
+- mantener pruebas productivas periódicas para invitado y cliente autenticado;
+- seguir mejorando selección/edición de la dirección única;
+- vigilar consumo/errores de Google Places y Routes;
+- conservar la validación server-side de cobertura y tarifa;
+- no duplicar lógica de dirección entre POS y checkout público.
 
 No pegar las claves en chats, commits ni capturas públicas.
 
