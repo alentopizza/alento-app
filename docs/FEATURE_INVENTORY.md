@@ -1,0 +1,131 @@
+# Inventario funcional de Alentó App
+
+Última auditoría: **2026-10-24**
+
+Este documento es el índice canónico entre lo que existe en `main` y la documentación funcional del proyecto. Su objetivo es evitar dos fallas:
+
+1. implementar una función sin documentarla;
+2. mantener documentación de una función que ya no existe o cambió de ruta.
+
+Ante una discrepancia, revisar primero el código vigente, corregir el documento canónico del módulo y actualizar este inventario en el mismo cambio.
+
+## Superficie pública
+
+| Ruta | Estado | Función | Documento canónico |
+| --- | --- | --- | --- |
+| `/` | Activa | Home pública y acceso al menú | `README.md`, `docs/SEO.md` |
+| `/menu` | Activa | Catálogo público | `docs/CURRENT_STATE.md`, `docs/SEO.md` |
+| `/menu/[slug]` | Activa | Página indexable de producto | `docs/SEO.md` |
+| `/menu/categoria/[slug]` | Activa | Página indexable de categoría | `docs/SEO.md` |
+| `/cart` | Activa | Carrito y checkout público | `docs/PUBLIC_CHECKOUT_MAPS.md` |
+| `/club` | Activa | Club Alentó para invitado/cliente | `docs/CLUB_POINTS.md` |
+| `/login` | Activa | Login unificado cliente/colaborador | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
+| `/cuenta` | Activa | Perfil privado de cliente | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
+| `/seguimiento/[token]` | Activa | Seguimiento firmado del pedido | `docs/DRIVERS.md`, `docs/PUBLIC_CHECKOUT_MAPS.md` |
+| `/ubicacion` | Activa | Landing SEO de ubicación/horarios | `docs/SEO.md` |
+| `/domicilios` | Activa | Landing SEO de cobertura/domicilios | `docs/SEO.md` |
+
+## Superficie interna
+
+| Ruta | Acceso | Función | Documento canónico |
+| --- | --- | --- | --- |
+| `/interno` | ADMIN / POS / CASHIER | Punto de venta | `docs/POS.md` |
+| `/pedidos` | ADMIN / POS / CASHIER | Operación y edición de pedidos | `docs/ORDERS.md` |
+| `/cocina` | ADMIN / KITCHEN | Producción | `docs/KITCHEN.md` |
+| `/clientes` | ADMIN / POS | CRM operativo | `docs/CUSTOMERS.md` |
+| `/interno/menu` | ADMIN | Administración del catálogo | `docs/MENU.md` |
+| `/cupones` | ADMIN | Cupones y estadísticas de uso | este inventario + `docs/POS.md` |
+| `/caja` | ADMIN / CASHIER | Caja, ingresos, salidas, préstamos, nómina | `docs/PAYMENTS_AND_CASH.md` |
+| `/turnos` | ADMIN | Calendario y costo de turnos | `docs/SHIFTS.md` |
+| `/club-alento` | ADMIN | Configuración/administración de Club | `docs/CLUB_POINTS.md` |
+| `/notificaciones` | ADMIN | Push manual + automatizaciones WhatsApp | `docs/PUSH_NOTIFICATIONS.md` |
+| `/metricas` | ADMIN | Analítica propia e integraciones de medición | `docs/METRICS_AND_TRACKING.md` |
+| `/configuracion` | ADMIN | Sede, horarios, domicilios, repartidores, clientes y pagos | `docs/CONFIGURATION.md` |
+| `/personalizacion` | ADMIN | Imágenes de Home y hero público | `README.md`, `docs/CURRENT_STATE.md` |
+| `/usuarios` | ADMIN | Usuarios, roles y permisos sensibles | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
+| `/masa` | ADMIN / KITCHEN | Preparación de masa exclusiva de Alentó | `docs/ALENTO_EXCLUSIVE_MODULES.md` |
+
+## Repartidor
+
+| Ruta | Acceso | Función | Documento canónico |
+| --- | --- | --- | --- |
+| `/repartidor` | DRIVER / DISPATCH | Home, solicitudes, mapa, desempeño y cartera | `docs/DRIVERS.md` |
+| `/repartidor/pedido/[token]` | enlace firmado + flujo autorizado | Checklist, navegación y estados de entrega | `docs/DRIVERS.md` |
+
+## Rutas auxiliares activas
+
+- `/pedidos/[id]/imprimir`: impresión térmica de pedido.
+- `GET /api/orders/[id]/receipt-image`: comprobante PNG generado en servidor.
+- `/caja/nomina/[id]/imprimir`: comprobante de pago de nómina.
+- `/setup/admin`: bootstrap del primer ADMIN; deja de permitir creación después del primer usuario.
+- `/sin-acceso`: salida controlada por permisos.
+- `/integraciones/chatwoot`: Dashboard App exclusivo de la instalación de Alentó; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
+## Capacidades transversales implementadas
+
+### Pedidos programados
+
+Implementados en POS, Pedidos, Cocina, impresión, despacho y Repartidor.
+
+- `Order.scheduledFor`;
+- validación contra horario de servicio;
+- ingreso a Cocina 30 minutos antes;
+- exclusión de despacho/repartidor antes de ventana;
+- edición entre inmediato/programado antes de iniciar preparación.
+
+Documentos: `docs/POS.md`, `docs/ORDERS.md`, `docs/KITCHEN.md`.
+
+### Edición estructurada de pedidos
+
+Pedidos puede modificar cantidades, notas, agregar productos configurables y reabrir pizzas existentes, incluidas pizzas de dos sabores. La configuración se normaliza server-side y las líneas históricas sin `productId` mantienen compatibilidad.
+
+Documentos: `docs/ORDERS.md`, `docs/ORDER_DATA_INTEGRITY.md`.
+
+### Reparto y GPS
+
+Incluye disponibilidad, autoasignación atómica, capacidad simultánea, geocerca, GPS, checklist persistente, navegación, rutas múltiples, seguimiento del cliente, desempeño y cartera.
+
+Documento: `docs/DRIVERS.md`.
+
+### Push y WhatsApp
+
+`/notificaciones` contiene dos áreas:
+
+- campañas Web Push manuales con audiencia, imagen, acción y métricas;
+- automatizaciones WhatsApp transaccionales.
+
+Documento: `docs/PUSH_NOTIFICATIONS.md`.
+
+### Turnos y nómina
+
+`WorkShift` alimenta el pago desde Caja. Un pago de nómina crea salida, `PayrollPayment`, relación con turnos y descuentos de préstamos cuando aplican. La eliminación del movimiento, mientras la sesión siga abierta, revierte de forma transaccional sus efectos.
+
+Documentos: `docs/SHIFTS.md`, `docs/PAYMENTS_AND_CASH.md`.
+
+### SEO público
+
+Existen metadata, sitemap, robots, datos estructurados, páginas de producto/categoría y landings locales `/ubicacion` y `/domicilios`.
+
+Documento: `docs/SEO.md`.
+
+## Integraciones externas
+
+No existe una integración operativa activa con marketplaces externos.
+
+Las extensiones propias vigentes de Alentó —Chatwoot, notifier/WhatsApp y módulo de masa— están delimitadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
+### Compatibilidad histórica de OrderSource
+
+`OrderSource` conserva un valor legacy de marketplace en Prisma únicamente por compatibilidad con PostgreSQL/datos históricos. No existe ruta, UI, credencial ni flujo operativo que lo utilice. No retirar valores de enum directamente mientras el arranque ejecute `prisma db push`; primero debe hacerse una migración controlada de cualquier fila histórica.
+
+## Regla documental obligatoria
+
+Todo cambio funcional debe incluir, en el mismo trabajo:
+
+1. código;
+2. documento canónico del módulo;
+3. este inventario si cambia una ruta, módulo, acceso o capacidad transversal;
+4. `docs/CURRENT_STATE.md` si cambia el estado general del producto;
+5. `docs/DEPLOYMENT.md` si cambia infraestructura, variables o schema.
+
+No considerar una función terminada si falta su actualización documental.
