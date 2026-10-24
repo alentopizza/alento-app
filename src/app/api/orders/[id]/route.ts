@@ -774,9 +774,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
               lineTotal: normalizedEdit
                 ? normalizedEdit.lineTotal
                 : Number(entry.unitPrice) * quantity,
-              configuration: normalizedEdit
-                ? normalizedEdit.configuration
-                : entry.configuration,
+              ...(normalizedEdit
+                ? { configuration: normalizedEdit.configuration }
+                : {}),
               notes,
               preparedQuantity:
                 (notesChanged || configurationChanged) &&
