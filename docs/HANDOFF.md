@@ -168,11 +168,11 @@ Responsabilidad: CRM operativo, historial y administración de datos.
 
 ### Menú
 
-Ruta: `/menu`
+Ruta: `/interno/menu`
 
 Archivos principales:
 
-- `src/app/menu/page.tsx`
+- `src/app/interno/menu/page.tsx`
 - `src/app/api/menu-admin/route.ts`
 - `src/app/api/catalog/route.ts`
 
