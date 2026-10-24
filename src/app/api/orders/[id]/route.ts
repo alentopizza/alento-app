@@ -574,6 +574,16 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
       if (quantity <= 0) continue;
 
+      if (item.productId == null) {
+        return NextResponse.json(
+          {
+            error:
+              "Este producto pertenece a un pedido histórico y no tiene un producto asociado para reconfigurarlo.",
+          },
+          { status: 409 },
+        );
+      }
+
       const normalized = await normalizeOrderLine({
         productId: item.productId,
         quantity,
