@@ -372,7 +372,7 @@ Reglas de no regresión:
 - el consentimiento externo no bloquea la compra;
 - “Guardar y probar” valida configuración técnica, pero la recepción final se confirma en el panel del proveedor.
 
-Rappi/DiDi siguen siendo integraciones futuras. No reintroducirlas experimentalmente sin acceso oficial y diseño aprobado.
+Las integraciones con marketplaces externos siguen fuera del alcance actual. No reintroducirlas experimentalmente sin acceso oficial y diseño aprobado.
 
 ## Activación pendiente después del cambio de autenticación
 
