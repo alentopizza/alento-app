@@ -255,13 +255,14 @@ Desde Pedidos se puede:
 
 - cambiar Domicilio / Recoger / Local;
 - cambiar entre **Lo antes posible** y **Programar pedido**, incluyendo fecha/hora;
-- seleccionar tarifa de domicilio;
+- corregir la dirección de Domicilio; la tarifa se recalcula en servidor según cobertura;
 - cambiar cantidades;
 - eliminar una línea llevando cantidad a cero;
 - agregar productos simples;
 - agregar bebidas;
 - agregar pizzas configuradas;
 - agregar pizzas de dos sabores;
+- editar la configuración de pizzas existentes, incluidas pizzas de dos sabores;
 - agregar combos;
 - agregar/modificar notas de pizza.
 
@@ -274,6 +275,22 @@ El cliente envía IDs/configuración, pero el servidor recalcula y valida.
 Lógica compartida:
 
 `src/lib/orderLineNormalizer.ts`
+
+### Edición de pizzas existentes
+
+La edición de una línea de pizza ya creada puede modificar su configuración estructurada sin reemplazarla por texto plano.
+
+Reglas vigentes:
+
+- una pizza de un sabor puede reabrirse en el configurador y conservar tamaño, sabor, borde, extras y nota;
+- una pizza de dos sabores puede reabrirse y cambiar tamaño, ambas mitades/sabores y borde;
+- el backend vuelve a normalizar la línea mediante `normalizeOrderLine()` y recalcula su precio;
+- si solo cambia la cantidad o la nota, la configuración histórica existente se conserva;
+- líneas históricas sin `productId` se mantienen editables en cantidad/nota sin intentar reconstruir una configuración inexistente;
+- solo las líneas que reciben explícitamente un parche de `configuration` sustituyen su configuración;
+- no confiar en el precio enviado por el navegador.
+
+La UI usa `existingPizzaEdits` / `ExistingPizzaEditRequest` en `OrdersCardsDashboardV3.tsx`; la autoridad final sigue en `POST/PATCH /api/orders/[id]/edit`.
 
 ## Efecto de editar sobre Cocina
 
@@ -531,6 +548,18 @@ Para Domicilio, la impresión se considera una hoja operativa para el repartidor
 No es facturación electrónica fiscal.
 
 La impresión puede ejecutarse con iframe/autoprint desde la tarjeta.
+
+### Descarga de comprobante en PNG
+
+Pedidos también permite descargar el comprobante como imagen sin abrir una página visible.
+
+Endpoint:
+
+`GET /api/orders/[id]/receipt-image`
+
+La imagen se genera en servidor y conserva la información operativa del comprobante: código, fecha, modalidad, programación cuando aplica, cliente, dirección/indicaciones, productos/configuración, notas, domicilio, descuentos, total y estado de cobro. El texto se convierte a trazos vectoriales antes del render para evitar dependencias de fuentes del dispositivo del usuario.
+
+Esta salida es complementaria a la impresión térmica y no cambia la contabilidad ni el contenido persistido del pedido.
 
 ## Header del módulo
 
