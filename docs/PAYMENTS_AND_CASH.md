@@ -220,7 +220,7 @@ Modelo:
 
 Se usa para entradas de dinero que no están asociadas a un `Payment` de un pedido, por ejemplo:
 
-- ingresos de Rappi;
+- ingresos de plataformas externas;
 - retornos o ajustes de Wompi;
 - préstamos;
 - ventas históricas no facturadas/no registradas como Order;
