@@ -290,7 +290,7 @@ Reglas vigentes:
 - solo las líneas que reciben explícitamente un parche de `configuration` sustituyen su configuración;
 - no confiar en el precio enviado por el navegador.
 
-La UI usa `existingPizzaEdits` / `ExistingPizzaEditRequest` en `OrdersCardsDashboardV3.tsx`; la autoridad final sigue en `POST/PATCH /api/orders/[id]/edit`.
+La UI usa `existingPizzaEdits` / `ExistingPizzaEditRequest` en `OrdersCardsDashboardV3.tsx`; la autoridad final sigue en `PATCH /api/orders/[id]/edit`.
 
 ## Efecto de editar sobre Cocina
 
