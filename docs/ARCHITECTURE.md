@@ -413,7 +413,7 @@ Ya existen:
 - administración de usuarios;
 - login opcional de clientes por WhatsApp OTP.
 
-Antes de migrar el dominio principal todavía deben completarse endurecimientos como:
+Aunque la aplicación ya opera con `alentopizza.com` como dominio canónico, siguen pendientes endurecimientos como:
 
 - recuperación de contraseña;
 - auditoría;
@@ -425,11 +425,7 @@ Antes de migrar el dominio principal todavía deben completarse endurecimientos 
 
 Producción no tiene baseline formal de Prisma Migrate.
 
-Para cambios de schema se usa:
-
-```bash
-npx prisma db push
-```
+El arranque vigente ejecuta `prisma db push` automáticamente antes de iniciar Next.js. Por eso cualquier cambio de schema debe revisarse **antes del redeploy**; no se debe añadir un segundo `db push` manual como paso rutinario.
 
 No usar `prisma migrate deploy` hasta realizar baseline.
 
