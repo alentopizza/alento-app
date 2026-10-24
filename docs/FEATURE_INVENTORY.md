@@ -108,6 +108,20 @@ Existen metadata, sitemap, robots, datos estructurados, páginas de producto/cat
 
 Documento: `docs/SEO.md`.
 
+## APIs y servicios de soporte sin página propia
+
+Estas rutas forman parte de capacidades ya documentadas y no representan módulos independientes:
+
+- `GET /api/health`: health check de despliegue; ver `docs/DEPLOYMENT.md`.
+- `/api/catalog` y `/api/menu-admin`: proyección pública/operativa y administración del catálogo; ver `docs/MENU.md`.
+- `/api/public-home` y `/api/public-home-admin`: Home/personalización pública.
+- `/api/public-store-status`: estado público de apertura/cierre.
+- `/api/notification-templates`, `/api/notification-images`, `/api/push-campaigns` y `/api/push`: infraestructura de notificaciones; ver `docs/PUSH_NOTIFICATIONS.md`.
+- `/api/internal/notification-jobs/run`: ejecución interna de trabajos de notificación programados.
+- `/api/receipt-logo` y `/api/orders/[id]/receipt-image`: soporte de impresión/PNG; ver `docs/ORDERS.md`.
+- `/api/analytics/delivery-zones`: analítica de zonas; ver `docs/DELIVERY_ZONE_ANALYTICS.md`.
+- `/api/dough-preparations`: persistencia del módulo exclusivo de masa; ver `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+
 ## Integraciones externas
 
 No existe una integración operativa activa con marketplaces externos.
