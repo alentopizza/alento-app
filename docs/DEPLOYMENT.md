@@ -7,7 +7,7 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 - Proyecto EasyPanel: `app_alento`.
 - Aplicación: `alento-app`.
 - Puerto interno: `3000`.
-- Dominio: `https://pos.alentopizza.com/`.
+- URL pública canónica: `https://alentopizza.com/`.
 - Base de datos: PostgreSQL `alento-db`.
 
 ## Flujo normal de despliegue
@@ -15,7 +15,7 @@ Este proyecto se despliega en EasyPanel desde la rama `main` del repositorio `al
 1. Hacer cambios en el repositorio.
 2. Confirmar que `main` contiene el commit esperado.
 3. En EasyPanel, usar Implementar / Redeploy.
-4. Nixpacks ejecuta `npm install`, `npm run build` y después `npm run start`.
+4. El build instala dependencias/genera Prisma y ejecuta `npm run build`; el arranque usa `npm run start`.
 5. Revisar los logs de build y runtime.
 6. Validar el cambio en producción.
 
@@ -47,7 +47,7 @@ Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáti
 El `package.json` vigente ejecuta:
 
 ```bash
-prisma db push && next start -p 3000
+prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
 ```
 
 Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js.
@@ -238,14 +238,14 @@ Nunca habilitarlo en producción.
 
 ## Hardening previo a producción estable
 
-La revisión vigente está en `docs/PRODUCTION_READINESS.md`.
+`docs/PRODUCTION_READINESS.md` es el baseline histórico de salida. Para el estado vigente consultar `docs/CURRENT_STATE.md` y `docs/FEATURE_INVENTORY.md`.
 
 ### Riesgo actual: db push durante cada start
 
 El comportamiento actual:
 
 ```bash
-prisma db push && next start -p 3000
+prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
 ```
 
 es útil durante la etapa de construcción, pero no es la estrategia recomendada para operación estable porque un reinicio/redeploy puede intentar modificar el schema.
