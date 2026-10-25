@@ -83,6 +83,42 @@ No basta guardar el texto `½ Chicharrona + ½ Pollo & Champiñones`.
 
 El factor `0.5` permitirá que una futura receta descuente solo media porción de los ingredientes correspondientes a cada sabor.
 
+## Arma Tu Pizza
+
+`PIZZA_CUSTOM` tiene una configuración propia porque sus ingredientes pueden pertenecer a toda la pizza o a una mitad concreta.
+
+Debe conservar conceptualmente:
+
+```ts
+{
+  kind: "PIZZA_CUSTOM",
+  productId: number,
+  size: { id, name, diameterCm, basePrice },
+  crust: { id, name, price },
+  mode: "WHOLE" | "HALF_HALF",
+  ingredientUnitPrice: number,
+  wholeIngredients: [
+    { productId, name, unitPrice }
+  ],
+  firstHalfIngredients: [
+    { productId, name, unitPrice }
+  ],
+  secondHalfIngredients: [
+    { productId, name, unitPrice }
+  ],
+  billableIngredientCount: number
+}
+```
+
+Regla comercial:
+
+- `WHOLE`: `billableIngredientCount = wholeIngredients.length`;
+- `HALF_HALF`: `billableIngredientCount = max(firstHalfIngredients.length, secondHalfIngredients.length)`.
+
+La selección enviada por navegador es solo una intención. `normalizeOrderLine()` vuelve a consultar tamaño, borde, ingredientes activos y el precio por ingrediente guardado en el producto antes de persistir `unitPrice`, `lineTotal` y el snapshot final.
+
+Para inventario futuro, cada ingrediente conserva su `productId` y su ubicación lógica (completa, mitad 1 o mitad 2). No inferir esa información desde el texto visible.
+
 ## Tamaño
 
 El tamaño debe guardarse por ID y snapshot de nombre/diámetro.
