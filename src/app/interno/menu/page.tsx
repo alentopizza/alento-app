@@ -1506,6 +1506,14 @@ export default function MenuPage() {
                       {product.name}
                     </h3>
 
+                    {activeCategory?.slug === "ingredientes" && (
+                      <span className="mt-1 inline-flex w-fit rounded-full border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-bold text-white/45">
+                        {data?.ingredientGroups.find(
+                          (group) => group.id === product.ingredientGroupId,
+                        )?.name ?? "Sin categoría"}
+                      </span>
+                    )}
+
                     <div className="alento-product-card-footer">
                       <span className="alento-product-card-price">
                         {displayProductPrice(product)}
@@ -1522,6 +1530,125 @@ export default function MenuPage() {
           </div>
         </section>
       </div>
+
+      {ingredientGroupEditor && (
+        <div
+          className="fixed inset-0 z-[138] flex items-center justify-center bg-black/65 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !savingIngredientGroup
+            ) {
+              setIngredientGroupEditor(null);
+            }
+          }}
+        >
+          <form
+            onSubmit={saveIngredientGroup}
+            className="w-full max-w-[560px] overflow-hidden rounded-[28px] border border-neutral-200 bg-white shadow-[0_30px_90px_rgba(0,0,0,.28)]"
+          >
+            <div className="border-b-[3px] border-[var(--brand-red)] bg-[linear-gradient(135deg,#09090a,#241416)] px-6 py-5 text-white">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/45">
+                Ingredientes
+              </p>
+              <h2 className="mt-1 text-[24px] font-black tracking-[-0.025em]">
+                {ingredientGroupEditor.id
+                  ? "Editar subcategoría"
+                  : "Nueva subcategoría"}
+              </h2>
+              <p className="mt-1 text-[11px] text-white/55">
+                Se usará para organizar la selección en Arma Tu Pizza.
+              </p>
+            </div>
+
+            <div className="p-5">
+              <label className="block">
+                <span className="text-[12px] font-bold text-neutral-800">
+                  Nombre
+                </span>
+                <input
+                  autoFocus
+                  value={ingredientGroupEditor.name}
+                  onChange={(event) =>
+                    setIngredientGroupEditor({
+                      ...ingredientGroupEditor,
+                      name: event.target.value,
+                    })
+                  }
+                  className="alento-input mt-2 w-full rounded-xl px-4 py-3 text-sm"
+                  placeholder="Ej. Carnes y Embutidos"
+                />
+              </label>
+
+              {ingredientGroupEditor.id && (
+                <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-[#faf9f7] p-4">
+                  <div>
+                    <b className="text-[12px] text-neutral-900">
+                      Disponible en Arma Tu Pizza
+                    </b>
+                    <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                      Al desactivarla, sus ingredientes dejan de mostrarse en los configuradores hasta reactivarla.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={ingredientGroupEditor.active}
+                    onClick={() =>
+                      setIngredientGroupEditor({
+                        ...ingredientGroupEditor,
+                        active: !ingredientGroupEditor.active,
+                      })
+                    }
+                    className={
+                      "relative h-8 w-14 shrink-0 rounded-full transition " +
+                      (ingredientGroupEditor.active
+                        ? "bg-emerald-500"
+                        : "bg-neutral-300")
+                    }
+                  >
+                    <span
+                      className={
+                        "absolute top-1 h-6 w-6 rounded-full bg-white shadow transition " +
+                        (ingredientGroupEditor.active
+                          ? "left-7"
+                          : "left-1")
+                      }
+                    />
+                  </button>
+                </div>
+              )}
+
+              {ingredientGroupError && (
+                <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[11px] font-medium text-red-700">
+                  {ingredientGroupError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 bg-[#faf9f7] px-5 py-4">
+              <button
+                type="button"
+                disabled={savingIngredientGroup}
+                onClick={() => setIngredientGroupEditor(null)}
+                className="h-11 rounded-xl border border-neutral-200 bg-white px-5 text-[12px] font-bold text-neutral-700 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingIngredientGroup}
+                className="h-11 rounded-xl bg-[var(--brand-red)] px-5 text-[12px] font-black text-white disabled:opacity-50"
+              >
+                {savingIngredientGroup
+                  ? "Guardando..."
+                  : ingredientGroupEditor.id
+                    ? "Guardar cambios"
+                    : "Crear subcategoría"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {categoryEditor && (
         <div
@@ -1936,7 +2063,9 @@ export default function MenuPage() {
                       <span className="text-[11px] font-medium uppercase tracking-[0.09em] text-white/45">Vista principal</span>
                       <h3 className="mt-1 truncate text-[16px] font-medium leading-6">{editor.name || "Producto"}</h3>
                       <b className="mt-2 block text-[20px] font-semibold leading-6 tracking-[-0.02em]">
-                        {formatCOP(Number(editor.basePrice) || 0)}
+                        {editor.type === "PIZZA_CUSTOM"
+                          ? "Precio dinámico"
+                          : formatCOP(Number(editor.basePrice) || 0)}
                       </b>
                     </div>
                   </div>
