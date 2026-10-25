@@ -728,9 +728,9 @@ export default function AppShell({
                 ? "Expandir menú lateral"
                 : "Recoger menú lateral"
             }
-            className="absolute right-[-24px] top-[18px] z-50 flex h-8 w-6 items-center justify-center rounded-r-lg border border-l-0 border-white/10 bg-[var(--brand-red)] text-sm font-black text-white shadow-[5px_0_16px_rgba(0,0,0,.22)] transition hover:brightness-110"
+            className="absolute right-2 top-[20px] z-50 flex h-9 w-9 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.07] text-white shadow-[0_8px_20px_rgba(0,0,0,.22)] transition hover:bg-white/[0.12]"
           >
-            {sidebarCollapsed ? "›" : "‹"}
+            <Menu className="h-[17px] w-[17px]" strokeWidth={2.2} />
           </button>
         </div>
 
@@ -804,7 +804,7 @@ export default function AppShell({
         </nav>
 
         <div
-          className={`shrink-0 pb-3 ${
+          className={`mt-auto shrink-0 pb-3 ${
             sidebarCollapsed ? "px-2" : "px-3"
           }`}
         >
