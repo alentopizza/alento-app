@@ -82,16 +82,7 @@ No representa una predicción probabilística de compra.
 
 ## Filtros y lectura del listado
 
-La cabecera de Clientes separa explícitamente dos dimensiones para evitar mezclar conceptos:
-
-### Estado de dirección
-
-- Todas;
-- Verificadas;
-- Por actualizar;
-- Sin dirección.
-
-### Estado comercial
+La cabecera de Clientes filtra únicamente por **estado comercial**:
 
 - Todos;
 - Nuevo;
@@ -100,17 +91,16 @@ La cabecera de Clientes separa explícitamente dos dimensiones para evitar mezcl
 - Por recuperar;
 - Sin compras.
 
-Ambos grupos muestran contadores y pueden combinarse con el buscador.
+Los estados de dirección no forman parte de los filtros del listado. Su información sigue visible dentro de cada tarjeta como contexto operativo y puede editarse desde el propio cliente.
 
 Reglas visuales vigentes:
 
-- no mezclar los estados de dirección y comerciales en una única fila sin contexto;
-- cada grupo debe tener su título visible;
 - los botones usan tamaño de control normal, no microtexto;
 - icono, etiqueta y contador deben poder leerse sin depender únicamente del color;
-- el filtro activo conserva contraste suficiente sin reducir legibilidad de los demás estados.
+- el filtro activo conserva contraste suficiente sin reducir legibilidad de los demás estados;
+- el buscador se combina con el estado comercial seleccionado.
 
-Los contadores se calculan sobre todos los clientes cargados. El buscador se combina con ambos filtros seleccionados.
+Los contadores se calculan sobre todos los clientes cargados.
 
 ## Tarjetas
 
