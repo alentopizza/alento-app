@@ -1985,28 +1985,69 @@ export default function MenuPage() {
                         />
                       </label>
 
-                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
-                        <label className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
-                          <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                            {editor.type === "PIZZA_SINGLE"
-                              ? "Valor del sabor"
-                              : editor.type === "PIZZA_CUSTOM"
-                                ? "Precio por ingrediente"
-                                : "Precio base"}
+                      {editor.type === "MODIFIER" && (
+                        <label className="space-y-1.5">
+                          <span className="text-[12px] font-semibold text-neutral-800">
+                            Subcategoría del ingrediente
                           </span>
-                          <div className="mt-2 flex items-center gap-2">
-                            <span className="text-[20px] font-medium text-neutral-400">$</span>
-                            <input
-                              value={editor.basePrice}
-                              onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })}
-                              inputMode="numeric"
-                              className="min-w-0 flex-1 bg-transparent text-[22px] font-semibold tracking-[-0.02em] text-neutral-950 outline-none"
-                            />
-                          </div>
-                          <span className="mt-1 block text-[10px] text-neutral-400">
-                            {formatCOP(Number(editor.basePrice) || 0)}
-                          </span>
+                          <select
+                            value={editor.ingredientGroupId ?? ""}
+                            onChange={(event) =>
+                              setEditor({
+                                ...editor,
+                                ingredientGroupId: event.target.value
+                                  ? Number(event.target.value)
+                                  : null,
+                              })
+                            }
+                            className="alento-input h-12 w-full rounded-xl px-4 text-[13px]"
+                          >
+                            <option value="">Sin categoría</option>
+                            {data?.ingredientGroups
+                              .filter((group) => group.active)
+                              .map((group) => (
+                                <option key={group.id} value={group.id}>
+                                  {group.name}
+                                </option>
+                              ))}
+                          </select>
                         </label>
+                      )}
+
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+                        {editor.type === "PIZZA_CUSTOM" ? (
+                          <div className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-3.5">
+                            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-600">
+                              Precio dinámico
+                            </span>
+                            <b className="mt-2 block text-[15px] text-emerald-950">
+                              Usa los valores de Ingredientes
+                            </b>
+                            <span className="mt-1 block text-[10px] leading-4 text-emerald-700">
+                              Tamaño + borde + ingredientes seleccionados. No necesita precio base propio.
+                            </span>
+                          </div>
+                        ) : (
+                          <label className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
+                            <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+                              {editor.type === "PIZZA_SINGLE"
+                                ? "Valor del sabor"
+                                : "Precio base"}
+                            </span>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-[20px] font-medium text-neutral-400">$</span>
+                              <input
+                                value={editor.basePrice}
+                                onChange={(event) => setEditor({ ...editor, basePrice: event.target.value })}
+                                inputMode="numeric"
+                                className="min-w-0 flex-1 bg-transparent text-[22px] font-semibold tracking-[-0.02em] text-neutral-950 outline-none"
+                              />
+                            </div>
+                            <span className="mt-1 block text-[10px] text-neutral-400">
+                              {formatCOP(Number(editor.basePrice) || 0)}
+                            </span>
+                          </label>
+                        )}
 
                         <div className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                           <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Tipo</span>
@@ -2020,7 +2061,7 @@ export default function MenuPage() {
                                     type: event.target.value as "PIZZA_SINGLE" | "PIZZA_CUSTOM",
                                     basePrice:
                                       event.target.value === "PIZZA_CUSTOM"
-                                        ? "5000"
+                                        ? "0"
                                         : editor.basePrice,
                                   })
                                 }
@@ -2172,10 +2213,49 @@ export default function MenuPage() {
                     <span className="text-[12px] font-bold text-neutral-800">Descripción</span>
                     <textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-xl px-4 py-3 text-sm" />
                   </label>
+                  {createState.categorySlug === "ingredientes" && (
+                    <label className="space-y-1.5 md:col-span-2">
+                      <span className="text-[12px] font-bold text-neutral-800">
+                        Subcategoría
+                      </span>
+                      <select
+                        value={createState.ingredientGroupId ?? ""}
+                        onChange={(event) =>
+                          setCreateState({
+                            ...createState,
+                            ingredientGroupId: event.target.value
+                              ? Number(event.target.value)
+                              : null,
+                          })
+                        }
+                        className="alento-input w-full rounded-xl px-4 py-3 text-sm"
+                      >
+                        <option value="">Sin categoría</option>
+                        {data?.ingredientGroups
+                          .filter((group) => group.active)
+                          .map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  )}
+                  {createState.productType === "PIZZA_CUSTOM" && createState.categorySlug === "pizzas" ? (
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-emerald-600">
+                        Precio dinámico
+                      </span>
+                      <p className="mt-1 text-[10.5px] leading-4 text-emerald-800">
+                        Se calcula con tamaño, borde y los precios reales de los ingredientes.
+                      </p>
+                    </div>
+                  ) : (
                   <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">{createState.categorySlug === "pizzas" ? (createState.productType === "PIZZA_CUSTOM" ? "Precio por ingrediente *" : "Valor del sabor *") : "Precio *"}</span>
+                    <span className="text-[12px] font-bold text-neutral-800">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span>
                     <input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} />
                   </label>
+                  )}
                   <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
                     <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Comportamiento</span>
                     {createState.categorySlug === "pizzas" ? (
@@ -2188,7 +2268,7 @@ export default function MenuPage() {
                               productType: event.target.value as "PIZZA_SINGLE" | "PIZZA_CUSTOM",
                               basePrice:
                                 event.target.value === "PIZZA_CUSTOM"
-                                  ? createState.basePrice || "5000"
+                                  ? "0"
                                   : createState.basePrice,
                             })
                           }
@@ -2199,7 +2279,7 @@ export default function MenuPage() {
                         </select>
                         <p className="mt-2 text-[10.5px] leading-4 text-neutral-600">
                           {createState.productType === "PIZZA_CUSTOM"
-                            ? "Usa tamaños y bordes existentes. El precio base será el valor por ingrediente."
+                            ? "Usa tamaños, bordes y los precios reales de los ingredientes existentes."
                             : "En el POS se suma tamaño + valor del sabor + borde + adicionales."}
                         </p>
                       </div>
