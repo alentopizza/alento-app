@@ -698,7 +698,11 @@ export default function MenuPage() {
 
   function moveProductBefore(targetProductId: number) {
     if (!activeCategory || draggingProductId == null || draggingProductId === targetProductId) return;
-    if (query.trim()) return;
+    if (
+      query.trim() ||
+      (activeCategory.slug === "ingredientes" &&
+        ingredientGroupFilter !== "ALL")
+    ) return;
     const current = [...activeCategory.products];
     const fromIndex = current.findIndex((product) => product.id === draggingProductId);
     const toIndex = current.findIndex((product) => product.id === targetProductId);
@@ -1239,8 +1243,10 @@ export default function MenuPage() {
                   </div>
                   {activeCategory && (
                     <p className="mt-1 text-[10.5px] text-neutral-400">
-                      {query.trim()
-                        ? "Quita la búsqueda para reorganizar productos."
+                      {query.trim() ||
+                      (activeCategory.slug === "ingredientes" &&
+                        ingredientGroupFilter !== "ALL")
+                        ? "Quita la búsqueda y los filtros para reorganizar productos."
                         : savingOrder
                           ? "Guardando nuevo orden..."
                           : activeCategory.slug === "destacados"
@@ -1438,7 +1444,12 @@ export default function MenuPage() {
                     }
                   }}
                   onDragOver={(event) => {
-                    if (draggingProductId == null || query.trim()) return;
+                    if (
+                      draggingProductId == null ||
+                      query.trim() ||
+                      (activeCategory?.slug === "ingredientes" &&
+                        ingredientGroupFilter !== "ALL")
+                    ) return;
                     event.preventDefault();
                     event.dataTransfer.dropEffect = "move";
                   }}
@@ -1472,7 +1483,11 @@ export default function MenuPage() {
                       )}
                     </div>
 
-                    {!query.trim() && (
+                    {!query.trim() &&
+                      !(
+                        activeCategory?.slug === "ingredientes" &&
+                        ingredientGroupFilter !== "ALL"
+                      ) && (
                       <div
                         role="button"
                         tabIndex={0}
