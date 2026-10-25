@@ -106,6 +106,7 @@ El enum de Prisma actual es:
 STANDARD
 PIZZA_SINGLE
 PIZZA_TWO_FLAVORS
+PIZZA_CUSTOM
 COMBO
 MODIFIER
 INTERNAL
@@ -120,7 +121,8 @@ Ejemplos:
 - la categoría `pizzas` crea `PIZZA_SINGLE`;
 - `ingredientes` crea `MODIFIER`;
 - los combos usan `COMBO`;
-- la pizza especial de dos sabores usa `PIZZA_TWO_FLAVORS`.
+- la pizza especial de dos sabores usa `PIZZA_TWO_FLAVORS`;
+- **Arma Tu Pizza** usa `PIZZA_CUSTOM`.
 
 ## Categorías base
 
@@ -360,7 +362,7 @@ En categorías normales se permite crear producto.
 Reglas actuales de tipo:
 
 ```text
-pizzas       → PIZZA_SINGLE
+pizzas       → PIZZA_SINGLE o PIZZA_CUSTOM, seleccionado al crear
 antojos      → STANDARD
 bebidas      → STANDARD
 ingredientes → MODIFIER
@@ -398,6 +400,51 @@ La tarjeta muestra:
 `Precio según sabores`
 
 porque el valor final depende de configuración.
+
+### PIZZA_CUSTOM — Arma Tu Pizza
+
+`Product.basePrice` tiene un significado específico para este tipo: **precio por ingrediente**.
+
+La configuración reutiliza las fuentes existentes:
+
+- `PizzaSize` para tamaños;
+- `PizzaCrust` + `PizzaCrustPrice` para bordes por tamaño;
+- productos `MODIFIER` activos de la categoría `ingredientes` como catálogo seleccionable.
+
+Orden de construcción en cliente y POS:
+
+1. Tamaño.
+2. Borde.
+3. Completa o Mitad y mitad.
+4. Ingredientes.
+
+Si es **Completa**:
+
+```text
+precio = tamaño + borde + cantidadIngredientes × precioPorIngrediente
+```
+
+Si es **Mitad y mitad**:
+
+```text
+ingredientesCobrables = max(cantidadMitad1, cantidadMitad2)
+precio = tamaño + borde + ingredientesCobrables × precioPorIngrediente
+```
+
+Ejemplo: mitad 1 con piña + jamón (2), mitad 2 con plátano + chicharrón + jamón (3) → se cobran **3 ingredientes**.
+
+El frontend estima el valor, pero la autoridad es `normalizeOrderLine()`, que vuelve a consultar tamaño, borde, ingredientes activos y `Product.basePrice`. El cliente/POS no puede imponer el precio final.
+
+La configuración guardada usa `kind = PIZZA_CUSTOM` y conserva:
+
+- tamaño;
+- borde;
+- modo `WHOLE` / `HALF_HALF`;
+- ingredientes completos o por mitad;
+- precio unitario del ingrediente;
+- cantidad de ingredientes cobrables.
+
+Para el producto actual **Arma Tu Pizza**, configurar `basePrice = 5000` para cobrar $5.000 por ingrediente.
 
 ### STANDARD / MODIFIER
 
@@ -569,9 +616,9 @@ Mejora futura deseada:
 
 Regla actual importante:
 
-**las pizzas de dos sabores no permiten ingredientes extra**, porque actualmente el modificador se aplicaría a la pizza completa y sería ambiguo saber a qué mitad corresponde.
+**las pizzas de dos sabores de sabores predefinidos no permiten ingredientes extra**, porque el modificador tradicional se aplicaría a la pizza completa.
 
-No reactivar extras en `PIZZA_TWO_FLAVORS` hasta que exista un modelo estructurado de alcance del modificador.
+`PIZZA_CUSTOM` sí soporta ingredientes por mitad mediante una estructura propia. No reutilizar esa semántica automáticamente en `PIZZA_TWO_FLAVORS` sin una decisión comercial explícita.
 
 ## Cierre del módulo
 
