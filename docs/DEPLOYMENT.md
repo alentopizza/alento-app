@@ -63,7 +63,8 @@ El script:
 - crea Frutas si no existe;
 - crea Otros si no existe;
 - clasifica por nombre únicamente ingredientes sin grupo;
-- no modifica asignaciones manuales existentes.
+- registra `catalog.ingredientGroupsBackfilledV1` en `AppSetting`;
+- después de esa primera ejecución no vuelve a clasificar, aunque la aplicación se reinicie.
 
 Esto permite hacer **un solo redeploy** para `PIZZA_CUSTOM` + subcategorías de ingredientes.
 
