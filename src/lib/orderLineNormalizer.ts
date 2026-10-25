@@ -218,34 +218,48 @@ async function normalizeCustomPizzaLine(
     throw new Error(`${product.name}: uno de los ingredientes ya no está disponible.`);
   }
 
-  const ingredientUnitPrice = money(Number(product.basePrice ?? 0));
-  if (ingredientUnitPrice <= 0) {
-    throw new Error(`${product.name}: el precio por ingrediente no está configurado.`);
-  }
-
   const snapshotList = (ids: number[]) =>
     ids.map((id) => {
       const ingredient = ingredients.find((item) => item.id === id)!;
       return {
         productId: ingredient.id,
         name: ingredient.name,
-        unitPrice: ingredientUnitPrice,
+        unitPrice: money(Number(ingredient.basePrice ?? 0)),
       };
     });
 
   const wholeIngredients = snapshotList(wholeIds);
   const firstHalfIngredients = snapshotList(firstHalfIds);
   const secondHalfIngredients = snapshotList(secondHalfIds);
-  const billableIngredientCount =
-    mode === "WHOLE"
-      ? wholeIngredients.length
-      : Math.max(firstHalfIngredients.length, secondHalfIngredients.length);
+
+  const totalFor = (items: typeof wholeIngredients) =>
+    items.reduce((sum, item) => sum + item.unitPrice, 0);
+
+  let billableIngredientCount = 0;
+  let ingredientCharge = 0;
+
+  if (mode === "WHOLE") {
+    billableIngredientCount = wholeIngredients.length;
+    ingredientCharge = totalFor(wholeIngredients);
+  } else if (firstHalfIngredients.length > secondHalfIngredients.length) {
+    billableIngredientCount = firstHalfIngredients.length;
+    ingredientCharge = totalFor(firstHalfIngredients);
+  } else if (secondHalfIngredients.length > firstHalfIngredients.length) {
+    billableIngredientCount = secondHalfIngredients.length;
+    ingredientCharge = totalFor(secondHalfIngredients);
+  } else {
+    billableIngredientCount = firstHalfIngredients.length;
+    ingredientCharge = Math.max(
+      totalFor(firstHalfIngredients),
+      totalFor(secondHalfIngredients),
+    );
+  }
 
   const crustPrice = money(Number(crust.prices[0].price));
   const unitPrice =
     money(Number(size.basePrice)) +
     crustPrice +
-    billableIngredientCount * ingredientUnitPrice;
+    ingredientCharge;
 
   return {
     product: product as NormalizedOrderLine["product"],
@@ -270,11 +284,11 @@ async function normalizeCustomPizzaLine(
         price: crustPrice,
       },
       mode,
-      ingredientUnitPrice,
       wholeIngredients,
       firstHalfIngredients,
       secondHalfIngredients,
       billableIngredientCount,
+      ingredientCharge,
     },
   };
 }
