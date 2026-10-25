@@ -290,6 +290,10 @@ Incluye:
 - switches Activo / Visible en POS / Destacado;
 - eliminación segura de productos;
 - constructor de combos;
+- tipo `PIZZA_CUSTOM` para **Arma Tu Pizza**;
+- asistente compartido cliente/POS: tamaño → borde → completa/mitad y mitad → ingredientes;
+- cobro por ingrediente usando `Product.basePrice`, con regla `max(mitad1, mitad2)` para mitad y mitad;
+- validación y recálculo server-side del precio de Arma Tu Pizza;
 - sincronización de orden/nombres con POS.
 
 Mejoras futuras registradas, no incluidas en el cierre:
