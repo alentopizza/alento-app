@@ -68,7 +68,11 @@ function isKitchenItem(item: KitchenOrderItem) {
 }
 
 function kitchenPriority(item: KitchenOrderItem) {
-  if (item.product?.type === "PIZZA_SINGLE" || item.product?.type === "PIZZA_TWO_FLAVORS") return 0;
+  if (
+    item.product?.type === "PIZZA_SINGLE" ||
+    item.product?.type === "PIZZA_TWO_FLAVORS" ||
+    item.product?.type === "PIZZA_CUSTOM"
+  ) return 0;
 
   if (item.product?.type === "COMBO" && item.configuration && typeof item.configuration === "object" && !Array.isArray(item.configuration)) {
     const pizzas = (item.configuration as { pizzas?: unknown }).pizzas;
