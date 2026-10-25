@@ -115,13 +115,17 @@ const items = [
   },
 ];
 
-const MOBILE_SUPERVISION_HREFS = new Set([
+const MOBILE_SUPERVISION_HREFS = [
   "/pedidos",
   "/cocina",
   "/caja",
   "/usuarios",
   "/configuracion",
-]);
+] as const;
+
+const MOBILE_SUPERVISION_HREF_SET = new Set<string>(
+  MOBILE_SUPERVISION_HREFS,
+);
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",
@@ -360,9 +364,17 @@ export default function AppShell({
       itemIsActive(pathname, item.href),
     ) ?? null;
 
-  const mobileSupervisionItems = visibleItems.filter((item) =>
-    MOBILE_SUPERVISION_HREFS.has(item.href),
-  );
+  const mobileSupervisionItems = visibleItems
+    .filter((item) => MOBILE_SUPERVISION_HREF_SET.has(item.href))
+    .sort(
+      (left, right) =>
+        MOBILE_SUPERVISION_HREFS.indexOf(
+          left.href as (typeof MOBILE_SUPERVISION_HREFS)[number],
+        ) -
+        MOBILE_SUPERVISION_HREFS.indexOf(
+          right.href as (typeof MOBILE_SUPERVISION_HREFS)[number],
+        ),
+    );
 
   const staffHomeHref =
     visibleItems[0]?.href ?? "/sin-acceso";
@@ -396,7 +408,30 @@ export default function AppShell({
 
         <Link
           href={mobileHomeHref}
-          className="order-2 flex min-w-0 items-center gap-2.5 sm:order-1"
+          className="order-2 flex min-w-0 items-center gap-2.5 sm:hidden"
+          aria-label="Ir a supervisión"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-black">
+            <img
+              src={LOGO_DARK}
+              alt="Alentó Pizza"
+              className="h-full w-full object-cover"
+            />
+          </span>
+
+          <span className="min-w-0 text-right">
+            <span className="alento-ui-status block truncate text-white">
+              {currentItem?.label || "Supervisión"}
+            </span>
+            <span className="alento-ui-micro mt-0.5 block truncate text-white/38">
+              {userName || "Sesión interna"}
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          href={staffHomeHref}
+          className="order-1 hidden min-w-0 items-center gap-2.5 sm:flex"
           aria-label="Ir al inicio interno"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-black">
@@ -407,7 +442,7 @@ export default function AppShell({
             />
           </span>
 
-          <span className="min-w-0 text-right sm:text-left">
+          <span className="min-w-0">
             <span className="alento-ui-status block truncate text-white">
               {currentItem?.label || "Alentó Pizza"}
             </span>
@@ -499,14 +534,12 @@ export default function AppShell({
                 <span className="hidden sm:inline">Módulos disponibles</span>
               </p>
 
-              <div className="space-y-1">
-                {visibleItems.map((item) => {
+              <div className="space-y-1 sm:hidden">
+                {mobileSupervisionItems.map((item) => {
                   const active = itemIsActive(
                     pathname,
                     item.href,
                   );
-                  const mobileSupervision =
-                    MOBILE_SUPERVISION_HREFS.has(item.href);
 
                   return (
                     <Link
@@ -515,7 +548,53 @@ export default function AppShell({
                       onClick={() =>
                         setMobileMenuOpen(false)
                       }
-                      className={`${mobileSupervision ? "flex" : "hidden sm:flex"} group relative min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                        active
+                          ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
+                          : "text-white/72 active:bg-white/[0.07]"
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--brand-red)]" />
+                      )}
+
+                      <span
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                          active
+                            ? "bg-black text-white"
+                            : "bg-white/[0.07] text-white/80"
+                        }`}
+                      >
+                        <item.icon
+                          className="h-[18px] w-[18px]"
+                          strokeWidth={2.3}
+                          aria-hidden="true"
+                        />
+                      </span>
+
+                      <span className="alento-ui-control min-w-0 flex-1 truncate font-bold">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              <div className="hidden space-y-1 sm:block">
+                {visibleItems.map((item) => {
+                  const active = itemIsActive(
+                    pathname,
+                    item.href,
+                  );
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() =>
+                        setMobileMenuOpen(false)
+                      }
+                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
                         active
                           ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
                           : "text-white/72 active:bg-white/[0.07]"
