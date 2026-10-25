@@ -2,6 +2,8 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+const BACKFILL_KEY = "catalog.ingredientGroupsBackfilledV1";
+
 const GROUPS = [
   {
     name: "Carnes y Embutidos",
@@ -66,6 +68,14 @@ function normalize(value) {
 }
 
 async function main() {
+  const existingBackfill = await prisma.appSetting.findUnique({
+    where: { key: BACKFILL_KEY },
+  });
+  if (existingBackfill) {
+    console.log("Ingredient group backfill already applied.");
+    return;
+  }
+
   const groups = new Map();
 
   for (const group of GROUPS) {
@@ -113,6 +123,17 @@ async function main() {
     });
     assigned += 1;
   }
+
+  await prisma.appSetting.create({
+    data: {
+      key: BACKFILL_KEY,
+      value: {
+        appliedAt: new Date().toISOString(),
+        groupsCreated: GROUPS.map((group) => group.slug),
+        assigned,
+      },
+    },
+  });
 
   console.log(
     `Ingredient groups ready. Groups: ${GROUPS.length}. Newly assigned ingredients: ${assigned}.`,
