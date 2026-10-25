@@ -247,6 +247,29 @@ export async function PATCH(request: NextRequest) {
   const productId = Number(body.productId);
   if (!Number.isInteger(productId)) return NextResponse.json({ error: "Producto inválido." }, { status: 400 });
 
+  let requestedType: "PIZZA_SINGLE" | "PIZZA_CUSTOM" | null = null;
+  if (typeof body.type === "string") {
+    const type = body.type.trim().toUpperCase();
+    if (type === "PIZZA_SINGLE" || type === "PIZZA_CUSTOM") {
+      const currentProduct = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { category: { select: { slug: true } } },
+      });
+      if (!currentProduct) {
+        return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
+      }
+      if (currentProduct.category.slug !== "pizzas") {
+        return NextResponse.json(
+          { error: "Solo los productos de la categoría Pizzas pueden cambiar este comportamiento." },
+          { status: 400 },
+        );
+      }
+      requestedType = type;
+    } else {
+      return NextResponse.json({ error: "Tipo de pizza inválido." }, { status: 400 });
+    }
+  }
+
   const product = await prisma.product.update({
     where: { id: productId },
     data: {
@@ -257,6 +280,7 @@ export async function PATCH(request: NextRequest) {
       ...(typeof body.active === "boolean" ? { active: body.active } : {}),
       ...(typeof body.visibleInPos === "boolean" ? { visibleInPos: body.visibleInPos } : {}),
       ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}),
+      ...(requestedType ? { type: requestedType } : {}),
       ...(body.basePrice === null || body.basePrice === "" ? { basePrice: null } : Number.isFinite(Number(body.basePrice)) ? { basePrice: Number(body.basePrice) } : {}),
     },
   });
@@ -506,8 +530,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Usa las herramientas específicas de esta categoría." }, { status: 400 });
     }
 
+    const requestedProductType =
+      typeof body.productType === "string"
+        ? body.productType.trim().toUpperCase()
+        : "";
     const productType =
-      PRODUCT_CATEGORY_TYPES[category.slug as keyof typeof PRODUCT_CATEGORY_TYPES] ?? "STANDARD";
+      category.slug === "pizzas" && requestedProductType === "PIZZA_CUSTOM"
+        ? "PIZZA_CUSTOM"
+        : PRODUCT_CATEGORY_TYPES[
+            category.slug as keyof typeof PRODUCT_CATEGORY_TYPES
+          ] ?? "STANDARD";
     const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
 
     try {
