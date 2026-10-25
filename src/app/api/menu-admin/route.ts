@@ -265,14 +265,15 @@ export async function PATCH(request: NextRequest) {
         );
       }
       if (type === "PIZZA_CUSTOM") {
+        const hasRequestedBasePrice =
+          Object.prototype.hasOwnProperty.call(body, "basePrice");
         const requestedBasePrice =
           body.basePrice === null || body.basePrice === ""
-            ? null
+            ? 0
             : Number(body.basePrice);
-        const effectiveBasePrice =
-          requestedBasePrice == null
-            ? Number(currentProduct.basePrice ?? 0)
-            : requestedBasePrice;
+        const effectiveBasePrice = hasRequestedBasePrice
+          ? requestedBasePrice
+          : Number(currentProduct.basePrice ?? 0);
         if (!Number.isFinite(effectiveBasePrice) || effectiveBasePrice <= 0) {
           return NextResponse.json(
             { error: "Arma Tu Pizza requiere un precio por ingrediente mayor a $0." },
