@@ -782,6 +782,60 @@ export default function MenuPage() {
     void persistCategoryOrder(current.map((category) => category.id));
   }
 
+  async function saveIngredientGroup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!ingredientGroupEditor?.name.trim()) {
+      setIngredientGroupError("El nombre de la subcategoría es obligatorio.");
+      return;
+    }
+
+    setSavingIngredientGroup(true);
+    setIngredientGroupError("");
+
+    try {
+      const editing = ingredientGroupEditor.id != null;
+      const response = await fetch("/api/menu-admin", {
+        method: editing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          editing
+            ? {
+                action: "updateIngredientGroup",
+                ingredientGroupId: ingredientGroupEditor.id,
+                name: ingredientGroupEditor.name,
+                active: ingredientGroupEditor.active,
+              }
+            : {
+                action: "createIngredientGroup",
+                name: ingredientGroupEditor.name,
+              },
+        ),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          result.error || "No fue posible guardar la subcategoría.",
+        );
+      }
+
+      setIngredientGroupEditor(null);
+      setNotice(
+        editing
+          ? "Subcategoría de ingredientes actualizada."
+          : "Subcategoría de ingredientes creada.",
+      );
+      await loadMenu();
+    } catch (groupSaveError) {
+      setIngredientGroupError(
+        groupSaveError instanceof Error
+          ? groupSaveError.message
+          : "No fue posible guardar la subcategoría.",
+      );
+    } finally {
+      setSavingIngredientGroup(false);
+    }
+  }
+
   async function saveCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!categoryEditor?.name.trim()) return setCategoryError("El nombre de la categoría es obligatorio.");
@@ -1135,6 +1189,7 @@ export default function MenuPage() {
                       onClick={() => {
                         setActiveCategoryId(category.id);
                         setQuery("");
+                        setIngredientGroupFilter("ALL");
                         setNotice("");
                       }}
                       className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left"
