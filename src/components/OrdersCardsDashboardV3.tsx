@@ -528,6 +528,7 @@ export default function OrdersCardsDashboardV3() {
           ![
             "PIZZA_SINGLE",
             "PIZZA_TWO_FLAVORS",
+            "PIZZA_CUSTOM",
             "COMBO",
             "INTERNAL",
           ].includes(product.type)
@@ -553,6 +554,7 @@ export default function OrdersCardsDashboardV3() {
         ![
           "PIZZA_SINGLE",
           "PIZZA_TWO_FLAVORS",
+          "PIZZA_CUSTOM",
           "COMBO",
           "MODIFIER",
           "INTERNAL",
