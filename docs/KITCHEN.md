@@ -193,6 +193,31 @@ Dos sabores:
 
 En Cocina se elimina visualmente el prefijo `½`; la proporción estructurada sigue existiendo en `OrderItem.configuration`.
 
+## Arma Tu Pizza
+
+`PIZZA_CUSTOM` se trata como pizza de prioridad alta en Cocina.
+
+La configuración llega estructurada desde el pedido y debe mostrar:
+
+- tamaño;
+- borde;
+- forma: `Completa` o `Mitad y mitad`;
+- ingredientes completos o separados como `Mitad 1` / `Mitad 2`.
+
+Ejemplo conceptual:
+
+```text
+1× Arma Tu Pizza
+[MEDIANA · 27 CM] [BORDE MOZZARELLA]
+MITAD Y MITAD
+Mitad 1: Piña, Jamón
+Mitad 2: Plátano Maduro, Chicharrón Carnudo, Jamón
+```
+
+Cocina **no recalcula precio**. Los ingredientes cobrables y el valor fueron normalizados server-side al crear/editar el pedido; Cocina consume el snapshot estructurado únicamente para preparación.
+
+No convertir las mitades en una nota libre: los IDs de los ingredientes deben permanecer en `OrderItem.configuration`.
+
 ## Combos con pizza
 
 Los combos que contienen pizza deben conservar una lectura visual similar a una pizza individual.
