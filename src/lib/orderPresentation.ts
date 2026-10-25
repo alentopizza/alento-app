@@ -183,6 +183,81 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
     return result;
   }
 
+  if (kind === "PIZZA_CUSTOM") {
+    const result: PresentedDetail[] = [];
+
+    if (isObject(configuration.size)) {
+      const name = text(configuration.size.name);
+      const diameter = Number(configuration.size.diameterCm);
+      if (name) {
+        result.push({
+          label: "Tamaño",
+          value:
+            Number.isFinite(diameter) && diameter > 0
+              ? `${name} · ${diameter} cm`
+              : name,
+        });
+      }
+    }
+
+    if (isObject(configuration.crust)) {
+      const name = text(configuration.crust.name);
+      if (name) result.push({ label: "Borde", value: name });
+    }
+
+    const mode = text(configuration.mode).toUpperCase();
+    result.push({
+      label: "Forma",
+      value: mode === "HALF_HALF" ? "Mitad y mitad" : "Completa",
+    });
+
+    const ingredientNames = (value: unknown) =>
+      Array.isArray(value)
+        ? value.flatMap((ingredient) =>
+            isObject(ingredient) && text(ingredient.name)
+              ? [text(ingredient.name)]
+              : [],
+          )
+        : [];
+
+    if (mode === "HALF_HALF") {
+      const first = ingredientNames(configuration.firstHalfIngredients);
+      const second = ingredientNames(configuration.secondHalfIngredients);
+      result.push({
+        label: "Mitad 1",
+        value: first.length ? first.join(", ") : "Sin ingredientes",
+      });
+      result.push({
+        label: "Mitad 2",
+        value: second.length ? second.join(", ") : "Sin ingredientes",
+      });
+    } else {
+      const whole = ingredientNames(configuration.wholeIngredients);
+      result.push({
+        label: "Ingredientes",
+        value: whole.length ? whole.join(", ") : "Sin ingredientes",
+      });
+    }
+
+    const billable = Number(configuration.billableIngredientCount);
+    const unitPrice = Number(configuration.ingredientUnitPrice);
+    if (Number.isFinite(billable) && billable >= 0) {
+      result.push({
+        label: "Cobro ingredientes",
+        value:
+          Number.isFinite(unitPrice) && unitPrice >= 0
+            ? `${billable} × ${new Intl.NumberFormat("es-CO", {
+                style: "currency",
+                currency: "COP",
+                maximumFractionDigits: 0,
+              }).format(unitPrice)}`
+            : String(billable),
+      });
+    }
+
+    return result;
+  }
+
   if (kind === "COMBO") {
     const presented = presentComboOrderConfiguration(configuration);
     if (!presented) return [];
