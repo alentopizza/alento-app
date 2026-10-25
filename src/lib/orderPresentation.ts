@@ -240,18 +240,17 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
     }
 
     const billable = Number(configuration.billableIngredientCount);
-    const unitPrice = Number(configuration.ingredientUnitPrice);
+    const ingredientCharge = Number(configuration.ingredientCharge);
     if (Number.isFinite(billable) && billable >= 0) {
       result.push({
-        label: "Cobro ingredientes",
-        value:
-          Number.isFinite(unitPrice) && unitPrice >= 0
-            ? `${billable} × ${new Intl.NumberFormat("es-CO", {
-                style: "currency",
-                currency: "COP",
-                maximumFractionDigits: 0,
-              }).format(unitPrice)}`
-            : String(billable),
+        label: "Ingredientes cobrados",
+        value: Number.isFinite(ingredientCharge) && ingredientCharge >= 0
+          ? `${billable} ingrediente${billable === 1 ? "" : "s"} · ${new Intl.NumberFormat("es-CO", {
+              style: "currency",
+              currency: "COP",
+              maximumFractionDigits: 0,
+            }).format(ingredientCharge)}`
+          : String(billable),
       });
     }
 
