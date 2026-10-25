@@ -136,6 +136,9 @@ export function buildCustomPizzaConfiguration(input: {
     0,
     Number(input.product.basePrice ?? 0),
   );
+  if (ingredientUnitPrice <= 0) {
+    throw new Error("El precio por ingrediente no está configurado.");
+  }
 
   const whole =
     input.draft.mode === "WHOLE"
