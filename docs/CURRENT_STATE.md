@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-24.
+Última actualización: 2026-10-25.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
