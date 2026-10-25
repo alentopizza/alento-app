@@ -1303,6 +1303,125 @@ export default function MenuPage() {
               </div>
             </div>
 
+            {activeCategory?.slug === "ingredientes" && (
+              <div className="alento-card rounded-[22px] p-3.5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-400">
+                      Subcategorías
+                    </p>
+                    <h3 className="mt-1 text-[15px] font-black text-neutral-950">
+                      Organiza los ingredientes para encontrarlos más rápido
+                    </h3>
+                    <p className="mt-1 text-[10.5px] text-neutral-500">
+                      Estos mismos grupos se mostrarán automáticamente en Arma Tu Pizza.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIngredientGroupError("");
+                      setIngredientGroupEditor({
+                        name: "",
+                        active: true,
+                      });
+                    }}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 text-[11px] font-black text-white"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={2.4} />
+                    Nueva subcategoría
+                  </button>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIngredientGroupFilter("ALL")}
+                    className={
+                      "rounded-full border px-3 py-2 text-[10px] font-bold transition " +
+                      (ingredientGroupFilter === "ALL"
+                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        : "border-neutral-200 bg-white text-neutral-600")
+                    }
+                  >
+                    Todos · {activeCategory.products.length}
+                  </button>
+
+                  {data?.ingredientGroups.map((group) => {
+                    const count = activeCategory.products.filter(
+                      (product) => product.ingredientGroupId === group.id,
+                    ).length;
+                    const selected = ingredientGroupFilter === group.id;
+                    return (
+                      <div
+                        key={group.id}
+                        className={
+                          "flex items-center overflow-hidden rounded-full border transition " +
+                          (selected
+                            ? "border-neutral-950 bg-neutral-950 text-white"
+                            : group.active
+                              ? "border-neutral-200 bg-white text-neutral-600"
+                              : "border-neutral-200 bg-neutral-100 text-neutral-400")
+                        }
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setIngredientGroupFilter(group.id)}
+                          className="px-3 py-2 text-[10px] font-bold"
+                        >
+                          {group.name} · {count}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIngredientGroupError("");
+                            setIngredientGroupEditor({
+                              id: group.id,
+                              name: group.name,
+                              active: group.active,
+                            });
+                          }}
+                          className={
+                            "mr-1 flex h-7 w-7 items-center justify-center rounded-full " +
+                            (selected
+                              ? "bg-white/10 text-white/80"
+                              : "bg-neutral-100 text-neutral-500")
+                          }
+                          aria-label={`Editar ${group.name}`}
+                          title={`Editar ${group.name}`}
+                        >
+                          <Pencil className="h-3 w-3" strokeWidth={2.2} />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {activeCategory.products.some(
+                    (product) => !product.ingredientGroupId,
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => setIngredientGroupFilter("UNGROUPED")}
+                      className={
+                        "rounded-full border px-3 py-2 text-[10px] font-bold transition " +
+                        (ingredientGroupFilter === "UNGROUPED"
+                          ? "border-amber-500 bg-amber-500 text-white"
+                          : "border-amber-200 bg-amber-50 text-amber-700")
+                      }
+                    >
+                      Sin categoría ·{" "}
+                      {
+                        activeCategory.products.filter(
+                          (product) => !product.ingredientGroupId,
+                        ).length
+                      }
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6">
               {visibleProducts.map((product) => (
                 <article
