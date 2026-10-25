@@ -115,6 +115,14 @@ const items = [
   },
 ];
 
+const MOBILE_SUPERVISION_HREFS = new Set([
+  "/pedidos",
+  "/cocina",
+  "/caja",
+  "/usuarios",
+  "/configuracion",
+]);
+
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Administrador",
   POS: "Punto de venta",
@@ -352,8 +360,15 @@ export default function AppShell({
       itemIsActive(pathname, item.href),
     ) ?? null;
 
+  const mobileSupervisionItems = visibleItems.filter((item) =>
+    MOBILE_SUPERVISION_HREFS.has(item.href),
+  );
+
   const staffHomeHref =
     visibleItems[0]?.href ?? "/sin-acceso";
+
+  const mobileHomeHref =
+    mobileSupervisionItems[0]?.href ?? staffHomeHref;
 
   const roleText =
     roles
@@ -369,9 +384,19 @@ export default function AppShell({
       }`}
     >
       <header className="sticky top-0 z-[145] flex h-[66px] items-center justify-between border-b border-white/10 bg-[#0b0b0c]/96 px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,.22)] backdrop-blur-xl lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="order-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.07] text-white transition active:scale-[.97] sm:order-2"
+          aria-label="Abrir menú de colaboradores"
+          title="Abrir menú"
+        >
+          <Menu className="h-5 w-5" strokeWidth={2.2} />
+        </button>
+
         <Link
-          href={staffHomeHref}
-          className="flex min-w-0 items-center gap-2.5"
+          href={mobileHomeHref}
+          className="order-2 flex min-w-0 items-center gap-2.5 sm:order-1"
           aria-label="Ir al inicio interno"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-black">
@@ -382,7 +407,7 @@ export default function AppShell({
             />
           </span>
 
-          <span className="min-w-0">
+          <span className="min-w-0 text-right sm:text-left">
             <span className="alento-ui-status block truncate text-white">
               {currentItem?.label || "Alentó Pizza"}
             </span>
@@ -391,18 +416,7 @@ export default function AppShell({
             </span>
           </span>
         </Link>
-
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen(true)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.07] text-white transition active:scale-[.97]"
-          aria-label="Abrir menú de colaboradores"
-          title="Abrir menú"
-        >
-          <Menu className="h-5 w-5" strokeWidth={2.2} />
-        </button>
       </header>
-
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 z-[210] lg:hidden"
@@ -477,9 +491,12 @@ export default function AppShell({
               </div>
             </div>
 
+            <div className="h-[58px] sm:hidden" aria-hidden="true" />
+
             <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
               <p className="alento-ui-label mb-2 px-2 uppercase tracking-[0.14em] text-white/28">
-                Módulos disponibles
+                <span className="sm:hidden">Supervisión</span>
+                <span className="hidden sm:inline">Módulos disponibles</span>
               </p>
 
               <div className="space-y-1">
@@ -488,6 +505,8 @@ export default function AppShell({
                     pathname,
                     item.href,
                   );
+                  const mobileSupervision =
+                    MOBILE_SUPERVISION_HREFS.has(item.href);
 
                   return (
                     <Link
@@ -496,7 +515,7 @@ export default function AppShell({
                       onClick={() =>
                         setMobileMenuOpen(false)
                       }
-                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                      className={`${mobileSupervision ? "flex" : "hidden sm:flex"} group relative min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
                         active
                           ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
                           : "text-white/72 active:bg-white/[0.07]"
@@ -783,7 +802,10 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      <StaffStoreStatus sidebarCollapsed={sidebarCollapsed} />
+      <StaffStoreStatus
+        sidebarCollapsed={sidebarCollapsed}
+        mobileMenuOpen={mobileMenuOpen}
+      />
     </div>
   );
 }
