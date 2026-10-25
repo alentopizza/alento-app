@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import { Image as ImageIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
 
-type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "PIZZA_CUSTOM" | "COMBO" | "MODIFIER" | "INTERNAL";
 type ProductImageSlot = "MAIN" | "SECONDARY";
 type ComboOption = { id?: number; productId: number; productName?: string; quantity: number; priceDelta: number };
 type ComboGroup = { id?: number; kind: string; name: string; minSelections: number; maxSelections: number; options: ComboOption[] };
@@ -45,7 +45,7 @@ type EditorState = {
   featured: boolean;
   type: ProductType;
 };
-type CreateState = { categorySlug: string; name: string; description: string; basePrice: string };
+type CreateState = { categorySlug: string; name: string; description: string; basePrice: string; productType: "PIZZA_SINGLE" | "PIZZA_CUSTOM" };
 type ComboState = {
   id?: number;
   name: string;
@@ -365,6 +365,7 @@ export default function MenuPage() {
   function displayProductPrice(product: Product) {
     if (product.type === "PIZZA_SINGLE") return `Desde ${formatCOP(minPizzaSizePrice + (product.basePrice ?? 0))}`;
     if (product.type === "PIZZA_TWO_FLAVORS") return "Precio según sabores";
+    if (product.type === "PIZZA_CUSTOM") return "Precio según elección";
     if (product.type === "COMBO" && product.comboFinalMin != null && product.comboFinalMax != null) {
       return product.comboFinalMin === product.comboFinalMax ? formatCOP(product.comboFinalMin) : `Desde ${formatCOP(product.comboFinalMin)}`;
     }
@@ -511,6 +512,7 @@ export default function MenuPage() {
           basePrice: editor.basePrice,
           imageUrl: editor.imageUrl,
           imageUrl2: editor.imageUrl2,
+          type: editor.type,
           active: editor.active,
           visibleInPos: editor.visibleInPos,
           featured: editor.featured,
@@ -817,6 +819,7 @@ export default function MenuPage() {
       name: "",
       description: "",
       basePrice: category.slug === "ingredientes" ? "5000" : "",
+      productType: "PIZZA_SINGLE",
     });
   }
 
@@ -1748,7 +1751,11 @@ export default function MenuPage() {
                       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
                         <label className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                           <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
-                            {editor.type === "PIZZA_SINGLE" ? "Valor del sabor" : "Precio base"}
+                            {editor.type === "PIZZA_SINGLE"
+                              ? "Valor del sabor"
+                              : editor.type === "PIZZA_CUSTOM"
+                                ? "Precio por ingrediente"
+                                : "Precio base"}
                           </span>
                           <div className="mt-2 flex items-center gap-2">
                             <span className="text-[20px] font-medium text-neutral-400">$</span>
@@ -1766,8 +1773,37 @@ export default function MenuPage() {
 
                         <div className="rounded-[18px] border border-neutral-200 bg-[#faf9f7] p-3.5">
                           <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">Tipo</span>
-                          <b className="mt-3 block truncate text-[12px] font-semibold text-neutral-800">{editor.type}</b>
-                          <span className="mt-1 block text-[10px] text-neutral-400">Configuración interna</span>
+                          {editor.type === "PIZZA_SINGLE" || editor.type === "PIZZA_CUSTOM" ? (
+                            <>
+                              <select
+                                value={editor.type}
+                                onChange={(event) =>
+                                  setEditor({
+                                    ...editor,
+                                    type: event.target.value as "PIZZA_SINGLE" | "PIZZA_CUSTOM",
+                                    basePrice:
+                                      event.target.value === "PIZZA_CUSTOM" && !editor.basePrice
+                                        ? "5000"
+                                        : editor.basePrice,
+                                  })
+                                }
+                                className="alento-input mt-2 w-full rounded-xl px-2.5 py-2 text-[11px] font-bold"
+                              >
+                                <option value="PIZZA_SINGLE">Pizza de sabor</option>
+                                <option value="PIZZA_CUSTOM">Arma Tu Pizza</option>
+                              </select>
+                              <span className="mt-1 block text-[10px] leading-4 text-neutral-400">
+                                {editor.type === "PIZZA_CUSTOM"
+                                  ? "Tamaño + borde + ingredientes elegidos."
+                                  : "Tamaño + sabor + borde + extras."}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <b className="mt-3 block truncate text-[12px] font-semibold text-neutral-800">{editor.type}</b>
+                              <span className="mt-1 block text-[10px] text-neutral-400">Configuración interna</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1900,18 +1936,43 @@ export default function MenuPage() {
                     <textarea value={createState.description} onChange={(event) => setCreateState({ ...createState, description: event.target.value })} className="alento-input min-h-24 w-full rounded-xl px-4 py-3 text-sm" />
                   </label>
                   <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">{createState.categorySlug === "pizzas" ? "Valor del sabor *" : "Precio *"}</span>
+                    <span className="text-[12px] font-bold text-neutral-800">{createState.categorySlug === "pizzas" ? (createState.productType === "PIZZA_CUSTOM" ? "Precio por ingrediente *" : "Valor del sabor *") : "Precio *"}</span>
                     <input value={createState.basePrice} onChange={(event) => setCreateState({ ...createState, basePrice: event.target.value })} inputMode="numeric" className="alento-input w-full rounded-xl px-4 py-3 text-sm" placeholder={createState.categorySlug === "ingredientes" ? "5000" : ""} />
                   </label>
                   <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
                     <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-neutral-400">Comportamiento</span>
-                    <p className="mt-1 text-[10.5px] leading-4 text-neutral-600">
-                      {createState.categorySlug === "pizzas"
-                        ? "En el POS se sumará el tamaño Personal (" + formatCOP(minPizzaSizePrice) + ")."
-                        : createState.categorySlug === "ingredientes"
+                    {createState.categorySlug === "pizzas" ? (
+                      <div className="mt-2">
+                        <select
+                          value={createState.productType}
+                          onChange={(event) =>
+                            setCreateState({
+                              ...createState,
+                              productType: event.target.value as "PIZZA_SINGLE" | "PIZZA_CUSTOM",
+                              basePrice:
+                                event.target.value === "PIZZA_CUSTOM"
+                                  ? createState.basePrice || "5000"
+                                  : createState.basePrice,
+                            })
+                          }
+                          className="alento-input w-full rounded-xl px-3 py-2.5 text-sm font-bold"
+                        >
+                          <option value="PIZZA_SINGLE">Pizza de sabor</option>
+                          <option value="PIZZA_CUSTOM">Arma Tu Pizza</option>
+                        </select>
+                        <p className="mt-2 text-[10.5px] leading-4 text-neutral-600">
+                          {createState.productType === "PIZZA_CUSTOM"
+                            ? "Usa tamaños y bordes existentes. El precio base será el valor por ingrediente."
+                            : "En el POS se suma tamaño + valor del sabor + borde + adicionales."}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-[10.5px] leading-4 text-neutral-600">
+                        {createState.categorySlug === "ingredientes"
                           ? "Se creará como ingrediente adicional, no como producto independiente."
                           : "Producto estándar con precio fijo."}
-                    </p>
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
