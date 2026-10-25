@@ -681,7 +681,7 @@ export default function AppShell({
       <aside className="relative hidden border-r border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <div
           className={`relative flex min-h-[82px] items-start justify-between py-3.5 pb-3.5 pt-4 ${
-            sidebarCollapsed ? "px-[18px]" : "px-4"
+            sidebarCollapsed ? "px-[18px]" : "pl-3 pr-11"
           }`}
         >
           <Link href={staffHomeHref} className="block min-w-0">
@@ -690,7 +690,7 @@ export default function AppShell({
                 sidebarCollapsed ? "justify-center" : ""
               }`}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)]">
                 <img
                   src={LOGO_DARK}
                   alt="Alentó Pizza"
@@ -705,11 +705,11 @@ export default function AppShell({
                     : "w-auto opacity-100"
                 }`}
               >
-                <p className="whitespace-nowrap text-[16px] font-semibold leading-5 tracking-[-0.02em] text-white">
-                  Alentó Pizza
+                <p className="max-w-[90px] truncate whitespace-nowrap text-[13px] font-semibold leading-5 tracking-[-0.02em] text-white">
+                  {currentItem?.label || "Cocina"}
                 </p>
-                <p className="mt-1 max-w-[120px] whitespace-nowrap text-[10px] font-normal leading-[14px] text-white/45">
-                  Sabor Que Te Hace Volver.
+                <p className="mt-0.5 max-w-[90px] truncate whitespace-nowrap text-[9px] font-normal leading-[14px] text-white/45">
+                  Alentó Pizza
                 </p>
               </div>
             </div>
