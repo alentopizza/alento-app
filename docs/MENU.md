@@ -294,6 +294,35 @@ El editor permite cambiar:
 - imagen principal;
 - imagen secundaria.
 
+### Imágenes oficiales del producto
+
+Las imágenes ya no se administran pegando URLs desde la interfaz.
+
+Flujo vigente:
+
+1. si el producto tiene una URL histórica externa, se sigue mostrando sin migración forzada;
+2. ADMIN selecciona una imagen JPG, PNG o WebP desde el dispositivo;
+3. `POST /api/product-images` guarda el archivo binario en PostgreSQL;
+4. se crea una ruta interna `/api/product-images/[id]`;
+5. `Product.imageUrl` o `Product.imageUrl2` pasa inmediatamente a esa ruta interna;
+6. la imagen cargada se convierte en la fuente oficial del producto;
+7. al reemplazar otra imagen interna del mismo slot se elimina la anterior;
+8. al eliminar un producto, sus imágenes internas se eliminan por relación `onDelete: Cascade`.
+
+Límite actual: **8 MB** por imagen.
+
+Formatos admitidos:
+
+- JPG/JPEG;
+- PNG;
+- WebP.
+
+La carga/reemplazo en productos existentes se guarda inmediatamente y no depende del botón **Guardar cambios** del formulario. Ese botón sigue aplicando nombre, descripción, precio y demás propiedades.
+
+Para productos nuevos, los archivos pueden seleccionarse antes de crear. El producto se crea primero y las imágenes seleccionadas se cargan automáticamente después de obtener su ID.
+
+Las URLs históricas siguen siendo compatibles únicamente para no romper imágenes actuales. No volver a exponer campos de URL como flujo normal de administración.
+
 El editor muestra vista previa de las imágenes y del precio.
 
 Los estados Activo/Visible/Destacado se administran desde el popup principal, no desde el formulario de información.
