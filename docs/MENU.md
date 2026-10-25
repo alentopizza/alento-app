@@ -81,6 +81,23 @@ Campos relevantes:
 - `featured`;
 - `sortOrder`.
 
+### ProductImage
+
+Las imágenes cargadas desde Alentó se almacenan en `ProductImage`:
+
+- `id`;
+- `productId`;
+- `slot` (`MAIN` o `SECONDARY`);
+- `filename`;
+- `contentType`;
+- `data` (`Bytes`);
+- `sizeBytes`;
+- `createdAt`.
+
+`Product.storedImages` mantiene la relación y usa `onDelete: Cascade` para no dejar binarios huérfanos cuando un producto se elimina.
+
+`imageUrl` e `imageUrl2` siguen siendo los campos consumidos por el catálogo/POS; cuando la imagen es interna apuntan a `/api/product-images/[id]`.
+
 ## Tipos de producto vigentes
 
 El enum de Prisma actual es:
