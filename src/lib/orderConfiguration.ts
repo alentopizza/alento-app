@@ -32,6 +32,39 @@ export type PizzaOrderConfiguration = {
   modifiers: PizzaModifierSnapshot[];
 };
 
+
+export type CustomPizzaMode = "WHOLE" | "HALF_HALF";
+
+export type CustomPizzaIngredientSnapshot = {
+  productId: number;
+  name: string;
+  unitPrice: number;
+};
+
+export type CustomPizzaOrderConfiguration = {
+  schemaVersion: 1;
+  kind: "PIZZA_CUSTOM";
+  productId: number;
+  productName: string;
+  size: {
+    id: number;
+    name: string;
+    diameterCm: number;
+    basePrice: number;
+  };
+  crust: {
+    id: number;
+    name: string;
+    price: number;
+  };
+  mode: CustomPizzaMode;
+  ingredientUnitPrice: number;
+  wholeIngredients: CustomPizzaIngredientSnapshot[];
+  firstHalfIngredients: CustomPizzaIngredientSnapshot[];
+  secondHalfIngredients: CustomPizzaIngredientSnapshot[];
+  billableIngredientCount: number;
+};
+
 export type ComboPizzaSnapshot = {
   ruleId: number;
   size: {
@@ -82,6 +115,7 @@ export type StandardOrderConfiguration = {
 
 export type OrderLineConfiguration =
   | PizzaOrderConfiguration
+  | CustomPizzaOrderConfiguration
   | ComboOrderConfiguration
   | StandardOrderConfiguration;
 
