@@ -125,6 +125,12 @@ export default async function CategorySeoPage({ params }: PageProps) {
       return Number(smallestPizzaSize.basePrice) + base;
     }
 
+    if (product.type === "PIZZA_CUSTOM") {
+      return smallestPizzaSize
+        ? Number(smallestPizzaSize.basePrice)
+        : null;
+    }
+
     return base;
   }
 
@@ -283,7 +289,7 @@ export default async function CategorySeoPage({ params }: PageProps) {
                   {displayProductPrice(product) != null &&
                     Number(displayProductPrice(product)) > 0 && (
                       <b className="mt-3 block text-[13px] text-[#ff3439]">
-                        {product.type === "PIZZA_SINGLE" ? "Desde " : ""}
+                        {product.type === "PIZZA_SINGLE" || product.type === "PIZZA_CUSTOM" ? "Desde " : ""}
                         {money(Number(displayProductPrice(product)))}
                       </b>
                     )}
