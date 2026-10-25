@@ -420,3 +420,25 @@ Al guardar una edición de un pedido DELIVERY:
 5. se actualiza `deliveryFee` server-side.
 
 No reintroducir selectores manuales de tarifa/zona en la edición.
+
+## Arma Tu Pizza
+
+El POS reconoce `Product.type = PIZZA_CUSTOM` y abre el asistente compartido `CustomPizzaConfigurator`.
+
+Flujo obligatorio:
+
+```text
+Tamaño
+→ Borde
+→ Completa / Mitad y mitad
+→ Ingredientes
+```
+
+Para Mitad y mitad se muestran dos pasos de ingredientes. El valor cobrable usa la mitad con mayor cantidad de ingredientes.
+
+La misma configuración se usa en el menú público, por lo que cliente y colaborador aplican la misma regla de precio.
+
+El carrito permite volver a abrir una `PIZZA_CUSTOM` y modificar su configuración antes del checkout.
+
+El backend recalcula el precio en `src/lib/orderLineNormalizer.ts`; nunca confiar en el subtotal enviado por el navegador.
+
