@@ -9,6 +9,14 @@ type ProductImageSlot = "MAIN" | "SECONDARY";
 type ComboOption = { id?: number; productId: number; productName?: string; quantity: number; priceDelta: number };
 type ComboGroup = { id?: number; kind: string; name: string; minSelections: number; maxSelections: number; options: ComboOption[] };
 type ComboPizzaRule = { id?: number; quantity: number; sizeIds: number[]; flavorIds: number[] };
+type IngredientGroup = {
+  id: number;
+  name: string;
+  slug: string;
+  active: boolean;
+  sortOrder: number;
+};
+
 type Product = {
   id: number;
   categoryId: number;
@@ -22,6 +30,7 @@ type Product = {
   visibleInPos: boolean;
   featured: boolean;
   sortOrder: number;
+  ingredientGroupId: number | null;
   comboDiscount?: number | null;
   comboRegularMin?: number | null;
   comboRegularMax?: number | null;
@@ -32,7 +41,11 @@ type Product = {
 };
 type Category = { id: number; name: string; slug: string; active: boolean; visibleInPos: boolean; sortOrder: number; products: Product[] };
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
-type MenuResponse = { categories: Category[]; sizes: PizzaSize[] };
+type MenuResponse = {
+  categories: Category[];
+  sizes: PizzaSize[];
+  ingredientGroups: IngredientGroup[];
+};
 type EditorState = {
   id: number;
   name: string;
@@ -44,8 +57,16 @@ type EditorState = {
   visibleInPos: boolean;
   featured: boolean;
   type: ProductType;
+  ingredientGroupId: number | null;
 };
-type CreateState = { categorySlug: string; name: string; description: string; basePrice: string; productType: "PIZZA_SINGLE" | "PIZZA_CUSTOM" };
+type CreateState = {
+  categorySlug: string;
+  name: string;
+  description: string;
+  basePrice: string;
+  productType: "PIZZA_SINGLE" | "PIZZA_CUSTOM";
+  ingredientGroupId: number | null;
+};
 type ComboState = {
   id?: number;
   name: string;
@@ -275,6 +296,16 @@ export default function MenuPage() {
   const [notice, setNotice] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
+  const [ingredientGroupFilter, setIngredientGroupFilter] = useState<
+    number | "ALL" | "UNGROUPED"
+  >("ALL");
+  const [ingredientGroupEditor, setIngredientGroupEditor] = useState<{
+    id?: number;
+    name: string;
+    active: boolean;
+  } | null>(null);
+  const [savingIngredientGroup, setSavingIngredientGroup] = useState(false);
+  const [ingredientGroupError, setIngredientGroupError] = useState("");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [imageBusy, setImageBusy] = useState<string | null>(null);
@@ -310,7 +341,14 @@ export default function MenuPage() {
       const categories = [...(result.categories ?? [])].sort((a: Category, b: Category) =>
         a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es"),
       );
-      setData({ categories, sizes: result.sizes ?? [] });
+      setData({
+        categories,
+        sizes: result.sizes ?? [],
+        ingredientGroups: [...(result.ingredientGroups ?? [])].sort(
+          (a: IngredientGroup, b: IngredientGroup) =>
+            a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "es"),
+        ),
+      });
       if (!preserveCategory || activeCategoryId == null || !categories.some((category: Category) => category.id === activeCategoryId)) {
         setActiveCategoryId(categories[0]?.id ?? null);
       }
@@ -342,10 +380,25 @@ export default function MenuPage() {
 
   const visibleProducts = useMemo(() => {
     const value = query.trim().toLowerCase();
-    const products = activeCategory?.products ?? [];
+    let products = activeCategory?.products ?? [];
+
+    if (activeCategory?.slug === "ingredientes") {
+      if (ingredientGroupFilter === "UNGROUPED") {
+        products = products.filter((product) => !product.ingredientGroupId);
+      } else if (ingredientGroupFilter !== "ALL") {
+        products = products.filter(
+          (product) => product.ingredientGroupId === ingredientGroupFilter,
+        );
+      }
+    }
+
     if (!value) return products;
-    return products.filter((product) => product.name.toLowerCase().includes(value) || product.description?.toLowerCase().includes(value));
-  }, [activeCategory, query]);
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(value) ||
+        product.description?.toLowerCase().includes(value),
+    );
+  }, [activeCategory, ingredientGroupFilter, query]);
 
   const pizzas = useMemo(() => {
     const category = data?.categories.find((item) => item.slug === "pizzas");
@@ -493,6 +546,7 @@ export default function MenuPage() {
       visibleInPos: product.visibleInPos,
       featured: product.featured,
       type: product.type,
+      ingredientGroupId: product.ingredientGroupId ?? null,
     });
   }
 
@@ -514,6 +568,9 @@ export default function MenuPage() {
           imageUrl2: editor.imageUrl2,
           ...(editor.type === "PIZZA_SINGLE" || editor.type === "PIZZA_CUSTOM"
             ? { type: editor.type }
+            : {}),
+          ...(editor.type === "MODIFIER"
+            ? { ingredientGroupId: editor.ingredientGroupId }
             : {}),
           active: editor.active,
           visibleInPos: editor.visibleInPos,
@@ -822,6 +879,10 @@ export default function MenuPage() {
       description: "",
       basePrice: category.slug === "ingredientes" ? "5000" : "",
       productType: "PIZZA_SINGLE",
+      ingredientGroupId:
+        category.slug === "ingredientes"
+          ? data?.ingredientGroups.find((group) => group.active)?.id ?? null
+          : null,
     });
   }
 
