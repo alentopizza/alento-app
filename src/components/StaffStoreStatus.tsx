@@ -46,8 +46,10 @@ function createAudioContext() {
 
 export default function StaffStoreStatus({
   sidebarCollapsed = false,
+  mobileMenuOpen = false,
 }: {
   sidebarCollapsed?: boolean;
+  mobileMenuOpen?: boolean;
 }) {
   const [status, setStatus] = useState<StoreStatus | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -203,6 +205,12 @@ export default function StaffStoreStatus({
     };
   }, []);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) {
+      setDetailsOpen(false);
+    }
+  }, [mobileMenuOpen]);
+
   function toggleSound() {
     const next = !soundEnabled;
     soundEnabledRef.current = next;
@@ -222,7 +230,10 @@ export default function StaffStoreStatus({
     <>
       <div
         className={
-          "fixed left-1/2 top-[74px] z-[155] -translate-x-1/2 " +
+          (mobileMenuOpen
+            ? "fixed left-3 top-[150px] z-[225] w-[calc(88vw-24px)] max-w-[316px] translate-x-0 "
+            : "hidden ") +
+          "sm:fixed sm:left-1/2 sm:top-[74px] sm:z-[155] sm:block sm:w-auto sm:-translate-x-1/2 " +
           "lg:bottom-[126px] lg:left-0 lg:top-auto lg:translate-x-0 " +
           (sidebarCollapsed
             ? "lg:w-[84px] lg:px-3"
@@ -234,6 +245,7 @@ export default function StaffStoreStatus({
           onClick={() => setDetailsOpen((current) => !current)}
           className={
             "flex min-h-[42px] items-center gap-2 rounded-[14px] border border-white/55 bg-[#0b0b0c]/96 px-2.5 py-2 text-white shadow-[0_12px_30px_rgba(0,0,0,.32),0_0_0_1px_rgba(255,255,255,.08)] backdrop-blur-xl transition hover:border-white/75 hover:bg-[#111113] " +
+            (mobileMenuOpen ? "w-full " : "") +
             (sidebarCollapsed
               ? "lg:w-full lg:justify-center lg:px-0"
               : "lg:w-full")
@@ -295,7 +307,16 @@ export default function StaffStoreStatus({
         </button>
 
         {detailsOpen && (
-          <section className="absolute left-1/2 mt-2 w-[min(92vw,330px)] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:bottom-0 lg:left-full lg:ml-2 lg:mt-0 lg:w-[330px] lg:translate-x-0">
+          <section
+            className={
+              (mobileMenuOpen
+                ? "absolute left-0 mt-2 w-full translate-x-0 "
+                : "absolute left-1/2 mt-2 w-[min(92vw,330px)] -translate-x-1/2 ") +
+              "overflow-hidden rounded-[18px] border border-white/10 bg-[#0b0b0c] text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] " +
+              "sm:left-1/2 sm:w-[min(92vw,330px)] sm:-translate-x-1/2 " +
+              "lg:bottom-0 lg:left-full lg:ml-2 lg:mt-0 lg:w-[330px] lg:translate-x-0"
+            }
+          >
             <div
               className={
                 "border-b px-4 py-3.5 " +
@@ -403,7 +424,7 @@ export default function StaffStoreStatus({
       </div>
 
       {openingToast && (
-        <div className="fixed left-1/2 top-[126px] z-[160] w-[min(92vw,350px)] -translate-x-1/2 rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] lg:top-[66px]">
+        <div className="fixed left-1/2 top-[126px] z-[160] hidden w-[min(92vw,350px)] -translate-x-1/2 rounded-[18px] border border-emerald-400/20 bg-[#0b0b0c] p-3.5 text-white shadow-[0_24px_70px_rgba(0,0,0,.42)] sm:block lg:top-[66px]">
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-emerald-400/15 bg-emerald-400/10 text-emerald-300">
               <BellRing className="h-5 w-5" />
