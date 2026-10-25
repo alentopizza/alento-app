@@ -5,14 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000",
+    "start": "prisma db push && node scripts/backfill-driver-earnings.js && node scripts/backfill-ingredient-groups.js && next start -p 3000",
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "catalog:seed": "node scripts/seed-catalog.js",
     "push:keys": "web-push generate-vapid-keys",
-    "drivers:backfill-earnings": "node scripts/backfill-driver-earnings.js"
+    "drivers:backfill-earnings": "node scripts/backfill-driver-earnings.js",
+    "ingredients:backfill-groups": "node scripts/backfill-ingredient-groups.js"
   },
   "dependencies": {
     "@prisma/client": "6.15.0",
