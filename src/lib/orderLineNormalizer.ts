@@ -148,6 +148,133 @@ async function normalizePizzaLine(
   };
 }
 
+async function normalizeCustomPizzaLine(
+  product: NonNullable<Awaited<ReturnType<typeof prisma.product.findUnique>>>,
+  quantity: number,
+  configuration: unknown,
+): Promise<NormalizedOrderLine> {
+  if (
+    !isRecord(configuration) ||
+    String(configuration.kind).toUpperCase() !== "PIZZA_CUSTOM"
+  ) {
+    throw new Error(`${product.name} necesita configuración estructurada de Arma Tu Pizza.`);
+  }
+
+  const sizeRaw = isRecord(configuration.size) ? configuration.size : null;
+  const sizeId = numberId(sizeRaw?.id);
+  if (!sizeId) throw new Error(`${product.name}: tamaño inválido.`);
+
+  const size = await prisma.pizzaSize.findFirst({
+    where: { id: sizeId, active: true },
+  });
+  if (!size) {
+    throw new Error(`${product.name}: el tamaño seleccionado ya no está disponible.`);
+  }
+
+  const crustRaw = isRecord(configuration.crust) ? configuration.crust : null;
+  const crustId = numberId(crustRaw?.id);
+  if (!crustId) throw new Error(`${product.name}: borde inválido.`);
+
+  const crust = await prisma.pizzaCrust.findFirst({
+    where: { id: crustId, active: true },
+    include: { prices: { where: { sizeId: size.id } } },
+  });
+  if (!crust || !crust.prices[0]) {
+    throw new Error(`${product.name}: el borde no tiene precio para ese tamaño.`);
+  }
+
+  const mode = String(configuration.mode ?? "").toUpperCase();
+  if (mode !== "WHOLE" && mode !== "HALF_HALF") {
+    throw new Error(`${product.name}: selecciona completa o mitad y mitad.`);
+  }
+
+  const idsFrom = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+    const ids = value
+      .map((item) => (isRecord(item) ? numberId(item.productId) : numberId(item)))
+      .filter((id): id is number => Boolean(id));
+    return [...new Set(ids)];
+  };
+
+  const wholeIds = mode === "WHOLE" ? idsFrom(configuration.wholeIngredients) : [];
+  const firstHalfIds =
+    mode === "HALF_HALF" ? idsFrom(configuration.firstHalfIngredients) : [];
+  const secondHalfIds =
+    mode === "HALF_HALF" ? idsFrom(configuration.secondHalfIngredients) : [];
+
+  const allIds = [...new Set([...wholeIds, ...firstHalfIds, ...secondHalfIds])];
+  const ingredients = allIds.length
+    ? await prisma.product.findMany({
+        where: {
+          id: { in: allIds },
+          active: true,
+          type: "MODIFIER",
+          category: { slug: "ingredientes" },
+        },
+      })
+    : [];
+
+  if (ingredients.length !== allIds.length) {
+    throw new Error(`${product.name}: uno de los ingredientes ya no está disponible.`);
+  }
+
+  const ingredientUnitPrice = money(Number(product.basePrice ?? 0));
+  const snapshotList = (ids: number[]) =>
+    ids.map((id) => {
+      const ingredient = ingredients.find((item) => item.id === id)!;
+      return {
+        productId: ingredient.id,
+        name: ingredient.name,
+        unitPrice: ingredientUnitPrice,
+      };
+    });
+
+  const wholeIngredients = snapshotList(wholeIds);
+  const firstHalfIngredients = snapshotList(firstHalfIds);
+  const secondHalfIngredients = snapshotList(secondHalfIds);
+  const billableIngredientCount =
+    mode === "WHOLE"
+      ? wholeIngredients.length
+      : Math.max(firstHalfIngredients.length, secondHalfIngredients.length);
+
+  const crustPrice = money(Number(crust.prices[0].price));
+  const unitPrice =
+    money(Number(size.basePrice)) +
+    crustPrice +
+    billableIngredientCount * ingredientUnitPrice;
+
+  return {
+    product: product as NormalizedOrderLine["product"],
+    quantity,
+    unitPrice,
+    lineTotal: unitPrice * quantity,
+    eligible: product.couponEligible,
+    configuration: {
+      schemaVersion: 1,
+      kind: "PIZZA_CUSTOM",
+      productId: product.id,
+      productName: product.name,
+      size: {
+        id: size.id,
+        name: size.name,
+        diameterCm: size.diameterCm,
+        basePrice: money(Number(size.basePrice)),
+      },
+      crust: {
+        id: crust.id,
+        name: crust.name,
+        price: crustPrice,
+      },
+      mode,
+      ingredientUnitPrice,
+      wholeIngredients,
+      firstHalfIngredients,
+      secondHalfIngredients,
+      billableIngredientCount,
+    },
+  };
+}
+
 async function normalizeComboLine(
   product: NonNullable<Awaited<ReturnType<typeof prisma.product.findUnique>>>,
   quantity: number,
@@ -306,6 +433,9 @@ export async function normalizeOrderLine(line: OrderLineInput): Promise<Normaliz
 
   if (product.type === "PIZZA_SINGLE" || product.type === "PIZZA_TWO_FLAVORS") {
     return normalizePizzaLine(product, quantity, line.configuration);
+  }
+  if (product.type === "PIZZA_CUSTOM") {
+    return normalizeCustomPizzaLine(product, quantity, line.configuration);
   }
   if (product.type === "COMBO") {
     return normalizeComboLine(product, quantity, line.configuration);
