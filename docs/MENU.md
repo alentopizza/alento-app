@@ -326,9 +326,18 @@ Flujo vigente:
 7. al reemplazar otra imagen interna del mismo slot se elimina la anterior;
 8. al eliminar un producto, sus imágenes internas se eliminan por relación `onDelete: Cascade`.
 
-Límite actual: **8 MB** por imagen.
+Límite de entrada: **8 MB** por imagen.
 
-Formatos admitidos:
+Antes de persistir, el backend usa `sharp` para:
+
+- corregir orientación EXIF;
+- limitar el lado mayor a 1600 px sin ampliar imágenes pequeñas;
+- convertir a WebP;
+- guardar con calidad 84.
+
+Esto evita almacenar archivos originales innecesariamente pesados en PostgreSQL y mantiene un formato uniforme para catálogo/POS.
+
+Formatos de entrada admitidos:
 
 - JPG/JPEG;
 - PNG;
