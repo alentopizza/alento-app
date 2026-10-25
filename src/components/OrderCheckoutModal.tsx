@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   ComboOrderConfiguration,
+  CustomPizzaOrderConfiguration,
   OrderLineConfiguration,
   PizzaOrderConfiguration,
 } from "@/lib/orderConfiguration";
-import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
+import { presentComboOrderConfiguration, presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import {
   scheduledServiceWindow,
   validateScheduledServiceHours,
@@ -155,7 +156,14 @@ function cashSuggestions(total: number) {
 function orderConfiguration(value: unknown): OrderLineConfiguration | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const kind = (value as { kind?: unknown }).kind;
-  if (kind === "PIZZA" || kind === "COMBO" || kind === "STANDARD") return value as OrderLineConfiguration;
+  if (
+    kind === "PIZZA" ||
+    kind === "PIZZA_CUSTOM" ||
+    kind === "COMBO" ||
+    kind === "STANDARD"
+  ) {
+    return value as OrderLineConfiguration;
+  }
   return null;
 }
 
@@ -171,7 +179,14 @@ function CheckoutSpec({ label, value }: { label: string; value: string }) {
 function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boolean }) {
   const configuration = orderConfiguration(item.configuration);
   const pizza = configuration?.kind === "PIZZA" ? configuration as PizzaOrderConfiguration : null;
+  const customPizza =
+    configuration?.kind === "PIZZA_CUSTOM"
+      ? (configuration as CustomPizzaOrderConfiguration)
+      : null;
   const combo = configuration?.kind === "COMBO" ? configuration as ComboOrderConfiguration : null;
+  const customPizzaDetails = customPizza
+    ? presentOrderItemConfiguration(customPizza)
+    : [];
   const comboPresentation = combo
     ? presentComboOrderConfiguration(combo)
     : null;
@@ -211,6 +226,40 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {customPizza && (
+        <div className="checkout-product-details">
+          <div className="checkout-product-specs">
+            {customPizzaDetails
+              .filter((detail) =>
+                ["Tamaño", "Borde", "Forma"].includes(detail.label),
+              )
+              .map((detail) => (
+                <CheckoutSpec
+                  key={detail.label}
+                  label={detail.label}
+                  value={detail.value}
+                />
+              ))}
+          </div>
+          <div className="checkout-product-extras">
+            <span>Ingredientes</span>
+            <div>
+              {customPizzaDetails
+                .filter((detail) =>
+                  ["Ingredientes", "Mitad 1", "Mitad 2"].includes(
+                    detail.label,
+                  ),
+                )
+                .map((detail) => (
+                  <em key={detail.label}>
+                    {detail.label}: {detail.value}
+                  </em>
+                ))}
+            </div>
+          </div>
         </div>
       )}
 
