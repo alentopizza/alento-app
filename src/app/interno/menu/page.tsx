@@ -1763,36 +1763,52 @@ export default function MenuPage() {
                   </section>
 
                   <section className="rounded-[22px] border border-neutral-200 bg-white p-4.5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">Recursos visuales</p>
                         <h3 className="mt-1 text-[16px] font-semibold text-neutral-950">Imágenes del producto</h3>
+                        <p className="mt-1 text-[10px] leading-4 text-neutral-500">
+                          Las imágenes nuevas se guardan en Alentó y reemplazan la URL externa como fuente oficial.
+                        </p>
                       </div>
-                      <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500">URLs</span>
+                      <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                        Almacenamiento propio
+                      </span>
                     </div>
 
                     <div className="mt-4 grid gap-3">
-                      <label className="space-y-1.5">
-                        <span className="text-[11px] font-semibold text-neutral-700">Imagen principal</span>
-                        <input
-                          value={editor.imageUrl}
-                          onChange={(event) => setEditor({ ...editor, imageUrl: event.target.value })}
-                          className="alento-input w-full rounded-xl px-4 py-3 text-[11px]"
-                          placeholder="https://..."
-                        />
-                      </label>
-                      <label className="space-y-1.5">
-                        <span className="text-[11px] font-semibold text-neutral-700">Imagen secundaria</span>
-                        <input
-                          value={editor.imageUrl2}
-                          onChange={(event) => setEditor({ ...editor, imageUrl2: event.target.value })}
-                          className="alento-input w-full rounded-xl px-4 py-3 text-[11px]"
-                          placeholder="https://..."
-                        />
-                      </label>
+                      <ExistingProductImageControl
+                        label="Imagen principal"
+                        productId={editor.id}
+                        slot="MAIN"
+                        url={editor.imageUrl}
+                        busy={imageBusy === `${editor.id}:MAIN`}
+                        onUpload={(productId, slot, file) =>
+                          void handleProductImageUpload(productId, slot, file)
+                        }
+                        onRemove={(productId, slot) =>
+                          void handleProductImageRemove(productId, slot)
+                        }
+                      />
+                      <ExistingProductImageControl
+                        label="Imagen secundaria"
+                        productId={editor.id}
+                        slot="SECONDARY"
+                        url={editor.imageUrl2}
+                        busy={imageBusy === `${editor.id}:SECONDARY`}
+                        onUpload={(productId, slot, file) =>
+                          void handleProductImageUpload(productId, slot, file)
+                        }
+                        onRemove={(productId, slot) =>
+                          void handleProductImageRemove(productId, slot)
+                        }
+                      />
                     </div>
-                  </section>
-                </div>
+
+                    <p className="alento-ui-micro mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sky-700">
+                      La carga o eliminación de imágenes se guarda inmediatamente. “Guardar cambios” aplica al nombre, descripción y precio.
+                    </p>
+                  </section>                </div>
               </div>
             </div>
 
@@ -1877,16 +1893,28 @@ export default function MenuPage() {
               </section>
 
               <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
-                <div className="mt-3 grid gap-3">
-                  <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">Imagen principal · URL</span>
-                    <input value={createState.imageUrl} onChange={(event) => setCreateState({ ...createState, imageUrl: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className="text-[12px] font-bold text-neutral-800">Imagen secundaria · URL</span>
-                    <input value={createState.imageUrl2} onChange={(event) => setCreateState({ ...createState, imageUrl2: event.target.value })} className="alento-input w-full rounded-xl px-4 py-3 text-sm" />
-                  </label>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-400">Imágenes del producto</p>
+                  <h3 className="mt-1 text-[15px] font-bold text-neutral-900">Carga desde tu dispositivo</h3>
+                  <p className="mt-1 text-[10px] text-neutral-500">
+                    Se guardarán automáticamente en Alentó después de crear el producto.
+                  </p>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <PendingProductImageControl
+                    label="Imagen principal"
+                    file={createImageFiles.MAIN}
+                    onChange={(file) =>
+                      setCreateImageFiles((current) => ({ ...current, MAIN: file }))
+                    }
+                  />
+                  <PendingProductImageControl
+                    label="Imagen secundaria"
+                    file={createImageFiles.SECONDARY}
+                    onChange={(file) =>
+                      setCreateImageFiles((current) => ({ ...current, SECONDARY: file }))
+                    }
+                  />
                 </div>
               </section>
 
@@ -1954,8 +1982,58 @@ export default function MenuPage() {
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Nombre *</span><input value={comboState.name} onChange={(event) => setComboState({ ...comboState, name: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
                     <label className="space-y-1.5 md:col-span-2"><span className="text-sm font-bold">Descripción</span><textarea value={comboState.description} onChange={(event) => setComboState({ ...comboState, description: event.target.value })} className="alento-input min-h-20 w-full rounded-2xl px-4 py-3" /></label>
-                    <label className="space-y-1.5"><span className="text-sm font-bold">Imagen principal · URL</span><input value={comboState.imageUrl} onChange={(event) => setComboState({ ...comboState, imageUrl: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
-                    <label className="space-y-1.5"><span className="text-sm font-bold">Imagen secundaria · URL</span><input value={comboState.imageUrl2} onChange={(event) => setComboState({ ...comboState, imageUrl2: event.target.value })} className="alento-input w-full rounded-2xl px-4 py-3" /></label>
+                    <div className="md:col-span-2">
+                      <p className="alento-ui-label mb-2 uppercase tracking-[0.08em] text-neutral-500">Imágenes del combo</p>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {comboState.id ? (
+                          <>
+                            <ExistingProductImageControl
+                              label="Imagen principal"
+                              productId={comboState.id}
+                              slot="MAIN"
+                              url={comboState.imageUrl}
+                              busy={imageBusy === `${comboState.id}:MAIN`}
+                              onUpload={(productId, slot, file) =>
+                                void handleProductImageUpload(productId, slot, file)
+                              }
+                              onRemove={(productId, slot) =>
+                                void handleProductImageRemove(productId, slot)
+                              }
+                            />
+                            <ExistingProductImageControl
+                              label="Imagen secundaria"
+                              productId={comboState.id}
+                              slot="SECONDARY"
+                              url={comboState.imageUrl2}
+                              busy={imageBusy === `${comboState.id}:SECONDARY`}
+                              onUpload={(productId, slot, file) =>
+                                void handleProductImageUpload(productId, slot, file)
+                              }
+                              onRemove={(productId, slot) =>
+                                void handleProductImageRemove(productId, slot)
+                              }
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <PendingProductImageControl
+                              label="Imagen principal"
+                              file={comboImageFiles.MAIN}
+                              onChange={(file) =>
+                                setComboImageFiles((current) => ({ ...current, MAIN: file }))
+                              }
+                            />
+                            <PendingProductImageControl
+                              label="Imagen secundaria"
+                              file={comboImageFiles.SECONDARY}
+                              onChange={(file) =>
+                                setComboImageFiles((current) => ({ ...current, SECONDARY: file }))
+                              }
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </section>
 
