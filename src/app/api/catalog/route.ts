@@ -65,7 +65,15 @@ export async function GET() {
         include: { prices: true },
       }),
       prisma.product.findMany({
-        where: { active: true, type: "MODIFIER", category: { slug: "ingredientes" } },
+        where: {
+          active: true,
+          type: "MODIFIER",
+          category: { slug: "ingredientes" },
+          OR: [
+            { ingredientGroupId: null },
+            { ingredientGroup: { is: { active: true } } },
+          ],
+        },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         include: { ingredientGroup: true },
       }),
