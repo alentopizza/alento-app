@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import OrderCheckoutModal from "@/components/OrderCheckoutModal";
 import PosCartLine from "@/components/PosCartLine";
-import type { OrderLineConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
+import CustomPizzaConfigurator from "@/components/CustomPizzaConfigurator";
+import type { CustomPizzaOrderConfiguration, OrderLineConfiguration, StandardOrderConfiguration } from "@/lib/orderConfiguration";
 import {
   buildPizzaConfiguration,
   estimatePizzaPrice,
@@ -36,7 +37,7 @@ import CustomerPersonalEditor from "@/components/CustomerPersonalEditor";
 
 type CustomerAddress = { id: number; label: string | null; address: string; formattedAddress?: string | null; placeId?: string | null; latitude?: number | null; longitude?: number | null; neighborhood: string | null; city: string | null; notes: string | null; isDefault: boolean };
 type Customer = { id: number; name: string; countryCode: string; phone: string | null; email: string | null; notes: string | null; addresses: CustomerAddress[] };
-type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "PIZZA_CUSTOM" | "COMBO" | "MODIFIER" | "INTERNAL";
 type FulfillmentType = "DELIVERY" | "PICKUP" | "STORE";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
 type Modifier = { id: number; name: string; description: string | null; imageUrl: string | null; basePrice: number };
@@ -93,6 +94,10 @@ export default function StructuredPosPageV2() {
   const [searchMessage, setSearchMessage] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pizzaConfig, setPizzaConfig] = useState<PizzaConfig | null>(null);
+  const [customPizzaConfig, setCustomPizzaConfig] = useState<{
+    product: CatalogProduct;
+    configuration?: CustomPizzaOrderConfiguration | null;
+  } | null>(null);
   const [comboConfig, setComboConfig] = useState<ComboConfig | null>(null);
   const [editingCartKey, setEditingCartKey] = useState<string | null>(null);
   const [configError, setConfigError] = useState("");
@@ -297,6 +302,7 @@ export default function StructuredPosPageV2() {
       return `Desde ${formatCOP(minSize + (flavorPrices.length ? Math.min(...flavorPrices) : 0))}`;
     }
     if (product.type === "PIZZA_SINGLE") return `Desde ${formatCOP(minSize + (product.basePrice ?? 0))}`;
+    if (product.type === "PIZZA_CUSTOM") return `Desde ${formatCOP(minSize)}`;
     if (product.type === "COMBO") return product.comboDiscount ? `Ahorra ${formatCOP(product.comboDiscount)}` : "Configurable";
     return product.basePrice == null ? "Precio por definir" : formatCOP(product.basePrice);
   }
@@ -508,6 +514,10 @@ export default function StructuredPosPageV2() {
   function startAdd(product: CatalogProduct) {
     setEditingCartKey(null);
     setConfigError("");
+    if (product.type === "PIZZA_CUSTOM") {
+      setCustomPizzaConfig({ product, configuration: null });
+      return;
+    }
     if (product.type === "PIZZA_SINGLE" || isTwoFlavorPizza(product)) {
       setPizzaConfig({
         product,
@@ -530,6 +540,16 @@ export default function StructuredPosPageV2() {
 
   function editCartItem(item: CartItem) {
     setConfigError("");
+    if (item.configuration.kind === "PIZZA_CUSTOM") {
+      const product = findProduct(item.configuration.productId);
+      if (!product) return;
+      setEditingCartKey(item.key);
+      setCustomPizzaConfig({
+        product,
+        configuration: item.configuration,
+      });
+      return;
+    }
     if (item.configuration.kind === "PIZZA") {
       const product = findProduct(item.configuration.productId);
       if (!product) return;
@@ -1469,6 +1489,51 @@ export default function StructuredPosPageV2() {
             </form>
           </div>
         </div>
+      )}
+
+      {customPizzaConfig && catalog && (
+        <CustomPizzaConfigurator
+          product={customPizzaConfig.product}
+          catalog={catalog}
+          initialConfiguration={customPizzaConfig.configuration}
+          theme="light"
+          actionLabel={editingCartKey ? "Guardar cambios" : "Agregar al pedido"}
+          onClose={() => {
+            setCustomPizzaConfig(null);
+            setEditingCartKey(null);
+          }}
+          onConfirm={(result) => {
+            const nextItem = {
+              productId: customPizzaConfig.product.id,
+              name: customPizzaConfig.product.name,
+              detail: result.summary,
+              unitPrice: result.estimatedUnitPrice,
+              configuration: result.configuration,
+            };
+
+            setCart((current) => {
+              if (!editingCartKey) {
+                return [
+                  ...current,
+                  {
+                    key: `custom-pizza-${Date.now()}-${Math.random()}`,
+                    ...nextItem,
+                    quantity: 1,
+                  },
+                ];
+              }
+
+              return current.map((item) =>
+                item.key === editingCartKey
+                  ? { ...item, ...nextItem }
+                  : item,
+              );
+            });
+
+            setCustomPizzaConfig(null);
+            setEditingCartKey(null);
+          }}
+        />
       )}
 
       {pizzaConfig && catalog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"><div className="alento-card flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded-[26px]"><div className="flex items-center justify-between border-b px-5 py-4"><div><p className="text-[10px] font-black uppercase text-neutral-400">{editingCartKey ? "Editar pizza" : "Configurar pizza"}</p><h2 className="text-2xl font-black">{pizzaConfig.product.name}</h2></div><button onClick={closePizzaConfig} className="rounded-full bg-neutral-100 px-3 py-2 text-sm">Cerrar</button></div><div className="alento-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-5"><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between"><h3 className="font-black">Tamaño</h3><span className="text-[11px] text-neutral-400">Define precio base y borde</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.sizes.map((size) => <button key={size.id} onClick={() => updatePizzaSize(size.id)} className={`rounded-xl border p-3 text-left ${pizzaConfig.sizeId === size.id ? "bg-black text-white" : "bg-white"}`}><b>{size.name}</b><span className="block text-xs opacity-70">{size.diameterCm} cm</span></button>)}</div></section>{isTwoFlavorPizza(pizzaConfig.product) && <><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 1</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, firstFlavorId: flavor.id, secondFlavorId: pizzaConfig.secondFlavorId === flavor.id ? null : pizzaConfig.secondFlavorId })} className={`rounded-xl border p-3 text-left ${pizzaConfig.firstFlavorId === flavor.id ? "bg-black text-white" : "bg-white"}`}>{flavor.name}</button>)}</div></section><section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><h3 className="mb-2 font-black">Sabor 2</h3><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.pizzaFlavors.map((flavor) => <button key={flavor.id} disabled={pizzaConfig.firstFlavorId === flavor.id} onClick={() => setPizzaConfig({ ...pizzaConfig, secondFlavorId: flavor.id })} className={`rounded-xl border p-3 text-left ${pizzaConfig.secondFlavorId === flavor.id ? "bg-black text-white" : pizzaConfig.firstFlavorId === flavor.id ? "bg-neutral-100 text-neutral-300" : "bg-white"}`}>{flavor.name}</button>)}</div></section></>}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Borde</h3><span className="text-[11px] font-semibold text-neutral-400">Precio para {catalog.sizes.find((size) => size.id === pizzaConfig.sizeId)?.name ?? "tamaño seleccionado"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{catalog.crusts.map((crust) => { const price = crustPriceForSize(crust, pizzaConfig.sizeId); const selected = pizzaConfig.crustId === crust.id; const unavailable = price == null; return <button key={crust.id} disabled={unavailable} onClick={() => setPizzaConfig({ ...pizzaConfig, crustId: crust.id })} className={`flex min-h-[58px] items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-black bg-black text-white" : unavailable ? "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-300" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-sm">{crust.name}</b><span className={`mt-0.5 block text-xs ${selected ? "text-white/65" : unavailable ? "text-neutral-300" : "text-neutral-500"}`}>{unavailable ? "No disponible" : price === 0 ? "Incluido" : `+ ${formatCOP(price)}`}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black ${selected ? "border-white/30 bg-white text-black" : "border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : ""}</span></button>; })}</div></section>{!isTwoFlavorPizza(pizzaConfig.product) && (<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">Ingredientes extra</h3><span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-neutral-500">{pizzaConfig.modifierIds.length ? `${pizzaConfig.modifierIds.length} seleccionado${pizzaConfig.modifierIds.length === 1 ? "" : "s"}` : "Opcional"}</span></div><div className="grid grid-cols-2 gap-2 md:grid-cols-4">{catalog.modifiers.map((modifier) => { const selected = pizzaConfig.modifierIds.includes(modifier.id); return <button key={modifier.id} onClick={() => setPizzaConfig({ ...pizzaConfig, modifierIds: selected ? pizzaConfig.modifierIds.filter((id) => id !== modifier.id) : [...pizzaConfig.modifierIds, modifier.id] })} className={`flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left ${selected ? "border-[var(--brand-red)] bg-red-50 shadow-[0_4px_12px_rgba(229,28,17,0.08)]" : "border-neutral-300 bg-white hover:border-neutral-500"}`}><div className="min-w-0"><b className="block truncate text-[13px]">{modifier.name}</b><span className={`mt-0.5 block text-[11px] ${selected ? "font-semibold text-[var(--brand-red)]" : "text-neutral-500"}`}>+ {formatCOP(modifier.basePrice)}</span></div><span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-black ${selected ? "bg-[var(--brand-red)] text-white" : "border border-neutral-300 text-neutral-400"}`}>{selected ? "✓" : "+"}</span></button>; })}</div></section>)}<section className="rounded-2xl border border-neutral-200 bg-[#faf9f7] p-3.5"><div className="flex items-center justify-between gap-3"><div><h3 className="font-black">Nota para cocina</h3><p className="mt-0.5 text-[11px] text-neutral-400">Opcional · instrucción corta para esta pizza</p></div><span className="text-[10px] font-semibold text-neutral-400">{pizzaConfig.note.length}/120</span></div><input value={pizzaConfig.note} maxLength={120} onChange={(event) => setPizzaConfig({ ...pizzaConfig, note: event.target.value })} className="alento-input mt-2 w-full rounded-xl bg-white px-3.5 py-3 text-sm" placeholder="Ej. Ligera en salsa" /></section>{configError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{configError}</p>}</div><div className="flex items-center justify-between border-t p-4"><b className="text-2xl text-[var(--brand-red)]">{formatCOP(pizzaPrice(pizzaConfig))}</b><button onClick={confirmPizza} className="rounded-2xl bg-[var(--brand-red)] px-6 py-3 font-black text-white">{editingCartKey ? "Guardar cambios" : "Agregar al pedido"}</button></div></div></div>}
