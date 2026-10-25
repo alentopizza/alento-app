@@ -260,6 +260,19 @@ Ver `docs/CUSTOMERS.md`.
 
 Ruta: `/interno/menu`
 
+Capacidad vigente de imágenes:
+
+- productos y combos conservan compatibilidad con URLs históricas;
+- ADMIN puede cargar imagen principal/secundaria desde el dispositivo;
+- la nueva imagen se guarda de forma persistente en PostgreSQL mediante `ProductImage`;
+- al cargarla, `Product.imageUrl` / `imageUrl2` cambian a una ruta interna `/api/product-images/[id]`;
+- la imagen cargada pasa a ser la fuente oficial inmediatamente;
+- reemplazos internos eliminan la imagen anterior del mismo slot;
+- formatos admitidos: JPG, PNG y WebP, máximo 8 MB;
+- no se exponen campos de URL como flujo normal de administración.
+
+
+
 Incluye:
 
 - categorías horizontales;
