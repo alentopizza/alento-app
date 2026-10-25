@@ -512,7 +512,9 @@ export default function MenuPage() {
           basePrice: editor.basePrice,
           imageUrl: editor.imageUrl,
           imageUrl2: editor.imageUrl2,
-          type: editor.type,
+          ...(editor.type === "PIZZA_SINGLE" || editor.type === "PIZZA_CUSTOM"
+            ? { type: editor.type }
+            : {}),
           active: editor.active,
           visibleInPos: editor.visibleInPos,
           featured: editor.featured,
