@@ -77,10 +77,26 @@ async function uniqueCategorySlug(name: string) {
   return slug;
 }
 
+async function uniqueIngredientGroupSlug(name: string) {
+  const base = slugifyCategoryName(name) || "grupo";
+  let slug = base;
+  let suffix = 2;
+  while (
+    await prisma.ingredientGroup.findUnique({
+      where: { slug },
+      select: { id: true },
+    })
+  ) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return slug;
+}
+
 export async function GET() {
   await ensureCombosCategory();
 
-  const [categories, sizes, featuredProducts, featuredOrderSetting] = await Promise.all([
+  const [categories, sizes, ingredientGroups, featuredProducts, featuredOrderSetting] = await Promise.all([
     prisma.category.findMany({
       where: { slug: { not: "insumos" } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -106,6 +122,9 @@ export async function GET() {
     prisma.pizzaSize.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
+    }),
+    prisma.ingredientGroup.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.product.findMany({
       where: { featured: true, type: { notIn: ["MODIFIER", "INTERNAL"] } },
@@ -169,6 +188,7 @@ export async function GET() {
       visibleInPos: product.visibleInPos,
       featured: product.featured,
       sortOrder: product.sortOrder,
+      ingredientGroupId: product.ingredientGroupId,
       comboDiscount: product.type === "COMBO" ? comboDiscount : null,
       comboRegularMin: product.type === "COMBO" ? regularMin : null,
       comboRegularMax: product.type === "COMBO" ? regularMax : null,
@@ -210,11 +230,54 @@ export async function GET() {
       products: category.slug === "destacados" ? orderedFeaturedProducts.map(serializeProduct) : category.products.map(serializeProduct),
     })),
     sizes: sizes.map((size) => ({ id: size.id, name: size.name, diameterCm: size.diameterCm, basePrice: Number(size.basePrice) })),
+    ingredientGroups: ingredientGroups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      slug: group.slug,
+      active: group.active,
+      sortOrder: group.sortOrder,
+    })),
   });
 }
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json();
+
+  if (body.action === "updateIngredientGroup") {
+    const ingredientGroupId = Number(body.ingredientGroupId);
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+
+    if (!Number.isInteger(ingredientGroupId) || !name) {
+      return NextResponse.json(
+        { error: "Subcategoría de ingrediente inválida." },
+        { status: 400 },
+      );
+    }
+
+    const duplicate = await prisma.ingredientGroup.findFirst({
+      where: {
+        id: { not: ingredientGroupId },
+        name: { equals: name, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "Ya existe una subcategoría con ese nombre." },
+        { status: 409 },
+      );
+    }
+
+    const group = await prisma.ingredientGroup.update({
+      where: { id: ingredientGroupId },
+      data: {
+        name,
+        ...(typeof body.active === "boolean" ? { active: body.active } : {}),
+      },
+    });
+
+    return NextResponse.json({ ingredientGroup: group });
+  }
 
   if (body.action === "updateCategory") {
     const categoryId = Number(body.categoryId);
@@ -246,6 +309,45 @@ export async function PATCH(request: NextRequest) {
 
   const productId = Number(body.productId);
   if (!Number.isInteger(productId)) return NextResponse.json({ error: "Producto inválido." }, { status: 400 });
+
+  let ingredientGroupUpdate: { ingredientGroupId?: number | null } = {};
+  if (Object.prototype.hasOwnProperty.call(body, "ingredientGroupId")) {
+    const currentProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { category: { select: { slug: true } } },
+    });
+    if (!currentProduct) {
+      return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
+    }
+    if (
+      currentProduct.type !== "MODIFIER" ||
+      currentProduct.category.slug !== "ingredientes"
+    ) {
+      return NextResponse.json(
+        { error: "Solo los ingredientes pueden asignarse a una subcategoría." },
+        { status: 400 },
+      );
+    }
+
+    if (body.ingredientGroupId == null || body.ingredientGroupId === "") {
+      ingredientGroupUpdate = { ingredientGroupId: null };
+    } else {
+      const ingredientGroupId = Number(body.ingredientGroupId);
+      const group = Number.isInteger(ingredientGroupId)
+        ? await prisma.ingredientGroup.findUnique({
+            where: { id: ingredientGroupId },
+            select: { id: true },
+          })
+        : null;
+      if (!group) {
+        return NextResponse.json(
+          { error: "La subcategoría seleccionada ya no existe." },
+          { status: 400 },
+        );
+      }
+      ingredientGroupUpdate = { ingredientGroupId };
+    }
+  }
 
   let requestedType: "PIZZA_SINGLE" | "PIZZA_CUSTOM" | null = null;
   if (typeof body.type === "string") {
@@ -298,6 +400,7 @@ export async function PATCH(request: NextRequest) {
       ...(typeof body.visibleInPos === "boolean" ? { visibleInPos: body.visibleInPos } : {}),
       ...(typeof body.featured === "boolean" ? { featured: body.featured } : {}),
       ...(requestedType ? { type: requestedType } : {}),
+      ...ingredientGroupUpdate,
       ...(body.basePrice === null || body.basePrice === "" ? { basePrice: null } : Number.isFinite(Number(body.basePrice)) ? { basePrice: Number(body.basePrice) } : {}),
     },
   });
@@ -307,6 +410,42 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
+
+  if (body.action === "deleteIngredientGroup") {
+    const ingredientGroupId = Number(body.ingredientGroupId);
+    if (!Number.isInteger(ingredientGroupId)) {
+      return NextResponse.json(
+        { error: "Subcategoría inválida." },
+        { status: 400 },
+      );
+    }
+
+    const group = await prisma.ingredientGroup.findUnique({
+      where: { id: ingredientGroupId },
+      include: { _count: { select: { products: true } } },
+    });
+    if (!group) {
+      return NextResponse.json(
+        { error: "La subcategoría ya no existe." },
+        { status: 404 },
+      );
+    }
+    if (group._count.products > 0) {
+      return NextResponse.json(
+        {
+          error: `No puedes eliminar “${group.name}” porque tiene ${group._count.products} ingrediente(s) asignado(s). Reasígnalos primero.`,
+        },
+        { status: 409 },
+      );
+    }
+
+    await prisma.ingredientGroup.delete({ where: { id: ingredientGroupId } });
+    return NextResponse.json({
+      deleted: true,
+      ingredientGroupId,
+      name: group.name,
+    });
+  }
 
   if (body.action === "deleteCategory") {
     const categoryId = Number(body.categoryId);
@@ -389,6 +528,74 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
+
+  if (body.action === "createIngredientGroup") {
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) {
+      return NextResponse.json(
+        { error: "El nombre de la subcategoría es obligatorio." },
+        { status: 400 },
+      );
+    }
+
+    const duplicate = await prisma.ingredientGroup.findFirst({
+      where: { name: { equals: name, mode: "insensitive" } },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "Ya existe una subcategoría con ese nombre." },
+        { status: 409 },
+      );
+    }
+
+    const slug = await uniqueIngredientGroupSlug(name);
+    const maxOrder = await prisma.ingredientGroup.aggregate({
+      _max: { sortOrder: true },
+    });
+    const ingredientGroup = await prisma.ingredientGroup.create({
+      data: {
+        name,
+        slug,
+        active: true,
+        sortOrder: (maxOrder._max.sortOrder ?? 0) + 10,
+      },
+    });
+
+    return NextResponse.json({ ingredientGroup }, { status: 201 });
+  }
+
+  if (body.action === "reorderIngredientGroups") {
+    const ingredientGroupIds = uniqueIntegerArray(body.ingredientGroupIds);
+    const groups = await prisma.ingredientGroup.findMany({
+      select: { id: true },
+    });
+    const existingIds = groups.map((group) => group.id);
+
+    if (
+      ingredientGroupIds.length !== existingIds.length ||
+      existingIds.some((id) => !ingredientGroupIds.includes(id))
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "La lista de subcategorías cambió. Actualiza el menú e intenta nuevamente.",
+        },
+        { status: 409 },
+      );
+    }
+
+    await prisma.$transaction(
+      ingredientGroupIds.map((ingredientGroupId, index) =>
+        prisma.ingredientGroup.update({
+          where: { id: ingredientGroupId },
+          data: { sortOrder: (index + 1) * 10 },
+        }),
+      ),
+    );
+
+    return NextResponse.json({ reordered: true, ingredientGroupIds });
+  }
 
   if (body.action === "createCategory") {
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -564,11 +771,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let ingredientGroupId: number | null = null;
+    if (category.slug === "ingredientes" && body.ingredientGroupId != null && body.ingredientGroupId !== "") {
+      const requestedGroupId = Number(body.ingredientGroupId);
+      const group = Number.isInteger(requestedGroupId)
+        ? await prisma.ingredientGroup.findUnique({
+            where: { id: requestedGroupId },
+            select: { id: true },
+          })
+        : null;
+      if (!group) {
+        return NextResponse.json(
+          { error: "La subcategoría seleccionada ya no existe." },
+          { status: 400 },
+        );
+      }
+      ingredientGroupId = requestedGroupId;
+    }
+
     const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
 
     try {
       const product = await prisma.product.create({
-        data: { categoryId: category.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: productType, basePrice, active: true, visibleInPos: productType !== "MODIFIER", featured: false, sortOrder },
+        data: { categoryId: category.id, name, description: description || null, imageUrl: imageUrl || null, imageUrl2: imageUrl2 || null, type: productType, basePrice, ingredientGroupId, active: true, visibleInPos: productType !== "MODIFIER", featured: false, sortOrder },
       });
       return NextResponse.json({ product }, { status: 201 });
     } catch (error) {
