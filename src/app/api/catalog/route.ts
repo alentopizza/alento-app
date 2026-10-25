@@ -67,6 +67,7 @@ export async function GET() {
       prisma.product.findMany({
         where: { active: true, type: "MODIFIER", category: { slug: "ingredientes" } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        include: { ingredientGroup: true },
       }),
       prisma.product.findMany({
         where: { active: true, visibleInPos: true, featured: true, type: { notIn: ["MODIFIER", "INTERNAL"] } },
@@ -172,13 +173,35 @@ export async function GET() {
         name: crust.name,
         prices: crust.prices.map((price) => ({ sizeId: price.sizeId, price: Number(price.price) })),
       })),
-      modifiers: modifiers.map((product) => ({
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        imageUrl: product.imageUrl,
-        basePrice: product.basePrice == null ? 0 : Number(product.basePrice),
-      })),
+      modifiers: modifiers
+        .sort((a, b) => {
+          const aOrder = a.ingredientGroup?.sortOrder ?? 9999;
+          const bOrder = b.ingredientGroup?.sortOrder ?? 9999;
+          return (
+            aOrder - bOrder ||
+            a.sortOrder - b.sortOrder ||
+            a.name.localeCompare(b.name, "es")
+          );
+        })
+        .map((product) => ({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          imageUrl: product.imageUrl,
+          basePrice: product.basePrice == null ? 0 : Number(product.basePrice),
+          ingredientGroupId: product.ingredientGroup?.active
+            ? product.ingredientGroup.id
+            : null,
+          ingredientGroupName: product.ingredientGroup?.active
+            ? product.ingredientGroup.name
+            : null,
+          ingredientGroupSlug: product.ingredientGroup?.active
+            ? product.ingredientGroup.slug
+            : null,
+          ingredientGroupSortOrder: product.ingredientGroup?.active
+            ? product.ingredientGroup.sortOrder
+            : 9999,
+        })),
     });
 
     response.headers.set(
