@@ -264,6 +264,22 @@ export async function PATCH(request: NextRequest) {
           { status: 400 },
         );
       }
+      if (type === "PIZZA_CUSTOM") {
+        const requestedBasePrice =
+          body.basePrice === null || body.basePrice === ""
+            ? null
+            : Number(body.basePrice);
+        const effectiveBasePrice =
+          requestedBasePrice == null
+            ? Number(currentProduct.basePrice ?? 0)
+            : requestedBasePrice;
+        if (!Number.isFinite(effectiveBasePrice) || effectiveBasePrice <= 0) {
+          return NextResponse.json(
+            { error: "Arma Tu Pizza requiere un precio por ingrediente mayor a $0." },
+            { status: 400 },
+          );
+        }
+      }
       requestedType = type;
     } else {
       return NextResponse.json({ error: "Tipo de pizza inválido." }, { status: 400 });
@@ -540,6 +556,13 @@ export async function POST(request: NextRequest) {
         : PRODUCT_CATEGORY_TYPES[
             category.slug as keyof typeof PRODUCT_CATEGORY_TYPES
           ] ?? "STANDARD";
+    if (productType === "PIZZA_CUSTOM" && basePrice <= 0) {
+      return NextResponse.json(
+        { error: "Arma Tu Pizza requiere un precio por ingrediente mayor a $0." },
+        { status: 400 },
+      );
+    }
+
     const sortOrder = await prisma.product.count({ where: { categoryId: category.id } });
 
     try {
