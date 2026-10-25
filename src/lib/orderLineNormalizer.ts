@@ -219,6 +219,10 @@ async function normalizeCustomPizzaLine(
   }
 
   const ingredientUnitPrice = money(Number(product.basePrice ?? 0));
+  if (ingredientUnitPrice <= 0) {
+    throw new Error(`${product.name}: el precio por ingrediente no está configurado.`);
+  }
+
   const snapshotList = (ids: number[]) =>
     ids.map((id) => {
       const ingredient = ingredients.find((item) => item.id === id)!;
