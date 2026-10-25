@@ -27,6 +27,7 @@ export type CustomPizzaCrust = {
 export type CustomPizzaIngredient = {
   id: number;
   name: string;
+  basePrice: number;
 };
 
 export type CustomPizzaDraftChoice = {
@@ -52,6 +53,13 @@ function selectedIngredients(
     .filter((item): item is CustomPizzaIngredient => Boolean(item));
 }
 
+function ingredientTotal(ingredients: CustomPizzaIngredient[]) {
+  return ingredients.reduce(
+    (sum, ingredient) => sum + Math.max(0, Number(ingredient.basePrice ?? 0)),
+    0,
+  );
+}
+
 export function customPizzaBillableIngredientCount(
   draft: CustomPizzaDraftChoice,
 ) {
@@ -69,11 +77,41 @@ export function customPizzaBillableIngredientCount(
   return 0;
 }
 
+export function customPizzaIngredientCharge(input: {
+  draft: CustomPizzaDraftChoice;
+  ingredients: CustomPizzaIngredient[];
+}) {
+  if (input.draft.mode === "WHOLE") {
+    return ingredientTotal(
+      selectedIngredients(input.draft.wholeIngredientIds, input.ingredients),
+    );
+  }
+
+  if (input.draft.mode === "HALF_HALF") {
+    const first = selectedIngredients(
+      input.draft.firstHalfIngredientIds,
+      input.ingredients,
+    );
+    const second = selectedIngredients(
+      input.draft.secondHalfIngredientIds,
+      input.ingredients,
+    );
+
+    if (first.length > second.length) return ingredientTotal(first);
+    if (second.length > first.length) return ingredientTotal(second);
+
+    return Math.max(ingredientTotal(first), ingredientTotal(second));
+  }
+
+  return 0;
+}
+
 export function estimateCustomPizzaPrice(input: {
   product: CustomPizzaProduct;
   draft: CustomPizzaDraftChoice;
   sizes: CustomPizzaSize[];
   crusts: CustomPizzaCrust[];
+  ingredients: CustomPizzaIngredient[];
 }) {
   if (!input.draft.sizeId) return 0;
 
@@ -85,15 +123,13 @@ export function estimateCustomPizzaPrice(input: {
     ? pizzaCrustPrice(crust, size.id) ?? 0
     : 0;
 
-  const ingredientUnitPrice = Math.max(
-    0,
-    Number(input.product.basePrice ?? 0),
-  );
-
   return (
     size.basePrice +
     crustPrice +
-    customPizzaBillableIngredientCount(input.draft) * ingredientUnitPrice
+    customPizzaIngredientCharge({
+      draft: input.draft,
+      ingredients: input.ingredients,
+    })
   );
 }
 
@@ -108,21 +144,14 @@ export function buildCustomPizzaConfiguration(input: {
     throw new Error("Este producto no usa el configurador Arma Tu Pizza.");
   }
 
-  if (!input.draft.sizeId) {
-    throw new Error("Selecciona el tamaño.");
-  }
-
-  if (!input.draft.crustId) {
-    throw new Error("Selecciona el borde.");
-  }
-
+  if (!input.draft.sizeId) throw new Error("Selecciona el tamaño.");
+  if (!input.draft.crustId) throw new Error("Selecciona el borde.");
   if (!input.draft.mode) {
     throw new Error("Selecciona si la pizza es completa o mitad y mitad.");
   }
 
   const size = input.sizes.find((item) => item.id === input.draft.sizeId);
   const crust = input.crusts.find((item) => item.id === input.draft.crustId);
-
   if (!size || !crust) {
     throw new Error("La configuración seleccionada ya no está disponible.");
   }
@@ -132,31 +161,17 @@ export function buildCustomPizzaConfiguration(input: {
     throw new Error("Ese borde no está disponible para este tamaño.");
   }
 
-  const ingredientUnitPrice = Math.max(
-    0,
-    Number(input.product.basePrice ?? 0),
-  );
-  if (ingredientUnitPrice <= 0) {
-    throw new Error("El precio por ingrediente no está configurado.");
-  }
-
   const whole =
     input.draft.mode === "WHOLE"
       ? selectedIngredients(input.draft.wholeIngredientIds, input.ingredients)
       : [];
   const firstHalf =
     input.draft.mode === "HALF_HALF"
-      ? selectedIngredients(
-          input.draft.firstHalfIngredientIds,
-          input.ingredients,
-        )
+      ? selectedIngredients(input.draft.firstHalfIngredientIds, input.ingredients)
       : [];
   const secondHalf =
     input.draft.mode === "HALF_HALF"
-      ? selectedIngredients(
-          input.draft.secondHalfIngredientIds,
-          input.ingredients,
-        )
+      ? selectedIngredients(input.draft.secondHalfIngredientIds, input.ingredients)
       : [];
 
   const requestedIds =
@@ -178,13 +193,15 @@ export function buildCustomPizzaConfiguration(input: {
     input.draft.mode === "WHOLE"
       ? whole.length
       : Math.max(firstHalf.length, secondHalf.length);
+  const ingredientCharge = customPizzaIngredientCharge({
+    draft: input.draft,
+    ingredients: input.ingredients,
+  });
 
-  const snapshot = (
-    ingredient: CustomPizzaIngredient,
-  ) => ({
+  const snapshot = (ingredient: CustomPizzaIngredient) => ({
     productId: ingredient.id,
     name: ingredient.name,
-    unitPrice: ingredientUnitPrice,
+    unitPrice: Math.max(0, Number(ingredient.basePrice ?? 0)),
   });
 
   const configuration: CustomPizzaOrderConfiguration = {
@@ -204,11 +221,11 @@ export function buildCustomPizzaConfiguration(input: {
       price: selectedCrustPrice,
     },
     mode: input.draft.mode,
-    ingredientUnitPrice,
     wholeIngredients: whole.map(snapshot),
     firstHalfIngredients: firstHalf.map(snapshot),
     secondHalfIngredients: secondHalf.map(snapshot),
     billableIngredientCount,
+    ingredientCharge,
   };
 
   const ingredientSummary =
@@ -226,21 +243,20 @@ export function buildCustomPizzaConfiguration(input: {
             : "sin ingredientes"
         }`;
 
-  const summary = [
-    size.name,
-    `Borde ${crust.name}`,
-    input.draft.mode === "WHOLE" ? "Completa" : "Mitad y mitad",
-    ingredientSummary,
-  ].join(" · ");
-
   return {
     configuration,
-    summary,
+    summary: [
+      size.name,
+      `Borde ${crust.name}`,
+      input.draft.mode === "WHOLE" ? "Completa" : "Mitad y mitad",
+      ingredientSummary,
+    ].join(" · "),
     estimatedUnitPrice: estimateCustomPizzaPrice({
       product: input.product,
       draft: input.draft,
       sizes: input.sizes,
       crusts: input.crusts,
+      ingredients: input.ingredients,
     }),
   };
 }
