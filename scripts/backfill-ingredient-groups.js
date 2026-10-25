@@ -71,11 +71,7 @@ async function main() {
   for (const group of GROUPS) {
     const saved = await prisma.ingredientGroup.upsert({
       where: { slug: group.slug },
-      update: {
-        name: group.name,
-        sortOrder: group.sortOrder,
-        active: true,
-      },
+      update: {},
       create: {
         name: group.name,
         slug: group.slug,
