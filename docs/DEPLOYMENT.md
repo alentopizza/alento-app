@@ -44,10 +44,28 @@ Después del deploy validar:
 2. abrir `/interno/menu`;
 3. editar **Arma Tu Pizza**;
 4. cambiar su tipo de **Pizza de sabor** a **Arma Tu Pizza**;
-5. confirmar **$5.000** como precio por ingrediente y guardar;
-6. probar una pizza completa y una mitad y mitad tanto en POS como en `/menu`.
+5. guardar el tipo; Arma Tu Pizza toma los precios directamente de los ingredientes;
+6. verificar que las cuatro subcategorías base aparezcan en Ingredientes;
+7. probar una pizza completa y una mitad y mitad tanto en POS como en `/menu`.
 
 No actualizar el registro directamente por nombre en SQL como parte del deploy: la conversión del producto existente se realiza desde el administrador para que sea explícita y auditable a nivel operativo.
+
+## IngredientGroup — 2026-10-25
+
+El mismo despliegue incorpora el modelo `IngredientGroup` y `Product.ingredientGroupId`.
+
+Después de `prisma db push`, el arranque ejecuta `scripts/backfill-ingredient-groups.js`.
+
+El script:
+
+- crea/actualiza Carnes y Embutidos;
+- crea/actualiza Verduras, Vegetales y Legumbres;
+- crea/actualiza Frutas;
+- crea/actualiza Otros;
+- clasifica por nombre únicamente ingredientes sin grupo;
+- no modifica asignaciones manuales existentes.
+
+Esto permite hacer **un solo redeploy** para `PIZZA_CUSTOM` + subcategorías de ingredientes.
 
 ## Prisma: decisión actual
 
@@ -60,7 +78,7 @@ Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáti
 El `package.json` vigente ejecuta:
 
 ```bash
-prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
+prisma db push && node scripts/backfill-driver-earnings.js && node scripts/backfill-ingredient-groups.js && next start -p 3000
 ```
 
 Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js.
