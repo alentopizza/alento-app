@@ -32,6 +32,23 @@ Nota histórica: este cambio requería sincronizar Prisma. En el despliegue vige
 
 La lógica de aplicación utiliza una sola dirección operativa por cliente. Los registros múltiples históricos se depuran cuando el cliente actualiza/valida su dirección o genera un nuevo domicilio.
 
+## ProductType PIZZA_CUSTOM — 2026-10-25
+
+El producto **Arma Tu Pizza** introduce el valor `PIZZA_CUSTOM` en el enum Prisma `ProductType`.
+
+El cambio es aditivo: no elimina ni renombra valores existentes. En el primer redeploy que incluya esta función, el `prisma db push` del arranque debe incorporar el nuevo valor antes de iniciar Next.js.
+
+Después del deploy validar:
+
+1. que los logs de `prisma db push` terminen correctamente;
+2. abrir `/interno/menu`;
+3. editar **Arma Tu Pizza**;
+4. cambiar su tipo de **Pizza de sabor** a **Arma Tu Pizza**;
+5. confirmar **$5.000** como precio por ingrediente y guardar;
+6. probar una pizza completa y una mitad y mitad tanto en POS como en `/menu`.
+
+No actualizar el registro directamente por nombre en SQL como parte del deploy: la conversión del producto existente se realiza desde el administrador para que sea explícita y auditable a nivel operativo.
+
 ## Prisma: decisión actual
 
 La base de datos de producción existía antes de empezar a mantener un historial formal de migraciones de Prisma. Por ello, ejecutar `prisma migrate deploy` contra esta base genera el error `P3005: The database schema is not empty`.
