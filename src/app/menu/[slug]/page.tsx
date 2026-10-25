@@ -48,7 +48,10 @@ async function productPrice(product: NonNullable<Awaited<ReturnType<typeof getPr
   const basePrice =
     product.basePrice == null ? null : Number(product.basePrice);
 
-  if (product.type !== "PIZZA_SINGLE") {
+  if (
+    product.type !== "PIZZA_SINGLE" &&
+    product.type !== "PIZZA_CUSTOM"
+  ) {
     return basePrice;
   }
 
@@ -57,9 +60,11 @@ async function productPrice(product: NonNullable<Awaited<ReturnType<typeof getPr
     orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
   });
 
-  if (!smallestSize) return basePrice;
+  if (!smallestSize) return product.type === "PIZZA_CUSTOM" ? null : basePrice;
 
-  return Number(smallestSize.basePrice) + (basePrice ?? 0);
+  return product.type === "PIZZA_CUSTOM"
+    ? Number(smallestSize.basePrice)
+    : Number(smallestSize.basePrice) + (basePrice ?? 0);
 }
 
 function money(value: number) {
@@ -276,7 +281,7 @@ export default async function ProductSeoPage({ params }: PageProps) {
               {price != null && price > 0 && (
                 <div className="mt-7">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/38">
-                    {product.type === "PIZZA_SINGLE" ? "Desde" : "Precio"}
+                    {product.type === "PIZZA_SINGLE" || product.type === "PIZZA_CUSTOM" ? "Desde" : "Precio"}
                   </span>
                   <strong className="mt-1 block text-[30px] font-black tracking-[-0.04em] text-[#ff3439]">
                     {money(price)}
