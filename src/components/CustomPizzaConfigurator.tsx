@@ -610,7 +610,7 @@ export default function CustomPizzaConfigurator({
                 Precio de tu pizza
               </span>
               <b className="mt-1 block text-[24px] font-black tracking-[-0.03em] text-[var(--brand-red)]">
-                {money(price)}
+                {draft.sizeId ? money(price) : "—"}
               </b>
             </div>
             <div className="flex items-center gap-2">
