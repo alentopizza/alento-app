@@ -338,8 +338,8 @@ function Metric({
   icon?: "purchases" | "ticket" | "spent";
 }) {
   return (
-    <div className="min-w-0 px-2.5 py-2 [font-synthesis:none]">
-      <div className="flex items-center gap-1.5 text-neutral-400">
+    <div className="min-w-0 px-3 py-2.5 [font-synthesis:none]">
+      <div className="flex items-center gap-1.5 text-neutral-500">
         {icon === "purchases" ? (
           <ShoppingCart className="h-3 w-3" strokeWidth={1.9} />
         ) : icon === "ticket" ? (
@@ -347,11 +347,11 @@ function Metric({
         ) : icon === "spent" ? (
           <BarChart3 className="h-3 w-3" strokeWidth={1.9} />
         ) : null}
-        <span className="alento-ui-micro block truncate uppercase text-neutral-400">
+        <span className="alento-ui-label block truncate uppercase tracking-[0.04em] text-neutral-500">
           {label}
         </span>
       </div>
-      <b className="alento-ui-control mt-1 block truncate font-black leading-none text-neutral-950">
+      <b className="alento-ui-body mt-1.5 block truncate font-bold leading-none text-neutral-950">
         {value}
       </b>
     </div>
@@ -932,101 +932,126 @@ export default function CustomersPage() {
           </div>
         </section>
 
-        <section className="rounded-[18px] border border-neutral-200 bg-white p-2.5 shadow-[0_8px_24px_rgba(28,23,20,.04)]">
-          <div className="grid gap-2 xl:grid-cols-[minmax(300px,1fr)_auto]">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" strokeWidth={2} />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="alento-ui-control h-10 w-full rounded-xl border border-neutral-200 bg-[#faf9f7] pl-10 pr-3 outline-none transition focus:border-neutral-400 focus:bg-white"
-                placeholder="Buscar cliente, teléfono o dirección"
-              />
+        <section className="rounded-[20px] border border-neutral-200 bg-white p-3 shadow-[0_8px_24px_rgba(28,23,20,.04)]">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-neutral-400" strokeWidth={2} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="alento-ui-body h-11 w-full rounded-[14px] border border-neutral-200 bg-[#faf9f7] pl-11 pr-4 text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white"
+              placeholder="Buscar cliente, teléfono o dirección"
+            />
+          </div>
+
+          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.35fr)]">
+            <div className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-2.5">
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <MapPinned className="h-4 w-4 text-neutral-500" strokeWidth={2} />
+                <span className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
+                  Estado de dirección
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+                {([
+                  ["ALL", "Todas", customers.length],
+                  ["VERIFIED", "Verificadas", addressCounts.VERIFIED],
+                  ["PENDING", "Por actualizar", addressCounts.PENDING],
+                  ["NONE", "Sin dirección", addressCounts.NONE],
+                ] as [CustomerAddressFilter, string, number][]).map(
+                  ([value, label, count]) => {
+                    const active = addressFilter === value;
+                    const tone =
+                      value === "VERIFIED"
+                        ? active
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-800 shadow-sm"
+                          : "border-emerald-100 bg-white text-emerald-700 hover:bg-emerald-50"
+                        : value === "PENDING"
+                          ? active
+                            ? "border-amber-300 bg-amber-50 text-amber-800 shadow-sm"
+                            : "border-amber-100 bg-white text-amber-700 hover:bg-amber-50"
+                          : value === "NONE"
+                            ? active
+                              ? "border-neutral-400 bg-neutral-100 text-neutral-800 shadow-sm"
+                              : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+                            : active
+                              ? "border-neutral-950 bg-neutral-950 text-white shadow-sm"
+                              : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50";
+
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setAddressFilter(value)}
+                        className={`alento-ui-control flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 font-bold transition ${tone}`}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          {value === "VERIFIED" ? (
+                            <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={2.2} />
+                          ) : value === "PENDING" ? (
+                            <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.2} />
+                          ) : value === "NONE" ? (
+                            <MapPin className="h-4 w-4 shrink-0" strokeWidth={2.1} />
+                          ) : (
+                            <MapPinned className="h-4 w-4 shrink-0" strokeWidth={2.1} />
+                          )}
+                          <span className="truncate">{label}</span>
+                        </span>
+                        <span
+                          className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 alento-ui-label font-bold tabular-nums ${
+                            active && value === "ALL"
+                              ? "bg-white/15 text-white"
+                              : "bg-black/[0.06]"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  },
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {([
-                ["ALL", "Todas", customers.length],
-                ["VERIFIED", "Verificadas", addressCounts.VERIFIED],
-                ["PENDING", "Por actualizar", addressCounts.PENDING],
-                ["NONE", "Sin dirección", addressCounts.NONE],
-              ] as [CustomerAddressFilter, string, number][]).map(
-                ([value, label, count]) => {
-                  const active = addressFilter === value;
-                  const tone =
-                    value === "VERIFIED"
-                      ? active
-                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                        : "border-emerald-100 bg-white text-emerald-700"
-                      : value === "PENDING"
-                        ? active
-                          ? "border-amber-300 bg-amber-50 text-amber-700"
-                          : "border-amber-100 bg-white text-amber-700"
-                        : value === "NONE"
-                          ? active
-                            ? "border-neutral-400 bg-neutral-100 text-neutral-700"
-                            : "border-neutral-200 bg-white text-neutral-500"
-                          : active
-                            ? "border-neutral-950 bg-neutral-950 text-white"
-                            : "border-neutral-200 bg-white text-neutral-600";
+            <div className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-2.5">
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <Users className="h-4 w-4 text-neutral-500" strokeWidth={2} />
+                <span className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
+                  Estado comercial
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6">
+                {([
+                  ["ALL", "Todos", customers.length],
+                  ["Nuevo", "Nuevo", statusCounts.Nuevo],
+                  ["Activo", "Activo", statusCounts.Activo],
+                  ["Frecuente", "Frecuente", statusCounts.Frecuente],
+                  ["Por recuperar", "Por recuperar", statusCounts["Por recuperar"]],
+                  ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
+                ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
+                  const active = statusFilter === value;
+                  const tone = customerFilterTone(value, active);
 
                   return (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setAddressFilter(value)}
-                      className={`alento-ui-micro inline-flex h-10 items-center gap-1.5 rounded-xl border px-2.5 font-bold transition ${tone}`}
+                      onClick={() => setStatusFilter(value)}
+                      className={`alento-ui-control flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 font-bold transition ${tone.button}`}
                     >
-                      {value === "VERIFIED" ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2.2} />
-                      ) : value === "PENDING" ? (
-                        <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.2} />
-                      ) : value === "NONE" ? (
-                        <MapPin className="h-3.5 w-3.5" strokeWidth={2.1} />
-                      ) : (
-                        <MapPinned className="h-3.5 w-3.5" strokeWidth={2.1} />
-                      )}
-                      <span>{label}</span>
-                      <span className={`rounded-full px-1.5 py-0.5 tabular-nums ${
-                        active ? "bg-black/10" : "bg-neutral-100"
-                      }`}>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CustomerFilterIcon status={value} className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{label}</span>
+                      </span>
+                      <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 alento-ui-label font-bold tabular-nums ${tone.count}`}>
                         {count}
                       </span>
                     </button>
                   );
-                },
-              )}
+                })}
+              </div>
             </div>
-          </div>
-
-          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-            {([
-              ["ALL", "Todos", customers.length],
-              ["Nuevo", "Nuevo", statusCounts.Nuevo],
-              ["Activo", "Activo", statusCounts.Activo],
-              ["Frecuente", "Frecuente", statusCounts.Frecuente],
-              ["Por recuperar", "Por recuperar", statusCounts["Por recuperar"]],
-              ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
-            ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
-              const active = statusFilter === value;
-              const tone = customerFilterTone(value, active);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setStatusFilter(value)}
-                  className={`flex h-9 min-w-0 items-center justify-between gap-1.5 rounded-[10px] border px-2.5 alento-ui-micro font-bold transition ${tone.button}`}
-                >
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    <CustomerFilterIcon status={value} className="h-3.5 w-3.5" />
-                    <span className="truncate">{label}</span>
-                  </span>
-                  <span className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 font-black tabular-nums ${tone.count}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </section>
 
@@ -1099,7 +1124,7 @@ export default function CustomersPage() {
                       else void openCustomer(customer);
                     }
                   }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-[17px] border bg-white shadow-[0_7px_20px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(28,23,20,.08)] ${
+                  className={`group relative cursor-pointer overflow-hidden rounded-[18px] border bg-white shadow-[0_7px_20px_rgba(28,23,20,.045)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(28,23,20,.08)] ${
                     selectedCustomerIds.includes(customer.id)
                       ? "border-red-300 ring-2 ring-red-100"
                       : "border-neutral-200 hover:border-neutral-300"
@@ -1107,7 +1132,7 @@ export default function CustomersPage() {
                 >
                   <div className={`absolute inset-x-0 top-0 h-[3px] ${visual.top}`} />
 
-                  <div className="p-3.5 pt-4">
+                  <div className="p-4 pt-[18px]">
                     <div className="flex items-start gap-2.5">
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] border alento-ui-status font-black shadow-sm ${visual.avatar}`}
@@ -1121,13 +1146,13 @@ export default function CustomersPage() {
                             <h2 className="alento-ui-status truncate text-neutral-950">
                               {customer.name}
                             </h2>
-                            <p className="alento-ui-micro mt-0.5 truncate text-neutral-500">
+                            <p className="alento-ui-label mt-1 truncate font-medium text-neutral-500">
                               {customer.countryCode} {customer.phone || "Sin teléfono"}
                             </p>
                           </div>
 
                           <span
-                            className={`alento-ui-micro shrink-0 rounded-full border px-2 py-1 font-bold uppercase ${signal.tone}`}
+                            className={`alento-ui-label shrink-0 rounded-full border px-2.5 py-1.5 font-bold uppercase tracking-[0.03em] ${signal.tone}`}
                           >
                             {signal.label}
                           </span>
@@ -1138,7 +1163,7 @@ export default function CustomersPage() {
                             className="h-3.5 w-3.5 shrink-0 text-neutral-400"
                             strokeWidth={2}
                           />
-                          <span className="alento-ui-micro min-w-0 flex-1 truncate text-neutral-500">
+                          <span className="alento-ui-label min-w-0 flex-1 truncate font-medium text-neutral-600">
                             {address?.formattedAddress ||
                               address?.address ||
                               "Sin dirección registrada"}
@@ -1154,7 +1179,7 @@ export default function CustomersPage() {
                                 event.stopPropagation();
                                 openEdit(customer, "LOCATION");
                               }}
-                              className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold transition hover:brightness-95 ${addressState.tone}`}
+                              className={`alento-ui-label inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-bold transition hover:brightness-95 ${addressState.tone}`}
                               title={
                                 addressState.value === "PENDING"
                                   ? "Actualizar dirección con Google"
@@ -1171,7 +1196,7 @@ export default function CustomersPage() {
                             </button>
                           ) : (
                             <span
-                              className={`alento-ui-micro inline-flex min-w-0 items-center gap-1 rounded-full border px-2 py-1 font-bold ${addressState.tone}`}
+                              className={`alento-ui-label inline-flex min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 font-bold ${addressState.tone}`}
                               title={addressState.label}
                             >
                               <CustomerAddressStateIcon
@@ -1205,7 +1230,7 @@ export default function CustomersPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-3 divide-x divide-neutral-200 rounded-[12px] border border-neutral-100 bg-[#f8f9fb]">
+                    <div className="mt-3.5 grid grid-cols-3 divide-x divide-neutral-200 rounded-[13px] border border-neutral-100 bg-[#f8f9fb]">
                       <Metric
                         label="Compras"
                         value={String(customer.metrics.purchaseCount)}
