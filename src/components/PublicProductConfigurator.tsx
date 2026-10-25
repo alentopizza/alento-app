@@ -17,6 +17,7 @@ type ProductType =
   | "STANDARD"
   | "PIZZA_SINGLE"
   | "PIZZA_TWO_FLAVORS"
+  | "PIZZA_CUSTOM"
   | "COMBO"
   | "MODIFIER"
   | "INTERNAL";
