@@ -105,7 +105,7 @@ El administrador permite crear y renombrar grupos adicionales. Los ingredientes 
 
 El configurador de Arma Tu Pizza no contiene una lista fija de 21 ingredientes: consume los `MODIFIER` activos del catálogo. Por tanto, crear o desactivar ingredientes modifica automáticamente la selección disponible sin cambios de código.
 
-El primer despliegue ejecuta `scripts/backfill-ingredient-groups.js`, que asigna por nombre los ingredientes existentes que todavía no tengan grupo. Nunca sobrescribe una asignación manual existente.
+El primer despliegue ejecuta `scripts/backfill-ingredient-groups.js`, que asigna por nombre los ingredientes existentes que todavía no tengan grupo y registra `AppSetting.key = "catalog.ingredientGroupsBackfilledV1"`. Después de esa primera ejecución el backfill no vuelve a clasificar ingredientes, por lo que una asignación o desasignación manual queda bajo control del administrador.
 
 ### ProductImage
 
