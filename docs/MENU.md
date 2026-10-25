@@ -81,6 +81,32 @@ Campos relevantes:
 - `featured`;
 - `sortOrder`.
 
+### IngredientGroup
+
+Las subcategorías de ingredientes se almacenan en `IngredientGroup`:
+
+- `id`;
+- `name`;
+- `slug`;
+- `active`;
+- `sortOrder`;
+- relación `products`.
+
+`Product.ingredientGroupId` es opcional y solo se usa para productos `MODIFIER` de la categoría `ingredientes`.
+
+Grupos base cargados automáticamente:
+
+- Carnes y Embutidos;
+- Verduras, Vegetales y Legumbres;
+- Frutas;
+- Otros.
+
+El administrador permite crear y renombrar grupos adicionales. Los ingredientes nuevos pueden asignarse a cualquiera de los grupos activos.
+
+El configurador de Arma Tu Pizza no contiene una lista fija de 21 ingredientes: consume los `MODIFIER` activos del catálogo. Por tanto, crear o desactivar ingredientes modifica automáticamente la selección disponible sin cambios de código.
+
+El primer despliegue ejecuta `scripts/backfill-ingredient-groups.js`, que asigna por nombre los ingredientes existentes que todavía no tengan grupo. Nunca sobrescribe una asignación manual existente.
+
 ### ProductImage
 
 Las imágenes cargadas desde Alentó se almacenan en `ProductImage`:
@@ -403,13 +429,15 @@ porque el valor final depende de configuración.
 
 ### PIZZA_CUSTOM — Arma Tu Pizza
 
-`Product.basePrice` tiene un significado específico para este tipo: **precio por ingrediente**.
+Arma Tu Pizza **no duplica el precio de los ingredientes en el producto padre**.
 
 La configuración reutiliza las fuentes existentes:
 
 - `PizzaSize` para tamaños;
 - `PizzaCrust` + `PizzaCrustPrice` para bordes por tamaño;
-- productos `MODIFIER` activos de la categoría `ingredientes` como catálogo seleccionable.
+- productos `MODIFIER` activos de la categoría `ingredientes`;
+- `Product.basePrice` de cada ingrediente como su precio real;
+- `IngredientGroup` para organizar la selección.
 
 Orden de construcción en cliente y POS:
 
@@ -421,19 +449,19 @@ Orden de construcción en cliente y POS:
 Si es **Completa**:
 
 ```text
-precio = tamaño + borde + cantidadIngredientes × precioPorIngrediente
+precio = tamaño + borde + suma(precio de cada ingrediente seleccionado)
 ```
 
 Si es **Mitad y mitad**:
 
-```text
-ingredientesCobrables = max(cantidadMitad1, cantidadMitad2)
-precio = tamaño + borde + ingredientesCobrables × precioPorIngrediente
-```
+1. se compara la cantidad de ingredientes de cada mitad;
+2. se cobra la mitad que tenga más ingredientes;
+3. el cargo es la suma de los precios reales de los ingredientes de esa mitad;
+4. si ambas mitades tienen la misma cantidad, se cobra la de mayor valor.
 
-Ejemplo: mitad 1 con piña + jamón (2), mitad 2 con plátano + chicharrón + jamón (3) → se cobran **3 ingredientes**.
+Ejemplo con ingredientes actuales de $5.000: mitad 1 con piña + jamón (2), mitad 2 con plátano + chicharrón + jamón (3) → se cobran los **3 ingredientes** de la segunda mitad = **$15.000**.
 
-El frontend estima el valor, pero la autoridad es `normalizeOrderLine()`, que vuelve a consultar tamaño, borde, ingredientes activos y `Product.basePrice`. El cliente/POS no puede imponer el precio final.
+El frontend estima el valor, pero la autoridad es `normalizeOrderLine()`, que vuelve a consultar tamaño, borde e ingredientes activos con sus precios reales. El cliente/POS no puede imponer el precio final.
 
 La configuración guardada usa `kind = PIZZA_CUSTOM` y conserva:
 
@@ -441,10 +469,11 @@ La configuración guardada usa `kind = PIZZA_CUSTOM` y conserva:
 - borde;
 - modo `WHOLE` / `HALF_HALF`;
 - ingredientes completos o por mitad;
-- precio unitario del ingrediente;
-- cantidad de ingredientes cobrables.
+- `unitPrice` snapshot de cada ingrediente;
+- cantidad de ingredientes cobrables;
+- `ingredientCharge` total aplicado.
 
-Para el producto actual **Arma Tu Pizza**, configurar `basePrice = 5000` para cobrar $5.000 por ingrediente.
+El `basePrice` del producto padre `PIZZA_CUSTOM` no participa en el cálculo comercial.
 
 ### STANDARD / MODIFIER
 
