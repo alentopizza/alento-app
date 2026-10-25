@@ -8,6 +8,7 @@ import type {
 import {
   buildCustomPizzaConfiguration,
   customPizzaBillableIngredientCount,
+  customPizzaIngredientCharge,
   estimateCustomPizzaPrice,
   type CustomPizzaDraftChoice,
 } from "@/lib/customPizzaConfiguration";
@@ -37,6 +38,11 @@ type Ingredient = {
   id: number;
   name: string;
   imageUrl?: string | null;
+  basePrice: number;
+  ingredientGroupId?: number | null;
+  ingredientGroupName?: string | null;
+  ingredientGroupSlug?: string | null;
+  ingredientGroupSortOrder?: number | null;
 };
 
 export type CustomPizzaConfiguratorCatalog = {
@@ -94,6 +100,9 @@ export default function CustomPizzaConfigurator({
 }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
+  const [ingredientGroupFilter, setIngredientGroupFilter] = useState<
+    number | "ALL" | "UNGROUPED"
+  >("ALL");
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   const [draft, setDraft] = useState<CustomPizzaDraftChoice>(() => ({
@@ -138,17 +147,48 @@ export default function CustomPizzaConfigurator({
   const selectedCrust = catalog.crusts.find(
     (crust) => crust.id === draft.crustId,
   );
-  const ingredientUnitPrice = Math.max(
-    0,
-    Number(product.basePrice ?? 0),
-  );
   const price = estimateCustomPizzaPrice({
     product,
     draft,
     sizes: catalog.sizes,
     crusts: catalog.crusts,
+    ingredients: catalog.modifiers,
   });
   const billableCount = customPizzaBillableIngredientCount(draft);
+  const ingredientCharge = customPizzaIngredientCharge({
+    draft,
+    ingredients: catalog.modifiers,
+  });
+
+  const ingredientGroups = useMemo(() => {
+    const byId = new Map<
+      number,
+      { id: number; name: string; sortOrder: number }
+    >();
+
+    for (const ingredient of catalog.modifiers) {
+      if (
+        ingredient.ingredientGroupId &&
+        ingredient.ingredientGroupName
+      ) {
+        byId.set(ingredient.ingredientGroupId, {
+          id: ingredient.ingredientGroupId,
+          name: ingredient.ingredientGroupName,
+          sortOrder: ingredient.ingredientGroupSortOrder ?? 9999,
+        });
+      }
+    }
+
+    return [...byId.values()].sort(
+      (a, b) =>
+        a.sortOrder - b.sortOrder ||
+        a.name.localeCompare(b.name, "es"),
+    );
+  }, [catalog.modifiers]);
+
+  const hasUngroupedIngredients = catalog.modifiers.some(
+    (ingredient) => !ingredient.ingredientGroupId,
+  );
 
   const goToStep = (next: number) => {
     setError("");
@@ -245,54 +285,169 @@ export default function CustomPizzaConfigurator({
   ) {
     const selected = draft[target];
 
-    return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {catalog.modifiers.map((ingredient) => {
-          const active = selected.includes(ingredient.id);
-          return (
-            <button
-              type="button"
-              key={ingredient.id}
-              onClick={() => toggleIngredient(target, ingredient.id)}
+    const ingredientButton = (ingredient: Ingredient) => {
+      const active = selected.includes(ingredient.id);
+      return (
+        <button
+          type="button"
+          key={ingredient.id}
+          onClick={() => toggleIngredient(target, ingredient.id)}
+          className={
+            "min-h-[68px] rounded-[14px] border p-3 text-left transition " +
+            (isDark
+              ? active
+                ? "border-red-400 bg-red-500/15 text-white"
+                : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.07]"
+              : active
+                ? "border-red-300 bg-red-50 text-neutral-950"
+                : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-300")
+          }
+        >
+          <div className="flex items-start justify-between gap-2">
+            <b className="text-[12px] leading-4">{ingredient.name}</b>
+            <span
               className={
-                "min-h-[64px] rounded-[14px] border p-3 text-left transition " +
-                (isDark
-                  ? active
-                    ? "border-red-400 bg-red-500/15 text-white"
-                    : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.07]"
-                  : active
-                    ? "border-red-300 bg-red-50 text-neutral-950"
-                    : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-300")
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black " +
+                (active
+                  ? "bg-[var(--brand-red)] text-white"
+                  : isDark
+                    ? "border border-white/20 text-white/40"
+                    : "border border-neutral-300 text-neutral-400")
               }
             >
-              <div className="flex items-start justify-between gap-2">
-                <b className="text-[12px] leading-4">
-                  {ingredient.name}
-                </b>
-                <span
-                  className={
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black " +
-                    (active
-                      ? "bg-[var(--brand-red)] text-white"
-                      : isDark
-                        ? "border border-white/20 text-white/40"
-                        : "border border-neutral-300 text-neutral-400")
-                  }
-                >
-                  {active ? "✓" : "+"}
-                </span>
-              </div>
-              <span
+              {active ? "✓" : "+"}
+            </span>
+          </div>
+          <span
+            className={
+              "mt-1 block text-[10px] font-semibold " +
+              (isDark ? "text-white/42" : "text-neutral-500")
+            }
+          >
+            + {money(ingredient.basePrice)}
+          </span>
+        </button>
+      );
+    };
+
+    const visibleIngredients =
+      ingredientGroupFilter === "ALL"
+        ? catalog.modifiers
+        : ingredientGroupFilter === "UNGROUPED"
+          ? catalog.modifiers.filter(
+              (ingredient) => !ingredient.ingredientGroupId,
+            )
+          : catalog.modifiers.filter(
+              (ingredient) =>
+                ingredient.ingredientGroupId === ingredientGroupFilter,
+            );
+
+    return (
+      <div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setIngredientGroupFilter("ALL")}
+            className={
+              "rounded-full border px-3 py-2 text-[10px] font-bold transition " +
+              (ingredientGroupFilter === "ALL"
+                ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white"
+                : isDark
+                  ? "border-white/10 bg-white/[0.04] text-white/60"
+                  : "border-neutral-200 bg-white text-neutral-600")
+            }
+          >
+            Todos · {catalog.modifiers.length}
+          </button>
+
+          {ingredientGroups.map((group) => {
+            const count = catalog.modifiers.filter(
+              (ingredient) => ingredient.ingredientGroupId === group.id,
+            ).length;
+            return (
+              <button
+                type="button"
+                key={group.id}
+                onClick={() => setIngredientGroupFilter(group.id)}
                 className={
-                  "mt-1 block text-[10px] font-semibold " +
-                  (isDark ? "text-white/40" : "text-neutral-500")
+                  "rounded-full border px-3 py-2 text-[10px] font-bold transition " +
+                  (ingredientGroupFilter === group.id
+                    ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white"
+                    : isDark
+                      ? "border-white/10 bg-white/[0.04] text-white/60"
+                      : "border-neutral-200 bg-white text-neutral-600")
                 }
               >
-                {money(ingredientUnitPrice)} por ingrediente
-              </span>
+                {group.name} · {count}
+              </button>
+            );
+          })}
+
+          {hasUngroupedIngredients && (
+            <button
+              type="button"
+              onClick={() => setIngredientGroupFilter("UNGROUPED")}
+              className={
+                "rounded-full border px-3 py-2 text-[10px] font-bold transition " +
+                (ingredientGroupFilter === "UNGROUPED"
+                  ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white"
+                  : isDark
+                    ? "border-white/10 bg-white/[0.04] text-white/60"
+                    : "border-neutral-200 bg-white text-neutral-600")
+              }
+            >
+              Sin categoría ·{" "}
+              {
+                catalog.modifiers.filter(
+                  (ingredient) => !ingredient.ingredientGroupId,
+                ).length
+              }
             </button>
-          );
-        })}
+          )}
+        </div>
+
+        {ingredientGroupFilter === "ALL" ? (
+          <div className="space-y-5">
+            {ingredientGroups.map((group) => {
+              const ingredients = catalog.modifiers.filter(
+                (ingredient) => ingredient.ingredientGroupId === group.id,
+              );
+              if (!ingredients.length) return null;
+              return (
+                <section key={group.id}>
+                  <div className="mb-2 flex items-center gap-2">
+                    <h4 className="text-[11px] font-black uppercase tracking-[0.08em]">
+                      {group.name}
+                    </h4>
+                    <span className={"text-[9px] " + muted}>
+                      {ingredients.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {ingredients.map(ingredientButton)}
+                  </div>
+                </section>
+              );
+            })}
+
+            {hasUngroupedIngredients && (
+              <section>
+                <h4 className="mb-2 text-[11px] font-black uppercase tracking-[0.08em]">
+                  Sin categoría
+                </h4>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {catalog.modifiers
+                    .filter((ingredient) => !ingredient.ingredientGroupId)
+                    .map(ingredientButton)}
+                </div>
+              </section>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {visibleIngredients.map(ingredientButton)}
+          </div>
+        )}
       </div>
     );
   }
@@ -396,7 +551,7 @@ export default function CustomPizzaConfigurator({
             </h3>
             <p className={"mt-1.5 text-[11px] " + muted}>
               {step >= 3
-                ? `Cada ingrediente cuesta ${money(ingredientUnitPrice)}. Puedes elegir los que quieras.`
+                ? "El valor mostrado es el precio real de cada ingrediente. Puedes elegir los que quieras."
                 : step === 2
                   ? "La forma de cobro cambia automáticamente según tu elección."
                   : "Usamos los tamaños y bordes ya configurados en Alentó."}
@@ -575,7 +730,7 @@ export default function CustomPizzaConfigurator({
                   Ingredientes cobrados
                 </span>
                 <b className="mt-1 block text-[11px]">
-                  {billableCount} × {money(ingredientUnitPrice)}
+                  {billableCount} · {money(ingredientCharge)}
                 </b>
               </div>
             </div>
