@@ -292,7 +292,8 @@ Incluye:
 - constructor de combos;
 - tipo `PIZZA_CUSTOM` para **Arma Tu Pizza**;
 - asistente compartido cliente/POS: tamaño → borde → completa/mitad y mitad → ingredientes;
-- cobro por ingrediente usando `Product.basePrice`, con regla `max(mitad1, mitad2)` para mitad y mitad;
+- cobro usando el precio real de cada `MODIFIER`; en mitad y mitad se cobra la mitad con más ingredientes y, en empate, la de mayor valor;
+- subcategorías dinámicas de ingredientes mediante `IngredientGroup`, compartidas por administración y Arma Tu Pizza;
 - validación y recálculo server-side del precio de Arma Tu Pizza;
 - sincronización de orden/nombres con POS.
 
