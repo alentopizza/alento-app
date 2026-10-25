@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import PublicProductConfigurator from "@/components/PublicProductConfigurator";
+import CustomPizzaConfigurator from "@/components/CustomPizzaConfigurator";
 import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
 import {
   PUBLIC_CART_STORAGE_KEY,
@@ -12,7 +13,7 @@ import { readPublicCache, writePublicCache } from "@/lib/publicBrowserCache";
 import { trackCatalogEvent } from "@/lib/publicAnalytics";
 import type { StandardOrderConfiguration } from "@/lib/orderConfiguration";
 
-type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "PIZZA_CUSTOM" | "COMBO" | "MODIFIER" | "INTERNAL";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
 type Modifier = { id: number; name: string; description: string | null; imageUrl: string | null; basePrice: number };
 type Crust = { id: number; name: string; prices: { sizeId: number; price: number }[] };
@@ -311,6 +312,10 @@ export default function PublicMenuPage() {
       return minSize + (product.basePrice ?? 0);
     }
 
+    if (product.type === "PIZZA_CUSTOM") {
+      return minSize;
+    }
+
     return product.basePrice;
   }
 
@@ -444,6 +449,7 @@ export default function PublicMenuPage() {
     if (
       product.type === "PIZZA_SINGLE" ||
       isTwoFlavorPizza(product) ||
+      product.type === "PIZZA_CUSTOM" ||
       product.type === "COMBO"
     ) {
       setSelectedProduct(null);
@@ -860,15 +866,41 @@ export default function PublicMenuPage() {
       )}
 
       {configurableProduct && catalog && (
-        <PublicProductConfigurator
-          product={configurableProduct}
-          catalog={catalog}
-          onClose={() => setConfigurableProduct(null)}
-          onAdd={(item) => {
-            addItemToCart(item);
-            setConfigurableProduct(null);
-          }}
-        />
+        configurableProduct.type === "PIZZA_CUSTOM" ? (
+          <CustomPizzaConfigurator
+            product={configurableProduct}
+            catalog={catalog}
+            theme="dark"
+            onClose={() => setConfigurableProduct(null)}
+            onConfirm={(result) => {
+              addItemToCart({
+                key:
+                  "custom-pizza-" +
+                  String(Date.now()) +
+                  "-" +
+                  Math.random().toString(36).slice(2),
+                productId: configurableProduct.id,
+                name: configurableProduct.name,
+                imageUrl: configurableProduct.imageUrl,
+                detail: result.summary,
+                unitPrice: result.estimatedUnitPrice,
+                quantity: 1,
+                configuration: result.configuration,
+              });
+              setConfigurableProduct(null);
+            }}
+          />
+        ) : (
+          <PublicProductConfigurator
+            product={configurableProduct}
+            catalog={catalog}
+            onClose={() => setConfigurableProduct(null)}
+            onAdd={(item) => {
+              addItemToCart(item);
+              setConfigurableProduct(null);
+            }}
+          />
+        )
       )}
 
       {selectedProduct && (
@@ -913,7 +945,7 @@ export default function PublicMenuPage() {
 
               <div className={`flex items-center justify-between gap-3 ${selectedProduct.description ? "mt-4 border-t border-white/10 pt-4" : ""}`}>
                 <b className="text-[20px] text-[#ff3439]">{displayPrice(selectedProduct)}</b>
-                {selectedProduct.type === "PIZZA_SINGLE" || isTwoFlavorPizza(selectedProduct) || selectedProduct.type === "COMBO" ? (
+                {selectedProduct.type === "PIZZA_SINGLE" || isTwoFlavorPizza(selectedProduct) || selectedProduct.type === "PIZZA_CUSTOM" || selectedProduct.type === "COMBO" ? (
                   <button
                     type="button"
                     onClick={() => startAdd(selectedProduct)}
