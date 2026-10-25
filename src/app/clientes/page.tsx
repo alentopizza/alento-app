@@ -8,7 +8,6 @@ import {
   Clock3,
   Download,
   MapPin,
-  MapPinned,
   RefreshCcw,
   Search,
   ShoppingCart,
@@ -92,7 +91,6 @@ type CustomerDetail = Customer & {
 };
 
 type CustomerStatusFilter = "ALL" | "Nuevo" | "Activo" | "Frecuente" | "Por recuperar" | "Sin compras";
-type CustomerAddressFilter = "ALL" | "VERIFIED" | "PENDING" | "NONE";
 
 type ImportPreviewRow = {
   rowNumber: number;
@@ -363,7 +361,6 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("ALL");
-  const [addressFilter, setAddressFilter] = useState<CustomerAddressFilter>("ALL");
   const [editing, setEditing] = useState<Customer | null>(null);
   const [editSection, setEditSection] = useState<"PERSONAL" | "LOCATION">("PERSONAL");
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
@@ -499,28 +496,12 @@ export default function CustomersPage() {
     return counts;
   }, [customers]);
 
-  const addressCounts = useMemo(() => {
-    const counts = {
-      VERIFIED: 0,
-      PENDING: 0,
-      NONE: 0,
-    };
-
-    customers.forEach((customer) => {
-      counts[customerAddressState(customer).value] += 1;
-    });
-
-    return counts;
-  }, [customers]);
-
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
 
     return customers.filter((customer) => {
       const signal = customerSignal(customer.metrics).label;
-      const addressState = customerAddressState(customer).value;
       if (statusFilter !== "ALL" && signal !== statusFilter) return false;
-      if (addressFilter !== "ALL" && addressState !== addressFilter) return false;
       if (!value) return true;
 
       return [
@@ -533,7 +514,7 @@ export default function CustomersPage() {
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(value));
     });
-  }, [addressFilter, customers, query, statusFilter]);
+  }, [customers, query, statusFilter]);
 
   async function openCustomer(customer: Customer) {
     setDetailLoading(true);
@@ -943,114 +924,43 @@ export default function CustomersPage() {
             />
           </div>
 
-          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.35fr)]">
-            <div className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-2.5">
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <MapPinned className="h-4 w-4 text-neutral-500" strokeWidth={2} />
-                <span className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
-                  Estado de dirección
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
-                {([
-                  ["ALL", "Todas", customers.length],
-                  ["VERIFIED", "Verificadas", addressCounts.VERIFIED],
-                  ["PENDING", "Por actualizar", addressCounts.PENDING],
-                  ["NONE", "Sin dirección", addressCounts.NONE],
-                ] as [CustomerAddressFilter, string, number][]).map(
-                  ([value, label, count]) => {
-                    const active = addressFilter === value;
-                    const tone =
-                      value === "VERIFIED"
-                        ? active
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-800 shadow-sm"
-                          : "border-emerald-100 bg-white text-emerald-700 hover:bg-emerald-50"
-                        : value === "PENDING"
-                          ? active
-                            ? "border-amber-300 bg-amber-50 text-amber-800 shadow-sm"
-                            : "border-amber-100 bg-white text-amber-700 hover:bg-amber-50"
-                          : value === "NONE"
-                            ? active
-                              ? "border-neutral-400 bg-neutral-100 text-neutral-800 shadow-sm"
-                              : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
-                            : active
-                              ? "border-neutral-950 bg-neutral-950 text-white shadow-sm"
-                              : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50";
-
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setAddressFilter(value)}
-                        className={`alento-ui-control flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 font-bold transition ${tone}`}
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          {value === "VERIFIED" ? (
-                            <CheckCircle2 className="h-4 w-4 shrink-0" strokeWidth={2.2} />
-                          ) : value === "PENDING" ? (
-                            <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={2.2} />
-                          ) : value === "NONE" ? (
-                            <MapPin className="h-4 w-4 shrink-0" strokeWidth={2.1} />
-                          ) : (
-                            <MapPinned className="h-4 w-4 shrink-0" strokeWidth={2.1} />
-                          )}
-                          <span className="truncate">{label}</span>
-                        </span>
-                        <span
-                          className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 alento-ui-label font-bold tabular-nums ${
-                            active && value === "ALL"
-                              ? "bg-white/15 text-white"
-                              : "bg-black/[0.06]"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  },
-                )}
-              </div>
+          <div className="mt-3 rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-2.5">
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <Users className="h-4 w-4 text-neutral-500" strokeWidth={2} />
+              <span className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
+                Estado comercial
+              </span>
             </div>
 
-            <div className="rounded-[15px] border border-neutral-100 bg-[#faf9f7] p-2.5">
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <Users className="h-4 w-4 text-neutral-500" strokeWidth={2} />
-                <span className="alento-ui-label uppercase tracking-[0.08em] text-neutral-500">
-                  Estado comercial
-                </span>
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+              {([
+                ["ALL", "Todos", customers.length],
+                ["Nuevo", "Nuevo", statusCounts.Nuevo],
+                ["Activo", "Activo", statusCounts.Activo],
+                ["Frecuente", "Frecuente", statusCounts.Frecuente],
+                ["Por recuperar", "Por recuperar", statusCounts["Por recuperar"]],
+                ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
+              ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
+                const active = statusFilter === value;
+                const tone = customerFilterTone(value, active);
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 2xl:grid-cols-6">
-                {([
-                  ["ALL", "Todos", customers.length],
-                  ["Nuevo", "Nuevo", statusCounts.Nuevo],
-                  ["Activo", "Activo", statusCounts.Activo],
-                  ["Frecuente", "Frecuente", statusCounts.Frecuente],
-                  ["Por recuperar", "Por recuperar", statusCounts["Por recuperar"]],
-                  ["Sin compras", "Sin compras", statusCounts["Sin compras"]],
-                ] as [CustomerStatusFilter, string, number][]).map(([value, label, count]) => {
-                  const active = statusFilter === value;
-                  const tone = customerFilterTone(value, active);
-
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setStatusFilter(value)}
-                      className={`alento-ui-control flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 font-bold transition ${tone.button}`}
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <CustomerFilterIcon status={value} className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{label}</span>
-                      </span>
-                      <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 alento-ui-label font-bold tabular-nums ${tone.count}`}>
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setStatusFilter(value)}
+                    className={`alento-ui-control flex h-11 min-w-0 items-center justify-between gap-2 rounded-xl border px-3 font-bold transition ${tone.button}`}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <CustomerFilterIcon status={value} className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{label}</span>
+                    </span>
+                    <span className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 alento-ui-label font-bold tabular-nums ${tone.count}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
