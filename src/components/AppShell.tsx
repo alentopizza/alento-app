@@ -399,16 +399,16 @@ export default function AppShell({
         <button
           type="button"
           onClick={() => setMobileMenuOpen(true)}
-          className="order-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.07] text-white transition active:scale-[.97] sm:order-2"
+          className="order-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.07] text-white transition active:scale-[.97]"
           aria-label="Abrir menú de colaboradores"
           title="Abrir menú"
         >
-          <Menu className="h-5 w-5" strokeWidth={2.2} />
+          <Menu className="h-4 w-4" strokeWidth={2.2} />
         </button>
 
         <Link
           href={mobileHomeHref}
-          className="order-2 flex min-w-0 items-center gap-2.5 sm:hidden"
+          className="order-1 flex min-w-0 items-center gap-2.5 sm:hidden"
           aria-label="Ir a supervisión"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[13px] border border-white/10 bg-black">
@@ -529,30 +529,6 @@ export default function AppShell({
               </button>
             </div>
 
-            <div className="border-b border-white/[0.07] px-4 py-3">
-              <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.045] px-3 py-2.5">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.08] alento-ui-control font-bold text-white">
-                  {(userName || "A")
-                    .trim()
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="alento-ui-control block truncate font-bold text-white">
-                    {userName || "Alentó Pizza"}
-                  </span>
-                  <span className="alento-ui-micro mt-0.5 block truncate text-white/38">
-                    {roleText}
-                  </span>
-                </span>
-
-                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
-              </div>
-            </div>
-
-            <div className="h-[58px] sm:hidden" aria-hidden="true" />
-
             <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
               <p className="alento-ui-label mb-2 px-2 uppercase tracking-[0.14em] text-white/28">
                 <span className="sm:hidden">Supervisión</span>
@@ -652,7 +628,29 @@ export default function AppShell({
               </div>
             </nav>
 
-            <div className="shrink-0 border-t border-white/10 p-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+            <div className="shrink-0 border-t border-white/10 px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+              <div className="flex items-center gap-3 rounded-[16px] border border-white/[0.08] bg-white/[0.045] px-3 py-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.08] alento-ui-control font-bold text-white">
+                  {(userName || "A")
+                    .trim()
+                    .charAt(0)
+                    .toUpperCase()}
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="alento-ui-control block truncate font-bold text-white">
+                    {userName || "Alentó Pizza"}
+                  </span>
+                  <span className="alento-ui-micro mt-0.5 block truncate text-white/38">
+                    {roleText}
+                  </span>
+                </span>
+
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
+              </div>
+
+              <div className="h-[60px]" aria-hidden="true" />
+
               <button
                 type="button"
                 onClick={() => void logout()}
