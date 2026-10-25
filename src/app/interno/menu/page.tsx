@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
-import { Pencil, Plus } from "lucide-react";
+import { Image as ImageIcon, Pencil, Plus, Trash2, Upload } from "lucide-react";
 
 type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type ProductImageSlot = "MAIN" | "SECONDARY";
 type ComboOption = { id?: number; productId: number; productName?: string; quantity: number; priceDelta: number };
 type ComboGroup = { id?: number; kind: string; name: string; minSelections: number; maxSelections: number; options: ComboOption[] };
 type ComboPizzaRule = { id?: number; quantity: number; sizeIds: number[]; flavorIds: number[] };
@@ -44,7 +45,7 @@ type EditorState = {
   featured: boolean;
   type: ProductType;
 };
-type CreateState = { categorySlug: string; name: string; description: string; basePrice: string; imageUrl: string; imageUrl2: string };
+type CreateState = { categorySlug: string; name: string; description: string; basePrice: string };
 type ComboState = {
   id?: number;
   name: string;
@@ -70,6 +71,203 @@ function toggleId(values: number[], id: number) {
   return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
 }
 
+
+async function uploadStoredProductImage(
+  productId: number,
+  slot: ProductImageSlot,
+  file: File,
+) {
+  const form = new FormData();
+  form.append("productId", String(productId));
+  form.append("slot", slot);
+  form.append("file", file);
+
+  const response = await fetch("/api/product-images", {
+    method: "POST",
+    body: form,
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || "No fue posible cargar la imagen.");
+  }
+
+  return String(result.url || "");
+}
+
+async function removeStoredProductImage(
+  productId: number,
+  slot: ProductImageSlot,
+) {
+  const response = await fetch("/api/product-images", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, slot }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || "No fue posible quitar la imagen.");
+  }
+}
+
+function PendingProductImageControl({
+  label,
+  file,
+  onChange,
+}: {
+  label: string;
+  file: File | null;
+  onChange: (file: File | null) => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl("");
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return (
+    <div className="rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          {previewUrl ? (
+            <img src={previewUrl} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <ImageIcon className="h-5 w-5 text-neutral-300" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <b className="alento-ui-control block text-neutral-900">{label}</b>
+          <span className="alento-ui-micro mt-1 block truncate text-neutral-500">
+            {file ? file.name : "JPG, PNG o WebP · máximo 8 MB"}
+          </span>
+          <label className="alento-ui-control mt-2 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 font-bold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50">
+            <Upload className="h-4 w-4" strokeWidth={2.2} />
+            {file ? "Cambiar archivo" : "Seleccionar imagen"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          {file && (
+            <button
+              type="button"
+              onClick={() => onChange(null)}
+              className="alento-ui-label ml-2 rounded-lg px-2 py-2 font-bold text-red-600 hover:bg-red-50"
+            >
+              Quitar
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExistingProductImageControl({
+  label,
+  productId,
+  slot,
+  url,
+  busy,
+  onUpload,
+  onRemove,
+}: {
+  label: string;
+  productId: number;
+  slot: ProductImageSlot;
+  url: string;
+  busy: boolean;
+  onUpload: (productId: number, slot: ProductImageSlot, file: File) => void;
+  onRemove: (productId: number, slot: ProductImageSlot) => void;
+}) {
+  const internal = url.startsWith("/api/product-images/");
+
+  return (
+    <div className="rounded-[16px] border border-neutral-200 bg-[#faf9f7] p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          {url ? (
+            <img src={url} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <ImageIcon className="h-6 w-6 text-neutral-300" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <b className="alento-ui-control text-neutral-900">{label}</b>
+            {url && (
+              <span
+                className={
+                  "alento-ui-micro rounded-full border px-2 py-1 font-bold uppercase " +
+                  (internal
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700")
+                }
+              >
+                {internal ? "Guardada en Alentó" : "Imagen externa actual"}
+              </span>
+            )}
+          </div>
+          <span className="alento-ui-micro mt-1 block text-neutral-500">
+            {url
+              ? internal
+                ? "Esta es la imagen oficial almacenada por Alentó."
+                : "Se seguirá usando hasta que cargues una imagen oficial."
+              : "Sin imagen cargada."}
+          </span>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label
+              className={
+                "alento-ui-control inline-flex items-center gap-2 rounded-xl border px-3 py-2 font-bold transition " +
+                (busy
+                  ? "cursor-wait border-neutral-200 bg-neutral-100 text-neutral-400"
+                  : "cursor-pointer border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50")
+              }
+            >
+              <Upload className="h-4 w-4" strokeWidth={2.2} />
+              {busy ? "Cargando..." : url ? "Reemplazar imagen" : "Cargar imagen"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                disabled={busy}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onUpload(productId, slot, file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+
+            {url && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onRemove(productId, slot)}
+                className="alento-ui-control inline-flex items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2 font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={2.1} />
+                Quitar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MenuPage() {
   const [data, setData] = useState<MenuResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,10 +277,13 @@ export default function MenuPage() {
   const [query, setQuery] = useState("");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [imageBusy, setImageBusy] = useState<string | null>(null);
   const [createState, setCreateState] = useState<CreateState | null>(null);
+  const [createImageFiles, setCreateImageFiles] = useState<{ MAIN: File | null; SECONDARY: File | null }>({ MAIN: null, SECONDARY: null });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [comboState, setComboState] = useState<ComboState | null>(null);
+  const [comboImageFiles, setComboImageFiles] = useState<{ MAIN: File | null; SECONDARY: File | null }>({ MAIN: null, SECONDARY: null });
   const [savingCombo, setSavingCombo] = useState(false);
   const [comboError, setComboError] = useState("");
   const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
@@ -167,6 +368,105 @@ export default function MenuPage() {
       return product.comboFinalMin === product.comboFinalMax ? formatCOP(product.comboFinalMin) : `Desde ${formatCOP(product.comboFinalMin)}`;
     }
     return formatCOP(product.basePrice);
+  }
+
+  function applyProductImageUrl(
+    productId: number,
+    slot: ProductImageSlot,
+    url: string,
+  ) {
+    const field = slot === "MAIN" ? "imageUrl" : "imageUrl2";
+
+    setData((current) =>
+      current
+        ? {
+            ...current,
+            categories: current.categories.map((category) => ({
+              ...category,
+              products: category.products.map((product) =>
+                product.id === productId ? { ...product, [field]: url || null } : product,
+              ),
+            })),
+          }
+        : current,
+    );
+
+    setEditor((current) =>
+      current?.id === productId ? { ...current, [field]: url } : current,
+    );
+    setComboState((current) =>
+      current?.id === productId ? { ...current, [field]: url } : current,
+    );
+    setSelectedProduct((current) =>
+      current?.id === productId ? { ...current, [field]: url || null } : current,
+    );
+  }
+
+  async function handleProductImageUpload(
+    productId: number,
+    slot: ProductImageSlot,
+    file: File,
+  ) {
+    const key = `${productId}:${slot}`;
+    setImageBusy(key);
+    setError("");
+    setComboError("");
+
+    try {
+      const url = await uploadStoredProductImage(productId, slot, file);
+      applyProductImageUrl(productId, slot, url);
+      setNotice(
+        slot === "MAIN"
+          ? "Imagen principal cargada y guardada en Alentó."
+          : "Imagen secundaria cargada y guardada en Alentó.",
+      );
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : "No fue posible cargar la imagen.";
+      if (comboState?.id === productId) setComboError(message);
+      else setError(message);
+    } finally {
+      setImageBusy(null);
+    }
+  }
+
+  async function handleProductImageRemove(
+    productId: number,
+    slot: ProductImageSlot,
+  ) {
+    const key = `${productId}:${slot}`;
+    setImageBusy(key);
+    setError("");
+    setComboError("");
+
+    try {
+      await removeStoredProductImage(productId, slot);
+      applyProductImageUrl(productId, slot, "");
+      setNotice("Imagen retirada del producto.");
+    } catch (removeError) {
+      const message =
+        removeError instanceof Error
+          ? removeError.message
+          : "No fue posible quitar la imagen.";
+      if (comboState?.id === productId) setComboError(message);
+      else setError(message);
+    } finally {
+      setImageBusy(null);
+    }
+  }
+
+  async function uploadPendingProductImages(
+    productId: number,
+    files: { MAIN: File | null; SECONDARY: File | null },
+  ) {
+    if (files.MAIN) {
+      await uploadStoredProductImage(productId, "MAIN", files.MAIN);
+    }
+    if (files.SECONDARY) {
+      await uploadStoredProductImage(productId, "SECONDARY", files.SECONDARY);
+    }
   }
 
   function openEditor(product: Product) {
@@ -500,13 +800,12 @@ export default function MenuPage() {
 
   function startCreateProduct(category: Category) {
     setCreateError("");
+    setCreateImageFiles({ MAIN: null, SECONDARY: null });
     setCreateState({
       categorySlug: category.slug,
       name: "",
       description: "",
       basePrice: category.slug === "ingredientes" ? "5000" : "",
-      imageUrl: "",
-      imageUrl2: "",
     });
   }
 
@@ -523,8 +822,24 @@ export default function MenuPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible crear el producto.");
+
+      let imageWarning = "";
+      try {
+        await uploadPendingProductImages(Number(result.product?.id), createImageFiles);
+      } catch (uploadError) {
+        imageWarning =
+          uploadError instanceof Error
+            ? uploadError.message
+            : "No fue posible cargar una de las imágenes.";
+      }
+
       setCreateState(null);
-      setNotice("Producto creado correctamente.");
+      setCreateImageFiles({ MAIN: null, SECONDARY: null });
+      setNotice(
+        imageWarning
+          ? `Producto creado. ${imageWarning} Puedes cargar la imagen al editarlo.`
+          : "Producto creado correctamente.",
+      );
       await loadMenu();
     } catch (createProductError) {
       setCreateError(createProductError instanceof Error ? createProductError.message : "No fue posible crear el producto.");
@@ -535,6 +850,7 @@ export default function MenuPage() {
 
   function startCombo(product?: Product) {
     setComboError("");
+    setComboImageFiles({ MAIN: null, SECONDARY: null });
     const pizzaRule = product?.comboPizzaRules?.[0];
     const snackGroup = product?.comboGroups?.find((group) => group.kind === "ANTOJO");
     const beverageGroup = product?.comboGroups?.find((group) => group.kind === "BEBIDA");
@@ -619,8 +935,28 @@ export default function MenuPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "No fue posible guardar el combo.");
+
+      let imageWarning = "";
+      if (!comboState.id) {
+        try {
+          await uploadPendingProductImages(Number(result.combo?.id), comboImageFiles);
+        } catch (uploadError) {
+          imageWarning =
+            uploadError instanceof Error
+              ? uploadError.message
+              : "No fue posible cargar una de las imágenes.";
+        }
+      }
+
       setComboState(null);
-      setNotice(comboState.id ? "Combo actualizado correctamente." : "Combo creado correctamente.");
+      setComboImageFiles({ MAIN: null, SECONDARY: null });
+      setNotice(
+        imageWarning
+          ? `Combo creado. ${imageWarning} Puedes cargar la imagen al editarlo.`
+          : comboState.id
+            ? "Combo actualizado correctamente."
+            : "Combo creado correctamente.",
+      );
       await loadMenu(false);
     } catch (comboSaveError) {
       setComboError(comboSaveError instanceof Error ? comboSaveError.message : "No fue posible guardar el combo.");
