@@ -278,6 +278,7 @@ export default function MenuPage() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [imageBusy, setImageBusy] = useState<string | null>(null);
+  const [imageFeedback, setImageFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [createState, setCreateState] = useState<CreateState | null>(null);
   const [createImageFiles, setCreateImageFiles] = useState<{ MAIN: File | null; SECONDARY: File | null }>({ MAIN: null, SECONDARY: null });
   const [creating, setCreating] = useState(false);
@@ -409,24 +410,29 @@ export default function MenuPage() {
   ) {
     const key = `${productId}:${slot}`;
     setImageBusy(key);
+    setImageFeedback(null);
     setError("");
     setComboError("");
 
     try {
       const url = await uploadStoredProductImage(productId, slot, file);
       applyProductImageUrl(productId, slot, url);
-      setNotice(
+      const message =
         slot === "MAIN"
           ? "Imagen principal cargada y guardada en Alentó."
-          : "Imagen secundaria cargada y guardada en Alentó.",
-      );
+          : "Imagen secundaria cargada y guardada en Alentó.";
+      if (comboState?.id === productId) {
+        setNotice(message);
+      } else {
+        setImageFeedback({ tone: "success", text: message });
+      }
     } catch (uploadError) {
       const message =
         uploadError instanceof Error
           ? uploadError.message
           : "No fue posible cargar la imagen.";
       if (comboState?.id === productId) setComboError(message);
-      else setError(message);
+      else setImageFeedback({ tone: "error", text: message });
     } finally {
       setImageBusy(null);
     }
@@ -444,14 +450,18 @@ export default function MenuPage() {
     try {
       await removeStoredProductImage(productId, slot);
       applyProductImageUrl(productId, slot, "");
-      setNotice("Imagen retirada del producto.");
+      if (comboState?.id === productId) {
+        setNotice("Imagen retirada del producto.");
+      } else {
+        setImageFeedback({ tone: "success", text: "Imagen retirada del producto." });
+      }
     } catch (removeError) {
       const message =
         removeError instanceof Error
           ? removeError.message
           : "No fue posible quitar la imagen.";
       if (comboState?.id === productId) setComboError(message);
-      else setError(message);
+      else setImageFeedback({ tone: "error", text: message });
     } finally {
       setImageBusy(null);
     }
@@ -470,6 +480,7 @@ export default function MenuPage() {
   }
 
   function openEditor(product: Product) {
+    setImageFeedback(null);
     setEditor({
       id: product.id,
       name: product.name,
@@ -1804,6 +1815,19 @@ export default function MenuPage() {
                         }
                       />
                     </div>
+
+                    {imageFeedback && (
+                      <p
+                        className={
+                          "alento-ui-control mt-3 rounded-xl border px-3 py-2 font-semibold " +
+                          (imageFeedback.tone === "success"
+                            ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                            : "border-red-100 bg-red-50 text-red-700")
+                        }
+                      >
+                        {imageFeedback.text}
+                      </p>
+                    )}
 
                     <p className="alento-ui-micro mt-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sky-700">
                       La carga o eliminación de imágenes se guarda inmediatamente. “Guardar cambios” aplica al nombre, descripción y precio.
