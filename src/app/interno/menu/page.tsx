@@ -1784,7 +1784,7 @@ export default function MenuPage() {
                                     ...editor,
                                     type: event.target.value as "PIZZA_SINGLE" | "PIZZA_CUSTOM",
                                     basePrice:
-                                      event.target.value === "PIZZA_CUSTOM" && !editor.basePrice
+                                      event.target.value === "PIZZA_CUSTOM"
                                         ? "5000"
                                         : editor.basePrice,
                                   })
