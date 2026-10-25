@@ -80,9 +80,18 @@ Esta regla es heurística y puede ajustarse posteriormente con mayor volumen de 
 
 No representa una predicción probabilística de compra.
 
-## Filtros por estado
+## Filtros y lectura del listado
 
-El listado permite filtrar por señal comercial y muestra el número de clientes en cada estado:
+La cabecera de Clientes separa explícitamente dos dimensiones para evitar mezclar conceptos:
+
+### Estado de dirección
+
+- Todas;
+- Verificadas;
+- Por actualizar;
+- Sin dirección.
+
+### Estado comercial
 
 - Todos;
 - Nuevo;
@@ -91,20 +100,29 @@ El listado permite filtrar por señal comercial y muestra el número de clientes
 - Por recuperar;
 - Sin compras.
 
-Los contadores se calculan sobre todos los clientes cargados. El buscador se combina con el filtro seleccionado.
+Ambos grupos muestran contadores y pueden combinarse con el buscador.
+
+Reglas visuales vigentes:
+
+- no mezclar los estados de dirección y comerciales en una única fila sin contexto;
+- cada grupo debe tener su título visible;
+- los botones usan tamaño de control normal, no microtexto;
+- icono, etiqueta y contador deben poder leerse sin depender únicamente del color;
+- el filtro activo conserva contraste suficiente sin reducir legibilidad de los demás estados.
+
+Los contadores se calculan sobre todos los clientes cargados. El buscador se combina con ambos filtros seleccionados.
 
 ## Tarjetas
 
-Cada cliente muestra:
+Cada cliente muestra, en este orden de lectura:
 
-- inicial;
-- nombre;
-- teléfono;
-- dirección principal;
-- señal comercial;
-- número de compras;
-- ticket promedio;
-- total comprado.
+1. inicial, nombre y teléfono;
+2. señal comercial;
+3. dirección principal;
+4. estado de validación de la dirección;
+5. número de compras, ticket promedio y total comprado.
+
+La jerarquía visual debe priorizar nombre y estado. Las etiquetas de estado, dirección y métricas usan la escala tipográfica operativa (`alento-ui-label` / `alento-ui-control` / `alento-ui-body`) y no deben volver a microtexto difícil de leer.
 
 La tarjeta completa es seleccionable.
 
