@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,17 +75,40 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const sourceBuffer = Buffer.from(await file.arrayBuffer());
+    let buffer: Buffer;
+
+    try {
+      buffer = await sharp(sourceBuffer, { failOn: "none" })
+        .rotate()
+        .resize({
+          width: 1600,
+          height: 1600,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 84, effort: 4 })
+        .toBuffer();
+    } catch {
+      return NextResponse.json(
+        { error: "La imagen no pudo procesarse. Prueba con otro JPG, PNG o WebP." },
+        { status: 400 },
+      );
+    }
+
+    const originalBaseName =
+      file.name.replace(/\.[^.]+$/u, "").trim().slice(0, 170) || "producto";
+    const storedFilename = `${originalBaseName}.webp`;
 
     const result = await prisma.$transaction(async (tx) => {
       const image = await tx.productImage.create({
         data: {
           productId,
           slot,
-          filename: file.name.slice(0, 180) || "producto",
-          contentType: file.type,
+          filename: storedFilename,
+          contentType: "image/webp",
           data: buffer,
-          sizeBytes: file.size,
+          sizeBytes: buffer.byteLength,
         },
         select: { id: true },
       });
