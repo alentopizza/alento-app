@@ -96,7 +96,6 @@ Debe conservar conceptualmente:
   size: { id, name, diameterCm, basePrice },
   crust: { id, name, price },
   mode: "WHOLE" | "HALF_HALF",
-  ingredientUnitPrice: number,
   wholeIngredients: [
     { productId, name, unitPrice }
   ],
@@ -106,7 +105,8 @@ Debe conservar conceptualmente:
   secondHalfIngredients: [
     { productId, name, unitPrice }
   ],
-  billableIngredientCount: number
+  billableIngredientCount: number,
+  ingredientCharge: number
 }
 ```
 
@@ -115,7 +115,7 @@ Regla comercial:
 - `WHOLE`: `billableIngredientCount = wholeIngredients.length`;
 - `HALF_HALF`: `billableIngredientCount = max(firstHalfIngredients.length, secondHalfIngredients.length)`.
 
-La selección enviada por navegador es solo una intención. `normalizeOrderLine()` vuelve a consultar tamaño, borde, ingredientes activos y el precio por ingrediente guardado en el producto antes de persistir `unitPrice`, `lineTotal` y el snapshot final.
+La selección enviada por navegador es solo una intención. `normalizeOrderLine()` vuelve a consultar tamaño, borde e ingredientes activos con el `basePrice` real de cada ingrediente antes de persistir `unitPrice`, `lineTotal`, `ingredientCharge` y el snapshot final.
 
 Para inventario futuro, cada ingrediente conserva su `productId` y su ubicación lógica (completa, mitad 1 o mitad 2). No inferir esa información desde el texto visible.
 
