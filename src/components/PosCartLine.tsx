@@ -1,7 +1,7 @@
 "use client";
 
 import type { OrderLineConfiguration } from "@/lib/orderConfiguration";
-import { presentComboOrderConfiguration } from "@/lib/orderPresentation";
+import { presentComboOrderConfiguration, presentOrderItemConfiguration } from "@/lib/orderPresentation";
 
 type PosCartLineItem = {
   key: string;
@@ -44,6 +44,10 @@ export default function PosCartLine({ item, editable, onEdit, onChangeQty }: Pro
     configuration.kind === "COMBO"
       ? presentComboOrderConfiguration(configuration)
       : null;
+  const customPizzaDetails =
+    configuration.kind === "PIZZA_CUSTOM"
+      ? presentOrderItemConfiguration(configuration)
+      : [];
 
   return (
     <article
