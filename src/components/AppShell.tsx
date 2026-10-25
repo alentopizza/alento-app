@@ -469,9 +469,34 @@ export default function AppShell({
           <aside className="absolute inset-y-0 left-0 flex w-[min(88vw,340px)] flex-col overflow-hidden border-r border-white/10 bg-[#0b0b0c] text-white shadow-[18px_0_60px_rgba(0,0,0,.42)]">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
               <Link
+                href={mobileHomeHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex min-w-0 items-center gap-3 sm:hidden"
+                aria-label="Ir a supervisión"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-white/10 bg-black">
+                  <img
+                    src={LOGO_DARK}
+                    alt="Alentó Pizza"
+                    className="h-full w-full object-cover"
+                  />
+                </span>
+
+                <span className="min-w-0">
+                  <span className="alento-ui-status block truncate text-white">
+                    Alentó Pizza
+                  </span>
+                  <span className="alento-ui-micro mt-0.5 block truncate text-white/40">
+                    Sabor Que Te Hace Volver.
+                  </span>
+                </span>
+              </Link>
+
+              <Link
                 href={staffHomeHref}
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex min-w-0 items-center gap-3"
+                className="hidden min-w-0 items-center gap-3 sm:flex"
+                aria-label="Ir al inicio interno"
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-white/10 bg-black">
                   <img
