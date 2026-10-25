@@ -1,6 +1,6 @@
 # Sistema visual y tipográfico de Alentó
 
-Última actualización: 2026-09-29.
+Última actualización: 2026-10-25.
 
 Este documento es la fuente canónica para tipografía operativa en superficies internas de Alentó App.
 
@@ -229,3 +229,35 @@ Piezas configurables actuales:
 - Portada del menú: 1920 × 1080 px (16:9).
 
 No agregar controles de personalización que no tengan un consumidor real en la experiencia pública. El antiguo `brand.logoUrl` fue retirado porque ninguna superficie lo renderizaba.
+
+
+## Navegación interna en teléfono
+
+La experiencia móvil de colaboradores debe priorizar **supervisión**, no replicar todo el menú administrativo de escritorio.
+
+Aplica únicamente en teléfono, por debajo del breakpoint `sm` (menos de 640 px). Tablet y escritorio conservan la navegación completa según ancho y rol.
+
+Reglas vigentes:
+
+- la hamburguesa se ubica en el costado izquierdo del header;
+- el acceso principal del teléfono lleva a la primera superficie de supervisión disponible para el rol;
+- el drawer móvil muestra únicamente los módulos de supervisión que el rol realmente puede abrir;
+- para `ADMIN`, el orden canónico es:
+  1. Pedidos;
+  2. Cocina;
+  3. Caja;
+  4. Usuarios y Roles;
+  5. Configuración;
+- no mostrar en el drawer de teléfono POS, Clientes, Menú administrativo, Cupones, Turnos, Club, Notificaciones o Métricas aunque sigan existiendo y sean accesibles desde tablet/escritorio;
+- esta simplificación es de navegación, **no cambia permisos de backend ni elimina rutas**;
+- el estado **Abierta/Cerrada** de la tienda no debe flotar sobre el contenido interno en teléfono: se presenta dentro del drawer lateral;
+- el detalle de horarios y el control del aviso sonoro continúan disponibles desde ese estado;
+- tablet (`sm` a `lg`) conserva el menú completo y el comportamiento anterior del estado de tienda;
+- la experiencia pública del cliente no comparte este patrón y no debe modificarse al ajustar la navegación interna.
+
+Implementación principal:
+
+- `src/components/AppShell.tsx`;
+- `src/components/StaffStoreStatus.tsx`.
+
+No ampliar el menú móvil por comodidad. Si una tarea administrativa no es de supervisión rápida, debe permanecer en tablet/escritorio salvo una decisión explícita de producto.
