@@ -114,6 +114,7 @@ Estas rutas forman parte de capacidades ya documentadas y no representan módulo
 
 - `GET /api/health`: health check de despliegue; ver `docs/DEPLOYMENT.md`.
 - `/api/catalog` y `/api/menu-admin`: proyección pública/operativa y administración del catálogo; ver `docs/MENU.md`.
+- `IngredientGroup`: subcategorías administrables para ingredientes, consumidas dinámicamente por Arma Tu Pizza en cliente y POS; ver `docs/MENU.md`.
 - `/api/product-images` y `/api/product-images/[id]`: carga persistente y entrega pública de imágenes oficiales de producto; ver `docs/MENU.md`.
 - `/api/public-home` y `/api/public-home-admin`: Home/personalización pública.
 - `/api/public-store-status`: estado público de apertura/cierre.
