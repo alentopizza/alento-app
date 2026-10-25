@@ -275,6 +275,7 @@ Características:
 - no requiere volumen local del contenedor;
 - no depende de Glide ni de una URL externa una vez cargada;
 - los binarios sobreviven redeploys porque viven en la base de datos;
+- `sharp` normaliza cada carga a WebP, máximo 1600 × 1600 y calidad 84 antes de persistir;
 - el endpoint público `/api/product-images/[id]` sirve la imagen con cache inmutable;
 - la escritura/eliminación exige sesión ADMIN dentro de la propia ruta;
 - la creación de la tabla es aditiva, pero como el arranque ejecuta `prisma db push`, revisar el diff de schema antes del primer redeploy que incluya esta función.
