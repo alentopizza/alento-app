@@ -58,10 +58,10 @@ Después de `prisma db push`, el arranque ejecuta `scripts/backfill-ingredient-g
 
 El script:
 
-- crea/actualiza Carnes y Embutidos;
-- crea/actualiza Verduras, Vegetales y Legumbres;
-- crea/actualiza Frutas;
-- crea/actualiza Otros;
+- crea Carnes y Embutidos si no existe;
+- crea Verduras, Vegetales y Legumbres si no existe;
+- crea Frutas si no existe;
+- crea Otros si no existe;
 - clasifica por nombre únicamente ingredientes sin grupo;
 - no modifica asignaciones manuales existentes.
 
