@@ -366,23 +366,6 @@ export async function PATCH(request: NextRequest) {
           { status: 400 },
         );
       }
-      if (type === "PIZZA_CUSTOM") {
-        const hasRequestedBasePrice =
-          Object.prototype.hasOwnProperty.call(body, "basePrice");
-        const requestedBasePrice =
-          body.basePrice === null || body.basePrice === ""
-            ? 0
-            : Number(body.basePrice);
-        const effectiveBasePrice = hasRequestedBasePrice
-          ? requestedBasePrice
-          : Number(currentProduct.basePrice ?? 0);
-        if (!Number.isFinite(effectiveBasePrice) || effectiveBasePrice <= 0) {
-          return NextResponse.json(
-            { error: "Arma Tu Pizza requiere un precio por ingrediente mayor a $0." },
-            { status: 400 },
-          );
-        }
-      }
       requestedType = type;
     } else {
       return NextResponse.json({ error: "Tipo de pizza inválido." }, { status: 400 });
@@ -764,13 +747,6 @@ export async function POST(request: NextRequest) {
         : PRODUCT_CATEGORY_TYPES[
             category.slug as keyof typeof PRODUCT_CATEGORY_TYPES
           ] ?? "STANDARD";
-    if (productType === "PIZZA_CUSTOM" && basePrice <= 0) {
-      return NextResponse.json(
-        { error: "Arma Tu Pizza requiere un precio por ingrediente mayor a $0." },
-        { status: 400 },
-      );
-    }
-
     let ingredientGroupId: number | null = null;
     if (category.slug === "ingredientes" && body.ingredientGroupId != null && body.ingredientGroupId !== "") {
       const requestedGroupId = Number(body.ingredientGroupId);
