@@ -100,6 +100,7 @@ export default function CustomPizzaConfigurator({
 }) {
   const [step, setStep] = useState(0);
   const [error, setError] = useState("");
+  const [ingredientQuery, setIngredientQuery] = useState("");
   const [ingredientGroupFilter, setIngredientGroupFilter] = useState<
     number | "ALL" | "UNGROUPED"
   >("ALL");
@@ -330,20 +331,44 @@ export default function CustomPizzaConfigurator({
       );
     };
 
+    const normalizedQuery = ingredientQuery
+      .trim()
+      .toLocaleLowerCase("es");
+    const matchingIngredients = normalizedQuery
+      ? catalog.modifiers.filter((ingredient) =>
+          ingredient.name.toLocaleLowerCase("es").includes(normalizedQuery),
+        )
+      : catalog.modifiers;
+
     const visibleIngredients =
       ingredientGroupFilter === "ALL"
-        ? catalog.modifiers
+        ? matchingIngredients
         : ingredientGroupFilter === "UNGROUPED"
-          ? catalog.modifiers.filter(
+          ? matchingIngredients.filter(
               (ingredient) => !ingredient.ingredientGroupId,
             )
-          : catalog.modifiers.filter(
+          : matchingIngredients.filter(
               (ingredient) =>
                 ingredient.ingredientGroupId === ingredientGroupFilter,
             );
 
     return (
       <div>
+        <label className="mb-3 block">
+          <span className="sr-only">Buscar ingrediente</span>
+          <input
+            value={ingredientQuery}
+            onChange={(event) => setIngredientQuery(event.target.value)}
+            placeholder="Buscar ingrediente..."
+            className={
+              "h-11 w-full rounded-[14px] border px-4 text-[12px] outline-none transition " +
+              (isDark
+                ? "border-white/10 bg-white/[0.04] text-white placeholder:text-white/25 focus:border-red-400/50"
+                : "border-neutral-200 bg-white text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-400")
+            }
+          />
+        </label>
+
         <div className="mb-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -409,7 +434,7 @@ export default function CustomPizzaConfigurator({
         {ingredientGroupFilter === "ALL" ? (
           <div className="space-y-5">
             {ingredientGroups.map((group) => {
-              const ingredients = catalog.modifiers.filter(
+              const ingredients = matchingIngredients.filter(
                 (ingredient) => ingredient.ingredientGroupId === group.id,
               );
               if (!ingredients.length) return null;
@@ -436,7 +461,7 @@ export default function CustomPizzaConfigurator({
                   Sin categoría
                 </h4>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {catalog.modifiers
+                  {matchingIngredients
                     .filter((ingredient) => !ingredient.ingredientGroupId)
                     .map(ingredientButton)}
                 </div>
@@ -447,6 +472,12 @@ export default function CustomPizzaConfigurator({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {visibleIngredients.map(ingredientButton)}
           </div>
+        )}
+
+        {matchingIngredients.length === 0 && (
+          <p className={"mt-3 rounded-xl border px-3 py-3 text-[11px] " + (isDark ? "border-white/10 bg-white/[0.03] text-white/40" : "border-neutral-200 bg-neutral-50 text-neutral-500")}>
+            No encontramos ingredientes con esa búsqueda.
+          </p>
         )}
       </div>
     );
