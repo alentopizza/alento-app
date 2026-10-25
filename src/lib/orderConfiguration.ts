@@ -58,11 +58,11 @@ export type CustomPizzaOrderConfiguration = {
     price: number;
   };
   mode: CustomPizzaMode;
-  ingredientUnitPrice: number;
   wholeIngredients: CustomPizzaIngredientSnapshot[];
   firstHalfIngredients: CustomPizzaIngredientSnapshot[];
   secondHalfIngredients: CustomPizzaIngredientSnapshot[];
   billableIngredientCount: number;
+  ingredientCharge: number;
 };
 
 export type ComboPizzaSnapshot = {
