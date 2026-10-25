@@ -15,7 +15,7 @@ import {
   pizzaCrustPrice,
 } from "@/lib/pizzaConfiguration";
 
-type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "COMBO" | "MODIFIER" | "INTERNAL";
+type ProductType = "STANDARD" | "PIZZA_SINGLE" | "PIZZA_TWO_FLAVORS" | "PIZZA_CUSTOM" | "COMBO" | "MODIFIER" | "INTERNAL";
 type PizzaSize = { id: number; name: string; diameterCm: number; basePrice: number };
 type Modifier = { id: number; name: string; basePrice: number };
 type Crust = { id: number; name: string; prices: { sizeId: number; price: number }[] };
