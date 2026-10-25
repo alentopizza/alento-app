@@ -434,9 +434,11 @@ Tamaño
 → Ingredientes
 ```
 
-Para Mitad y mitad se muestran dos pasos de ingredientes. El valor cobrable usa la mitad con mayor cantidad de ingredientes.
+Para Mitad y mitad se muestran dos pasos de ingredientes. El valor cobrable usa la mitad con mayor cantidad de ingredientes; si ambas tienen la misma cantidad, se usa la de mayor valor.
 
-La misma configuración se usa en el menú público, por lo que cliente y colaborador aplican la misma regla de precio.
+Los ingredientes provienen dinámicamente de los `MODIFIER` activos de la categoría `ingredientes`. Cada uno conserva su propio `basePrice`, y las subcategorías `IngredientGroup` se muestran como filtros (Carnes y Embutidos, Verduras/Vegetales/Legumbres, Frutas, Otros o cualquier grupo nuevo creado en Menú).
+
+La misma configuración se usa en el menú público, por lo que cliente y colaborador aplican la misma regla de precio y ven automáticamente los ingredientes nuevos sin cambios de código.
 
 El carrito permite volver a abrir una `PIZZA_CUSTOM` y modificar su configuración antes del checkout.
 
