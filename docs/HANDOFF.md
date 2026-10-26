@@ -1,6 +1,6 @@
 # Handoff y continuidad del proyecto
 
-Última auditoría: **2026-10-24**
+Última auditoría: **2026-10-26**
 
 Este documento permite que una nueva persona, desarrollador o IA retome Alentó App sin depender del historial de conversaciones.
 
@@ -25,9 +25,11 @@ Leer en este orden:
 15. `docs/METRICS_AND_TRACKING.md`
 16. `docs/PUSH_NOTIFICATIONS.md`
 17. `docs/MAPS_VISUAL_SYSTEM.md`
-18. `docs/DEPLOYMENT.md`
-19. `prisma/schema.prisma`
-20. archivos del módulo que se vaya a modificar.
+18. `docs/COUPONS.md`
+19. `docs/CLUB_POINTS.md`
+20. `docs/DEPLOYMENT.md`
+21. `prisma/schema.prisma`
+22. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
@@ -81,6 +83,46 @@ Antes de considerar terminado un cambio:
 En el despliegue actual, `npm run start` ejecuta `prisma db push && next start -p 3000`. Por tanto, los cambios de `prisma/schema.prisma` pueden aplicarse automáticamente al arrancar después del build. No indicar `db push` como paso manual obligatorio sin revisar primero el comportamiento vigente de despliegue y el impacto del schema.
 
 Este protocolo existe para evitar iteraciones donde un cambio funcional correcto genere regresiones por tipos, imports, estados derivados o contratos desalineados entre módulos.
+## Cambios recientes que no deben perderse — 2026-10-26
+
+### Cupones
+
+- `Coupon.active` es el interruptor maestro.
+- `Coupon.visibleInPos` controla POS.
+- `Coupon.visibleInCart` controla checkout público.
+- cupones existentes: POS visible por defecto, carrito oculto por defecto.
+- POS y WEB calculan elegibilidad con `normalizeOrderLine`.
+- `/api/discount/eligibility` es interno; el cliente usa `/api/public-checkout/eligibility`.
+- el domicilio nunca recibe descuento de cupón.
+- si todo el carrito está en promoción/no elegible, la app no muestra cupones y explica que la compra no aplica.
+- la selección pública de cupón vive en Entrega/Totales, no en Tus datos.
+
+Documento canónico: `docs/COUPONS.md`.
+
+### Rendimiento de la app pública
+
+- `PublicMobileNav` responde visualmente desde el primer toque y precarga destinos.
+- `/cart` y `/club` tienen estados `loading.tsx`.
+- `/cart` carga de forma dinámica `PublicCheckoutDelivery` y `PublicCheckoutCustomer`; no volver a hacer imports estáticos sin medir el impacto.
+- Club invitado no usa refresco completo periódico; autenticado usa una frecuencia más conservadora.
+
+### Club Puntos
+
+- `club_alento_settings.enabled` es el interruptor maestro.
+- al desactivar Club: se oculta de navegación, `/club` redirige a `/menu` y se pausan nuevas acreditaciones.
+- no borrar saldos/movimientos históricos al desactivar.
+- desactivar Club no debe cortar otros efectos de cerrar un pedido `COMPLETED`.
+
+### Arranque
+
+Comando vigente:
+
+```bash
+prisma db push && next start -p 3000
+```
+
+Los backfills de ganancias de repartidor e IngredientGroup son históricos/manuales y no deben reintroducirse en cada arranque.
+
 ## Módulos cerrados
 
 Están cerrados para la etapa operativa actual:
