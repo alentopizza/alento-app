@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline formal de Prisma, pruebas automatizadas, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline formal de Prisma, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -128,12 +128,15 @@ prisma validate
 prisma db push sobre PostgreSQL efímero
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
 Los secretos usados por CI son valores ficticios exclusivos del runner.
 
-**Todavía no hay suite de tests automatizados.** El CI valida instalación, schema, lint, tipos y compilación; las pruebas unitarias/integración/E2E pertenecen a la siguiente fase de calidad.
+La suite usa Vitest y actualmente protege 31 casos críticos en 5 archivos: Club Puntos, programación de pedidos, cobertura/tarifas de domicilio, flujo/códigos de pedidos y normalización canónica de precios, incluyendo Arma Tu Pizza.
+
+Las pruebas E2E de interfaz/navegador todavía no forman parte de esta suite.
 
 ## Numeración de pedidos
 
