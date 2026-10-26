@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-25.
+Última actualización: 2026-10-26.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -18,7 +18,9 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - Desde el Mapa De Entregas, operación puede activar o desconectar repartidores. La desconexión remota limpia el GPS y se bloquea si el repartidor aún tiene domicilios asignados; la activación inicia GPS cuando la app del repartidor está abierta y con permisos.
 - el domicilio se calcula automáticamente con Google Routes tanto al crear como al editar;
 - Caja básica y pagos parciales/mixtos están implementados;
-- Club acumula y muestra puntos, pero el canje transaccional sigue pendiente;
+- Club acumula y muestra puntos, puede activarse/desactivarse desde administración y el canje transaccional sigue pendiente;
+- los cupones disponen de visibilidad independiente por canal (`visibleInPos` / `visibleInCart`) y el checkout WEB los aplica server-side solo sobre productos elegibles;
+- la navegación pública inferior responde visualmente desde el toque, usa prefetch/estados de carga y el carrito difiere la carga de mapa/checkout pesado hasta que el cliente continúa;
 - `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
 Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
@@ -82,7 +84,8 @@ Además de los cinco módulos cerrados:
 - **Nómina en Caja**: pago de turnos, descuentos de préstamos, comprobante y reversión transaccional mientras la sesión siga abierta.
 - **Notificaciones** (`/notificaciones`): campañas Web Push manuales y automatizaciones WhatsApp. Documento: `docs/PUSH_NOTIFICATIONS.md`.
 - **Repartidor** (`/repartidor`): disponibilidad, GPS, autoasignación, navegación, seguimiento, desempeño y cartera. Documento: `docs/DRIVERS.md`.
-- **Cupones** (`/cupones`): administración y métricas de uso.
+- **Cupones** (`/cupones`): administración, métricas y visibilidad independiente en POS/Carrito. Documento: `docs/COUPONS.md`.
+- **Club Puntos** (`/club-alento`): ranking, configuración de acumulación y switch maestro Activo/Inactivo. Documento: `docs/CLUB_POINTS.md`.
 - **Personalización** (`/personalizacion`): imágenes públicas de Home y hero.
 - **SEO local**: páginas indexables de producto/categoría más `/ubicacion` y `/domicilios`. Documento: `docs/SEO.md`.
 
@@ -167,7 +170,7 @@ Soporta:
 - notas cortas por pizza;
 - combos configurables;
 - productos simples;
-- cupones/descuentos;
+- cupones/descuentos con elegibilidad canónica y visibilidad de canal;
 - intención de pago;
 - creación transaccional del pedido;
 - consecutivo comercial global;
@@ -428,7 +431,7 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 La base de producción no tiene baseline formal de Prisma Migrate.
 
-El start actual ejecuta `prisma db push`, el backfill de ganancias de repartidores y luego `next start`. Antes de retirar `db push` del arranque debe realizarse backup + baseline y separar la evolución del schema del inicio normal.
+El start actual ejecuta `prisma db push && next start -p 3000`. Los backfills históricos de ganancias de repartidores e IngredientGroup ya fueron retirados del arranque normal después de quedar aplicados. Antes de retirar `db push` debe realizarse backup + baseline y separar la evolución del schema del inicio normal.
 
 No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
 
@@ -483,7 +486,7 @@ El menú público consume `GET /api/catalog`, reutiliza categorías, productos, 
 
 El configurador público ya soporta productos simples, pizzas de un sabor, pizzas de dos sabores, tamaños, bordes, extras cuando aplican y combos configurables. El carrito persiste en navegador.
 
-La navegación pública persistente usa cuatro accesos: Menú, Carrito, Club y Perfil, en la parte inferior también en tablet y escritorio.
+La navegación pública persistente usa Menú, Carrito, Club y Perfil en la parte inferior también en tablet y escritorio. Club solo aparece cuando `club_alento_settings.enabled` está activo. El tab cambia visualmente desde `pointerdown`, las rutas principales se precargan y `/cart` / `/club` tienen estados de carga inmediatos. El carrito carga diferidamente los componentes pesados de Entrega y Datos/Pago.
 
 ### Checkout público de domicilio
 
@@ -501,7 +504,11 @@ Comportamiento vigente:
 - el mapa dibuja la ruta sede → cliente y tiene formato `3:4`;
 - Ruta, Domicilio y Tiempo están integrados como cabecera flotante dentro del mapa;
 - fuera de cobertura no se puede confirmar Domicilio;
-- el carrito muestra subtotal, domicilio y total provisional.
+- el carrito muestra subtotal, domicilio, descuento aplicable y total provisional;
+- si existen cupones públicos aplicables, se seleccionan en el paso Entrega/Totales, uno por fila y a ancho completo;
+- si todo el carrito está en promoción/no elegible, no se muestran cupones y se informa que la compra no aplica;
+- si el carrito mezcla promociones y productos elegibles, se aclara que el cupón solo afecta la base elegible;
+- la pantalla Tus datos no repite la selección ni el descuento del cupón; recibe el total ya descontado.
 
 La creación final de pedidos públicos ya está implementada mediante `/api/public-checkout`.
 
@@ -537,7 +544,16 @@ Al cancelar desde operación, cualquier `ClubPointTransaction` ligado al pedido 
 
 ### Club Alentó
 
-Club Alentó ya tiene persistencia y superficie pública.
+Club Alentó ya tiene persistencia, superficie pública y un interruptor maestro administrable desde `/club-alento`.
+
+Cuando está desactivado:
+
+- desaparece de la navegación pública;
+- `/club` redirige a `/menu`;
+- no se acreditan puntos nuevos;
+- saldos y movimientos históricos permanecen intactos.
+
+Al reactivarlo, vuelve a mostrarse y continúa con los saldos existentes.
 
 Reglas predeterminadas vigentes:
 
@@ -614,3 +630,16 @@ La experiencia pública y el checkout WEB ya están implementados. Los pendiente
 - Si se elimina un pago a repartidor con Caja abierta, el saldo vuelve a su cartera.
 
 Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
+
+
+## Cambios consolidados — 2026-10-26
+
+- `Coupon` incorpora `visibleInPos` y `visibleInCart`; POS y WEB validan el canal también en servidor.
+- `POST /api/public-checkout/eligibility` es la ruta pública segura para calcular base elegible; no reutilizar `/api/discount/eligibility` desde la app cliente.
+- POS y WEB comparten `normalizeOrderLine` para elegibilidad de cupones, incluidas pizzas configuradas y Arma Tu Pizza.
+- el cupón público se elige antes de Datos/Pago y nunca descuenta domicilio.
+- productos promocionales/no acumulables quedan fuera de la base del cupón.
+- Club Puntos tiene `enabled` como interruptor maestro; apagarlo no borra puntos ni interrumpe otros efectos de `COMPLETED`.
+- `/club` consulta sesión/configuración en paralelo y reduce refrescos en segundo plano; invitados ya no refrescan la página completa cada 8 s.
+- `/cart` usa `dynamic()` para cargar `PublicCheckoutDelivery` y `PublicCheckoutCustomer` solo cuando se requieren.
+- el arranque productivo ya no ejecuta backfills históricos en cada redeploy.
