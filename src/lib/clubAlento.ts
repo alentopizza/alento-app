@@ -1,12 +1,14 @@
 export const CLUB_ALENTO_SETTING_KEY = "club_alento_settings";
 
 export type ClubAlentoSettings = {
+  enabled: boolean;
   earnRatePercent: number;
   minimumRedemptionPurchase: number;
   pointValueCop: number;
 };
 
 export const DEFAULT_CLUB_ALENTO_SETTINGS: ClubAlentoSettings = {
+  enabled: true,
   earnRatePercent: 5,
   minimumRedemptionPurchase: 14900,
   pointValueCop: 1,
@@ -19,6 +21,10 @@ export function normalizeClubAlentoSettings(value: unknown): ClubAlentoSettings 
 
   const raw = value as Partial<ClubAlentoSettings> & { pointsPerThousand?: number };
 
+  const enabled =
+    typeof raw.enabled === "boolean"
+      ? raw.enabled
+      : DEFAULT_CLUB_ALENTO_SETTINGS.enabled;
   const earnRatePercent = Number(raw.earnRatePercent ?? DEFAULT_CLUB_ALENTO_SETTINGS.earnRatePercent);
   const minimumRedemptionPurchase = Number(
     raw.minimumRedemptionPurchase ?? DEFAULT_CLUB_ALENTO_SETTINGS.minimumRedemptionPurchase,
@@ -26,6 +32,7 @@ export function normalizeClubAlentoSettings(value: unknown): ClubAlentoSettings 
   const pointValueCop = Number(raw.pointValueCop ?? DEFAULT_CLUB_ALENTO_SETTINGS.pointValueCop);
 
   return {
+    enabled,
     earnRatePercent: Number.isFinite(earnRatePercent)
       ? Math.max(0, Math.min(100, earnRatePercent))
       : DEFAULT_CLUB_ALENTO_SETTINGS.earnRatePercent,
