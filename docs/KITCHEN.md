@@ -214,7 +214,15 @@ Mitad 1: Piña, Jamón
 Mitad 2: Plátano Maduro, Chicharrón Carnudo, Jamón
 ```
 
-Cocina **no recalcula precio**. Los ingredientes cobrables y el valor fueron normalizados server-side al crear/editar el pedido; Cocina consume el snapshot estructurado únicamente para preparación.
+Cocina **no recalcula precio**. El valor fue normalizado server-side al crear/editar el pedido; Cocina consume el snapshot estructurado únicamente para preparación.
+
+La UI de Cocina presenta `PIZZA_CUSTOM` de forma operacional:
+
+- `Pizza completa`: un bloque único con todos los ingredientes separados;
+- `Mitad y mitad`: dos bloques visualmente distintos, `Mitad 1` y `Mitad 2`;
+- cada ingrediente se muestra como etiqueta individual;
+- tamaño, borde y forma permanecen visibles arriba;
+- no se muestra el cálculo monetario de ingredientes en Cocina para evitar ruido durante preparación.
 
 No convertir las mitades en una nota libre: los IDs de los ingredientes deben permanecer en `OrderItem.configuration`.
 
