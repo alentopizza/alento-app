@@ -89,6 +89,25 @@ Ya están implementados, entre otros:
 - consecutivo comercial global independiente del `Order.id`;
 - códigos visibles como `POS-0001` y `WEB-0002` compartiendo la misma secuencia.
 
+## Dependencias reproducibles
+
+El repositorio versiona `package-lock.json` (lockfile v3). Las instalaciones limpias deben usar:
+
+```bash
+npm ci
+```
+
+No usar `npm install` como rutina de build/despliegue, porque puede recalcular el árbol de dependencias y modificar el lockfile.
+
+Cuando se cambie deliberadamente `package.json`:
+
+1. regenerar/actualizar `package-lock.json`;
+2. revisar ambos cambios juntos;
+3. comprobar que `npm ci` funciona desde una instalación limpia;
+4. versionar `package.json` y `package-lock.json` en el mismo cambio.
+
+El lockfile fue generado y validado con Node 22 / npm 10; `npm ci` ejecutó correctamente el `postinstall` de Prisma.
+
 ## Numeración de pedidos
 
 El identificador comercial no depende del `Order.id` técnico.
