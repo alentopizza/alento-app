@@ -222,6 +222,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         const clubSettings = savedClubSettings
           ? normalizeClubAlentoSettings(savedClubSettings.value)
           : DEFAULT_CLUB_ALENTO_SETTINGS;
+
+        if (!clubSettings.enabled) {
+          return updatedOrder;
+        }
+
         const hasOrderDiscount = Number(order.discount) > 0;
         const eligibleClubSubtotal = order.items.reduce((sum, item) => {
           if (!item.product) return sum;
