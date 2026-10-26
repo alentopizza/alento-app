@@ -295,6 +295,8 @@ Incluye:
 - cobro usando el precio real de cada `MODIFIER`; en mitad y mitad se cobra la mitad con más ingredientes y, en empate, la de mayor valor;
 - subcategorías dinámicas de ingredientes mediante `IngredientGroup`, compartidas por administración y Arma Tu Pizza;
 - validación y recálculo server-side del precio de Arma Tu Pizza;
+- precio público de `PIZZA_CUSTOM` oculto hasta la primera selección de ingrediente para evitar mostrar valores parciales de tamaño;
+- Cocina muestra `PIZZA_CUSTOM` con bloques separados para completa o Mitad 1 / Mitad 2 e ingredientes individualizados;
 - sincronización de orden/nombres con POS.
 
 Mejoras futuras registradas, no incluidas en el cierre:
