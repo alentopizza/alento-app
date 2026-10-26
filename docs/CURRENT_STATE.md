@@ -453,7 +453,7 @@ Pendientes estratégicos conocidos:
 - validación productiva de la experiencia pública ya implementada;
 - integraciones externas solo como extensiones opcionales.
 
-## Experiencia pública — estado vigente 2026-09-23
+## Experiencia pública — estado vigente 2026-10-26
 
 La experiencia pública ya es una parte activa de Alentó App y comparte el mismo catálogo y las mismas estructuras comerciales del sistema interno.
 
@@ -555,9 +555,9 @@ Cuando está desactivado:
 
 Al reactivarlo, vuelve a mostrarse y continúa con los saldos existentes.
 
-Reglas predeterminadas vigentes:
+Configuración y reglas vigentes:
 
-- acumulación: 5% sobre subtotal elegible sin descuento;
+- acumulación configurable desde administración; el fallback inicial del código es 5% sobre subtotal elegible sin descuento;
 - el domicilio no genera puntos;
 - 1 punto equivale a $1 COP de valor de canje;
 - compra mínima predeterminada para canje: $14.900;
