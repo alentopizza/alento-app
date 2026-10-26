@@ -1,12 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PublicCartItem } from "@/lib/publicCart";
 import {
   createAlentoMapPinElement,
   createDeliveryMapPinElement,
 } from "@/lib/alentoMapMarker";
 
 type FulfillmentType = "DELIVERY" | "PICKUP";
+
+type Coupon = {
+  id: number;
+  name: string;
+  type: "FIXED" | "PERCENTAGE";
+  value: number;
+};
 
 const ALENTO_DELIVERY_MAP_ID = "b0bfaae2809a720a6204509b";
 
@@ -18,6 +26,11 @@ export type PublicCheckoutSelection = {
   encodedPolyline?: string;
   deliveryZoneId?: string | null;
   deliveryZoneName?: string | null;
+  couponId?: number | null;
+  couponName?: string | null;
+  couponType?: "FIXED" | "PERCENTAGE" | null;
+  couponValue?: number | null;
+  discount?: number;
   destination?: {
     formattedAddress: string;
     placeId: string;
@@ -229,12 +242,14 @@ async function loadGoogleMaps(): Promise<GoogleMapsRuntime> {
 }
 
 export default function PublicCheckoutDelivery({
+  cart,
   subtotal,
   initialSelection,
   onClose,
   onConfirm,
   fullPage = false,
 }: {
+  cart: PublicCartItem[];
   subtotal: number;
   initialSelection?: PublicCheckoutSelection | null;
   onClose: () => void;
@@ -290,6 +305,81 @@ export default function PublicCheckoutDelivery({
   const [loadingSavedAddress, setLoadingSavedAddress] = useState(false);
   const [savedAddressChecked, setSavedAddressChecked] = useState(false);
   const [savedAddressRequiresValidation, setSavedAddressRequiresValidation] = useState(false);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState<number | null>(
+    initialSelection?.couponId ?? null,
+  );
+  const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
+
+  const selectedCoupon = useMemo(
+    () => coupons.find((coupon) => coupon.id === selectedCouponId) ?? null,
+    [coupons, selectedCouponId],
+  );
+
+  const discount = selectedCoupon
+    ? selectedCoupon.type === "PERCENTAGE"
+      ? Math.round(eligibleSubtotal * (selectedCoupon.value / 100))
+      : Math.min(selectedCoupon.value, eligibleSubtotal)
+    : 0;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCoupons() {
+      setLoadingCoupons(true);
+      try {
+        const [checkoutResponse, eligibilityResponse] = await Promise.all([
+          fetch("/api/public-checkout", { cache: "no-store" }),
+          fetch("/api/public-checkout/eligibility", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              items: cart.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                configuration: item.configuration,
+              })),
+            }),
+          }),
+        ]);
+
+        const checkoutData = await checkoutResponse.json();
+        const eligibilityData = await eligibilityResponse.json();
+
+        if (!cancelled) {
+          const nextCoupons = checkoutResponse.ok
+            ? (checkoutData.coupons ?? [])
+            : [];
+          setCoupons(nextCoupons);
+          setEligibleSubtotal(
+            eligibilityResponse.ok
+              ? Number(eligibilityData.eligibleSubtotal ?? 0)
+              : 0,
+          );
+
+          if (
+            selectedCouponId != null &&
+            !nextCoupons.some((coupon: Coupon) => coupon.id === selectedCouponId)
+          ) {
+            setSelectedCouponId(null);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setCoupons([]);
+          setEligibleSubtotal(0);
+        }
+      } finally {
+        if (!cancelled) setLoadingCoupons(false);
+      }
+    }
+
+    void loadCoupons();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart, selectedCouponId]);
 
   const drawMap = useCallback(async (
     destination?: {
