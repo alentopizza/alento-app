@@ -145,6 +145,64 @@ function pizzaCrustSnapshot(configuration: unknown) {
   return name ? { name, price } : null;
 }
 
+type ReceiptCustomPizza = {
+  mode: "WHOLE" | "HALF_HALF";
+  size: string;
+  crust: string;
+  wholeIngredients: string[];
+  firstHalfIngredients: string[];
+  secondHalfIngredients: string[];
+};
+
+function receiptIngredientNames(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((ingredient) =>
+    isObject(ingredient) && typeof ingredient.name === "string"
+      ? [ingredient.name.trim()]
+      : [],
+  ).filter(Boolean);
+}
+
+function receiptCustomPizza(configuration: unknown): ReceiptCustomPizza | null {
+  if (
+    !isObject(configuration) ||
+    String(configuration.kind ?? "").toUpperCase() !== "PIZZA_CUSTOM"
+  ) {
+    return null;
+  }
+
+  const size = isObject(configuration.size) ? configuration.size : null;
+  const crust = isObject(configuration.crust) ? configuration.crust : null;
+  const sizeName =
+    size && typeof size.name === "string" ? size.name.trim() : "";
+  const diameter = size ? numberValue(size.diameterCm) : 0;
+  const crustName =
+    crust && typeof crust.name === "string" ? crust.name.trim() : "";
+
+  return {
+    mode:
+      String(configuration.mode ?? "").toUpperCase() === "HALF_HALF"
+        ? "HALF_HALF"
+        : "WHOLE",
+    size: sizeName
+      ? diameter > 0
+        ? `${sizeName} · ${diameter} CM`
+        : sizeName
+      : "",
+    crust: crustName,
+    wholeIngredients: receiptIngredientNames(
+      configuration.wholeIngredients,
+    ),
+    firstHalfIngredients: receiptIngredientNames(
+      configuration.firstHalfIngredients,
+    ),
+    secondHalfIngredients: receiptIngredientNames(
+      configuration.secondHalfIngredients,
+    ),
+  };
+}
+
 
 function wrapText(value: string, maxChars: number) {
   const clean = value.replace(/\s+/g, " ").trim();
@@ -424,6 +482,7 @@ export async function GET(
   leftText("DETALLE DEL PEDIDO", 32, 900, 0, 14);
 
   for (const item of order.items) {
+    const customPizza = receiptCustomPizza(item.configuration);
     const crust = pizzaCrustSnapshot(item.configuration);
     const crustTotal = crust
       ? crust.price * Math.max(1, item.quantity)
@@ -432,12 +491,12 @@ export async function GET(
       0,
       Number(item.lineTotal) - crustTotal,
     );
-    const details = presentOrderItemConfiguration(
-      item.configuration,
-    ).filter(
-      (detail) =>
-        detail.label.trim().toLocaleLowerCase("es") !== "borde",
-    );
+    const details = customPizza
+      ? []
+      : presentOrderItemConfiguration(item.configuration).filter(
+          (detail) =>
+            detail.label.trim().toLocaleLowerCase("es") !== "borde",
+        );
 
     const productLines = wrapText(
       `${item.quantity} × ${item.productName.toUpperCase()}`,
@@ -473,11 +532,62 @@ export async function GET(
       leftText(continuation, 26, 900, 0, 2);
     }
 
-    for (const detail of details) {
-      const detailText =
-        `${detail.label.toUpperCase()}: ${receiptDetailText(detail.value).toUpperCase()}`;
-      for (const detailLine of wrapText(detailText, 43)) {
-        leftText(detailLine, 23, 700, 28, 2);
+    if (customPizza) {
+      const specParts = [
+        customPizza.size ? `TAMANO: ${customPizza.size.toUpperCase()}` : "",
+        customPizza.crust ? `BORDE: ${customPizza.crust.toUpperCase()}` : "",
+      ].filter(Boolean);
+
+      if (specParts.length) {
+        for (const specLine of wrapText(specParts.join("  |  "), 43)) {
+          leftText(specLine, 22, 800, 28, 2);
+        }
+      }
+
+      leftText(
+        customPizza.mode === "HALF_HALF"
+          ? "FORMA: MITAD Y MITAD"
+          : "FORMA: PIZZA COMPLETA",
+        23,
+        900,
+        28,
+        5,
+      );
+
+      const ingredientLines = (
+        title: string,
+        ingredients: string[],
+      ) => {
+        leftText(title, 22, 900, 28, 1);
+        if (!ingredients.length) {
+          leftText("- SIN INGREDIENTES", 21, 700, 48, 3);
+          return;
+        }
+
+        for (const ingredient of ingredients) {
+          for (const ingredientLine of wrapText(
+            `- ${ingredient.toUpperCase()}`,
+            38,
+          )) {
+            leftText(ingredientLine, 21, 700, 48, 2);
+          }
+        }
+      };
+
+      if (customPizza.mode === "HALF_HALF") {
+        ingredientLines("MITAD 1", customPizza.firstHalfIngredients);
+        y += 5;
+        ingredientLines("MITAD 2", customPizza.secondHalfIngredients);
+      } else {
+        ingredientLines("INGREDIENTES", customPizza.wholeIngredients);
+      }
+    } else {
+      for (const detail of details) {
+        const detailText =
+          `${detail.label.toUpperCase()}: ${receiptDetailText(detail.value).toUpperCase()}`;
+        for (const detailLine of wrapText(detailText, 43)) {
+          leftText(detailLine, 23, 700, 28, 2);
+        }
       }
     }
 
