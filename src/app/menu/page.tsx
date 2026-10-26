@@ -321,7 +321,7 @@ export default function PublicMenuPage() {
 
   function displayPrice(product: CatalogProduct) {
     if (product.type === "PIZZA_CUSTOM") {
-      return "Precio según elección";
+      return `Desde ${money(14900)}`;
     }
 
     const value = productPriceValue(product);
