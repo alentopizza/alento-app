@@ -297,6 +297,21 @@ export default function PublicMenuPage() {
     return () => observer.disconnect();
   }, [loading, query, featuredProducts.length, catalogCategories.length]);
 
+  function customPizzaReferencePrice() {
+    if (!catalog?.sizes.length) return 14900;
+
+    const minSize = Math.min(
+      ...catalog.sizes.map((size) => size.basePrice),
+    );
+    const pizzaPrices = catalog.categories
+      .flatMap((category) => category.products)
+      .filter((product) => product.type === "PIZZA_SINGLE")
+      .map((product) => minSize + Number(product.basePrice ?? 0))
+      .filter((value) => Number.isFinite(value) && value > 0);
+
+    return pizzaPrices.length ? Math.min(...pizzaPrices) : 14900;
+  }
+
   function productPriceValue(product: CatalogProduct): number | null {
     const minSize = catalog?.sizes.length
       ? Math.min(...catalog.sizes.map((size) => size.basePrice))
@@ -321,7 +336,7 @@ export default function PublicMenuPage() {
 
   function displayPrice(product: CatalogProduct) {
     if (product.type === "PIZZA_CUSTOM") {
-      return `Desde ${money(14900)}`;
+      return `Desde ${money(customPizzaReferencePrice())}`;
     }
 
     const value = productPriceValue(product);
