@@ -781,33 +781,22 @@ export default function KitchenPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 p-4 xl:grid-cols-2">
-                    {kitchenItems.map((item) => {
-                      const complexItem =
-                        item.product?.type === "PIZZA_CUSTOM" ||
-                        item.product?.type === "COMBO";
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={complexItem ? "xl:col-span-2" : ""}
-                        >
-                          <KitchenItem
-                            item={{
-                              ...item,
-                              preparedQuantity: Number(
-                                item.preparedQuantity ?? 0,
-                              ),
-                            }}
-                            busy={busyKey === `${order.id}:${item.id}`}
-                            onChangePrepared={(value) =>
-                              void changePrepared(order, item, value)
-                            }
-                          />
-                        </div>
-                      );
-                    })}
-
+                  <div className="grid gap-3 p-4">
+                    {kitchenItems.map((item) => (
+                      <KitchenItem
+                        key={item.id}
+                        item={{
+                          ...item,
+                          preparedQuantity: Number(
+                            item.preparedQuantity ?? 0,
+                          ),
+                        }}
+                        busy={busyKey === `${order.id}:${item.id}`}
+                        onChangePrepared={(value) =>
+                          void changePrepared(order, item, value)
+                        }
+                      />
+                    ))}
                   </div>
                 </article>
               );
