@@ -19,6 +19,8 @@ type Coupon = {
   type: CouponType;
   value: number;
   active: boolean;
+  visibleInPos: boolean;
+  visibleInCart: boolean;
   createdAt: string;
   updatedAt: string;
   usageCount: number;
@@ -69,6 +71,8 @@ export default function CouponsPage() {
   const [type, setType] = useState<CouponType>("FIXED");
   const [value, setValue] = useState("");
   const [active, setActive] = useState(true);
+  const [visibleInPos, setVisibleInPos] = useState(true);
+  const [visibleInCart, setVisibleInCart] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -124,6 +128,8 @@ export default function CouponsPage() {
     setType("FIXED");
     setValue("");
     setActive(true);
+    setVisibleInPos(true);
+    setVisibleInCart(false);
     setError("");
     setModalOpen(true);
   }
@@ -134,6 +140,8 @@ export default function CouponsPage() {
     setType(coupon.type);
     setValue(String(coupon.value));
     setActive(coupon.active);
+    setVisibleInPos(coupon.visibleInPos);
+    setVisibleInCart(coupon.visibleInCart);
     setError("");
     setModalOpen(true);
   }
@@ -161,6 +169,8 @@ export default function CouponsPage() {
             type,
             value: Number(value),
             active,
+            visibleInPos,
+            visibleInCart,
           }),
         },
       );
@@ -415,6 +425,15 @@ export default function CouponsPage() {
                   </div>
                 </div>
 
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className={`alento-ui-micro rounded-full px-2 py-1 ${coupon.active && coupon.visibleInPos ? "bg-sky-50 text-sky-700" : "bg-neutral-100 text-neutral-400"}`}>
+                    POS {coupon.active && coupon.visibleInPos ? "visible" : "oculto"}
+                  </span>
+                  <span className={`alento-ui-micro rounded-full px-2 py-1 ${coupon.active && coupon.visibleInCart ? "bg-red-50 text-red-700" : "bg-neutral-100 text-neutral-400"}`}>
+                    Carrito {coupon.active && coupon.visibleInCart ? "visible" : "oculto"}
+                  </span>
+                </div>
+
                 <div className="mt-3 flex justify-end gap-2 border-t border-neutral-100 pt-3">
                   <button
                     type="button"
@@ -538,22 +557,58 @@ export default function CouponsPage() {
                   </div>
                 </div>
 
-                <label className="flex items-center justify-between rounded-[16px] border border-neutral-200 bg-white px-4 py-3">
-                  <span>
-                    <b className="alento-ui-control block text-neutral-950">
-                      Cupón activo
-                    </b>
-                    <span className="alento-ui-micro mt-0.5 block text-neutral-500">
-                      Si está inactivo no aparecerá en el POS.
+                <div className="space-y-2">
+                  <label className="flex items-center justify-between rounded-[16px] border border-neutral-200 bg-white px-4 py-3">
+                    <span>
+                      <b className="alento-ui-control block text-neutral-950">
+                        Cupón activo
+                      </b>
+                      <span className="alento-ui-micro mt-0.5 block text-neutral-500">
+                        Interruptor maestro. Si está inactivo no podrá aplicarse en ningún canal.
+                      </span>
                     </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={(event) => setActive(event.target.checked)}
-                    className="h-5 w-5"
-                  />
-                </label>
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={(event) => setActive(event.target.checked)}
+                      className="h-5 w-5"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between rounded-[16px] border border-neutral-200 bg-white px-4 py-3">
+                    <span>
+                      <b className="alento-ui-control block text-neutral-950">
+                        Mostrar en POS
+                      </b>
+                      <span className="alento-ui-micro mt-0.5 block text-neutral-500">
+                        Permite que el equipo lo seleccione al cerrar pedidos en el POS.
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={visibleInPos}
+                      onChange={(event) => setVisibleInPos(event.target.checked)}
+                      className="h-5 w-5"
+                    />
+                  </label>
+
+                  <label className="flex items-center justify-between rounded-[16px] border border-red-100 bg-red-50/60 px-4 py-3">
+                    <span>
+                      <b className="alento-ui-control block text-neutral-950">
+                        Mostrar en carrito
+                      </b>
+                      <span className="alento-ui-micro mt-0.5 block text-neutral-500">
+                        Lo muestra al cliente en “Finaliza tu pedido” para que pueda aplicarlo.
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={visibleInCart}
+                      onChange={(event) => setVisibleInCart(event.target.checked)}
+                      className="h-5 w-5"
+                    />
+                  </label>
+                </div>
 
                 {error && (
                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
