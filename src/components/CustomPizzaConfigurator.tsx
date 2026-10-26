@@ -8,7 +8,6 @@ import type {
 import {
   buildCustomPizzaConfiguration,
   customPizzaBillableIngredientCount,
-  customPizzaIngredientCharge,
   estimateCustomPizzaPrice,
   type CustomPizzaDraftChoice,
 } from "@/lib/customPizzaConfiguration";
@@ -158,10 +157,6 @@ export default function CustomPizzaConfigurator({
     ingredients: catalog.modifiers,
   });
   const billableCount = customPizzaBillableIngredientCount(draft);
-  const ingredientCharge = customPizzaIngredientCharge({
-    draft,
-    ingredients: catalog.modifiers,
-  });
   const selectedIngredientCount =
     draft.mode === "WHOLE"
       ? draft.wholeIngredientIds.length
