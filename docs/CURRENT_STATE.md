@@ -617,7 +617,7 @@ La experiencia pública y el checkout WEB ya están implementados. Los pendiente
 1. mantener validación productiva continua en móvil/PWA/tablet/escritorio;
 2. completar el canje transaccional de Club Alentó;
 3. implementar refund/devoluciones auditables;
-4. formalizar baseline Prisma y añadir pruebas automatizadas al CI ya operativo;
+4. formalizar baseline Prisma; las pruebas automatizadas críticas ya forman parte del CI;
 5. mejorar edición/selección de direcciones sin duplicar la fuente comercial;
 6. mantener SEO, analítica y Push alineados con cambios de la experiencia pública.
 
@@ -656,8 +656,19 @@ Cada push a `main` y cada pull request valida en GitHub Actions:
 - aplicación del schema sobre PostgreSQL 16 efímero;
 - ESLint;
 - TypeScript con `tsc --noEmit`;
+- Vitest mediante `npm test`;
 - `next build`.
 
-La primera ejecución detectó tres errores de lint en scripts históricos CommonJS. Se corrigió la configuración de ESLint sin cambiar el comportamiento de esos scripts y la ejecución completa posterior terminó verde.
+La primera ejecución detectó tres errores de lint en scripts históricos CommonJS. Se corrigió la configuración de ESLint sin cambiar el comportamiento de esos scripts.
 
-Aún no existe suite automatizada de tests; esa deuda permanece separada del CI de compilación/calidad.
+La suite automatizada ya está implementada con Vitest:
+
+- 5 archivos de pruebas;
+- 31 tests;
+- Club Puntos;
+- programación/ventanas de pedidos;
+- domicilio/cobertura;
+- flujo y códigos;
+- normalización canónica de precios, incluida Arma Tu Pizza.
+
+La corrida final del Quality CI terminó completamente verde. Las pruebas E2E de navegador siguen pendientes como evolución futura.
