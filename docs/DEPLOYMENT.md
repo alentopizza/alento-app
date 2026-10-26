@@ -327,12 +327,15 @@ npx prisma validate
 npx prisma db push --skip-generate   # solo sobre DB efímera del runner
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
 Un fallo en cualquiera de estos pasos deja el workflow rojo.
 
-El CI actual **no sustituye todavía una suite de tests**: pruebas unitarias, integración y E2E se incorporarán como una fase independiente.
+La suite automatizada actual usa Vitest y contiene 31 pruebas críticas en 5 archivos. No necesita credenciales productivas ni servicios externos.
+
+Las pruebas E2E de navegador siguen pendientes y deben agregarse como una fase futura separada.
 
 ### Integraciones opcionales
 
