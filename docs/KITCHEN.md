@@ -183,6 +183,35 @@ Cada uno tiene un distintivo grande propio:
 
 La intención es que el cocinero no dependa solo del texto para diferenciarlos.
 
+### Sabores y especialidades
+
+Los sabores usan el mismo lenguaje visual que Tamaño y Borde:
+
+- tarjeta grande con etiqueta `SABOR`;
+- icono propio de pizza;
+- nombre de la especialidad en mayúscula y alto contraste;
+- color estable por especialidad para reconocimiento rápido.
+
+Paleta vigente:
+
+- La Paisa → ámbar;
+- Hawaiana Clásica → fucsia;
+- Hawaiana Chick → morado;
+- Chicharrona → naranja;
+- Napolitana → rojo;
+- Pollo & Champiñón → teal;
+- Fiesta Pepperoni → rosa/rojo;
+- Tropical → rosa;
+- Carnes Tradicional → piedra/oscuro;
+- Criolla Tradicional → amarillo;
+- Vegetariana → verde lima;
+- Mexicana Especial → rojo intenso;
+- especialidades nuevas sin regla explícita → violeta como fallback.
+
+En pizzas de dos sabores, cada mitad recibe su propia tarjeta (`MITAD 1` / `MITAD 2`) y conserva el color de la especialidad elegida.
+
+No volver a mostrar sabores como chips pequeños de texto si tamaño y borde usan distintivos grandes.
+
 Los tamaños tienen color diferenciado para reconocimiento rápido:
 
 - Personal;
