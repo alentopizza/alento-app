@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
-import { CircleCheck, Clock3, CookingPot, Pizza, Sparkles } from "lucide-react";
+import { Circle, CircleCheck, Clock3, CookingPot, Pizza, Ruler, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   presentComboOrderConfiguration,
@@ -91,29 +91,137 @@ function kitchenItemsFor(order: KitchenOrder) {
 }
 
 function kitchenSpecChipClass(base: string) {
-  return `inline-flex min-h-7 items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.025em] shadow-[0_2px_8px_rgba(28,23,20,.04)] ${base}`;
+  return `inline-flex min-h-8 items-center rounded-xl border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.035em] shadow-[0_3px_10px_rgba(28,23,20,.05)] ${base}`;
 }
 
-function sizeChipClass(value: string) {
+function sizeTone(value: string) {
   const normalized = value.toLocaleLowerCase("es");
 
-  if (normalized.includes("personal")) return kitchenSpecChipClass("border-sky-200 bg-sky-50 text-sky-800");
-  if (normalized.includes("mediana")) return kitchenSpecChipClass("border-emerald-200 bg-emerald-50 text-emerald-800");
-  if (normalized.includes("grande")) return kitchenSpecChipClass("border-amber-200 bg-amber-50 text-amber-800");
-  if (normalized.includes("extra")) return kitchenSpecChipClass("border-violet-200 bg-violet-50 text-violet-800");
+  if (normalized.includes("personal")) {
+    return {
+      shell: "border-sky-200 bg-sky-50 text-sky-950",
+      icon: "bg-sky-600 text-white",
+      label: "text-sky-600",
+    };
+  }
+  if (normalized.includes("mediana")) {
+    return {
+      shell: "border-emerald-200 bg-emerald-50 text-emerald-950",
+      icon: "bg-emerald-600 text-white",
+      label: "text-emerald-600",
+    };
+  }
+  if (normalized.includes("grande")) {
+    return {
+      shell: "border-amber-200 bg-amber-50 text-amber-950",
+      icon: "bg-amber-500 text-white",
+      label: "text-amber-700",
+    };
+  }
+  if (normalized.includes("extra")) {
+    return {
+      shell: "border-violet-200 bg-violet-50 text-violet-950",
+      icon: "bg-violet-600 text-white",
+      label: "text-violet-600",
+    };
+  }
 
-  return kitchenSpecChipClass("border-neutral-200 bg-white text-neutral-800");
+  return {
+    shell: "border-neutral-200 bg-white text-neutral-950",
+    icon: "bg-neutral-900 text-white",
+    label: "text-neutral-500",
+  };
 }
 
-function crustChipClass(value: string) {
+function crustTone(value: string) {
   const normalized = value.toLocaleLowerCase("es");
 
-  if (normalized.includes("tradicional")) return kitchenSpecChipClass("border-neutral-300 bg-neutral-100 text-neutral-800");
-  if (normalized.includes("mozzarella")) return kitchenSpecChipClass("border-yellow-200 bg-yellow-50 text-yellow-800");
-  if (normalized.includes("bocadillo")) return kitchenSpecChipClass("border-rose-200 bg-rose-50 text-rose-800");
-  if (normalized.includes("salchi")) return kitchenSpecChipClass("border-orange-200 bg-orange-50 text-orange-800");
+  if (normalized.includes("tradicional")) {
+    return {
+      shell: "border-neutral-300 bg-neutral-100 text-neutral-950",
+      icon: "bg-neutral-800 text-white",
+      label: "text-neutral-500",
+    };
+  }
+  if (normalized.includes("mozzarella")) {
+    return {
+      shell: "border-yellow-300 bg-yellow-50 text-yellow-950",
+      icon: "bg-yellow-500 text-yellow-950",
+      label: "text-yellow-700",
+    };
+  }
+  if (normalized.includes("bocadillo")) {
+    return {
+      shell: "border-rose-200 bg-rose-50 text-rose-950",
+      icon: "bg-rose-500 text-white",
+      label: "text-rose-600",
+    };
+  }
+  if (normalized.includes("salchi")) {
+    return {
+      shell: "border-orange-200 bg-orange-50 text-orange-950",
+      icon: "bg-orange-500 text-white",
+      label: "text-orange-600",
+    };
+  }
 
-  return kitchenSpecChipClass("border-neutral-200 bg-white text-neutral-800");
+  return {
+    shell: "border-neutral-200 bg-white text-neutral-950",
+    icon: "bg-neutral-900 text-white",
+    label: "text-neutral-500",
+  };
+}
+
+function KitchenSizeBadge({ value }: { value: string }) {
+  const tone = sizeTone(value);
+
+  return (
+    <div
+      className={`inline-flex min-h-[52px] min-w-[150px] items-center gap-2.5 rounded-[14px] border px-3 py-2 shadow-[0_4px_12px_rgba(28,23,20,.06)] ${tone.shell}`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${tone.icon}`}
+      >
+        <Ruler className="h-4 w-4" strokeWidth={2.4} />
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block text-[8px] font-black uppercase tracking-[0.12em] ${tone.label}`}
+        >
+          Tamaño
+        </span>
+        <b className="mt-0.5 block truncate text-[13px] font-black uppercase leading-4 tracking-[-0.01em]">
+          {value}
+        </b>
+      </span>
+    </div>
+  );
+}
+
+function KitchenCrustBadge({ value }: { value: string }) {
+  const tone = crustTone(value);
+
+  return (
+    <div
+      className={`inline-flex min-h-[52px] min-w-[150px] items-center gap-2.5 rounded-[14px] border px-3 py-2 shadow-[0_4px_12px_rgba(28,23,20,.06)] ${tone.shell}`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone.icon}`}
+      >
+        <Circle className="h-4 w-4" strokeWidth={2.6} />
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block text-[8px] font-black uppercase tracking-[0.12em] ${tone.label}`}
+        >
+          Borde
+        </span>
+        <b className="mt-0.5 block truncate text-[13px] font-black uppercase leading-4 tracking-[-0.01em]">
+          {value}
+        </b>
+      </span>
+    </div>
+  );
 }
 
 type KitchenCustomPizzaPresentation = {
@@ -209,7 +317,7 @@ function KitchenIngredientBlock({
         : "text-sky-800";
 
   return (
-    <div className={`rounded-[14px] border p-2.5 ${shell}`}>
+    <div className={`rounded-[16px] border p-3 ${shell}`}>
       <div className="flex items-center justify-between gap-2">
         <b
           className={`text-[11px] font-black uppercase tracking-[0.07em] ${heading}`}
@@ -226,7 +334,7 @@ function KitchenIngredientBlock({
           ingredients.map((ingredient, index) => (
             <span
               key={`${ingredient}-${index}`}
-              className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-black leading-4 text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
+              className="inline-flex min-h-8 items-center rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 text-[11.5px] font-black leading-4 text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
             >
               {ingredient}
             </span>
@@ -293,12 +401,12 @@ function KitchenItem({
   const complete = item.preparedQuantity >= item.quantity;
 
   return (
-    <div className={`rounded-[18px] border p-2.5 transition [font-synthesis:none] ${complete ? "border-emerald-200 bg-emerald-50/65" : "border-neutral-200 bg-[#faf9f7]"}`}>
+    <div className={`h-full rounded-[20px] border p-3.5 transition [font-synthesis:none] ${complete ? "border-emerald-200 bg-emerald-50/65" : "border-neutral-200 bg-[#fbfaf8] shadow-[0_5px_16px_rgba(28,23,20,.035)]"}`}>
       <div className="flex items-start gap-2.5">
         <span className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[11px] font-bold tabular-nums ${complete ? "bg-emerald-600 text-white" : "bg-black text-white"}`}>{item.quantity}×</span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <b className="min-w-0 pt-1 text-[14px] font-bold leading-5 tracking-[-0.01em] text-neutral-950">{item.productName}</b>
+            <b className="min-w-0 pt-0.5 text-[15px] font-black leading-5 tracking-[-0.015em] text-neutral-950">{item.productName}</b>
             {!complete && (
               <div className="flex shrink-0 items-center gap-1">
                 <button
@@ -339,9 +447,7 @@ function KitchenItem({
 
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     {pizza.sizeLabel && (
-                      <span className={sizeChipClass(pizza.sizeLabel)}>
-                        {pizza.sizeLabel}
-                      </span>
+                      <KitchenSizeBadge value={pizza.sizeLabel} />
                     )}
                     {pizza.flavor && (
                       <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
@@ -377,20 +483,16 @@ function KitchenItem({
             <div className="mt-2.5 space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 {customPizzaPresentation.sizeLabel && (
-                  <span className={sizeChipClass(customPizzaPresentation.sizeLabel)}>
-                    {customPizzaPresentation.sizeLabel}
-                  </span>
+                  <KitchenSizeBadge value={customPizzaPresentation.sizeLabel} />
                 )}
                 {customPizzaPresentation.crustLabel && (
-                  <span className={crustChipClass(customPizzaPresentation.crustLabel)}>
-                    {customPizzaPresentation.crustLabel}
-                  </span>
+                  <KitchenCrustBadge value={customPizzaPresentation.crustLabel} />
                 )}
                 <span
                   className={
                     customPizzaPresentation.mode === "HALF_HALF"
-                      ? "inline-flex min-h-7 items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-red-800"
-                      : "inline-flex min-h-7 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-emerald-800"
+                      ? "inline-flex min-h-[52px] items-center rounded-[14px] border-2 border-red-200 bg-red-50 px-4 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-red-800"
+                      : "inline-flex min-h-[52px] items-center rounded-[14px] border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-emerald-800"
                   }
                 >
                   {customPizzaPresentation.mode === "HALF_HALF"
@@ -424,8 +526,8 @@ function KitchenItem({
 
           {(sizeDetail || crustDetail) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {sizeDetail && <span className={sizeChipClass(sizeDetail.value)}>{sizeDetail.value}</span>}
-              {crustDetail && <span className={crustChipClass(crustDetail.value)}>{crustDetail.value}</span>}
+              {sizeDetail && <KitchenSizeBadge value={sizeDetail.value} />}
+              {crustDetail && <KitchenCrustBadge value={crustDetail.value} />}
             </div>
           )}
 
@@ -526,7 +628,11 @@ export default function KitchenPage() {
           !order.scheduledFor ||
           kitchenEntryTime(order) <= Date.now(),
       )
-      .sort((a, b) => kitchenEntryTime(a) - kitchenEntryTime(b)),
+      .sort(
+        (a, b) =>
+          kitchenEntryTime(a) - kitchenEntryTime(b) ||
+          a.id - b.id,
+      ),
     [orders],
   );
 
@@ -635,17 +741,22 @@ export default function KitchenPage() {
             </div>
           </div>
         ) : (
-          <div className="grid items-start gap-3 lg:grid-cols-2 xl:grid-cols-3">
-            {kitchenOrders.map((order) => {
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            {kitchenOrders.map((order, orderIndex) => {
               const minutes = ageMinutes(order);
               const kitchenItems = kitchenItemsFor(order);
 
               return (
-                <article key={order.id} className={`self-start overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100" : "border-neutral-200"}`}>
-                  <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3 [font-synthesis:none]">
+                <article key={order.id} className={`self-start overflow-hidden rounded-[24px] border bg-white shadow-[0_14px_36px_rgba(28,23,20,.06)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100" : "border-neutral-200"}`}>
+                  <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4.5 py-3.5 [font-synthesis:none]">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-[18px] font-bold tracking-[-0.025em] text-neutral-950">{displayOrderCode(order)}</h2>
+                        <h2 className="text-[19px] font-black tracking-[-0.03em] text-neutral-950">{displayOrderCode(order)}</h2>
+                        {orderIndex === 0 && (
+                          <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-red-700">
+                            Más antiguo
+                          </span>
+                        )}
                         <span className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]">{fulfillmentLabel(order.fulfillmentType)}</span>
                         <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.02em] text-amber-700">
                           {statusLabel(order.status === "CONFIRMED" ? "PREPARING" : order.status)}
@@ -669,12 +780,12 @@ export default function KitchenPage() {
                           <circle cx="12" cy="12" r="8.5" />
                           <path d="M12 7.5v5l3 2" />
                         </svg>
-                        <b className="text-[12px] font-semibold">{minutes}</b>
+                        <b className="text-[12px] font-black">{minutes} min</b>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 p-3.5">
+                  <div className="grid gap-3 p-4 xl:grid-cols-2">
                     {kitchenItems.map((item) => (
                       <KitchenItem
                         key={item.id}
