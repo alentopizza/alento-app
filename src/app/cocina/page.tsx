@@ -116,6 +116,131 @@ function crustChipClass(value: string) {
   return kitchenSpecChipClass("border-neutral-200 bg-white text-neutral-800");
 }
 
+type KitchenCustomPizzaPresentation = {
+  mode: "WHOLE" | "HALF_HALF";
+  sizeLabel: string | null;
+  crustLabel: string | null;
+  wholeIngredients: string[];
+  firstHalfIngredients: string[];
+  secondHalfIngredients: string[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function customPizzaIngredientNames(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((ingredient) =>
+    isRecord(ingredient) && typeof ingredient.name === "string"
+      ? [ingredient.name.trim()]
+      : [],
+  ).filter(Boolean);
+}
+
+function readCustomPizzaPresentation(
+  item: KitchenOrderItem,
+): KitchenCustomPizzaPresentation | null {
+  if (
+    item.product?.type !== "PIZZA_CUSTOM" ||
+    !isRecord(item.configuration) ||
+    String(item.configuration.kind ?? "").toUpperCase() !== "PIZZA_CUSTOM"
+  ) {
+    return null;
+  }
+
+  const size = isRecord(item.configuration.size)
+    ? item.configuration.size
+    : null;
+  const crust = isRecord(item.configuration.crust)
+    ? item.configuration.crust
+    : null;
+  const mode =
+    String(item.configuration.mode ?? "").toUpperCase() === "HALF_HALF"
+      ? "HALF_HALF"
+      : "WHOLE";
+
+  const sizeName =
+    size && typeof size.name === "string" ? size.name.trim() : "";
+  const diameter = size ? Number(size.diameterCm) : NaN;
+  const sizeLabel = sizeName
+    ? Number.isFinite(diameter) && diameter > 0
+      ? `${sizeName} · ${diameter} CM`
+      : sizeName
+    : null;
+
+  return {
+    mode,
+    sizeLabel,
+    crustLabel:
+      crust && typeof crust.name === "string" ? crust.name.trim() : null,
+    wholeIngredients: customPizzaIngredientNames(
+      item.configuration.wholeIngredients,
+    ),
+    firstHalfIngredients: customPizzaIngredientNames(
+      item.configuration.firstHalfIngredients,
+    ),
+    secondHalfIngredients: customPizzaIngredientNames(
+      item.configuration.secondHalfIngredients,
+    ),
+  };
+}
+
+function KitchenIngredientBlock({
+  title,
+  ingredients,
+  tone,
+}: {
+  title: string;
+  ingredients: string[];
+  tone: "complete" | "first" | "second";
+}) {
+  const shell =
+    tone === "complete"
+      ? "border-emerald-200 bg-emerald-50/70"
+      : tone === "first"
+        ? "border-red-200 bg-red-50/70"
+        : "border-sky-200 bg-sky-50/70";
+  const heading =
+    tone === "complete"
+      ? "text-emerald-800"
+      : tone === "first"
+        ? "text-red-800"
+        : "text-sky-800";
+
+  return (
+    <div className={`rounded-[14px] border p-2.5 ${shell}`}>
+      <div className="flex items-center justify-between gap-2">
+        <b
+          className={`text-[11px] font-black uppercase tracking-[0.07em] ${heading}`}
+        >
+          {title}
+        </b>
+        <span className="rounded-full bg-white/80 px-2 py-1 text-[9px] font-black tabular-nums text-neutral-600">
+          {ingredients.length} ingrediente{ingredients.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {ingredients.length ? (
+          ingredients.map((ingredient, index) => (
+            <span
+              key={`${ingredient}-${index}`}
+              className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-black leading-4 text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
+            >
+              {ingredient}
+            </span>
+          ))
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-[0.04em] text-neutral-400">
+            Sin ingredientes
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KitchenItem({
   item,
   busy,
@@ -145,7 +270,9 @@ function KitchenItem({
       }
     : null;
 
-  const details = comboPresentation
+  const customPizzaPresentation = readCustomPizzaPresentation(item);
+
+  const details = comboPresentation || customPizzaPresentation
     ? []
     : presentOrderItemConfiguration(item.configuration).filter((detail) => {
         const label = detail.label.trim().toLowerCase();
@@ -243,6 +370,55 @@ function KitchenItem({
                   ))}
                 </div>
               ))}
+            </div>
+          )}
+
+          {customPizzaPresentation && (
+            <div className="mt-2.5 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                {customPizzaPresentation.sizeLabel && (
+                  <span className={sizeChipClass(customPizzaPresentation.sizeLabel)}>
+                    {customPizzaPresentation.sizeLabel}
+                  </span>
+                )}
+                {customPizzaPresentation.crustLabel && (
+                  <span className={crustChipClass(customPizzaPresentation.crustLabel)}>
+                    {customPizzaPresentation.crustLabel}
+                  </span>
+                )}
+                <span
+                  className={
+                    customPizzaPresentation.mode === "HALF_HALF"
+                      ? "inline-flex min-h-7 items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-red-800"
+                      : "inline-flex min-h-7 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-emerald-800"
+                  }
+                >
+                  {customPizzaPresentation.mode === "HALF_HALF"
+                    ? "Mitad y mitad"
+                    : "Pizza completa"}
+                </span>
+              </div>
+
+              {customPizzaPresentation.mode === "HALF_HALF" ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <KitchenIngredientBlock
+                    title="Mitad 1"
+                    ingredients={customPizzaPresentation.firstHalfIngredients}
+                    tone="first"
+                  />
+                  <KitchenIngredientBlock
+                    title="Mitad 2"
+                    ingredients={customPizzaPresentation.secondHalfIngredients}
+                    tone="second"
+                  />
+                </div>
+              ) : (
+                <KitchenIngredientBlock
+                  title="Ingredientes · Pizza completa"
+                  ingredients={customPizzaPresentation.wholeIngredients}
+                  tone="complete"
+                />
+              )}
             </div>
           )}
 
