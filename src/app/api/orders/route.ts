@@ -248,7 +248,9 @@ export async function POST(request: NextRequest) {
     if (discountMode === "COUPON") {
       couponId = Number(body.couponId);
       if (!couponId) return NextResponse.json({ error: "Selecciona un cupón válido." }, { status: 400 });
-      const coupon = await prisma.coupon.findFirst({ where: { id: couponId, active: true } });
+      const coupon = await prisma.coupon.findFirst({
+        where: { id: couponId, active: true, visibleInPos: true },
+      });
       if (!coupon) return NextResponse.json({ error: "El cupón seleccionado ya no está activo." }, { status: 400 });
       couponName = coupon.name;
       discount = coupon.type === "PERCENTAGE"
