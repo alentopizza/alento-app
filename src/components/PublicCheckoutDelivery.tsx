@@ -384,11 +384,20 @@ export default function PublicCheckoutDelivery({
         const eligibilityData = await eligibilityResponse.json();
 
         if (!cancelled) {
-          setEligibleSubtotal(
-            eligibilityResponse.ok
-              ? Number(eligibilityData.eligibleSubtotal ?? 0)
-              : 0,
-          );
+          const nextEligibleSubtotal = eligibilityResponse.ok
+            ? Number(eligibilityData.eligibleSubtotal ?? 0)
+            : 0;
+          setEligibleSubtotal(nextEligibleSubtotal);
+          setSelectedCouponId((current) => {
+            if (current == null) return null;
+            const coupon = coupons.find((item) => item.id === current);
+            if (!coupon) return null;
+            const saving =
+              coupon.type === "PERCENTAGE"
+                ? Math.round(nextEligibleSubtotal * (coupon.value / 100))
+                : Math.min(coupon.value, nextEligibleSubtotal);
+            return saving > 0 ? current : null;
+          });
           setEligibilityReady(true);
         }
       } catch {
