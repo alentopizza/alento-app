@@ -1,13 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import PublicActiveOrderBanner from "@/components/PublicActiveOrderBanner";
-import PublicCheckoutCustomer from "@/components/PublicCheckoutCustomer";
-import PublicCheckoutDelivery, {
-  type PublicCheckoutSelection,
-} from "@/components/PublicCheckoutDelivery";
+import type { PublicCheckoutSelection } from "@/components/PublicCheckoutDelivery";
+
+const PublicCheckoutDelivery = dynamic(
+  () => import("@/components/PublicCheckoutDelivery"),
+  {
+    loading: () => (
+      <div className="min-h-dvh bg-[#111] px-4 py-8 text-center text-[11px] font-semibold text-white/45">
+        Preparando entrega...
+      </div>
+    ),
+  },
+);
+
+const PublicCheckoutCustomer = dynamic(
+  () => import("@/components/PublicCheckoutCustomer"),
+  {
+    loading: () => (
+      <div className="min-h-dvh bg-[#111] px-4 py-8 text-center text-[11px] font-semibold text-white/45">
+        Preparando tus datos...
+      </div>
+    ),
+  },
+);
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
