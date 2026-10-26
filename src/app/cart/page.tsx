@@ -670,6 +670,7 @@ export default function CartPage() {
 
       {checkoutStep === "delivery" && (
         <PublicCheckoutDelivery
+          cart={cart}
           subtotal={subtotal}
           initialSelection={checkoutSelection}
           fullPage
