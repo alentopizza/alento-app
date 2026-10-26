@@ -744,7 +744,7 @@ export default function KitchenPage() {
 
               return (
                 <article key={order.id} className={`self-start overflow-hidden rounded-[24px] border bg-white shadow-[0_14px_36px_rgba(28,23,20,.06)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100" : "border-neutral-200"}`}>
-                  <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4.5 py-3.5 [font-synthesis:none]">
+                  <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-5 py-3.5 [font-synthesis:none]">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-[19px] font-black tracking-[-0.03em] text-neutral-950">{displayOrderCode(order)}</h2>
