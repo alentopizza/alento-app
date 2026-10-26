@@ -313,13 +313,17 @@ export default function PublicMenuPage() {
     }
 
     if (product.type === "PIZZA_CUSTOM") {
-      return minSize;
+      return null;
     }
 
     return product.basePrice;
   }
 
   function displayPrice(product: CatalogProduct) {
+    if (product.type === "PIZZA_CUSTOM") {
+      return "Precio según elección";
+    }
+
     const value = productPriceValue(product);
     if (value == null) {
       return product.type === "COMBO" ? "Configurable" : "Consultar";
@@ -871,6 +875,7 @@ export default function PublicMenuPage() {
             product={configurableProduct}
             catalog={catalog}
             theme="dark"
+            pricingMode="customer"
             onClose={() => setConfigurableProduct(null)}
             onConfirm={(result) => {
               addItemToCart({
