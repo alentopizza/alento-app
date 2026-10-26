@@ -2,7 +2,7 @@
 
 Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
-Última actualización: 2026-10-24.
+Última actualización: 2026-10-26.
 
 Este documento describe la autenticación vigente de Alentó App y la separación entre colaboradores internos y clientes.
 
@@ -187,6 +187,8 @@ La tarifa y la distancia oficiales no se confían al navegador: se resuelven ser
 
 `GET /api/catalog` y las APIs de autenticación permanecen públicas por definición.
 
+`GET /api/club-settings` es público para que la navegación del cliente pueda conocer si Club está habilitado. Su `PUT` continúa protegido para ADMIN. `POST /api/public-checkout/eligibility` también es público por diseño para calcular elegibilidad de cupones sin exponer la ruta interna `/api/discount/eligibility`.
+
 ## Clientes
 
 Los clientes **no necesitan iniciar sesión para navegar la app pública ni para comprar como invitados**.
@@ -360,7 +362,7 @@ No bloquear por falta de login:
 - búsqueda;
 - producto;
 - carrito;
-- explicación de Club;
+- explicación de Club cuando el programa está activo;
 - selección inicial de modalidad/dirección.
 
 Sí exigir sesión para operaciones privadas como historial, datos personales, direcciones persistidas y saldo/movimientos individuales del Club.
@@ -439,7 +441,7 @@ Rutas canónicas:
 - `/`: Home pública;
 - `/menu`: menú y configurador;
 - `/cart`: carrito;
-- `/club`: Club Alentó;
+- `/club`: Club Alentó cuando `club_alento_settings.enabled` está activo; si está desactivado la ruta redirige a `/menu`;
 - `/login`: acceso unificado;
 - `/cuenta`: perfil privado del cliente;
 - `/seguimiento/[token]`: seguimiento firmado.
