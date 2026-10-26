@@ -288,6 +288,103 @@ export function presentOrderItemConfiguration(configuration: unknown): Presented
   return [];
 }
 
+export function presentCustomerOrderItemConfiguration(
+  configuration: unknown,
+): PresentedDetail[] {
+  if (!isObject(configuration)) return [];
+
+  const kind = text(configuration.kind).toUpperCase();
+  if (kind !== "PIZZA_CUSTOM") {
+    return presentOrderItemConfiguration(configuration);
+  }
+
+  const result: PresentedDetail[] = [];
+
+  if (isObject(configuration.size)) {
+    const name = text(configuration.size.name);
+    const diameter = Number(configuration.size.diameterCm);
+    if (name) {
+      result.push({
+        label: "Tamaño",
+        value:
+          Number.isFinite(diameter) && diameter > 0
+            ? `${name} · ${diameter} cm`
+            : name,
+      });
+    }
+  }
+
+  if (isObject(configuration.crust)) {
+    const name = text(configuration.crust.name);
+    if (name) result.push({ label: "Borde", value: name });
+  }
+
+  const mode = text(configuration.mode).toUpperCase();
+  result.push({
+    label: "Forma",
+    value: mode === "HALF_HALF" ? "Mitad y mitad" : "Completa",
+  });
+
+  const ingredients = (value: unknown) =>
+    Array.isArray(value)
+      ? value.flatMap((ingredient) => {
+          if (!isObject(ingredient)) return [];
+
+          const name = text(ingredient.name);
+          if (!name) return [];
+
+          const productId = Number(ingredient.productId);
+          const key =
+            Number.isInteger(productId) && productId > 0
+              ? `id:${productId}`
+              : `name:${name.toLocaleLowerCase("es")}`;
+
+          return [{ key, name }];
+        })
+      : [];
+
+  const uniqueCount = (
+    ...groups: Array<Array<{ key: string; name: string }>>
+  ) => new Set(groups.flat().map((ingredient) => ingredient.key)).size;
+
+  if (mode === "HALF_HALF") {
+    const first = ingredients(configuration.firstHalfIngredients);
+    const second = ingredients(configuration.secondHalfIngredients);
+
+    result.push({
+      label: "Mitad 1",
+      value: first.length
+        ? first.map((ingredient) => ingredient.name).join(", ")
+        : "Sin ingredientes",
+    });
+    result.push({
+      label: "Mitad 2",
+      value: second.length
+        ? second.map((ingredient) => ingredient.name).join(", ")
+        : "Sin ingredientes",
+    });
+    result.push({
+      label: "Ingredientes",
+      value: String(uniqueCount(first, second)),
+    });
+  } else {
+    const whole = ingredients(configuration.wholeIngredients);
+
+    result.push({
+      label: "Selección",
+      value: whole.length
+        ? whole.map((ingredient) => ingredient.name).join(", ")
+        : "Sin ingredientes",
+    });
+    result.push({
+      label: "Ingredientes",
+      value: String(uniqueCount(whole)),
+    });
+  }
+
+  return result;
+}
+
 export function orderItemDetailText(configuration: unknown) {
   return presentOrderItemConfiguration(configuration)
     .map((detail) => `${detail.label}: ${detail.value}`)
