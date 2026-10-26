@@ -1,6 +1,6 @@
 # Inventario funcional de Alentó App
 
-Última auditoría: **2026-10-24**
+Última auditoría: **2026-10-26**
 
 Este documento es el índice canónico entre lo que existe en `main` y la documentación funcional del proyecto. Su objetivo es evitar dos fallas:
 
@@ -17,8 +17,8 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 | `/menu` | Activa | Catálogo público | `docs/CURRENT_STATE.md`, `docs/SEO.md` |
 | `/menu/[slug]` | Activa | Página indexable de producto | `docs/SEO.md` |
 | `/menu/categoria/[slug]` | Activa | Página indexable de categoría | `docs/SEO.md` |
-| `/cart` | Activa | Carrito y checkout público | `docs/PUBLIC_CHECKOUT_MAPS.md` |
-| `/club` | Activa | Club Alentó para invitado/cliente | `docs/CLUB_POINTS.md` |
+| `/cart` | Activa | Carrito, selección de entrega, cupones y checkout público | `docs/PUBLIC_CHECKOUT_MAPS.md`, `docs/COUPONS.md` |
+| `/club` | Condicional | Club Alentó para invitado/cliente; se oculta/redirige si Club está desactivado | `docs/CLUB_POINTS.md` |
 | `/login` | Activa | Login unificado cliente/colaborador | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
 | `/cuenta` | Activa | Perfil privado de cliente | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
 | `/seguimiento/[token]` | Activa | Seguimiento firmado del pedido | `docs/DRIVERS.md`, `docs/PUBLIC_CHECKOUT_MAPS.md` |
@@ -34,7 +34,7 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 | `/cocina` | ADMIN / KITCHEN | Producción | `docs/KITCHEN.md` |
 | `/clientes` | ADMIN / POS | CRM operativo | `docs/CUSTOMERS.md` |
 | `/interno/menu` | ADMIN | Administración del catálogo | `docs/MENU.md` |
-| `/cupones` | ADMIN | Cupones y estadísticas de uso | este inventario + `docs/POS.md` |
+| `/cupones` | ADMIN | Cupones, estadísticas y visibilidad por canal POS/Carrito | `docs/COUPONS.md` |
 | `/caja` | ADMIN / CASHIER | Caja, ingresos, salidas, préstamos, nómina | `docs/PAYMENTS_AND_CASH.md` |
 | `/turnos` | ADMIN | Calendario y costo de turnos | `docs/SHIFTS.md` |
 | `/club-alento` | ADMIN | Configuración/administración de Club | `docs/CLUB_POINTS.md` |
@@ -102,6 +102,25 @@ Documento: `docs/PUSH_NOTIFICATIONS.md`.
 
 Documentos: `docs/SHIFTS.md`, `docs/PAYMENTS_AND_CASH.md`.
 
+### Cupones por canal
+
+Cupones soporta un interruptor maestro y visibilidad independiente en POS/Carrito. POS y WEB comparten elegibilidad canónica con `normalizeOrderLine`; el checkout público usa `/api/public-checkout/eligibility` y nunca descuenta domicilio.
+
+Documento: `docs/COUPONS.md`.
+
+### Club Puntos activable
+
+`club_alento_settings.enabled` controla si Club aparece en la navegación pública y si se acreditan puntos nuevos. Desactivarlo no borra saldos existentes ni bloquea otros efectos del cierre de pedidos.
+
+Documento: `docs/CLUB_POINTS.md`.
+
+### Rendimiento de navegación pública
+
+- la navegación inferior cambia visualmente desde el primer toque y mantiene prefetch;
+- `/cart` y `/club` disponen de `loading.tsx`;
+- `/cart` carga diferidamente `PublicCheckoutDelivery` y `PublicCheckoutCustomer`;
+- Club invitado no realiza `router.refresh()` periódico.
+
 ### SEO público
 
 Existen metadata, sitemap, robots, datos estructurados, páginas de producto/categoría y landings locales `/ubicacion` y `/domicilios`.
@@ -114,6 +133,10 @@ Estas rutas forman parte de capacidades ya documentadas y no representan módulo
 
 - `GET /api/health`: health check de despliegue; ver `docs/DEPLOYMENT.md`.
 - `/api/catalog` y `/api/menu-admin`: proyección pública/operativa y administración del catálogo; ver `docs/MENU.md`.
+- `/api/coupons` y `/api/coupons/[id]`: administración/consulta de cupones por canal; ver `docs/COUPONS.md`.
+- `/api/discount/eligibility`: elegibilidad interna de descuentos POS; protegida para operación.
+- `/api/public-checkout/eligibility`: elegibilidad pública segura del carrito WEB; ver `docs/COUPONS.md`.
+- `/api/club-settings`: GET de configuración Club y PUT protegido para ADMIN; ver `docs/CLUB_POINTS.md`.
 - `IngredientGroup`: subcategorías administrables para ingredientes, consumidas dinámicamente por Arma Tu Pizza en cliente y POS; ver `docs/MENU.md`.
 - `/api/product-images` y `/api/product-images/[id]`: carga persistente y entrega pública de imágenes oficiales de producto; ver `docs/MENU.md`.
 - `/api/public-home` y `/api/public-home-admin`: Home/personalización pública.
