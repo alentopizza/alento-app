@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import CustomerDeliveryLiveMap from "@/components/CustomerDeliveryLiveMap";
-import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
+import { presentCustomerOrderItemConfiguration } from "@/lib/orderPresentation";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ function dateTime(value: Date) {
 }
 
 function orderItemDetails(configuration: unknown) {
-  return presentOrderItemConfiguration(configuration).map(
+  return presentCustomerOrderItemConfiguration(configuration).map(
     (detail) => `${detail.label}: ${detail.value}`,
   );
 }
