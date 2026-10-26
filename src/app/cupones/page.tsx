@@ -469,7 +469,7 @@ export default function CouponsPage() {
               <div className="relative flex items-start justify-between gap-4">
                 <div>
                   <p className="alento-ui-label uppercase text-red-300">
-                    Descuento POS
+                    Cupón promocional
                   </p>
                   <h2 className="alento-ui-title mt-1">
                     {editing ? "Editar cupón" : "Nuevo cupón"}
