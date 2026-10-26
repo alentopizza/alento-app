@@ -147,6 +147,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   const router = useRouter();
   const [visualActive, setVisualActive] = useState<ActiveTab>(active);
   const [cartPulse, setCartPulse] = useState(false);
+  const [clubEnabled, setClubEnabled] = useState(true);
 
   useEffect(() => {
     let timer: number | null = null;
@@ -172,9 +173,38 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
   useEffect(() => {
     router.prefetch("/menu");
     router.prefetch("/cart");
-    router.prefetch("/club");
     router.prefetch("/cuenta");
-  }, [router]);
+    if (clubEnabled) router.prefetch("/club");
+  }, [clubEnabled, router]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    try {
+      const cached = window.localStorage.getItem("alento-club-enabled");
+      if (cached === "0") setClubEnabled(false);
+      if (cached === "1") setClubEnabled(true);
+    } catch {}
+
+    void fetch("/api/club-settings", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        const enabled = data?.settings?.enabled !== false;
+        setClubEnabled(enabled);
+        try {
+          window.localStorage.setItem(
+            "alento-club-enabled",
+            enabled ? "1" : "0",
+          );
+        } catch {}
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let previous: ActiveTab | null = null;
@@ -208,13 +238,25 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
     return `relative h-full min-w-0 transition-[flex-grow] duration-300 ease-[cubic-bezier(.22,.8,.24,1)] active:scale-[.98] ${selected ? "grow-[1.75]" : "grow"}`;
   }
 
+  function beginNavigation(tab: ActiveTab, href: string) {
+    setVisualActive(tab);
+    router.prefetch(href);
+  }
+
+  function commitNavigation() {
+    rememberOrigin(active);
+  }
+
   return (
     <nav className="alento-public-mobile-nav fixed inset-x-0 bottom-[max(12px,env(safe-area-inset-bottom))] z-[75] px-3 md:px-6">
       <div className="mx-auto h-[66px] max-w-[430px] rounded-full border border-black/5 bg-white px-3 shadow-[0_16px_40px_rgba(0,0,0,.24)] md:h-[50px] md:max-w-[580px] md:border-white/80 md:bg-white/95 md:px-4 md:shadow-[0_4px_0_rgba(0,0,0,.30),0_14px_34px_rgba(0,0,0,.24),inset_0_-1px_0_rgba(0,0,0,.08)] md:backdrop-blur-xl lg:h-[52px] lg:max-w-[640px]">
         <div className="flex h-full items-stretch">
           <Link
             href="/menu"
-            onClick={() => rememberOrigin(active)}
+            prefetch
+            onPointerDown={() => beginNavigation("menu", "/menu")}
+            onPointerCancel={() => setVisualActive(active)}
+            onClick={commitNavigation}
             className={itemClass("menu")}
             aria-label="Menú"
           >
@@ -223,25 +265,36 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
 
           <Link
             href="/cart"
-            onClick={() => rememberOrigin(active)}
+            prefetch
+            onPointerDown={() => beginNavigation("cart", "/cart")}
+            onPointerCancel={() => setVisualActive(active)}
+            onClick={commitNavigation}
             className={itemClass("cart")}
             aria-label={`Carrito con ${cartCount} productos`}
           >
             <ItemContent tab="cart" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
           </Link>
 
-          <Link
-            href="/club"
-            onClick={() => rememberOrigin(active)}
-            className={itemClass("club")}
-            aria-label="Club Alentó"
-          >
-            <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
-          </Link>
+          {clubEnabled && (
+            <Link
+              href="/club"
+              prefetch
+              onPointerDown={() => beginNavigation("club", "/club")}
+              onPointerCancel={() => setVisualActive(active)}
+              onClick={commitNavigation}
+              className={itemClass("club")}
+              aria-label="Club Alentó"
+            >
+              <ItemContent tab="club" visualActive={visualActive} cartCount={cartCount} cartPulse={cartPulse} />
+            </Link>
+          )}
 
           <Link
             href="/cuenta"
-            onClick={() => rememberOrigin(active)}
+            prefetch
+            onPointerDown={() => beginNavigation("profile", "/cuenta")}
+            onPointerCancel={() => setVisualActive(active)}
+            onClick={commitNavigation}
             className={itemClass("profile")}
             aria-label="Perfil"
           >
