@@ -69,7 +69,7 @@ Ya están implementados, entre otros:
 - carrito estructurado preparado para inventario/costos;
 - `OrderItem.configuration` con IDs, cantidades, porciones y snapshots;
 - validación y recálculo server-side de pizzas y combos;
-- descuentos manuales y cupones;
+- descuentos manuales y cupones con visibilidad independiente en POS y carrito público;
 - medios de pago configurables;
 - creación real de pedidos en PostgreSQL;
 - Cocina con preparación por cantidades;
@@ -114,12 +114,14 @@ El flujo público vigente incluye:
 
 1. modalidad Recoger/Domicilio;
 2. Google Places/Routes para domicilio;
-3. datos del cliente o invitado;
-4. recuperación segura de datos por OTP de WhatsApp;
-5. forma de pago;
-6. recálculo server-side;
-7. creación `Order.source=WEB`;
-8. seguimiento firmado.
+3. selección de cupón cuando existe una campaña pública aplicable;
+4. resumen server-side de subtotal elegible, promociones excluidas, domicilio y total;
+5. datos del cliente o invitado;
+6. recuperación segura de datos por OTP de WhatsApp;
+7. forma de pago;
+8. recálculo server-side de líneas, cupón y domicilio;
+9. creación `Order.source=WEB`;
+10. seguimiento firmado.
 
 `POST /api/orders` continúa siendo el flujo interno protegido del POS y crea `source=POS`. La web usa `/api/public-checkout`.
 
@@ -134,8 +136,10 @@ La experiencia pública está operativa y continúa en mejora incremental. Inclu
 - `/menu` con catálogo real y diseño responsive;
 - configurador para productos simples, pizzas, dos sabores y combos;
 - `/cart` con persistencia local;
-- navegación Menú / Carrito / Club / Perfil;
+- navegación Menú / Carrito / Club / Perfil con feedback visual inmediato, prefetch y estados de carga de ruta;
 - `/club` con reglas públicas, saldo e historial para clientes autenticados;
+- Club Puntos puede activarse/desactivarse desde administración; al apagarse se oculta de la navegación, `/club` redirige al menú y se pausan nuevas acreditaciones sin borrar saldos históricos;
+- el carrito carga de forma diferida los componentes pesados de checkout (dirección/mapa/datos) para acelerar la navegación inicial;
 - `/login` unificado;
 - selector de domicilio con Google Places;
 - GPS opcional solo por acción del usuario;
@@ -220,6 +224,8 @@ Documentos principales:
 - [`docs/PUSH_NOTIFICATIONS.md`](docs/PUSH_NOTIFICATIONS.md): Push y automatizaciones de notificación.
 
 - [`docs/POS.md`](docs/POS.md): funcionamiento completo del Punto de Venta.
+- [`docs/COUPONS.md`](docs/COUPONS.md): cupones, visibilidad por canal, elegibilidad y aplicación segura en POS/WEB.
+- [`docs/CLUB_POINTS.md`](docs/CLUB_POINTS.md): reglas, administración y activación/desactivación de Club Puntos.
 - [`docs/ORDERS.md`](docs/ORDERS.md): funcionamiento completo de Pedidos.
 - [`docs/KITCHEN.md`](docs/KITCHEN.md): funcionamiento completo de Cocina.
 - [`docs/CUSTOMERS.md`](docs/CUSTOMERS.md): funcionamiento completo de Clientes.
@@ -246,8 +252,10 @@ La base de producción existía antes de un historial formal de migraciones.
 El arranque vigente ejecuta:
 
 ```bash
-prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
+prisma db push && next start -p 3000
 ```
+
+Los backfills históricos de ganancias de repartidores e IngredientGroup ya fueron aplicados y no se ejecutan en cada reinicio.
 
 Por ello, un cambio de `prisma/schema.prisma` puede aplicarse automáticamente en el siguiente redeploy. Revisar el impacto **antes** de desplegar y no añadir un segundo `db push` manual como rutina.
 
@@ -299,7 +307,7 @@ Superficie pública:
 - `/menu`: catálogo y configurador;
 - `/menu/[slug]` y `/menu/categoria/[slug]`: páginas SEO;
 - `/cart`: carrito/checkout;
-- `/club`: Club Alentó;
+- `/club`: Club Alentó cuando Club Puntos está activo;
 - `/login`: acceso unificado;
 - `/cuenta`: perfil privado;
 - `/seguimiento/[token]`: seguimiento firmado;
