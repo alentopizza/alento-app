@@ -119,6 +119,27 @@ La selección enviada por navegador es solo una intención. `normalizeOrderLine(
 
 Para inventario futuro, cada ingrediente conserva su `productId` y su ubicación lógica (completa, mitad 1 o mitad 2). No inferir esa información desde el texto visible.
 
+### Presentación customer-safe de PIZZA_CUSTOM
+
+Las superficies públicas del cliente **no deben exponer** `ingredientCharge`, `billableIngredientCount` como regla de cobro ni textos como `Ingredientes cobrados`.
+
+`presentCustomerOrderItemConfiguration()` es la salida canónica para:
+
+- `/cuenta` → historial de pedidos;
+- `/seguimiento/[token]` → seguimiento del pedido.
+
+La presentación conserva tamaño, borde, forma e ingredientes seleccionados, pero el resumen final muestra únicamente:
+
+```text
+Ingredientes: N
+```
+
+Para `WHOLE`, `N` es la cantidad de ingredientes únicos de la pizza completa.
+
+Para `HALF_HALF`, `N` es la unión de ingredientes únicos entre ambas mitades. Si Piña aparece en Mitad 1 y Mitad 2, cuenta una sola vez.
+
+La lógica interna de cobro permanece exclusivamente en la configuración persistida y en el normalizador server-side.
+
 ## Tamaño
 
 El tamaño debe guardarse por ID y snapshot de nombre/diámetro.
