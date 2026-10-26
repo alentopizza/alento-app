@@ -44,8 +44,9 @@ Estado al 2026-10-26:
 
 - #1 Builds reproducibles: completado;
 - #2 CI automatizada: completado;
-- #3 Pruebas automatizadas críticas: en curso;
-- #4 en adelante: pendientes.
+- #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
+- #4 Baseline Prisma + migraciones seguras: siguiente punto pendiente, **no iniciar sin autorización explícita del usuario**;
+- #5 en adelante: pendientes.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
