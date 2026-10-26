@@ -126,9 +126,7 @@ export default async function CategorySeoPage({ params }: PageProps) {
     }
 
     if (product.type === "PIZZA_CUSTOM") {
-      return smallestPizzaSize
-        ? Number(smallestPizzaSize.basePrice)
-        : null;
+      return null;
     }
 
     return base;
