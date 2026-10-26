@@ -161,14 +161,14 @@ export default function PublicCheckoutCustomer({
       try {
         const [checkoutResponse, eligibilityResponse] = await Promise.all([
           fetch("/api/public-checkout", { cache: "no-store" }),
-          fetch("/api/discount/eligibility", {
+          fetch("/api/public-checkout/eligibility", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              lines: cart.map((item) => ({
+              items: cart.map((item) => ({
                 productId: item.productId,
-                unitPrice: item.unitPrice,
                 quantity: item.quantity,
+                configuration: item.configuration,
               })),
             }),
           }),
@@ -182,16 +182,14 @@ export default function PublicCheckoutCustomer({
             checkoutData.error || "No fue posible cargar el cierre del pedido.",
           );
         }
-        if (!eligibilityResponse.ok) {
-          throw new Error(
-            eligibilityData.error || "No fue posible calcular los descuentos.",
-          );
-        }
-
         if (!cancelled) {
           setPaymentMethods(checkoutData.paymentMethods ?? []);
           setCoupons(checkoutData.coupons ?? []);
-          setEligibleSubtotal(Number(eligibilityData.eligibleSubtotal ?? 0));
+          setEligibleSubtotal(
+            eligibilityResponse.ok
+              ? Number(eligibilityData.eligibleSubtotal ?? 0)
+              : 0,
+          );
           setStoreStatus(checkoutData.storeStatus ?? null);
         }
       } catch (loadError) {
@@ -427,7 +425,9 @@ export default function PublicCheckoutCustomer({
         <div
           className={
             "min-h-0 flex-1 p-4 sm:p-5 " +
-            (fullPage ? "mx-auto w-full max-w-[900px] overflow-visible py-6 sm:py-8" : "overflow-y-auto")
+            (fullPage
+              ? "mx-auto w-full max-w-[900px] overflow-visible py-6 pb-36 sm:py-8 sm:pb-40"
+              : "overflow-y-auto")
           }
         >
           {loading ? (
@@ -760,8 +760,10 @@ export default function PublicCheckoutCustomer({
 
         <footer
           className={
-            "border-t border-white/10 bg-[#141517] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3 " +
-            (fullPage ? "sticky bottom-0 z-20 mt-auto" : "")
+            "border-t border-white/10 bg-[#141517] px-3 pt-2.5 sm:px-4 sm:pt-3 " +
+            (fullPage
+              ? "fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-[1080px] pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-14px_34px_rgba(0,0,0,.28)]"
+              : "pb-3 sm:pb-4")
           }
         >
           {discount > 0 && (
