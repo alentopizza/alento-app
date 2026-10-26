@@ -190,7 +190,9 @@ Los sabores usan el mismo lenguaje visual que Tamaño y Borde:
 - tarjeta grande con etiqueta `SABOR`;
 - icono propio de pizza;
 - nombre de la especialidad en mayúscula y alto contraste;
-- color estable por especialidad para reconocimiento rápido.
+- color estable por especialidad para reconocimiento rápido;
+- en pizzas normales se muestran en la **misma fila de configuración** que Tamaño y Borde;
+- solo saltan a una segunda línea si el ancho disponible no alcanza.
 
 Paleta vigente:
 
@@ -277,6 +279,8 @@ La UI de Cocina presenta `PIZZA_CUSTOM` de forma operacional:
 - no se muestra el cálculo monetario de ingredientes en Cocina para evitar ruido durante preparación.
 
 No convertir las mitades en una nota libre: los IDs de los ingredientes deben permanecer en `OrderItem.configuration`.
+
+Los ingredientes de `PIZZA_CUSTOM` se muestran en Cocina en **MAYÚSCULA**, con tipografía reforzada y chips de mayor altura para lectura rápida a distancia.
 
 ## Combos con pizza
 
