@@ -10,28 +10,44 @@ Leer en este orden:
 
 1. `AGENTS.md`
 2. `README.md`
-3. `docs/CURRENT_STATE.md`
-4. `docs/FEATURE_INVENTORY.md`
-5. `docs/PRODUCTION_READINESS.md` como baseline histórico
-6. `docs/ALENTO_EXCLUSIVE_MODULES.md`
-7. `docs/ROADMAP.md`
-8. documento canónico del módulo a modificar
-9. `docs/ARCHITECTURE.md`
-10. `docs/ORDER_DATA_INTEGRITY.md`
-11. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-12. `docs/CONFIGURATION.md`
-13. `docs/DRIVERS.md`
-14. `docs/PAYMENTS_AND_CASH.md`
-15. `docs/METRICS_AND_TRACKING.md`
-16. `docs/PUSH_NOTIFICATIONS.md`
-17. `docs/MAPS_VISUAL_SYSTEM.md`
-18. `docs/COUPONS.md`
-19. `docs/CLUB_POINTS.md`
-20. `docs/DEPLOYMENT.md`
-21. `prisma/schema.prisma`
-22. archivos del módulo que se vaya a modificar.
+3. `docs/HARDENING_CHECKLIST.md`
+4. `docs/CURRENT_STATE.md`
+5. `docs/FEATURE_INVENTORY.md`
+6. `docs/PRODUCTION_READINESS.md` como baseline histórico
+7. `docs/ALENTO_EXCLUSIVE_MODULES.md`
+8. `docs/ROADMAP.md`
+9. documento canónico del módulo a modificar
+10. `docs/ARCHITECTURE.md`
+11. `docs/ORDER_DATA_INTEGRITY.md`
+12. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+13. `docs/CONFIGURATION.md`
+14. `docs/DRIVERS.md`
+15. `docs/PAYMENTS_AND_CASH.md`
+16. `docs/METRICS_AND_TRACKING.md`
+17. `docs/PUSH_NOTIFICATIONS.md`
+18. `docs/MAPS_VISUAL_SYSTEM.md`
+19. `docs/COUPONS.md`
+20. `docs/CLUB_POINTS.md`
+21. `docs/DEPLOYMENT.md`
+22. `prisma/schema.prisma`
+23. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
+
+## Ciclo de hardening en curso
+
+El checklist canónico vive en `docs/HARDENING_CHECKLIST.md`.
+
+Regla obligatoria durante este ciclo: trabajar **un punto a la vez** y no iniciar el siguiente hasta que el punto actual esté implementado, validado, documentado y el usuario autorice continuar.
+
+Estado al 2026-10-26:
+
+- #1 Builds reproducibles: completado;
+- #2 CI automatizada: completado;
+- #3 Pruebas automatizadas críticas: en curso;
+- #4 en adelante: pendientes.
+
+Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
 ## Fuente de verdad
 
