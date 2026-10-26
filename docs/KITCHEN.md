@@ -105,12 +105,12 @@ No se vuelve a usar una tercera columna porque reduce demasiado el área útil d
 
 Dentro de cada pedido:
 
-- productos simples pueden ocupar **2 columnas** en pantallas amplias;
-- `PIZZA_CUSTOM` y `COMBO` ocupan el ancho completo del pedido;
-- en tablet/móvil el contenido vuelve progresivamente a una sola columna;
-- cada tarjeta usa altura natural; no se estira para igualar a otras tarjetas de la misma fila.
+- se muestra **un producto por línea**;
+- pizzas normales, antojos, combos y `PIZZA_CUSTOM` usan el mismo ancho disponible;
+- tamaño, borde, sabor, extras, ingredientes y notas mantienen siempre una lectura horizontal consistente;
+- cada tarjeta usa altura natural; no se estira artificialmente.
 
-Esto busca densidad sin sacrificar lectura de configuraciones complejas.
+No volver a dividir productos de un mismo pedido en dos columnas: visualmente puede parecer que pertenecen a bloques distintos y reduce la claridad operativa.
 
 ## Encabezado general
 
