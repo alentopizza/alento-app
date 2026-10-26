@@ -204,7 +204,7 @@ export default function PublicMobileNav({ active, cartCount = 0 }: Props) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [active]);
 
   useEffect(() => {
     let previous: ActiveTab | null = null;
