@@ -311,17 +311,28 @@ Reglas:
 - no usar `npm install` como rutina de despliegue;
 - el lockfile vigente fue validado desde un runner limpio con Node 22 y npm 10, incluyendo `postinstall -> prisma generate`.
 
-### Validación antes de cada deploy productivo
+### Validación automatizada antes de despliegues
 
-Mientras no exista CI:
+El repositorio dispone de `.github/workflows/quality-ci.yml`.
 
-```bash
+Se ejecuta automáticamente en cada push a `main`, en pull requests y también permite ejecución manual.
+
+El job usa Node 22 y crea PostgreSQL 16 efímero. Nunca debe usar `DATABASE_URL` de producción.
+
+Secuencia vigente:
+
+```text
 npm ci
+npx prisma validate
+npx prisma db push --skip-generate   # solo sobre DB efímera del runner
 npm run lint
+npm run typecheck
 npm run build
 ```
 
-El repositorio todavía no tiene workflow automático de CI ni suite de integración.
+Un fallo en cualquiera de estos pasos deja el workflow rojo.
+
+El CI actual **no sustituye todavía una suite de tests**: pruebas unitarias, integración y E2E se incorporarán como una fase independiente.
 
 ### Integraciones opcionales
 
