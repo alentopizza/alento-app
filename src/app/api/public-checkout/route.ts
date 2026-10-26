@@ -64,9 +64,16 @@ function activePayments(value: SettingsValue | null) {
 
 export async function GET() {
   try {
-    const saved = await prisma.appSetting.findUnique({
-      where: { key: SETTINGS_KEY },
-    });
+    const [saved, coupons] = await Promise.all([
+      prisma.appSetting.findUnique({
+        where: { key: SETTINGS_KEY },
+      }),
+      prisma.coupon.findMany({
+        where: { active: true, visibleInCart: true },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true, type: true, value: true },
+      }),
+    ]);
     const value = (saved?.value ?? null) as SettingsValue | null;
 
     const storeStatus = getStoreServiceStatus(
@@ -75,6 +82,10 @@ export async function GET() {
 
     return NextResponse.json({
       paymentMethods: activePayments(value),
+      coupons: coupons.map((coupon) => ({
+        ...coupon,
+        value: Number(coupon.value),
+      })),
       storeStatus: {
         open: storeStatus.open,
         nextOpening: storeStatus.nextOpening
@@ -187,6 +198,33 @@ export async function POST(request: NextRequest) {
       (sum, line) => sum + line.lineTotal,
       0,
     );
+    const eligibleSubtotal = normalizedLines
+      .filter((line) => line.eligible)
+      .reduce((sum, line) => sum + line.lineTotal, 0);
+
+    const requestedCouponId = Number(body?.couponId);
+    const couponId =
+      Number.isInteger(requestedCouponId) && requestedCouponId > 0
+        ? requestedCouponId
+        : null;
+    const coupon = couponId
+      ? await prisma.coupon.findFirst({
+          where: { id: couponId, active: true, visibleInCart: true },
+        })
+      : null;
+
+    if (couponId && !coupon) {
+      return NextResponse.json(
+        { error: "El cupón seleccionado ya no está disponible." },
+        { status: 409 },
+      );
+    }
+
+    const discount = coupon
+      ? coupon.type === "PERCENTAGE"
+        ? Math.round(eligibleSubtotal * (Number(coupon.value) / 100))
+        : Math.min(Math.round(Number(coupon.value)), eligibleSubtotal)
+      : 0;
 
     let deliveryFee = 0;
     let deliveryZoneId: string | null = null;
@@ -249,7 +287,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const total = Math.max(0, subtotal + deliveryFee);
+    const total = Math.max(0, subtotal + deliveryFee - discount);
     const cashPayment = isCash(paymentMethod);
     const hasCashAmount =
       body?.cashReceived !== null &&
@@ -427,13 +465,15 @@ export async function POST(request: NextRequest) {
           deliveryZoneId,
           deliveryZoneName,
           deliveryDistanceMeters,
-          discountSource: "NONE",
+          couponId: coupon?.id ?? null,
+          couponName: coupon?.name ?? null,
+          discountSource: coupon ? "COUPON" : "NONE",
           status: hasKitchenPreparation ? "PREPARING" : "READY",
           fulfillmentType,
           source: "WEB",
           subtotal,
           deliveryFee,
-          discount: 0,
+          discount,
           total,
           items: {
             create: normalizedLines.map((line, index) => {
@@ -549,6 +589,8 @@ export async function POST(request: NextRequest) {
           fulfillmentType: order.fulfillmentType,
           subtotal: Number(order.subtotal),
           deliveryFee: Number(order.deliveryFee),
+          discount: Number(order.discount),
+          couponName: order.couponName,
           total: Number(order.total),
           paymentMethod: paymentMethod.name,
           trackingPath,
