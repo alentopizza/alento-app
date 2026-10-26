@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "prisma db push && node scripts/backfill-driver-earnings.js && node scripts/backfill-ingredient-groups.js && next start -p 3000",
+    "start": "prisma db push && next start -p 3000",
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
