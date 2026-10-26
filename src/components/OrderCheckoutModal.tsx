@@ -363,7 +363,13 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
           fetch("/api/discount/eligibility", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lines: cart.map((item) => ({ productId: item.productId, unitPrice: item.unitPrice, quantity: item.quantity })) }),
+            body: JSON.stringify({
+              lines: cart.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                configuration: item.configuration,
+              })),
+            }),
           }),
         ]);
 
@@ -826,7 +832,14 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
                       <button key={option.mode} onClick={() => chooseDiscountMode(option.mode)} className={discountMode === option.mode ? "selected" : ""}>{option.label}</button>
                     ))}
                   </div>
-                  {eligibility.excludedSubtotal > 0 && <p className="checkout-note">Promociones excluidas: {formatCOP(eligibility.excludedSubtotal)}. No acumulan descuento.</p>}
+                  {eligibility.excludedSubtotal > 0 && (
+                    <p className="checkout-note">
+                      Productos no acumulables: {formatCOP(eligibility.excludedSubtotal)}.
+                      {eligibleSubtotal <= 0
+                        ? " Este pedido no tiene productos elegibles para cupón."
+                        : " El cupón solo se aplica sobre la base elegible."}
+                    </p>
+                  )}
                   {discountMode === "COUPON" && (
                     <div className="checkout-coupon-grid">
                       {coupons.length ? coupons.map((coupon) => {
