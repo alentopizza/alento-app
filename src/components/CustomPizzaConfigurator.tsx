@@ -772,12 +772,10 @@ export default function CustomPizzaConfigurator({
               </div>
               <div>
                 <span className={"block text-[9px] font-bold uppercase " + muted}>
-                  Ingredientes cobrados
+                  Ingredientes
                 </span>
                 <b className="mt-1 block text-[11px]">
-                  {showCustomerPrice
-                    ? `${billableCount} · ${money(ingredientCharge)}`
-                    : "Se calcula al elegir"}
+                  {billableCount}
                 </b>
               </div>
             </div>
