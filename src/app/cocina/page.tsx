@@ -465,7 +465,7 @@ function KitchenIngredientBlock({
           ingredients.map((ingredient, index) => (
             <span
               key={`${ingredient}-${index}`}
-              className="inline-flex min-h-8 items-center rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 text-[11.5px] font-black leading-4 text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
+              className="inline-flex min-h-9 items-center rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 text-[12.5px] font-black uppercase leading-4 tracking-[0.015em] text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
             >
               {ingredient}
             </span>
@@ -666,15 +666,10 @@ function KitchenItem({
             </div>
           )}
 
-          {(sizeDetail || crustDetail) && (
+          {(sizeDetail || crustDetail || flavorDetails.length > 0) && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {sizeDetail && <KitchenSizeBadge value={sizeDetail.value} />}
               {crustDetail && <KitchenCrustBadge value={crustDetail.value} />}
-            </div>
-          )}
-
-          {flavorDetails.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
               {flavorDetails.map((detail, index) => (
                 <KitchenFlavorBadge
                   key={`${detail.label}-${index}`}
