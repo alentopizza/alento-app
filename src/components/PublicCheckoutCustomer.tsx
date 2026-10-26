@@ -9,6 +9,13 @@ type PaymentMethod = {
   name: string;
 };
 
+type Coupon = {
+  id: number;
+  name: string;
+  type: "FIXED" | "PERCENTAGE";
+  value: number;
+};
+
 type CustomerData = {
   id?: number;
   name: string;
@@ -32,6 +39,8 @@ type CreatedOrder = {
   fulfillmentType: "DELIVERY" | "PICKUP";
   subtotal: number;
   deliveryFee: number;
+  discount?: number;
+  couponName?: string | null;
   total: number;
   paymentMethod: string;
   trackingPath?: string | null;
@@ -78,6 +87,9 @@ export default function PublicCheckoutCustomer({
   });
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponId, setCouponId] = useState<number | null>(null);
+  const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
   const [storeStatus, setStoreStatus] = useState<StoreCheckoutStatus | null>(null);
   const [cashReceived, setCashReceived] = useState("");
   const [loading, setLoading] = useState(true);
@@ -96,7 +108,14 @@ export default function PublicCheckoutCustomer({
   );
   const deliveryFee =
     selection.fulfillmentType === "DELIVERY" ? selection.deliveryFee : 0;
-  const total = subtotal + deliveryFee;
+  const selectedCoupon =
+    coupons.find((coupon) => coupon.id === couponId) ?? null;
+  const discount = selectedCoupon
+    ? selectedCoupon.type === "PERCENTAGE"
+      ? Math.round(eligibleSubtotal * (selectedCoupon.value / 100))
+      : Math.min(selectedCoupon.value, eligibleSubtotal)
+    : 0;
+  const total = Math.max(0, subtotal + deliveryFee - discount);
   const selectedPayment =
     paymentMethods.find((method) => method.id === paymentMethodId) ?? null;
   const cashPayment = isCash(selectedPayment);
@@ -140,20 +159,39 @@ export default function PublicCheckoutCustomer({
       setError("");
 
       try {
-        const [checkoutResponse] = await Promise.all([
+        const [checkoutResponse, eligibilityResponse] = await Promise.all([
           fetch("/api/public-checkout", { cache: "no-store" }),
+          fetch("/api/discount/eligibility", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lines: cart.map((item) => ({
+                productId: item.productId,
+                unitPrice: item.unitPrice,
+                quantity: item.quantity,
+              })),
+            }),
+          }),
           loadAuthenticatedCustomer(),
         ]);
 
         const checkoutData = await checkoutResponse.json();
+        const eligibilityData = await eligibilityResponse.json();
         if (!checkoutResponse.ok) {
           throw new Error(
             checkoutData.error || "No fue posible cargar el cierre del pedido.",
           );
         }
+        if (!eligibilityResponse.ok) {
+          throw new Error(
+            eligibilityData.error || "No fue posible calcular los descuentos.",
+          );
+        }
 
         if (!cancelled) {
           setPaymentMethods(checkoutData.paymentMethods ?? []);
+          setCoupons(checkoutData.coupons ?? []);
+          setEligibleSubtotal(Number(eligibilityData.eligibleSubtotal ?? 0));
           setStoreStatus(checkoutData.storeStatus ?? null);
         }
       } catch (loadError) {
@@ -286,6 +324,7 @@ export default function PublicCheckoutCustomer({
               ? selection.destination
               : null,
           paymentMethodId,
+          couponId,
           cashReceived: cashPayment && hasCashAmount ? cashValue : null,
           items: cart.map((item) => ({
             productId: item.productId,
@@ -317,21 +356,21 @@ export default function PublicCheckoutCustomer({
     <div
       className={
         fullPage
-          ? "w-full bg-[#090909]"
+          ? "w-full bg-[#111214]"
           : "fixed inset-0 z-[145] flex items-end justify-center bg-black/82 backdrop-blur-sm sm:items-center sm:p-5"
       }
     >
       <div
         className={
           fullPage
-            ? "mx-auto flex min-h-dvh w-full max-w-[1080px] flex-col bg-[#101010] text-white"
-            : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101010] text-white shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
+            ? "mx-auto flex min-h-dvh w-full max-w-[1080px] flex-col bg-[#18191b] text-white"
+            : "flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#18191b] text-white shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:max-h-[92vh] sm:max-w-[680px] sm:rounded-[30px]"
         }
       >
         <header
           className={
             "border-b border-white/10 px-4 py-4 sm:px-5 " +
-            (fullPage ? "sticky top-0 z-20 bg-[#101010]/95 backdrop-blur-xl" : "")
+            (fullPage ? "sticky top-0 z-20 bg-[#18191b]/95 backdrop-blur-xl" : "")
           }
         >
           <div className="flex items-start justify-between gap-4">
@@ -342,7 +381,7 @@ export default function PublicCheckoutCustomer({
               <h2 className="mt-1 text-[22px] font-bold tracking-[-0.03em]">
                 Tus datos
               </h2>
-              <p className="mt-1 text-[10px] leading-4 text-white/40">
+              <p className="mt-1 text-[10px] leading-4 text-white/65">
                 Puedes comprar como invitado. Iniciar sesión no es obligatorio.
               </p>
             </div>
@@ -350,16 +389,16 @@ export default function PublicCheckoutCustomer({
               type="button"
               onClick={onBack}
               disabled={creating}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-xl text-white/55"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-xl text-white/75"
               aria-label="Volver"
             >
               ×
             </button>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.035] text-center">
+          <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[16px] border border-white/15 bg-white/[0.075] text-center">
             <div className="px-2 py-2.5">
-              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/30">
+              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Pedido
               </span>
               <b className="mt-0.5 block text-[10px]">
@@ -369,7 +408,7 @@ export default function PublicCheckoutCustomer({
               </b>
             </div>
             <div className="border-l border-white/10 px-2 py-2.5">
-              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/30">
+              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Domicilio
               </span>
               <b className="mt-0.5 block text-[10px] text-[#ff454b]">
@@ -377,7 +416,7 @@ export default function PublicCheckoutCustomer({
               </b>
             </div>
             <div className="border-l border-white/10 px-2 py-2.5">
-              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/30">
+              <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Total
               </span>
               <b className="mt-0.5 block text-[10px]">{money(total)}</b>
@@ -392,7 +431,7 @@ export default function PublicCheckoutCustomer({
           }
         >
           {loading ? (
-            <div className="rounded-[20px] border border-white/10 bg-white/[0.035] p-6 text-center text-[11px] text-white/40">
+            <div className="rounded-[20px] border border-white/15 bg-white/[0.075] p-6 text-center text-[11px] text-white/65">
               Preparando el cierre del pedido...
             </div>
           ) : (
@@ -412,10 +451,10 @@ export default function PublicCheckoutCustomer({
                   </p>
                 </div>
               )}
-              <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4">
+              <section className="rounded-[22px] border border-white/15 bg-white/[0.075] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
+                    <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/60">
                       1. Cliente
                     </p>
                     <h3 className="mt-1 text-[16px] font-bold">
@@ -431,7 +470,7 @@ export default function PublicCheckoutCustomer({
                 </div>
 
                 <label className="mt-4 block">
-                  <span className="text-[9px] font-semibold text-white/45">
+                  <span className="text-[9px] font-semibold text-white/70">
                     Nombre
                   </span>
                   <input
@@ -443,14 +482,14 @@ export default function PublicCheckoutCustomer({
                       }))
                     }
                     autoComplete="name"
-                    className="mt-1.5 h-11 w-full rounded-[13px] border border-white/10 bg-black/25 px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
+                    className="mt-1.5 h-11 w-full rounded-[13px] border border-white/15 bg-white/[0.055] px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
                     placeholder="Tu nombre"
                   />
                 </label>
 
                 <div className="mt-3 grid grid-cols-[78px_1fr] gap-2">
                   <label>
-                    <span className="text-[9px] font-semibold text-white/45">
+                    <span className="text-[9px] font-semibold text-white/70">
                       País
                     </span>
                     <input
@@ -461,11 +500,11 @@ export default function PublicCheckoutCustomer({
                           countryCode: event.target.value,
                         }))
                       }
-                      className="mt-1.5 h-11 w-full rounded-[13px] border border-white/10 bg-black/25 px-2 text-center text-[12px] text-white outline-none focus:border-[#e21a22]"
+                      className="mt-1.5 h-11 w-full rounded-[13px] border border-white/15 bg-white/[0.055] px-2 text-center text-[12px] text-white outline-none focus:border-[#e21a22]"
                     />
                   </label>
                   <label>
-                    <span className="text-[9px] font-semibold text-white/45">
+                    <span className="text-[9px] font-semibold text-white/70">
                       WhatsApp / celular
                     </span>
                     <input
@@ -482,7 +521,7 @@ export default function PublicCheckoutCustomer({
                       className={
                         "mt-1.5 h-11 w-full rounded-[13px] border border-white/10 px-3.5 text-[12px] text-white outline-none " +
                         (signedIn
-                          ? "cursor-not-allowed bg-white/[0.04] text-white/55"
+                          ? "cursor-not-allowed bg-white/[0.04] text-white/75"
                           : "bg-black/25 focus:border-[#e21a22]")
                       }
                       placeholder="300 000 0000"
@@ -504,7 +543,7 @@ export default function PublicCheckoutCustomer({
                       <b className="block text-[10px] text-white/85">
                         Verificar mi número
                       </b>
-                      <span className="mt-0.5 block text-[8px] leading-4 text-white/35">
+                      <span className="mt-0.5 block text-[8px] leading-4 text-white/60">
                         Si ya compraste antes, recuperamos tus datos. Si es un número nuevo, solo verificamos que sea tuyo.
                       </span>
                     </span>
@@ -514,9 +553,9 @@ export default function PublicCheckoutCustomer({
                   </button>
                 )}
 
-                <div className="mt-3 rounded-[15px] border border-white/10 bg-black/20 px-3.5 py-3">
+                <div className="mt-3 rounded-[15px] border border-white/15 bg-white/[0.045] px-3.5 py-3">
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/55">
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-white/75">
                       <svg
                         viewBox="0 0 24 24"
                         aria-hidden="true"
@@ -533,7 +572,7 @@ export default function PublicCheckoutCustomer({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <span className="block text-[8px] font-bold uppercase tracking-[0.11em] text-white/30">
+                      <span className="block text-[8px] font-bold uppercase tracking-[0.11em] text-white/60">
                         Dirección de entrega
                       </span>
                       <b className="mt-1 block text-[11px] leading-5 text-white/82">
@@ -547,15 +586,96 @@ export default function PublicCheckoutCustomer({
                 </div>
 
                 {!signedIn && (
-                  <p className="mt-3 text-[9px] leading-4 text-white/30">
+                  <p className="mt-3 text-[9px] leading-4 text-white/60">
                     Verificar el número es opcional. Nunca mostramos si un teléfono ya existe antes de comprobar que te pertenece.
                   </p>
                 )}
               </section>
 
-              <section className="rounded-[22px] border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
-                  2. Forma de pago
+              {coupons.length > 0 && (
+                <section className="rounded-[22px] border border-red-400/20 bg-white/[0.075] p-4 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-[0.13em] text-red-300">
+                        2. Cupón
+                      </p>
+                      <h3 className="mt-1 text-[16px] font-bold text-white">
+                        Tienes beneficios disponibles
+                      </h3>
+                      <p className="mt-1 text-[9px] leading-4 text-white/60">
+                        Elige uno si quieres aplicarlo a este pedido.
+                      </p>
+                    </div>
+                    {selectedCoupon && (
+                      <button
+                        type="button"
+                        onClick={() => setCouponId(null)}
+                        className="text-[9px] font-bold text-white/60 underline underline-offset-2"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {coupons.map((coupon) => {
+                      const active = couponId === coupon.id;
+                      const saving =
+                        coupon.type === "PERCENTAGE"
+                          ? Math.round(eligibleSubtotal * (coupon.value / 100))
+                          : Math.min(coupon.value, eligibleSubtotal);
+                      return (
+                        <button
+                          key={coupon.id}
+                          type="button"
+                          onClick={() => {
+                            setCouponId(active ? null : coupon.id);
+                            setError("");
+                          }}
+                          className={
+                            "rounded-[15px] border px-3.5 py-3 text-left transition " +
+                            (active
+                              ? "border-[#e21a22] bg-[#e21a22]/18 shadow-[0_0_0_1px_rgba(226,26,34,.15)]"
+                              : "border-white/15 bg-white/[0.045] hover:bg-white/[0.075]")
+                          }
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <b className="block text-[11px] text-white">
+                                {coupon.name}
+                              </b>
+                              <span className="mt-1 block text-[10px] font-bold text-red-300">
+                                {coupon.type === "PERCENTAGE"
+                                  ? `${coupon.value}% de descuento`
+                                  : `${money(coupon.value)} de descuento`}
+                              </span>
+                            </div>
+                            <span
+                              className={
+                                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black " +
+                                (active
+                                  ? "border-[#e21a22] bg-[#e21a22] text-white"
+                                  : "border-white/25 text-transparent")
+                              }
+                            >
+                              ✓
+                            </span>
+                          </div>
+                          {saving > 0 && (
+                            <span className="mt-2 block text-[9px] text-white/60">
+                              Ahorras {money(saving)} en este pedido.
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-[22px] border border-white/15 bg-white/[0.075] p-4 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
+                <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/60">
+                  {coupons.length > 0 ? "3" : "2"}. Forma de pago
                 </p>
                 <h3 className="mt-1 text-[16px] font-bold">
                   ¿Cómo vas a pagar?
@@ -577,7 +697,7 @@ export default function PublicCheckoutCustomer({
                           "rounded-[15px] border px-3 py-3 text-left transition " +
                           (active
                             ? "border-[#e21a22] bg-[#e21a22]/15"
-                            : "border-white/10 bg-black/20")
+                            : "border-white/15 bg-white/[0.045]")
                         }
                       >
                         <b className="text-[11px]">{method.name}</b>
@@ -590,10 +710,10 @@ export default function PublicCheckoutCustomer({
                 </div>
 
                 {cashPayment && (
-                  <div className="mt-3 rounded-[16px] border border-white/10 bg-black/20 p-3">
+                  <div className="mt-3 rounded-[16px] border border-white/15 bg-white/[0.045] p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-white/40">
-                        ¿Con cuánto pagas? <span className="text-white/25">(opcional)</span>
+                      <span className="text-[9px] text-white/65">
+                        ¿Con cuánto pagas? <span className="text-white/50">(opcional)</span>
                       </span>
                       <button
                         type="button"
@@ -614,7 +734,7 @@ export default function PublicCheckoutCustomer({
                     />
                     {hasCashAmount && (
                       <div className="mt-2 flex items-center justify-between text-[9px]">
-                        <span className="text-white/35">
+                        <span className="text-white/60">
                           {cashValid ? "Vueltas" : "Falta"}
                         </span>
                         <b className={cashValid ? "text-emerald-300" : "text-amber-300"}>
@@ -640,19 +760,27 @@ export default function PublicCheckoutCustomer({
 
         <footer
           className={
-            "border-t border-white/10 bg-[#0c0c0c] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3 " +
+            "border-t border-white/10 bg-[#141517] px-3 pb-3 pt-2.5 sm:px-4 sm:pb-4 sm:pt-3 " +
             (fullPage ? "sticky bottom-0 z-20 mt-auto" : "")
           }
         >
+          {discount > 0 && (
+            <div className="mb-1.5 flex items-center justify-between text-[9px]">
+              <span className="text-white/60">
+                Cupón {selectedCoupon?.name}
+              </span>
+              <b className="text-red-300">− {money(discount)}</b>
+            </div>
+          )}
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] text-white/40">Total del pedido</span>
+            <span className="text-[10px] text-white/65">Total del pedido</span>
             <b className="text-[22px]">{money(total)}</b>
           </div>
           <button
             type="button"
             onClick={() => void createOrder()}
             disabled={loading || creating || storeStatus?.open === false}
-            className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-bold uppercase tracking-[0.05em] text-white disabled:bg-white/10 disabled:text-white/30"
+            className="h-12 w-full rounded-full bg-[#e21a22] text-[11px] font-bold uppercase tracking-[0.05em] text-white disabled:bg-white/10 disabled:text-white/60"
           >
             {storeStatus?.open === false
               ? "Local cerrado"
@@ -674,14 +802,14 @@ export default function PublicCheckoutCustomer({
                 <h3 className="mt-1 text-[19px] font-bold">
                   Verifica tu WhatsApp
                 </h3>
-                <p className="mt-1 text-[10px] leading-4 text-white/40">
+                <p className="mt-1 text-[10px] leading-4 text-white/65">
                   Si este número ya tiene datos guardados, los recuperaremos después de validar que es tuyo.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setVerifyOpen(false)}
-                className="h-8 w-8 rounded-full border border-white/10 bg-white/[0.05] text-lg text-white/50"
+                className="h-8 w-8 rounded-full border border-white/15 bg-white/[0.07] text-lg text-white/50"
               >
                 ×
               </button>
@@ -689,7 +817,7 @@ export default function PublicCheckoutCustomer({
 
             {verifyStep === "send" ? (
               <>
-                <div className="mt-4 rounded-[15px] border border-white/10 bg-white/[0.035] px-4 py-3 text-[12px] font-bold">
+                <div className="mt-4 rounded-[15px] border border-white/15 bg-white/[0.075] px-4 py-3 text-[12px] font-bold">
                   {customer.countryCode} {customer.phone || "—"}
                 </div>
                 <button
@@ -712,7 +840,7 @@ export default function PublicCheckoutCustomer({
                   }
                   inputMode="numeric"
                   maxLength={6}
-                  className="mt-4 h-14 w-full rounded-[15px] border border-white/10 bg-white/[0.05] px-4 text-center text-[25px] font-bold tracking-[0.28em] outline-none focus:border-[#e21a22]"
+                  className="mt-4 h-14 w-full rounded-[15px] border border-white/15 bg-white/[0.07] px-4 text-center text-[25px] font-bold tracking-[0.28em] outline-none focus:border-[#e21a22]"
                   placeholder="000000"
                 />
                 <button
@@ -728,7 +856,7 @@ export default function PublicCheckoutCustomer({
                     setVerifyCode("");
                     setVerifyNotice("");
                   }}
-                  className="mt-1 h-9 w-full text-[9px] text-white/40"
+                  className="mt-1 h-9 w-full text-[9px] text-white/65"
                 >
                   Enviar otro código
                 </button>
@@ -744,7 +872,7 @@ export default function PublicCheckoutCustomer({
             <button
               type="button"
               onClick={() => setVerifyOpen(false)}
-              className="mt-2 h-9 w-full text-[9px] font-semibold text-white/35"
+              className="mt-2 h-9 w-full text-[9px] font-semibold text-white/60"
             >
               Seguir como invitado
             </button>
