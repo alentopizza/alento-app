@@ -297,7 +297,7 @@ Incluye:
 - validación y recálculo server-side del precio de Arma Tu Pizza;
 - tarjeta pública de `PIZZA_CUSTOM` con referencia `Desde $14.900` calculada desde la pizza completa más económica; dentro del configurador el total permanece oculto hasta la primera selección de ingrediente;
 - Cocina muestra `PIZZA_CUSTOM` con bloques separados para completa o Mitad 1 / Mitad 2 e ingredientes individualizados;
-- Cocina usa máximo 2 pedidos por fila, productos simples hasta 2 por fila dentro del pedido y configuraciones complejas a ancho completo;
+- Cocina usa máximo 2 pedidos por fila y **un producto por línea** dentro de cada pedido para mantener una lectura uniforme;
 - Cocina ordena pedidos de más antiguo a más nuevo y marca visualmente el primero como `MÁS ANTIGUO`;
 - tamaño y borde usan distintivos grandes independientes con icono, etiqueta y color propio;
 - factura térmica de `PIZZA_CUSTOM` usa la misma lectura operativa: tamaño/borde/forma y bloques separados de ingredientes;
