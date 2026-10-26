@@ -311,17 +311,20 @@ export default function PublicCheckoutDelivery({
   );
   const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [eligibilityReady, setEligibilityReady] = useState(false);
 
   const applicableCoupons = useMemo(
     () =>
-      coupons.filter((coupon) => {
-        const saving =
-          coupon.type === "PERCENTAGE"
-            ? Math.round(eligibleSubtotal * (coupon.value / 100))
-            : Math.min(coupon.value, eligibleSubtotal);
-        return saving > 0;
-      }),
-    [coupons, eligibleSubtotal],
+      eligibilityReady
+        ? coupons.filter((coupon) => {
+            const saving =
+              coupon.type === "PERCENTAGE"
+                ? Math.round(eligibleSubtotal * (coupon.value / 100))
+                : Math.min(coupon.value, eligibleSubtotal);
+            return saving > 0;
+          })
+        : coupons,
+    [coupons, eligibleSubtotal, eligibilityReady],
   );
 
   const selectedCoupon = useMemo(
@@ -341,50 +344,60 @@ export default function PublicCheckoutDelivery({
 
     async function loadCoupons() {
       setLoadingCoupons(true);
-      try {
-        const [checkoutResponse, eligibilityResponse] = await Promise.all([
-          fetch("/api/public-checkout", { cache: "no-store" }),
-          fetch("/api/public-checkout/eligibility", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              items: cart.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                configuration: item.configuration,
-              })),
-            }),
-          }),
-        ]);
+      setEligibilityReady(false);
 
+      const checkoutRequest = fetch("/api/public-checkout", {
+        cache: "no-store",
+      });
+      const eligibilityRequest = fetch("/api/public-checkout/eligibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            configuration: item.configuration,
+          })),
+        }),
+      });
+
+      try {
+        const checkoutResponse = await checkoutRequest;
         const checkoutData = await checkoutResponse.json();
-        const eligibilityData = await eligibilityResponse.json();
 
         if (!cancelled) {
           const nextCoupons = checkoutResponse.ok
             ? (checkoutData.coupons ?? [])
             : [];
-          setCoupons(nextCoupons);
-          setEligibleSubtotal(
-            eligibilityResponse.ok
-              ? Number(eligibilityData.eligibleSubtotal ?? 0)
-              : 0,
-          );
 
+          setCoupons(nextCoupons);
           setSelectedCouponId((current) =>
             current != null &&
             nextCoupons.some((coupon: Coupon) => coupon.id === current)
               ? current
               : null,
           );
+          setLoadingCoupons(false);
+        }
+
+        const eligibilityResponse = await eligibilityRequest;
+        const eligibilityData = await eligibilityResponse.json();
+
+        if (!cancelled) {
+          setEligibleSubtotal(
+            eligibilityResponse.ok
+              ? Number(eligibilityData.eligibleSubtotal ?? 0)
+              : 0,
+          );
+          setEligibilityReady(true);
         }
       } catch {
         if (!cancelled) {
           setCoupons([]);
           setEligibleSubtotal(0);
+          setEligibilityReady(true);
+          setLoadingCoupons(false);
         }
-      } finally {
-        if (!cancelled) setLoadingCoupons(false);
       }
     }
 
@@ -1272,7 +1285,9 @@ export default function PublicCheckoutDelivery({
                           </span>
                         </div>
                         <span className="mt-1.5 block text-[8px] text-white/45">
-                          Ahorras {money(saving)}
+                          {eligibilityReady
+                            ? `Ahorras ${money(saving)}`
+                            : "Calculando ahorro..."}
                         </span>
                       </button>
                     );
@@ -1339,6 +1354,7 @@ export default function PublicCheckoutDelivery({
             onClick={confirm}
             disabled={
               quoting ||
+              (selectedCouponId != null && !eligibilityReady) ||
               (fulfillmentType === "DELIVERY" &&
                 (editingAddress || !quote?.covered || quote.deliveryFee == null))
             }
