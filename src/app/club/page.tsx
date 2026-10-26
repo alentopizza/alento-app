@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import PublicBrandHeader from "@/components/PublicBrandHeader";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import { getCustomerSession } from "@/lib/auth";
@@ -136,15 +137,20 @@ function GuestClub({
 }
 
 export default async function ClubPage() {
-  const session = await getCustomerSession();
-
-  const settingsRow = await prisma.appSetting.findUnique({
-    where: { key: CLUB_ALENTO_SETTING_KEY },
-  });
+  const [session, settingsRow] = await Promise.all([
+    getCustomerSession(),
+    prisma.appSetting.findUnique({
+      where: { key: CLUB_ALENTO_SETTING_KEY },
+    }),
+  ]);
 
   const settings = settingsRow
     ? normalizeClubAlentoSettings(settingsRow.value)
     : DEFAULT_CLUB_ALENTO_SETTINGS;
+
+  if (!settings.enabled) {
+    redirect("/menu");
+  }
 
   if (!session) {
     return <GuestClub earnRatePercent={settings.earnRatePercent} />;
@@ -240,7 +246,7 @@ export default async function ClubPage() {
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {[
-              ["5%", "Acumulas", "sobre productos sin descuento."],
+              [settings.earnRatePercent + "%", "Acumulas", "sobre productos sin descuento."],
               ["Subtotal", "Base de puntos", "el domicilio no suma puntos."],
               [money(settings.minimumRedemptionPurchase), "Compra mínima", "para poder usar puntos en una compra."],
               ["1 punto = $1", "Valor de canje", "aplicable solo a recompensas habilitadas."],
