@@ -312,9 +312,22 @@ export default function PublicCheckoutDelivery({
   const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
 
+  const applicableCoupons = useMemo(
+    () =>
+      coupons.filter((coupon) => {
+        const saving =
+          coupon.type === "PERCENTAGE"
+            ? Math.round(eligibleSubtotal * (coupon.value / 100))
+            : Math.min(coupon.value, eligibleSubtotal);
+        return saving > 0;
+      }),
+    [coupons, eligibleSubtotal],
+  );
+
   const selectedCoupon = useMemo(
-    () => coupons.find((coupon) => coupon.id === selectedCouponId) ?? null,
-    [coupons, selectedCouponId],
+    () =>
+      applicableCoupons.find((coupon) => coupon.id === selectedCouponId) ?? null,
+    [applicableCoupons, selectedCouponId],
   );
 
   const discount = selectedCoupon
@@ -1187,7 +1200,7 @@ export default function PublicCheckoutDelivery({
             (fullPage ? "sticky bottom-0 z-30 mt-auto" : "")
           }
         >
-          {(loadingCoupons || coupons.length > 0) && (
+          {(loadingCoupons || applicableCoupons.length > 0) && (
             <section className="mb-3 rounded-[18px] border border-white/[0.08] bg-white/[0.035] p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -1215,7 +1228,7 @@ export default function PublicCheckoutDelivery({
                 </div>
               ) : (
                 <div className="alento-scroll mt-2.5 flex gap-2 overflow-x-auto pb-1">
-                  {coupons.map((coupon) => {
+                  {applicableCoupons.map((coupon) => {
                     const active = selectedCouponId === coupon.id;
                     const saving =
                       coupon.type === "PERCENTAGE"
