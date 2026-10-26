@@ -333,7 +333,7 @@ export default function PublicCheckoutCustomer({
       >
         <header
           className={
-            "border-b border-white/10 px-4 py-4 sm:px-5 " +
+            "border-b border-white/10 px-4 py-3 sm:px-5 sm:py-3.5 " +
             (fullPage ? "sticky top-0 z-20 bg-[#18191b]/95 backdrop-blur-xl" : "")
           }
         >
@@ -360,8 +360,8 @@ export default function PublicCheckoutCustomer({
             </button>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[16px] border border-white/15 bg-white/[0.075] text-center">
-            <div className="px-2 py-2.5">
+          <div className="mt-2.5 grid grid-cols-3 overflow-hidden rounded-[15px] border border-white/15 bg-white/[0.075] text-center">
+            <div className="px-2 py-2">
               <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Pedido
               </span>
@@ -371,7 +371,7 @@ export default function PublicCheckoutCustomer({
                   : "Recoger"}
               </b>
             </div>
-            <div className="border-l border-white/10 px-2 py-2.5">
+            <div className="border-l border-white/10 px-2 py-2">
               <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Domicilio
               </span>
@@ -379,7 +379,7 @@ export default function PublicCheckoutCustomer({
                 {money(deliveryFee)}
               </b>
             </div>
-            <div className="border-l border-white/10 px-2 py-2.5">
+            <div className="border-l border-white/10 px-2 py-2">
               <span className="block text-[7px] uppercase tracking-[0.12em] text-white/60">
                 Total
               </span>
@@ -390,9 +390,9 @@ export default function PublicCheckoutCustomer({
 
         <div
           className={
-            "min-h-0 flex-1 p-4 sm:p-5 " +
+            "min-h-0 flex-1 p-3 sm:p-4 " +
             (fullPage
-              ? "mx-auto w-full max-w-[900px] overflow-visible py-6 pb-36 sm:py-8 sm:pb-40"
+              ? "mx-auto w-full max-w-[900px] overflow-visible py-4 pb-28 sm:py-5 sm:pb-32"
               : "overflow-y-auto")
           }
         >
@@ -401,7 +401,7 @@ export default function PublicCheckoutCustomer({
               Preparando el cierre del pedido...
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {storeStatus?.open === false && (
                 <div className="rounded-[18px] border border-red-500/25 bg-red-500/10 p-4">
                   <p className="text-[9px] font-black uppercase tracking-[0.13em] text-[#ff5a60]">
@@ -417,13 +417,13 @@ export default function PublicCheckoutCustomer({
                   </p>
                 </div>
               )}
-              <section className="rounded-[22px] border border-white/15 bg-white/[0.075] p-4">
+              <section className="rounded-[20px] border border-white/15 bg-white/[0.075] p-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/60">
                       1. Cliente
                     </p>
-                    <h3 className="mt-1 text-[16px] font-bold">
+                    <h3 className="mt-0.5 text-[15px] font-bold">
                       ¿A nombre de quién?
                     </h3>
                   </div>
@@ -435,7 +435,7 @@ export default function PublicCheckoutCustomer({
                   )}
                 </div>
 
-                <label className="mt-4 block">
+                <label className="mt-3 block">
                   <span className="text-[9px] font-semibold text-white/70">
                     Nombre
                   </span>
@@ -448,12 +448,12 @@ export default function PublicCheckoutCustomer({
                       }))
                     }
                     autoComplete="name"
-                    className="mt-1.5 h-11 w-full rounded-[13px] border border-white/15 bg-white/[0.055] px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
+                    className="mt-1 h-10 w-full rounded-[12px] border border-white/15 bg-white/[0.055] px-3.5 text-[12px] text-white outline-none focus:border-[#e21a22]"
                     placeholder="Tu nombre"
                   />
                 </label>
 
-                <div className="mt-3 grid grid-cols-[78px_1fr] gap-2">
+                <div className="mt-2.5 grid grid-cols-[78px_1fr] gap-2">
                   <label>
                     <span className="text-[9px] font-semibold text-white/70">
                       País
@@ -466,7 +466,7 @@ export default function PublicCheckoutCustomer({
                           countryCode: event.target.value,
                         }))
                       }
-                      className="mt-1.5 h-11 w-full rounded-[13px] border border-white/15 bg-white/[0.055] px-2 text-center text-[12px] text-white outline-none focus:border-[#e21a22]"
+                      className="mt-1 h-10 w-full rounded-[12px] border border-white/15 bg-white/[0.055] px-2 text-center text-[12px] text-white outline-none focus:border-[#e21a22]"
                     />
                   </label>
                   <label>
@@ -485,7 +485,7 @@ export default function PublicCheckoutCustomer({
                       autoComplete="tel"
                       readOnly={signedIn}
                       className={
-                        "mt-1.5 h-11 w-full rounded-[13px] border border-white/15 px-3.5 text-[12px] text-white outline-none " +
+                        "mt-1 h-10 w-full rounded-[12px] border border-white/15 px-3.5 text-[12px] text-white outline-none " +
                         (signedIn
                           ? "cursor-not-allowed bg-white/[0.055] text-white/75"
                           : "bg-white/[0.055] focus:border-[#e21a22]")
@@ -519,9 +519,9 @@ export default function PublicCheckoutCustomer({
                   </button>
                 )}
 
-                <div className="mt-3 rounded-[15px] border border-white/15 bg-white/[0.045] px-3.5 py-3">
+                <div className="mt-2.5 rounded-[14px] border border-white/15 bg-white/[0.045] px-3 py-2.5">
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-white/75">
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.07] text-white/75">
                       <svg
                         viewBox="0 0 24 24"
                         aria-hidden="true"
@@ -541,7 +541,7 @@ export default function PublicCheckoutCustomer({
                       <span className="block text-[8px] font-bold uppercase tracking-[0.11em] text-white/60">
                         Dirección de entrega
                       </span>
-                      <b className="mt-1 block text-[11px] leading-5 text-white/82">
+                      <b className="mt-0.5 block text-[11px] leading-4 text-white/82">
                         {selection.fulfillmentType === "DELIVERY"
                           ? selection.destination?.formattedAddress ||
                             "Dirección confirmada"
@@ -552,39 +552,21 @@ export default function PublicCheckoutCustomer({
                 </div>
 
                 {!signedIn && (
-                  <p className="mt-3 text-[9px] leading-4 text-white/60">
-                    Verificar el número es opcional. Nunca mostramos si un teléfono ya existe antes de comprobar que te pertenece.
+                  <p className="mt-2 text-[8px] leading-4 text-white/45">
+                    Verificar tu número es opcional.
                   </p>
                 )}
               </section>
 
-              {discount > 0 && selection.couponName && (
-                <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/[0.08] px-4 py-3">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-[8px] font-black uppercase tracking-[0.13em] text-emerald-300">
-                        Cupón aplicado
-                      </p>
-                      <b className="mt-1 block truncate text-[11px] text-white">
-                        {selection.couponName}
-                      </b>
-                    </div>
-                    <b className="shrink-0 text-[12px] text-emerald-300">
-                      − {money(discount)}
-                    </b>
-                  </div>
-                </div>
-              )}
-
-              <section className="rounded-[22px] border border-white/15 bg-white/[0.075] p-4 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
+              <section className="rounded-[20px] border border-white/15 bg-white/[0.075] p-3.5 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
                 <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/60">
                   2. Forma de pago
                 </p>
-                <h3 className="mt-1 text-[16px] font-bold">
+                <h3 className="mt-0.5 text-[15px] font-bold">
                   ¿Cómo vas a pagar?
                 </h3>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                   {paymentMethods.map((method) => {
                     const active = paymentMethodId === method.id;
                     return (
@@ -597,7 +579,7 @@ export default function PublicCheckoutCustomer({
                           setError("");
                         }}
                         className={
-                          "rounded-[15px] border px-3 py-3 text-left transition " +
+                          "rounded-[14px] border px-3 py-2.5 text-left transition " +
                           (active
                             ? "border-[#e21a22] bg-[#e21a22]/15"
                             : "border-white/15 bg-white/[0.045]")
@@ -669,14 +651,6 @@ export default function PublicCheckoutCustomer({
               : "pb-3 sm:pb-4")
           }
         >
-          {discount > 0 && (
-            <div className="mb-1.5 flex items-center justify-between text-[9px]">
-              <span className="text-white/60">
-                Cupón {selection.couponName}
-              </span>
-              <b className="text-red-300">− {money(discount)}</b>
-            </div>
-          )}
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] text-white/65">Total del pedido</span>
             <b className="text-[22px]">{money(total)}</b>
