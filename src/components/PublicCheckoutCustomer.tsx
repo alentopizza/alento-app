@@ -9,13 +9,6 @@ type PaymentMethod = {
   name: string;
 };
 
-type Coupon = {
-  id: number;
-  name: string;
-  type: "FIXED" | "PERCENTAGE";
-  value: number;
-};
-
 type CustomerData = {
   id?: number;
   name: string;
@@ -87,9 +80,6 @@ export default function PublicCheckoutCustomer({
   });
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [couponId, setCouponId] = useState<number | null>(null);
-  const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
   const [storeStatus, setStoreStatus] = useState<StoreCheckoutStatus | null>(null);
   const [cashReceived, setCashReceived] = useState("");
   const [loading, setLoading] = useState(true);
@@ -108,13 +98,7 @@ export default function PublicCheckoutCustomer({
   );
   const deliveryFee =
     selection.fulfillmentType === "DELIVERY" ? selection.deliveryFee : 0;
-  const selectedCoupon =
-    coupons.find((coupon) => coupon.id === couponId) ?? null;
-  const discount = selectedCoupon
-    ? selectedCoupon.type === "PERCENTAGE"
-      ? Math.round(eligibleSubtotal * (selectedCoupon.value / 100))
-      : Math.min(selectedCoupon.value, eligibleSubtotal)
-    : 0;
+  const discount = Math.max(0, Number(selection.discount ?? 0));
   const total = Math.max(0, subtotal + deliveryFee - discount);
   const selectedPayment =
     paymentMethods.find((method) => method.id === paymentMethodId) ?? null;
@@ -159,24 +143,12 @@ export default function PublicCheckoutCustomer({
       setError("");
 
       try {
-        const [checkoutResponse, eligibilityResponse] = await Promise.all([
+        const [checkoutResponse] = await Promise.all([
           fetch("/api/public-checkout", { cache: "no-store" }),
-          fetch("/api/public-checkout/eligibility", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              items: cart.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                configuration: item.configuration,
-              })),
-            }),
-          }),
           loadAuthenticatedCustomer(),
         ]);
 
         const checkoutData = await checkoutResponse.json();
-        const eligibilityData = await eligibilityResponse.json();
         if (!checkoutResponse.ok) {
           throw new Error(
             checkoutData.error || "No fue posible cargar el cierre del pedido.",
@@ -184,12 +156,6 @@ export default function PublicCheckoutCustomer({
         }
         if (!cancelled) {
           setPaymentMethods(checkoutData.paymentMethods ?? []);
-          setCoupons(checkoutData.coupons ?? []);
-          setEligibleSubtotal(
-            eligibilityResponse.ok
-              ? Number(eligibilityData.eligibleSubtotal ?? 0)
-              : 0,
-          );
           setStoreStatus(checkoutData.storeStatus ?? null);
         }
       } catch (loadError) {
@@ -322,7 +288,7 @@ export default function PublicCheckoutCustomer({
               ? selection.destination
               : null,
           paymentMethodId,
-          couponId,
+          couponId: selection.couponId ?? null,
           cashReceived: cashPayment && hasCashAmount ? cashValue : null,
           items: cart.map((item) => ({
             productId: item.productId,
@@ -592,90 +558,27 @@ export default function PublicCheckoutCustomer({
                 )}
               </section>
 
-              {coupons.length > 0 && (
-                <section className="rounded-[22px] border border-red-400/20 bg-white/[0.075] p-4 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-[0.13em] text-red-300">
-                        2. Cupón
+              {discount > 0 && selection.couponName && (
+                <div className="rounded-[18px] border border-emerald-400/20 bg-emerald-400/[0.08] px-4 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-[8px] font-black uppercase tracking-[0.13em] text-emerald-300">
+                        Cupón aplicado
                       </p>
-                      <h3 className="mt-1 text-[16px] font-bold text-white">
-                        Tienes beneficios disponibles
-                      </h3>
-                      <p className="mt-1 text-[9px] leading-4 text-white/60">
-                        Elige uno si quieres aplicarlo a este pedido.
-                      </p>
+                      <b className="mt-1 block truncate text-[11px] text-white">
+                        {selection.couponName}
+                      </b>
                     </div>
-                    {selectedCoupon && (
-                      <button
-                        type="button"
-                        onClick={() => setCouponId(null)}
-                        className="text-[9px] font-bold text-white/60 underline underline-offset-2"
-                      >
-                        Quitar
-                      </button>
-                    )}
+                    <b className="shrink-0 text-[12px] text-emerald-300">
+                      − {money(discount)}
+                    </b>
                   </div>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {coupons.map((coupon) => {
-                      const active = couponId === coupon.id;
-                      const saving =
-                        coupon.type === "PERCENTAGE"
-                          ? Math.round(eligibleSubtotal * (coupon.value / 100))
-                          : Math.min(coupon.value, eligibleSubtotal);
-                      return (
-                        <button
-                          key={coupon.id}
-                          type="button"
-                          onClick={() => {
-                            setCouponId(active ? null : coupon.id);
-                            setError("");
-                          }}
-                          className={
-                            "rounded-[15px] border px-3.5 py-3 text-left transition " +
-                            (active
-                              ? "border-[#e21a22] bg-[#e21a22]/18 shadow-[0_0_0_1px_rgba(226,26,34,.15)]"
-                              : "border-white/15 bg-white/[0.045] hover:bg-white/[0.075]")
-                          }
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <b className="block text-[11px] text-white">
-                                {coupon.name}
-                              </b>
-                              <span className="mt-1 block text-[10px] font-bold text-red-300">
-                                {coupon.type === "PERCENTAGE"
-                                  ? `${coupon.value}% de descuento`
-                                  : `${money(coupon.value)} de descuento`}
-                              </span>
-                            </div>
-                            <span
-                              className={
-                                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black " +
-                                (active
-                                  ? "border-[#e21a22] bg-[#e21a22] text-white"
-                                  : "border-white/25 text-transparent")
-                              }
-                            >
-                              ✓
-                            </span>
-                          </div>
-                          {saving > 0 && (
-                            <span className="mt-2 block text-[9px] text-white/60">
-                              Ahorras {money(saving)} en este pedido.
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                </div>
               )}
 
               <section className="rounded-[22px] border border-white/15 bg-white/[0.075] p-4 shadow-[0_10px_28px_rgba(0,0,0,.12)]">
                 <p className="text-[8px] font-black uppercase tracking-[0.13em] text-white/60">
-                  {coupons.length > 0 ? "3" : "2"}. Forma de pago
+                  2. Forma de pago
                 </p>
                 <h3 className="mt-1 text-[16px] font-bold">
                   ¿Cómo vas a pagar?
@@ -769,7 +672,7 @@ export default function PublicCheckoutCustomer({
           {discount > 0 && (
             <div className="mb-1.5 flex items-center justify-between text-[9px]">
               <span className="text-white/60">
-                Cupón {selectedCoupon?.name}
+                Cupón {selection.couponName}
               </span>
               <b className="text-red-300">− {money(discount)}</b>
             </div>
