@@ -475,6 +475,16 @@ La configuración guardada usa `kind = PIZZA_CUSTOM` y conserva:
 
 El `basePrice` del producto padre `PIZZA_CUSTOM` no participa en el cálculo comercial.
 
+### Presentación de precio al cliente
+
+Para evitar mostrar un valor parcial engañoso:
+
+- la tarjeta pública de `PIZZA_CUSTOM` muestra `Precio según elección`, no el precio del tamaño más pequeño;
+- durante el paso de tamaño se muestra nombre + diámetro, sin valor;
+- el total de la pizza permanece oculto hasta que el cliente seleccione al menos un ingrediente;
+- desde la primera selección de ingrediente se muestra el total dinámico;
+- el POS conserva precios visibles durante todo el flujo porque es una herramienta operativa.
+
 ### STANDARD / MODIFIER
 
 Usan `basePrice`.
