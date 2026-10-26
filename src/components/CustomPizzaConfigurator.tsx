@@ -86,6 +86,7 @@ export default function CustomPizzaConfigurator({
   catalog,
   initialConfiguration,
   theme = "dark",
+  pricingMode = "operator",
   actionLabel = "Agregar al carrito",
   onClose,
   onConfirm,
@@ -94,6 +95,7 @@ export default function CustomPizzaConfigurator({
   catalog: CustomPizzaConfiguratorCatalog;
   initialConfiguration?: CustomPizzaOrderConfiguration | null;
   theme?: "dark" | "light";
+  pricingMode?: "customer" | "operator";
   actionLabel?: string;
   onClose: () => void;
   onConfirm: (result: CustomPizzaConfiguratorResult) => void;
@@ -160,6 +162,15 @@ export default function CustomPizzaConfigurator({
     draft,
     ingredients: catalog.modifiers,
   });
+  const selectedIngredientCount =
+    draft.mode === "WHOLE"
+      ? draft.wholeIngredientIds.length
+      : draft.mode === "HALF_HALF"
+        ? draft.firstHalfIngredientIds.length +
+          draft.secondHalfIngredientIds.length
+        : 0;
+  const showCustomerPrice =
+    pricingMode === "operator" || selectedIngredientCount > 0;
 
   const ingredientGroups = useMemo(() => {
     const byId = new Map<
@@ -606,7 +617,10 @@ export default function CustomPizzaConfigurator({
                   >
                     <b className="block text-[13px]">{size.name}</b>
                     <span className={"mt-1 block text-[10px] " + (draft.sizeId === size.id ? "text-white/55" : muted)}>
-                      {size.diameterCm} cm · {money(size.basePrice)}
+                      {size.diameterCm} cm
+                      {pricingMode === "operator"
+                        ? ` · ${money(size.basePrice)}`
+                        : ""}
                     </span>
                   </button>
                 ))}
@@ -761,7 +775,9 @@ export default function CustomPizzaConfigurator({
                   Ingredientes cobrados
                 </span>
                 <b className="mt-1 block text-[11px]">
-                  {billableCount} · {money(ingredientCharge)}
+                  {showCustomerPrice
+                    ? `${billableCount} · ${money(ingredientCharge)}`
+                    : "Se calcula al elegir"}
                 </b>
               </div>
             </div>
@@ -793,10 +809,23 @@ export default function CustomPizzaConfigurator({
           <div className="flex items-end justify-between gap-3">
             <div>
               <span className={"block text-[9px] font-bold uppercase " + muted}>
-                Precio de tu pizza
+                {showCustomerPrice
+                  ? "Precio de tu pizza"
+                  : "Tu precio se calcula al armarla"}
               </span>
-              <b className="mt-1 block text-[24px] font-black tracking-[-0.03em] text-[var(--brand-red)]">
-                {draft.sizeId ? money(price) : "—"}
+              <b
+                className={
+                  "mt-1 block font-black tracking-[-0.03em] " +
+                  (showCustomerPrice
+                    ? "text-[24px] text-[var(--brand-red)]"
+                    : "max-w-[190px] text-[12px] leading-4 " + muted)
+                }
+              >
+                {showCustomerPrice
+                  ? draft.sizeId
+                    ? money(price)
+                    : "—"
+                  : "Elige tus ingredientes y verás el total aquí."}
               </b>
             </div>
             <div className="flex items-center gap-2">
