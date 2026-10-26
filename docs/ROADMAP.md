@@ -119,7 +119,9 @@ Roles iniciales propuestos:
 - `POS`;
 - `KITCHEN`;
 - `CASHIER`;
-- `DISPATCH`.
+- `DRIVER`.
+
+`DISPATCH` se conserva solo como compatibilidad legacy en Prisma.
 
 `Customer` y el futuro `User` deben permanecer como entidades distintas.
 
@@ -175,7 +177,7 @@ Antes de modificar un módulo cerrado:
 6. hacer el cambio más pequeño posible;
 7. validar build;
 8. actualizar documentación;
-9. indicar si requiere `npx prisma db push`.
+9. revisar `docs/DEPLOYMENT.md` si hay cambios de schema; no indicar un `db push` manual como rutina porque el arranque vigente ya ejecuta `prisma db push`.
 
 La documentación del repositorio debe tener prioridad sobre el historial de chats.
 
@@ -192,8 +194,10 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓ
 - `/menu` catálogo público oficial;
 - `/cart` carrito persistente;
 - configurador público para productos simples, pizzas, dos sabores y combos;
-- navegación persistente Menú / Carrito / Club / Perfil;
-- `/club` con reglas públicas y saldo/movimientos con sesión;
+- navegación persistente Menú / Carrito / Club / Perfil con feedback inmediato, prefetch y estados de carga;
+- `/cart` difiere la carga de mapa/datos de checkout hasta que el usuario continúa;
+- `/club` con reglas públicas y saldo/movimientos con sesión cuando Club está activo;
+- Club puede apagarse desde administración, ocultándose de la app y pausando nuevas acreditaciones sin borrar saldos;
 - `/login` unificado;
 - Google Places y GPS opcional;
 - origen oficial de Alentó en `pos_settings`;
@@ -210,6 +214,8 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓ
 - compra como invitado sin login obligatorio;
 - autocompletado inmediato cuando existe sesión de cliente;
 - recuperación segura de datos mediante OTP de WhatsApp;
+- cupones públicos opcionales con visibilidad por canal, selección en Entrega/Totales y recálculo server-side;
+- promociones/no elegibles quedan fuera de la base de cupón;
 - formas de pago públicas desde configuración;
 - efectivo con "Paga con" y cálculo de vueltas;
 - creación de pedido `Order.source=WEB`;
@@ -228,6 +234,6 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓ
 4. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
 5. Mantener `docs/FEATURE_INVENTORY.md` alineado con nuevas rutas y capacidades.
 
-Referencia canónica: `docs/PUBLIC_CHECKOUT_MAPS.md`.
+Referencias canónicas: `docs/PUBLIC_CHECKOUT_MAPS.md`, `docs/COUPONS.md` y `docs/CLUB_POINTS.md`.
 
 No implementar un segundo motor comercial para la web.
