@@ -11,12 +11,15 @@ Regla central: **el navegador nunca decide la distancia ni la tarifa oficial del
 Flujo vigente:
 
 1. Carrito → Continuar pedido.
-2. Elegir Domicilio, Recoger o Local.
+2. Elegir Domicilio o Recoger.
 3. Para Domicilio: buscar dirección o usar ubicación actual.
 4. Confirmar el punto de entrega en mapa.
 5. Calcular ruta real desde Alentó.
 6. Aplicar cobertura/tarifa server-side.
-7. Continuar a cliente, pago, resumen y creación del pedido WEB.
+7. Mostrar cupones públicos aplicables junto al resumen de totales.
+8. Continuar a datos del cliente y forma de pago.
+9. Recalcular líneas, cupón y domicilio server-side.
+10. Crear el pedido WEB y entregar seguimiento.
 
 ## Google Maps Platform
 
@@ -183,7 +186,7 @@ Estado: **IMPLEMENTADA EN V1**.
 
 Flujo actual:
 
-Modalidad → dirección/cobertura → datos del cliente → pago → creación `Order.source=WEB` → seguimiento.
+Modalidad → dirección/cobertura → cupón/totales → datos del cliente → pago → creación `Order.source=WEB` → seguimiento.
 
 Reglas actuales:
 
@@ -196,6 +199,8 @@ Reglas actuales:
 - productos se vuelven a normalizar server-side;
 - domicilio se vuelve a calcular server-side;
 - pago inicial se crea como `PENDING`;
+- cupones públicos se recalculan en servidor y no descuentan domicilio;
+- productos promocionales/no elegibles quedan fuera de la base del cupón;
 - se usa el mismo consecutivo global que POS.
 
 ## Criterios de aceptación
@@ -230,12 +235,13 @@ El checkout público ya no debe crecer como una cadena de modales.
 
 Flujo vigente dentro de `/cart`:
 
-`Carrito → Entrega → Datos y pago → Confirmación`
+`Carrito → Entrega + cupones/totales → Datos y pago → Confirmación`
 
 Reglas:
 
 - Entrega se renderiza como contenido de página, no como overlay;
-- Datos y pago también usa modo de página completa;
+- la selección de cupón, cuando aplica, vive en Entrega junto al resumen económico;
+- Datos y pago también usa modo de página completa y no repite la selección/descuento del cupón;
 - el header público permanece visible;
 - cada paso conserva navegación de regreso al anterior;
 - mapa y selector de direcciones aprovechan el ancho disponible;
@@ -285,3 +291,32 @@ Regla vigente:
 - de lo contrario se crea una dirección de entrega no principal para asociarla únicamente al pedido.
 
 Esto evita que un tercero que conozca un teléfono pueda modificar datos privados persistidos.
+
+
+## Cupones en el checkout público — 2026-10-26
+
+Documento canónico: `docs/COUPONS.md`.
+
+Reglas de esta superficie:
+
+- `GET /api/public-checkout` expone únicamente cupones `active + visibleInCart`;
+- `POST /api/public-checkout/eligibility` calcula la base elegible con `normalizeOrderLine`;
+- la lista de cupones y la elegibilidad se solicitan en paralelo para evitar que la UI espere innecesariamente;
+- cada cupón ocupa el ancho completo en móvil;
+- si la base elegible es cero porque toda la compra está en promoción, se ocultan tarjetas de cupón y se explica que la compra no aplica;
+- si existen productos promocionales mezclados con productos elegibles, se aclara que el cupón solo afecta la base elegible;
+- la selección se conserva al volver desde Datos/Pago;
+- `POST /api/public-checkout` vuelve a validar el cupón y recalcula el descuento antes de persistir.
+
+## Rendimiento de Carrito — 2026-10-26
+
+Entrar a `/cart` no debe cargar de inmediato Google Maps ni todo el formulario de checkout.
+
+`src/app/cart/page.tsx` usa carga dinámica para:
+
+- `PublicCheckoutDelivery`;
+- `PublicCheckoutCustomer`.
+
+Esos bundles se descargan cuando el flujo realmente entra a los pasos de checkout. `src/app/cart/loading.tsx` da feedback inmediato durante navegación de ruta.
+
+No volver a importar estáticamente estos componentes en la página principal del carrito salvo una razón de rendimiento medida.
