@@ -310,6 +310,7 @@ export default function PublicCheckoutDelivery({
     initialSelection?.couponId ?? null,
   );
   const [eligibleSubtotal, setEligibleSubtotal] = useState(0);
+  const [excludedSubtotal, setExcludedSubtotal] = useState(0);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
   const [eligibilityReady, setEligibilityReady] = useState(false);
 
@@ -387,6 +388,11 @@ export default function PublicCheckoutDelivery({
             ? Number(eligibilityData.eligibleSubtotal ?? 0)
             : 0;
           setEligibleSubtotal(nextEligibleSubtotal);
+          setExcludedSubtotal(
+            eligibilityResponse.ok
+              ? Number(eligibilityData.excludedSubtotal ?? 0)
+              : 0,
+          );
           setSelectedCouponId((current) => {
             if (current == null) return null;
             const coupon = nextCoupons.find((item) => item.id === current);
@@ -403,6 +409,7 @@ export default function PublicCheckoutDelivery({
         if (!cancelled) {
           setCoupons([]);
           setEligibleSubtotal(0);
+          setExcludedSubtotal(0);
           setEligibilityReady(true);
           setLoadingCoupons(false);
         }
@@ -1221,86 +1228,116 @@ export default function PublicCheckoutDelivery({
             (fullPage ? "sticky bottom-0 z-30 mt-auto" : "")
           }
         >
-          {(loadingCoupons || applicableCoupons.length > 0) && (
+          {(loadingCoupons ||
+            applicableCoupons.length > 0 ||
+            (eligibilityReady && excludedSubtotal > 0)) && (
             <section className="mb-3 rounded-[18px] border border-white/[0.08] bg-white/[0.035] p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[8px] font-black uppercase tracking-[0.13em] text-red-300">
-                    Beneficios disponibles
-                  </p>
-                  <p className="mt-0.5 text-[9px] leading-4 text-white/48">
-                    Aplica un cupón y mira tu nuevo total antes de continuar.
-                  </p>
-                </div>
-                {selectedCoupon && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCouponId(null)}
-                    className="shrink-0 text-[9px] font-bold text-white/55 underline underline-offset-2"
-                  >
-                    Quitar
-                  </button>
-                )}
-              </div>
-
-              {loadingCoupons ? (
-                <div className="mt-2.5 rounded-[14px] border border-white/[0.07] bg-black/20 px-3 py-3 text-[9px] text-white/40">
-                  Cargando cupones...
+              {eligibilityReady && eligibleSubtotal <= 0 && excludedSubtotal > 0 ? (
+                <div className="flex items-start gap-3 rounded-[14px] border border-amber-300/15 bg-amber-300/[0.06] px-3 py-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-amber-300/20 bg-amber-300/10 text-[12px] text-amber-200">
+                    %
+                  </span>
+                  <div>
+                    <p className="text-[9px] font-bold text-white/85">
+                      Esta compra no aplica para cupones de descuento
+                    </p>
+                    <p className="mt-0.5 text-[8px] leading-4 text-white/45">
+                      Los productos en promoción ya tienen un beneficio aplicado y no acumulan cupones.
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div className="alento-scroll mt-2.5 flex gap-2 overflow-x-auto pb-1">
-                  {applicableCoupons.map((coupon) => {
-                    const active = selectedCouponId === coupon.id;
-                    const saving =
-                      coupon.type === "PERCENTAGE"
-                        ? Math.round(eligibleSubtotal * (coupon.value / 100))
-                        : Math.min(coupon.value, eligibleSubtotal);
-
-                    return (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-[0.13em] text-red-300">
+                        Beneficios disponibles
+                      </p>
+                      <p className="mt-0.5 text-[9px] leading-4 text-white/48">
+                        Aplica un cupón y mira tu nuevo total antes de continuar.
+                      </p>
+                    </div>
+                    {selectedCoupon && (
                       <button
-                        key={coupon.id}
                         type="button"
-                        onClick={() =>
-                          setSelectedCouponId(active ? null : coupon.id)
-                        }
-                        className={
-                          "min-w-[210px] shrink-0 rounded-[15px] border px-3 py-2.5 text-left transition " +
-                          (active
-                            ? "border-[#e21a22] bg-[#e21a22]/16 shadow-[0_0_0_1px_rgba(226,26,34,.14)]"
-                            : "border-white/10 bg-black/20 hover:bg-white/[0.05]")
-                        }
+                        onClick={() => setSelectedCouponId(null)}
+                        className="shrink-0 text-[9px] font-bold text-white/55 underline underline-offset-2"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <b className="block truncate text-[10px] text-white">
-                              {coupon.name}
-                            </b>
-                            <span className="mt-0.5 block text-[9px] font-bold text-red-300">
-                              {coupon.type === "PERCENTAGE"
-                                ? `${coupon.value}% de descuento`
-                                : `${money(coupon.value)} de descuento`}
-                            </span>
-                          </div>
-                          <span
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingCoupons ? (
+                    <div className="mt-2.5 rounded-[14px] border border-white/[0.07] bg-black/20 px-3 py-3 text-[9px] text-white/40">
+                      Cargando cupones...
+                    </div>
+                  ) : (
+                    <div className="mt-2.5 space-y-2">
+                      {applicableCoupons.map((coupon) => {
+                        const active = selectedCouponId === coupon.id;
+                        const saving =
+                          coupon.type === "PERCENTAGE"
+                            ? Math.round(eligibleSubtotal * (coupon.value / 100))
+                            : Math.min(coupon.value, eligibleSubtotal);
+
+                        return (
+                          <button
+                            key={coupon.id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedCouponId(active ? null : coupon.id)
+                            }
                             className={
-                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black " +
+                              "w-full rounded-[15px] border px-3.5 py-3 text-left transition " +
                               (active
-                                ? "border-[#e21a22] bg-[#e21a22] text-white"
-                                : "border-white/20 text-transparent")
+                                ? "border-[#e21a22] bg-[#e21a22]/16 shadow-[0_0_0_1px_rgba(226,26,34,.14)]"
+                                : "border-white/10 bg-black/20 hover:bg-white/[0.05]")
                             }
                           >
-                            ✓
-                          </span>
-                        </div>
-                        <span className="mt-1.5 block text-[8px] text-white/45">
-                          {eligibilityReady
-                            ? `Ahorras ${money(saving)}`
-                            : "Calculando ahorro..."}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <b className="truncate text-[10px] text-white">
+                                    {coupon.name}
+                                  </b>
+                                  <span className="shrink-0 text-[10px] font-black text-red-300">
+                                    {coupon.type === "PERCENTAGE"
+                                      ? `${coupon.value}%`
+                                      : money(coupon.value)}
+                                  </span>
+                                </div>
+                                <span className="mt-1 block text-[8px] text-white/45">
+                                  {eligibilityReady
+                                    ? `Ahorras ${money(saving)} en este pedido`
+                                    : "Calculando ahorro..."}
+                                </span>
+                              </div>
+                              <span
+                                className={
+                                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black " +
+                                  (active
+                                    ? "border-[#e21a22] bg-[#e21a22] text-white"
+                                    : "border-white/20 text-transparent")
+                                }
+                              >
+                                ✓
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {eligibilityReady &&
+                    eligibleSubtotal > 0 &&
+                    excludedSubtotal > 0 && (
+                      <p className="mt-2.5 text-[8px] leading-4 text-white/38">
+                        Algunos productos en promoción no acumulan cupón. El descuento se aplica solo a los productos elegibles.
+                      </p>
+                    )}
+                </>
               )}
             </section>
           )}
