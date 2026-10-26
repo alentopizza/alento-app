@@ -238,6 +238,13 @@ function flavorTone(value: string) {
       label: "text-amber-700",
     };
   }
+  if (normalized.includes("hawaiana chick")) {
+    return {
+      shell: "border-purple-200 bg-purple-50 text-purple-950",
+      icon: "bg-purple-600 text-white",
+      label: "text-purple-600",
+    };
+  }
   if (normalized.includes("hawaiana")) {
     return {
       shell: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-950",
