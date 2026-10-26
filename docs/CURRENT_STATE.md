@@ -617,7 +617,7 @@ La experiencia pública y el checkout WEB ya están implementados. Los pendiente
 1. mantener validación productiva continua en móvil/PWA/tablet/escritorio;
 2. completar el canje transaccional de Club Alentó;
 3. implementar refund/devoluciones auditables;
-4. formalizar baseline Prisma y CI;
+4. formalizar baseline Prisma y añadir pruebas automatizadas al CI ya operativo;
 5. mejorar edición/selección de direcciones sin duplicar la fuente comercial;
 6. mantener SEO, analítica y Push alineados con cambios de la experiencia pública.
 
@@ -643,3 +643,21 @@ Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
 - `/club` consulta sesión/configuración en paralelo y reduce refrescos en segundo plano; invitados ya no refrescan la página completa cada 8 s.
 - `/cart` usa `dynamic()` para cargar `PublicCheckoutDelivery` y `PublicCheckoutCustomer` solo cuando se requieren.
 - el arranque productivo ya no ejecuta backfills históricos en cada redeploy.
+
+
+## Calidad automática — 2026-10-26
+
+El repositorio ya cuenta con CI permanente en `.github/workflows/quality-ci.yml`.
+
+Cada push a `main` y cada pull request valida en GitHub Actions:
+
+- instalación reproducible mediante `npm ci`;
+- `prisma validate`;
+- aplicación del schema sobre PostgreSQL 16 efímero;
+- ESLint;
+- TypeScript con `tsc --noEmit`;
+- `next build`.
+
+La primera ejecución detectó tres errores de lint en scripts históricos CommonJS. Se corrigió la configuración de ESLint sin cambiar el comportamiento de esos scripts y la ejecución completa posterior terminó verde.
+
+Aún no existe suite automatizada de tests; esa deuda permanece separada del CI de compilación/calidad.
