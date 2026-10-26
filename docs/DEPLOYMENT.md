@@ -291,6 +291,26 @@ EasyPanel puede usar:
 
 como comprobación simple de disponibilidad.
 
+### Instalación reproducible de dependencias
+
+El repositorio versiona `package-lock.json` (lockfile v3).
+
+Para instalaciones limpias y builds productivos usar:
+
+```bash
+npm ci
+```
+
+`npm ci` instala exactamente las versiones registradas en el lockfile y falla si `package.json` y `package-lock.json` quedan desalineados.
+
+Reglas:
+
+- no borrar `package-lock.json` durante un refactor;
+- no regenerarlo sin revisar el diff;
+- cualquier cambio de dependencias debe versionar `package.json` y `package-lock.json` juntos;
+- no usar `npm install` como rutina de despliegue;
+- el lockfile vigente fue validado desde un runner limpio con Node 22 y npm 10, incluyendo `postinstall -> prisma generate`.
+
 ### Validación antes de cada deploy productivo
 
 Mientras no exista CI:
