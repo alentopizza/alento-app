@@ -236,6 +236,25 @@ Reglas:
 - barrio e indicaciones siguen siendo complementarios;
 - el backend elimina direcciones adicionales heredadas al guardar la dirección única.
 
+## Cupones y elegibilidad
+
+Documento canónico: `docs/COUPONS.md`.
+
+El POS solo presenta cupones que cumplan:
+
+`active = true AND visibleInPos = true`
+
+La visibilidad también se valida en servidor al crear el pedido; ocultar un cupón no es solamente una decisión visual.
+
+La base elegible se calcula con `src/lib/orderLineNormalizer.ts`, igual que en el checkout WEB. El POS envía `productId`, cantidad y configuración estructurada; no debe calcular elegibilidad confiando en `unitPrice` del navegador.
+
+Reglas:
+
+- combos/promociones no acumulables quedan fuera;
+- si la base elegible es cero, el cupón no se puede aplicar y la UI explica el motivo;
+- si el pedido mezcla promociones y productos elegibles, el descuento afecta solo la base elegible;
+- POS y WEB deben conservar la misma regla de elegibilidad.
+
 ## Precios y seguridad comercial
 
 El navegador muestra precios como vista previa, pero **no es la fuente final**.
