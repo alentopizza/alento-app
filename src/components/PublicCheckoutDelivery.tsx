@@ -358,12 +358,12 @@ export default function PublicCheckoutDelivery({
               : 0,
           );
 
-          if (
-            selectedCouponId != null &&
-            !nextCoupons.some((coupon: Coupon) => coupon.id === selectedCouponId)
-          ) {
-            setSelectedCouponId(null);
-          }
+          setSelectedCouponId((current) =>
+            current != null &&
+            nextCoupons.some((coupon: Coupon) => coupon.id === current)
+              ? current
+              : null,
+          );
         }
       } catch {
         if (!cancelled) {
@@ -379,7 +379,7 @@ export default function PublicCheckoutDelivery({
     return () => {
       cancelled = true;
     };
-  }, [cart, selectedCouponId]);
+  }, [cart]);
 
   const drawMap = useCallback(async (
     destination?: {
