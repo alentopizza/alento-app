@@ -48,10 +48,11 @@ async function productPrice(product: NonNullable<Awaited<ReturnType<typeof getPr
   const basePrice =
     product.basePrice == null ? null : Number(product.basePrice);
 
-  if (
-    product.type !== "PIZZA_SINGLE" &&
-    product.type !== "PIZZA_CUSTOM"
-  ) {
+  if (product.type === "PIZZA_CUSTOM") {
+    return null;
+  }
+
+  if (product.type !== "PIZZA_SINGLE") {
     return basePrice;
   }
 
@@ -60,11 +61,9 @@ async function productPrice(product: NonNullable<Awaited<ReturnType<typeof getPr
     orderBy: [{ sortOrder: "asc" }, { diameterCm: "asc" }],
   });
 
-  if (!smallestSize) return product.type === "PIZZA_CUSTOM" ? null : basePrice;
+  if (!smallestSize) return basePrice;
 
-  return product.type === "PIZZA_CUSTOM"
-    ? Number(smallestSize.basePrice)
-    : Number(smallestSize.basePrice) + (basePrice ?? 0);
+  return Number(smallestSize.basePrice) + (basePrice ?? 0);
 }
 
 function money(value: number) {
