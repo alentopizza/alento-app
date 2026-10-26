@@ -479,9 +479,10 @@ El `basePrice` del producto padre `PIZZA_CUSTOM` no participa en el cálculo com
 
 Para evitar mostrar un valor parcial engañoso:
 
-- la tarjeta pública de `PIZZA_CUSTOM` muestra `Precio según elección`, no el precio del tamaño más pequeño;
+- la tarjeta pública de `PIZZA_CUSTOM` muestra `Desde $14.900` actualmente, tomando como referencia dinámica la pizza `PIZZA_SINGLE` completa más económica del catálogo;
+- no usar el precio del tamaño más pequeño como precio público de Arma Tu Pizza;
 - durante el paso de tamaño se muestra nombre + diámetro, sin valor;
-- el total de la pizza permanece oculto hasta que el cliente seleccione al menos un ingrediente;
+- el total configurado de la pizza permanece oculto hasta que el cliente seleccione al menos un ingrediente;
 - desde la primera selección de ingrediente se muestra el total dinámico;
 - el POS conserva precios visibles durante todo el flujo porque es una herramienta operativa.
 
