@@ -8,7 +8,7 @@ import CustomerPushControl from "@/components/CustomerPushControl";
 import {
   bogotaDateTime,
   fulfillmentLabel,
-  presentOrderItemConfiguration,
+  presentCustomerOrderItemConfiguration,
 } from "@/lib/orderPresentation";
 
 function money(value: unknown) {
@@ -197,7 +197,7 @@ export default async function CustomerAccountPage() {
                     <div className="divide-y divide-neutral-200">
                       {order.items.map((item) => {
                         const details =
-                          presentOrderItemConfiguration(item.configuration);
+                          presentCustomerOrderItemConfiguration(item.configuration);
 
                         return (
                           <div key={item.id} className="px-4 py-3.5">
