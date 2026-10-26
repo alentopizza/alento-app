@@ -301,6 +301,7 @@ Incluye:
 - Cocina ordena pedidos de más antiguo a más nuevo y marca visualmente el primero como `MÁS ANTIGUO`;
 - tamaño y borde usan distintivos grandes independientes con icono, etiqueta y color propio;
 - sabores/especialidades usan el mismo estilo de distintivo grande, con color estable por especialidad y tarjetas separadas para cada mitad en pizzas de dos sabores;
+- en pizzas normales, Tamaño + Borde + Sabor comparten la misma fila visual; ingredientes de Arma Tu Pizza se muestran en mayúscula y con mayor legibilidad;
 - factura térmica de `PIZZA_CUSTOM` usa la misma lectura operativa: tamaño/borde/forma y bloques separados de ingredientes;
 - historial `/cuenta` y seguimiento público ocultan el cálculo interno de ingredientes de `PIZZA_CUSTOM`; muestran solo la selección y `Ingredientes: N`, contando ingredientes únicos entre ambas mitades;
 - sincronización de orden/nombres con POS.
