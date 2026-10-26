@@ -8,6 +8,8 @@ function serializeCoupon(
     type: "FIXED" | "PERCENTAGE";
     value: unknown;
     active: boolean;
+    visibleInPos: boolean;
+    visibleInCart: boolean;
     createdAt: Date;
     updatedAt: Date;
   },
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const [coupons, usageRows] = await Promise.all([
     prisma.coupon.findMany({
-      where: activeOnly ? { active: true } : undefined,
+      where: activeOnly ? { active: true, visibleInPos: true } : undefined,
       orderBy: [{ active: "desc" }, { name: "asc" }],
     }),
     prisma.order.groupBy({
@@ -86,6 +88,8 @@ export async function POST(request: NextRequest) {
   const type = body.type === "PERCENTAGE" ? "PERCENTAGE" : body.type === "FIXED" ? "FIXED" : null;
   const value = Number(body.value);
   const active = body.active !== false;
+  const visibleInPos = body.visibleInPos !== false;
+  const visibleInCart = body.visibleInCart === true;
 
   if (!name) return NextResponse.json({ error: "El nombre del cupón es obligatorio." }, { status: 400 });
   if (!type) return NextResponse.json({ error: "Selecciona un tipo de descuento válido." }, { status: 400 });
@@ -93,7 +97,9 @@ export async function POST(request: NextRequest) {
   if (type === "PERCENTAGE" && value > 100) return NextResponse.json({ error: "El porcentaje no puede superar 100%." }, { status: 400 });
 
   try {
-    const coupon = await prisma.coupon.create({ data: { name, type, value, active } });
+    const coupon = await prisma.coupon.create({
+      data: { name, type, value, active, visibleInPos, visibleInCart },
+    });
     return NextResponse.json({ coupon: serializeCoupon(coupon) }, { status: 201 });
   } catch (error) {
     const prismaError = error as { code?: string };
