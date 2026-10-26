@@ -364,12 +364,11 @@ export default function PublicCheckoutDelivery({
       try {
         const checkoutResponse = await checkoutRequest;
         const checkoutData = await checkoutResponse.json();
+        const nextCoupons: Coupon[] = checkoutResponse.ok
+          ? (checkoutData.coupons ?? [])
+          : [];
 
         if (!cancelled) {
-          const nextCoupons = checkoutResponse.ok
-            ? (checkoutData.coupons ?? [])
-            : [];
-
           setCoupons(nextCoupons);
           setSelectedCouponId((current) =>
             current != null &&
@@ -390,7 +389,7 @@ export default function PublicCheckoutDelivery({
           setEligibleSubtotal(nextEligibleSubtotal);
           setSelectedCouponId((current) => {
             if (current == null) return null;
-            const coupon = coupons.find((item) => item.id === current);
+            const coupon = nextCoupons.find((item) => item.id === current);
             if (!coupon) return null;
             const saving =
               coupon.type === "PERCENTAGE"
