@@ -90,10 +90,6 @@ function kitchenItemsFor(order: KitchenOrder) {
     .sort((a, b) => kitchenPriority(a) - kitchenPriority(b) || a.id - b.id);
 }
 
-function kitchenSpecChipClass(base: string) {
-  return `inline-flex min-h-8 items-center rounded-xl border px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.035em] shadow-[0_3px_10px_rgba(28,23,20,.05)] ${base}`;
-}
-
 function sizeTone(value: string) {
   const normalized = value.toLocaleLowerCase("es");
 
@@ -786,14 +782,31 @@ export default function KitchenPage() {
                   </div>
 
                   <div className="grid gap-3 p-4 xl:grid-cols-2">
-                    {kitchenItems.map((item) => (
-                      <KitchenItem
-                        key={item.id}
-                        item={{ ...item, preparedQuantity: Number(item.preparedQuantity ?? 0) }}
-                        busy={busyKey === `${order.id}:${item.id}`}
-                        onChangePrepared={(value) => void changePrepared(order, item, value)}
-                      />
-                    ))}
+                    {kitchenItems.map((item) => {
+                      const complexItem =
+                        item.product?.type === "PIZZA_CUSTOM" ||
+                        item.product?.type === "COMBO";
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={complexItem ? "xl:col-span-2" : ""}
+                        >
+                          <KitchenItem
+                            item={{
+                              ...item,
+                              preparedQuantity: Number(
+                                item.preparedQuantity ?? 0,
+                              ),
+                            }}
+                            busy={busyKey === `${order.id}:${item.id}`}
+                            onChangePrepared={(value) =>
+                              void changePrepared(order, item, value)
+                            }
+                          />
+                        </div>
+                      );
+                    })}
 
                   </div>
                 </article>
