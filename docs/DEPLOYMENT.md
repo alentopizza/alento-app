@@ -52,21 +52,24 @@ No actualizar el registro directamente por nombre en SQL como parte del deploy: 
 
 ## IngredientGroup — 2026-10-25
 
-El mismo despliegue incorpora el modelo `IngredientGroup` y `Product.ingredientGroupId`.
+El despliegue de `PIZZA_CUSTOM` incorporó el modelo `IngredientGroup` y `Product.ingredientGroupId`.
 
-Después de `prisma db push`, el arranque ejecuta `scripts/backfill-ingredient-groups.js`.
+El backfill histórico vive en:
 
-El script:
+`scripts/backfill-ingredient-groups.js`
 
-- crea Carnes y Embutidos si no existe;
-- crea Verduras, Vegetales y Legumbres si no existe;
-- crea Frutas si no existe;
-- crea Otros si no existe;
-- clasifica por nombre únicamente ingredientes sin grupo;
-- registra `catalog.ingredientGroupsBackfilledV1` en `AppSetting`;
-- después de esa primera ejecución no vuelve a clasificar, aunque la aplicación se reinicie.
+Su primera ejecución:
 
-Esto permite hacer **un solo redeploy** para `PIZZA_CUSTOM` + subcategorías de ingredientes.
+- creó Carnes y Embutidos;
+- creó Verduras, Vegetales y Legumbres;
+- creó Frutas;
+- creó Otros;
+- clasificó por nombre únicamente ingredientes sin grupo;
+- registró `catalog.ingredientGroupsBackfilledV1` en `AppSetting`.
+
+El backfill ya fue aplicado en producción y **ya no forma parte del comando normal de arranque**. Se conserva únicamente como herramienta histórica/manual.
+
+La misma regla aplica a `scripts/backfill-driver-earnings.js`: no debe ejecutarse en cada reinicio del servicio.
 
 ## Prisma: decisión actual
 
@@ -74,15 +77,17 @@ La base de datos de producción existía antes de empezar a mantener un historia
 
 Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáticamente al arrancar la aplicación.
 
-### Estado real del arranque al 2026-10-24
+### Estado real del arranque al 2026-10-26
 
 El `package.json` vigente ejecuta:
 
 ```bash
-prisma db push && node scripts/backfill-driver-earnings.js && node scripts/backfill-ingredient-groups.js && next start -p 3000
+prisma db push && next start -p 3000
 ```
 
-Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js.
+Los backfills históricos de ganancias de repartidores e IngredientGroup fueron retirados del arranque después de quedar aplicados.
+
+Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js, pero ya no ejecuta reparaciones de datos de una sola vez.
 
 Esto difiere de la estrategia conservadora anterior de ejecutar `db push` manualmente. No modificar silenciosamente esta decisión desde documentación ni asumir que un cambio de schema es inocuo: antes de desplegar cualquier modificación de `prisma/schema.prisma` se debe revisar el impacto porque el próximo arranque puede aplicarla automáticamente.
 
@@ -263,7 +268,7 @@ Nunca habilitarlo en producción.
 El comportamiento actual:
 
 ```bash
-prisma db push && node scripts/backfill-driver-earnings.js && next start -p 3000
+prisma db push && next start -p 3000
 ```
 
 es útil durante la etapa de construcción, pero no es la estrategia recomendada para operación estable porque un reinicio/redeploy puede intentar modificar el schema.
@@ -318,3 +323,28 @@ Características:
 
 Este almacenamiento es apropiado para el catálogo actual de Alentó. Si el volumen de imágenes creciera de forma significativa, evaluar object storage dedicado sin cambiar la semántica de `Product.imageUrl`.
 
+
+
+## Cupones por canal — 2026-10-26
+
+El modelo `Coupon` incorpora campos aditivos:
+
+- `visibleInPos Boolean @default(true)`;
+- `visibleInCart Boolean @default(false)`.
+
+El siguiente redeploy que contenga este schema puede añadirlos mediante el `prisma db push` del arranque.
+
+La elección de defaults es deliberada:
+
+- cupones existentes siguen disponibles en POS;
+- ningún cupón histórico se publica automáticamente en la app del cliente.
+
+No ejecutar scripts de migración manuales para estos campos salvo diagnóstico explícito.
+
+Documento funcional: `docs/COUPONS.md`.
+
+## Diagnóstico de logs de arranque
+
+Durante un redeploy puede aparecer un `SIGTERM` correspondiente al proceso anterior que EasyPanel está deteniendo. Si a continuación Next.js inicia y muestra `Ready`, ese `SIGTERM` por sí solo no indica una caída permanente.
+
+La advertencia Node `DEP0169` sobre `url.parse()` proviene actualmente de una dependencia; no se ha encontrado uso directo de `url.parse()` en el código de Alentó. Tratarla como advertencia deprecada mientras el servidor continúe iniciando correctamente, y revisar dependencias cuando corresponda.
