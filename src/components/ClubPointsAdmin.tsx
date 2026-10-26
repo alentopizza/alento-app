@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Settings, Star, Trophy, Users, X } from "lucide-react";
 
 type ClubSettings = {
+  enabled: boolean;
   earnRatePercent: number;
   minimumRedemptionPurchase: number;
   pointValueCop: number;
@@ -254,7 +255,12 @@ export default function ClubPointsAdmin() {
           <StatCard label="Clientes con saldo" value={String(summary.customersWithPoints)} note="Clientes que hoy tienen puntos disponibles." icon={<Users className="h-5 w-5 text-neutral-300" strokeWidth={1.8} />} />
           <StatCard label="Puntos en circulación" value={formatPoints(summary.pointsInCirculation)} note="Saldo disponible entre todos los clientes." red icon={<Star className="h-5 w-5 text-[var(--brand-red)]" strokeWidth={1.8} />} />
           <StatCard label="Puntos acumulados" value={formatPoints(summary.totalEarnedPoints)} note="Total histórico generado por compras válidas." />
-          <StatCard label="Regla actual" value={settings.earnRatePercent + "%"} note="Sobre productos elegibles sin descuento." />
+          <StatCard
+            label="Estado del Club"
+            value={settings.enabled ? "Activo" : "Inactivo"}
+            note={settings.enabled ? "Visible y acumulando puntos." : "Oculto en la app y sin nuevas acreditaciones."}
+            red={settings.enabled}
+          />
         </section>
 
         <section className="rounded-[22px] border border-neutral-200 bg-white p-3.5 shadow-[0_8px_24px_rgba(28,23,20,.04)] md:p-4">
@@ -475,15 +481,68 @@ function SettingsModal({
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/38">Regla actual</p>
               <div className="mt-3 flex items-end justify-between gap-4">
                 <div>
-                  <h3 className="text-[30px] font-black tracking-[-0.045em]">{draft.earnRatePercent}% en puntos</h3>
-                  <p className="mt-1 text-[11px] text-white/48">sobre el subtotal elegible del pedido</p>
+                  <h3 className="text-[30px] font-black tracking-[-0.045em]">
+                    {draft.enabled ? `${draft.earnRatePercent}% en puntos` : "Club pausado"}
+                  </h3>
+                  <p className="mt-1 text-[11px] text-white/48">
+                    {draft.enabled
+                      ? "sobre el subtotal elegible del pedido"
+                      : "No aparece en la app y no acredita nuevos puntos"}
+                  </p>
                 </div>
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black text-emerald-300">ACTIVO</span>
+                <span
+                  className={
+                    "rounded-full border px-3 py-1.5 text-[10px] font-black " +
+                    (draft.enabled
+                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                      : "border-white/15 bg-white/[0.07] text-white/55")
+                  }
+                >
+                  {draft.enabled ? "ACTIVO" : "INACTIVO"}
+                </span>
               </div>
             </div>
 
-            <div className="grid gap-5 p-5 md:grid-cols-[1fr_1.05fr]">
-              <div>
+            <div className="p-5">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={draft.enabled}
+                onClick={() => setDraft({ ...draft, enabled: !draft.enabled })}
+                className={
+                  "flex w-full items-center justify-between rounded-[18px] border px-4 py-3.5 text-left transition " +
+                  (draft.enabled
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-neutral-200 bg-[#faf9f7]")
+                }
+              >
+                <span>
+                  <b className="block text-[12px] text-neutral-950">
+                    Club Puntos en la app
+                  </b>
+                  <span className="mt-0.5 block text-[10px] leading-4 text-neutral-500">
+                    {draft.enabled
+                      ? "Los clientes ven Club y siguen acumulando puntos."
+                      : "Club se oculta de la app y se pausan las nuevas acreditaciones."}
+                  </span>
+                </span>
+                <span
+                  className={
+                    "relative h-7 w-12 shrink-0 rounded-full transition " +
+                    (draft.enabled ? "bg-emerald-500" : "bg-neutral-300")
+                  }
+                >
+                  <span
+                    className={
+                      "absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition " +
+                      (draft.enabled ? "left-6" : "left-1")
+                    }
+                  />
+                </span>
+              </button>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-[1fr_1.05fr]">
+                <div>
                 <label className="text-[10px] font-black uppercase tracking-[0.12em] text-neutral-500">Porcentaje de acumulación</label>
                 <div className="relative mt-2">
                   <input
@@ -510,7 +569,7 @@ function SettingsModal({
                 <p className="mt-2 text-[10px] leading-5 text-neutral-400">Los puntos se calculan al finalizar el pedido sobre productos elegibles y sin incluir domicilio.</p>
               </div>
 
-              <div className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
+                <div className="rounded-[20px] border border-neutral-200 bg-[#faf9f7] p-4">
                 <p className="alento-ui-label uppercase text-neutral-400">Ejemplos con la regla actual</p>
                 <div className="mt-3 space-y-2">
                   {examples.map((example) => (
@@ -519,6 +578,7 @@ function SettingsModal({
                       <b className="text-sm text-[var(--brand-red)]">{formatPoints(example.points)} pts</b>
                     </div>
                   ))}
+                </div>
                 </div>
               </div>
             </div>
