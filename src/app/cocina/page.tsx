@@ -220,6 +220,134 @@ function KitchenCrustBadge({ value }: { value: string }) {
   );
 }
 
+function normalizeKitchenFlavor(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .trim();
+}
+
+function flavorTone(value: string) {
+  const normalized = normalizeKitchenFlavor(value);
+
+  if (normalized.includes("paisa")) {
+    return {
+      shell: "border-amber-300 bg-amber-50 text-amber-950",
+      icon: "bg-amber-500 text-white",
+      label: "text-amber-700",
+    };
+  }
+  if (normalized.includes("hawaiana")) {
+    return {
+      shell: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-950",
+      icon: "bg-fuchsia-500 text-white",
+      label: "text-fuchsia-600",
+    };
+  }
+  if (normalized.includes("chicharrona")) {
+    return {
+      shell: "border-orange-300 bg-orange-50 text-orange-950",
+      icon: "bg-orange-500 text-white",
+      label: "text-orange-700",
+    };
+  }
+  if (normalized.includes("napolitana")) {
+    return {
+      shell: "border-red-200 bg-red-50 text-red-950",
+      icon: "bg-red-500 text-white",
+      label: "text-red-600",
+    };
+  }
+  if (normalized.includes("pollo") && normalized.includes("champ")) {
+    return {
+      shell: "border-teal-200 bg-teal-50 text-teal-950",
+      icon: "bg-teal-600 text-white",
+      label: "text-teal-700",
+    };
+  }
+  if (normalized.includes("pepperoni")) {
+    return {
+      shell: "border-rose-300 bg-rose-50 text-rose-950",
+      icon: "bg-rose-600 text-white",
+      label: "text-rose-700",
+    };
+  }
+  if (normalized.includes("tropical")) {
+    return {
+      shell: "border-pink-200 bg-pink-50 text-pink-950",
+      icon: "bg-pink-500 text-white",
+      label: "text-pink-600",
+    };
+  }
+  if (normalized.includes("carnes")) {
+    return {
+      shell: "border-stone-300 bg-stone-100 text-stone-950",
+      icon: "bg-stone-700 text-white",
+      label: "text-stone-600",
+    };
+  }
+  if (normalized.includes("criolla")) {
+    return {
+      shell: "border-yellow-300 bg-yellow-50 text-yellow-950",
+      icon: "bg-yellow-500 text-yellow-950",
+      label: "text-yellow-700",
+    };
+  }
+  if (normalized.includes("vegetariana")) {
+    return {
+      shell: "border-lime-300 bg-lime-50 text-lime-950",
+      icon: "bg-lime-600 text-white",
+      label: "text-lime-700",
+    };
+  }
+  if (normalized.includes("mexicana")) {
+    return {
+      shell: "border-red-300 bg-red-50 text-red-950",
+      icon: "bg-red-700 text-white",
+      label: "text-red-700",
+    };
+  }
+
+  return {
+    shell: "border-violet-200 bg-violet-50 text-violet-950",
+    icon: "bg-violet-600 text-white",
+    label: "text-violet-600",
+  };
+}
+
+function KitchenFlavorBadge({
+  value,
+  label = "Sabor",
+}: {
+  value: string;
+  label?: string;
+}) {
+  const tone = flavorTone(value);
+
+  return (
+    <div
+      className={`inline-flex min-h-[52px] min-w-[150px] items-center gap-2.5 rounded-[14px] border px-3 py-2 shadow-[0_4px_12px_rgba(28,23,20,.06)] ${tone.shell}`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${tone.icon}`}
+      >
+        <Pizza className="h-4 w-4" strokeWidth={2.3} />
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block text-[8px] font-black uppercase tracking-[0.12em] ${tone.label}`}
+        >
+          {label}
+        </span>
+        <b className="mt-0.5 block truncate text-[13px] font-black uppercase leading-4 tracking-[-0.01em]">
+          {value}
+        </b>
+      </span>
+    </div>
+  );
+}
+
 type KitchenCustomPizzaPresentation = {
   mode: "WHOLE" | "HALF_HALF";
   sizeLabel: string | null;
@@ -445,11 +573,22 @@ function KitchenItem({
                     {pizza.sizeLabel && (
                       <KitchenSizeBadge value={pizza.sizeLabel} />
                     )}
-                    {pizza.flavor && (
-                      <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
-                        {pizza.flavor}
-                      </span>
-                    )}
+                    {pizza.flavor &&
+                      pizza.flavor
+                        .split("+")
+                        .map((value) => value.replace(/^\s*½\s*/, "").trim())
+                        .filter(Boolean)
+                        .map((value, flavorIndex, flavors) => (
+                          <KitchenFlavorBadge
+                            key={`${value}-${flavorIndex}`}
+                            value={value}
+                            label={
+                              flavors.length > 1
+                                ? `Mitad ${flavorIndex + 1}`
+                                : "Sabor"
+                            }
+                          />
+                        ))}
                   </div>
                 </div>
               ))}
@@ -530,14 +669,15 @@ function KitchenItem({
           {flavorDetails.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {flavorDetails.map((detail, index) => (
-                <span key={`${detail.label}-${index}`} className="contents">
-                  <span className="inline-flex min-h-7 items-center rounded-lg border border-neutral-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.025em] text-neutral-950 shadow-[0_2px_8px_rgba(28,23,20,.04)]">
-                    {cleanFlavor(detail.value)}
-                  </span>
-                  {index < flavorDetails.length - 1 && (
-                    <span className="text-[11px] font-bold text-neutral-300">−</span>
-                  )}
-                </span>
+                <KitchenFlavorBadge
+                  key={`${detail.label}-${index}`}
+                  value={cleanFlavor(detail.value)}
+                  label={
+                    flavorDetails.length > 1
+                      ? `Mitad ${index + 1}`
+                      : "Sabor"
+                  }
+                />
               ))}
             </div>
           )}
