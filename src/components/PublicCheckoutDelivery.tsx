@@ -807,6 +807,11 @@ export default function PublicCheckoutDelivery({
       onConfirm({
         fulfillmentType: "PICKUP",
         deliveryFee: 0,
+        couponId: selectedCoupon?.id ?? null,
+        couponName: selectedCoupon?.name ?? null,
+        couponType: selectedCoupon?.type ?? null,
+        couponValue: selectedCoupon?.value ?? null,
+        discount,
         destination: null,
       });
       return;
@@ -825,15 +830,20 @@ export default function PublicCheckoutDelivery({
       encodedPolyline: quote.encodedPolyline,
       deliveryZoneId: quote.band?.id ?? null,
       deliveryZoneName: quote.band?.name ?? null,
+      couponId: selectedCoupon?.id ?? null,
+      couponName: selectedCoupon?.name ?? null,
+      couponType: selectedCoupon?.type ?? null,
+      couponValue: selectedCoupon?.value ?? null,
+      discount,
       destination: quote.destination,
     });
   }
 
-  const total =
-    subtotal +
-    (fulfillmentType === "DELIVERY" && quote?.covered
+  const deliveryFee =
+    fulfillmentType === "DELIVERY" && quote?.covered
       ? quote.deliveryFee ?? 0
-      : 0);
+      : 0;
+  const total = Math.max(0, subtotal + deliveryFee - discount);
 
   return (
     <div
@@ -1177,6 +1187,88 @@ export default function PublicCheckoutDelivery({
             (fullPage ? "sticky bottom-0 z-30 mt-auto" : "")
           }
         >
+          {(loadingCoupons || coupons.length > 0) && (
+            <section className="mb-3 rounded-[18px] border border-white/[0.08] bg-white/[0.035] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.13em] text-red-300">
+                    Beneficios disponibles
+                  </p>
+                  <p className="mt-0.5 text-[9px] leading-4 text-white/48">
+                    Aplica un cupón y mira tu nuevo total antes de continuar.
+                  </p>
+                </div>
+                {selectedCoupon && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCouponId(null)}
+                    className="shrink-0 text-[9px] font-bold text-white/55 underline underline-offset-2"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+
+              {loadingCoupons ? (
+                <div className="mt-2.5 rounded-[14px] border border-white/[0.07] bg-black/20 px-3 py-3 text-[9px] text-white/40">
+                  Cargando cupones...
+                </div>
+              ) : (
+                <div className="alento-scroll mt-2.5 flex gap-2 overflow-x-auto pb-1">
+                  {coupons.map((coupon) => {
+                    const active = selectedCouponId === coupon.id;
+                    const saving =
+                      coupon.type === "PERCENTAGE"
+                        ? Math.round(eligibleSubtotal * (coupon.value / 100))
+                        : Math.min(coupon.value, eligibleSubtotal);
+
+                    return (
+                      <button
+                        key={coupon.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedCouponId(active ? null : coupon.id)
+                        }
+                        className={
+                          "min-w-[210px] shrink-0 rounded-[15px] border px-3 py-2.5 text-left transition " +
+                          (active
+                            ? "border-[#e21a22] bg-[#e21a22]/16 shadow-[0_0_0_1px_rgba(226,26,34,.14)]"
+                            : "border-white/10 bg-black/20 hover:bg-white/[0.05]")
+                        }
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <b className="block truncate text-[10px] text-white">
+                              {coupon.name}
+                            </b>
+                            <span className="mt-0.5 block text-[9px] font-bold text-red-300">
+                              {coupon.type === "PERCENTAGE"
+                                ? `${coupon.value}% de descuento`
+                                : `${money(coupon.value)} de descuento`}
+                            </span>
+                          </div>
+                          <span
+                            className={
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-black " +
+                              (active
+                                ? "border-[#e21a22] bg-[#e21a22] text-white"
+                                : "border-white/20 text-transparent")
+                            }
+                          >
+                            ✓
+                          </span>
+                        </div>
+                        <span className="mt-1.5 block text-[8px] text-white/45">
+                          Ahorras {money(saving)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
           <div className="mb-3 rounded-[16px] border border-white/[0.07] bg-white/[0.025] px-3.5 py-3 sm:px-4">
             <div className="flex items-center justify-between gap-4">
               <span className="text-[9px] font-semibold text-white/38 sm:text-[10px]">
@@ -1208,6 +1300,17 @@ export default function PublicCheckoutDelivery({
                     : "—"}
               </span>
             </div>
+
+            {discount > 0 && (
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <span className="text-[9px] font-semibold text-white/50 sm:text-[10px]">
+                  Cupón · {selectedCoupon?.name}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-300 sm:text-[12px]">
+                  − {money(discount)}
+                </span>
+              </div>
+            )}
 
             <div className="mt-2.5 flex items-end justify-between gap-4 border-t border-white/[0.08] pt-2.5">
               <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/55">
