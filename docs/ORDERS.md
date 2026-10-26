@@ -518,6 +518,22 @@ El precio principal mostrado se obtiene restando del `OrderItem.lineTotal` únic
 
 El comprobante usa el título **DETALLE DEL PEDIDO**; no volver a introducir checklist de despacho.
 
+### Arma Tu Pizza en factura/comprobante
+
+`PIZZA_CUSTOM` no usa el presentador genérico de detalles en la factura térmica.
+
+Regla visual:
+
+- producto y total de línea en la primera fila;
+- debajo, `TAMAÑO`, `BORDE` y `FORMA`;
+- `PIZZA COMPLETA`: bloque único de ingredientes;
+- `MITAD Y MITAD`: `MITAD 1` y `MITAD 2` en bloques separados y apilados;
+- cada ingrediente se imprime individualmente;
+- no imprimir `INGREDIENTES COBRADOS` ni el cálculo monetario interno de ingredientes, porque no aporta a preparación/entrega;
+- la descarga PNG y la impresión HTML deben conservar la misma jerarquía.
+
+Este formato prioriza lectura operativa sobre compactación extrema del papel.
+
 La acción Imprimir usa la ruta:
 
 `/pedidos/[id]/imprimir`
