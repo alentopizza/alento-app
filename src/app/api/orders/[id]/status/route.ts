@@ -223,42 +223,40 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           ? normalizeClubAlentoSettings(savedClubSettings.value)
           : DEFAULT_CLUB_ALENTO_SETTINGS;
 
-        if (!clubSettings.enabled) {
-          return updatedOrder;
+        if (clubSettings.enabled) {
+          const hasOrderDiscount = Number(order.discount) > 0;
+          const eligibleClubSubtotal = order.items.reduce((sum, item) => {
+            if (!item.product) return sum;
+
+            // Los combos ya incorporan descuento propio y nunca acumulan puntos.
+            if (item.product.type === "COMBO") return sum;
+
+            // Si el pedido recibió cupón/descuento manual, los productos elegibles
+            // para descuento quedan fuera de la acumulación. Los productos no
+            // descontables conservan su valor completo y sí pueden acumular.
+            if (hasOrderDiscount && item.product.couponEligible) return sum;
+
+            return sum + Number(item.lineTotal);
+          }, 0);
+
+          const points = clubPointsForAmount(
+            eligibleClubSubtotal,
+            clubSettings.earnRatePercent,
+          );
+
+          await tx.clubPointTransaction.upsert({
+            where: { orderId: order.id },
+            update: {},
+            create: {
+              customerId: order.customerId,
+              orderId: order.id,
+              points,
+              ratePerThousand: Math.round(clubSettings.earnRatePercent * 10),
+              amountBase: eligibleClubSubtotal,
+              reason: "PURCHASE",
+            },
+          });
         }
-
-        const hasOrderDiscount = Number(order.discount) > 0;
-        const eligibleClubSubtotal = order.items.reduce((sum, item) => {
-          if (!item.product) return sum;
-
-          // Los combos ya incorporan descuento propio y nunca acumulan puntos.
-          if (item.product.type === "COMBO") return sum;
-
-          // Si el pedido recibió cupón/descuento manual, los productos elegibles
-          // para descuento quedan fuera de la acumulación. Los productos no
-          // descontables conservan su valor completo y sí pueden acumular.
-          if (hasOrderDiscount && item.product.couponEligible) return sum;
-
-          return sum + Number(item.lineTotal);
-        }, 0);
-
-        const points = clubPointsForAmount(
-          eligibleClubSubtotal,
-          clubSettings.earnRatePercent,
-        );
-
-        await tx.clubPointTransaction.upsert({
-          where: { orderId: order.id },
-          update: {},
-          create: {
-            customerId: order.customerId,
-            orderId: order.id,
-            points,
-            ratePerThousand: Math.round(clubSettings.earnRatePercent * 10),
-            amountBase: eligibleClubSubtotal,
-            reason: "PURCHASE",
-          },
-        });
 
         if (reviewTemplate) {
           const delayMinutes = reviewTemplate.delayMinutes ?? 60;
