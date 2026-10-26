@@ -533,15 +533,23 @@ export async function GET(
     }
 
     if (customPizza) {
-      const specParts = [
-        customPizza.size ? `TAMANO: ${customPizza.size.toUpperCase()}` : "",
-        customPizza.crust ? `BORDE: ${customPizza.crust.toUpperCase()}` : "",
-      ].filter(Boolean);
-
-      if (specParts.length) {
-        for (const specLine of wrapText(specParts.join("  |  "), 43)) {
-          leftText(specLine, 22, 800, 28, 2);
-        }
+      if (customPizza.size) {
+        leftText(
+          `TAMAÑO: ${customPizza.size.toUpperCase()}`,
+          22,
+          800,
+          28,
+          2,
+        );
+      }
+      if (customPizza.crust) {
+        leftText(
+          `BORDE: ${customPizza.crust.toUpperCase()}`,
+          22,
+          800,
+          28,
+          2,
+        );
       }
 
       leftText(
