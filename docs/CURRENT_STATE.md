@@ -298,6 +298,7 @@ Incluye:
 - tarjeta pública de `PIZZA_CUSTOM` con referencia `Desde $14.900` calculada desde la pizza completa más económica; dentro del configurador el total permanece oculto hasta la primera selección de ingrediente;
 - Cocina muestra `PIZZA_CUSTOM` con bloques separados para completa o Mitad 1 / Mitad 2 e ingredientes individualizados;
 - factura térmica de `PIZZA_CUSTOM` usa la misma lectura operativa: tamaño/borde/forma y bloques separados de ingredientes;
+- historial `/cuenta` y seguimiento público ocultan el cálculo interno de ingredientes de `PIZZA_CUSTOM`; muestran solo la selección y `Ingredientes: N`, contando ingredientes únicos entre ambas mitades;
 - sincronización de orden/nombres con POS.
 
 Mejoras futuras registradas, no incluidas en el cierre:
