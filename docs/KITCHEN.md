@@ -77,7 +77,17 @@ La identificación se basa en la categoría real `bebidas`, no en el nombre visi
 
 ## Orden de preparación
 
-Dentro de un pedido se prioriza:
+Los **pedidos** se ordenan por su hora real de entrada a Cocina, del más antiguo al más nuevo.
+
+Reglas:
+
+- pedidos normales usan `createdAt`;
+- pedidos programados usan `scheduledFor - ORDER_KITCHEN_LEAD_MS`;
+- el pedido con mayor tiempo de espera ocupa siempre la primera posición;
+- si dos pedidos tienen exactamente la misma hora de entrada, se desempata por `order.id`;
+- el primer pedido visible se identifica además con `MÁS ANTIGUO`.
+
+Dentro de cada pedido se prioriza:
 
 ```text
 1. Pizzas
@@ -89,11 +99,18 @@ Los combos que contienen pizza se priorizan junto a pizzas.
 
 ## Distribución del tablero
 
-En escritorio amplio se muestran hasta **3 pedidos por fila**.
+En escritorio se muestran como máximo **2 pedidos por fila**.
 
-Cada tarjeta usa altura natural; no se estira para igualar a otras tarjetas de la misma fila.
+No se vuelve a usar una tercera columna porque reduce demasiado el área útil de lectura de producto.
 
-Esto evita espacio muerto.
+Dentro de cada pedido:
+
+- productos simples pueden ocupar **2 columnas** en pantallas amplias;
+- `PIZZA_CUSTOM` y `COMBO` ocupan el ancho completo del pedido;
+- en tablet/móvil el contenido vuelve progresivamente a una sola columna;
+- cada tarjeta usa altura natural; no se estira para igualar a otras tarjetas de la misma fila.
+
+Esto busca densidad sin sacrificar lectura de configuraciones complejas.
 
 ## Encabezado general
 
@@ -127,9 +144,8 @@ No se muestra barra de progreso general.
 El contador muestra:
 
 - icono de reloj;
-- número de minutos.
-
-No muestra la palabra `MIN`.
+- número de minutos;
+- sufijo visible `min`.
 
 El color cambia con la antigüedad para facilitar lectura operativa.
 
@@ -158,7 +174,14 @@ La lectura se organiza en este orden:
 
 ### Tamaño y borde
 
-Tamaño y borde usan chips con la misma estética.
+Tamaño y borde ya no usan chips pequeños equivalentes.
+
+Cada uno tiene un distintivo grande propio:
+
+- **Tamaño**: icono de regla, etiqueta `TAMAÑO`, valor grande y color según tamaño;
+- **Borde**: icono circular, etiqueta `BORDE`, valor grande y color según tipo de borde.
+
+La intención es que el cocinero no dependa solo del texto para diferenciarlos.
 
 Los tamaños tienen color diferenciado para reconocimiento rápido:
 
