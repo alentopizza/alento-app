@@ -462,16 +462,16 @@ model ComboOption {
 }
 
 model Coupon {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  type      CouponType
+  id            Int        @id @default(autoincrement())
+  name          String     @unique
+  type          CouponType
   value         Decimal    @db.Decimal(12, 2)
   active        Boolean    @default(true)
   visibleInPos  Boolean    @default(true)
   visibleInCart Boolean    @default(false)
   createdAt     DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  orders    Order[]
+  updatedAt     DateTime   @updatedAt
+  orders        Order[]
 }
 
 model OrderSequence {
