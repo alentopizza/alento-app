@@ -519,10 +519,10 @@ export default function PublicCheckoutCustomer({
                       autoComplete="tel"
                       readOnly={signedIn}
                       className={
-                        "mt-1.5 h-11 w-full rounded-[13px] border border-white/10 px-3.5 text-[12px] text-white outline-none " +
+                        "mt-1.5 h-11 w-full rounded-[13px] border border-white/15 px-3.5 text-[12px] text-white outline-none " +
                         (signedIn
-                          ? "cursor-not-allowed bg-white/[0.04] text-white/75"
-                          : "bg-black/25 focus:border-[#e21a22]")
+                          ? "cursor-not-allowed bg-white/[0.055] text-white/75"
+                          : "bg-white/[0.055] focus:border-[#e21a22]")
                       }
                       placeholder="300 000 0000"
                     />
