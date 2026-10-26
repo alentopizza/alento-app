@@ -611,12 +611,12 @@ export default function CustomPizzaConfigurator({
                     className={
                       "rounded-[15px] border p-3 text-left transition " +
                       (draft.sizeId === size.id
-                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        ? "border-[var(--brand-red)] bg-red-500/15 text-white shadow-[0_0_0_1px_rgba(239,68,68,.12)]"
                         : card)
                     }
                   >
                     <b className="block text-[13px]">{size.name}</b>
-                    <span className={"mt-1 block text-[10px] " + (draft.sizeId === size.id ? "text-white/55" : muted)}>
+                    <span className={"mt-1 block text-[10px] " + (draft.sizeId === size.id ? "text-red-100/75" : muted)}>
                       {size.diameterCm} cm
                       {pricingMode === "operator"
                         ? ` · ${money(size.basePrice)}`
@@ -647,7 +647,7 @@ export default function CustomPizzaConfigurator({
                       className={
                         "rounded-[15px] border p-3 text-left transition " +
                         (selected
-                          ? "border-neutral-950 bg-neutral-950 text-white"
+                          ? "border-[var(--brand-red)] bg-red-500/15 text-white shadow-[0_0_0_1px_rgba(239,68,68,.12)]"
                           : unavailable
                             ? isDark
                               ? "cursor-not-allowed border-white/5 bg-white/[0.02] text-white/20"
@@ -656,7 +656,7 @@ export default function CustomPizzaConfigurator({
                       }
                     >
                       <b className="block text-[13px]">{crust.name}</b>
-                      <span className={"mt-1 block text-[10px] " + (selected ? "text-white/55" : muted)}>
+                      <span className={"mt-1 block text-[10px] " + (selected ? "text-red-100/75" : muted)}>
                         {unavailable
                           ? "No disponible"
                           : priceForSize === 0
