@@ -87,7 +87,7 @@ Ya están implementados, entre otros:
 - módulo `/metricas` con analítica interna, mapa de calor día/hora, embudo, productos, fuentes de tráfico e integraciones externas guiadas;
 - eliminación física controlada de pedidos y pagos;
 - consecutivo comercial global independiente del `Order.id`;
-- códigos visibles como `POS-0001` y, en el futuro, `WEB-0002` compartiendo la misma secuencia.
+- códigos visibles como `POS-0001` y `WEB-0002` compartiendo la misma secuencia.
 
 ## Numeración de pedidos
 
