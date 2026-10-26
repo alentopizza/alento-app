@@ -100,39 +100,74 @@ Commit verde de referencia:
 
 ---
 
-### 3. Pruebas automatizadas críticas — 🟡 EN CURSO
+### 3. Pruebas automatizadas críticas — ✅ COMPLETADO
 
 Objetivo:
 
 crear una suite inicial que proteja reglas de negocio críticas antes de continuar ampliando el sistema.
 
-Alcance de este punto:
+Implementado:
 
-- incorporar un runner de tests mantenible;
-- añadir script `npm test`;
-- ejecutar tests dentro de Quality CI;
-- cubrir primero lógica pura y determinista con alto impacto operacional;
-- evitar tests frágiles basados únicamente en snapshots visuales.
+- Vitest `3.2.4` con versión fija;
+- `vitest.config.ts` con alias `@ -> src`;
+- script `npm test = vitest run`;
+- paso **Tests** dentro de `.github/workflows/quality-ci.yml`;
+- tests deterministas sin depender de Google, WhatsApp ni servicios externos;
+- mocks controlados para proteger la normalización de precios sin tocar producción.
 
-Cobertura inicial prioritaria:
+Cobertura actual:
 
-- reglas de Club Puntos;
-- programación/ventanas de pedidos;
-- cálculo de domicilio/cobertura cuando sea testeable sin servicios externos;
-- códigos/formatos y reglas puras de pedidos;
-- otras reglas puras críticas detectadas durante implementación.
+- `src/lib/clubAlento.test.ts`
+  - configuración y límites de Club;
+  - acumulación de puntos;
+  - conversión de porcentaje.
+- `src/lib/orderScheduling.test.ts`
+  - fecha futura;
+  - ventana de Cocina de 30 minutos;
+  - estado inicial;
+  - horario Bogotá;
+  - horario nocturno;
+  - días cerrados.
+- `src/lib/deliveryPricing.test.ts`
+  - coordenadas;
+  - bandas;
+  - cobertura;
+  - tarifas;
+  - errores operativos.
+- `src/lib/orderWorkflow.test.ts`
+  - flujo DELIVERY/PICKUP/STORE;
+  - transiciones;
+  - etiquetas;
+  - prefijos/códigos.
+- `src/lib/orderLineNormalizer.test.ts`
+  - precio canónico de producto estándar;
+  - elegibilidad de cupón;
+  - producto no disponible;
+  - Arma Tu Pizza cobra la mitad con más ingredientes;
+  - en empate cobra la mitad de mayor valor.
 
-Después de esa base se evaluará si dentro del mismo punto hace falta una pequeña capa de integración contra PostgreSQL efímero para proteger creación/normalización de pedidos.
+Validación final:
 
-Criterio de cierre:
+- **5 archivos de pruebas**;
+- **31 tests pasaron**;
+- ejecución en CI: **1.91 s** para la suite;
+- `npm ci`: verde;
+- Prisma: verde;
+- ESLint: verde;
+- TypeScript: verde;
+- Tests: verde;
+- Next build: verde.
 
-- tests pasan localmente/en runner;
-- Quality CI ejecuta los tests;
-- una regresión intencional demostrable haría fallar la suite;
-- CI final queda verde;
-- documentación actualizada.
+CI verde de referencia:
 
-**No avanzar al punto 4 hasta cerrar este punto y recibir autorización del usuario.**
+- workflow run `40421076661`;
+- commit funcional de cobertura de precios: `8c603b387649f8df1138f33da6310d8f2587ead0`.
+
+Regla desde ahora:
+
+toda corrección o nueva regla de negocio que pueda afectar dinero, estados, horarios, descuentos, puntos o cobertura debe añadir/ajustar una prueba cuando exista una superficie testeable.
+
+**No avanzar al punto 4 hasta que el usuario autorice explícitamente continuar.**
 
 ---
 
@@ -235,6 +270,6 @@ No introducir estos trabajos dentro de un punto anterior salvo que sean estricta
 
 Si este archivo indica:
 
-`3. Pruebas automatizadas críticas — EN CURSO`
+`4. Baseline Prisma + migraciones seguras — PENDIENTE`
 
-la nueva conversación debe continuar únicamente con ese punto, revisar commits recientes y no iniciar Prisma baseline, seguridad, backups u otros puntos hasta que el #3 quede cerrado y el usuario autorice avanzar.
+los puntos #1, #2 y #3 ya están cerrados. Una nueva conversación debe esperar autorización explícita del usuario antes de iniciar el #4.
