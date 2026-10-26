@@ -300,6 +300,7 @@ Incluye:
 - Cocina usa máximo 2 pedidos por fila y **un producto por línea** dentro de cada pedido para mantener una lectura uniforme;
 - Cocina ordena pedidos de más antiguo a más nuevo y marca visualmente el primero como `MÁS ANTIGUO`;
 - tamaño y borde usan distintivos grandes independientes con icono, etiqueta y color propio;
+- sabores/especialidades usan el mismo estilo de distintivo grande, con color estable por especialidad y tarjetas separadas para cada mitad en pizzas de dos sabores;
 - factura térmica de `PIZZA_CUSTOM` usa la misma lectura operativa: tamaño/borde/forma y bloques separados de ingredientes;
 - historial `/cuenta` y seguimiento público ocultan el cálculo interno de ingredientes de `PIZZA_CUSTOM`; muestran solo la selección y `Ingredientes: N`, contando ingredientes únicos entre ambas mitades;
 - sincronización de orden/nombres con POS.
