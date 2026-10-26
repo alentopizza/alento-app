@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline de Prisma/CI, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline formal de Prisma, pruebas automatizadas, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -107,6 +107,33 @@ Cuando se cambie deliberadamente `package.json`:
 4. versionar `package.json` y `package-lock.json` en el mismo cambio.
 
 El lockfile fue generado y validado con Node 22 / npm 10; `npm ci` ejecutó correctamente el `postinstall` de Prisma.
+
+## CI automatizada
+
+GitHub Actions valida automáticamente el repositorio mediante `.github/workflows/quality-ci.yml`.
+
+Se ejecuta en:
+
+- cada push a `main`;
+- cada pull request;
+- ejecución manual con `workflow_dispatch`.
+
+El pipeline usa Node 22 y un PostgreSQL 16 efímero. No se conecta a la base de producción.
+
+Validaciones actuales:
+
+```text
+npm ci
+prisma validate
+prisma db push sobre PostgreSQL efímero
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Los secretos usados por CI son valores ficticios exclusivos del runner.
+
+**Todavía no hay suite de tests automatizados.** El CI valida instalación, schema, lint, tipos y compilación; las pruebas unitarias/integración/E2E pertenecen a la siguiente fase de calidad.
 
 ## Numeración de pedidos
 
@@ -306,7 +333,7 @@ Los cinco módulos operativos principales cerrados son POS, Pedidos, Cocina, Cli
 Prioridades vigentes:
 
 1. baseline formal de Prisma y retirar `db push` del arranque cuando exista un plan seguro;
-2. CI automatizada con lint/build y pruebas críticas;
+2. pruebas automatizadas críticas sobre el CI ya operativo;
 3. flujo auditable de refund/devoluciones;
 4. completar canje transaccional de Club Alentó;
 5. inventario, recetas, costos y rentabilidad;
