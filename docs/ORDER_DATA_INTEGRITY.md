@@ -387,3 +387,22 @@ A partir de que el refactor estructurado quede activo:
 - no permitir que un canal externo omita la configuración necesaria.
 
 Este documento debe tratarse como requisito de arquitectura, no como mejora opcional.
+
+## Idempotencia de creación de pedidos
+
+Las rutas que crean pedidos ya no dependen únicamente del estado visual del botón.
+
+`POST /api/orders` y `POST /api/public-checkout` exigen `Idempotency-Key`.
+
+`Order` conserva:
+
+- `idempotencyKey` único;
+- `idempotencyHash` del request canónico.
+
+La misma clave y el mismo request devuelven el pedido existente; una clave reutilizada con contenido diferente es conflicto.
+
+La transacción adquiere un advisory lock PostgreSQL por clave antes de las escrituras finales. Esto evita duplicar pedidos incluso cuando dos solicitudes idénticas llegan simultáneamente.
+
+Los replays no vuelven a disparar notificaciones/push/webhook de creación.
+
+Referencia canónica: `docs/IDEMPOTENCY.md`.
