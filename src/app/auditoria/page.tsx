@@ -2,6 +2,14 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Search, ShieldCheck } from "lucide-react";
+import {
+  auditActionLabel,
+  auditActorTypeLabel,
+  auditDetailForDisplay,
+  auditEntityLabel,
+  auditSourceLabel,
+  auditSummaryLabel,
+} from "@/lib/auditPresentation";
 
 type AuditLog = {
   id: number;
@@ -30,14 +38,6 @@ type AuditResponse = {
   error?: string;
 };
 
-function label(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 function dateTime(value: string) {
   return new Intl.DateTimeFormat("es-CO", {
     timeZone: "America/Bogota",
@@ -47,7 +47,7 @@ function dateTime(value: string) {
 }
 
 function json(value: unknown) {
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(auditDetailForDisplay(value), null, 2);
 }
 
 export default function AuditPage() {
@@ -175,7 +175,7 @@ export default function AuditPage() {
             <option value="">Todas las acciones</option>
             {actions.map((item) => (
               <option key={item} value={item}>
-                {label(item)}
+                {auditActionLabel(item)}
               </option>
             ))}
           </select>
@@ -188,7 +188,7 @@ export default function AuditPage() {
             <option value="">Todas las entidades</option>
             {entityTypes.map((item) => (
               <option key={item} value={item}>
-                {label(item)}
+                {auditEntityLabel(item)}
               </option>
             ))}
           </select>
@@ -259,27 +259,27 @@ export default function AuditPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">
-                          {label(log.action)}
+                          {auditActionLabel(log.action)}
                         </span>
                         <span className="rounded-full border border-black/10 bg-[#f7f5f1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-black/55">
-                          {label(log.entityType)}
+                          {auditEntityLabel(log.entityType)}
                           {log.entityId ? ` · #${log.entityId}` : ""}
                         </span>
                       </div>
 
                       <h2 className="mt-3 text-[15px] font-black leading-5">
-                        {log.summary || label(log.action)}
+                        {auditSummaryLabel(log.summary, log.action)}
                       </h2>
 
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/48">
                         <span>
                           <b className="text-black/70">
-                            {log.actorName || log.actorType}
+                            {log.actorName || auditActorTypeLabel(log.actorType)}
                           </b>
                           {log.actorEmail ? ` · ${log.actorEmail}` : ""}
                         </span>
                         <span>{dateTime(log.occurredAt)}</span>
-                        {log.source && <span>{log.source}</span>}
+                        {log.source && <span>{auditSourceLabel(log.source)}</span>}
                       </div>
                     </div>
 
