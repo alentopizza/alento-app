@@ -460,3 +460,31 @@ Caja muestra además un historial de aperturas y cierres con:
 - diferencia del cierre.
 
 Los movimientos operativos de producción se registran únicamente desde sus formularios y flujos normales dentro de Caja.
+
+
+## Idempotencia y concurrencia de pagos
+
+`POST /api/orders/[id]/payment` exige `Idempotency-Key`.
+
+`Payment` conserva:
+
+- `idempotencyKey` único;
+- `idempotencyHash`.
+
+La lógica canónica de escritura vive en:
+
+`src/lib/orderPaymentRegistration.ts`
+
+Dentro de la transacción, el pedido se bloquea mediante `SELECT ... FOR UPDATE` antes de recalcular el total pagado y el saldo.
+
+Esto evita:
+
+- doble pago por doble clic;
+- duplicado por retry/timeout;
+- dos terminales cobrando simultáneamente el mismo saldo.
+
+La misma clave devuelve el mismo pago y no crea un segundo movimiento.
+
+La prueba automatizada ejecuta dos cobros simultáneos por el saldo completo y verifica que solo uno termine como `PAID`.
+
+Referencia: `docs/IDEMPOTENCY.md`.
