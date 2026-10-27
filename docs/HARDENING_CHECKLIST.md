@@ -70,14 +70,16 @@ Disparadores:
 - pull request;
 - ejecución manual.
 
-Pipeline:
+Pipeline actual:
 
 ```text
 npm ci
 prisma validate
-prisma db push sobre PostgreSQL 16 efímero
+prisma migrate deploy sobre PostgreSQL efímero
+prisma migrate diff (cero drift)
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
@@ -86,7 +88,7 @@ Reglas:
 - CI nunca usa la base de producción;
 - usa PostgreSQL efímero;
 - usa secretos ficticios de runner;
-- no incluye todavía tests.
+- ejecuta la suite crítica de tests.
 
 Primera corrida:
 
@@ -228,7 +230,7 @@ Validación final:
 
 ---
 
-### 5. Backups y restauración verificada — 🟡 EN CURSO
+### 5. Backups y restauración verificada — ✅ COMPLETADO
 
 Objetivo:
 
@@ -237,52 +239,52 @@ Objetivo:
 - definir RPO/RTO;
 - realizar una prueba real de restauración sin tocar producción.
 
-#### Política definida ✅
-
 Documento canónico:
 
 `docs/BACKUPS_AND_RECOVERY.md`
 
-Objetivos:
+Objetivos definidos:
 
 - RPO: **1 hora**;
 - RTO: **2 horas**.
 
-Estrategia:
+Configuración operativa:
 
-- backup horario remoto: cron `15 * * * *`, retención 48;
-- backup diario remoto: horario de baja actividad equivalente a ~03:30 Bogotá, retención 30;
-- rutas remotas independientes;
-- nunca usar Local como única copia.
+- Google Drive remoto: `Alentó Pizza Backups`;
+- horario: `15 * * * *`, retención 48;
+- diario: `30 8 * * *` UTC (~03:30 Bogotá), retención 30;
+- rutas separadas `hourly` / `daily`.
 
-#### Verificación de restauración preparada ✅
+Validación real:
 
-Comando de solo lectura:
+- Manual Run horario: exitoso;
+- archivo remoto confirmado en Google Drive;
+- Manual Run diario: exitoso;
+- archivo remoto confirmado;
+- restore ejecutado sobre PostgreSQL temporal `alento-restore-test`;
+- `npx prisma migrate status`: **Database schema is up to date!**;
+- `npm run db:verify-restore`: **Database restore verification: OK**;
+- datos reales leídos correctamente;
+- servicio temporal eliminado después de validar.
 
-```bash
-npm run db:verify-restore
-```
+Conteos restaurados de referencia:
 
-Archivo:
+- 435 clientes;
+- 8 usuarios;
+- 70 productos;
+- 796 pedidos;
+- 1127 pagos;
+- 33 sesiones de Caja;
+- 319 movimientos Club;
+- 173 turnos.
 
-`scripts/verify-database-restore.js`
+Regla operativa:
 
-Verifica conectividad y lectura de modelos críticos, conteos, último pedido y `_prisma_migrations`.
+- revisar logs de backup al menos semanalmente;
+- realizar restore de prueba al menos mensualmente y tras cambios mayores de infraestructura;
+- nunca probar Restore sobre `alento-db`.
 
-#### Pendiente operativo ⏳
-
-1. configurar Storage Provider remoto en EasyPanel;
-2. crear backup horario;
-3. crear backup diario;
-4. ejecutar Manual Run y confirmar archivo remoto;
-5. crear PostgreSQL temporal independiente;
-6. restaurar una copia real en la DB temporal;
-7. ejecutar `npx prisma migrate status`;
-8. ejecutar `npm run db:verify-restore` apuntando solo a la DB restaurada;
-9. documentar resultado/fecha;
-10. destruir servicio temporal.
-
-**No iniciar el punto 6 hasta completar y validar la restauración real.**
+**Punto #5 cerrado. No iniciar el punto #6 hasta autorización explícita del usuario.**
 
 ---
 
@@ -366,9 +368,10 @@ Estado actual para continuidad:
 - #2 CI automatizada: ✅
 - #3 Pruebas automatizadas críticas: ✅
 - #4 Baseline Prisma + migraciones seguras: ✅
-- #5 Backups y restauración verificada: siguiente punto pendiente.
+- #5 Backups y restauración verificada: ✅
+- #6 Seguridad de sesiones y rate limiting: siguiente punto pendiente.
 
-Una nueva conversación debe continuar desde el #5, pero solo después de autorización explícita del usuario.
+Una nueva conversación debe continuar desde el #6, pero solo después de autorización explícita del usuario.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
