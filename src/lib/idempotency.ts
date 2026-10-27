@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import type { Prisma } from "@prisma/client";
 import type { NextRequest } from "next/server";
 
 const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9._:-]{16,128}$/;
@@ -95,4 +96,15 @@ export function isIdempotencyUniqueConflict(error: unknown) {
     return target.some((item) => String(item).includes("idempotencyKey"));
   }
   return String(target ?? "").includes("idempotencyKey");
+}
+
+
+export async function lockIdempotencyKey(
+  tx: Prisma.TransactionClient,
+  key: string,
+) {
+  await tx.$queryRawUnsafe(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+    key,
+  );
 }
