@@ -1,6 +1,6 @@
 # Handoff y continuidad del proyecto
 
-Última auditoría: **2026-10-26**
+Última auditoría: **2026-10-27**
 
 Este documento permite que una nueva persona, desarrollador o IA retome Alentó App sin depender del historial de conversaciones.
 
@@ -49,8 +49,9 @@ Estado al 2026-10-26:
 - #5 Backups y restauración verificada: completado; Google Drive remoto, backup horario/diario y restore real validados.
 - #6 Seguridad de sesiones y rate limiting: completado y validado en producción;
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
-- #8 Audit Log: implementado y CI verde; falta redeploy + validación funcional en /auditoria.
-- #9 en adelante: pendientes y no deben iniciarse antes de cerrar #8.
+- #8 Audit Log: completado y validado en producción.
+- #9 Observabilidad: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
+- #10 en adelante: pendientes.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -105,26 +106,27 @@ Estado:
 
 El siguiente punto es #8 Audit Log y no debe iniciarse sin autorización explícita del usuario.
 
-## Audit Log #8 en validación
+## Audit Log #8 completado
 
 Documento canónico: `docs/AUDIT_LOG.md`.
 
 Estado:
 
-- modelo `AuditLog` y migración creados;
+- modelo `AuditLog` y migración aplicados;
 - append-only reforzado mediante trigger PostgreSQL;
 - sanitizador de secretos central;
 - auditoría transaccional para pedidos, descuentos, pagos, Caja, usuarios/roles, cupones y configuración;
+- Cocina y Repartidor cubiertos en sus transiciones directas de estado;
 - pantalla ADMIN `/auditoria`;
 - API ADMIN de solo lectura;
 - AuditLog incluido en verificación de restore;
-- 9 archivos / 48 tests;
-- CI completo verde;
-- primera validación detectó que Cocina podía mover automáticamente a PREPARED sin auditoría;
-- hotfix añadido para Cocina y transiciones de Repartidor;
-- falta redeploy del hotfix y confirmar un evento real visible en /auditoria.
+- presentación visible en español Colombia mediante `src/lib/auditPresentation.ts`;
+- validación productiva real confirmada:
+  - pedido #801: Horneando → Listo;
+  - pago real de $14.900 en Efectivo;
+  - actor, fecha, entidad y origen correctos.
 
-No iniciar Observabilidad (#9) antes de cerrar #8.
+El siguiente punto es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
 
 ## Fuente de verdad
 
