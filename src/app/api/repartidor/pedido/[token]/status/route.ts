@@ -5,6 +5,7 @@ import { dispatchOrderStatusNotification } from "@/lib/notifier";
 import { normalizeDeliveryTravelMode } from "@/lib/deliveryTravelMode";
 import { calculateDriverEarning } from "@/lib/driverCompensation";
 import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
+import { writeAuditLog } from "@/lib/auditLog";
 import {
   DRIVER_LOCATION_MAX_AGE_MS,
   distanceMetersBetween,
@@ -135,6 +136,9 @@ export async function POST(
       },
       driver: {
         select: {
+          id: true,
+          name: true,
+          email: true,
           driverAvailable: true,
           driverLatitude: true,
           driverLongitude: true,
@@ -329,50 +333,86 @@ export async function POST(
         )
       : null;
 
-  const updated = await prisma.order.update({
-    where: { id: order.id },
-    data:
-      requested === "DELIVERED" && earning && deliveredAt
-        ? {
-            status: "DELIVERED",
-            deliveredAt,
-            driverEarningAmount: earning.amount,
-            driverEarningBase: earning.base,
-            driverEarningRatePercent: earning.ratePercent,
-            driverEarningKind: earning.kind,
-            driverEarningCreditedAt: deliveredAt,
-            driverLatitude: null,
-            driverLongitude: null,
-            driverLocationAccuracy: null,
-            driverLocationUpdatedAt: null,
-          }
-        : requested === "OUT_FOR_DELIVERY" && hasDriverLocation
+  const updated = await prisma.$transaction(async (tx) => {
+    const changed = await tx.order.update({
+      where: { id: order.id },
+      data:
+        requested === "DELIVERED" && earning && deliveredAt
           ? {
-              status: "OUT_FOR_DELIVERY",
-              deliveryTravelMode: requestedTravelMode,
-              driverLatitude,
-              driverLongitude,
-              driverLocationAccuracy:
-                order.driver?.driverLocationAccuracy ?? null,
-              driverLocationUpdatedAt:
-                order.driver?.driverLocationUpdatedAt ?? new Date(),
+              status: "DELIVERED",
+              deliveredAt,
+              driverEarningAmount: earning.amount,
+              driverEarningBase: earning.base,
+              driverEarningRatePercent: earning.ratePercent,
+              driverEarningKind: earning.kind,
+              driverEarningCreditedAt: deliveredAt,
+              driverLatitude: null,
+              driverLongitude: null,
+              driverLocationAccuracy: null,
+              driverLocationUpdatedAt: null,
             }
-          : requested === "OUT_FOR_DELIVERY"
+          : requested === "OUT_FOR_DELIVERY" && hasDriverLocation
             ? {
                 status: "OUT_FOR_DELIVERY",
                 deliveryTravelMode: requestedTravelMode,
+                driverLatitude,
+                driverLongitude,
+                driverLocationAccuracy:
+                  order.driver?.driverLocationAccuracy ?? null,
+                driverLocationUpdatedAt:
+                  order.driver?.driverLocationUpdatedAt ?? new Date(),
               }
-            : {
-                status: requested as "ARRIVED",
-              },
-    select: {
-      id: true,
-      status: true,
-      deliveryTravelMode: true,
-      deliveredAt: true,
-      driverEarningAmount: true,
-      updatedAt: true,
-    },
+            : requested === "OUT_FOR_DELIVERY"
+              ? {
+                  status: "OUT_FOR_DELIVERY",
+                  deliveryTravelMode: requestedTravelMode,
+                }
+              : {
+                  status: requested as "ARRIVED",
+                },
+      select: {
+        id: true,
+        status: true,
+        deliveryTravelMode: true,
+        deliveredAt: true,
+        driverEarningAmount: true,
+        updatedAt: true,
+      },
+    });
+
+    await writeAuditLog(tx, {
+      actor: {
+        type: "STAFF",
+        userId: order.driver?.id ?? parsed.driverId,
+        name: order.driver?.name ?? "Repartidor",
+        email: order.driver?.email ?? null,
+      },
+      action: "ORDER_STATUS_CHANGED",
+      entityType: "ORDER",
+      entityId: order.id,
+      summary: `Pedido #${order.sequenceNumber ?? order.id}: ${order.status} → ${requested} desde Repartidor.`,
+      before: {
+        status: order.status,
+        deliveryTravelMode: order.deliveryTravelMode,
+      },
+      after: {
+        status: changed.status,
+        deliveryTravelMode: changed.deliveryTravelMode,
+        deliveredAt: changed.deliveredAt,
+        driverEarningAmount:
+          changed.driverEarningAmount == null
+            ? null
+            : Number(changed.driverEarningAmount),
+      },
+      metadata: {
+        sequenceNumber: order.sequenceNumber,
+        driverId: parsed.driverId,
+        transitionOrigin: "DRIVER_TOKEN",
+      },
+      source: "api/repartidor/pedido/[token]/status",
+    });
+
+    return changed;
   });
 
   const code = `POS-${String(order.sequenceNumber ?? order.id).padStart(4, "0")}`;
