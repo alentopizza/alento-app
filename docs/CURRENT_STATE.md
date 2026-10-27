@@ -737,3 +737,40 @@ Documento canónico:
 Validación productiva completada: redeploy correcto, migraciones aplicadas, Next.js operativo y revocación inmediata confirmada con una sesión independiente de colaborador no ADMIN.
 
 El siguiente punto pendiente es #7 Idempotencia de operaciones críticas.
+
+
+## Idempotencia de operaciones críticas — 2026-10-27
+
+El hardening #7 está implementado en repositorio y pendiente únicamente de validación productiva.
+
+Cambios principales:
+
+- pedidos POS y WEB exigen `Idempotency-Key`;
+- registro de pagos exige `Idempotency-Key`;
+- navegador reutiliza la misma clave durante retry del mismo intento;
+- `Order` y `Payment` almacenan clave única + hash canónico;
+- pedidos usan advisory lock PostgreSQL por clave;
+- pagos usan row lock del pedido y recalculan saldo dentro de la transacción;
+- un replay devuelve el recurso existente y no repite notificaciones;
+- mismo key con request diferente devuelve 409;
+- request crítico sin key devuelve 428.
+
+Migración:
+
+`20261027030000_order_payment_idempotency`
+
+Quality CI:
+
+- migrate deploy: verde;
+- cero drift;
+- lint/types: verde;
+- **8 archivos / 43 tests**;
+- prueba concurrente de pagos: verde;
+- build: verde;
+- workflow `40439799102`.
+
+Documento canónico:
+
+`docs/IDEMPOTENCY.md`.
+
+Falta para cerrar el punto: redeploy y validación funcional de pedido POS, pedido WEB y registro de pago.
