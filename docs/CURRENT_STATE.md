@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-Última actualización: 2026-10-26.
+Última actualización: 2026-10-27.
 
 Este documento resume el comportamiento vigente de Alentó App y es una de las primeras referencias que debe leer una persona o IA al retomar el proyecto.
 
@@ -800,7 +800,7 @@ Estado #7: ✅ completado. Hotfix redeployado y validado en producción.
 
 ## Audit Log central — 2026-10-27
 
-El hardening #8 está implementado en repositorio y pendiente únicamente de validación productiva.
+El hardening #8 está **implementado y validado en producción**.
 
 Arquitectura:
 
@@ -811,12 +811,15 @@ Arquitectura:
 - helper canónico `src/lib/auditLog.ts`;
 - escritura transaccional junto con la operación sensible;
 - pantalla ADMIN `/auditoria`;
-- API ADMIN de solo lectura.
+- API ADMIN de solo lectura;
+- presentación visible en español Colombia mediante `src/lib/auditPresentation.ts`.
 
-Cobertura actual:
+Cobertura:
 
 - usuarios/roles;
 - pedidos y estados;
+- transición automática Cocina → Horneando;
+- transiciones del Repartidor;
 - descuentos POS/WEB;
 - pagos;
 - Caja;
@@ -831,21 +834,30 @@ Migración:
 
 `20261027224500_central_audit_log`
 
-Quality CI:
+Validación productiva real:
 
-- migrate deploy: verde;
-- cero drift;
-- lint/types: verde;
-- **9 archivos / 48 tests**;
-- trigger append-only: verificado;
-- build: verde;
-- run base: `40600253140`.
+- `/auditoria` cargó correctamente con sesión ADMIN;
+- pedido comercial #801 registró **Horneando → Listo**;
+- se confirmó actor, fecha, entidad y origen;
+- se registró pago real de **$14.900 COP en Efectivo**;
+- Pedidos y Pagos continuaron operativos.
+
+Regla de idioma del producto:
+
+- UI pública e interna: español Colombia (`es-CO`);
+- fechas operativas: Bogotá (`America/Bogota`);
+- valores visibles: COP;
+- códigos/enums persistidos pueden mantenerse en inglés;
+- nunca traducir valores técnicos persistidos solo para mostrar una etiqueta;
+- usar una capa de presentación compartida.
 
 Documento canónico:
 
 `docs/AUDIT_LOG.md`.
 
-Falta para cerrar el punto: redeploy, abrir Auditoría como ADMIN y validar eventos productivos controlados.
+Estado #8: ✅ completado.
+
+El siguiente punto del hardening es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
 
 
 ## Sidebar interno compacto — 2026-10-27
@@ -887,6 +899,7 @@ Corrección:
 
 - Cocina → `PREPARED` registra `ORDER_STATUS_CHANGED` dentro de la misma transacción;
 - transiciones desde Repartidor también registran `ORDER_STATUS_CHANGED`;
-- metadata identifica el origen de transición.
+- metadata identifica el origen de transición;
+- la validación posterior confirmó registros reales en producción.
 
-Estado #8: sigue 🟡 hasta redeploy y validación de un nuevo cambio de estado visible en `/auditoria`.
+Estado #8: ✅ completado.
