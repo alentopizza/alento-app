@@ -846,3 +846,28 @@ Documento canónico:
 `docs/AUDIT_LOG.md`.
 
 Falta para cerrar el punto: redeploy, abrir Auditoría como ADMIN y validar eventos productivos controlados.
+
+
+## Sidebar interno compacto — 2026-10-27
+
+Durante la validación visual del Audit Log se ajustó el menú interno de escritorio/tablet:
+
+- menor altura del encabezado;
+- módulos más compactos verticalmente;
+- iconos y tipografía ligeramente reducidos;
+- bloque de usuario más corto;
+- estado ABIERTA/CERRADA reubicado para aprovechar el espacio;
+- el control hamburguesa del sidebar de escritorio fue reemplazado por:
+  - flecha izquierda al recoger;
+  - flecha derecha al expandir;
+- se conserva scroll como respaldo únicamente para alturas reducidas;
+- el drawer móvil/tablet también recibió una compactación ligera.
+
+Archivos:
+
+- `src/components/AppShell.tsx`;
+- `src/components/StaffStoreStatus.tsx`.
+
+Quality CI:
+
+- run `40601840078`: success.
