@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, setStaffSession } from "@/lib/auth";
+import {
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
 
 export async function GET() {
   const count = await prisma.user.count();
@@ -8,6 +13,20 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const ipLimit = await consumeRateLimit({
+    scope: "staff-bootstrap-ip",
+    key: requestClientIp(request),
+    limit: 10,
+    windowMs: 60 * 60_000,
+    blockMs: 60 * 60_000,
+  });
+  if (!ipLimit.allowed) {
+    return rateLimitExceededResponse(
+      ipLimit,
+      "Demasiados intentos de configuración inicial.",
+    );
+  }
+
   const existingUsers = await prisma.user.count();
   if (existingUsers > 0) {
     return NextResponse.json({ error: "El administrador inicial ya fue creado." }, { status: 409 });
