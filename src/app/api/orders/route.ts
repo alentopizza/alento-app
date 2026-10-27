@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertSameIdempotentRequest,
   idempotencyErrorResponse,
@@ -161,6 +163,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getStaffSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+
     const body = await request.json();
     const idempotencyKey = requireIdempotencyKey(request);
     const idempotencyHash = idempotencyRequestHash({
@@ -420,6 +427,30 @@ export async function POST(request: NextRequest) {
         },
         include: POS_ORDER_INCLUDE,
       });
+
+      if (discount > 0) {
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(session),
+          action: "ORDER_DISCOUNT_APPLIED",
+          entityType: "ORDER",
+          entityId: createdOrder.id,
+          summary: `Descuento de ${Math.round(discount).toLocaleString("es-CO")} aplicado al pedido #${createdOrder.sequenceNumber ?? createdOrder.id}.`,
+          after: {
+            discount,
+            discountSource: discountMode,
+            couponId,
+            couponName,
+            subtotal,
+            total,
+          },
+          metadata: {
+            sequenceNumber: createdOrder.sequenceNumber,
+            source: "POS",
+            eligibleSubtotal,
+          },
+          source: "api/orders",
+        });
+      }
 
       return { order: createdOrder, replayed: false as const };
     });
