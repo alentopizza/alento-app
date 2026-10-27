@@ -234,7 +234,7 @@ export default function StaffStoreStatus({
             ? "fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-3 top-auto z-[225] w-[calc(88vw-24px)] max-w-[316px] translate-x-0 sm:bottom-[calc(76px+env(safe-area-inset-bottom))] sm:top-auto sm:left-3 sm:w-[316px] sm:translate-x-0 "
             : "hidden ") +
           "sm:fixed sm:left-1/2 sm:top-[74px] sm:z-[155] sm:block sm:w-auto sm:-translate-x-1/2 " +
-          "lg:bottom-[126px] lg:left-0 lg:top-auto lg:translate-x-0 " +
+          "lg:bottom-[108px] lg:left-0 lg:top-auto lg:translate-x-0 " +
           (sidebarCollapsed
             ? "lg:w-[84px] lg:px-3"
             : "lg:w-[212px] lg:px-3") +
