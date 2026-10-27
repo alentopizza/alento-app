@@ -796,3 +796,53 @@ Quality CI del hotfix:
 - build verde.
 
 Estado #7: ✅ completado. Hotfix redeployado y validado en producción.
+
+
+## Audit Log central — 2026-10-27
+
+El hardening #8 está implementado en repositorio y pendiente únicamente de validación productiva.
+
+Arquitectura:
+
+- tabla central `AuditLog`;
+- append-only protegido mediante trigger PostgreSQL;
+- actor snapshot sin FK;
+- before/after/metadata JSON sanitizados;
+- helper canónico `src/lib/auditLog.ts`;
+- escritura transaccional junto con la operación sensible;
+- pantalla ADMIN `/auditoria`;
+- API ADMIN de solo lectura.
+
+Cobertura actual:
+
+- usuarios/roles;
+- pedidos y estados;
+- descuentos POS/WEB;
+- pagos;
+- Caja;
+- ingresos/salidas;
+- préstamos/abonos;
+- nómina;
+- pagos a repartidores;
+- cupones;
+- configuración POS/Club/home/tracking.
+
+Migración:
+
+`20261027224500_central_audit_log`
+
+Quality CI:
+
+- migrate deploy: verde;
+- cero drift;
+- lint/types: verde;
+- **9 archivos / 48 tests**;
+- trigger append-only: verificado;
+- build: verde;
+- run base: `40599572257`.
+
+Documento canónico:
+
+`docs/AUDIT_LOG.md`.
+
+Falta para cerrar el punto: redeploy, abrir Auditoría como ADMIN y validar eventos productivos controlados.
