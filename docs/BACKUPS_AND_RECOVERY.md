@@ -2,7 +2,7 @@
 
 Última actualización: **2026-10-26**.
 
-Estado: **EN IMPLEMENTACIÓN — hardening #5**.
+Estado: **IMPLEMENTADO Y RESTAURACIÓN VERIFICADA — hardening #5 COMPLETADO**.
 
 Este documento define la política de respaldo y recuperación de la base PostgreSQL de Alentó App.
 
@@ -260,3 +260,101 @@ El punto #5 solo se marca completado cuando:
 - `npm run db:verify-restore` pasó en la copia;
 - se documentó la fecha de la prueba;
 - el usuario confirmó que el procedimiento quedó operativo.
+
+
+## Evidencia de restauración — 2026-10-26
+
+Prueba realizada contra un servicio PostgreSQL temporal independiente:
+
+`alento-restore-test`
+
+Origen del backup:
+
+- proveedor: Google Drive;
+- ruta diaria: `alento/production/postgres/daily`;
+- archivo restaurado: `2026-10-27T01:10:10.754Z.sql.gz`.
+
+Resultado de EasyPanel:
+
+- Restore database: **SUCCESS**.
+
+Validación Prisma sobre la copia restaurada:
+
+```text
+1 migration found in prisma/migrations
+Database schema is up to date!
+```
+
+Validación de lectura con:
+
+```bash
+npm run db:verify-restore
+```
+
+Resultado:
+
+```text
+Database restore verification: OK
+```
+
+Conteos observados en la copia restaurada:
+
+- customers: 435;
+- users: 8;
+- products: 70;
+- orders: 796;
+- payments: 1127;
+- appSettings: 12;
+- coupons: 3;
+- cashSessions: 33;
+- clubTransactions: 319;
+- workShifts: 173.
+
+Último pedido leído:
+
+- id: 847;
+- sequenceNumber: 797;
+- source: POS;
+- status: COMPLETED;
+- total: 107500;
+- createdAt: 2026-10-26T23:50:41.777Z.
+
+La tabla `_prisma_migrations` fue legible y contenía la baseline `20261026190500_baseline`.
+
+Después de completar las validaciones, el servicio temporal `alento-restore-test` fue eliminado.
+
+Esto confirma de extremo a extremo:
+
+```text
+Producción
+→ pg_dump / backup EasyPanel
+→ Google Drive
+→ restore en PostgreSQL temporal
+→ Prisma migrate status
+→ lectura real de datos
+```
+
+## Estado operativo definitivo
+
+Configuraciones remotas activas:
+
+### Horaria
+
+- DB: `alento`;
+- cron: `15 * * * *`;
+- retención: 48;
+- ruta: `alento/production/postgres/hourly`.
+
+### Diaria
+
+- DB: `alento`;
+- cron: `30 8 * * *` en servidor UTC;
+- equivale aproximadamente a 03:30 Bogotá (UTC-5);
+- retención: 30;
+- ruta: `alento/production/postgres/daily`.
+
+Proveedor:
+
+`Alentó Pizza Backups` — Google Drive.
+
+La copia local existente puede mantenerse como redundancia rápida, pero no sustituye el backup remoto.
