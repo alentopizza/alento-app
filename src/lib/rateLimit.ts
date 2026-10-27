@@ -1,5 +1,5 @@
 import { createHmac } from "crypto";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export type RateLimitResult = {
@@ -186,4 +186,18 @@ export function rateLimitResponseHeaders(result: RateLimitResult) {
     "X-RateLimit-Limit": String(result.limit),
     "X-RateLimit-Remaining": String(result.remaining),
   };
+}
+
+
+export function rateLimitExceededResponse(
+  result: RateLimitResult,
+  message = "Demasiadas solicitudes. Intenta nuevamente más tarde.",
+) {
+  return NextResponse.json(
+    { error: message, retryAfterSeconds: result.retryAfterSeconds },
+    {
+      status: 429,
+      headers: rateLimitResponseHeaders(result),
+    },
+  );
 }
