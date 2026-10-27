@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock3, MapPin, MapPinned, UserRound, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ActionConfirmModal from "@/components/ActionConfirmModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import OrderStatusSelector from "@/components/OrderStatusSelector";
@@ -30,6 +30,7 @@ import {
 } from "@/lib/storeServiceHours";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 import { emitLiveDataChange } from "@/lib/liveDataEvents";
+import { createIdempotencyKey } from "@/lib/clientIdempotency";
 
 type CustomerAddress = {
   id: number;
@@ -325,6 +326,7 @@ export default function OrdersCardsDashboardV3() {
   const [cashReceived, setCashReceived] = useState("");
   const [reference, setReference] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const paymentAttemptKeysRef = useRef<Map<number, string>>(new Map());
   const [editing, setEditing] = useState<Order | null>(null);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("PICKUP");
   const [editScheduleMode, setEditScheduleMode] =
@@ -959,6 +961,9 @@ export default function OrdersCardsDashboardV3() {
       const hint = paymentHint(order);
       const method = cfg.paymentMethods.find((item) => item.name === hint) ?? cfg.paymentMethods.find((item) => item.active);
       const currentBalance = Math.round(balance(order));
+      if (!paymentAttemptKeysRef.current.has(order.id)) {
+        paymentAttemptKeysRef.current.set(order.id, createIdempotencyKey());
+      }
       setPaymentOrder(order);
       setPaymentMethodId(method?.id ?? "");
       setPaymentAmount(currentBalance > 0 ? String(currentBalance) : "");
@@ -986,9 +991,17 @@ export default function OrdersCardsDashboardV3() {
     setBusy(paymentOrder.id);
     setPaymentError("");
     try {
+      const idempotencyKey =
+        paymentAttemptKeysRef.current.get(paymentOrder.id) ??
+        createIdempotencyKey();
+      paymentAttemptKeysRef.current.set(paymentOrder.id, idempotencyKey);
+
       const response = await fetch(`/api/orders/${paymentOrder.id}/payment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           paymentMethodId,
           amount,
@@ -998,6 +1011,7 @@ export default function OrdersCardsDashboardV3() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible registrar el pago.");
+      paymentAttemptKeysRef.current.delete(paymentOrder.id);
       setPaymentOrder(null);
       setPaymentAmount("");
       setCashReceived("");
