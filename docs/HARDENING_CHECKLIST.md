@@ -171,7 +171,7 @@ toda corrección o nueva regla de negocio que pueda afectar dinero, estados, hor
 
 ---
 
-### 4. Baseline Prisma + migraciones seguras — ⬜ PENDIENTE
+### 4. Baseline Prisma + migraciones seguras — 🟡 EN CURSO
 
 Objetivo:
 
@@ -179,7 +179,42 @@ Objetivo:
 - formalizar el estado actual de producción;
 - pasar a una estrategia segura basada en migraciones.
 
-No tocar hasta cerrar punto 3.
+#### Fase A — repositorio ✅
+
+Completado:
+
+- se comprobó que las 23 migraciones históricas no forman una historia completa desde cero;
+- se generó `20261026190500_baseline` desde DB vacía → schema actual;
+- baseline de 1205 líneas validada sobre PostgreSQL 16;
+- drift posterior: **No difference detected**;
+- 23 migraciones previas archivadas en `prisma/legacy-migrations/`;
+- Quality CI ahora usa `prisma migrate deploy` y comprueba drift;
+- CI completo verde con lint, TypeScript, 31 tests y build;
+- runbook operativo creado en `docs/PRISMA_BASELINE.md`.
+
+#### Fase B — producción ⏳
+
+Pendiente de ejecución controlada por el usuario:
+
+1. desplegar el `main` actual manteniendo todavía `prisma db push` en el start;
+2. tomar snapshot/backup puntual;
+3. ejecutar drift check contra producción;
+4. solo si devuelve **No difference detected**, ejecutar:
+   `npx prisma migrate resolve --applied 20261026190500_baseline`;
+5. comprobar `npx prisma migrate status`;
+6. comprobar `npx prisma migrate deploy` sin migraciones pendientes.
+
+#### Fase C — cambio definitivo ⏳
+
+Solo después de confirmar Fase B:
+
+- cambiar start a `prisma migrate deploy && next start -p 3000`;
+- redeploy;
+- validar health/app;
+- actualizar documentación;
+- marcar punto #4 completado.
+
+**No iniciar el punto 5 hasta completar las fases B y C.**
 
 ---
 
