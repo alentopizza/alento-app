@@ -45,8 +45,8 @@ Estado al 2026-10-26:
 - #1 Builds reproducibles: completado;
 - #2 CI automatizada: completado;
 - #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
-- #4 Baseline Prisma + migraciones seguras: **en curso**. Fase A de repositorio completada; faltan baseline resolve en producción y cambio definitivo del start. Ver `docs/PRISMA_BASELINE.md`;
-- #5 en adelante: pendientes y no deben iniciarse antes de cerrar #4.
+- #4 Baseline Prisma + migraciones seguras: completado técnicamente; producción ya reconoció la baseline y el start fue cambiado a `prisma migrate deploy`. Falta solo confirmar el redeploy final;
+- #5 Backups y restauración verificada: siguiente punto pendiente, no iniciar hasta confirmación del redeploy del #4.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -97,7 +97,7 @@ Antes de considerar terminado un cambio:
 - revisar TypeScript de los componentes relacionados para evitar cadenas de errores de build;
 - actualizar documentación canónica y `HANDOFF.md` si cambia una regla de negocio.
 
-En el despliegue actual, `npm run start` ejecuta `prisma db push && next start -p 3000`. Por tanto, los cambios de `prisma/schema.prisma` pueden aplicarse automáticamente al arrancar después del build. No indicar `db push` como paso manual obligatorio sin revisar primero el comportamiento vigente de despliegue y el impacto del schema.
+En el despliegue actual, `npm run start` ejecuta `prisma migrate deploy && next start -p 3000`. Por tanto, todo cambio de `prisma/schema.prisma` debe incluir una migración nueva en `prisma/migrations`. No usar `db push` como mecanismo normal de producción.
 
 Este protocolo existe para evitar iteraciones donde un cambio funcional correcto genere regresiones por tipos, imports, estados derivados o contratos desalineados entre módulos.
 ## Cambios recientes que no deben perderse — 2026-10-26
