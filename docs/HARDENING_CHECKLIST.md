@@ -424,7 +424,7 @@ Documento canónico:
 
 ---
 
-### 8. Audit Log — 🟡 EN CURSO
+### 8. Audit Log — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
@@ -438,20 +438,75 @@ registrar de forma central acciones sensibles:
 - configuración;
 - otras operaciones financieras/administrativas.
 
-Diseño en implementación:
+Implementado:
 
-- tabla central `AuditLog`, append-only desde la aplicación;
-- actor snapshot: tipo, id, nombre y correo cuando aplique;
-- acción, entidad, id de entidad y resumen;
-- snapshots `before` / `after` en JSON solo para datos auditables;
-- metadata contextual sin secretos;
-- escrituras dentro de la misma transacción de negocio cuando exista una transacción;
+- modelo central `AuditLog`;
+- migración `20261027224500_central_audit_log`;
+- trigger PostgreSQL `AuditLog_append_only` que rechaza UPDATE/DELETE;
 - helper único `src/lib/auditLog.ts`;
-- pruebas automatizadas;
-- documentación de qué acciones deben auditarse;
-- validación productiva antes de cerrar.
+- actor snapshot: tipo, id, nombre y correo;
+- `before`, `after`, `metadata`, resumen y source;
+- sanitización recursiva de passwords, tokens, secrets, API/private keys e idempotency hashes;
+- escrituras dentro de la misma transacción de negocio cuando existe una;
+- API ADMIN de solo lectura `GET /api/audit-logs`;
+- pantalla ADMIN `/auditoria` con filtros y detalle;
+- acceso protegido en middleware y servidor;
+- AuditLog incluido en `db:verify-restore`.
 
-**No iniciar el punto #9 hasta cerrar y validar este punto.**
+Cobertura:
+
+- usuarios/roles: create/update;
+- pedidos: cancelación, edición, cambio de cliente, estado, eliminación;
+- descuentos/cupones aplicados POS y WEB;
+- pagos: creación/eliminación;
+- Caja: apertura, edición de apertura, cierre;
+- ingresos/salidas y eliminaciones;
+- pagos a repartidores;
+- préstamos/abonos;
+- nómina y reversión;
+- cupones: create/update/delete;
+- configuración POS;
+- Club Alentó;
+- personalización/home público;
+- tracking/métricas.
+
+Decisiones:
+
+- el borrador automático de cierre de Caja no se audita para evitar ruido;
+- no se duplican referencias sensibles de pago;
+- no se guardan teléfonos/direcciones completas dentro del log;
+- catálogo/menú detallado queda como extensión posterior del framework, fuera del alcance financiero/administrativo definido para #8.
+
+Validación técnica:
+
+- Prisma migrate deploy: verde;
+- migración AuditLog aplicada en PostgreSQL efímero;
+- drift: **No difference detected**;
+- ESLint: verde;
+- TypeScript: verde;
+- **9 archivos / 48 tests**;
+- sanitización de secretos: verde;
+- persistencia real AuditLog: verde;
+- UPDATE AuditLog rechazado por PostgreSQL: verde;
+- DELETE AuditLog rechazado por PostgreSQL: verde;
+- Next build: verde;
+- Quality CI base: `40599572257`.
+
+Documento canónico:
+
+`docs/AUDIT_LOG.md`
+
+Pendiente para cerrar:
+
+1. redeploy productivo;
+2. confirmar migración + Next `Ready`;
+3. abrir `/auditoria` como ADMIN;
+4. ejecutar una acción de prueba controlada;
+5. comprobar actor/acción/entidad/before-after;
+6. validar pedido POS + pago normal y su huella;
+7. confirmar operación normal sin regresiones.
+
+**No iniciar el punto #9 hasta confirmar esta validación productiva.**
 
 ---
 
@@ -503,9 +558,9 @@ Estado actual para continuidad:
 - #5 Backups y restauración verificada: ✅
 - #6 Seguridad de sesiones y rate limiting: ✅
 - #7 Idempotencia de operaciones críticas: ✅
-- #8 Audit Log: siguiente punto pendiente.
+- #8 Audit Log: implementado en repositorio, pendiente de validación productiva.
 
-Una nueva conversación debe continuar desde el #8, pero solo después de autorización explícita del usuario.
+Una nueva conversación debe continuar validando el #8 en producción; no iniciar #9 hasta cerrarlo.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
