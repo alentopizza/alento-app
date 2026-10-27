@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCustomerSession } from "@/lib/auth";
+import {
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
 import { reverseGeocode } from "@/lib/googleMapsServer";
 import {
   deliveryPricingHttpStatus,
@@ -107,6 +112,20 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = await consumeRateLimit({
+      scope: "public-checkout-create-ip",
+      key: requestClientIp(request),
+      limit: 12,
+      windowMs: 10 * 60_000,
+      blockMs: 10 * 60_000,
+    });
+    if (!limit.allowed) {
+      return rateLimitExceededResponse(
+        limit,
+        "Se realizaron demasiados intentos de compra. Intenta nuevamente en unos minutos.",
+      );
+    }
+
     const body = await request.json();
     const fulfillmentType =
       body?.fulfillmentType === "DELIVERY" ? "DELIVERY" : "PICKUP";
