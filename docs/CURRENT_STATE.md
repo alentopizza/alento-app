@@ -673,3 +673,30 @@ La suite automatizada ya está implementada con Vitest:
 - normalización canónica de precios, incluida Arma Tu Pizza.
 
 La corrida final del Quality CI terminó completamente verde. Las pruebas E2E de navegador siguen pendientes como evolución futura.
+
+
+## Backups y recuperación — 2026-10-26
+
+El hardening de backup ya está implementado y probado de extremo a extremo.
+
+Política:
+
+- RPO objetivo: 1 hora;
+- RTO objetivo: 2 horas;
+- backup horario remoto en Google Drive, retención 48;
+- backup diario remoto en Google Drive, retención 30;
+- restauración de prueba mensual en base separada.
+
+Validación real realizada:
+
+- backup horario y diario generados correctamente;
+- archivos .sql.gz confirmados fuera del VPS;
+- restore ejecutado sobre PostgreSQL temporal;
+- prisma migrate status correcto;
+- npm run db:verify-restore devolvió Database restore verification: OK;
+- se leyeron correctamente clientes, usuarios, productos, pedidos, pagos, configuración, Caja, Club, turnos y migraciones;
+- servicio temporal eliminado después de validar.
+
+Documento canónico: docs/BACKUPS_AND_RECOVERY.md.
+
+El siguiente punto de hardening es seguridad de sesiones y rate limiting, pendiente de autorización explícita del usuario.
