@@ -23,7 +23,7 @@ Cambios ya vigentes que prevalecen sobre referencias históricas posteriores de 
 - la navegación pública inferior responde visualmente desde el toque, usa prefetch/estados de carga y el carrito difiere la carga de mapa/checkout pesado hasta que el cliente continúa;
 - `/masa`, notificaciones Meta/notifier y Chatwoot son extensiones exclusivas de Alentó, documentadas en `docs/ALENTO_EXCLUSIVE_MODULES.md`.
 
-Pendientes de producción más importantes: baseline/estrategia de Prisma, CI automatizada, refund, hardening futuro de sesiones y decisión de alcance del canje Club.
+Pendientes de producción más importantes: backups/restauración, refund, hardening futuro de sesiones y decisión de alcance del canje Club. Baseline Prisma, CI y pruebas críticas ya están implementados.
 
 ## Módulos cerrados
 
@@ -429,13 +429,13 @@ Ver `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
 ## Prisma
 
-La base de producción no tiene baseline formal de Prisma Migrate.
+La base de producción ya tiene baseline formal de Prisma Migrate: `20261026190500_baseline`.
 
-El start actual ejecuta `prisma db push && next start -p 3000`. Los backfills históricos de ganancias de repartidores e IngredientGroup ya fueron retirados del arranque normal después de quedar aplicados. Antes de retirar `db push` debe realizarse backup + baseline y separar la evolución del schema del inicio normal.
+El start actual ejecuta `prisma migrate deploy && next start -p 3000`.
 
-No usar `prisma migrate deploy` sobre la base actual hasta realizar ese baseline.
+Las migraciones históricas previas al baseline se conservan en `prisma/legacy-migrations/` como referencia técnica. Toda evolución nueva del schema debe crear una migración posterior al baseline.
 
-La funcionalidad de pedidos programados añade `Order.scheduledFor` y su índice mediante `prisma/migrations/20261021170000_order_scheduling/migration.sql`. El arranque vigente de producción continúa usando `prisma db push`; no ejecutar `prisma migrate deploy` hasta completar el baseline documentado.
+Quality CI reconstruye PostgreSQL vacío con `prisma migrate deploy` y verifica cero drift contra `prisma/schema.prisma`.
 
 ## Trabajo futuro
 
@@ -653,7 +653,8 @@ Cada push a `main` y cada pull request valida en GitHub Actions:
 
 - instalación reproducible mediante `npm ci`;
 - `prisma validate`;
-- aplicación del schema sobre PostgreSQL 16 efímero;
+- aplicación de migraciones mediante `prisma migrate deploy` sobre PostgreSQL 16 efímero;
+- verificación de cero drift contra `prisma/schema.prisma`;
 - ESLint;
 - TypeScript con `tsc --noEmit`;
 - Vitest mediante `npm test`;
