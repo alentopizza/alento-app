@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeDrivingRoute, reverseGeocode } from "@/lib/googleMapsServer";
 import {
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
+import {
   deliveryPricingHttpStatus,
   finiteCoordinate,
   normalizeDeliveryBands,
@@ -25,6 +30,20 @@ type SettingsValue = DeliveryPricingSettings & {
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = await consumeRateLimit({
+      scope: "public-delivery-quote-ip",
+      key: requestClientIp(request),
+      limit: 60,
+      windowMs: 10 * 60_000,
+      blockMs: 10 * 60_000,
+    });
+    if (!limit.allowed) {
+      return rateLimitExceededResponse(
+        limit,
+        "Se realizaron demasiadas consultas de domicilio. Intenta nuevamente en unos minutos.",
+      );
+    }
+
     const body = await request.json();
 
     const saved = await prisma.appSetting.findUnique({
