@@ -390,19 +390,28 @@ Validación técnica:
 - drift: **No difference detected**;
 - ESLint: verde;
 - TypeScript: verde;
-- **8 archivos / 43 tests**;
+- **8 archivos / 44 tests**;
 - prueba real de dos cobros simultáneos: solo uno queda PAID;
 - replay de pago: un solo movimiento;
+- advisory lock ejecutado realmente vía Prisma: verde;
 - Next build: verde;
-- Quality CI run: `40439799102`.
+- Quality CI inicial: `40439799102`;
+- Quality CI hotfix advisory lock: `40596132160`.
 
 Documento canónico:
 
 `docs/IDEMPOTENCY.md`
 
+Hallazgo de primera validación productiva:
+
+- el POS detectó que Prisma no puede deserializar el retorno PostgreSQL `void` de `pg_advisory_xact_lock()`;
+- corregido usando CTE materializado que ejecuta el lock y devuelve `1::int`;
+- test de integración añadido para cubrir exactamente ese camino;
+- hotfix CI completamente verde.
+
 Pendiente para cerrar:
 
-1. redeploy productivo;
+1. redeploy productivo del hotfix;
 2. confirmar migración + Next `Ready`;
 3. crear pedido POS normal;
 4. crear/confirmar pedido WEB normal;
