@@ -10,6 +10,8 @@ import {
   BookOpen,
   CalendarClock,
   ChefHat,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   History,
   LogOut,
@@ -557,7 +559,7 @@ export default function AppShell({
                       onClick={() =>
                         setMobileMenuOpen(false)
                       }
-                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                      className={`group relative flex min-h-[46px] items-center gap-2.5 overflow-hidden rounded-[14px] px-2.5 transition ${
                         active
                           ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
                           : "text-white/72 active:bg-white/[0.07]"
@@ -568,14 +570,14 @@ export default function AppShell({
                       )}
 
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${
                           active
                             ? "bg-black text-white"
                             : "bg-white/[0.07] text-white/80"
                         }`}
                       >
                         <item.icon
-                          className="h-[18px] w-[18px]"
+                          className="h-4 w-4"
                           strokeWidth={2.3}
                           aria-hidden="true"
                         />
@@ -603,7 +605,7 @@ export default function AppShell({
                       onClick={() =>
                         setMobileMenuOpen(false)
                       }
-                      className={`group relative flex min-h-[52px] items-center gap-3 overflow-hidden rounded-[15px] px-2.5 transition ${
+                      className={`group relative flex min-h-[46px] items-center gap-2.5 overflow-hidden rounded-[14px] px-2.5 transition ${
                         active
                           ? "bg-white text-black shadow-[0_8px_20px_rgba(0,0,0,.18)]"
                           : "text-white/72 active:bg-white/[0.07]"
@@ -614,7 +616,7 @@ export default function AppShell({
                       )}
 
                       <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${
                           active
                             ? "bg-black text-white"
                             : "bg-white/[0.07] text-white/80"
@@ -657,7 +659,7 @@ export default function AppShell({
                 <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
               </div>
 
-              <div className="h-[60px]" aria-hidden="true" />
+              <div className="h-[50px]" aria-hidden="true" />
 
               <button
                 type="button"
@@ -686,17 +688,17 @@ export default function AppShell({
 
       <aside className="relative hidden border-r border-white/10 bg-[#0b0b0c] text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
         <div
-          className={`relative flex min-h-[82px] items-start justify-between py-3.5 pb-3.5 pt-4 ${
-            sidebarCollapsed ? "px-[18px]" : "pl-3 pr-11"
+          className={`relative flex min-h-[68px] items-center justify-between py-2.5 ${
+            sidebarCollapsed ? "px-[18px]" : "pl-3 pr-10"
           }`}
         >
           <Link href={staffHomeHref} className="block min-w-0">
             <div
-              className={`flex items-start gap-3 ${
+              className={`flex items-center gap-2.5 ${
                 sidebarCollapsed ? "justify-center" : ""
               }`}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black shadow-[0_10px_30px_rgba(0,0,0,.35)]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black shadow-[0_8px_24px_rgba(0,0,0,.30)]">
                 <img
                   src={LOGO_DARK}
                   alt="Alentó Pizza"
@@ -705,16 +707,16 @@ export default function AppShell({
               </div>
 
               <div
-                className={`min-w-0 pt-0.5 transition-all duration-200 ${
+                className={`min-w-0 transition-all duration-200 ${
                   sidebarCollapsed
                     ? "pointer-events-none w-0 overflow-hidden opacity-0"
                     : "w-auto opacity-100"
                 }`}
               >
-                <p className="max-w-[90px] truncate whitespace-nowrap text-[13px] font-semibold leading-5 tracking-[-0.02em] text-white">
+                <p className="max-w-[96px] truncate whitespace-nowrap text-[12px] font-semibold leading-4 tracking-[-0.02em] text-white">
                   {currentItem?.label || "Cocina"}
                 </p>
-                <p className="mt-0.5 max-w-[90px] truncate whitespace-nowrap text-[9px] font-normal leading-[14px] text-white/45">
+                <p className="mt-0.5 max-w-[96px] truncate whitespace-nowrap text-[8.5px] font-normal leading-3 text-white/42">
                   Alentó Pizza
                 </p>
               </div>
@@ -734,17 +736,21 @@ export default function AppShell({
                 ? "Expandir menú lateral"
                 : "Recoger menú lateral"
             }
-            className="absolute right-2 top-[20px] z-50 flex h-9 w-9 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.07] text-white shadow-[0_8px_20px_rgba(0,0,0,.22)] transition hover:bg-white/[0.12]"
+            className="absolute right-2 top-1/2 z-50 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.07] text-white shadow-[0_6px_18px_rgba(0,0,0,.2)] transition hover:bg-white/[0.12]"
           >
-            <Menu className="h-[17px] w-[17px]" strokeWidth={2.2} />
+            {sidebarCollapsed ? (
+              <ChevronRight className="h-[17px] w-[17px]" strokeWidth={2.3} />
+            ) : (
+              <ChevronLeft className="h-[17px] w-[17px]" strokeWidth={2.3} />
+            )}
           </button>
         </div>
 
-        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className="mx-3 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
         <nav
-          className={`mt-2.5 min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-3 ${
-            sidebarCollapsed ? "px-2.5" : "px-2.5"
+          className={`mt-1.5 min-h-0 flex-1 space-y-px overflow-y-auto pb-2 ${
+            sidebarCollapsed ? "px-2.5" : "px-2"
           }`}
         >
           {visibleItems.map((item) => {
@@ -767,10 +773,10 @@ export default function AppShell({
                     ? item.label
                     : undefined
                 }
-                className={`group relative flex w-full items-center overflow-hidden rounded-2xl py-2 transition-all ${
+                className={`group relative flex w-full items-center overflow-hidden rounded-xl transition-all ${
                   sidebarCollapsed
-                    ? "justify-center px-2 py-2.5"
-                    : "gap-2.5 px-3"
+                    ? "justify-center px-2 py-1.5"
+                    : "gap-2 px-2.5 py-1.5"
                 } ${
                   active
                     ? "bg-white text-black shadow-[0_10px_24px_rgba(0,0,0,.2)]"
@@ -782,7 +788,7 @@ export default function AppShell({
                 )}
 
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-all duration-200 ${
                     active
                       ? "bg-black text-white shadow-[0_4px_14px_rgba(0,0,0,.18)]"
                       : "bg-white/[0.07] text-white/80 group-hover:bg-white/10 group-hover:text-white"
@@ -796,7 +802,7 @@ export default function AppShell({
                 </span>
 
                 <span
-                  className={`min-w-0 truncate text-[13px] font-bold leading-5 transition-all duration-200 ${
+                  className={`min-w-0 truncate text-[12px] font-bold leading-4 transition-all duration-200 ${
                     sidebarCollapsed
                       ? "pointer-events-none w-0 opacity-0"
                       : "w-auto opacity-100"
@@ -811,7 +817,7 @@ export default function AppShell({
 
         <div
           className={`mt-auto shrink-0 pb-3 ${
-            sidebarCollapsed ? "px-2" : "px-3"
+            sidebarCollapsed ? "px-2" : "px-2.5"
           }`}
         >
           <div
@@ -822,14 +828,14 @@ export default function AppShell({
             }`}
           >
             <div
-              className={`flex items-center p-3 ${
+              className={`flex items-center p-2.5 ${
                 sidebarCollapsed
                   ? "justify-center"
                   : "gap-2.5"
               }`}
             >
               <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-[12px] font-semibold text-white"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.07] text-[11px] font-semibold text-white"
                 title={
                   sidebarCollapsed
                     ? userName || "Alentó Pizza"
@@ -850,13 +856,13 @@ export default function AppShell({
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-[12px] font-semibold leading-4 text-white">
+                  <p className="truncate text-[11px] font-semibold leading-4 text-white">
                     {userName || "Alentó Pizza"}
                   </p>
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.75)]" />
                 </div>
 
-                <p className="mt-0.5 truncate text-[9px] font-medium leading-3 text-white/38">
+                <p className="mt-0.5 truncate text-[8.5px] font-medium leading-3 text-white/38">
                   {roleText}
                 </p>
               </div>
@@ -882,7 +888,7 @@ export default function AppShell({
                   ? "Cerrar sesión"
                   : undefined
               }
-              className={`group flex w-full items-center py-2.5 text-left transition hover:bg-white/[0.055] disabled:opacity-50 ${
+              className={`group flex w-full items-center py-2 text-left transition hover:bg-white/[0.055] disabled:opacity-50 ${
                 sidebarCollapsed
                   ? "justify-center px-2"
                   : "justify-between px-3"
