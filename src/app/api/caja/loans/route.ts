@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -207,18 +208,41 @@ export async function POST(request: NextRequest) {
 
     await assertCashDateEditable(issuedAt);
 
-    const loan = await prisma.cashLoan.create({
-      data: {
-        workerId: worker.id,
-        workerName: worker.name,
-        note: note || null,
-        principal: Math.round(amount),
-        issuedAt,
-        payrollMonth,
-        status: "OPEN",
-        source: "MANUAL",
-        createdByName: session.name,
-      },
+    const loan = await prisma.$transaction(async (tx) => {
+      const created = await tx.cashLoan.create({
+        data: {
+          workerId: worker.id,
+          workerName: worker.name,
+          note: note || null,
+          principal: Math.round(amount),
+          issuedAt,
+          payrollMonth,
+          status: "OPEN",
+          source: "MANUAL",
+          createdByName: session.name,
+        },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "CASH_LOAN_CREATED",
+        entityType: "CASH_LOAN",
+        entityId: created.id,
+        summary: `Préstamo de ${Math.round(amount).toLocaleString("es-CO")} registrado para ${worker.name}.`,
+        after: {
+          id: created.id,
+          workerId: created.workerId,
+          workerName: created.workerName,
+          principal: Number(created.principal),
+          issuedAt: created.issuedAt,
+          payrollMonth: created.payrollMonth,
+          status: created.status,
+          source: created.source,
+        },
+        source: "api/caja/loans",
+      });
+
+      return created;
     });
 
     return NextResponse.json({
