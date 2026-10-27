@@ -488,3 +488,22 @@ La misma clave devuelve el mismo pago y no crea un segundo movimiento.
 La prueba automatizada ejecuta dos cobros simultáneos por el saldo completo y verifica que solo uno termine como `PAID`.
 
 Referencia: `docs/IDEMPOTENCY.md`.
+
+
+## Auditoría financiera
+
+Las operaciones sensibles de este módulo escriben en el Audit Log central:
+
+- creación/eliminación de pagos;
+- apertura, edición de apertura y cierre de Caja;
+- ingresos/salidas;
+- eliminación de ingresos/salidas;
+- pagos de cartera a repartidores;
+- préstamos y abonos;
+- pago y reversión de nómina.
+
+Los eventos se escriben dentro de la misma transacción de negocio cuando aplica.
+
+El Audit Log es append-only y solo ADMIN puede consultarlo desde `/auditoria`.
+
+Documento canónico: `docs/AUDIT_LOG.md`.
