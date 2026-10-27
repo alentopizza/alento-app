@@ -5,6 +5,7 @@ import {
   assertSameIdempotentRequest,
   IdempotencyKeyError,
   idempotencyRequestHash,
+  lockIdempotencyKey,
   requireIdempotencyKey,
 } from "@/lib/idempotency";
 
@@ -55,6 +56,14 @@ describe("idempotency helpers", () => {
 });
 
 describe.skipIf(!hasDatabase)("idempotency database constraints", () => {
+  it("adquiere advisory lock sin exponer el tipo void a Prisma", async () => {
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await lockIdempotencyKey(tx, `test-lock-${randomUUID()}`);
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("impide dos pedidos con la misma clave idempotente", async () => {
     const key = `test-order-${randomUUID()}`;
 
