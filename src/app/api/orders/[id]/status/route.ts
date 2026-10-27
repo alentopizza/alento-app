@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   CLUB_ALENTO_SETTING_KEY,
   DEFAULT_CLUB_ALENTO_SETTINGS,
@@ -21,6 +23,10 @@ import { isInKitchenWindow } from "@/lib/orderScheduling";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getStaffSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) {
@@ -279,6 +285,37 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           });
         }
       }
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "ORDER_STATUS_CHANGED",
+        entityType: "ORDER",
+        entityId: order.id,
+        summary: `Pedido #${order.sequenceNumber ?? order.id}: ${current} → ${requested}.`,
+        before: {
+          status: current,
+          deliveredAt: order.deliveredAt,
+          driverEarningAmount:
+            order.driverEarningAmount == null
+              ? null
+              : Number(order.driverEarningAmount),
+        },
+        after: {
+          status: updatedOrder.status,
+          deliveredAt: updatedOrder.deliveredAt,
+          driverEarningAmount:
+            updatedOrder.driverEarningAmount == null
+              ? null
+              : Number(updatedOrder.driverEarningAmount),
+        },
+        metadata: {
+          sequenceNumber: order.sequenceNumber,
+          source: order.source,
+          fulfillmentType: order.fulfillmentType,
+          driverId: order.driverId,
+        },
+        source: "api/orders/[id]/status",
+      });
 
       return updatedOrder;
     });
