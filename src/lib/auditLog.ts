@@ -35,6 +35,11 @@ const SENSITIVE_KEYS = new Set([
   "p256dh",
   "fcmtoken",
   "idempotencyhash",
+  "apikey",
+  "privatekey",
+  "clientsecret",
+  "sharedsecret",
+  "signature",
 ]);
 
 function normalizeAuditValue(value: unknown): unknown {
@@ -61,7 +66,20 @@ function normalizeAuditValue(value: unknown): unknown {
 
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .filter(([key]) => !SENSITIVE_KEYS.has(key.toLowerCase()))
+        .filter(([key]) => {
+          const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+          return (
+            !SENSITIVE_KEYS.has(normalizedKey) &&
+            !normalizedKey.endsWith("password") &&
+            !normalizedKey.endsWith("passwordhash") &&
+            !normalizedKey.endsWith("accesstoken") &&
+            !normalizedKey.endsWith("refreshtoken") &&
+            !normalizedKey.endsWith("apikey") &&
+            !normalizedKey.endsWith("privatekey") &&
+            !normalizedKey.endsWith("clientsecret") &&
+            !normalizedKey.endsWith("sharedsecret")
+          );
+        })
         .map(([key, item]) => [key, normalizeAuditValue(item)]),
     );
   }
