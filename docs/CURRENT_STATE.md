@@ -839,7 +839,7 @@ Quality CI:
 - **9 archivos / 48 tests**;
 - trigger append-only: verificado;
 - build: verde;
-- run base: `40599572257`.
+- run base: `40600253140`.
 
 Documento canónico:
 
