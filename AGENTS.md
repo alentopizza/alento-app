@@ -78,7 +78,28 @@ Reutilizar la lógica no significa forzar la misma interfaz.
 
 La app pública, POS, Pedidos, Cocina y Repartidor pueden tener experiencias distintas, pero deben compartir reglas de negocio, configuración, precios y normalización cuando representan la misma acción.
 
-## 6. Checklist antes de cerrar un cambio
+## 6. Idioma visible y localización
+
+El idioma de producto de Alentó App es **español de Colombia (`es-CO`)**.
+
+Reglas obligatorias:
+
+- todo texto visible para clientes, colaboradores y administradores debe estar en español claro de Colombia;
+- botones, filtros, estados, validaciones, mensajes de error y ayudas no deben exponer códigos técnicos en inglés cuando exista una equivalencia operativa;
+- fechas visibles deben usar formato/localización `es-CO` y zona horaria `America/Bogota` cuando corresponda;
+- moneda visible debe presentarse como pesos colombianos (COP);
+- enums, nombres de columnas, rutas, acciones de auditoría y contratos internos pueden permanecer en inglés para preservar compatibilidad;
+- **no traducir valores persistidos solo por presentación**: crear/usar una capa de etiquetas en español;
+- los códigos históricos también deben presentarse mediante esa capa cuando se muestren en UI;
+- logs de infraestructura de npm, Prisma, Next.js, PostgreSQL o proveedores externos pueden permanecer en inglés porque no son copy del producto.
+
+Auditoría usa como fuente de presentación compartida:
+
+`src/lib/auditPresentation.ts`
+
+Si se añade una acción, entidad, estado u origen nuevo a AuditLog, se debe añadir su etiqueta visible en español Colombia.
+
+## 7. Checklist antes de cerrar un cambio
 
 Antes de considerar terminado un ajuste:
 
