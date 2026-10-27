@@ -103,8 +103,12 @@ export async function lockIdempotencyKey(
   tx: Prisma.TransactionClient,
   key: string,
 ) {
-  await tx.$queryRawUnsafe(
-    "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+  await tx.$queryRawUnsafe<Array<{ locked: number }>>(
+    `WITH lock_acquired AS MATERIALIZED (
+      SELECT pg_advisory_xact_lock(hashtextextended($1, 0))
+    )
+    SELECT 1::int AS "locked"
+    FROM lock_acquired`,
     key,
   );
 }
