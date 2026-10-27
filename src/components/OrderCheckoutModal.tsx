@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ComboOrderConfiguration,
   CustomPizzaOrderConfiguration,
@@ -12,6 +12,7 @@ import {
   scheduledServiceWindow,
   validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
+import { createIdempotencyKey } from "@/lib/clientIdempotency";
 import {
   formatServiceRange,
   type ServiceHour,
@@ -333,6 +334,11 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const orderAttemptKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (open) orderAttemptKeyRef.current = null;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -594,9 +600,16 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
 
     setCreatingOrder(true);
     try {
+      const idempotencyKey =
+        orderAttemptKeyRef.current ?? createIdempotencyKey();
+      orderAttemptKeyRef.current = idempotencyKey;
+
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           fulfillmentType,
           customerId: customer?.id ?? null,
@@ -624,6 +637,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No fue posible crear el pedido.");
+      orderAttemptKeyRef.current = null;
       setCreatedOrder(data.order);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "No fue posible crear el pedido.");
