@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -15,8 +16,9 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN", "CASHIER"]);
+    session = await requireStaffSession(["ADMIN", "CASHIER"]);
   } catch (error) {
     const forbidden = error instanceof Error && error.message === "FORBIDDEN";
     return NextResponse.json(
@@ -35,7 +37,15 @@ export async function DELETE(
   try {
     const existing = await prisma.cashIncome.findUnique({
       where: { id },
-      select: { id: true, occurredAt: true },
+      select: {
+        id: true,
+        category: true,
+        note: true,
+        amount: true,
+        occurredAt: true,
+        source: true,
+        createdByName: true,
+      },
     });
 
     if (!existing) {
@@ -47,7 +57,25 @@ export async function DELETE(
 
     await assertCashDateEditable(existing.occurredAt);
 
-    await prisma.cashIncome.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.cashIncome.delete({ where: { id } });
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "CASH_INCOME_DELETED",
+        entityType: "CASH_INCOME",
+        entityId: existing.id,
+        summary: `Ingreso de caja por ${Math.round(Number(existing.amount)).toLocaleString("es-CO")} eliminado.`,
+        before: {
+          id: existing.id,
+          category: existing.category,
+          amount: Number(existing.amount),
+          occurredAt: existing.occurredAt,
+          source: existing.source,
+          createdByName: existing.createdByName,
+        },
+        source: "api/caja/incomes/[id]",
+      });
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (
