@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DRIVER", "DISPATCH"];
 const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
@@ -55,8 +56,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN"]);
+    session = await requireStaffSession(["ADMIN"]);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error && error.message === "FORBIDDEN" ? "Sin permisos." : "No autorizado." }, { status: error instanceof Error && error.message === "FORBIDDEN" ? 403 : 401 });
   }
@@ -79,9 +81,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const user = await prisma.user.create({
-      data: { name, email, passwordHash: hashPassword(password), whatsappCountryCode, whatsappPhone: whatsappPhone || null, roles, permissions, active: true },
-      select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { name, email, passwordHash: hashPassword(password), whatsappCountryCode, whatsappPhone: whatsappPhone || null, roles, permissions, active: true },
+        select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "USER_CREATED",
+        entityType: "USER",
+        entityId: created.id,
+        summary: `Usuario ${created.name} creado con roles ${created.roles.join(", ")}.`,
+        after: created,
+        source: "api/users",
+      });
+
+      return created;
     });
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
