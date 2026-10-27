@@ -2,7 +2,7 @@
 
 Última actualización: **2026-10-27**.
 
-Estado: **IMPLEMENTADO EN REPOSITORIO — pendiente de validación productiva**.
+Estado: **IMPLEMENTADO Y VALIDADO EN PRODUCCIÓN — hardening #7 COMPLETADO**.
 
 Este documento describe la protección de Alentó App frente a doble clic, reintentos de red, timeouts y solicitudes simultáneas en operaciones que pueden crear dinero o pedidos duplicados.
 
@@ -265,17 +265,19 @@ Quality CI de referencia:
 - workflow inicial: `40439799102`;
 - workflow del hotfix de advisory lock: `40596132160`.
 
-## Validación productiva para cerrar #7
+## Validación productiva — completada
 
-Después del deploy:
+Después del hotfix del advisory lock se validó en producción:
 
-1. confirmar que Prisma aplica `20261027030000_order_payment_idempotency`;
-2. confirmar Next.js `Ready`;
-3. crear un pedido POS normal y verificar que operación/impresión continúan funcionando;
-4. crear o confirmar un pedido WEB normal desde la app pública;
-5. registrar un pago desde Pedidos y verificar saldo/Caja;
-6. confirmar que no aparecen errores `IDEMPOTENCY_KEY_REQUIRED` en las superficies actuales;
-7. no provocar cobros duplicados reales para probar concurrencia: esa carrera ya está cubierta por test automatizado contra PostgreSQL.
+1. redeploy correcto;
+2. creación de pedido POS: correcta;
+3. creación de pedido WEB: correcta;
+4. registro de pagos: correcto;
+5. eliminación de pagos: correcta;
+6. saldo/Caja: comportamiento normal;
+7. no aparecieron errores `IDEMPOTENCY_KEY_REQUIRED` en las superficies actuales.
+
+La concurrencia deliberadamente no se probó con cobros reales duplicados en producción; permanece cubierta por pruebas automatizadas contra PostgreSQL efímero.
 
 ## Reglas de no regresión
 
