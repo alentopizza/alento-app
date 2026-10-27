@@ -180,6 +180,23 @@ Para eliminación definitiva, el Audit Log se escribe dentro de la misma transac
 
 No se duplican teléfonos ni direcciones completas dentro del log.
 
+### Cobertura de transiciones automáticas de Cocina
+
+La transición a `PREPARED` (visible como **Horneando**) puede ocurrir por dos caminos:
+
+- cambio manual desde Pedidos mediante `/api/orders/[id]/status`;
+- cambio automático desde Cocina cuando todas las líneas quedan preparadas mediante `/api/orders/[id]/items/[itemId]/prepared`.
+
+Ambos caminos escriben `ORDER_STATUS_CHANGED`.
+
+También se auditan las transiciones operativas realizadas desde el enlace/app del repartidor:
+
+- `OUT_FOR_DELIVERY`;
+- `ARRIVED`;
+- `DELIVERED`.
+
+El origen queda identificado en metadata/source para distinguir Pedidos, Cocina y Repartidor.
+
 ### Pagos
 
 Eventos:
@@ -357,6 +374,21 @@ Quality CI de referencia antes del último refuerzo del sanitizador:
 - run: `40600253140`.
 
 El refuerzo final de sanitización y restore verification también quedó verde en CI.
+
+## Hallazgo durante la primera validación productiva
+
+La primera prueba real mostró un pedido que llegó a **Horneando** sin generar auditoría.
+
+Causa:
+
+- Cocina cambia automáticamente `Order.status` a `PREPARED` al completar todas las líneas;
+- ese endpoint escribía el estado directamente y no pasaba por el handler general de estados que ya estaba auditado.
+
+Corrección:
+
+- el cambio automático Cocina → Horneando ahora escribe `ORDER_STATUS_CHANGED` dentro de la misma transacción;
+- se aprovechó la revisión para cubrir también las transiciones de estado ejecutadas desde Repartidor;
+- el punto #8 permanece abierto hasta validar este hotfix en producción.
 
 ## Validación productiva para cerrar #8
 
