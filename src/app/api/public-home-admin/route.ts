@@ -6,6 +6,7 @@ import {
   normalizePublicHomeSettings,
 } from "@/lib/publicHome";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 export async function GET() {
   try {
@@ -30,8 +31,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN"]);
+    session = await requireStaffSession(["ADMIN"]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     return NextResponse.json(
@@ -50,10 +52,29 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const saved = await prisma.appSetting.upsert({
+  const previous = await prisma.appSetting.findUnique({
     where: { key: PUBLIC_HOME_SETTING_KEY },
-    update: { value: settings },
-    create: { key: PUBLIC_HOME_SETTING_KEY, value: settings },
+  });
+
+  const saved = await prisma.$transaction(async (tx) => {
+    const updated = await tx.appSetting.upsert({
+      where: { key: PUBLIC_HOME_SETTING_KEY },
+      update: { value: settings },
+      create: { key: PUBLIC_HOME_SETTING_KEY, value: settings },
+    });
+
+    await writeAuditLog(tx, {
+      actor: staffAuditActor(session),
+      action: "PUBLIC_HOME_SETTINGS_UPDATED",
+      entityType: "APP_SETTING",
+      entityId: PUBLIC_HOME_SETTING_KEY,
+      summary: "Personalización de la experiencia pública actualizada.",
+      before: previous ? normalizePublicHomeSettings(previous.value) : null,
+      after: settings,
+      source: "api/public-home-admin",
+    });
+
+    return updated;
   });
 
   return NextResponse.json({
