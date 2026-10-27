@@ -288,7 +288,7 @@ Regla operativa:
 
 ---
 
-### 6. Seguridad de sesiones y rate limiting — 🟡 EN CURSO
+### 6. Seguridad de sesiones y rate limiting — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
@@ -297,19 +297,58 @@ Objetivo:
 - protección contra fuerza bruta;
 - rate limiting en login/OTP/endpoints públicos costosos.
 
-Diseño aprobado para implementación:
+Implementado:
 
-- `User.sessionVersion` como versión revocable por colaborador;
-- middleware Node.js + Prisma para validar usuario activo, versión y roles actuales;
-- sesiones legacy se migran silenciosamente a token con versión cuando el usuario sigue activo;
-- `getStaffSession` vuelve a comprobar estado/versión/roles en DB;
-- `getCustomerSession` valida centralmente que `CustomerAccount.active` siga activo;
-- rate limiter persistente en PostgreSQL mediante `SecurityRateLimit`;
-- claves sensibles (IP, email, teléfono) se almacenan únicamente como HMAC/hash;
-- respuestas 429 incluyen `Retry-After`;
-- límites iniciales sobre login, bootstrap, OTP, Google Delivery Quote, elegibilidad y creación de checkout público.
+- `User.sessionVersion`;
+- migración `20261027022000_security_sessions_rate_limits`;
+- middleware con runtime Node.js + Prisma;
+- validación live de `active`, `sessionVersion` y roles actuales;
+- migración silenciosa de cookies legacy;
+- `getStaffSession()` revalida DB;
+- `getCustomerSession()` revalida `CustomerAccount.active`;
+- modelo persistente `SecurityRateLimit`;
+- claves sensibles protegidas con HMAC;
+- 429 con `Retry-After`;
+- límites sobre login, bootstrap, OTP, Delivery Quote, elegibilidad y checkout WEB.
 
-**No iniciar el punto 7 hasta cerrar y validar este punto.**
+Límites vigentes:
+
+- login staff IP: 30 / 15 min;
+- login staff correo: 10 / 15 min;
+- bootstrap: 10 / hora por IP;
+- OTP request IP: 20 / 15 min;
+- OTP request teléfono: 5 / hora;
+- OTP verify IP: 30 / 15 min;
+- OTP verify teléfono: 10 / 15 min;
+- delivery quote: 60 / 10 min por IP;
+- checkout eligibility: 120 / 10 min por IP;
+- checkout create: 12 / 10 min por IP.
+
+Validación técnica:
+
+- Prisma migrate deploy: verde;
+- drift: cero;
+- ESLint: verde;
+- TypeScript: verde;
+- **6 archivos / 35 tests**;
+- tests persistentes del limiter contra PostgreSQL efímero: verdes;
+- Next build: verde;
+- Quality CI run: `40435238211`.
+
+Documento canónico:
+
+`docs/SECURITY_HARDENING.md`
+
+Pendiente para cerrar:
+
+1. redeploy productivo;
+2. confirmar `prisma migrate deploy` aplica la migración y Next llega a `Ready`;
+3. comprobar login ADMIN normal;
+4. validar revocación con un colaborador no ADMIN en segunda sesión/navegador;
+5. confirmar que desactivar o cambiar rol corta su acceso en la siguiente solicitud;
+6. reactivar/restaurar el colaborador usado en la prueba.
+
+**No iniciar el punto 7 hasta confirmar esta validación productiva.**
 
 ---
 
@@ -383,9 +422,9 @@ Estado actual para continuidad:
 - #3 Pruebas automatizadas críticas: ✅
 - #4 Baseline Prisma + migraciones seguras: ✅
 - #5 Backups y restauración verificada: ✅
-- #6 Seguridad de sesiones y rate limiting: siguiente punto pendiente.
+- #6 Seguridad de sesiones y rate limiting: implementado en repositorio, pendiente de validación productiva.
 
-Una nueva conversación debe continuar desde el #6, pero solo después de autorización explícita del usuario.
+Una nueva conversación debe continuar validando el #6 en producción; no iniciar #7 hasta cerrarlo.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
