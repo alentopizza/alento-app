@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   DEFAULT_DRIVER_MAX_CONCURRENT_DELIVERIES,
   normalizeDriverMaxConcurrentDeliveries,
@@ -235,6 +237,17 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   const body = await request.json();
   const settings = normalizeSettings(body?.settings);
 
@@ -297,10 +310,29 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  const saved = await prisma.appSetting.upsert({
+  const previous = await prisma.appSetting.findUnique({
     where: { key: SETTINGS_KEY },
-    update: { value: settings },
-    create: { key: SETTINGS_KEY, value: settings },
+  });
+
+  const saved = await prisma.$transaction(async (tx) => {
+    const updated = await tx.appSetting.upsert({
+      where: { key: SETTINGS_KEY },
+      update: { value: settings },
+      create: { key: SETTINGS_KEY, value: settings },
+    });
+
+    await writeAuditLog(tx, {
+      actor: staffAuditActor(session),
+      action: "SETTINGS_UPDATED",
+      entityType: "APP_SETTING",
+      entityId: SETTINGS_KEY,
+      summary: "Configuración operativa del POS actualizada.",
+      before: previous ? normalizeSettings(previous.value) : null,
+      after: settings,
+      source: "api/settings",
+    });
+
+    return updated;
   });
 
   return NextResponse.json({ settings: normalizeSettings(saved.value) });
