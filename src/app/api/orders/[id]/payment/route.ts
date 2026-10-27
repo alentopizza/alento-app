@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor } from "@/lib/auditLog";
 import {
   assertSameIdempotentRequest,
   idempotencyErrorResponse,
@@ -104,6 +106,17 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN", "POS", "CASHIER"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   try {
     const { id: rawId } = await context.params;
     const id = Number(rawId);
@@ -198,6 +211,7 @@ export async function POST(
       changeDue,
       reference,
       paidAt,
+      auditActor: staffAuditActor(session),
     });
 
     if (result.kind === "error") {
