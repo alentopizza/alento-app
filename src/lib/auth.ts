@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import type { UserRole } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export const STAFF_COOKIE = "alento_staff_session";
 export const CUSTOMER_COOKIE = "alento_customer_session";
@@ -16,6 +17,7 @@ type StaffSession = {
   email: string;
   name: string;
   roles: UserRole[];
+  sessionVersion?: number;
   exp: number;
 };
 
@@ -103,6 +105,7 @@ export async function setStaffSession(user: {
   email: string;
   name: string;
   roles: UserRole[];
+  sessionVersion: number;
 }) {
   const exp = Date.now() + STAFF_SESSION_MAX_AGE_SECONDS * 1000;
   const token = sign({
@@ -111,6 +114,7 @@ export async function setStaffSession(user: {
     email: user.email,
     name: user.name,
     roles: user.roles,
+    sessionVersion: user.sessionVersion,
     exp,
   } satisfies StaffSession);
 
@@ -132,13 +136,45 @@ export async function clearStaffSession() {
 export async function getStaffSession() {
   const store = await cookies();
   const session = verifySessionToken(store.get(STAFF_COOKIE)?.value);
-  return session?.kind === "staff" ? session : null;
+  if (session?.kind !== "staff") return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      roles: true,
+      active: true,
+      sessionVersion: true,
+    },
+  });
+
+  if (!user?.active) return null;
+  if (
+    session.sessionVersion != null &&
+    session.sessionVersion !== user.sessionVersion
+  ) {
+    return null;
+  }
+
+  return {
+    kind: "staff" as const,
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    roles: user.roles,
+    sessionVersion: user.sessionVersion,
+    exp: session.exp,
+  };
 }
 
 export async function requireStaffSession(roles?: UserRole[]) {
   const session = await getStaffSession();
   if (!session) throw new Error("UNAUTHORIZED");
-  if (roles?.length && !roles.some((role) => session.roles.includes(role))) throw new Error("FORBIDDEN");
+  if (roles?.length && !roles.some((role) => session.roles.includes(role))) {
+    throw new Error("FORBIDDEN");
+  }
   return session;
 }
 
@@ -174,5 +210,31 @@ export async function clearCustomerSession() {
 export async function getCustomerSession() {
   const store = await cookies();
   const session = verifySessionToken(store.get(CUSTOMER_COOKIE)?.value);
-  return session?.kind === "customer" ? session : null;
+  if (session?.kind !== "customer") return null;
+
+  const account = await prisma.customerAccount.findUnique({
+    where: { id: session.accountId },
+    select: {
+      id: true,
+      customerId: true,
+      phoneE164: true,
+      active: true,
+    },
+  });
+
+  if (
+    !account?.active ||
+    account.customerId !== session.customerId ||
+    account.phoneE164 !== session.phoneE164
+  ) {
+    return null;
+  }
+
+  return {
+    kind: "customer" as const,
+    customerId: account.customerId,
+    accountId: account.id,
+    phoneE164: account.phoneE164,
+    exp: session.exp,
+  };
 }
