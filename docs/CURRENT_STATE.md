@@ -741,7 +741,7 @@ El siguiente punto pendiente es #7 Idempotencia de operaciones críticas.
 
 ## Idempotencia de operaciones críticas — 2026-10-27
 
-El hardening #7 está implementado en repositorio y pendiente únicamente de validación productiva.
+El hardening #7 está implementado y validado en producción.
 
 Cambios principales:
 
@@ -773,7 +773,9 @@ Documento canónico:
 
 `docs/IDEMPOTENCY.md`.
 
-Falta para cerrar el punto: redeploy y validación funcional de pedido POS, pedido WEB y registro de pago.
+Validación productiva completada: pedido POS, pedido WEB, registro de pagos y eliminación de pagos funcionaron con normalidad después del hotfix del advisory lock.
+
+El siguiente punto pendiente es #8 Audit Log.
 
 
 ### Hotfix productivo del advisory lock — 2026-10-27
@@ -793,4 +795,4 @@ Quality CI del hotfix:
 - **44 tests verdes**;
 - build verde.
 
-Estado #7: pendiente de redeploy del hotfix y nueva validación POS/WEB/pago.
+Estado #7: ✅ completado. Hotfix redeployado y validado en producción.
