@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import { getStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import {
@@ -64,6 +65,7 @@ async function currentStaffAccess() {
     isAdmin: user.roles.includes("ADMIN"),
     roles: user.roles,
     permissions: user.permissions,
+    session,
   };
 }
 
@@ -104,9 +106,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (!current) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     const body = await request.json();
 
+    const access = await currentStaffAccess();
+    if (!access) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+
     if (body?.action !== "cancel") {
-      const access = await currentStaffAccess();
-      if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
       if (
         !access.isAdmin &&
         !access.roles.some((role) => ["POS", "CASHIER"].includes(role))
@@ -116,8 +121,6 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     if (body?.action === "cancel") {
-      const access = await currentStaffAccess();
-      if (!access) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
       if (!access.isAdmin && !access.permissions.includes("CANCEL_ORDERS")) {
         return NextResponse.json({ error: "No tienes permiso para cancelar pedidos." }, { status: 403 });
       }
@@ -151,10 +154,38 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           where: { orderId: current.id },
         });
 
-        return tx.order.update({
+        const canceled = await tx.order.update({
           where: { id: current.id },
           data: { status: "CANCELED" },
         });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(access.session),
+          action: "ORDER_CANCELED",
+          entityType: "ORDER",
+          entityId: current.id,
+          summary: `Pedido #${current.sequenceNumber ?? current.id} cancelado.`,
+          before: {
+            status: current.status,
+            total: Number(current.total),
+            discount: Number(current.discount),
+            discountSource: current.discountSource,
+          },
+          after: {
+            status: canceled.status,
+            total: Number(current.total),
+            discount: Number(current.discount),
+            discountSource: current.discountSource,
+          },
+          metadata: {
+            sequenceNumber: current.sequenceNumber,
+            source: current.source,
+            receivedAmount,
+          },
+          source: "api/orders/[id]",
+        });
+
+        return canceled;
       });
 
       if (current.customerId) {
@@ -368,6 +399,32 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
             },
           });
         }
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(access.session),
+          action: "ORDER_CUSTOMER_CHANGED",
+          entityType: "ORDER",
+          entityId: current.id,
+          summary: `Cliente del pedido #${current.sequenceNumber ?? current.id} actualizado.`,
+          before: {
+            customerId: current.customerId,
+            addressId: current.addressId,
+            deliveryFee: Number(current.deliveryFee),
+            total: Number(current.total),
+          },
+          after: {
+            customerId: customer.id,
+            addressId,
+            deliveryFee,
+            total,
+          },
+          metadata: {
+            sequenceNumber: current.sequenceNumber,
+            source: current.source,
+            outstanding,
+          },
+          source: "api/orders/[id]",
+        });
       });
 
       const updated = await loadOrder(current.id);
@@ -842,6 +899,49 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       } else if (pendingPayment) {
         await tx.payment.update({ where: { id: pendingPayment.id }, data: { amount: 0, status: "CANCELED", cashReceived: null, changeDue: null } });
       }
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(access.session),
+        action: "ORDER_UPDATED",
+        entityType: "ORDER",
+        entityId: current.id,
+        summary: `Pedido #${current.sequenceNumber ?? current.id} editado.`,
+        before: {
+          status: current.status,
+          fulfillmentType: current.fulfillmentType,
+          subtotal: Number(current.subtotal),
+          deliveryFee: Number(current.deliveryFee),
+          discount: Number(current.discount),
+          total: Number(current.total),
+          scheduledFor: current.scheduledFor,
+          items: current.items.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+            lineTotal: Number(item.lineTotal),
+          })),
+        },
+        after: {
+          status: nextStatus,
+          fulfillmentType,
+          subtotal,
+          deliveryFee,
+          discount,
+          total,
+          scheduledFor,
+          itemCount:
+            updatedExisting.length + normalizedAdditions.length,
+        },
+        metadata: {
+          sequenceNumber: current.sequenceNumber,
+          source: current.source,
+          paidAmount: alreadyPaid,
+          outstanding,
+        },
+        source: "api/orders/[id]",
+      });
     });
 
     const updated = await loadOrder(current.id);
@@ -924,7 +1024,21 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
 
-    const order = await prisma.order.findUnique({ where: { id }, select: { id: true, status: true } });
+    const order = await prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        sequenceNumber: true,
+        source: true,
+        status: true,
+        customerId: true,
+        subtotal: true,
+        deliveryFee: true,
+        discount: true,
+        discountSource: true,
+        total: true,
+      },
+    });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     if (!["CANCELED", "COMPLETED"].includes(order.status)) {
       return NextResponse.json(
@@ -947,6 +1061,32 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
       const items = await tx.orderItem.deleteMany({ where: { orderId: id } });
 
       await tx.order.delete({ where: { id } });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(access.session),
+        action: "ORDER_DELETED",
+        entityType: "ORDER",
+        entityId: order.id,
+        summary: `Pedido #${order.sequenceNumber ?? order.id} eliminado definitivamente.`,
+        before: {
+          id: order.id,
+          sequenceNumber: order.sequenceNumber,
+          source: order.source,
+          status: order.status,
+          customerId: order.customerId,
+          subtotal: Number(order.subtotal),
+          deliveryFee: Number(order.deliveryFee),
+          discount: Number(order.discount),
+          discountSource: order.discountSource,
+          total: Number(order.total),
+        },
+        metadata: {
+          deletedClubPointTransactions: clubPoints.count,
+          deletedPayments: payments.count,
+          deletedItems: items.count,
+        },
+        source: "api/orders/[id]",
+      });
 
       return {
         clubPoints: clubPoints.count,
