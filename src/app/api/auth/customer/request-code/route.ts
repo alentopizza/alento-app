@@ -2,6 +2,11 @@ import { randomInt } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashOtp, normalizePhoneE164 } from "@/lib/auth";
+import {
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
 import { sendCustomerOtpWhatsApp } from "@/lib/whatsappAuth";
 
 export async function POST(request: NextRequest) {
@@ -17,6 +22,34 @@ export async function POST(request: NextRequest) {
 
   if (!phoneE164 || localPhone.length < 7) {
     return NextResponse.json({ error: "Ingresa un número de teléfono válido." }, { status: 400 });
+  }
+
+  const ipLimit = await consumeRateLimit({
+    scope: "customer-otp-request-ip",
+    key: requestClientIp(request),
+    limit: 20,
+    windowMs: 15 * 60_000,
+    blockMs: 15 * 60_000,
+  });
+  if (!ipLimit.allowed) {
+    return rateLimitExceededResponse(
+      ipLimit,
+      "Demasiadas solicitudes de código. Intenta nuevamente más tarde.",
+    );
+  }
+
+  const phoneLimit = await consumeRateLimit({
+    scope: "customer-otp-request-phone",
+    key: phoneE164,
+    limit: 5,
+    windowMs: 60 * 60_000,
+    blockMs: 60 * 60_000,
+  });
+  if (!phoneLimit.allowed) {
+    return rateLimitExceededResponse(
+      phoneLimit,
+      "Se solicitaron demasiados códigos para este número. Intenta nuevamente más tarde.",
+    );
   }
 
   const customer = await prisma.customer.findFirst({
