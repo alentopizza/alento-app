@@ -6,6 +6,20 @@ Este documento describe el procedimiento único para convertir la base de produc
 
 ## Estado
 
+**Baseline completada en producción el 2026-10-26.**
+
+Resultados reales:
+
+- drift check: `No difference detected.`;
+- baseline marcada como aplicada;
+- `prisma migrate status`: `Database schema is up to date!`;
+- `prisma migrate deploy`: `No pending migrations to apply.`;
+- el repositorio ya usa `prisma migrate deploy && next start -p 3000`.
+
+El procedimiento siguiente queda como referencia/auditoría de cómo se realizó el baseline.
+
+## Baseline
+
 Baseline activa del repositorio:
 
 `20261026190500_baseline`
@@ -141,9 +155,9 @@ Sin modificar todavía el start:
 
 No se requiere crear datos de prueba si la operación normal ya permite validar estas vistas.
 
-## Paso final en código
+## Paso final en código — completado
 
-Después de que los pasos anteriores sean confirmados en producción, cambiar:
+Después de confirmar los pasos anteriores en producción se cambió:
 
 ```bash
 prisma db push && next start -p 3000
@@ -161,7 +175,7 @@ Luego redeploy y confirmar:
 - Next.js muestra `Ready`;
 - `GET /api/health` responde correctamente.
 
-Solo después de ese redeploy el punto #4 puede marcarse como completado.
+El punto #4 queda técnicamente completado; falta únicamente confirmar el primer redeploy operativo usando el nuevo start.
 
 ## Migraciones futuras
 
