@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 function serializeCoupon(coupon: { id: number; name: string; type: "FIXED" | "PERCENTAGE"; value: unknown; active: boolean; visibleInPos: boolean; visibleInCart: boolean; createdAt: Date; updatedAt: Date }) {
   return { ...coupon, value: Number(coupon.value) };
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   const { id } = await params;
   const couponId = Number(id);
   const body = await request.json();
@@ -25,9 +38,43 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (type === "PERCENTAGE" && value > 100) return NextResponse.json({ error: "El porcentaje no puede superar 100%." }, { status: 400 });
 
   try {
-    const coupon = await prisma.coupon.update({
-      where: { id: couponId },
-      data: { name, type, value, active, visibleInPos, visibleInCart },
+    const coupon = await prisma.$transaction(async (tx) => {
+      const existing = await tx.coupon.findUnique({ where: { id: couponId } });
+      if (!existing) {
+        throw Object.assign(new Error("COUPON_NOT_FOUND"), { code: "P2025" });
+      }
+
+      const updated = await tx.coupon.update({
+        where: { id: couponId },
+        data: { name, type, value, active, visibleInPos, visibleInCart },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "COUPON_UPDATED",
+        entityType: "COUPON",
+        entityId: updated.id,
+        summary: `Cupón ${updated.name} actualizado.`,
+        before: {
+          name: existing.name,
+          type: existing.type,
+          value: Number(existing.value),
+          active: existing.active,
+          visibleInPos: existing.visibleInPos,
+          visibleInCart: existing.visibleInCart,
+        },
+        after: {
+          name: updated.name,
+          type: updated.type,
+          value: Number(updated.value),
+          active: updated.active,
+          visibleInPos: updated.visibleInPos,
+          visibleInCart: updated.visibleInCart,
+        },
+        source: "api/coupons/[id]",
+      });
+
+      return updated;
     });
     return NextResponse.json({ coupon: serializeCoupon(coupon) });
   } catch (error) {
@@ -40,12 +87,46 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   const { id } = await params;
   const couponId = Number(id);
   if (!Number.isInteger(couponId)) return NextResponse.json({ error: "Cupón inválido." }, { status: 400 });
 
   try {
-    await prisma.coupon.delete({ where: { id: couponId } });
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.coupon.findUnique({ where: { id: couponId } });
+      if (!existing) {
+        throw Object.assign(new Error("COUPON_NOT_FOUND"), { code: "P2025" });
+      }
+
+      await tx.coupon.delete({ where: { id: couponId } });
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "COUPON_DELETED",
+        entityType: "COUPON",
+        entityId: existing.id,
+        summary: `Cupón ${existing.name} eliminado.`,
+        before: {
+          name: existing.name,
+          type: existing.type,
+          value: Number(existing.value),
+          active: existing.active,
+          visibleInPos: existing.visibleInPos,
+          visibleInCart: existing.visibleInCart,
+        },
+        source: "api/coupons/[id]",
+      });
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     const prismaError = error as { code?: string };
