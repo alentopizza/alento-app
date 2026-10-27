@@ -18,6 +18,7 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/club-alento", roles: ["ADMIN"] },
   { prefix: "/turnos", roles: ["ADMIN"] },
   { prefix: "/metricas", roles: ["ADMIN"] },
+  { prefix: "/auditoria", roles: ["ADMIN"] },
   { prefix: "/clientes", roles: ["ADMIN", "POS"] },
   { prefix: "/pedidos", roles: ["ADMIN", "POS", "CASHIER"] },
 ];
@@ -33,6 +34,7 @@ const PROTECTED_API_PREFIXES = [
   "/api/orders",
   "/api/delivery",
   "/api/discount",
+  "/api/audit-logs",
 ];
 
 function isIndexablePublicPage(pathname: string) {
@@ -88,6 +90,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/users")) return ["ADMIN"];
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
   if (pathname.startsWith("/api/public-home-admin")) return ["ADMIN"];
+  if (pathname.startsWith("/api/audit-logs")) return ["ADMIN"];
 
   if (pathname === "/api/settings") {
     return method === "GET" ? ["ADMIN", "POS", "CASHIER"] : ["ADMIN"];
