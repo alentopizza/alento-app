@@ -40,6 +40,7 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 | `/club-alento` | ADMIN | Configuración/administración de Club | `docs/CLUB_POINTS.md` |
 | `/notificaciones` | ADMIN | Push manual + automatizaciones WhatsApp | `docs/PUSH_NOTIFICATIONS.md` |
 | `/metricas` | ADMIN | Analítica propia e integraciones de medición | `docs/METRICS_AND_TRACKING.md` |
+| `/auditoria` | ADMIN | Historial inmutable de acciones sensibles | `docs/AUDIT_LOG.md` |
 | `/configuracion` | ADMIN | Sede, horarios, domicilios, repartidores, clientes y pagos | `docs/CONFIGURATION.md` |
 | `/personalizacion` | ADMIN | Imágenes de Home y hero público | `README.md`, `docs/CURRENT_STATE.md` |
 | `/usuarios` | ADMIN | Usuarios, roles y permisos sensibles | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
@@ -113,6 +114,14 @@ Documento: `docs/COUPONS.md`.
 `club_alento_settings.enabled` controla si Club aparece en la navegación pública y si se acreditan puntos nuevos. Desactivarlo no borra saldos existentes ni bloquea otros efectos del cierre de pedidos.
 
 Documento: `docs/CLUB_POINTS.md`.
+
+### Auditoría administrativa
+
+`/auditoria` permite al ADMIN consultar el historial inmutable de acciones sensibles sobre pedidos, estados, pagos, Caja, usuarios/roles, cupones y configuración.
+
+La presentación visible usa español Colombia mientras los códigos técnicos persistidos conservan compatibilidad.
+
+Documento: `docs/AUDIT_LOG.md`.
 
 ### Rendimiento de navegación pública
 
