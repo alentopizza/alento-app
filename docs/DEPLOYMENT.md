@@ -71,41 +71,53 @@ El backfill ya fue aplicado en producción y **ya no forma parte del comando nor
 
 La misma regla aplica a `scripts/backfill-driver-earnings.js`: no debe ejecutarse en cada reinicio del servicio.
 
-## Prisma: decisión actual
+## Prisma: baseline en curso
 
-La base de datos de producción existía antes de empezar a mantener un historial formal de migraciones de Prisma. Por ello, ejecutar `prisma migrate deploy` contra esta base genera el error `P3005: The database schema is not empty`.
+La base de producción nació antes de un historial formal de Prisma Migrate. El repositorio ya corrigió esa deuda en código mediante una baseline completa:
 
-Hasta realizar un baseline formal, NO ejecutar `prisma migrate deploy` automáticamente al arrancar la aplicación.
+`prisma/migrations/20261026190500_baseline/migration.sql`
 
-### Estado real del arranque al 2026-10-26
+Las 23 migraciones previas se conservan como historial técnico en:
 
-El `package.json` vigente ejecuta:
+`prisma/legacy-migrations/`
+
+La baseline fue generada desde una base vacía hacia el schema actual, aplicada sobre PostgreSQL 16 temporal y validada con cero drift. Quality CI ya usa `prisma migrate deploy` sobre una base efímera.
+
+### Estado real del arranque durante la transición
+
+Producción **todavía** ejecuta:
 
 ```bash
 prisma db push && next start -p 3000
 ```
 
-Los backfills históricos de ganancias de repartidores e IngredientGroup fueron retirados del arranque después de quedar aplicados.
+Esto es intencional hasta marcar la baseline como aplicada en la base real.
 
-Por tanto, cada arranque/redeploy intenta sincronizar el schema antes de iniciar Next.js, pero ya no ejecuta reparaciones de datos de una sola vez.
+No cambiar el start todavía y no ejecutar el SQL de la baseline directamente sobre producción.
 
-Esto difiere de la estrategia conservadora anterior de ejecutar `db push` manualmente. No modificar silenciosamente esta decisión desde documentación ni asumir que un cambio de schema es inocuo: antes de desplegar cualquier modificación de `prisma/schema.prisma` se debe revisar el impacto porque el próximo arranque puede aplicarla automáticamente.
+### Paso pendiente en producción
 
-Sigue prohibido usar `prisma migrate deploy` hasta realizar un baseline formal.
+Seguir exactamente:
 
-Para ejecutar la sincronización manualmente cuando sea necesario:
+`docs/PRISMA_BASELINE.md`
+
+Resumen:
+
+1. desplegar un commit que contenga la baseline, manteniendo el start actual;
+2. tomar snapshot/backup puntual;
+3. comprobar drift contra `prisma/schema.prisma`;
+4. solo si no hay diferencias, ejecutar:
+   `npx prisma migrate resolve --applied 20261026190500_baseline`;
+5. validar `npx prisma migrate status`;
+6. probar `npx prisma migrate deploy` sin cambios pendientes.
+
+Solo después de esa validación se cambiará el start definitivo a:
 
 ```bash
-npx prisma db push
+prisma migrate deploy && next start -p 3000
 ```
 
-o:
-
-```bash
-npm run prisma:push
-```
-
-Antes de cualquier `db push`, revisar siempre el cambio de schema y confirmar que no propone una operación destructiva no deseada.
+Desde ese momento `prisma db push` dejará de ser el mecanismo normal de producción.
 
 ## AppSetting
 
