@@ -45,8 +45,8 @@ Estado al 2026-10-26:
 - #1 Builds reproducibles: completado;
 - #2 CI automatizada: completado;
 - #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
-- #4 Baseline Prisma + migraciones seguras: completado técnicamente; producción ya reconoció la baseline y el start fue cambiado a `prisma migrate deploy`. Falta solo confirmar el redeploy final;
-- #5 Backups y restauración verificada: siguiente punto pendiente, no iniciar hasta confirmación del redeploy del #4.
+- #4 Baseline Prisma + migraciones seguras: completado y redeploy final confirmado;
+- #5 Backups y restauración verificada: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -135,8 +135,12 @@ Documento canónico: `docs/COUPONS.md`.
 Comando vigente:
 
 ```bash
-prisma db push && next start -p 3000
+prisma migrate deploy && next start -p 3000
 ```
+
+Baseline activa:
+
+`20261026190500_baseline`
 
 Los backfills de ganancias de repartidor e IngredientGroup son históricos/manuales y no deben reintroducirse en cada arranque.
 
