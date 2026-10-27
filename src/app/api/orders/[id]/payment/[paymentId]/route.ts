@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -14,6 +16,17 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string; paymentId: string }> },
 ) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN", "POS", "CASHIER"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   try {
     const { id: rawOrderId, paymentId: rawPaymentId } = await context.params;
     const orderId = Number(rawOrderId);
@@ -39,11 +52,12 @@ export async function DELETE(
     await prisma.$transaction(async (tx) => {
       await tx.payment.delete({ where: { id: payment.id } });
 
+      let pendingBalance: number | null = null;
       if (payment.status === "PAID") {
         const remainingPaid = order.payments
           .filter((item) => item.id !== payment.id && item.status === "PAID")
           .reduce((sum, item) => sum + Number(item.amount), 0);
-        const pendingBalance = Math.max(0, Number(order.total) - remainingPaid);
+        pendingBalance = Math.max(0, Number(order.total) - remainingPaid);
         const pending = order.payments.find(
           (item) => item.id !== payment.id && (item.status === "PENDING" || item.status === "PARTIAL"),
         );
@@ -60,6 +74,32 @@ export async function DELETE(
           });
         }
       }
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "PAYMENT_DELETED",
+        entityType: "PAYMENT",
+        entityId: payment.id,
+        summary: `Pago de ${Math.round(Number(payment.amount)).toLocaleString("es-CO")} eliminado del pedido #${order.sequenceNumber ?? order.id}.`,
+        before: {
+          id: payment.id,
+          orderId: payment.orderId,
+          method: payment.method,
+          amount: Number(payment.amount),
+          cashReceived:
+            payment.cashReceived == null ? null : Number(payment.cashReceived),
+          changeDue:
+            payment.changeDue == null ? null : Number(payment.changeDue),
+          status: payment.status,
+          paidAt: payment.paidAt,
+        },
+        metadata: {
+          orderId: order.id,
+          orderSequenceNumber: order.sequenceNumber,
+          balanceAfter: pendingBalance,
+        },
+        source: "api/orders/[id]/payment/[paymentId]",
+      });
     });
 
     return NextResponse.json({ ok: true, deletedPaymentId: payment.id });
