@@ -496,9 +496,18 @@ Documento canónico:
 
 `docs/AUDIT_LOG.md`
 
+Hallazgo productivo #8:
+
+- la primera prueba real creó un pedido y lo llevó a Horneando, pero Auditoría permaneció en 0;
+- causa identificada: Cocina realiza automáticamente `CONFIRMED/PREPARING → PREPARED` al completar líneas mediante un endpoint distinto;
+- ese camino no estaba instrumentado aunque el handler general de estados sí lo estaba;
+- corregido: Cocina registra ahora `ORDER_STATUS_CHANGED` transaccionalmente;
+- también se añadió auditoría a `OUT_FOR_DELIVERY / ARRIVED / DELIVERED` desde Repartidor;
+- falta redeploy del hotfix y nueva validación.
+
 Pendiente para cerrar:
 
-1. redeploy productivo;
+1. redeploy productivo del hotfix;
 2. confirmar migración + Next `Ready`;
 3. abrir `/auditoria` como ADMIN;
 4. ejecutar una acción de prueba controlada;
