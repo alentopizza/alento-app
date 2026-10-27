@@ -171,7 +171,7 @@ toda corrección o nueva regla de negocio que pueda afectar dinero, estados, hor
 
 ---
 
-### 4. Baseline Prisma + migraciones seguras — 🟡 EN CURSO
+### 4. Baseline Prisma + migraciones seguras — ✅ COMPLETADO
 
 Objetivo:
 
@@ -192,29 +192,34 @@ Completado:
 - CI completo verde con lint, TypeScript, 31 tests y build;
 - runbook operativo creado en `docs/PRISMA_BASELINE.md`.
 
-#### Fase B — producción ⏳
+#### Fase B — producción ✅
 
-Pendiente de ejecución controlada por el usuario:
+Validado directamente en producción:
 
-1. desplegar el `main` actual manteniendo todavía `prisma db push` en el start;
-2. tomar snapshot/backup puntual;
-3. ejecutar drift check contra producción;
-4. solo si devuelve **No difference detected**, ejecutar:
-   `npx prisma migrate resolve --applied 20261026190500_baseline`;
-5. comprobar `npx prisma migrate status`;
-6. comprobar `npx prisma migrate deploy` sin migraciones pendientes.
+- drift check: **No difference detected**;
+- baseline registrada con `prisma migrate resolve --applied 20261026190500_baseline`;
+- `prisma migrate status`: **Database schema is up to date!**;
+- `prisma migrate deploy`: **No pending migrations to apply.**
 
-#### Fase C — cambio definitivo ⏳
+#### Fase C — cambio definitivo ✅
 
-Solo después de confirmar Fase B:
+El start productivo quedó cambiado a:
 
-- cambiar start a `prisma migrate deploy && next start -p 3000`;
-- redeploy;
-- validar health/app;
-- actualizar documentación;
-- marcar punto #4 completado.
+```bash
+prisma migrate deploy && next start -p 3000
+```
 
-**No iniciar el punto 5 hasta completar las fases B y C.**
+También se añadió:
+
+```bash
+npm run prisma:migrate:deploy
+```
+
+A partir de este punto `prisma db push` deja de ser el mecanismo normal de producción.
+
+Validación final pendiente únicamente del redeploy operativo del usuario con este nuevo start.
+
+**No iniciar el punto 5 hasta que el usuario confirme que el redeploy final arrancó correctamente.**
 
 ---
 
