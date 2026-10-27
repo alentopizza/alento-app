@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const STAFF_COOKIE = "alento_staff_session";
 const STAFF_SESSION_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
@@ -163,6 +164,7 @@ async function readStaffSession(request: NextRequest) {
       name?: string;
       exp?: number;
       roles?: string[];
+      sessionVersion?: number;
     };
 
     if (payload.kind !== "staff" || !payload.exp || payload.exp <= Date.now()) return null;
@@ -179,6 +181,7 @@ async function refreshStaffSessionToken(session: {
   name?: string;
   exp?: number;
   roles?: string[];
+  sessionVersion?: number;
 }) {
   const secret = process.env.AUTH_SESSION_SECRET;
   if (!secret || session.kind !== "staff") return null;
@@ -189,6 +192,7 @@ async function refreshStaffSessionToken(session: {
     email: session.email,
     name: session.name,
     roles: session.roles ?? [],
+    sessionVersion: session.sessionVersion,
     exp: Date.now() + STAFF_SESSION_MAX_AGE_SECONDS * 1000,
   };
 
@@ -248,7 +252,7 @@ export async function middleware(request: NextRequest) {
 
   const session = await readStaffSession(request);
 
-  if (!session) {
+  if (!session?.userId) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "No autorizado." }, { status: 401 });
     }
@@ -257,28 +261,116 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  let user:
+    | {
+        id: number;
+        email: string;
+        name: string;
+        roles: string[];
+        active: boolean;
+        sessionVersion: number;
+      }
+    | null = null;
+
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+        active: true,
+        sessionVersion: true,
+      },
+    });
+  } catch (error) {
+    console.error("Staff session validation failed", error);
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Servicio de autenticación no disponible." },
+        { status: 503 },
+      );
+    }
+    return new NextResponse("Servicio temporalmente no disponible.", {
+      status: 503,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
+  if (
+    !user?.active ||
+    (session.sessionVersion != null &&
+      session.sessionVersion !== user.sessionVersion)
+  ) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    const response = NextResponse.redirect(loginUrl);
+    response.cookies.set(STAFF_COOKIE, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
+    return response;
+  }
+
+  const effectiveSession = {
+    ...session,
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    roles: user.roles,
+    sessionVersion: user.sessionVersion,
+  };
+
   if (pathname.startsWith("/api/")) {
     const roles = apiRoles(pathname, request.method);
-    if (roles && !roles.some((role) => session.roles?.includes(role))) {
+    if (roles && !roles.some((role) => effectiveSession.roles.includes(role))) {
       return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
     }
   } else {
-    const rule = PAGE_ROLE_RULES.find((item) => pathname === item.prefix || pathname.startsWith(`${item.prefix}/`));
-    if (rule && !rule.roles.some((role) => session.roles?.includes(role))) {
+    const rule = PAGE_ROLE_RULES.find(
+      (item) =>
+        pathname === item.prefix || pathname.startsWith(`${item.prefix}/`),
+    );
+    if (
+      rule &&
+      !rule.roles.some((role) => effectiveSession.roles.includes(role))
+    ) {
       return NextResponse.redirect(new URL("/sin-acceso", request.url));
     }
   }
 
-  if (pathname === "/interno" && !["ADMIN", "POS", "CASHIER"].some((role) => session.roles?.includes(role))) {
+  if (
+    pathname === "/interno" &&
+    !["ADMIN", "POS", "CASHIER"].some((role) =>
+      effectiveSession.roles.includes(role),
+    )
+  ) {
     return NextResponse.redirect(new URL("/sin-acceso", request.url));
   }
 
   const response = NextResponse.next();
+  const tokenNeedsRefresh =
+    session.sessionVersion == null ||
+    session.email !== user.email ||
+    session.name !== user.name ||
+    JSON.stringify([...(session.roles ?? [])].sort()) !==
+      JSON.stringify([...user.roles].sort()) ||
+    Boolean(
+      session.exp &&
+        session.exp - Date.now() <= STAFF_SESSION_REFRESH_WINDOW_MS,
+    );
 
-  // Renueva silenciosamente la sesión cuando se acerca al vencimiento.
-  // Así los despliegues no obligan a volver a iniciar sesión.
-  if (session.exp && session.exp - Date.now() <= STAFF_SESSION_REFRESH_WINDOW_MS) {
-    const refreshed = await refreshStaffSessionToken(session);
+  // Migra cookies legacy a una versión revocable y renueva silenciosamente
+  // cuando la sesión se acerca al vencimiento.
+  if (tokenNeedsRefresh) {
+    const refreshed = await refreshStaffSessionToken(effectiveSession);
     if (refreshed) {
       response.cookies.set(STAFF_COOKIE, refreshed, {
         httpOnly: true,
@@ -294,6 +386,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  runtime: "nodejs",
   // Ejecutamos el filtro de seguridad en toda la aplicación, excepto recursos
   // internos de Next que nunca pueden contener una acción válida de Alentó.
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
