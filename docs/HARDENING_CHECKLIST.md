@@ -354,26 +354,62 @@ Documento canónico:
 
 ---
 
-### 7. Idempotencia de operaciones críticas — 🟡 EN CURSO
+### 7. Idempotencia de operaciones críticas — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
 proteger creación de pedidos/pagos frente a doble clic, reintentos, timeout o retransmisiones.
 
-Diseño en implementación:
+Implementado:
 
-- `Idempotency-Key` generado por el cliente y reutilizado durante reintentos del mismo intento;
-- clave y hash canónico del request persistidos en `Order` y `Payment`;
-- índices únicos en PostgreSQL como última barrera contra concurrencia;
-- la misma clave + mismo request devuelve el recurso ya creado en vez de duplicarlo;
-- la misma clave + request diferente devuelve conflicto 409;
-- creación WEB y POS protegidas;
-- registro de pagos protegido;
-- pagos revalidan el saldo dentro de una transacción con bloqueo del pedido para impedir sobrepago concurrente;
-- efectos secundarios de pedido (notificaciones/push) no se repiten en un replay idempotente;
-- pruebas automatizadas y validación productiva antes de cerrar.
+- `Idempotency-Key` obligatorio para creación POS, creación WEB y registro de pago;
+- clientes reutilizan la misma clave durante reintentos ambiguos;
+- `Order.idempotencyKey` + `idempotencyHash`;
+- `Payment.idempotencyKey` + `idempotencyHash`;
+- índices únicos PostgreSQL;
+- migración `20261027030000_order_payment_idempotency`;
+- hash canónico SHA-256 por operación;
+- misma clave + mismo request → replay HTTP 200;
+- misma clave + request diferente → 409;
+- clave ausente → 428;
+- pedidos usan advisory lock transaccional por clave;
+- pagos bloquean la fila de `Order` con `FOR UPDATE`;
+- saldo de pago se recalcula dentro del lock;
+- replays no repiten notificaciones/push/webhook.
 
-**No iniciar el punto 8 hasta cerrar y validar este punto.**
+Superficies cliente actualizadas:
+
+- `OrderCheckoutModal` — POS;
+- `PublicCheckoutCustomer` — WEB;
+- `OrdersCardsDashboardV3` — pagos.
+
+Validación técnica:
+
+- Prisma migrate deploy: verde;
+- migración idempotency aplicada en PostgreSQL efímero;
+- drift: **No difference detected**;
+- ESLint: verde;
+- TypeScript: verde;
+- **8 archivos / 43 tests**;
+- prueba real de dos cobros simultáneos: solo uno queda PAID;
+- replay de pago: un solo movimiento;
+- Next build: verde;
+- Quality CI run: `40439799102`.
+
+Documento canónico:
+
+`docs/IDEMPOTENCY.md`
+
+Pendiente para cerrar:
+
+1. redeploy productivo;
+2. confirmar migración + Next `Ready`;
+3. crear pedido POS normal;
+4. crear/confirmar pedido WEB normal;
+5. registrar pago normal y revisar saldo/Caja;
+6. confirmar que las superficies actuales no arrojan `IDEMPOTENCY_KEY_REQUIRED`.
+
+**No iniciar el punto #8 hasta confirmar esta validación productiva.**
 
 ---
 
@@ -440,9 +476,9 @@ Estado actual para continuidad:
 - #4 Baseline Prisma + migraciones seguras: ✅
 - #5 Backups y restauración verificada: ✅
 - #6 Seguridad de sesiones y rate limiting: ✅
-- #7 Idempotencia de operaciones críticas: siguiente punto pendiente.
+- #7 Idempotencia de operaciones críticas: implementado en repositorio, pendiente de validación productiva.
 
-Una nueva conversación debe continuar desde el #7, pero solo después de autorización explícita del usuario.
+Una nueva conversación debe continuar validando el #7 en producción; no iniciar #8 hasta cerrarlo.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
