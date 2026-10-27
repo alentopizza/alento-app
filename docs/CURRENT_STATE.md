@@ -871,3 +871,22 @@ Archivos:
 Quality CI:
 
 - run `40601840078`: success.
+
+
+### Hotfix de cobertura de estados en Audit Log — 2026-10-27
+
+Durante la primera validación productiva del #8, un pedido pasó a **Horneando** pero la pantalla de Auditoría permaneció en 0.
+
+Causa confirmada:
+
+- `PREPARED` puede ser asignado automáticamente por Cocina cuando todas las líneas quedan preparadas;
+- ese flujo usa `/api/orders/[id]/items/[itemId]/prepared` y actualizaba `Order.status` directamente;
+- el endpoint general `/api/orders/[id]/status` sí estaba auditado, pero no era el único camino de transición.
+
+Corrección:
+
+- Cocina → `PREPARED` registra `ORDER_STATUS_CHANGED` dentro de la misma transacción;
+- transiciones desde Repartidor también registran `ORDER_STATUS_CHANGED`;
+- metadata identifica el origen de transición.
+
+Estado #8: sigue 🟡 hasta redeploy y validación de un nuevo cambio de estado visible en `/auditoria`.
