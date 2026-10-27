@@ -354,7 +354,7 @@ Documento canónico:
 
 ---
 
-### 7. Idempotencia de operaciones críticas — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+### 7. Idempotencia de operaciones críticas — ✅ COMPLETADO
 
 Objetivo:
 
@@ -398,27 +398,29 @@ Validación técnica:
 - Quality CI inicial: `40439799102`;
 - Quality CI hotfix advisory lock: `40596132160`.
 
-Documento canónico:
-
-`docs/IDEMPOTENCY.md`
-
 Hallazgo de primera validación productiva:
 
-- el POS detectó que Prisma no puede deserializar el retorno PostgreSQL `void` de `pg_advisory_xact_lock()`;
+- Prisma no podía deserializar el retorno PostgreSQL `void` de `pg_advisory_xact_lock()`;
 - corregido usando CTE materializado que ejecuta el lock y devuelve `1::int`;
 - test de integración añadido para cubrir exactamente ese camino;
 - hotfix CI completamente verde.
 
-Pendiente para cerrar:
+Validación productiva final:
 
-1. redeploy productivo del hotfix;
-2. confirmar migración + Next `Ready`;
-3. crear pedido POS normal;
-4. crear/confirmar pedido WEB normal;
-5. registrar pago normal y revisar saldo/Caja;
-6. confirmar que las superficies actuales no arrojan `IDEMPOTENCY_KEY_REQUIRED`.
+- redeploy del hotfix completado;
+- creación de pedido POS: correcta;
+- creación de pedido WEB: correcta;
+- registro de pagos: correcto;
+- eliminación de pagos: correcta;
+- Caja/saldos continuaron funcionando con normalidad;
+- no se presentaron errores `IDEMPOTENCY_KEY_REQUIRED`;
+- el usuario confirmó operación normal después del hotfix.
 
-**No iniciar el punto #8 hasta confirmar esta validación productiva.**
+Documento canónico:
+
+`docs/IDEMPOTENCY.md`
+
+**Punto #7 cerrado. No iniciar el punto #8 hasta autorización explícita del usuario.**
 
 ---
 
@@ -485,9 +487,10 @@ Estado actual para continuidad:
 - #4 Baseline Prisma + migraciones seguras: ✅
 - #5 Backups y restauración verificada: ✅
 - #6 Seguridad de sesiones y rate limiting: ✅
-- #7 Idempotencia de operaciones críticas: implementado en repositorio, pendiente de validación productiva.
+- #7 Idempotencia de operaciones críticas: ✅
+- #8 Audit Log: siguiente punto pendiente.
 
-Una nueva conversación debe continuar validando el #7 en producción; no iniciar #8 hasta cerrarlo.
+Una nueva conversación debe continuar desde el #8, pero solo después de autorización explícita del usuario.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
