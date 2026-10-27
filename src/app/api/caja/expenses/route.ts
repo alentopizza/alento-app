@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const expense = await prisma.$transaction(async (tx) => {
       if (category !== "Domicilios") {
-        return tx.cashExpense.create({
+        const created = await tx.cashExpense.create({
           data: {
             category,
             subcategory: subcategory || null,
@@ -102,6 +103,26 @@ export async function POST(request: NextRequest) {
             createdByName: session.name,
           },
         });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(session),
+          action: "CASH_EXPENSE_CREATED",
+          entityType: "CASH_EXPENSE",
+          entityId: created.id,
+          summary: `Salida de caja por ${Math.round(amount).toLocaleString("es-CO")} registrada en ${category}.`,
+          after: {
+            id: created.id,
+            category: created.category,
+            subcategory: created.subcategory,
+            amount: Number(created.amount),
+            occurredAt: created.occurredAt,
+            source: created.source,
+            planningType: created.planningType,
+          },
+          source: "api/caja/expenses",
+        });
+
+        return created;
       }
 
       const driver = await tx.user.findFirst({
@@ -143,7 +164,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`DRIVER_BALANCE:${available}`);
       }
 
-      return tx.cashExpense.create({
+      const created = await tx.cashExpense.create({
         data: {
           driverId: driver.id,
           category: "Domicilios",
@@ -156,6 +177,29 @@ export async function POST(request: NextRequest) {
           createdByName: session.name,
         },
       });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "DRIVER_PAYOUT_CREATED",
+        entityType: "CASH_EXPENSE",
+        entityId: created.id,
+        summary: `Pago de cartera por ${roundedAmount.toLocaleString("es-CO")} a ${driver.name}.`,
+        after: {
+          id: created.id,
+          driverId: driver.id,
+          driverName: driver.name,
+          amount: Number(created.amount),
+          occurredAt: created.occurredAt,
+          source: created.source,
+        },
+        metadata: {
+          availableBefore: available,
+          availableAfter: Math.max(0, available - roundedAmount),
+        },
+        source: "api/caja/expenses",
+      });
+
+      return created;
     });
 
     return NextResponse.json({
