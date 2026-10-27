@@ -288,7 +288,7 @@ Regla operativa:
 
 ---
 
-### 6. Seguridad de sesiones y rate limiting — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+### 6. Seguridad de sesiones y rate limiting — ✅ COMPLETADO
 
 Objetivo:
 
@@ -335,20 +335,22 @@ Validación técnica:
 - Next build: verde;
 - Quality CI run: `40435238211`.
 
+Validación productiva:
+
+- redeploy completado;
+- migraciones aplicadas correctamente;
+- Next.js llegó a `Ready`;
+- login ADMIN continuó operativo;
+- se inició una sesión independiente con colaborador no ADMIN;
+- el colaborador fue desactivado desde ADMIN;
+- en la siguiente navegación/solicitud perdió acceso inmediatamente;
+- el comportamiento de revocación quedó confirmado por el usuario.
+
 Documento canónico:
 
 `docs/SECURITY_HARDENING.md`
 
-Pendiente para cerrar:
-
-1. redeploy productivo;
-2. confirmar `prisma migrate deploy` aplica la migración y Next llega a `Ready`;
-3. comprobar login ADMIN normal;
-4. validar revocación con un colaborador no ADMIN en segunda sesión/navegador;
-5. confirmar que desactivar o cambiar rol corta su acceso en la siguiente solicitud;
-6. reactivar/restaurar el colaborador usado en la prueba.
-
-**No iniciar el punto 7 hasta confirmar esta validación productiva.**
+**Punto #6 cerrado. No iniciar el punto #7 hasta autorización explícita del usuario.**
 
 ---
 
@@ -422,9 +424,10 @@ Estado actual para continuidad:
 - #3 Pruebas automatizadas críticas: ✅
 - #4 Baseline Prisma + migraciones seguras: ✅
 - #5 Backups y restauración verificada: ✅
-- #6 Seguridad de sesiones y rate limiting: implementado en repositorio, pendiente de validación productiva.
+- #6 Seguridad de sesiones y rate limiting: ✅
+- #7 Idempotencia de operaciones críticas: siguiente punto pendiente.
 
-Una nueva conversación debe continuar validando el #6 en producción; no iniciar #7 hasta cerrarlo.
+Una nueva conversación debe continuar desde el #7, pero solo después de autorización explícita del usuario.
 
 
 ## Hallazgos de despliegue para seguimiento posterior
