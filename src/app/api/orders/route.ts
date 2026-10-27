@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  assertSameIdempotentRequest,
+  idempotencyErrorResponse,
+  idempotencyRequestHash,
+  lockIdempotencyKey,
+  requireIdempotencyKey,
+} from "@/lib/idempotency";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
 import { dispatchOrderCreatedNotification } from "@/lib/notifier";
 import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
@@ -42,6 +49,61 @@ function parseSettings(value: Prisma.JsonValue | null): PosSettings {
 
 function isCash(method: PaymentMethod) {
   return method.id.toLowerCase() === "cash" || method.name.trim().toLowerCase() === "efectivo";
+}
+
+const POS_ORDER_INCLUDE = {
+  customer: true,
+  address: true,
+  items: {
+    include: {
+      product: {
+        select: {
+          id: true,
+          type: true,
+          category: { select: { name: true, slug: true } },
+        },
+      },
+    },
+  },
+  payments: true,
+} satisfies Prisma.OrderInclude;
+
+type PosCreatedOrder = Prisma.OrderGetPayload<{
+  include: typeof POS_ORDER_INCLUDE;
+}>;
+
+function posOrderPayload(order: PosCreatedOrder) {
+  return {
+    id: order.id,
+    sequenceNumber: order.sequenceNumber,
+    code: `POS-${String(order.sequenceNumber).padStart(4, "0")}`,
+    status: order.status,
+    fulfillmentType: order.fulfillmentType,
+    subtotal: Number(order.subtotal),
+    deliveryFee: Number(order.deliveryFee),
+    discount: Number(order.discount),
+    total: Number(order.total),
+    scheduledFor: order.scheduledFor,
+    createdAt: order.createdAt,
+  };
+}
+
+function replayedPosOrderResponse(order: PosCreatedOrder) {
+  return NextResponse.json(
+    {
+      order: posOrderPayload(order),
+      notification: {
+        ok: false,
+        status: "skipped",
+        reason: "La solicitud ya había sido procesada.",
+      },
+      replayed: true,
+    },
+    {
+      status: 200,
+      headers: { "Idempotency-Replayed": "true" },
+    },
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -100,6 +162,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const idempotencyKey = requireIdempotencyKey(request);
+    const idempotencyHash = idempotencyRequestHash(body);
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      include: POS_ORDER_INCLUDE,
+    });
+    if (existingOrder) {
+      assertSameIdempotentRequest(existingOrder.idempotencyHash, idempotencyHash);
+      return replayedPosOrderResponse(existingOrder);
+    }
     let scheduledFor: Date | null = null;
     try {
       scheduledFor = validateFutureSchedule(
@@ -271,16 +344,32 @@ export async function POST(request: NextRequest) {
     const cashReceived = cashPayment ? cashReceivedValue : null;
     const changeDue = cashPayment ? cashReceivedValue - total : null;
 
-    const order = await prisma.$transaction(async (tx) => {
+    const creation = await prisma.$transaction(async (tx) => {
+      await lockIdempotencyKey(tx, idempotencyKey);
+
+      const replayedOrder = await tx.order.findUnique({
+        where: { idempotencyKey },
+        include: POS_ORDER_INCLUDE,
+      });
+      if (replayedOrder) {
+        assertSameIdempotentRequest(
+          replayedOrder.idempotencyHash,
+          idempotencyHash,
+        );
+        return { order: replayedOrder, replayed: true as const };
+      }
+
       const sequence = await tx.orderSequence.upsert({
         where: { id: 1 },
         create: { id: 1, current: 1 },
         update: { current: { increment: 1 } },
       });
 
-      return tx.order.create({
+      const createdOrder = await tx.order.create({
         data: {
           sequenceNumber: sequence.current,
+          idempotencyKey,
+          idempotencyHash,
           customerId: customer?.id ?? null,
           addressId: fulfillmentType === "DELIVERY" ? address?.id ?? null : null,
           couponId,
@@ -326,24 +415,16 @@ export async function POST(request: NextRequest) {
             },
           },
         },
-        include: {
-          customer: true,
-          address: true,
-          items: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  type: true,
-                  category: { select: { name: true, slug: true } },
-                },
-              },
-            },
-          },
-          payments: true,
-        },
+        include: POS_ORDER_INCLUDE,
       });
+
+      return { order: createdOrder, replayed: false as const };
     });
+
+    const { order, replayed } = creation;
+    if (replayed) {
+      return replayedPosOrderResponse(order);
+    }
 
     const code = `POS-${String(order.sequenceNumber).padStart(4, "0")}`;
     let notification:
@@ -430,23 +511,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      order: {
-        id: order.id,
-        sequenceNumber: order.sequenceNumber,
-        code,
-        status: order.status,
-        fulfillmentType: order.fulfillmentType,
-        subtotal: Number(order.subtotal),
-        deliveryFee: Number(order.deliveryFee),
-        discount: Number(order.discount),
-        total: Number(order.total),
-        scheduledFor: order.scheduledFor,
-        createdAt: order.createdAt,
+    return NextResponse.json(
+      {
+        order: posOrderPayload(order),
+        notification,
+        replayed: false,
       },
-      notification,
-    }, { status: 201 });
+      { status: 201 },
+    );
   } catch (error) {
+    const idempotencyError = idempotencyErrorResponse(error);
+    if (idempotencyError) {
+      return NextResponse.json(idempotencyError.body, {
+        status: idempotencyError.status,
+      });
+    }
+
     console.error("Order creation error", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "No fue posible crear el pedido." }, { status: 500 });
   }
