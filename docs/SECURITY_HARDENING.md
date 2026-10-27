@@ -2,7 +2,7 @@
 
 Última actualización: **2026-10-27**.
 
-Estado: **IMPLEMENTADO EN REPOSITORIO — pendiente de validación productiva**.
+Estado: **IMPLEMENTADO Y VALIDADO EN PRODUCCIÓN — hardening #6 COMPLETADO**.
 
 Este documento describe la seguridad vigente para sesiones de colaboradores/clientes y límites de abuso en endpoints públicos.
 
@@ -285,22 +285,20 @@ Quality CI de referencia:
 - TypeScript: verde;
 - build: verde.
 
-## Validación productiva para cerrar #6
+## Validación productiva — completada
 
-Después del deploy:
+Se validó en producción:
 
-1. confirmar logs:
-   - migración aplicada o no pendiente;
-   - Next.js `Ready`;
-2. comprobar login ADMIN normal;
-3. comprobar POS/Pedidos/Caja según roles vigentes;
-4. usar un colaborador NO ADMIN de prueba o real en un segundo navegador/incógnito;
-5. iniciar sesión con ese colaborador;
-6. desde ADMIN desactivarlo o cambiar uno de sus roles;
-7. en la sesión secundaria intentar navegar a una ruta interna;
-8. confirmar redirección a Login / 401 y que ya no conserva el acceso anterior;
-9. reactivar/corregir el colaborador si corresponde;
-10. no intentar bloquear deliberadamente teléfonos/clientes reales para probar 429: los tests automatizados ya cubren el rate limiter persistente.
+1. redeploy completado correctamente;
+2. Prisma confirmó las migraciones aplicadas;
+3. Next.js llegó a `Ready`;
+4. login ADMIN continuó operativo;
+5. se abrió una sesión independiente con un colaborador no ADMIN;
+6. desde ADMIN se desactivó temporalmente ese colaborador;
+7. la sesión secundaria perdió el acceso inmediatamente en la siguiente navegación/solicitud;
+8. la revocación por estado/versión quedó confirmada.
+
+No fue necesario provocar bloqueos 429 contra clientes reales: el rate limiter persistente ya está cubierto por tests automatizados contra PostgreSQL efímero.
 
 ## Reglas de no regresión
 
