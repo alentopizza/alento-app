@@ -43,6 +43,14 @@ La regla del proyecto es: **misma acción o regla de negocio = misma fuente de v
 
 Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`](AGENTS.md). Este archivo debe revisarse antes de implementar cambios.
 
+## Idioma del producto
+
+La interfaz pública e interna de Alentó App se presenta en **español de Colombia (`es-CO`)**.
+
+Los códigos técnicos pueden permanecer en inglés internamente para conservar compatibilidad de datos y APIs. La UI debe traducirlos mediante capas de presentación compartidas; por ejemplo, Auditoría usa `src/lib/auditPresentation.ts`.
+
+Fechas operativas usan Bogotá (`America/Bogota`) y los valores monetarios visibles se interpretan como pesos colombianos (COP).
+
 ## Estado de desarrollo
 
 **Punto de venta, Pedidos, Cocina, Clientes y Menú están cerrados para la etapa operativa actual.**
@@ -376,6 +384,7 @@ Superficie interna:
 - `/club-alento`;
 - `/notificaciones`;
 - `/metricas`;
+- `/auditoria`: historial administrativo inmutable;
 - `/configuracion`;
 - `/personalizacion`;
 - `/usuarios`;
