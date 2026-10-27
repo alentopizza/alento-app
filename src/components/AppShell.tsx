@@ -795,7 +795,7 @@ export default function AppShell({
                   }`}
                 >
                   <item.icon
-                    className="h-[18px] w-[18px]"
+                    className="h-4 w-4"
                     strokeWidth={2.35}
                     aria-hidden="true"
                   />
