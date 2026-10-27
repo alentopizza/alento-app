@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeOrderLine, type OrderLineInput } from "@/lib/orderLineNormalizer";
+import {
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
+    const limit = await consumeRateLimit({
+      scope: "public-checkout-eligibility-ip",
+      key: requestClientIp(request),
+      limit: 120,
+      windowMs: 10 * 60_000,
+      blockMs: 10 * 60_000,
+    });
+    if (!limit.allowed) {
+      return rateLimitExceededResponse(limit);
+    }
+
     const body = await request.json();
     const rawLines = Array.isArray(body?.items)
       ? (body.items as OrderLineInput[])
