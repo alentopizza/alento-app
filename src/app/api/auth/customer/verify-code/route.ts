@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneE164, setCustomerSession, verifyOtp } from "@/lib/auth";
+import {
+  clearRateLimit,
+  consumeRateLimit,
+  rateLimitExceededResponse,
+  requestClientIp,
+} from "@/lib/rateLimit";
 import { sendCustomerContactWebhook } from "@/lib/customerContactWebhook";
 
 export async function POST(request: NextRequest) {
@@ -17,6 +23,35 @@ export async function POST(request: NextRequest) {
 
   if (!phoneE164 || code.length !== 6) {
     return NextResponse.json({ error: "Código inválido." }, { status: 400 });
+  }
+
+  const ip = requestClientIp(request);
+  const ipLimit = await consumeRateLimit({
+    scope: "customer-otp-verify-ip",
+    key: ip,
+    limit: 30,
+    windowMs: 15 * 60_000,
+    blockMs: 15 * 60_000,
+  });
+  if (!ipLimit.allowed) {
+    return rateLimitExceededResponse(
+      ipLimit,
+      "Demasiados intentos de verificación. Intenta nuevamente más tarde.",
+    );
+  }
+
+  const phoneLimit = await consumeRateLimit({
+    scope: "customer-otp-verify-phone",
+    key: phoneE164,
+    limit: 10,
+    windowMs: 15 * 60_000,
+    blockMs: 15 * 60_000,
+  });
+  if (!phoneLimit.allowed) {
+    return rateLimitExceededResponse(
+      phoneLimit,
+      "Demasiados intentos de verificación. Intenta nuevamente más tarde.",
+    );
   }
 
   const authCode = await prisma.customerAuthCode.findFirst({
@@ -71,6 +106,10 @@ export async function POST(request: NextRequest) {
   const { customer, account } = result;
 
   await setCustomerSession(account);
+  await Promise.all([
+    clearRateLimit("customer-otp-verify-ip", ip),
+    clearRateLimit("customer-otp-verify-phone", phoneE164),
+  ]);
 
   const contactWebhook = await sendCustomerContactWebhook({
     customerId: customer.id,
