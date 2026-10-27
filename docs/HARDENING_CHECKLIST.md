@@ -1,6 +1,6 @@
 # Plan de hardening y calidad
 
-Última actualización: **2026-10-26**.
+Última actualización: **2026-10-27**.
 
 Este documento es el checklist operativo del ciclo de calidad iniciado después de consolidar la funcionalidad principal de Alentó App.
 
@@ -424,17 +424,17 @@ Documento canónico:
 
 ---
 
-### 8. Audit Log — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+### 8. Audit Log — ✅ COMPLETADO
 
 Objetivo:
 
-registrar de forma central acciones sensibles:
+registrar de forma central e inmutable las acciones sensibles del sistema:
 
 - descuentos;
 - cambios/eliminaciones de pedido;
 - pagos;
-- caja;
-- roles;
+- Caja;
+- usuarios y roles;
 - configuración;
 - otras operaciones financieras/administrativas.
 
@@ -445,8 +445,8 @@ Implementado:
 - trigger PostgreSQL `AuditLog_append_only` que rechaza UPDATE/DELETE;
 - helper único `src/lib/auditLog.ts`;
 - actor snapshot: tipo, id, nombre y correo;
-- `before`, `after`, `metadata`, resumen y source;
-- sanitización recursiva de passwords, tokens, secrets, API/private keys e idempotency hashes;
+- `before`, `after`, `metadata`, resumen y origen;
+- sanitización recursiva de passwords, tokens, secretos, API/private keys e idempotency hashes;
 - escrituras dentro de la misma transacción de negocio cuando existe una;
 - API ADMIN de solo lectura `GET /api/audit-logs`;
 - pantalla ADMIN `/auditoria` con filtros y detalle;
@@ -455,67 +455,54 @@ Implementado:
 
 Cobertura:
 
-- usuarios/roles: create/update;
-- pedidos: cancelación, edición, cambio de cliente, estado, eliminación;
+- usuarios/roles: creación y actualización;
+- pedidos: cancelación, edición, cambio de cliente, estado y eliminación;
 - descuentos/cupones aplicados POS y WEB;
 - pagos: creación/eliminación;
-- Caja: apertura, edición de apertura, cierre;
+- Caja: apertura, edición de apertura y cierre;
 - ingresos/salidas y eliminaciones;
 - pagos a repartidores;
 - préstamos/abonos;
 - nómina y reversión;
-- cupones: create/update/delete;
+- cupones: creación/actualización/eliminación;
 - configuración POS;
 - Club Alentó;
 - personalización/home público;
-- tracking/métricas.
+- tracking/métricas;
+- transición automática Cocina → Horneando;
+- estados operativos ejecutados desde Repartidor.
 
-Decisiones:
+Hallazgo y corrección durante validación:
 
-- el borrador automático de cierre de Caja no se audita para evitar ruido;
-- no se duplican referencias sensibles de pago;
-- no se guardan teléfonos/direcciones completas dentro del log;
-- catálogo/menú detallado queda como extensión posterior del framework, fuera del alcance financiero/administrativo definido para #8.
+- la primera prueba real detectó que Cocina podía cambiar automáticamente `PREPARING/CONFIRMED → PREPARED` sin pasar por el handler general de estados;
+- se añadió auditoría transaccional al endpoint de preparación de Cocina;
+- se revisó el mismo patrón y se añadieron las transiciones de Repartidor;
+- el hotfix pasó CI completo.
 
-Validación técnica:
+Validación productiva final — **2026-10-27**:
 
-- Prisma migrate deploy: verde;
-- migración AuditLog aplicada en PostgreSQL efímero;
-- drift: **No difference detected**;
-- ESLint: verde;
-- TypeScript: verde;
-- **9 archivos / 48 tests**;
-- sanitización de secretos: verde;
-- persistencia real AuditLog: verde;
-- UPDATE AuditLog rechazado por PostgreSQL: verde;
-- DELETE AuditLog rechazado por PostgreSQL: verde;
-- Next build: verde;
-- Quality CI base: `40600253140`.
+- migración AuditLog aplicada correctamente;
+- Next.js llegó a `Ready`;
+- `/auditoria` accesible como ADMIN;
+- registro real `ORDER_STATUS_CHANGED` confirmado para el pedido comercial **#801**, transición `PREPARED → READY`;
+- actor mostrado correctamente: Alentó Pizza;
+- origen correcto: endpoint de estados de Pedidos;
+- registro real `PAYMENT_CREATED` confirmado por **$14.900 en Efectivo**;
+- actor, fecha, entidad y origen visibles correctamente;
+- operación normal de Pedidos/Pagos continuó funcionando.
+
+Localización visible:
+
+- Auditoría presenta acciones, entidades, estados, orígenes y detalle en español Colombia;
+- códigos técnicos persistidos permanecen sin traducir para conservar compatibilidad;
+- fuente compartida: `src/lib/auditPresentation.ts`;
+- registros históricos también se traducen al mostrarse.
 
 Documento canónico:
 
 `docs/AUDIT_LOG.md`
 
-Hallazgo productivo #8:
-
-- la primera prueba real creó un pedido y lo llevó a Horneando, pero Auditoría permaneció en 0;
-- causa identificada: Cocina realiza automáticamente `CONFIRMED/PREPARING → PREPARED` al completar líneas mediante un endpoint distinto;
-- ese camino no estaba instrumentado aunque el handler general de estados sí lo estaba;
-- corregido: Cocina registra ahora `ORDER_STATUS_CHANGED` transaccionalmente;
-- también se añadió auditoría a `OUT_FOR_DELIVERY / ARRIVED / DELIVERED` desde Repartidor;
-- falta redeploy del hotfix y nueva validación.
-
-Pendiente para cerrar:
-
-1. redeploy productivo del hotfix;
-2. confirmar migración + Next `Ready`;
-3. abrir `/auditoria` como ADMIN;
-4. ejecutar una acción de prueba controlada;
-5. comprobar actor/acción/entidad/before-after;
-6. validar pedido POS + pago normal y su huella;
-7. confirmar operación normal sin regresiones.
-
-**No iniciar el punto #9 hasta confirmar esta validación productiva.**
+**Punto #8 cerrado. El siguiente punto es #9 Observabilidad, pero no debe iniciarse hasta autorización explícita del usuario.**
 
 ---
 
