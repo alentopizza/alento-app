@@ -67,16 +67,28 @@ export default function AuditPage() {
     [action, entityType, actor, from, to],
   );
 
-  async function load() {
+  async function load(filters?: {
+    action?: string;
+    entityType?: string;
+    actor?: string;
+    from?: string;
+    to?: string;
+  }) {
     setLoading(true);
     setError("");
 
+    const nextAction = filters?.action ?? action;
+    const nextEntityType = filters?.entityType ?? entityType;
+    const nextActor = filters?.actor ?? actor;
+    const nextFrom = filters?.from ?? from;
+    const nextTo = filters?.to ?? to;
+
     const params = new URLSearchParams({ take: "150" });
-    if (action) params.set("action", action);
-    if (entityType) params.set("entityType", entityType);
-    if (actor.trim()) params.set("actor", actor.trim());
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
+    if (nextAction) params.set("action", nextAction);
+    if (nextEntityType) params.set("entityType", nextEntityType);
+    if (nextActor.trim()) params.set("actor", nextActor.trim());
+    if (nextFrom) params.set("from", nextFrom);
+    if (nextTo) params.set("to", nextTo);
 
     try {
       const response = await fetch(`/api/audit-logs?${params.toString()}`, {
@@ -115,7 +127,13 @@ export default function AuditPage() {
     setActor("");
     setFrom("");
     setTo("");
-    window.setTimeout(() => void load(), 0);
+    void load({
+      action: "",
+      entityType: "",
+      actor: "",
+      from: "",
+      to: "",
+    });
   }
 
   return (
