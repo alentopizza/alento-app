@@ -46,9 +46,25 @@ Estado al 2026-10-26:
 - #2 CI automatizada: completado;
 - #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
 - #4 Baseline Prisma + migraciones seguras: completado y redeploy final confirmado;
-- #5 Backups y restauración verificada: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
+- #5 Backups y restauración verificada: **en curso**. Política y script de verificación preparados; faltan configurar storage remoto, ejecutar backup y restaurar una copia real en PostgreSQL temporal.
+- #6 en adelante: pendientes y no deben iniciarse antes de cerrar #5.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
+
+## Backups en curso
+
+Documento canónico: `docs/BACKUPS_AND_RECOVERY.md`.
+
+Objetivos vigentes:
+
+- RPO 1 hora;
+- RTO 2 horas;
+- backup horario remoto con retención 48;
+- backup diario remoto con retención 30;
+- restore mensual probado en base separada;
+- validación con `npm run db:verify-restore`.
+
+Nunca probar Restore sobre `alento-db`.
 
 ## Fuente de verdad
 
