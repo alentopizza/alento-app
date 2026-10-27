@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, normalizeEmail, requireStaffSession, setStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DRIVER", "DISPATCH"];
 const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
@@ -94,9 +95,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   try {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: {
         ...(typeof body.name === "string" && body.name.trim() ? { name: body.name.trim() } : {}),
         ...(nextEmail !== existing.email ? { email: nextEmail } : {}),
         whatsappCountryCode,
@@ -120,7 +122,45 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
-      },
+        },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "USER_UPDATED",
+        entityType: "USER",
+        entityId: updated.id,
+        summary: `Usuario ${updated.name} actualizado${securityChanged ? " con cambios de seguridad" : ""}.`,
+        before: {
+          id: existing.id,
+          name: existing.name,
+          email: existing.email,
+          whatsappCountryCode: existing.whatsappCountryCode,
+          whatsappPhone: existing.whatsappPhone,
+          roles: existing.roles,
+          permissions: existing.permissions,
+          active: existing.active,
+          sessionVersion: existing.sessionVersion,
+        },
+        after: {
+          id: updated.id,
+          name: updated.name,
+          email: updated.email,
+          whatsappCountryCode: updated.whatsappCountryCode,
+          whatsappPhone: updated.whatsappPhone,
+          roles: updated.roles,
+          permissions: updated.permissions,
+          active: updated.active,
+          sessionVersion: updated.sessionVersion,
+        },
+        metadata: {
+          securityChanged,
+          passwordChanged: Boolean(password),
+        },
+        source: "api/users/[id]",
+      });
+
+      return updated;
     });
 
     if (session.userId === userId && securityChanged && user.active) {
