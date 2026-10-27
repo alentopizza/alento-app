@@ -1,6 +1,7 @@
 import type { Payment } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertSameIdempotentRequest } from "@/lib/idempotency";
+import { type AuditActor, writeAuditLog } from "@/lib/auditLog";
 
 export type RegisterOrderPaymentInput = {
   orderId: number;
@@ -12,6 +13,7 @@ export type RegisterOrderPaymentInput = {
   changeDue: number | null;
   reference: string | null;
   paidAt: Date;
+  auditActor?: AuditActor;
 };
 
 export type RegisterOrderPaymentResult =
@@ -168,6 +170,36 @@ export async function registerOrderPayment(
           },
         });
       }
+    }
+
+    if (input.auditActor) {
+      await writeAuditLog(tx, {
+        actor: input.auditActor,
+        action: "PAYMENT_CREATED",
+        entityType: "PAYMENT",
+        entityId: payment.id,
+        summary: `Pago de ${Math.round(input.amount).toLocaleString("es-CO")} registrado por ${input.method} en pedido #${order.sequenceNumber ?? order.id}.`,
+        after: {
+          id: payment.id,
+          orderId: payment.orderId,
+          method: payment.method,
+          amount: Number(payment.amount),
+          cashReceived:
+            payment.cashReceived == null ? null : Number(payment.cashReceived),
+          changeDue:
+            payment.changeDue == null ? null : Number(payment.changeDue),
+          status: payment.status,
+          paidAt: payment.paidAt,
+        },
+        metadata: {
+          orderId: order.id,
+          orderSequenceNumber: order.sequenceNumber,
+          paidTotalBefore: paidAmount,
+          paidTotalAfter: paidAmount + input.amount,
+          balanceAfter: remaining,
+        },
+        source: "api/orders/[id]/payment",
+      });
     }
 
     return {
