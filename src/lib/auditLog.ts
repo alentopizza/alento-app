@@ -78,7 +78,7 @@ function normalizeAuditValue(value: unknown): unknown {
 }
 
 export function auditJson(value: unknown): Prisma.InputJsonValue | undefined {
-  if (value === undefined) return undefined;
+  if (value === undefined || value === null) return undefined;
   return normalizeAuditValue(value) as Prisma.InputJsonValue;
 }
 
