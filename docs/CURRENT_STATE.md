@@ -774,3 +774,23 @@ Documento canónico:
 `docs/IDEMPOTENCY.md`.
 
 Falta para cerrar el punto: redeploy y validación funcional de pedido POS, pedido WEB y registro de pago.
+
+
+### Hotfix productivo del advisory lock — 2026-10-27
+
+Durante la primera prueba POS del punto #7, Prisma rechazó el retorno `void` de `pg_advisory_xact_lock()`.
+
+Se corrigió `lockIdempotencyKey()` para ejecutar el lock mediante un CTE materializado y devolver únicamente `1::int` a Prisma.
+
+Se añadió una prueba de integración específica contra PostgreSQL.
+
+Quality CI del hotfix:
+
+- run `40596132160`;
+- cero drift;
+- lint verde;
+- TypeScript verde;
+- **44 tests verdes**;
+- build verde.
+
+Estado #7: pendiente de redeploy del hotfix y nueva validación POS/WEB/pago.
