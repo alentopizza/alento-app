@@ -47,8 +47,8 @@ Estado al 2026-10-26:
 - #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
 - #4 Baseline Prisma + migraciones seguras: completado y redeploy final confirmado;
 - #5 Backups y restauración verificada: completado; Google Drive remoto, backup horario/diario y restore real validados.
-- #6 Seguridad de sesiones y rate limiting: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
-- #7 en adelante: pendientes.
+- #6 Seguridad de sesiones y rate limiting: implementado y CI verde; falta redeploy + prueba de revocación con colaborador no ADMIN.
+- #7 en adelante: pendientes y no deben iniciarse antes de cerrar #6.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -68,6 +68,22 @@ Estado operativo:
 - servicio temporal eliminado al terminar.
 
 Nunca probar Restore sobre `alento-db`.
+
+## Seguridad #6 en validación
+
+Documento canónico: `docs/SECURITY_HARDENING.md`.
+
+Estado:
+
+- `User.sessionVersion` implementado;
+- middleware interno valida usuario/roles/versión contra DB;
+- sesiones legacy se migran silenciosamente;
+- rate limiting persistente implementado;
+- migración Prisma creada;
+- CI completo verde con 35 tests;
+- falta validación productiva de revocación.
+
+No iniciar idempotencia (#7) antes de cerrar esta prueba.
 
 ## Fuente de verdad
 
