@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 const DENOMINATIONS = [
   50,
@@ -443,16 +444,44 @@ export async function POST(request: NextRequest) {
       const openingControlledBalance =
         openingAvailableBalance + openingLoanReceivable;
 
-      const session = await prisma.cashRegisterSession.create({
-        data: {
-          businessDate,
-          openingBalance: openingAvailableBalance,
-          openingControlledBalance,
-          openingLoanReceivable,
-          openedAt,
-          openedByName: staff.name,
-          status: "OPEN",
-        },
+      const session = await prisma.$transaction(async (tx) => {
+        const created = await tx.cashRegisterSession.create({
+          data: {
+            businessDate,
+            openingBalance: openingAvailableBalance,
+            openingControlledBalance,
+            openingLoanReceivable,
+            openedAt,
+            openedByName: staff.name,
+            status: "OPEN",
+          },
+        });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(staff),
+          action: "CASH_SESSION_OPENED",
+          entityType: "CASH_REGISTER_SESSION",
+          entityId: created.id,
+          summary: `Caja ${businessDate} abierta con ${Math.round(openingAvailableBalance).toLocaleString("es-CO")} disponibles.`,
+          after: {
+            id: created.id,
+            businessDate: created.businessDate,
+            openingBalance: Number(created.openingBalance),
+            openingControlledBalance:
+              created.openingControlledBalance == null
+                ? null
+                : Number(created.openingControlledBalance),
+            openingLoanReceivable:
+              created.openingLoanReceivable == null
+                ? null
+                : Number(created.openingLoanReceivable),
+            openedAt: created.openedAt,
+            status: created.status,
+          },
+          source: "api/caja/register-session",
+        });
+
+        return created;
       });
 
       return NextResponse.json({
@@ -518,13 +547,48 @@ export async function POST(request: NextRequest) {
       const openingControlledBalance =
         openingAvailableBalance + openingLoanReceivable;
 
-      const session = await prisma.cashRegisterSession.update({
-        where: { id: existing.id },
-        data: {
-          openingBalance: openingAvailableBalance,
-          openingControlledBalance,
-          openingLoanReceivable,
-        },
+      const session = await prisma.$transaction(async (tx) => {
+        const updated = await tx.cashRegisterSession.update({
+          where: { id: existing.id },
+          data: {
+            openingBalance: openingAvailableBalance,
+            openingControlledBalance,
+            openingLoanReceivable,
+          },
+        });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(staff),
+          action: "CASH_OPENING_UPDATED",
+          entityType: "CASH_REGISTER_SESSION",
+          entityId: updated.id,
+          summary: `Apertura de Caja ${updated.businessDate} actualizada.`,
+          before: {
+            openingBalance: Number(existing.openingBalance),
+            openingControlledBalance:
+              existing.openingControlledBalance == null
+                ? null
+                : Number(existing.openingControlledBalance),
+            openingLoanReceivable:
+              existing.openingLoanReceivable == null
+                ? null
+                : Number(existing.openingLoanReceivable),
+          },
+          after: {
+            openingBalance: Number(updated.openingBalance),
+            openingControlledBalance:
+              updated.openingControlledBalance == null
+                ? null
+                : Number(updated.openingControlledBalance),
+            openingLoanReceivable:
+              updated.openingLoanReceivable == null
+                ? null
+                : Number(updated.openingLoanReceivable),
+          },
+          source: "api/caja/register-session",
+        });
+
+        return updated;
       });
 
       const movement = await movementBetween(
@@ -729,38 +793,90 @@ export async function POST(request: NextRequest) {
       const difference =
         actualClosingBalance - expectedClosingBalance;
 
-      const closed = await prisma.cashRegisterSession.update({
-        where: { id: session.id },
-        data: {
-          status: "CLOSED",
-          openingBalance: Math.round(openingBalance),
-          openingControlledBalance: Math.round(
-            openingControlledBalance,
-          ),
-          openingLoanReceivable: Math.round(
-            openingLoanReceivable,
-          ),
-          netMovement: Math.round(movement.netMovement),
-          expectedClosingBalance: Math.round(
-            expectedClosingBalance,
-          ),
-          closingCash: cashTotal,
-          closingNequi: nequi,
-          closingDaviplata: daviplata,
-          closingCard: card,
-          closingDavivienda: davivienda,
-          closingDenominations: denominationCounts,
-          closingDraft: Prisma.DbNull,
-          closingDraftUpdatedAt: null,
-          closingLoanReceivable: Math.round(
-            movement.loansReceivable,
-          ),
-          actualClosingBalance,
-          difference: Math.round(difference),
-          closeNote: note || null,
-          closedAt,
-          closedByName: staff.name,
-        },
+      const closed = await prisma.$transaction(async (tx) => {
+        const updated = await tx.cashRegisterSession.update({
+          where: { id: session.id },
+          data: {
+            status: "CLOSED",
+            openingBalance: Math.round(openingBalance),
+            openingControlledBalance: Math.round(
+              openingControlledBalance,
+            ),
+            openingLoanReceivable: Math.round(
+              openingLoanReceivable,
+            ),
+            netMovement: Math.round(movement.netMovement),
+            expectedClosingBalance: Math.round(
+              expectedClosingBalance,
+            ),
+            closingCash: cashTotal,
+            closingNequi: nequi,
+            closingDaviplata: daviplata,
+            closingCard: card,
+            closingDavivienda: davivienda,
+            closingDenominations: denominationCounts,
+            closingDraft: Prisma.DbNull,
+            closingDraftUpdatedAt: null,
+            closingLoanReceivable: Math.round(
+              movement.loansReceivable,
+            ),
+            actualClosingBalance,
+            difference: Math.round(difference),
+            closeNote: note || null,
+            closedAt,
+            closedByName: staff.name,
+          },
+        });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(staff),
+          action: "CASH_SESSION_CLOSED",
+          entityType: "CASH_REGISTER_SESSION",
+          entityId: updated.id,
+          summary: `Caja ${updated.businessDate} cerrada con diferencia de ${Math.round(difference).toLocaleString("es-CO")}.`,
+          before: {
+            status: session.status,
+            openingBalance: Number(session.openingBalance),
+            openedAt: session.openedAt,
+          },
+          after: {
+            status: updated.status,
+            expectedClosingBalance:
+              updated.expectedClosingBalance == null
+                ? null
+                : Number(updated.expectedClosingBalance),
+            actualClosingBalance:
+              updated.actualClosingBalance == null
+                ? null
+                : Number(updated.actualClosingBalance),
+            difference:
+              updated.difference == null
+                ? null
+                : Number(updated.difference),
+            closingCash:
+              updated.closingCash == null ? null : Number(updated.closingCash),
+            closingNequi:
+              updated.closingNequi == null ? null : Number(updated.closingNequi),
+            closingDaviplata:
+              updated.closingDaviplata == null
+                ? null
+                : Number(updated.closingDaviplata),
+            closingCard:
+              updated.closingCard == null ? null : Number(updated.closingCard),
+            closingDavivienda:
+              updated.closingDavivienda == null
+                ? null
+                : Number(updated.closingDavivienda),
+            closedAt: updated.closedAt,
+          },
+          metadata: {
+            netMovement: movement.netMovement,
+            loansReceivable: movement.loansReceivable,
+          },
+          source: "api/caja/register-session",
+        });
+
+        return updated;
       });
 
       return NextResponse.json({
