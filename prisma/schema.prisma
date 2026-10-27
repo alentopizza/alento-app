@@ -134,6 +134,28 @@ model User {
   @@index([driverAvailable])
 }
 
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  occurredAt  DateTime @default(now())
+  actorType   String
+  actorUserId Int?
+  actorName   String?
+  actorEmail  String?
+  action      String
+  entityType  String
+  entityId    String?
+  summary     String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  source      String?
+
+  @@index([occurredAt])
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([action, occurredAt])
+}
+
 model SecurityRateLimit {
   scope           String
   keyHash         String
