@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -57,15 +58,35 @@ export async function POST(request: NextRequest) {
 
     await assertCashDateEditable(occurredAt);
 
-    const income = await prisma.cashIncome.create({
-      data: {
-        category,
-        note: note || null,
-        amount: Math.round(amount),
-        occurredAt,
-        source: "MANUAL",
-        createdByName: session.name,
-      },
+    const income = await prisma.$transaction(async (tx) => {
+      const created = await tx.cashIncome.create({
+        data: {
+          category,
+          note: note || null,
+          amount: Math.round(amount),
+          occurredAt,
+          source: "MANUAL",
+          createdByName: session.name,
+        },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "CASH_INCOME_CREATED",
+        entityType: "CASH_INCOME",
+        entityId: created.id,
+        summary: `Ingreso de caja por ${Math.round(amount).toLocaleString("es-CO")} registrado en ${category}.`,
+        after: {
+          id: created.id,
+          category: created.category,
+          amount: Number(created.amount),
+          occurredAt: created.occurredAt,
+          source: created.source,
+        },
+        source: "api/caja/incomes",
+      });
+
+      return created;
     });
 
     return NextResponse.json({
