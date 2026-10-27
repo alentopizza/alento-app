@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  assertSameIdempotentRequest,
+  idempotencyErrorResponse,
+  idempotencyRequestHash,
+  lockIdempotencyKey,
+  requireIdempotencyKey,
+} from "@/lib/idempotency";
 import { getCustomerSession } from "@/lib/auth";
 import {
   consumeRateLimit,
@@ -67,6 +75,66 @@ function activePayments(value: SettingsValue | null) {
     .filter((method) => method.id && method.name);
 }
 
+const PUBLIC_ORDER_INCLUDE = {
+  customer: true,
+  address: true,
+  payments: true,
+} satisfies Prisma.OrderInclude;
+
+type PublicCreatedOrder = Prisma.OrderGetPayload<{
+  include: typeof PUBLIC_ORDER_INCLUDE;
+}>;
+
+function trackingPathForOrder(orderId: number) {
+  try {
+    return `/seguimiento/${createOrderTrackingToken(orderId)}`;
+  } catch {
+    return null;
+  }
+}
+
+function publicOrderPayload(
+  order: PublicCreatedOrder,
+  authenticatedCustomer: boolean,
+) {
+  const paymentMethod = order.payments[0]?.method ?? "";
+  return {
+    id: order.id,
+    sequenceNumber: order.sequenceNumber,
+    code: `WEB-${String(order.sequenceNumber).padStart(4, "0")}`,
+    status: order.status,
+    fulfillmentType: order.fulfillmentType,
+    subtotal: Number(order.subtotal),
+    deliveryFee: Number(order.deliveryFee),
+    discount: Number(order.discount),
+    couponName: order.couponName,
+    total: Number(order.total),
+    paymentMethod,
+    trackingPath: trackingPathForOrder(order.id),
+    authenticatedCustomer,
+  };
+}
+
+async function replayedPublicOrderResponse(order: PublicCreatedOrder) {
+  const session = await getCustomerSession();
+  return NextResponse.json(
+    {
+      order: publicOrderPayload(order, Boolean(session)),
+      notification: {
+        ok: false,
+        status: "skipped",
+        reason: "La solicitud ya había sido procesada.",
+      },
+      contactWebhook: null,
+      replayed: true,
+    },
+    {
+      status: 200,
+      headers: { "Idempotency-Replayed": "true" },
+    },
+  );
+}
+
 export async function GET() {
   try {
     const [saved, coupons] = await Promise.all([
@@ -112,6 +180,19 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    const idempotencyKey = requireIdempotencyKey(request);
+    const idempotencyHash = idempotencyRequestHash(body);
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      include: PUBLIC_ORDER_INCLUDE,
+    });
+    if (existingOrder) {
+      assertSameIdempotentRequest(existingOrder.idempotencyHash, idempotencyHash);
+      return replayedPublicOrderResponse(existingOrder);
+    }
+
     const limit = await consumeRateLimit({
       scope: "public-checkout-create-ip",
       key: requestClientIp(request),
@@ -125,8 +206,6 @@ export async function POST(request: NextRequest) {
         "Se realizaron demasiados intentos de compra. Intenta nuevamente en unos minutos.",
       );
     }
-
-    const body = await request.json();
     const fulfillmentType =
       body?.fulfillmentType === "DELIVERY" ? "DELIVERY" : "PICKUP";
 
@@ -368,7 +447,21 @@ export async function POST(request: NextRequest) {
       requiresKitchen(line.product.categoryId),
     );
 
-    const order = await prisma.$transaction(async (tx) => {
+    const creation = await prisma.$transaction(async (tx) => {
+      await lockIdempotencyKey(tx, idempotencyKey);
+
+      const replayedOrder = await tx.order.findUnique({
+        where: { idempotencyKey },
+        include: PUBLIC_ORDER_INCLUDE,
+      });
+      if (replayedOrder) {
+        assertSameIdempotentRequest(
+          replayedOrder.idempotencyHash,
+          idempotencyHash,
+        );
+        return { order: replayedOrder, replayed: true as const };
+      }
+
       let customer = existingCustomer;
 
       if (!customer) {
@@ -476,9 +569,11 @@ export async function POST(request: NextRequest) {
         update: { current: { increment: 1 } },
       });
 
-      return tx.order.create({
+      const createdOrder = await tx.order.create({
         data: {
           sequenceNumber: sequence.current,
+          idempotencyKey,
+          idempotencyHash,
           customerId: customer.id,
           addressId,
           deliveryZoneId,
@@ -524,13 +619,16 @@ export async function POST(request: NextRequest) {
             },
           },
         },
-        include: {
-          customer: true,
-          address: true,
-          payments: true,
-        },
+        include: PUBLIC_ORDER_INCLUDE,
       });
+
+      return { order: createdOrder, replayed: false as const };
     });
+
+    const { order, replayed } = creation;
+    if (replayed) {
+      return replayedPublicOrderResponse(order);
+    }
 
     const contactWebhook =
       order.customer?.id != null
@@ -591,36 +689,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let trackingPath: string | null = null;
-    try {
-      trackingPath = `/seguimiento/${createOrderTrackingToken(order.id)}`;
-    } catch {
-      trackingPath = null;
-    }
-
     return NextResponse.json(
       {
-        order: {
-          id: order.id,
-          sequenceNumber: order.sequenceNumber,
-          code,
-          status: order.status,
-          fulfillmentType: order.fulfillmentType,
-          subtotal: Number(order.subtotal),
-          deliveryFee: Number(order.deliveryFee),
-          discount: Number(order.discount),
-          couponName: order.couponName,
-          total: Number(order.total),
-          paymentMethod: paymentMethod.name,
-          trackingPath,
-          authenticatedCustomer: Boolean(session),
-        },
+        order: publicOrderPayload(order, Boolean(session)),
         notification,
         contactWebhook,
+        replayed: false,
       },
       { status: 201 },
     );
   } catch (error) {
+    const idempotencyError = idempotencyErrorResponse(error);
+    if (idempotencyError) {
+      return NextResponse.json(idempotencyError.body, {
+        status: idempotencyError.status,
+      });
+    }
+
     console.error("Public checkout order error", error);
     return NextResponse.json(
       {
