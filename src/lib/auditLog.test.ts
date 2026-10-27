@@ -14,6 +14,8 @@ describe("audit log sanitization", () => {
       nested: {
         token: "token-no-guardar",
         secret: "secret-no-guardar",
+        apiKey: "api-key-no-guardar",
+        clientSecret: "client-secret-no-guardar",
         safe: "visible",
       },
       rows: [
@@ -37,6 +39,12 @@ describe("audit log sanitization", () => {
     ).toBeUndefined();
     expect(
       (result.nested as Record<string, unknown>).secret,
+    ).toBeUndefined();
+    expect(
+      (result.nested as Record<string, unknown>).apiKey,
+    ).toBeUndefined();
+    expect(
+      (result.nested as Record<string, unknown>).clientSecret,
     ).toBeUndefined();
   });
 
