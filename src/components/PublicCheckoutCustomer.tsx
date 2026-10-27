@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PublicCartItem } from "@/lib/publicCart";
+import { createIdempotencyKey } from "@/lib/clientIdempotency";
 import type { PublicCheckoutSelection } from "@/components/PublicCheckoutDelivery";
 
 type PaymentMethod = {
@@ -91,6 +92,7 @@ export default function PublicCheckoutCustomer({
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyNotice, setVerifyNotice] = useState("");
+  const orderAttemptKeyRef = useRef<string | null>(null);
 
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
@@ -272,9 +274,16 @@ export default function PublicCheckoutCustomer({
     setCreating(true);
 
     try {
+      const idempotencyKey =
+        orderAttemptKeyRef.current ?? createIdempotencyKey();
+      orderAttemptKeyRef.current = idempotencyKey;
+
       const response = await fetch("/api/public-checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
         body: JSON.stringify({
           fulfillmentType: selection.fulfillmentType,
           customer: {
@@ -304,6 +313,7 @@ export default function PublicCheckoutCustomer({
         throw new Error(data.error || "No fue posible crear el pedido.");
       }
 
+      orderAttemptKeyRef.current = null;
       onComplete(data.order);
     } catch (createError) {
       setError(
