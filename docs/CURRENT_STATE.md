@@ -700,3 +700,38 @@ Validación real realizada:
 Documento canónico: docs/BACKUPS_AND_RECOVERY.md.
 
 El siguiente punto de hardening es seguridad de sesiones y rate limiting, pendiente de autorización explícita del usuario.
+
+
+## Seguridad de sesiones y rate limiting — 2026-10-27
+
+El hardening #6 está implementado en repositorio y pendiente únicamente de validación productiva.
+
+Cambios principales:
+
+- `User.sessionVersion` permite revocación central por colaborador;
+- desactivar usuario o cambiar correo, contraseña, roles o permisos invalida sesiones anteriores;
+- middleware Node.js consulta PostgreSQL y autoriza con roles vigentes;
+- cookies staff legacy se migran silenciosamente a versión revocable;
+- `getStaffSession` y `getCustomerSession` vuelven a validar estado actual en DB;
+- `SecurityRateLimit` persiste buckets en PostgreSQL;
+- IP/email/teléfono se almacenan como HMAC, no en texto plano;
+- login, bootstrap, OTP, Delivery Quote, elegibilidad y creación WEB tienen límites de abuso;
+- HTTP 429 incluye `Retry-After`.
+
+Migración:
+
+`20261027022000_security_sessions_rate_limits`
+
+Quality CI:
+
+- migrate deploy: verde;
+- cero drift;
+- lint/types: verde;
+- 6 archivos / 35 tests;
+- build: verde.
+
+Documento canónico:
+
+`docs/SECURITY_HARDENING.md`.
+
+Falta para cerrar el punto: redeploy y prueba de revocación con un colaborador no ADMIN.
