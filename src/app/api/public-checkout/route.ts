@@ -182,7 +182,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const idempotencyKey = requireIdempotencyKey(request);
-    const idempotencyHash = idempotencyRequestHash(body);
+    const idempotencyHash = idempotencyRequestHash({
+      operation: "WEB_ORDER_CREATE",
+      body,
+    });
 
     const existingOrder = await prisma.order.findUnique({
       where: { idempotencyKey },
