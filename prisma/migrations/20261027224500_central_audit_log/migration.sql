@@ -30,3 +30,18 @@ ON "AuditLog"("actorUserId", "occurredAt");
 
 CREATE INDEX "AuditLog_action_occurredAt_idx"
 ON "AuditLog"("action", "occurredAt");
+
+
+CREATE OR REPLACE FUNCTION "prevent_audit_log_mutation"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'AuditLog is append-only';
+END;
+$$;
+
+CREATE TRIGGER "AuditLog_append_only"
+BEFORE UPDATE OR DELETE ON "AuditLog"
+FOR EACH ROW
+EXECUTE FUNCTION "prevent_audit_log_mutation"();
