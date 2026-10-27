@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 function serializeCoupon(
   coupon: {
@@ -83,6 +85,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  let session;
+  try {
+    session = await requireStaffSession(["ADMIN"]);
+  } catch (error) {
+    const forbidden = error instanceof Error && error.message === "FORBIDDEN";
+    return NextResponse.json(
+      { error: forbidden ? "Sin permisos." : "No autorizado." },
+      { status: forbidden ? 403 : 401 },
+    );
+  }
+
   const body = await request.json();
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const type = body.type === "PERCENTAGE" ? "PERCENTAGE" : body.type === "FIXED" ? "FIXED" : null;
@@ -97,8 +110,30 @@ export async function POST(request: NextRequest) {
   if (type === "PERCENTAGE" && value > 100) return NextResponse.json({ error: "El porcentaje no puede superar 100%." }, { status: 400 });
 
   try {
-    const coupon = await prisma.coupon.create({
-      data: { name, type, value, active, visibleInPos, visibleInCart },
+    const coupon = await prisma.$transaction(async (tx) => {
+      const created = await tx.coupon.create({
+        data: { name, type, value, active, visibleInPos, visibleInCart },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "COUPON_CREATED",
+        entityType: "COUPON",
+        entityId: created.id,
+        summary: `Cupón ${created.name} creado.`,
+        after: {
+          id: created.id,
+          name: created.name,
+          type: created.type,
+          value: Number(created.value),
+          active: created.active,
+          visibleInPos: created.visibleInPos,
+          visibleInCart: created.visibleInCart,
+        },
+        source: "api/coupons",
+      });
+
+      return created;
     });
     return NextResponse.json({ coupon: serializeCoupon(coupon) }, { status: 201 });
   } catch (error) {
