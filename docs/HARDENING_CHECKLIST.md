@@ -217,9 +217,14 @@ npm run prisma:migrate:deploy
 
 A partir de este punto `prisma db push` deja de ser el mecanismo normal de producción.
 
-Validación final pendiente únicamente del redeploy operativo del usuario con este nuevo start.
+Validación final:
 
-**No iniciar el punto 5 hasta que el usuario confirme que el redeploy final arrancó correctamente.**
+- redeploy de producción ejecutado por el usuario;
+- build EasyPanel terminado en **Success**;
+- aplicación confirmada operativa por el usuario;
+- baseline y start definitivo quedan cerrados.
+
+**Punto #4 cerrado. No iniciar el punto #5 hasta autorización explícita del usuario.**
 
 ---
 
@@ -308,8 +313,21 @@ No introducir estos trabajos dentro de un punto anterior salvo que sean estricta
 
 ## Estado para una nueva conversación
 
-Si este archivo indica:
+Estado actual para continuidad:
 
-`4. Baseline Prisma + migraciones seguras — PENDIENTE`
+- #1 Builds reproducibles: ✅
+- #2 CI automatizada: ✅
+- #3 Pruebas automatizadas críticas: ✅
+- #4 Baseline Prisma + migraciones seguras: ✅
+- #5 Backups y restauración verificada: siguiente punto pendiente.
 
-los puntos #1, #2 y #3 ya están cerrados. Una nueva conversación debe esperar autorización explícita del usuario antes de iniciar el #4.
+Una nueva conversación debe continuar desde el #5, pero solo después de autorización explícita del usuario.
+
+
+## Hallazgos de despliegue para seguimiento posterior
+
+Detectados en el redeploy final del punto #4:
+
+- Nixpacks/EasyPanel continúa usando `npm install` en la fase de instalación, aunque el repositorio y CI usan `npm ci`. El lockfile sigue presente y CI protege desalineaciones, pero conviene revisar la configuración del builder en una fase futura.
+- durante `next build` apareció un intento de `prisma.appSetting.findUnique()` contra PostgreSQL que falló porque el contenedor de build no alcanzó la DB; el build continuó y terminó correctamente. Conviene revisar qué ruta está intentando consultar DB durante prerender/build.
+- npm reportó vulnerabilidades de dependencias; no ejecutar `npm audit fix --force` automáticamente. Revisarlas dentro del hardening de seguridad/dependencias.
