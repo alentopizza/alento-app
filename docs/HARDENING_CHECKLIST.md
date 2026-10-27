@@ -228,7 +228,7 @@ Validación final:
 
 ---
 
-### 5. Backups y restauración verificada — ⬜ PENDIENTE
+### 5. Backups y restauración verificada — 🟡 EN CURSO
 
 Objetivo:
 
@@ -236,6 +236,53 @@ Objetivo:
 - definir retención;
 - definir RPO/RTO;
 - realizar una prueba real de restauración sin tocar producción.
+
+#### Política definida ✅
+
+Documento canónico:
+
+`docs/BACKUPS_AND_RECOVERY.md`
+
+Objetivos:
+
+- RPO: **1 hora**;
+- RTO: **2 horas**.
+
+Estrategia:
+
+- backup horario remoto: cron `15 * * * *`, retención 48;
+- backup diario remoto: horario de baja actividad equivalente a ~03:30 Bogotá, retención 30;
+- rutas remotas independientes;
+- nunca usar Local como única copia.
+
+#### Verificación de restauración preparada ✅
+
+Comando de solo lectura:
+
+```bash
+npm run db:verify-restore
+```
+
+Archivo:
+
+`scripts/verify-database-restore.js`
+
+Verifica conectividad y lectura de modelos críticos, conteos, último pedido y `_prisma_migrations`.
+
+#### Pendiente operativo ⏳
+
+1. configurar Storage Provider remoto en EasyPanel;
+2. crear backup horario;
+3. crear backup diario;
+4. ejecutar Manual Run y confirmar archivo remoto;
+5. crear PostgreSQL temporal independiente;
+6. restaurar una copia real en la DB temporal;
+7. ejecutar `npx prisma migrate status`;
+8. ejecutar `npm run db:verify-restore` apuntando solo a la DB restaurada;
+9. documentar resultado/fecha;
+10. destruir servicio temporal.
+
+**No iniciar el punto 6 hasta completar y validar la restauración real.**
 
 ---
 
