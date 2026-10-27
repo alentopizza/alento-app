@@ -128,9 +128,12 @@ Características vigentes:
 - `Secure` en producción;
 - duración máxima actual: 400 días;
 - el middleware renueva silenciosamente la sesión cuando faltan 30 días o menos para vencer;
-- cerrar sesión invalida la cookie explícitamente.
+- cerrar sesión invalida la cookie explícitamente;
+- `User.sessionVersion` permite revocar sesiones antiguas por colaborador;
+- middleware Node.js + Prisma valida usuario activo, versión y roles actuales en cada ruta interna protegida;
+- `getStaffSession()` también vuelve a validar estado/versión/roles contra PostgreSQL.
 
-La sesión continúa siendo stateless; la persistencia larga no equivale a revocación inmediata centralizada.
+La duración larga de la cookie ya no equivale a autorización larga: una sesión antigua deja de funcionar inmediatamente después de desactivar al usuario o cambiar sus datos de seguridad.
 
 El secreto proviene de `AUTH_SESSION_SECRET` y debe tener mínimo 32 caracteres aleatorios.
 
@@ -282,7 +285,8 @@ Características:
 - `HttpOnly`;
 - `SameSite=Lax`;
 - `Secure` en producción;
-- duración: 30 días.
+- duración: 30 días;
+- `getCustomerSession()` vuelve a consultar `CustomerAccount` y exige que siga activa y corresponda al mismo cliente/teléfono.
 
 La sesión de cliente **no concede ningún permiso interno**.
 
@@ -338,18 +342,24 @@ Esta implementación agrega:
 - model `CustomerAuthCode`;
 - relación `Customer.account`.
 
-El despliegue vigente sincroniza el schema mediante `prisma db push` dentro de `npm run start`. Antes de desplegar cambios de autenticación se debe revisar el diff de `prisma/schema.prisma`; no ejecutar un segundo `db push` manual como requisito rutinario.
+El despliegue vigente aplica migraciones mediante `prisma migrate deploy` dentro de `npm run start`.
+
+La migración de hardening de seguridad es:
+
+`20261027022000_security_sessions_rate_limits`
+
+No usar `prisma db push` como mecanismo normal de producción.
 
 ## Limitaciones conocidas de esta primera versión
 
 - recuperación de contraseña de colaboradores todavía no existe;
 - auditoría completa de cambios de usuarios todavía no existe;
-- la sesión interna es stateless y no tiene revocación inmediata centralizada;
+- la sesión interna ya dispone de revocación inmediata por `sessionVersion`;
 - no existe segundo factor para colaboradores;
 - el login OTP depende del webhook externo de Make y de la infraestructura WhatsApp/Meta configurada detrás de ese escenario;
 - la experiencia pública ya crea pedidos `source=WEB` y ofrece seguimiento firmado;
 - el GPS en vivo, mapa, ETA y flujo operativo del repartidor ya están implementados;
-- recuperación de contraseña y revocación central de sesiones siguen pendientes.
+- recuperación de contraseña sigue pendiente.
 
 ## Regla pública vigente
 
@@ -485,3 +495,20 @@ Regla:
 - si después del OTP existe un Customer, se recuperan sus datos;
 - si no existe, la verificación puede crear su identidad de cliente sin revelar previamente esa condición;
 - no agregar endpoints públicos de tipo `existsByPhone` o mensajes distintos según existencia, porque permitirían enumerar clientes.
+
+
+## Rate limiting
+
+Documento canónico: `docs/SECURITY_HARDENING.md`.
+
+La aplicación usa `SecurityRateLimit` en PostgreSQL para proteger:
+
+- login colaborador;
+- bootstrap inicial;
+- solicitud OTP;
+- verificación OTP;
+- cotización pública de domicilio;
+- elegibilidad pública de checkout;
+- creación de pedido WEB.
+
+Las claves IP/email/teléfono se almacenan únicamente como HMAC SHA-256, no en texto plano. Los bloqueos responden HTTP 429 con `Retry-After`.
