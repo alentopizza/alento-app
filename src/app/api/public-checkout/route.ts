@@ -9,6 +9,7 @@ import {
   requireIdempotencyKey,
 } from "@/lib/idempotency";
 import { getCustomerSession } from "@/lib/auth";
+import { writeAuditLog } from "@/lib/auditLog";
 import {
   consumeRateLimit,
   rateLimitExceededResponse,
@@ -624,6 +625,35 @@ export async function POST(request: NextRequest) {
         },
         include: PUBLIC_ORDER_INCLUDE,
       });
+
+      if (discount > 0) {
+        await writeAuditLog(tx, {
+          actor: {
+            type: session ? "CUSTOMER" : "GUEST",
+            name: customer.name,
+            email: customer.email,
+          },
+          action: "ORDER_DISCOUNT_APPLIED",
+          entityType: "ORDER",
+          entityId: createdOrder.id,
+          summary: `Cupón ${coupon?.name ?? "WEB"} aplicado al pedido #${createdOrder.sequenceNumber ?? createdOrder.id}.`,
+          after: {
+            discount,
+            discountSource: coupon ? "COUPON" : "NONE",
+            couponId: coupon?.id ?? null,
+            couponName: coupon?.name ?? null,
+            subtotal,
+            total,
+          },
+          metadata: {
+            customerId: customer.id,
+            sequenceNumber: createdOrder.sequenceNumber,
+            source: "WEB",
+            authenticatedCustomer: Boolean(session),
+          },
+          source: "api/public-checkout",
+        });
+      }
 
       return { order: createdOrder, replayed: false as const };
     });
