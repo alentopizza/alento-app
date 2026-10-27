@@ -46,23 +46,26 @@ Estado al 2026-10-26:
 - #2 CI automatizada: completado;
 - #3 Pruebas automatizadas críticas: completado (31 tests / 5 archivos);
 - #4 Baseline Prisma + migraciones seguras: completado y redeploy final confirmado;
-- #5 Backups y restauración verificada: **en curso**. Política y script de verificación preparados; faltan configurar storage remoto, ejecutar backup y restaurar una copia real en PostgreSQL temporal.
-- #6 en adelante: pendientes y no deben iniciarse antes de cerrar #5.
+- #5 Backups y restauración verificada: completado; Google Drive remoto, backup horario/diario y restore real validados.
+- #6 Seguridad de sesiones y rate limiting: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
+- #7 en adelante: pendientes.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
-## Backups en curso
+## Backups verificados
 
 Documento canónico: `docs/BACKUPS_AND_RECOVERY.md`.
 
-Objetivos vigentes:
+Estado operativo:
 
-- RPO 1 hora;
-- RTO 2 horas;
+- RPO objetivo 1 hora;
+- RTO objetivo 2 horas;
 - backup horario remoto con retención 48;
 - backup diario remoto con retención 30;
-- restore mensual probado en base separada;
-- validación con `npm run db:verify-restore`.
+- proveedor Google Drive `Alentó Pizza Backups`;
+- restore real validado en PostgreSQL temporal;
+- `npm run db:verify-restore` confirmó lectura correcta de datos;
+- servicio temporal eliminado al terminar.
 
 Nunca probar Restore sobre `alento-db`.
 
