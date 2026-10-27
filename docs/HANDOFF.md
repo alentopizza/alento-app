@@ -120,7 +120,9 @@ Estado:
 - AuditLog incluido en verificación de restore;
 - 9 archivos / 48 tests;
 - CI completo verde;
-- falta validación productiva de la pantalla y generación de eventos reales.
+- primera validación detectó que Cocina podía mover automáticamente a PREPARED sin auditoría;
+- hotfix añadido para Cocina y transiciones de Repartidor;
+- falta redeploy del hotfix y confirmar un evento real visible en /auditoria.
 
 No iniciar Observabilidad (#9) antes de cerrar #8.
 
