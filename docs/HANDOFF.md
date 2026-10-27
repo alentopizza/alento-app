@@ -49,8 +49,8 @@ Estado al 2026-10-26:
 - #5 Backups y restauración verificada: completado; Google Drive remoto, backup horario/diario y restore real validados.
 - #6 Seguridad de sesiones y rate limiting: completado y validado en producción;
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
-- #8 Audit Log: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
-- #9 en adelante: pendientes.
+- #8 Audit Log: implementado y CI verde; falta redeploy + validación funcional en /auditoria.
+- #9 en adelante: pendientes y no deben iniciarse antes de cerrar #8.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -104,6 +104,25 @@ Estado:
 - pedido POS, pedido WEB, registro de pagos y eliminación de pagos validados en producción.
 
 El siguiente punto es #8 Audit Log y no debe iniciarse sin autorización explícita del usuario.
+
+## Audit Log #8 en validación
+
+Documento canónico: `docs/AUDIT_LOG.md`.
+
+Estado:
+
+- modelo `AuditLog` y migración creados;
+- append-only reforzado mediante trigger PostgreSQL;
+- sanitizador de secretos central;
+- auditoría transaccional para pedidos, descuentos, pagos, Caja, usuarios/roles, cupones y configuración;
+- pantalla ADMIN `/auditoria`;
+- API ADMIN de solo lectura;
+- AuditLog incluido en verificación de restore;
+- 9 archivos / 48 tests;
+- CI completo verde;
+- falta validación productiva de la pantalla y generación de eventos reales.
+
+No iniciar Observabilidad (#9) antes de cerrar #8.
 
 ## Fuente de verdad
 
