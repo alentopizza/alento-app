@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -487,6 +488,33 @@ export async function POST(request: NextRequest) {
           status: "PAID",
           paidAt: occurredAt,
         },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "PAYROLL_PAID",
+        entityType: "PAYROLL_PAYMENT",
+        entityId: payrollPayment.id,
+        summary: `Nómina de ${worker.name} pagada por ${Math.round(netAmount).toLocaleString("es-CO")} netos.`,
+        after: {
+          paymentId: payrollPayment.id,
+          expenseId: expense.id,
+          workerId: worker.id,
+          workerName: worker.name,
+          shiftCount: shifts.length,
+          grossAmount,
+          loanDeduction,
+          netAmount,
+          occurredAt,
+        },
+        metadata: {
+          shiftIds,
+          loanDeductions: validatedLoanDeductions.map((deduction) => ({
+            loanId: deduction.loan.id,
+            amount: deduction.amount,
+          })),
+        },
+        source: "api/caja/payroll",
       });
 
       return {
