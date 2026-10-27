@@ -110,6 +110,7 @@ model User {
   roles               UserRole[]       @default([])
   permissions         UserPermission[] @default([])
   active              Boolean          @default(true)
+  sessionVersion      Int              @default(1)
   lastLoginAt              DateTime?
   driverAvailable         Boolean          @default(false)
   driverLatitude          Float?
@@ -131,6 +132,20 @@ model User {
   @@index([active])
   @@index([whatsappPhone])
   @@index([driverAvailable])
+}
+
+model SecurityRateLimit {
+  scope           String
+  keyHash         String
+  windowStartedAt DateTime
+  count           Int      @default(0)
+  blockedUntil    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@id([scope, keyHash])
+  @@index([updatedAt])
+  @@index([blockedUntil])
 }
 
 model DriverPushSubscription {
