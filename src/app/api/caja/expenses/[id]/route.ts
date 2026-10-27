@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
@@ -15,8 +16,9 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN", "CASHIER"]);
+    session = await requireStaffSession(["ADMIN", "CASHIER"]);
   } catch (error) {
     const forbidden = error instanceof Error && error.message === "FORBIDDEN";
     return NextResponse.json(
@@ -48,7 +50,15 @@ export async function PATCH(
 
     const existing = await prisma.cashExpense.findUnique({
       where: { id },
-      select: { id: true, source: true },
+      select: {
+        id: true,
+        source: true,
+        category: true,
+        subcategory: true,
+        amount: true,
+        occurredAt: true,
+        planningType: true,
+      },
     });
 
     if (!existing) {
@@ -68,9 +78,34 @@ export async function PATCH(
       );
     }
 
-    const expense = await prisma.cashExpense.update({
-      where: { id },
-      data: { planningType },
+    const expense = await prisma.$transaction(async (tx) => {
+      const updated = await tx.cashExpense.update({
+        where: { id },
+        data: { planningType },
+      });
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "CASH_EXPENSE_UPDATED",
+        entityType: "CASH_EXPENSE",
+        entityId: updated.id,
+        summary: `Clasificación de salida #${updated.id} actualizada a ${planningType}.`,
+        before: {
+          planningType: existing.planningType,
+          category: existing.category,
+          subcategory: existing.subcategory,
+          amount: Number(existing.amount),
+        },
+        after: {
+          planningType: updated.planningType,
+          category: updated.category,
+          subcategory: updated.subcategory,
+          amount: Number(updated.amount),
+        },
+        source: "api/caja/expenses/[id]",
+      });
+
+      return updated;
     });
 
     return NextResponse.json({
@@ -92,8 +127,9 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN", "CASHIER"]);
+    session = await requireStaffSession(["ADMIN", "CASHIER"]);
   } catch (error) {
     const forbidden = error instanceof Error && error.message === "FORBIDDEN";
     return NextResponse.json(
@@ -114,8 +150,15 @@ export async function DELETE(
       where: { id },
       select: {
         id: true,
+        driverId: true,
+        category: true,
+        subcategory: true,
+        note: true,
+        amount: true,
         occurredAt: true,
         source: true,
+        planningType: true,
+        createdByName: true,
         payrollPayment: {
           select: {
             id: true,
@@ -199,6 +242,28 @@ export async function DELETE(
             },
           });
         }
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(session),
+          action: "PAYROLL_REVERSED",
+          entityType: "CASH_EXPENSE",
+          entityId: existing.id,
+          summary: `Pago de nómina #${payrollPaymentId} revertido desde Caja.`,
+          before: {
+            expenseId: existing.id,
+            payrollPaymentId,
+            category: existing.category,
+            subcategory: existing.subcategory,
+            amount: Number(existing.amount),
+            occurredAt: existing.occurredAt,
+            source: existing.source,
+          },
+          metadata: {
+            shiftIds,
+            affectedLoanIds,
+          },
+          source: "api/caja/expenses/[id]",
+        });
       });
 
       return NextResponse.json({
@@ -207,7 +272,28 @@ export async function DELETE(
       });
     }
 
-    await prisma.cashExpense.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.cashExpense.delete({ where: { id } });
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "CASH_EXPENSE_DELETED",
+        entityType: "CASH_EXPENSE",
+        entityId: existing.id,
+        summary: `Salida de caja por ${Math.round(Number(existing.amount)).toLocaleString("es-CO")} eliminada.`,
+        before: {
+          id: existing.id,
+          driverId: existing.driverId,
+          category: existing.category,
+          subcategory: existing.subcategory,
+          amount: Number(existing.amount),
+          occurredAt: existing.occurredAt,
+          source: existing.source,
+          planningType: existing.planningType,
+          createdByName: existing.createdByName,
+        },
+        source: "api/caja/expenses/[id]",
+      });
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (
