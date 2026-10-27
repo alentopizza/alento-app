@@ -48,8 +48,8 @@ Estado al 2026-10-26:
 - #4 Baseline Prisma + migraciones seguras: completado y redeploy final confirmado;
 - #5 Backups y restauración verificada: completado; Google Drive remoto, backup horario/diario y restore real validados.
 - #6 Seguridad de sesiones y rate limiting: completado y validado en producción;
-- #7 Idempotencia de operaciones críticas: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
-- #8 en adelante: pendientes.
+- #7 Idempotencia de operaciones críticas: implementado y CI verde; falta redeploy + validación funcional POS/WEB/pagos.
+- #8 en adelante: pendientes y no deben iniciarse antes de cerrar #7.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -85,6 +85,23 @@ Estado:
 - revocación inmediata validada en producción con colaborador no ADMIN.
 
 El siguiente punto es #7 Idempotencia de operaciones críticas y no debe iniciarse sin autorización explícita del usuario.
+
+## Idempotencia #7 en validación
+
+Documento canónico: `docs/IDEMPOTENCY.md`.
+
+Estado:
+
+- `Idempotency-Key` implementado para pedidos POS, pedidos WEB y pagos;
+- claves/hash persistidos con índices únicos;
+- advisory lock para creación de pedidos;
+- row lock + recálculo de saldo para pagos;
+- replays no repiten efectos secundarios;
+- 43 tests / 8 archivos;
+- CI completo verde;
+- falta validación productiva de operación normal después del deploy.
+
+No iniciar Audit Log (#8) antes de cerrar #7.
 
 ## Fuente de verdad
 
