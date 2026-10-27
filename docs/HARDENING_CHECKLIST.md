@@ -424,7 +424,7 @@ Documento canónico:
 
 ---
 
-### 8. Audit Log — ⬜ PENDIENTE
+### 8. Audit Log — 🟡 EN CURSO
 
 Objetivo:
 
@@ -437,6 +437,21 @@ registrar de forma central acciones sensibles:
 - roles;
 - configuración;
 - otras operaciones financieras/administrativas.
+
+Diseño en implementación:
+
+- tabla central `AuditLog`, append-only desde la aplicación;
+- actor snapshot: tipo, id, nombre y correo cuando aplique;
+- acción, entidad, id de entidad y resumen;
+- snapshots `before` / `after` en JSON solo para datos auditables;
+- metadata contextual sin secretos;
+- escrituras dentro de la misma transacción de negocio cuando exista una transacción;
+- helper único `src/lib/auditLog.ts`;
+- pruebas automatizadas;
+- documentación de qué acciones deben auditarse;
+- validación productiva antes de cerrar.
+
+**No iniciar el punto #9 hasta cerrar y validar este punto.**
 
 ---
 
