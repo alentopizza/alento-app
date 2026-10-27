@@ -11,6 +11,7 @@ import {
   CalendarClock,
   ChefHat,
   ClipboardList,
+  History,
   LogOut,
   Menu,
   Settings,
@@ -102,6 +103,12 @@ const items = [
     roles: ["ADMIN"],
   },
   {
+    href: "/auditoria",
+    label: "Auditoría",
+    icon: History,
+    roles: ["ADMIN"],
+  },
+  {
     href: "/configuracion",
     label: "Configuración",
     icon: Settings,
@@ -120,6 +127,7 @@ const MOBILE_SUPERVISION_HREFS = [
   "/cocina",
   "/caja",
   "/usuarios",
+  "/auditoria",
   "/configuracion",
 ] as const;
 
