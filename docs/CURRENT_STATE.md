@@ -664,8 +664,8 @@ La primera ejecución detectó tres errores de lint en scripts históricos Commo
 
 La suite automatizada ya está implementada con Vitest:
 
-- 5 archivos de pruebas;
-- 31 tests;
+- 6 archivos de pruebas;
+- 35 tests;
 - Club Puntos;
 - programación/ventanas de pedidos;
 - domicilio/cobertura;
@@ -704,7 +704,7 @@ El siguiente punto de hardening es seguridad de sesiones y rate limiting, pendie
 
 ## Seguridad de sesiones y rate limiting — 2026-10-27
 
-El hardening #6 está implementado en repositorio y pendiente únicamente de validación productiva.
+El hardening #6 está implementado y validado en producción.
 
 Cambios principales:
 
@@ -734,4 +734,6 @@ Documento canónico:
 
 `docs/SECURITY_HARDENING.md`.
 
-Falta para cerrar el punto: redeploy y prueba de revocación con un colaborador no ADMIN.
+Validación productiva completada: redeploy correcto, migraciones aplicadas, Next.js operativo y revocación inmediata confirmada con una sesión independiente de colaborador no ADMIN.
+
+El siguiente punto pendiente es #7 Idempotencia de operaciones críticas.
