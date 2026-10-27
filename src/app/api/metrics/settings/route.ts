@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   DEFAULT_TRACKING_SETTINGS,
   TRACKING_SETTINGS_KEY,
@@ -31,8 +32,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  let session;
   try {
-    await requireAdmin();
+    session = await requireStaffSession(["ADMIN"]);
   } catch {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
@@ -40,15 +42,34 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const settings = normalizeTrackingSettings(body?.settings ?? body);
 
-  await prisma.appSetting.upsert({
+  const previous = await prisma.appSetting.findUnique({
     where: { key: TRACKING_SETTINGS_KEY },
-    create: {
-      key: TRACKING_SETTINGS_KEY,
-      value: trackingSettingsAsJson(settings),
-    },
-    update: {
-      value: trackingSettingsAsJson(settings),
-    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.appSetting.upsert({
+      where: { key: TRACKING_SETTINGS_KEY },
+      create: {
+        key: TRACKING_SETTINGS_KEY,
+        value: trackingSettingsAsJson(settings),
+      },
+      update: {
+        value: trackingSettingsAsJson(settings),
+      },
+    });
+
+    await writeAuditLog(tx, {
+      actor: staffAuditActor(session),
+      action: "TRACKING_SETTINGS_UPDATED",
+      entityType: "APP_SETTING",
+      entityId: TRACKING_SETTINGS_KEY,
+      summary: "Configuración de métricas y tracking actualizada.",
+      before: previous
+        ? normalizeTrackingSettings(previous.value)
+        : null,
+      after: settings,
+      source: "api/metrics/settings",
+    });
   });
 
   return NextResponse.json({ settings });
