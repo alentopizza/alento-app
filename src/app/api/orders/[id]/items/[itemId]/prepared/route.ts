@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isInKitchenWindow } from "@/lib/orderScheduling";
+import { getStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string; itemId: string }> },
 ) {
   try {
+    const session = await getStaffSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
+
     const { id: rawOrderId, itemId: rawItemId } = await context.params;
     const orderId = Number(rawOrderId);
     const itemId = Number(rawItemId);
@@ -25,6 +32,9 @@ export async function PATCH(
         where: { id: orderId },
         select: {
           id: true,
+          sequenceNumber: true,
+          source: true,
+          fulfillmentType: true,
           status: true,
           scheduledFor: true,
           items: {
@@ -67,7 +77,31 @@ export async function PATCH(
       // El hornero/operación realiza después PREPARED -> READY cuando sale del horno.
       if (allPrepared && ["CONFIRMED", "PREPARING"].includes(order.status)) {
         status = "PREPARED";
-        await tx.order.update({ where: { id: order.id }, data: { status: "PREPARED" } });
+        await tx.order.update({
+          where: { id: order.id },
+          data: { status: "PREPARED" },
+        });
+
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(session),
+          action: "ORDER_STATUS_CHANGED",
+          entityType: "ORDER",
+          entityId: order.id,
+          summary: `Pedido #${order.sequenceNumber ?? order.id}: ${order.status} → PREPARED (Horneando) desde Cocina.`,
+          before: {
+            status: order.status,
+          },
+          after: {
+            status: "PREPARED",
+          },
+          metadata: {
+            sequenceNumber: order.sequenceNumber,
+            source: order.source,
+            fulfillmentType: order.fulfillmentType,
+            transitionOrigin: "KITCHEN_AUTO_PREPARED",
+          },
+          source: "api/orders/[id]/items/[itemId]/prepared",
+        });
       }
 
       return { preparedQuantity, status, allPrepared };
