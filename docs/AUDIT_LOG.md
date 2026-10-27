@@ -354,9 +354,9 @@ Quality CI de referencia antes del último refuerzo del sanitizador:
 - TypeScript: verde;
 - **9 archivos / 48 tests**;
 - build: verde;
-- run: `40599572257`.
+- run: `40600253140`.
 
-El último refuerzo de sanitización y restore verification debe volver a quedar verde antes de desplegar.
+El refuerzo final de sanitización y restore verification también quedó verde en CI.
 
 ## Validación productiva para cerrar #8
 
