@@ -259,9 +259,11 @@ Quality CI de referencia:
 - drift: **No difference detected**;
 - ESLint: verde;
 - TypeScript: verde;
-- **8 archivos / 43 tests**;
+- **8 archivos / 44 tests**;
+- test específico del advisory lock ejecutado mediante Prisma: verde;
 - Next build: verde;
-- workflow run: `40439799102`.
+- workflow inicial: `40439799102`;
+- workflow del hotfix de advisory lock: `40596132160`.
 
 ## Validación productiva para cerrar #7
 
@@ -286,3 +288,43 @@ Después del deploy:
 - no confundir idempotencia con rate limiting;
 - no confundir idempotencia con Audit Log;
 - nuevas integraciones que creen pedidos/pagos deben adoptar una clave idempotente estable del proveedor o generar una equivalente.
+
+
+### Hotfix de serialización `void` — 2026-10-27
+
+La primera validación productiva del POS detectó que:
+
+`SELECT pg_advisory_xact_lock(...)`
+
+devuelve una columna PostgreSQL de tipo `void`.
+
+Prisma intentó deserializar esa columna y rechazó el request con:
+
+`Failed to deserialize column of type 'void'`.
+
+La corrección conserva exactamente el mismo advisory lock pero evita devolver `void` al cliente Prisma:
+
+```sql
+WITH lock_acquired AS MATERIALIZED (
+  SELECT pg_advisory_xact_lock(hashtextextended($1, 0))
+)
+SELECT 1::int AS "locked"
+FROM lock_acquired
+```
+
+El CTE materializado ejecuta el lock; Prisma solo recibe un entero soportado.
+
+Se añadió una prueba de integración que llama `lockIdempotencyKey()` dentro de una transacción real PostgreSQL para evitar regresiones de este tipo.
+
+Validación del hotfix:
+
+- Prisma migrate deploy: verde;
+- drift: cero;
+- lint: verde;
+- TypeScript: verde;
+- **8 archivos / 44 tests**;
+- test advisory lock: verde;
+- build: verde;
+- Quality CI run: `40596132160`.
+
+El punto #7 sigue pendiente de redeploy y validación funcional productiva después de este hotfix.
