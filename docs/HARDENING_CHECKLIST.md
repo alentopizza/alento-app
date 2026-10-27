@@ -288,7 +288,7 @@ Regla operativa:
 
 ---
 
-### 6. Seguridad de sesiones y rate limiting — ⬜ PENDIENTE
+### 6. Seguridad de sesiones y rate limiting — 🟡 EN CURSO
 
 Objetivo:
 
@@ -296,6 +296,20 @@ Objetivo:
 - invalidación al desactivar usuario/cambiar permisos;
 - protección contra fuerza bruta;
 - rate limiting en login/OTP/endpoints públicos costosos.
+
+Diseño aprobado para implementación:
+
+- `User.sessionVersion` como versión revocable por colaborador;
+- middleware Node.js + Prisma para validar usuario activo, versión y roles actuales;
+- sesiones legacy se migran silenciosamente a token con versión cuando el usuario sigue activo;
+- `getStaffSession` vuelve a comprobar estado/versión/roles en DB;
+- `getCustomerSession` valida centralmente que `CustomerAccount.active` siga activo;
+- rate limiter persistente en PostgreSQL mediante `SecurityRateLimit`;
+- claves sensibles (IP, email, teléfono) se almacenan únicamente como HMAC/hash;
+- respuestas 429 incluyen `Retry-After`;
+- límites iniciales sobre login, bootstrap, OTP, Google Delivery Quote, elegibilidad y creación de checkout público.
+
+**No iniciar el punto 7 hasta cerrar y validar este punto.**
 
 ---
 
