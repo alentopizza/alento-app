@@ -2,7 +2,7 @@
 
 Última actualización: **2026-10-27**.
 
-Estado: **IMPLEMENTADO EN REPOSITORIO — pendiente de validación productiva**.
+Estado: **IMPLEMENTADO Y VALIDADO EN PRODUCCIÓN — hardening #8 COMPLETADO**.
 
 Este documento define la auditoría de negocio para operaciones sensibles de Alentó Pizza.
 
@@ -325,6 +325,37 @@ La UI muestra:
 
 No hay controles de editar o eliminar.
 
+## Presentación en español Colombia
+
+La interfaz de Auditoría usa **español de Colombia (`es-CO`)**.
+
+Fuente compartida:
+
+`src/lib/auditPresentation.ts`
+
+La capa de presentación traduce:
+
+- acciones;
+- entidades;
+- estados;
+- tipos de pedido;
+- actor genérico;
+- orígenes técnicos;
+- claves frecuentes de before/after/metadata.
+
+Ejemplos:
+
+- `ORDER_STATUS_CHANGED` → **Estado del pedido actualizado**;
+- `PAYMENT_CREATED` → **Pago registrado**;
+- `PREPARED` → **Horneando**;
+- `READY` → **Listo**;
+- `DELIVERY` → **Domicilio**;
+- `POS` → **Punto de venta**.
+
+Los valores persistidos **no se traducen en la base**. Esto evita romper consultas, integraciones, migraciones y compatibilidad histórica.
+
+Los registros antiguos también se traducen al mostrarse.
+
 ## Índices
 
 El modelo incluye índices para:
@@ -390,29 +421,31 @@ Corrección:
 - se aprovechó la revisión para cubrir también las transiciones de estado ejecutadas desde Repartidor;
 - el punto #8 permanece abierto hasta validar este hotfix en producción.
 
-## Validación productiva para cerrar #8
+## Validación productiva — completada
 
-Después del redeploy:
+Validación realizada el **27 de octubre de 2026**:
 
-1. confirmar que `20261027224500_central_audit_log` se aplica;
-2. confirmar Next.js `Ready`;
-3. iniciar sesión como ADMIN;
-4. abrir `/auditoria`;
-5. comprobar que la pantalla carga sin error;
-6. realizar una acción de prueba no destructiva, recomendada:
-   - cambiar temporalmente un ajuste de cupón y devolverlo; o
-   - crear y luego eliminar un ingreso/salida de prueba dentro de Caja abierta;
-7. volver a Auditoría y confirmar:
-   - actor correcto;
-   - acción correcta;
-   - entidad correcta;
-   - before/after o metadata coherentes;
-8. comprobar un flujo operativo normal:
-   - pedido POS;
-   - pago;
-9. confirmar que aparecen los eventos esperados sin afectar operación.
+1. migración `20261027224500_central_audit_log` aplicada correctamente en producción;
+2. Next.js inició en estado `Ready`;
+3. `/auditoria` abrió correctamente con sesión ADMIN;
+4. la primera prueba detectó un camino no auditado hacia `PREPARED` desde Cocina;
+5. se corrigió Cocina y también se cubrieron transiciones de Repartidor;
+6. después del hotfix se confirmó un evento real:
+   - acción interna: `ORDER_STATUS_CHANGED`;
+   - pedido comercial: **#801**;
+   - cambio: `PREPARED → READY`;
+   - presentación visible: **Horneando → Listo**;
+   - actor: Alentó Pizza;
+7. también se confirmó un pago real:
+   - acción interna: `PAYMENT_CREATED`;
+   - valor: **$14.900 COP**;
+   - medio: **Efectivo**;
+   - actor y origen correctos;
+8. Pedidos y Pagos continuaron operando normalmente.
 
-No se debe intentar UPDATE/DELETE manual de AuditLog en producción: esa inmutabilidad ya está verificada por tests PostgreSQL.
+La inmutabilidad UPDATE/DELETE permanece cubierta por tests contra PostgreSQL y no se prueba manualmente en producción.
+
+**El hardening #8 queda cerrado.**
 
 ## Reglas de no regresión
 
