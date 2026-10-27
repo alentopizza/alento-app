@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import { directDistanceMeters } from "@/lib/deliveryDistance";
 import { normalizeOrderLine } from "@/lib/orderLineNormalizer";
 import {
@@ -87,6 +89,10 @@ function serializeOrder(order: Awaited<ReturnType<typeof loadOrder>>) {
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getStaffSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    }
     const { id: rawId } = await context.params;
     const id = Number(rawId);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
@@ -492,6 +498,39 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           },
         });
       }
+
+      await writeAuditLog(tx, {
+        actor: staffAuditActor(session),
+        action: "ORDER_UPDATED",
+        entityType: "ORDER",
+        entityId: current.id,
+        summary: `Pedido #${current.sequenceNumber ?? current.id} editado desde editor estructurado.`,
+        before: {
+          status: current.status,
+          fulfillmentType: current.fulfillmentType,
+          subtotal: Number(current.subtotal),
+          deliveryFee: Number(current.deliveryFee),
+          discount: Number(current.discount),
+          total: Number(current.total),
+          scheduledFor: current.scheduledFor,
+          itemCount: current.items.length,
+        },
+        after: {
+          status: nextStatus,
+          fulfillmentType,
+          subtotal,
+          deliveryFee,
+          discount,
+          total,
+          scheduledFor,
+          itemCount: updatedExisting.length + normalizedAdditions.length,
+        },
+        metadata: {
+          sequenceNumber: current.sequenceNumber,
+          source: current.source,
+        },
+        source: "api/orders/[id]/edit",
+      });
     });
 
     const updated = await loadOrder(current.id);
