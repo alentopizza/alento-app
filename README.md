@@ -49,7 +49,7 @@ Las instrucciones completas para cualquier trabajo futuro están en [`AGENTS.md`
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, baseline formal de Prisma, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -125,7 +125,8 @@ Validaciones actuales:
 ```text
 npm ci
 prisma validate
-prisma db push sobre PostgreSQL efímero
+prisma migrate deploy sobre PostgreSQL efímero
+prisma migrate diff (cero drift)
 npm run lint
 npm run typecheck
 npm test
@@ -296,21 +297,21 @@ Documentos principales:
 
 ## Prisma en producción
 
-La base de producción existía antes de un historial formal de migraciones.
+La base de producción ya tiene baseline formal de Prisma Migrate:
+
+`20261026190500_baseline`
 
 El arranque vigente ejecuta:
 
 ```bash
-prisma db push && next start -p 3000
+prisma migrate deploy && next start -p 3000
 ```
 
-Los backfills históricos de ganancias de repartidores e IngredientGroup ya fueron aplicados y no se ejecutan en cada reinicio.
+Las 23 migraciones previas se conservan únicamente como historial en `prisma/legacy-migrations/`.
 
-Por ello, un cambio de `prisma/schema.prisma` puede aplicarse automáticamente en el siguiente redeploy. Revisar el impacto **antes** de desplegar y no añadir un segundo `db push` manual como rutina.
+A partir del baseline, todo cambio de `prisma/schema.prisma` debe incluir una migración nueva versionada. No usar `prisma db push` como mecanismo normal de producción.
 
-No usar `prisma migrate deploy` hasta realizar un baseline formal.
-
-`prisma db push` no ejecuta SQL personalizado contenido únicamente en archivos de migración. La lógica operativa crítica debe vivir preferiblemente en la aplicación o documentarse con un procedimiento SQL explícito si fuera imprescindible.
+Ver `docs/PRISMA_BASELINE.md` y `docs/DEPLOYMENT.md`.
 
 ## Portabilidad / producto replicable
 
@@ -335,8 +336,8 @@ Los cinco módulos operativos principales cerrados son POS, Pedidos, Cocina, Cli
 
 Prioridades vigentes:
 
-1. baseline formal de Prisma y retirar `db push` del arranque cuando exista un plan seguro;
-2. pruebas automatizadas críticas sobre el CI ya operativo;
+1. backups y restauración verificada;
+2. hardening de sesiones y rate limiting;
 3. flujo auditable de refund/devoluciones;
 4. completar canje transaccional de Club Alentó;
 5. inventario, recetas, costos y rentabilidad;
