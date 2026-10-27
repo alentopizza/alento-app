@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
+import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
   CLUB_ALENTO_SETTING_KEY,
   DEFAULT_CLUB_ALENTO_SETTINGS,
@@ -20,8 +21,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  let session;
   try {
-    await requireStaffSession(["ADMIN"]);
+    session = await requireStaffSession(["ADMIN"]);
   } catch (error) {
     const forbidden =
       error instanceof Error && error.message === "FORBIDDEN";
@@ -48,10 +50,29 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  const saved = await prisma.appSetting.upsert({
+  const previous = await prisma.appSetting.findUnique({
     where: { key: CLUB_ALENTO_SETTING_KEY },
-    update: { value: settings },
-    create: { key: CLUB_ALENTO_SETTING_KEY, value: settings },
+  });
+
+  const saved = await prisma.$transaction(async (tx) => {
+    const updated = await tx.appSetting.upsert({
+      where: { key: CLUB_ALENTO_SETTING_KEY },
+      update: { value: settings },
+      create: { key: CLUB_ALENTO_SETTING_KEY, value: settings },
+    });
+
+    await writeAuditLog(tx, {
+      actor: staffAuditActor(session),
+      action: "CLUB_SETTINGS_UPDATED",
+      entityType: "APP_SETTING",
+      entityId: CLUB_ALENTO_SETTING_KEY,
+      summary: "Configuración de Club Alentó actualizada.",
+      before: previous ? normalizeClubAlentoSettings(previous.value) : null,
+      after: settings,
+      source: "api/club-settings",
+    });
+
+    return updated;
   });
 
   return NextResponse.json({
