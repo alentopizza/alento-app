@@ -354,11 +354,26 @@ Documento canónico:
 
 ---
 
-### 7. Idempotencia de operaciones críticas — ⬜ PENDIENTE
+### 7. Idempotencia de operaciones críticas — 🟡 EN CURSO
 
 Objetivo:
 
 proteger creación de pedidos/pagos frente a doble clic, reintentos, timeout o retransmisiones.
+
+Diseño en implementación:
+
+- `Idempotency-Key` generado por el cliente y reutilizado durante reintentos del mismo intento;
+- clave y hash canónico del request persistidos en `Order` y `Payment`;
+- índices únicos en PostgreSQL como última barrera contra concurrencia;
+- la misma clave + mismo request devuelve el recurso ya creado en vez de duplicarlo;
+- la misma clave + request diferente devuelve conflicto 409;
+- creación WEB y POS protegidas;
+- registro de pagos protegido;
+- pagos revalidan el saldo dentro de una transacción con bloqueo del pedido para impedir sobrepago concurrente;
+- efectos secundarios de pedido (notificaciones/push) no se repiten en un replay idempotente;
+- pruebas automatizadas y validación productiva antes de cerrar.
+
+**No iniciar el punto 8 hasta cerrar y validar este punto.**
 
 ---
 
