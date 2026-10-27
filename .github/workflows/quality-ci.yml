@@ -60,8 +60,15 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
-      - name: Apply schema to ephemeral database
-        run: npx prisma db push --skip-generate
+      - name: Apply migrations to ephemeral database
+        run: npx prisma migrate deploy
+
+      - name: Verify migration schema matches Prisma
+        run: |
+          npx prisma migrate diff \
+            --from-url "$DATABASE_URL" \
+            --to-schema-datamodel prisma/schema.prisma \
+            --exit-code
 
       - name: Lint
         run: npm run lint
