@@ -71,7 +71,7 @@ El backfill ya fue aplicado en producción y **ya no forma parte del comando nor
 
 La misma regla aplica a `scripts/backfill-driver-earnings.js`: no debe ejecutarse en cada reinicio del servicio.
 
-## Prisma: baseline en curso
+## Prisma: baseline formal implementada
 
 La base de producción nació antes de un historial formal de Prisma Migrate. El repositorio ya corrigió esa deuda en código mediante una baseline completa:
 
@@ -83,58 +83,33 @@ Las 23 migraciones previas se conservan como historial técnico en:
 
 La baseline fue generada desde una base vacía hacia el schema actual, aplicada sobre PostgreSQL 16 temporal y validada con cero drift. Quality CI ya usa `prisma migrate deploy` sobre una base efímera.
 
-### Estado real del arranque durante la transición
+Producción ya validó y registró la baseline:
 
-Producción **todavía** ejecuta:
+- drift check: **No difference detected**;
+- `prisma migrate resolve --applied 20261026190500_baseline`: correcto;
+- `prisma migrate status`: **Database schema is up to date!**;
+- `prisma migrate deploy`: **No pending migrations to apply.**
 
-```bash
-prisma db push && next start -p 3000
-```
-
-Esto es intencional hasta marcar la baseline como aplicada en la base real.
-
-No cambiar el start todavía y no ejecutar el SQL de la baseline directamente sobre producción.
-
-### Paso pendiente en producción
-
-Seguir exactamente:
-
-`docs/PRISMA_BASELINE.md`
-
-Resumen:
-
-1. desplegar un commit que contenga la baseline, manteniendo el start actual;
-2. tomar snapshot/backup puntual;
-3. comprobar drift contra `prisma/schema.prisma`;
-4. solo si no hay diferencias, ejecutar:
-   `npx prisma migrate resolve --applied 20261026190500_baseline`;
-5. validar `npx prisma migrate status`;
-6. probar `npx prisma migrate deploy` sin cambios pendientes.
-
-Solo después de esa validación se cambiará el start definitivo a:
+El arranque oficial del repositorio es ahora:
 
 ```bash
 prisma migrate deploy && next start -p 3000
 ```
 
-Desde ese momento `prisma db push` dejará de ser el mecanismo normal de producción.
+`prisma db push` deja de ser el mecanismo normal de producción. Puede conservarse como utilidad manual de desarrollo/diagnóstico, pero no debe formar parte del start ni sustituir una migración versionada.
 
 ## AppSetting
 
-La configuración operativa utiliza el modelo `AppSetting`. El arranque vigente sincroniza esta tabla mediante `prisma db push` antes de iniciar Next.js. La tabla almacena la configuración `pos_settings` en JSON.
+La configuración operativa utiliza el modelo `AppSetting`. Su schema se mantiene mediante migraciones Prisma versionadas. La tabla almacena la configuración `pos_settings` en JSON.
 
 ## Migraciones futuras
 
-El repositorio puede contener archivos SQL de migración como referencia, pero no deben ejecutarse automáticamente sobre la base existente hasta crear un baseline correcto.
+La baseline ya está formalizada. A partir de ahora:
 
-Cuando el proyecto madure se recomienda:
-
-1. documentar el estado actual de producción;
-2. crear un baseline de Prisma;
-3. marcar la migración base como aplicada;
-4. usar `prisma migrate deploy` para cambios posteriores.
-
-No hacer ese cambio de estrategia sin validar primero producción y una copia de seguridad.
+1. todo cambio de `prisma/schema.prisma` debe incluir una migración nueva en `prisma/migrations`;
+2. Quality CI aplica todas las migraciones sobre PostgreSQL vacío y verifica cero drift;
+3. producción ejecuta `prisma migrate deploy` durante el arranque;
+4. no volver a introducir cambios de schema únicamente mediante `db push`.
 
 ## Diagnóstico rápido
 
@@ -275,25 +250,15 @@ Nunca habilitarlo en producción.
 
 `docs/PRODUCTION_READINESS.md` es el baseline histórico de salida. Para el estado vigente consultar `docs/CURRENT_STATE.md` y `docs/FEATURE_INVENTORY.md`.
 
-### Riesgo actual: db push durante cada start
+### Estrategia de schema vigente
 
-El comportamiento actual:
+El arranque usa:
 
 ```bash
-prisma db push && next start -p 3000
+prisma migrate deploy && next start -p 3000
 ```
 
-es útil durante la etapa de construcción, pero no es la estrategia recomendada para operación estable porque un reinicio/redeploy puede intentar modificar el schema.
-
-Antes de retirar ese `db push` del arranque:
-
-1. tomar backup/snapshot de PostgreSQL;
-2. verificar que producción está sincronizada;
-3. crear un baseline formal;
-4. acordar la estrategia de migraciones;
-5. cambiar el comando de start en un despliegue controlado.
-
-No hacer el cambio sin estos pasos.
+La baseline está aplicada en producción y el historial activo parte de `20261026190500_baseline`.
 
 ### Health check
 
@@ -336,7 +301,8 @@ Secuencia vigente:
 ```text
 npm ci
 npx prisma validate
-npx prisma db push --skip-generate   # solo sobre DB efímera del runner
+npx prisma migrate deploy            # solo sobre DB efímera del runner
+npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
 npm run lint
 npm run typecheck
 npm test
@@ -365,7 +331,7 @@ Características:
 - `sharp` normaliza cada carga a WebP, máximo 1600 × 1600 y calidad 84 antes de persistir;
 - el endpoint público `/api/product-images/[id]` sirve la imagen con cache inmutable;
 - la escritura/eliminación exige sesión ADMIN dentro de la propia ruta;
-- la creación de la tabla es aditiva, pero como el arranque ejecuta `prisma db push`, revisar el diff de schema antes del primer redeploy que incluya esta función.
+- la creación de la tabla es aditiva, pero como el arranque ejecuta `prisma migrate deploy`, revisar el diff de schema antes del primer redeploy que incluya esta función.
 
 Este almacenamiento es apropiado para el catálogo actual de Alentó. Si el volumen de imágenes creciera de forma significativa, evaluar object storage dedicado sin cambiar la semántica de `Product.imageUrl`.
 
@@ -378,7 +344,7 @@ El modelo `Coupon` incorpora campos aditivos:
 - `visibleInPos Boolean @default(true)`;
 - `visibleInCart Boolean @default(false)`.
 
-El siguiente redeploy que contenga este schema puede añadirlos mediante el `prisma db push` del arranque.
+El siguiente redeploy que contenga este schema puede añadirlos mediante una migración Prisma versionada.
 
 La elección de defaults es deliberada:
 
