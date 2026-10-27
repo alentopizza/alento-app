@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { UserPermission, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, normalizeEmail, requireStaffSession } from "@/lib/auth";
+import { hashPassword, normalizeEmail, requireStaffSession, setStaffSession } from "@/lib/auth";
 
 const VALID_ROLES: UserRole[] = ["ADMIN", "POS", "KITCHEN", "CASHIER", "DRIVER", "DISPATCH"];
 const VALID_PERMISSIONS: UserPermission[] = ["CANCEL_ORDERS", "DELETE_ORDERS"];
@@ -23,6 +23,13 @@ function allowedPermissionsForRoles(roles: UserRole[], permissions: UserPermissi
   if (roles.includes("ADMIN")) return [];
   const eligible = roles.includes("POS") || roles.includes("CASHIER");
   return eligible ? permissions : [];
+}
+
+function sameValues<T extends string>(left: T[], right: T[]) {
+  if (left.length !== right.length) return false;
+  const a = [...left].sort();
+  const b = [...right].sort();
+  return a.every((value, index) => value === b[index]);
 }
 
 function publicRoles(roles: UserRole[]) {
@@ -71,6 +78,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const password = typeof body.password === "string" ? body.password : "";
+  const nextEmail =
+    typeof body.email === "string" && body.email.trim()
+      ? normalizeEmail(body.email)
+      : existing.email;
+  const securityChanged =
+    active !== existing.active ||
+    nextEmail !== existing.email ||
+    Boolean(password) ||
+    !sameValues(roles, existing.roles) ||
+    !sameValues(permissions, existing.permissions);
+
   if (password && password.length < 8) {
     return NextResponse.json({ error: "La nueva contraseña debe tener al menos 8 caracteres." }, { status: 400 });
   }
@@ -80,16 +98,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       where: { id: userId },
       data: {
         ...(typeof body.name === "string" && body.name.trim() ? { name: body.name.trim() } : {}),
-        ...(typeof body.email === "string" && body.email.trim() ? { email: normalizeEmail(body.email) } : {}),
+        ...(nextEmail !== existing.email ? { email: nextEmail } : {}),
         whatsappCountryCode,
         whatsappPhone: whatsappPhone || null,
         roles,
         permissions,
         active,
         ...(password ? { passwordHash: hashPassword(password) } : {}),
+        ...(securityChanged ? { sessionVersion: { increment: 1 } } : {}),
       },
-      select: { id: true, name: true, email: true, whatsappCountryCode: true, whatsappPhone: true, roles: true, permissions: true, active: true, lastLoginAt: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        whatsappCountryCode: true,
+        whatsappPhone: true,
+        roles: true,
+        permissions: true,
+        active: true,
+        sessionVersion: true,
+        lastLoginAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
+
+    if (session.userId === userId && securityChanged && user.active) {
+      await setStaffSession(user);
+    }
+
     return NextResponse.json({ user: { ...user, roles: publicRoles(user.roles) } });
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") {
