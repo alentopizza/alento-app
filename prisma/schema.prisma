@@ -156,6 +156,31 @@ model AuditLog {
   @@index([action, occurredAt])
 }
 
+model OperationalIncident {
+  id               String    @id @default(cuid())
+  fingerprint      String    @unique
+  level            String
+  category         String
+  code             String
+  message          String
+  source           String?
+  entityType       String?
+  entityId         String?
+  firstSeenAt      DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
+  occurrenceCount  Int       @default(1)
+  lastRequestId    String?
+  metadata         Json?
+  resolvedAt       DateTime?
+  resolvedByUserId Int?
+  resolvedByName   String?
+
+  @@index([level, lastSeenAt])
+  @@index([category, lastSeenAt])
+  @@index([resolvedAt, lastSeenAt])
+  @@index([lastRequestId])
+}
+
 model SecurityRateLimit {
   scope           String
   keyHash         String
