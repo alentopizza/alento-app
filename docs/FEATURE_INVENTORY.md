@@ -71,11 +71,14 @@ Implementados en POS, Pedidos, Cocina, impresión, despacho y Repartidor.
 
 - `Order.scheduledFor`;
 - validación contra horario de servicio;
+- fecha comercial de venta: `scheduledFor` cuando existe, `createdAt` en pedidos inmediatos;
+- Caja excluye del día actual ventas programadas para otra fecha;
+- cobro real bloqueado antes de la fecha programada;
 - ingreso a Cocina 30 minutos antes;
-- exclusión de despacho/repartidor antes de ventana;
-- edición entre inmediato/programado antes de iniciar preparación.
+- estados y despacho/repartidor bloqueados antes de la ventana;
+- el pedido continúa visible y editable/reprogramable/cancelable antes de iniciar preparación.
 
-Documentos: `docs/POS.md`, `docs/ORDERS.md`, `docs/KITCHEN.md`.
+Documentos: `docs/POS.md`, `docs/ORDERS.md`, `docs/KITCHEN.md`, `docs/PAYMENTS_AND_CASH.md`.
 
 ### Edición estructurada de pedidos
 
