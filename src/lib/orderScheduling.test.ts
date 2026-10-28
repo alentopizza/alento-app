@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   ORDER_KITCHEN_LEAD_MINUTES,
+  bogotaDateKey,
   isInKitchenWindow,
+  isScheduledForFutureDay,
   kitchenWindowStartsAt,
   parseScheduledFor,
   scheduleStatusForKitchen,
+  scheduledBusinessDate,
   scheduledServiceWindow,
   validateFutureSchedule,
   validateScheduledServiceHours,
@@ -41,6 +44,33 @@ describe("programación de pedidos", () => {
         now,
       )?.toISOString(),
     ).toBe("2026-10-26T20:01:00.000Z");
+  });
+
+  it("distingue pedidos programados para otro día en Bogotá", () => {
+    const now = new Date("2026-10-28T00:30:00.000Z"); // 27 oct, 7:30 p. m. Bogotá
+
+    expect(bogotaDateKey(now)).toBe("2026-10-27");
+    expect(
+      isScheduledForFutureDay(
+        new Date("2026-10-31T02:00:00.000Z"),
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isScheduledForFutureDay(
+        new Date("2026-10-28T02:00:00.000Z"),
+        now,
+      ),
+    ).toBe(false);
+    expect(isScheduledForFutureDay(null, now)).toBe(false);
+  });
+
+  it("usa scheduledFor como fecha comercial del pedido programado", () => {
+    const createdAt = new Date("2026-10-28T00:30:00.000Z");
+    const scheduledFor = new Date("2026-11-01T02:00:00.000Z");
+
+    expect(scheduledBusinessDate(createdAt, null)).toBe("2026-10-27");
+    expect(scheduledBusinessDate(createdAt, scheduledFor)).toBe("2026-10-31");
   });
 
   it("abre la ventana de Cocina exactamente 30 minutos antes", () => {
