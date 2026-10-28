@@ -10,6 +10,10 @@ import {
 } from "@/lib/idempotency";
 import { registerOrderPayment } from "@/lib/orderPaymentRegistration";
 import {
+  isScheduledForFutureDay,
+  scheduledTimeLabel,
+} from "@/lib/orderScheduling";
+import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
   CASH_SESSION_REQUIRED_ERROR,
@@ -147,6 +151,31 @@ export async function POST(
         );
       }
       return replayedPaymentResponse(id, existingPayment);
+    }
+
+    const paymentOrder = await prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        scheduledFor: true,
+        status: true,
+      },
+    });
+    if (!paymentOrder) {
+      return NextResponse.json(
+        { error: "Pedido no encontrado." },
+        { status: 404 },
+      );
+    }
+    if (isScheduledForFutureDay(paymentOrder.scheduledFor)) {
+      return NextResponse.json(
+        {
+          error: paymentOrder.scheduledFor
+            ? `Este pedido está programado para ${scheduledTimeLabel(paymentOrder.scheduledFor)}. El cobro se habilita en la fecha programada.`
+            : "El cobro todavía no está disponible.",
+        },
+        { status: 409 },
+      );
     }
 
     const settingsRow = await prisma.appSetting.findUnique({
