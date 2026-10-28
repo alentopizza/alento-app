@@ -92,7 +92,15 @@ export async function GET(request: NextRequest) {
         where: {
           fulfillmentType: "DELIVERY",
           status: { notIn: ["DRAFT", "CANCELED"] },
-          createdAt: { gte: start, lt: endExclusive },
+          OR: [
+            {
+              scheduledFor: null,
+              createdAt: { gte: start, lt: endExclusive },
+            },
+            {
+              scheduledFor: { gte: start, lt: endExclusive },
+            },
+          ],
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
@@ -101,6 +109,7 @@ export async function GET(request: NextRequest) {
           source: true,
           status: true,
           createdAt: true,
+          scheduledFor: true,
           total: true,
           deliveryFee: true,
           deliveryZoneId: true,
@@ -197,6 +206,7 @@ export async function GET(request: NextRequest) {
       customerName: string;
       status: string;
       createdAt: string;
+      scheduledFor: string | null;
       total: number;
       paidAmount: number;
       deliveryFee: number;
@@ -301,8 +311,9 @@ export async function GET(request: NextRequest) {
           stats.reconstructedCount += 1;
           reconstructedOrders += 1;
         }
-        if (!stats.lastOrderAt || order.createdAt > stats.lastOrderAt) {
-          stats.lastOrderAt = order.createdAt;
+        const businessAt = order.scheduledFor ?? order.createdAt;
+        if (!stats.lastOrderAt || businessAt > stats.lastOrderAt) {
+          stats.lastOrderAt = businessAt;
         }
       }
 
@@ -324,6 +335,7 @@ export async function GET(request: NextRequest) {
           customerName: order.customer?.name ?? "Cliente",
           status: order.status,
           createdAt: order.createdAt.toISOString(),
+          scheduledFor: order.scheduledFor?.toISOString() ?? null,
           total: orderValue,
           paidAmount,
           deliveryFee: deliveryRevenue,
