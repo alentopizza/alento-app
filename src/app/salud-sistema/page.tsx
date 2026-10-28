@@ -107,6 +107,55 @@ const categoryLabels: Record<string, string> = {
   SYSTEM: "Sistema",
 };
 
+const incidentLabels: Record<string, string> = {
+  NEXT_REQUEST_ERROR: "Error no controlado del servidor",
+  CLIENT_RUNTIME_ERROR: "Error de interfaz",
+  OBSERVABILITY_SUMMARY_FAILED: "Falló la consulta de salud del sistema",
+  NOTIFIER_HEALTH_FAILED: "El notificador respondió con error",
+  NOTIFIER_UNREACHABLE: "El notificador no está disponible",
+  NOTIFIER_DELIVERY_FAILED: "Falló una notificación de WhatsApp",
+  NOTIFICATION_JOB_RETRY: "Trabajo de notificación pendiente de reintento",
+  NOTIFICATION_JOB_EXHAUSTED: "Trabajo de notificación agotó sus reintentos",
+  PUSH_CAMPAIGN_DELIVERY_FAILED: "Falló el envío de una campaña Push",
+  PUSH_CAMPAIGN_PARTIAL_FAILURE: "Campaña Push con entregas fallidas",
+  PUSH_CAMPAIGN_FAILED: "Campaña Push sin entregas",
+  CUSTOMER_CONTACT_WEBHOOK_REJECTED:
+    "Sincronización de contacto rechazada",
+  CUSTOMER_CONTACT_WEBHOOK_UNREACHABLE:
+    "Sincronización de contactos no disponible",
+  GOOGLE_MAPS_SERVER_KEY_MISSING: "Falta la clave de Google Maps del servidor",
+  OBSERVABILITY_TEST: "Alerta de prueba",
+};
+
+const sourceLabels: Record<string, string> = {
+  "api/observability/summary": "Salud del sistema",
+  "api/observability/test": "Prueba de observabilidad",
+  "api/internal/notification-jobs/run": "Trabajos programados",
+  "api/push-campaigns": "Campañas Push",
+  "lib/notifier": "WhatsApp / Notifier",
+  "lib/customerContactWebhook": "Sincronización de clientes",
+  instrumentation: "Servidor",
+};
+
+function humanizeCode(value: string) {
+  return value
+    .replace(/^frontend:/, "Interfaz · ")
+    .replace(/^server:/, "Servidor · ")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
+}
+
+function incidentLabel(code: string) {
+  return incidentLabels[code] || humanizeCode(code);
+}
+
+function sourceLabel(source: string | null) {
+  if (!source) return "";
+  return sourceLabels[source] || humanizeCode(source);
+}
+
 function formatDate(value: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("es-CO", {
@@ -441,7 +490,7 @@ export default function SystemHealthPage() {
               </div>
               <div className="rounded-[22px] border border-black/10 bg-white p-4 shadow-sm">
                 <p className="text-xs font-bold text-black/45">
-                  Jobs fallidos
+                  Jobs fallidos · 24 h
                 </p>
                 <p className="mt-2 text-3xl font-black">
                   {summary.jobs.failed}
@@ -552,19 +601,34 @@ export default function SystemHealthPage() {
                             {incident.message}
                           </h3>
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/45">
-                            <span>{incident.code}</span>
+                            <span>{incidentLabel(incident.code)}</span>
                             <span>
                               Última: {formatDate(incident.lastSeenAt)}
                             </span>
                             <span>
                               Primera: {formatDate(incident.firstSeenAt)}
                             </span>
-                            {incident.source && <span>{incident.source}</span>}
+                            {incident.source && (
+                              <span>{sourceLabel(incident.source)}</span>
+                            )}
                           </div>
-                          {incident.lastRequestId && (
-                            <p className="mt-2 font-mono text-[10px] text-black/35">
-                              Request ID: {incident.lastRequestId}
-                            </p>
+                          {(incident.lastRequestId ||
+                            incident.source ||
+                            incident.code) && (
+                            <details className="mt-3 text-[11px] text-black/40">
+                              <summary className="cursor-pointer font-bold">
+                                Ver diagnóstico técnico
+                              </summary>
+                              <div className="mt-2 space-y-1 font-mono text-[10px]">
+                                <p>Código: {incident.code}</p>
+                                {incident.source && (
+                                  <p>Origen: {incident.source}</p>
+                                )}
+                                {incident.lastRequestId && (
+                                  <p>Request ID: {incident.lastRequestId}</p>
+                                )}
+                              </div>
+                            </details>
                           )}
                         </div>
                         <button
