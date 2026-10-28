@@ -2106,19 +2106,6 @@ export default function OrdersCardsDashboardV3() {
                 <span
                   className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-violet-200 bg-violet-50 text-violet-600"
                   aria-label="Pedido programado"
-                  title={
-                    selected.scheduledFor
-                      ? `Estados habilitados 30 minutos antes de ${scheduledLabel(selected.scheduledFor)}`
-                      : "Pedido programado"
-                  }
-                >
-                  <Clock3 className="h-[17px] w-[17px]" />
-                </span>
-              ) : selected.scheduledFor &&
-                !isInKitchenWindow(selected.scheduledFor) ? (
-                <span
-                  className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-violet-200 bg-violet-50 text-violet-600"
-                  aria-label="Pedido programado"
                   title={`Estados habilitados 30 minutos antes de ${scheduledLabel(selected.scheduledFor)}`}
                 >
                   <Clock3 className="h-[17px] w-[17px]" />
