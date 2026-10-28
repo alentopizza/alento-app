@@ -95,7 +95,7 @@ async function dispatchEvent(
           level: "WARNING",
           category: "INTEGRATION",
           code: "NOTIFIER_DELIVERY_FAILED",
-          message: reason,
+          message: `El notificador respondió HTTP ${response.status}.`,
           source: "lib/notifier",
           entityType: "ORDER",
           entityId: data.orderId,
