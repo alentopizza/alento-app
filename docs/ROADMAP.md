@@ -15,6 +15,8 @@ Experiencia pública   ✅ EN PRODUCCIÓN / MEJORA CONTINUA
 Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
 Producción             ✅ ACTIVA / HARDENING CONTINUO
 Métricas/medición      ✅ V1 IMPLEMENTADA
+Auditoría               ✅ AUDIT LOG VALIDADO EN PRODUCCIÓN
+Observabilidad          🟡 IMPLEMENTADA / VALIDACIÓN PRODUCTIVA
 Integraciones marketplace 🔒 OPCIONALES / FUTURAS
 ```
 
@@ -111,7 +113,7 @@ Estado: **PRIMERA VERSIÓN IMPLEMENTADA**
 
 Documento: `docs/AUTH_ROLES_AND_PUBLIC_APP.md`.
 
-Ya existe login interno, roles, sesiones firmadas, navegación por rol, protección inicial de páginas/APIs y administración de usuarios. Como hardening futuro conviene completar recuperación de contraseña, auditoría y revocación inmediata de sesiones.
+Ya existe login interno, roles, sesiones firmadas, navegación por rol, protección de páginas/APIs y administración de usuarios. La revocación inmediata de sesiones, rate limiting y Audit Log ya están implementados. La recuperación de contraseña sigue como evolución futura.
 
 Roles iniciales propuestos:
 
@@ -129,15 +131,12 @@ Roles iniciales propuestos:
 
 # Fases posteriores conocidas
 
-- Caja avanzada / conciliación / cierres;
-- devoluciones y reembolsos;
-- auditoría;
+- devoluciones y reembolsos auditables;
 - inventario;
 - recetas;
 - costos;
 - rentabilidad;
 - canje transaccional de Club Alentó;
-- CI y baseline formal de Prisma;
 - parametrización para replicar/comercializar;
 
 ---
@@ -177,7 +176,7 @@ Antes de modificar un módulo cerrado:
 6. hacer el cambio más pequeño posible;
 7. validar build;
 8. actualizar documentación;
-9. revisar `docs/DEPLOYMENT.md` si hay cambios de schema; no indicar un `db push` manual como rutina porque el arranque vigente ya ejecuta `prisma db push`.
+9. revisar `docs/DEPLOYMENT.md` si hay cambios de schema; todo cambio nuevo debe incluir migración versionada porque el arranque vigente ejecuta `prisma migrate deploy`.
 
 La documentación del repositorio debe tener prioridad sobre el historial de chats.
 
@@ -230,7 +229,7 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓ
 
 1. Mantener pruebas end-to-end periódicas en móvil, PWA, tablet y escritorio.
 2. Completar el canje transaccional de Club Alentó.
-3. Endurecer despliegue/Prisma y automatizar lint/build/pruebas críticas.
+3. Mantener CI, migraciones versionadas, backups, auditoría y observabilidad alineados con cada cambio crítico.
 4. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
 5. Mantener `docs/FEATURE_INVENTORY.md` alineado con nuevas rutas y capacidades.
 
