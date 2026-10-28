@@ -58,6 +58,25 @@ type PaymentRow = {
   };
 };
 
+type RefundRow = {
+  id: number;
+  paymentId: number;
+  amount: number;
+  method: string;
+  reason: string;
+  reference: string | null;
+  refundedAt: string;
+  createdByName: string;
+  order: {
+    id: number;
+    sequenceNumber: number | null;
+    source: string;
+    fulfillmentType: string;
+    total: number;
+    customerName: string;
+  };
+};
+
 type OrderSummaryRow = {
   id: number;
   sequenceNumber: number | null;
@@ -192,6 +211,8 @@ type Summary = {
   orderCount: number;
   receivedTotal: number;
   paymentCount: number;
+  refundTotal: number;
+  refundCount: number;
   otherIncomeTotal: number;
   otherIncomeCount: number;
   totalInflow: number;
@@ -218,6 +239,7 @@ type Summary = {
   incomeCategories: IncomeCategorySummary[];
   expenseCategories: ExpenseCategorySummary[];
   payments: PaymentRow[];
+  refunds: RefundRow[];
   otherIncomes: IncomeRow[];
   loans: CashLoanRow[];
   loanRepayments: CashLoanRepaymentRow[];
@@ -236,6 +258,7 @@ type SummaryDetail =
   | "INCOMES"
   | "RECOVERIES"
   | "EXPENSES"
+  | "REFUNDS"
   | "LOAN_OUTFLOWS"
   | "NET";
 type RangePreset = "TODAY" | "YESTERDAY" | "WEEK" | "MONTH" | "CUSTOM";
@@ -1725,6 +1748,7 @@ export default function CashPage() {
                     received: selectedSummary.receivedTotal,
                     otherIncome: selectedSummary.otherIncomeTotal,
                     expensesTotal: selectedSummary.expensesTotal,
+                    refundsTotal: selectedSummary.refundTotal,
                     loansTotal: selectedSummary.loanDisbursedTotal,
                     recovered: selectedSummary.loanRecoveredTotal,
                     netMovement: selectedSummary.netTotal,
@@ -1867,6 +1891,26 @@ export default function CashPage() {
                     {formatCOP(summary.expensesTotal)}
                   </b>
                 </button>
+
+                {summary.refundTotal > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openSummaryDetail("REFUNDS")}
+                    className="rounded-[22px] border border-red-100 bg-[linear-gradient(145deg,#ffffff,#fff1f2)] p-5 shadow-sm group w-full text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-100 text-red-700">
+                        <ArrowUpCircle className="h-5 w-5" />
+                      </span>
+                      <span className="alento-ui-label uppercase tracking-[0.12em] text-red-600">
+                        Devoluciones
+                      </span>
+                    </div>
+                    <b className="mt-4 block text-[28px] font-black tracking-[-0.04em] text-red-700">
+                      {formatCOP(summary.refundTotal)}
+                    </b>
+                  </button>
+                )}
   
                 {summary.loanOutstandingTotal > 0 && (
                   <button
@@ -2584,6 +2628,19 @@ export default function CashPage() {
                   </>
                 )}
 
+                {summaryDetail === "REFUNDS" && (
+                  <>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Devuelto a clientes</span>
+                      <b className="mt-1 block text-lg text-red-300">{formatCOP(summary.refundTotal)}</b>
+                    </div>
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
+                      <span className="alento-ui-micro uppercase text-white/35">Devoluciones</span>
+                      <b className="mt-1 block text-lg">{summary.refundCount}</b>
+                    </div>
+                  </>
+                )}
+
                 {summaryDetail === "LOAN_OUTFLOWS" && (
                   <>
                     <div className="rounded-[14px] border border-white/10 bg-white/[0.06] px-3 py-2.5">
@@ -2888,6 +2945,30 @@ export default function CashPage() {
                         ))}
                       </div>
                     </section>
+
+                    {summary.refunds.length > 0 && (
+                      <section className="rounded-[20px] border border-red-100 bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 className="text-lg font-black">Devoluciones a clientes</h3>
+                          <b className="text-sm text-red-700">- {formatCOP(summary.refundTotal)}</b>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {summary.refunds.map((refund) => (
+                            <div key={refund.id} className="grid gap-2 rounded-[14px] border border-red-100 bg-red-50/45 p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                              <div className="min-w-0">
+                                <b className="text-xs">{orderCode(refund.order.sequenceNumber ?? refund.order.id, refund.order.source)}</b>
+                                <p className="mt-1 truncate text-[10px] text-neutral-500">
+                                  {refund.order.customerName} · {refund.method}
+                                </p>
+                                <p className="mt-0.5 text-[9px] text-neutral-500">{refund.reason}</p>
+                                <p className="mt-0.5 text-[9px] text-neutral-400">{dateTimeLabel(refund.refundedAt)} · {refund.createdByName}</p>
+                              </div>
+                              <b className="text-xs text-red-700">- {formatCOP(refund.amount)}</b>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
                     <section className="rounded-[20px] border border-neutral-200 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-3">
