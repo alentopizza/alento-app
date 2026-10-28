@@ -5,6 +5,25 @@ const STAFF_COOKIE = "alento_staff_session";
 const STAFF_SESSION_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 const STAFF_SESSION_REFRESH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+function withRequestId(response: NextResponse, requestId: string) {
+  response.headers.set("X-Request-Id", requestId);
+  return response;
+}
+
+function nextWithRequestId(request: NextRequest, requestId: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+
+  return withRequestId(
+    NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    }),
+    requestId,
+  );
+}
+
 const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/usuarios", roles: ["ADMIN"] },
   { prefix: "/configuracion", roles: ["ADMIN"] },
@@ -226,17 +245,21 @@ async function refreshStaffSessionToken(session: {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const requestId = crypto.randomUUID();
 
   // Alentó no usa React/Next Server Actions. Rechazamos cualquier solicitud
   // que intente invocarlas antes de que llegue al runtime de Next.js.
   // Esto evita ruido de escáneres automatizados como "Next-Action: x".
   if (request.headers.has("next-action")) {
-    return new NextResponse(null, {
-      status: 404,
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    });
+    return withRequestId(
+      new NextResponse(null, {
+        status: 404,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }),
+      requestId,
+    );
   }
 
   const protectedPage = isProtectedPage(pathname);
@@ -245,23 +268,26 @@ export async function middleware(request: NextRequest) {
   // El middleware ahora cubre también la web pública para poder filtrar
   // Next-Action, pero no debe exigir sesión en rutas públicas.
   if (!protectedPage && !protectedApi) {
-    return applySearchHeaders(NextResponse.next(), pathname);
+    return applySearchHeaders(nextWithRequestId(request, requestId), pathname);
   }
 
   // Cotización pública del checkout: no requiere sesión de colaborador.
   if (isPublicStaffApiException(pathname, request.method)) {
-    return applySearchHeaders(NextResponse.next(), pathname);
+    return applySearchHeaders(nextWithRequestId(request, requestId), pathname);
   }
 
   const session = await readStaffSession(request);
 
   if (!session?.userId) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+      return withRequestId(
+        NextResponse.json({ error: "No autorizado." }, { status: 401 }),
+        requestId,
+      );
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withRequestId(NextResponse.redirect(loginUrl), requestId);
   }
 
   let user:
@@ -290,15 +316,21 @@ export async function middleware(request: NextRequest) {
   } catch (error) {
     console.error("Staff session validation failed", error);
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { error: "Servicio de autenticación no disponible." },
-        { status: 503 },
+      return withRequestId(
+        NextResponse.json(
+          { error: "Servicio de autenticación no disponible." },
+          { status: 503 },
+        ),
+        requestId,
       );
     }
-    return new NextResponse("Servicio temporalmente no disponible.", {
-      status: 503,
-      headers: { "Cache-Control": "no-store" },
-    });
+    return withRequestId(
+      new NextResponse("Servicio temporalmente no disponible.", {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      }),
+      requestId,
+    );
   }
 
   if (
@@ -311,7 +343,10 @@ export async function middleware(request: NextRequest) {
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
-    const response = NextResponse.redirect(loginUrl);
+    const response = withRequestId(
+      NextResponse.redirect(loginUrl),
+      requestId,
+    );
     response.cookies.set(STAFF_COOKIE, "", {
       httpOnly: true,
       sameSite: "lax",
@@ -334,7 +369,10 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/")) {
     const roles = apiRoles(pathname, request.method);
     if (roles && !roles.some((role) => effectiveSession.roles.includes(role))) {
-      return NextResponse.json({ error: "Sin permisos." }, { status: 403 });
+      return withRequestId(
+        NextResponse.json({ error: "Sin permisos." }, { status: 403 }),
+        requestId,
+      );
     }
   } else {
     const rule = PAGE_ROLE_RULES.find(
@@ -345,7 +383,10 @@ export async function middleware(request: NextRequest) {
       rule &&
       !rule.roles.some((role) => effectiveSession.roles.includes(role))
     ) {
-      return NextResponse.redirect(new URL("/sin-acceso", request.url));
+      return withRequestId(
+      NextResponse.redirect(new URL("/sin-acceso", request.url)),
+      requestId,
+    );
     }
   }
 
@@ -355,10 +396,13 @@ export async function middleware(request: NextRequest) {
       effectiveSession.roles.includes(role),
     )
   ) {
-    return NextResponse.redirect(new URL("/sin-acceso", request.url));
+    return withRequestId(
+      NextResponse.redirect(new URL("/sin-acceso", request.url)),
+      requestId,
+    );
   }
 
-  const response = NextResponse.next();
+  const response = nextWithRequestId(request, requestId);
   const tokenNeedsRefresh =
     session.sessionVersion == null ||
     session.email !== user.email ||
