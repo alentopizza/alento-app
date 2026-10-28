@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { scheduledBusinessDate } from "@/lib/orderScheduling";
 import { orderNetReceived } from "@/lib/orderPaymentFinancials";
+import {
+  cashReceivedPaymentWhere,
+  cashRefundWhere,
+} from "@/lib/cashMovementScope";
 
 function todayBogota() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -227,11 +231,10 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.payment.findMany({
-        where: {
-          status: { in: ["PAID", "REFUNDED"] },
-          paidAt: { gte: queryStart, lt: queryEndExclusive },
-          order: { status: { not: "CANCELED" } },
-        },
+        where: cashReceivedPaymentWhere(
+          queryStart,
+          queryEndExclusive,
+        ),
         orderBy: [{ paidAt: "desc" }, { id: "desc" }],
         include: {
           order: {
@@ -247,9 +250,10 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.paymentRefund.findMany({
-        where: {
-          refundedAt: { gte: queryStart, lt: queryEndExclusive },
-        },
+        where: cashRefundWhere(
+          queryStart,
+          queryEndExclusive,
+        ),
         orderBy: [{ refundedAt: "desc" }, { id: "desc" }],
         include: {
           payment: {
