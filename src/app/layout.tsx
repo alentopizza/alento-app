@@ -22,6 +22,7 @@ import AppShell from "@/components/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import CustomerPushPrompt from "@/components/CustomerPushPrompt";
+import ClientObservabilityReporter from "@/components/ClientObservabilityReporter";
 import {
   SEO_ADDRESS,
   SEO_BUSINESS_NAME,
@@ -176,6 +177,7 @@ export default function RootLayout({
         <PwaRegister />
         <PwaInstallPrompt />
         <CustomerPushPrompt />
+        <ClientObservabilityReporter />
         <AppShell>{children}</AppShell>
       </body>
     </html>
