@@ -9,7 +9,7 @@ Cocina                ✅ CERRADO
 Clientes              ✅ CERRADO
 Menú                  ✅ CERRADO
 Autenticación/Roles   🟡 V1 IMPLEMENTADA
-Caja / Nómina         ✅ OPERATIVA / REFUND Y HARDENING PENDIENTES
+Caja / Nómina         ✅ OPERATIVA / REFUND IMPLEMENTADO, VALIDACIÓN FINAL EN CURSO
 Inventario/Costos     ⏳ FUTURO
 Experiencia pública   ✅ EN PRODUCCIÓN / MEJORA CONTINUA
 Reparto               ✅ FLUJO OPERATIVO + GPS + MAPAS IMPLEMENTADOS
@@ -131,7 +131,7 @@ Roles iniciales propuestos:
 
 # Fases posteriores conocidas
 
-- devoluciones y reembolsos auditables;
+- cerrar validación productiva de devoluciones/reembolsos auditables;
 - inventario;
 - recetas;
 - costos;
@@ -230,7 +230,7 @@ Estado: **CHECKOUT WEB Y SEGUIMIENTO IMPLEMENTADOS Y EN PRODUCCIÓN / VALIDACIÓ
 1. Mantener pruebas end-to-end periódicas en móvil, PWA, tablet y escritorio.
 2. Completar el canje transaccional de Club Alentó.
 3. Mantener CI, migraciones versionadas, backups, auditoría y observabilidad alineados con cada cambio crítico.
-4. Implementar refund antes de permitir cancelaciones posteriores a pagos recibidos.
+4. Mantener validado el flujo de refund: devolución auditable antes de cancelar pedidos con dinero neto recibido.
 5. Mantener `docs/FEATURE_INVENTORY.md` alineado con nuevas rutas y capacidades.
 
 Referencias canónicas: `docs/PUBLIC_CHECKOUT_MAPS.md`, `docs/COUPONS.md` y `docs/CLUB_POINTS.md`.
