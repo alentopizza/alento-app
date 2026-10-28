@@ -395,7 +395,7 @@ Validación técnica:
 - replay de pago: un solo movimiento;
 - advisory lock ejecutado realmente vía Prisma: verde;
 - Next build: verde;
-- Quality CI inicial: `40439799102`;
+- Quality CI final de implementación: `40439799102`;
 - Quality CI hotfix advisory lock: `40596132160`.
 
 Hallazgo de primera validación productiva:
@@ -599,7 +599,7 @@ Validación técnica inicial:
 - TypeScript: verde;
 - **11 archivos / 54 tests**;
 - build: verde;
-- Quality CI inicial: `40608691947`.
+- Quality CI final de implementación: `40609801030`.
 
 Documento canónico:
 
