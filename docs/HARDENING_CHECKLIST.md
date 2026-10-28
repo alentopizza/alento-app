@@ -516,7 +516,7 @@ Validación técnica final:
 
 ---
 
-### 9. Observabilidad de producción — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+### 9. Observabilidad de producción — ✅ COMPLETADO
 
 Objetivo:
 
@@ -546,17 +546,11 @@ Implementado:
 - endpoint frontend rate-limited:
   - `POST /api/observability/client-error`;
 - captura backend global mediante `src/instrumentation.ts`;
-- `GET /api/health` ampliado con:
-  - request ID;
-  - uptime;
-  - latencia total;
-  - latencia/estado de PostgreSQL;
-  - HTTP 503 si DB falla;
-- nueva pantalla ADMIN `/salud-sistema`;
+- `GET /api/health` ampliado con request ID, uptime, latencia y estado de PostgreSQL;
+- pantalla ADMIN `/salud-sistema`;
 - resumen ADMIN `GET /api/observability/summary`;
 - resolución `PATCH /api/observability/incidents/[id]`;
 - prueba segura `POST /api/observability/test`;
-- botón **Generar alerta de prueba**;
 - refresh automático cada 60 s cuando la pestaña está visible.
 
 Monitoreo implementado:
@@ -565,33 +559,22 @@ Monitoreo implementado:
 - WhatsApp / Notifier;
 - Web Push;
 - Google Maps server-side;
-- NotificationJob:
-  - vencidos;
-  - enviados 24 h;
-  - fallidos 24 h;
-  - job pendiente más antiguo;
-- campañas Push fallidas;
+- NotificationJob;
+- campañas Push;
 - sincronización de clientes;
 - tracking externo configurado.
 
-Integraciones instrumentadas:
-
-- `src/lib/notifier.ts`;
-- `src/app/api/internal/notification-jobs/run/route.ts`;
-- `src/app/api/push-campaigns/route.ts`;
-- `src/lib/customerContactWebhook.ts`.
-
 Backups:
 
-- `db:verify-restore` incluye ahora `operationalIncidents`.
+- `db:verify-restore` incluye `operationalIncidents`.
 
 Privacidad:
 
-- no persistir cuerpos externos completos;
-- no guardar tokens, passwords, API keys, secretos, teléfonos, direcciones u OTP;
+- no se persisten cuerpos externos completos;
+- no se guardan tokens, passwords, API keys, secretos, teléfonos, direcciones u OTP;
 - el frontend no envía stack completo.
 
-Validación técnica inicial:
+Validación técnica:
 
 - migración Observabilidad aplicada en PostgreSQL efímero;
 - drift: **No difference detected**;
@@ -599,24 +582,38 @@ Validación técnica inicial:
 - TypeScript: verde;
 - **11 archivos / 54 tests**;
 - build: verde;
-- Quality CI final de implementación: `40609801030`.
+- Quality CI final: `40610330977`.
+
+Validación productiva final — **2026-10-27**:
+
+- `/salud-sistema` abrió correctamente con sesión ADMIN;
+- estado inicial: **Sistema operativo**;
+- PostgreSQL: Operativo;
+- WhatsApp / Notifier: Operativo;
+- Web Push: Operativo;
+- Google Maps: Operativo;
+- Trabajos programados: Operativo;
+- errores activos iniciales: 0;
+- advertencias activas iniciales: 0;
+- jobs fallidos 24 h: 0;
+- campañas Push fallidas 24 h: 0;
+- contactos pendientes de sincronizar: 0;
+- jobs vencidos pendientes: 0;
+- se generó una alerta segura de prueba;
+- el estado general cambió correctamente a **Operativo con alertas**;
+- la alerta apareció como **Advertencia / Sistema / Alerta de prueba**;
+- se confirmó contador de ocurrencias y diagnóstico técnico;
+- se marcó la alerta como resuelta;
+- el estado general volvió a **Sistema operativo**;
+- advertencias activas regresaron a 0;
+- la alerta apareció en **resueltas recientemente**;
+- las integraciones permanecieron operativas durante toda la prueba.
 
 Documento canónico:
 
 `docs/OBSERVABILITY.md`
 
-Pendiente para cerrar:
-
-1. redeploy productivo;
-2. confirmar migración + Next `Ready`;
-3. abrir `/api/health` y verificar status/database/latencia/request ID;
-4. abrir `/salud-sistema` como ADMIN;
-5. generar la alerta segura de prueba;
-6. comprobar que aparece activa;
-7. marcarla resuelta;
-8. confirmar que pasa a resueltas recientemente.
-
-**No iniciar el punto #10 hasta cerrar esta validación productiva.**
+**Punto #9 cerrado. El siguiente punto es #10 Refund / devoluciones auditables, pero no debe iniciarse sin autorización explícita del usuario.**
 
 ---
 
@@ -656,10 +653,10 @@ Estado actual para continuidad:
 - #6 Seguridad de sesiones y rate limiting: ✅
 - #7 Idempotencia de operaciones críticas: ✅
 - #8 Audit Log: ✅ completado y validado en producción.
-- #9 Observabilidad: 🟡 implementado en repositorio, pendiente de validación productiva.
-- #10 Refund / devoluciones auditables: pendiente.
+- #9 Observabilidad: ✅ completado y validado en producción.
+- #10 Refund / devoluciones auditables: siguiente punto pendiente.
 
-Una nueva conversación debe continuar validando el #9 en producción; no iniciar #10 hasta cerrarlo.
+Una nueva conversación debe continuar desde el #10, pero solo con autorización explícita del usuario.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
