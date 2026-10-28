@@ -90,9 +90,27 @@ API principal:
 
 `date=YYYY-MM-DD` sigue aceptándose como compatibilidad de un solo día.
 
-Caja usa la zona horaria de Colombia y separa cuatro conceptos:
+Caja usa la zona horaria de Colombia y separa los conceptos comerciales de los movimientos reales de dinero.
 
-- **Ventas**: suma de pedidos creados dentro del rango, excluyendo DRAFT y CANCELED.
+### Fecha efectiva de venta
+
+La fecha comercial de una venta es:
+
+```text
+pedido inmediato  → Order.createdAt
+pedido programado → Order.scheduledFor
+```
+
+Por tanto:
+
+- un pedido programado creado hoy para otra fecha **no aumenta las Ventas de hoy**;
+- ese pedido aparece en Ventas del día para el que fue programado;
+- reprogramarlo mueve su atribución comercial a la nueva fecha;
+- Caja puede mostrar ventas programadas de una fecha futura aunque todavía no exista entrada real de dinero.
+
+Conceptos del resumen:
+
+- **Ventas**: suma de Orders cuya fecha efectiva de venta cae dentro del rango, excluyendo DRAFT y CANCELED.
 - **Cobros de ventas**: suma únicamente `Payment.status = PAID` por `paidAt` dentro del rango.
 - **Otros ingresos**: suma de `CashIncome.amount` por `occurredAt` dentro del rango.
 - **Entró total**: cobros de ventas + otros ingresos.
@@ -109,6 +127,13 @@ También muestra:
 - movimientos recientes de salidas.
 
 No suma órdenes pendientes solo porque tengan un medio de pago seleccionado.
+
+Para pedidos programados en otro día:
+
+- el movimiento `PENDING` puede existir como medio previsto;
+- registrar o eliminar un pago real queda bloqueado antes de la fecha programada;
+- el día programado el cobro puede registrarse normalmente y entra a Caja por su `paidAt`;
+- los estados de preparación/reparto siguen sujetos a la ventana operativa de 30 minutos.
 
 Cuando un Payment se elimina físicamente, desaparece del resumen de Caja.
 
@@ -148,13 +173,7 @@ y el índice:
 @@index([status, paidAt])
 ```
 
-Si el entorno todavía no tiene ese campo sincronizado, ejecutar:
-
-```bash
-npx prisma db push
-```
-
-Los cambios de eliminación física y de numeración no agregan columnas nuevas.
+Los cambios de esquema nuevos deben seguir la estrategia vigente de migraciones versionadas y `prisma migrate deploy`; no usar `db push` como rutina de producción.
 
 
 ## Cancelación después de recibir dinero
@@ -245,8 +264,8 @@ La categoría `Venta` dentro de este modelo sigue siendo **otro ingreso históri
 El resumen de Caja queda definido como:
 
 ```text
-Ventas = Orders del período
-Cobros de ventas = Payments PAID del período
+Ventas = Orders por fecha efectiva de venta
+Cobros de ventas = Payments PAID por paidAt
 Otros ingresos = CashIncome del período
 Entró total = Cobros de ventas + Otros ingresos
 Salidas = CashExpense del período
