@@ -104,6 +104,7 @@ const categoryLabels: Record<string, string> = {
   JOBS: "Trabajos programados",
   PUSH: "Notificaciones Push",
   CONFIGURATION: "Configuración",
+  SYSTEM: "Sistema",
 };
 
 function formatDate(value: string | null) {
@@ -186,6 +187,7 @@ export default function SystemHealthPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const load = useCallback(async (background = false) => {
     if (background) setRefreshing(true);
@@ -224,6 +226,33 @@ export default function SystemHealthPage() {
 
     return () => window.clearInterval(interval);
   }, [load]);
+
+  async function generateTestAlert() {
+    setTesting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/observability/test", {
+        method: "POST",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "No fue posible generar la alerta de prueba.",
+        );
+      }
+      await load(true);
+    } catch (testError) {
+      setError(
+        testError instanceof Error
+          ? testError.message
+          : "No fue posible generar la alerta de prueba.",
+      );
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function resolveIncident(id: string) {
     setResolvingId(id);
@@ -298,17 +327,28 @@ export default function SystemHealthPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void load(true)}
-            disabled={refreshing}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-black shadow-sm disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-            Actualizar
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void generateTestAlert()}
+              disabled={testing}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 text-sm font-black shadow-sm disabled:opacity-50"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              {testing ? "Generando…" : "Generar alerta de prueba"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void load(true)}
+              disabled={refreshing}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-black px-4 text-sm font-black text-white shadow-sm disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+              Actualizar
+            </button>
+          </div>
         </header>
 
         {error && (
