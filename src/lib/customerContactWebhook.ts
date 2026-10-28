@@ -140,10 +140,6 @@ export async function sendCustomerContactWebhook(args: {
     });
 
     if (!response.ok) {
-      const responseText = await response
-        .text()
-        .catch(() => "");
-
       await reportOperationalIncident({
         level: "WARNING",
         category: "INTEGRATION",
