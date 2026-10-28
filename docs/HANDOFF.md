@@ -124,7 +124,8 @@ Estado:
 - validación productiva real confirmada:
   - pedido #801: Horneando → Listo;
   - pago real de $14.900 en Efectivo;
-  - actor, fecha, entidad y origen correctos.
+  - actor, fecha, entidad y origen correctos;
+- CI final del #8: `40605413080`, 10 archivos / 51 tests, build verde.
 
 El siguiente punto es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
 
