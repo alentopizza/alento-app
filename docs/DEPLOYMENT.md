@@ -266,7 +266,23 @@ EasyPanel puede usar:
 
 `GET /api/health`
 
-como comprobación simple de disponibilidad.
+como comprobación de disponibilidad.
+
+Desde el hardening #9 devuelve además:
+
+- request ID;
+- uptime;
+- latencia total;
+- estado y latencia de PostgreSQL;
+- HTTP 503 si la base no responde.
+
+La ruta no expone secretos ni topología interna.
+
+La vista ADMIN completa vive en:
+
+`/salud-sistema`
+
+Documento canónico: `docs/OBSERVABILITY.md`.
 
 ### Instalación reproducible de dependencias
 
@@ -311,7 +327,7 @@ npm run build
 
 Un fallo en cualquiera de estos pasos deja el workflow rojo.
 
-La suite automatizada actual usa Vitest y contiene 31 pruebas críticas en 5 archivos. No necesita credenciales productivas ni servicios externos.
+La suite automatizada actual usa Vitest y contiene 54 pruebas en 11 archivos, incluidas pruebas persistentes de auditoría y observabilidad. No necesita credenciales productivas ni servicios externos.
 
 Las pruebas E2E de navegador siguen pendientes y deben agregarse como una fase futura separada.
 
@@ -360,3 +376,36 @@ Documento funcional: `docs/COUPONS.md`.
 Durante un redeploy puede aparecer un `SIGTERM` correspondiente al proceso anterior que EasyPanel está deteniendo. Si a continuación Next.js inicia y muestra `Ready`, ese `SIGTERM` por sí solo no indica una caída permanente.
 
 La advertencia Node `DEP0169` sobre `url.parse()` proviene actualmente de una dependencia; no se ha encontrado uso directo de `url.parse()` en el código de Alentó. Tratarla como advertencia deprecada mientras el servidor continúe iniciando correctamente, y revisar dependencias cuando corresponda.
+
+
+## Migración de Observabilidad — 2026-10-27
+
+El hardening #9 añade el modelo:
+
+`OperationalIncident`
+
+Migración versionada:
+
+`20261028001500_observability_operational_incidents`
+
+El redeploy normal debe aplicarla automáticamente mediante:
+
+```bash
+prisma migrate deploy && next start -p 3000
+```
+
+No ejecutar `db push` manual para este cambio.
+
+Después del primer deploy validar:
+
+1. migración aplicada correctamente;
+2. Next.js `Ready`;
+3. `GET /api/health` responde `status: ok`;
+4. entrar como ADMIN a `/salud-sistema`;
+5. generar una alerta de prueba;
+6. verla activa;
+7. marcarla resuelta.
+
+No se requieren variables de entorno nuevas para Observabilidad.
+
+Las integraciones existentes se detectan usando sus variables actuales; no se imprimen secretos.
