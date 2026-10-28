@@ -1015,4 +1015,22 @@ Pruebas añadidas:
 
 Quality CI: `40614116593` — 11 archivos / 56 tests, cero drift y build verde.
 
-Estado: 🟡 pendiente de redeploy y validación con pedido real antes de iniciar #10.
+Estado: ✅ redeploy y validación productiva confirmados por el usuario; #10 autorizado.
+
+
+## Devoluciones auditables — hardening #10
+
+Implementado en PR #6, pendiente de CI final y validación productiva.
+
+- `PaymentRefund` persiste devoluciones parciales/totales sin borrar el cobro original;
+- endpoint idempotente de refund;
+- Audit Log `PAYMENT_REFUNDED`;
+- Caja distingue cobros, gastos y devoluciones;
+- el cobro permanece atribuido a `paidAt` y la devolución a `refundedAt`;
+- flujo neto y cierre esperado descuentan devoluciones;
+- saldo y edición de pedido usan dinero neto recibido;
+- cancelación de un pedido cobrado exige neto recibido = 0;
+- un pago que ya tenga devoluciones queda protegido contra eliminación física;
+- Pedidos muestra acción de devolución e historial asociado.
+
+Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
