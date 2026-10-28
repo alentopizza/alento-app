@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { reportOperationalIncident } from "@/lib/observability";
 
 export type CustomerContactWebhookSource =
   | "STAFF"
@@ -143,10 +144,20 @@ export async function sendCustomerContactWebhook(args: {
         .text()
         .catch(() => "");
 
-      console.warn("Customer contact webhook rejected", {
-        customerId: customer.id,
-        status: response.status,
-        response: responseText.slice(0, 250),
+      await reportOperationalIncident({
+        level: "WARNING",
+        category: "INTEGRATION",
+        code: "CUSTOMER_CONTACT_WEBHOOK_REJECTED",
+        message: `El webhook de contactos respondió HTTP ${response.status}.`,
+        source: "lib/customerContactWebhook",
+        entityType: "CUSTOMER",
+        entityId: customer.id,
+        fingerprintKey: String(response.status),
+        metadata: {
+          source: args.source,
+          status: response.status,
+          responsePreview: responseText.slice(0, 120),
+        },
       });
 
       return {
@@ -170,21 +181,29 @@ export async function sendCustomerContactWebhook(args: {
 
     return { ok: true, status: "sent" };
   } catch (error) {
-    console.warn("Customer contact webhook failed", {
-      customerId: customer.id,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Unknown webhook error",
+    const reason =
+      error instanceof Error
+        ? error.message
+        : "No fue posible enviar el webhook.";
+
+    await reportOperationalIncident({
+      level: "WARNING",
+      category: "INTEGRATION",
+      code: "CUSTOMER_CONTACT_WEBHOOK_UNREACHABLE",
+      message: reason,
+      source: "lib/customerContactWebhook",
+      entityType: "CUSTOMER",
+      entityId: customer.id,
+      fingerprintKey: args.source,
+      metadata: {
+        source: args.source,
+      },
     });
 
     return {
       ok: false,
       status: "failed",
-      reason:
-        error instanceof Error
-          ? error.message
-          : "No fue posible enviar el webhook.",
+      reason,
     };
   }
 }
