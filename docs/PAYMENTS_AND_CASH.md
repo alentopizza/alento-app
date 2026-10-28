@@ -13,10 +13,9 @@ Al crear el pedido:
 - `paidAt = null`;
 - el pedido puede continuar su operación aunque el dinero todavía no esté registrado como recibido.
 
-Caja solo cuenta pagos con:
+Caja conserva como entrada histórica todo cobro realmente recibido por `paidAt`.
 
-- `Payment.status = PAID`;
-- `Payment.paidAt != null`.
+Una devolución no borra ese ingreso original: se registra como un movimiento separado `PaymentRefund` por `refundedAt` y se descuenta del flujo neto de la fecha en que se devolvió el dinero.
 
 ## Registrar pago
 
@@ -50,7 +49,7 @@ Consecuencias:
 - el pedido vuelve a mostrar ese valor como saldo pendiente;
 - después de eliminar los pagos de una orden, esa orden puede eliminarse definitivamente si así lo decide el operador.
 
-Esta acción es distinta a una devolución real al cliente. Una devolución futura deberá registrarse con su propio flujo contable y no reutilizar este borrado operativo.
+Esta acción es distinta a una devolución real al cliente. Si un pago ya tiene una devolución asociada, no puede eliminarse físicamente porque debe conservarse el historial financiero.
 
 ## Pagos posteriores a una edición
 
@@ -67,7 +66,7 @@ Ejemplo:
 
 Esto permite que Caja refleje dinero real y evita reescribir movimientos históricos.
 
-Si una edición intenta bajar el total por debajo del dinero ya recibido, el servidor la bloquea. Esa operación necesita un flujo de devolución/refund, que debe implementarse aparte.
+Si una edición intenta bajar el total por debajo del dinero neto todavía recibido, el servidor la bloquea. Después de registrar una devolución suficiente, la edición puede continuar sin reescribir el cobro histórico.
 
 ## Eliminar pedido vs cancelar pedido
 
@@ -111,11 +110,12 @@ Por tanto:
 Conceptos del resumen:
 
 - **Ventas**: suma de Orders cuya fecha efectiva de venta cae dentro del rango, excluyendo DRAFT y CANCELED.
-- **Cobros de ventas**: suma únicamente `Payment.status = PAID` por `paidAt` dentro del rango.
+- **Cobros de ventas**: suma cobros efectivamente recibidos por `paidAt` dentro del rango; incluye pagos que después hayan quedado completamente `REFUNDED`, para no alterar retrospectivamente el día del ingreso.
 - **Otros ingresos**: suma de `CashIncome.amount` por `occurredAt` dentro del rango.
 - **Entró total**: cobros de ventas + otros ingresos.
 - **Salió**: suma de `CashExpense.amount` por `occurredAt` dentro del rango.
-- **Flujo neto**: entró total menos salidas.
+- **Devoluciones**: suma de `PaymentRefund.amount` por `refundedAt` dentro del rango.
+- **Flujo neto**: entró total menos gastos, préstamos entregados y devoluciones, incorporando las recuperaciones aplicables.
 
 También muestra:
 
@@ -147,9 +147,10 @@ POS y WEB comparten la misma secuencia global de `Order.sequenceNumber`; solo ca
 
 ## Próximas extensiones contables
 
-El modelo está preparado conceptualmente para continuar con:
+Devoluciones auditables (`PaymentRefund` + `REFUNDED`) ya están implementadas.
 
-- devoluciones (`REFUNDED`);
+El modelo puede continuar con:
+
 - pagos parciales;
 - pagos mixtos;
 - cierre de caja por turno;
@@ -176,22 +177,40 @@ y el índice:
 Los cambios de esquema nuevos deben seguir la estrategia vigente de migraciones versionadas y `prisma migrate deploy`; no usar `db push` como rutina de producción.
 
 
-## Cancelación después de recibir dinero
+## Devoluciones y cancelación después de recibir dinero
 
-Todavía no existe un flujo contable de devolución/refund.
+Endpoint:
 
-Por seguridad, si un pedido tiene uno o más movimientos `PAID`, la cancelación queda bloqueada.
+`POST /api/orders/[id]/payment/[paymentId]/refund`
 
-Motivo: marcar como cancelado el dinero recibido sin crear un movimiento de devolución rompería la trazabilidad de Caja.
+Cada devolución crea un `PaymentRefund` ligado al pago original. Guarda:
 
-Flujo vigente:
+- valor devuelto;
+- medio de devolución;
+- motivo obligatorio;
+- referencia opcional;
+- fecha real `refundedAt`;
+- colaborador responsable;
+- clave/hash de idempotencia.
+
+Reglas:
+
+- soporta devolución parcial o total;
+- nunca reescribe ni borra el cobro original;
+- una devolución total cambia el pago original a `REFUNDED`;
+- el saldo del pedido y las reglas de edición usan dinero **neto** recibido;
+- un pago con devoluciones no puede eliminarse físicamente;
+- cada refund genera `PAYMENT_REFUNDED` en Auditoría;
+- Caja muestra la devolución como salida financiera separada de los gastos operativos.
+
+Cancelación:
 
 ```text
-sin pagos PAID → se puede cancelar
-con pagos PAID → bloquear cancelación → implementar/registrar refund antes de permitirla
+neto recibido = 0 → se puede cancelar
+neto recibido > 0 → bloquear cancelación y exigir devolución primero
 ```
 
-No retirar esta protección hasta que exista un movimiento `REFUNDED` auditable.
+Esto permite conservar simultáneamente la venta/cobro histórico, la salida por devolución y el estado final cancelado del pedido.
 
 
 ## Salidas de Caja
