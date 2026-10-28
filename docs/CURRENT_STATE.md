@@ -859,7 +859,7 @@ CI final del #8: `40605413080` — 10 archivos / 51 tests, cero drift y build ve
 
 Estado #8: ✅ completado.
 
-El hardening #9 Observabilidad está implementado en repositorio y pendiente de validación productiva.
+El hardening #9 Observabilidad está implementado y validado en producción.
 
 
 ## Sidebar interno compacto — 2026-10-27
@@ -909,7 +909,7 @@ Estado #8: ✅ completado.
 
 ## Observabilidad de producción — 2026-10-27
 
-El hardening #9 está implementado en repositorio y pendiente de validación productiva.
+El hardening #9 está **implementado y validado en producción**.
 
 Capacidades:
 
@@ -934,38 +934,38 @@ Migración:
 
 `20261028001500_observability_operational_incidents`
 
-Rutas:
+Validación productiva real:
 
-- `GET /api/health`;
-- `GET /api/observability/summary`;
-- `POST /api/observability/test`;
-- `PATCH /api/observability/incidents/[id]`;
-- `POST /api/observability/client-error`.
-
-Privacidad:
-
-- logs/incidentes sanitizan secretos;
-- no se guardan bodies externos completos;
-- frontend no envía stack completo;
-- reportes públicos de navegador tienen rate limiting.
+- estado inicial: Sistema operativo;
+- PostgreSQL, Notifier, Web Push, Google Maps y Jobs: Operativos;
+- 0 errores activos;
+- 0 advertencias activas;
+- 0 jobs fallidos en 24 h;
+- alerta segura generada correctamente;
+- estado cambió a Operativo con alertas;
+- advertencias activas: 1;
+- alerta visible con categoría Sistema y diagnóstico;
+- alerta marcada como resuelta;
+- sistema volvió a 0 advertencias;
+- alerta visible en resueltas recientemente.
 
 Backups:
 
-`db:verify-restore` incluye ahora `operationalIncidents`.
+`db:verify-restore` incluye `operationalIncidents`.
 
-Quality CI final de implementación:
+Quality CI final:
 
 - migración aplicada;
 - cero drift;
 - lint/types verdes;
 - **11 archivos / 54 tests**;
 - build verde;
-- run `40609801030`.
+- run `40610330977`.
 
 Documento canónico:
 
 `docs/OBSERVABILITY.md`.
 
-Estado #9: 🟡 pendiente de redeploy y validación de la alerta segura de prueba.
+Estado #9: ✅ completado.
 
-No iniciar #10 Refund / devoluciones auditables hasta cerrar el #9.
+El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse sin autorización explícita del usuario.
