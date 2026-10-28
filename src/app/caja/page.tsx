@@ -69,6 +69,8 @@ type OrderSummaryRow = {
   discount: number;
   total: number;
   createdAt: string;
+  scheduledFor: string | null;
+  businessDate: string;
   customerName: string;
   paidAmount: number;
   pendingAmount: number;
@@ -1522,7 +1524,7 @@ export default function CashPage() {
                 Caja
               </h1>
               <p className="alento-ui-hero-subtitle mt-1.5 text-white/60">
-                Ventas, entradas, préstamos y salidas reales en el período.
+                Ventas por fecha de servicio, entradas, préstamos y salidas reales en el período.
               </p>
             </div>
 
@@ -2710,9 +2712,20 @@ export default function CashPage() {
                                   <b className="block text-neutral-950">
                                     {orderCode(order.sequenceNumber ?? order.id, order.source)}
                                   </b>
-                                  <span className="mt-1 block text-[10px] text-neutral-400">
-                                    {dateTimeLabel(order.createdAt)}
-                                  </span>
+                                  {order.scheduledFor ? (
+                                    <>
+                                      <span className="mt-1 block text-[10px] font-bold text-violet-600">
+                                        Programado · {dateTimeLabel(order.scheduledFor)}
+                                      </span>
+                                      <span className="mt-0.5 block text-[9px] text-neutral-400">
+                                        Creado {dateTimeLabel(order.createdAt)}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="mt-1 block text-[10px] text-neutral-400">
+                                      {dateTimeLabel(order.createdAt)}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 align-top">
                                   <b className="font-bold text-neutral-850">{order.customerName}</b>
