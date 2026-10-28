@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ClipboardList,
   History,
+  HeartPulse,
   LogOut,
   Menu,
   Settings,
@@ -111,6 +112,12 @@ const items = [
     roles: ["ADMIN"],
   },
   {
+    href: "/salud-sistema",
+    label: "Salud del sistema",
+    icon: HeartPulse,
+    roles: ["ADMIN"],
+  },
+  {
     href: "/configuracion",
     label: "Configuración",
     icon: Settings,
@@ -130,6 +137,7 @@ const MOBILE_SUPERVISION_HREFS = [
   "/caja",
   "/usuarios",
   "/auditoria",
+  "/salud-sistema",
   "/configuracion",
 ] as const;
 
