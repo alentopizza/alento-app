@@ -289,6 +289,7 @@ Documentos principales:
 - [`docs/CUSTOMERS.md`](docs/CUSTOMERS.md): funcionamiento completo de Clientes.
 - [`docs/MENU.md`](docs/MENU.md): funcionamiento completo de Menú, categorías, productos, destacados y backlog futuro.
 - [`docs/METRICS_AND_TRACKING.md`](docs/METRICS_AND_TRACKING.md): métricas internas, atribución y guías para conectar Meta, GA4, TikTok, Clarity, GTM y Google Ads.
+- [`docs/AUDIT_LOG.md`](docs/AUDIT_LOG.md): historial inmutable de acciones sensibles y trazabilidad administrativa.
 - [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md): request IDs, logs estructurados, alertas, health checks e integraciones.
 - [`docs/SEO.md`](docs/SEO.md): SEO técnico/local, sitemap, datos estructurados, Search Console y operación del Perfil de Negocio.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): orden de implementación por fases y criterios de cierre.
