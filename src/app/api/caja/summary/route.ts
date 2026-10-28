@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { scheduledBusinessDate } from "@/lib/orderScheduling";
 
 function todayBogota() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -157,16 +158,32 @@ export async function GET(request: NextRequest) {
     ] = await prisma.$transaction([
       prisma.order.aggregate({
         where: {
-          createdAt: { gte: queryStart, lt: queryEndExclusive },
           status: { notIn: ["DRAFT", "CANCELED"] },
+          OR: [
+            {
+              scheduledFor: null,
+              createdAt: { gte: start, lt: endExclusive },
+            },
+            {
+              scheduledFor: { gte: start, lt: endExclusive },
+            },
+          ],
         },
         _sum: { total: true },
         _count: { _all: true },
       }),
       prisma.order.findMany({
         where: {
-          createdAt: { gte: queryStart, lt: queryEndExclusive },
           status: { notIn: ["DRAFT", "CANCELED"] },
+          OR: [
+            {
+              scheduledFor: null,
+              createdAt: { gte: start, lt: endExclusive },
+            },
+            {
+              scheduledFor: { gte: start, lt: endExclusive },
+            },
+          ],
         },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
@@ -180,6 +197,7 @@ export async function GET(request: NextRequest) {
           discount: true,
           total: true,
           createdAt: true,
+          scheduledFor: true,
           customer: {
             select: { name: true },
           },
@@ -505,6 +523,11 @@ export async function GET(request: NextRequest) {
           discount: Number(order.discount),
           total,
           createdAt: order.createdAt.toISOString(),
+          scheduledFor: order.scheduledFor?.toISOString() ?? null,
+          businessDate: scheduledBusinessDate(
+            order.createdAt,
+            order.scheduledFor,
+          ),
           customerName: order.customer?.name ?? "Cliente ocasional",
           paidAmount,
           pendingAmount: Math.max(0, total - paidAmount),
