@@ -156,7 +156,6 @@ export async function sendCustomerContactWebhook(args: {
         metadata: {
           source: args.source,
           status: response.status,
-          responsePreview: responseText.slice(0, 120),
         },
       });
 
