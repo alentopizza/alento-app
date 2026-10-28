@@ -953,14 +953,14 @@ Backups:
 
 `db:verify-restore` incluye ahora `operationalIncidents`.
 
-Quality CI inicial:
+Quality CI final de implementación:
 
 - migración aplicada;
 - cero drift;
 - lint/types verdes;
 - **11 archivos / 54 tests**;
 - build verde;
-- run `40608691947`.
+- run `40609801030`.
 
 Documento canónico:
 
