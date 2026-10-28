@@ -278,9 +278,9 @@ Un medio de pago seleccionado no equivale a ingreso recibido.
 
 `Payment.status = PAID` y `paidAt` representan un ingreso real.
 
-Caja debe sumar únicamente pagos realmente recibidos.
+Caja distingue el cobro histórico del dinero neto todavía recibido. Un cobro real se conserva por `paidAt`; una devolución se registra por separado en `PaymentRefund` y afecta el neto en `refundedAt`.
 
-Eliminar un pago ingresado por error es un borrado físico y debe sacarlo de Caja.
+Eliminar un pago ingresado por error es un borrado físico y debe sacarlo de Caja, pero queda prohibido cuando ese pago ya tiene devoluciones.
 
 Ver `docs/PAYMENTS_AND_CASH.md`.
 
@@ -306,9 +306,9 @@ La experiencia pública ya existe y debe seguir reutilizando el mismo motor come
 
 Actualmente están implementados Home, menú, configurador, carrito, Club y el paso de domicilio con Google Maps/Routes.
 
-El checkout público todavía no crea la orden final. La fase pendiente debe crear `Order.source=WEB`, usar el consecutivo global y reutilizar normalización, precios, cobertura y configuración estructurada existentes.
+El checkout público crea órdenes reales mediante `POST /api/public-checkout` con `Order.source=WEB`, consecutivo global compartido y recálculo server-side de catálogo, precios, cupones, cobertura y configuración estructurada.
 
-No exponer `POST /api/orders` tal como está al navegador público: hoy es un endpoint interno protegido y fija `source=POS`. La creación WEB necesita un contrato público específico con recálculo y validaciones server-side.
+`POST /api/orders` continúa siendo el endpoint interno del POS y fija `source=POS`. No exponerlo directamente como contrato público ni crear un segundo motor comercial.
 
 ## Escala tipográfica operativa
 
