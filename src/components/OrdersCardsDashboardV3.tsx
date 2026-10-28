@@ -684,7 +684,7 @@ export default function OrdersCardsDashboardV3() {
   async function openStatusManager(order: Order) {
     if (order.scheduledFor && !isInKitchenWindow(order.scheduledFor)) {
       setFeedbackModal({
-        tone: "info",
+        tone: "warning",
         title: "Pedido programado",
         message: `La operación de este pedido se habilita 30 minutos antes de ${scheduledLabel(order.scheduledFor)}.`,
         detail:
@@ -978,7 +978,7 @@ export default function OrdersCardsDashboardV3() {
   async function openPayment(order: Order) {
     if (isScheduledForFutureDay(order.scheduledFor)) {
       setFeedbackModal({
-        tone: "info",
+        tone: "warning",
         title: "Cobro programado",
         message: order.scheduledFor
           ? `Este pedido se cobra el ${scheduledDayLabel(order.scheduledFor)}.`
@@ -1684,7 +1684,7 @@ export default function OrdersCardsDashboardV3() {
                     <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">
                       CERRADO
                     </span>
-                  ) : futureScheduled ? (
+                  ) : operationLocked ? (
                     <span
                       className="flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-2 text-[10px] font-black text-violet-700"
                       title={
@@ -1753,6 +1753,12 @@ export default function OrdersCardsDashboardV3() {
                       Programado · {scheduledLabel(selected.scheduledFor)}
                     </span>
                   )}
+                  {selected.scheduledFor &&
+                    !isInKitchenWindow(selected.scheduledFor) && (
+                      <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 alento-ui-label font-black uppercase text-amber-100">
+                        Operación bloqueada hasta 30 min antes
+                      </span>
+                    )}
                   <span
                     className={`rounded-full border px-2.5 py-1 alento-ui-label uppercase ${fulfillmentTone(selected.fulfillmentType)}`}
                   >
@@ -1923,9 +1929,18 @@ export default function OrdersCardsDashboardV3() {
                     <button
                       type="button"
                       onClick={() => void openPayment(selected)}
-                      className="h-9 rounded-[11px] bg-black px-3 alento-ui-micro font-black uppercase text-white"
+                      disabled={isScheduledForFutureDay(selected.scheduledFor)}
+                      title={
+                        isScheduledForFutureDay(selected.scheduledFor) &&
+                        selected.scheduledFor
+                          ? `Cobro habilitado el ${scheduledDayLabel(selected.scheduledFor)}`
+                          : undefined
+                      }
+                      className="h-9 rounded-[11px] bg-black px-3 alento-ui-micro font-black uppercase text-white disabled:cursor-not-allowed disabled:bg-violet-100 disabled:text-violet-700"
                     >
-                      Registrar pago
+                      {isScheduledForFutureDay(selected.scheduledFor)
+                        ? "Cobro programado"
+                        : "Registrar pago"}
                     </button>
                   )}
                 </div>
@@ -2096,6 +2111,15 @@ export default function OrdersCardsDashboardV3() {
                       ? `Estados habilitados 30 minutos antes de ${scheduledLabel(selected.scheduledFor)}`
                       : "Pedido programado"
                   }
+                >
+                  <Clock3 className="h-[17px] w-[17px]" />
+                </span>
+              ) : selected.scheduledFor &&
+                !isInKitchenWindow(selected.scheduledFor) ? (
+                <span
+                  className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-violet-200 bg-violet-50 text-violet-600"
+                  aria-label="Pedido programado"
+                  title={`Estados habilitados 30 minutos antes de ${scheduledLabel(selected.scheduledFor)}`}
                 >
                   <Clock3 className="h-[17px] w-[17px]" />
                 </span>
