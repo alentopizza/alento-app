@@ -14,6 +14,10 @@ import {
   type PushActionType,
   type PushAudience,
 } from "@/lib/pushCampaigns";
+import {
+  reportOperationalIncident,
+  requestIdFromHeaders,
+} from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,6 +126,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = requestIdFromHeaders(request.headers);
   let session;
   try {
     session = await requireStaffSession(["ADMIN"]);
@@ -235,10 +240,22 @@ export async function POST(request: NextRequest) {
     failedCount += result.failed;
   } catch (error) {
     failedCount += 1;
-    console.warn("Manual PWA push campaign failed", {
-      campaignId: campaign.id,
-      error:
-        error instanceof Error ? error.message : "Unknown error",
+    await reportOperationalIncident({
+      level: "WARNING",
+      category: "PUSH",
+      code: "PUSH_CAMPAIGN_DELIVERY_FAILED",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Falló el envío de la campaña Push.",
+      requestId,
+      source: "api/push-campaigns",
+      entityType: "PUSH_CAMPAIGN",
+      entityId: campaign.id,
+      fingerprintKey: campaign.id,
+      metadata: {
+        audience,
+      },
     });
   }
 
@@ -252,6 +269,32 @@ export async function POST(request: NextRequest) {
       sentAt: new Date(),
     },
   });
+
+  if (failedCount > 0) {
+    await reportOperationalIncident({
+      level: webDeliveredCount > 0 ? "WARNING" : "ERROR",
+      category: "PUSH",
+      code:
+        webDeliveredCount > 0
+          ? "PUSH_CAMPAIGN_PARTIAL_FAILURE"
+          : "PUSH_CAMPAIGN_FAILED",
+      message:
+        webDeliveredCount > 0
+          ? `La campaña Push tuvo ${failedCount} entrega(s) fallida(s).`
+          : "La campaña Push no logró ninguna entrega.",
+      requestId,
+      source: "api/push-campaigns",
+      entityType: "PUSH_CAMPAIGN",
+      entityId: campaign.id,
+      fingerprintKey: campaign.id,
+      metadata: {
+        audience,
+        targeted: webTargetCount,
+        delivered: webDeliveredCount,
+        failed: failedCount,
+      },
+    });
+  }
 
   return NextResponse.json(
     {
