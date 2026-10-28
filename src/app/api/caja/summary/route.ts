@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { scheduledBusinessDate } from "@/lib/orderScheduling";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 
 function todayBogota() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -149,6 +150,7 @@ export async function GET(request: NextRequest) {
       sales,
       salesOrders,
       payments,
+      refunds,
       otherIncomes,
       expenses,
       loans,
@@ -210,13 +212,23 @@ export async function GET(request: NextRequest) {
               status: true,
               amount: true,
               paidAt: true,
+              refunds: {
+                select: {
+                  id: true,
+                  amount: true,
+                  method: true,
+                  reason: true,
+                  refundedAt: true,
+                },
+                orderBy: { refundedAt: "asc" },
+              },
             },
           },
         },
       }),
       prisma.payment.findMany({
         where: {
-          status: "PAID",
+          status: { in: ["PAID", "REFUNDED"] },
           paidAt: { gte: queryStart, lt: queryEndExclusive },
           order: { status: { not: "CANCELED" } },
         },
@@ -230,6 +242,28 @@ export async function GET(request: NextRequest) {
               fulfillmentType: true,
               total: true,
               customer: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      prisma.paymentRefund.findMany({
+        where: {
+          refundedAt: { gte: queryStart, lt: queryEndExclusive },
+        },
+        orderBy: [{ refundedAt: "desc" }, { id: "desc" }],
+        include: {
+          payment: {
+            include: {
+              order: {
+                select: {
+                  id: true,
+                  sequenceNumber: true,
+                  source: true,
+                  fulfillmentType: true,
+                  total: true,
+                  customer: { select: { name: true } },
+                },
+              },
             },
           },
         },
@@ -348,6 +382,11 @@ export async function GET(request: NextRequest) {
       current.count += 1;
       methods.set(payment.method, current);
     }
+
+    const refundTotal = refunds.reduce(
+      (sum, refund) => sum + Number(refund.amount),
+      0,
+    );
 
     const incomeCategories = new Map<
       string,
@@ -475,6 +514,8 @@ export async function GET(request: NextRequest) {
       orderCount: sales._count._all,
       receivedTotal,
       paymentCount: payments.length,
+      refundTotal,
+      refundCount: refunds.length,
       otherIncomeTotal,
       otherIncomeCount: otherIncomes.length,
       totalInflow:
@@ -494,6 +535,7 @@ export async function GET(request: NextRequest) {
         receivedTotal +
         otherIncomeTotal +
         loanRecoveredCashTotal -
+        refundTotal -
         expensesTotal -
         loanDisbursedTotal +
         loanRecoveryAdjustmentTotal,
@@ -507,9 +549,7 @@ export async function GET(request: NextRequest) {
       loanReceivableBalance,
       methods: [...methods.values()].sort((a, b) => b.amount - a.amount),
       orders: salesOrders.map((order) => {
-        const paidAmount = order.payments
-          .filter((payment) => payment.status === "PAID")
-          .reduce((sum, payment) => sum + Number(payment.amount), 0);
+        const paidAmount = orderNetReceived(order.payments);
         const total = Number(order.total);
 
         return {
@@ -537,6 +577,13 @@ export async function GET(request: NextRequest) {
             status: payment.status,
             amount: Number(payment.amount),
             paidAt: payment.paidAt?.toISOString() ?? null,
+            refunds: payment.refunds.map((refund) => ({
+              id: refund.id,
+              amount: Number(refund.amount),
+              method: refund.method,
+              reason: refund.reason,
+              refundedAt: refund.refundedAt.toISOString(),
+            })),
           })),
         };
       }),
@@ -560,6 +607,25 @@ export async function GET(request: NextRequest) {
           fulfillmentType: payment.order.fulfillmentType,
           total: Number(payment.order.total),
           customerName: payment.order.customer?.name ?? "Cliente ocasional",
+        },
+      })),
+      refunds: refunds.map((refund) => ({
+        id: refund.id,
+        paymentId: refund.paymentId,
+        amount: Number(refund.amount),
+        method: refund.method,
+        reason: refund.reason,
+        reference: refund.reference,
+        refundedAt: refund.refundedAt,
+        createdByName: refund.createdByName,
+        order: {
+          id: refund.payment.order.id,
+          sequenceNumber: refund.payment.order.sequenceNumber,
+          source: refund.payment.order.source,
+          fulfillmentType: refund.payment.order.fulfillmentType,
+          total: Number(refund.payment.order.total),
+          customerName:
+            refund.payment.order.customer?.name ?? "Cliente ocasional",
         },
       })),
       otherIncomes: otherIncomes.map((income) => ({
