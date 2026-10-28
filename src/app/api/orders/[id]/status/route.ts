@@ -20,6 +20,7 @@ import { sendKitchenOrderCreatedPush } from "@/lib/kitchenPush";
 import { sendCustomerOrderStatusPush } from "@/lib/customerOrderPush";
 import { orderCode } from "@/lib/orderCode";
 import { isInKitchenWindow } from "@/lib/orderScheduling";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
@@ -60,8 +61,14 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           },
         },
         payments: {
-          where: { status: "PAID" },
-          select: { amount: true },
+          where: { status: { not: "CANCELED" } },
+          select: {
+            status: true,
+            amount: true,
+            refunds: {
+              select: { amount: true },
+            },
+          },
         },
         items: {
           select: {
@@ -135,7 +142,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     }
 
     if (requested === "COMPLETED") {
-      const paidAmount = order.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const paidAmount = orderNetReceived(order.payments);
       const pending = Math.max(0, Number(order.total) - paidAmount);
 
       if (pending > 0) {
