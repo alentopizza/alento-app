@@ -10,6 +10,33 @@ export const ORDER_KITCHEN_LEAD_MINUTES = 30;
 export const ORDER_KITCHEN_LEAD_MS =
   ORDER_KITCHEN_LEAD_MINUTES * 60 * 1000;
 
+export function bogotaDateKey(value: Date | string) {
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+export function isScheduledForFutureDay(
+  scheduledFor: Date | string | null | undefined,
+  now = new Date(),
+) {
+  if (!scheduledFor) return false;
+  return bogotaDateKey(scheduledFor) > bogotaDateKey(now);
+}
+
+export function scheduledBusinessDate(
+  createdAt: Date | string,
+  scheduledFor: Date | string | null | undefined,
+) {
+  return bogotaDateKey(scheduledFor || createdAt);
+}
+
 export function parseScheduledFor(value: unknown) {
   if (value == null || value === "") return null;
   if (typeof value !== "string") {
