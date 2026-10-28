@@ -52,6 +52,7 @@ type CashRegisterSession = {
 
 type Movement = {
   received: number;
+  refundsTotal: number;
   otherIncome: number;
   expensesTotal: number;
   loansTotal: number;
@@ -125,6 +126,7 @@ export default function CashRegisterControl({
   currentMovement?: Pick<
     Movement,
     | "received"
+    | "refundsTotal"
     | "otherIncome"
     | "expensesTotal"
     | "loansTotal"
@@ -247,6 +249,10 @@ export default function CashRegisterControl({
     received:
       currentMovement?.received ??
       data?.movement?.received ??
+      0,
+    refundsTotal:
+      currentMovement?.refundsTotal ??
+      data?.movement?.refundsTotal ??
       0,
     otherIncome:
       currentMovement?.otherIncome ??
