@@ -5,6 +5,10 @@ import {
   getNotificationTemplates,
   type NotificationTemplateConfig,
 } from "@/lib/notificationTemplates";
+import {
+  logInfo,
+  reportOperationalIncident,
+} from "@/lib/observability";
 
 export type NotificationDispatchResult =
   | { ok: true; status: "queued" | "sent" }
@@ -85,25 +89,74 @@ async function dispatchEvent(
       }
 
       if (!response.ok) {
+        const reason = `Notifier ${response.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`;
+
+        await reportOperationalIncident({
+          level: "WARNING",
+          category: "INTEGRATION",
+          code: "NOTIFIER_DELIVERY_FAILED",
+          message: reason,
+          source: "lib/notifier",
+          entityType: "ORDER",
+          entityId: data.orderId,
+          fingerprintKey: event,
+          metadata: {
+            event,
+            recipientKind: data.recipientKind,
+            status: response.status,
+          },
+        });
+
         return {
           ok: false,
           status: "failed",
-          reason: `Notifier ${response.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`,
+          reason,
         };
       }
+
+      logInfo(
+        "NOTIFIER_DELIVERY_SENT",
+        `Notificación ${event} enviada al microservicio.`,
+        {
+          source: "lib/notifier",
+          entityType: "ORDER",
+          entityId: data.orderId,
+          metadata: {
+            event,
+            recipientKind: data.recipientKind,
+          },
+        },
+      );
 
       return { ok: true, status: "sent" };
     } finally {
       clearTimeout(timeout);
     }
   } catch (error) {
+    const reason =
+      error instanceof Error
+        ? error.message
+        : "No fue posible contactar el microservicio de notificaciones.";
+
+    await reportOperationalIncident({
+      level: "WARNING",
+      category: "INTEGRATION",
+      code: "NOTIFIER_UNREACHABLE",
+      message: reason,
+      source: "lib/notifier",
+      entityType: "ORDER",
+      entityId: data.orderId,
+      fingerprintKey: event,
+      metadata: {
+        event,
+        recipientKind: data.recipientKind,
+      },
+    });
+
     return {
       ok: false,
       status: "failed",
-      reason:
-        error instanceof Error
-          ? error.message
-          : "No fue posible contactar el microservicio de notificaciones.",
+      reason,
     };
   }
 }
