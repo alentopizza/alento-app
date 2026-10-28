@@ -616,8 +616,8 @@ La experiencia pública y el checkout WEB ya están implementados. Los pendiente
 
 1. mantener validación productiva continua en móvil/PWA/tablet/escritorio;
 2. completar el canje transaccional de Club Alentó;
-3. implementar refund/devoluciones auditables;
-4. formalizar baseline Prisma; las pruebas automatizadas críticas ya forman parte del CI;
+3. cerrar validación productiva del refund auditable después del hotfix de consistencia #10;
+4. mantener baseline Prisma/migraciones y pruebas automatizadas críticas alineadas;
 5. mejorar edición/selección de direcciones sin duplicar la fuente comercial;
 6. mantener SEO, analítica y Push alineados con cambios de la experiencia pública.
 
@@ -1034,3 +1034,10 @@ Implementado en `main` mediante PR #6. Quality CI `40615841655`: ✅ success. Re
 - Pedidos muestra acción de devolución e historial asociado.
 
 Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
+
+
+## Revisión de consistencia de refunds — 2026-10-27
+
+Antes de ejecutar la validación productiva final del hardening #10 se revisó el sistema de extremo a extremo. La implementación base ya estaba desplegada, pero se encontraron consumidores heredados que todavía trataban `PAID` como dinero bruto sin considerar devoluciones o filtraban el historial según el estado posterior del pedido.
+
+Las correcciones están agrupadas en PR #7 e incluyen Caja/cierre, permisos CASHIER, finalización de pedidos, recálculos y replays de pagos, eliminación definitiva, estadísticas de medios y verificación de restore. La validación real del #10 debe hacerse únicamente después de merge/redeploy de ese hotfix.
