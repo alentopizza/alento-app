@@ -130,6 +130,27 @@ export async function GET(request: NextRequest) {
     );
 
     const notifier = await checkNotifier(requestId);
+    const webPushConfigured = Boolean(
+      process.env.WEB_PUSH_VAPID_SUBJECT?.trim() &&
+        process.env.WEB_PUSH_VAPID_PUBLIC_KEY?.trim() &&
+        process.env.WEB_PUSH_VAPID_PRIVATE_KEY?.trim(),
+    );
+    const googleMapsConfigured = Boolean(
+      process.env.GOOGLE_MAPS_SERVER_API_KEY?.trim(),
+    );
+
+    if (!googleMapsConfigured) {
+      await reportOperationalIncident({
+        level: "WARNING",
+        category: "CONFIGURATION",
+        code: "GOOGLE_MAPS_SERVER_KEY_MISSING",
+        message:
+          "Falta la clave server-side de Google Maps; el cálculo de domicilios puede fallar.",
+        requestId,
+        source: "api/observability/summary",
+        fingerprintKey: "google-maps-server-key",
+      });
+    }
 
     const [
       openIncidents,
@@ -159,7 +180,10 @@ export async function GET(request: NextRequest) {
         },
       }),
       prisma.notificationJob.count({
-        where: { status: "FAILED" },
+        where: {
+          status: "FAILED",
+          updatedAt: { gte: last24Hours },
+        },
       }),
       prisma.notificationJob.count({
         where: {
@@ -207,28 +231,6 @@ export async function GET(request: NextRequest) {
       .filter(([, value]) => Boolean(value))
       .map(([name]) => name);
 
-    const webPushConfigured = Boolean(
-      process.env.WEB_PUSH_VAPID_SUBJECT?.trim() &&
-        process.env.WEB_PUSH_VAPID_PUBLIC_KEY?.trim() &&
-        process.env.WEB_PUSH_VAPID_PRIVATE_KEY?.trim(),
-    );
-    const googleMapsConfigured = Boolean(
-      process.env.GOOGLE_MAPS_SERVER_API_KEY?.trim(),
-    );
-
-    if (!googleMapsConfigured) {
-      await reportOperationalIncident({
-        level: "WARNING",
-        category: "CONFIGURATION",
-        code: "GOOGLE_MAPS_SERVER_KEY_MISSING",
-        message:
-          "Falta GOOGLE_MAPS_SERVER_API_KEY; el cálculo server-side de domicilios puede fallar.",
-        requestId,
-        source: "api/observability/summary",
-        fingerprintKey: "google-maps-server-key",
-      });
-    }
-
     const openErrorCount = openIncidents.filter(
       (incident) => incident.level === "ERROR",
     ).length;
@@ -249,7 +251,8 @@ export async function GET(request: NextRequest) {
         : openWarningCount > 0 ||
             pendingOverdueJobs > 0 ||
             notifier.status === "warning" ||
-            failedPushCampaigns24h > 0
+            failedPushCampaigns24h > 0 ||
+            !googleMapsConfigured
           ? "attention"
           : "healthy";
 
