@@ -143,7 +143,7 @@ npm run build
 
 Los secretos usados por CI son valores ficticios exclusivos del runner.
 
-La suite usa Vitest y actualmente protege 31 casos críticos en 5 archivos: Club Puntos, programación de pedidos, cobertura/tarifas de domicilio, flujo/códigos de pedidos y normalización canónica de precios, incluyendo Arma Tu Pizza.
+La suite usa Vitest y actualmente protege **51 pruebas en 10 archivos**, incluyendo Club Puntos, programación de pedidos, cobertura/tarifas de domicilio, flujo/códigos, normalización canónica de precios, seguridad/rate limiting, idempotencia, auditoría inmutable y presentación de Auditoría en español Colombia.
 
 Las pruebas E2E de interfaz/navegador todavía no forman parte de esta suite.
 
