@@ -143,7 +143,7 @@ npm run build
 
 Los secretos usados por CI son valores ficticios exclusivos del runner.
 
-La suite usa Vitest y actualmente protege **51 pruebas en 10 archivos**, incluyendo Club Puntos, programación de pedidos, cobertura/tarifas de domicilio, flujo/códigos, normalización canónica de precios, seguridad/rate limiting, idempotencia, auditoría inmutable y presentación de Auditoría en español Colombia.
+La suite usa Vitest y actualmente protege **54 pruebas en 11 archivos**, incluyendo Club Puntos, programación de pedidos, cobertura/tarifas de domicilio, flujo/códigos, normalización canónica de precios, seguridad/rate limiting, idempotencia, auditoría inmutable, presentación de Auditoría en español Colombia y observabilidad operativa.
 
 Las pruebas E2E de interfaz/navegador todavía no forman parte de esta suite.
 
@@ -289,6 +289,7 @@ Documentos principales:
 - [`docs/CUSTOMERS.md`](docs/CUSTOMERS.md): funcionamiento completo de Clientes.
 - [`docs/MENU.md`](docs/MENU.md): funcionamiento completo de Menú, categorías, productos, destacados y backlog futuro.
 - [`docs/METRICS_AND_TRACKING.md`](docs/METRICS_AND_TRACKING.md): métricas internas, atribución y guías para conectar Meta, GA4, TikTok, Clarity, GTM y Google Ads.
+- [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md): request IDs, logs estructurados, alertas, health checks e integraciones.
 - [`docs/SEO.md`](docs/SEO.md): SEO técnico/local, sitemap, datos estructurados, Search Console y operación del Perfil de Negocio.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): orden de implementación por fases y criterios de cierre.
 - [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE.md): estado funcional actual.
@@ -385,6 +386,7 @@ Superficie interna:
 - `/notificaciones`;
 - `/metricas`;
 - `/auditoria`: historial administrativo inmutable;
+- `/salud-sistema`: salud técnica y alertas de producción;
 - `/configuracion`;
 - `/personalizacion`;
 - `/usuarios`;
