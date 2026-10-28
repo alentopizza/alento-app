@@ -50,8 +50,8 @@ Estado al 2026-10-26:
 - #6 Seguridad de sesiones y rate limiting: completado y validado en producción;
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
 - #8 Audit Log: completado y validado en producción.
-- #9 Observabilidad: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
-- #10 en adelante: pendientes.
+- #9 Observabilidad: implementado en repositorio y CI verde; pendiente de validación productiva.
+- #10 Refund / devoluciones auditables: pendiente y no debe iniciarse antes de cerrar #9.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -127,7 +127,30 @@ Estado:
   - actor, fecha, entidad y origen correctos;
 - CI final del #8: `40605413080`, 10 archivos / 51 tests, build verde.
 
-El siguiente punto es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
+El #9 Observabilidad ya está implementado; falta validarlo en producción antes de iniciar #10.
+
+## Observabilidad #9 en validación
+
+Documento canónico: `docs/OBSERVABILITY.md`.
+
+Estado:
+
+- request IDs por solicitud;
+- logs estructurados JSON;
+- modelo `OperationalIncident`;
+- agregación por fingerprint;
+- resolución y reapertura automática;
+- captura frontend y backend;
+- `GET /api/health` ampliado;
+- pantalla ADMIN `/salud-sistema`;
+- monitoreo de PostgreSQL, Notifier, Web Push, Google Maps, jobs, Push y webhooks;
+- prueba segura **Generar alerta de prueba**;
+- incidentes incluidos en `db:verify-restore`;
+- migración `20261028001500_observability_operational_incidents`;
+- CI inicial: 11 archivos / 54 tests, cero drift y build verde;
+- falta redeploy y prueba end-to-end generar → ver → resolver alerta.
+
+No iniciar #10 Refund / devoluciones auditables antes de cerrar #9.
 
 ## Fuente de verdad
 
