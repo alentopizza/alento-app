@@ -176,6 +176,8 @@ const refundableAmount = (payment: Payment) =>
   payment.status === "PAID"
     ? Math.max(0, Number(payment.amount) - refundedAmount(payment))
     : 0;
+const hasRefundHistory = (order: Order) =>
+  order.payments.some((payment) => (payment.refunds ?? []).length > 0);
 const paidPayments = (order: Order) => order.payments.filter((payment) => payment.status === "PAID");
 const paidAmount = (order: Order) =>
   order.payments.reduce((sum, payment) => sum + refundableAmount(payment), 0);
@@ -1773,7 +1775,7 @@ export default function OrdersCardsDashboardV3() {
                   <Icon name="download" />
                 </button>
                 {["CANCELED", "COMPLETED"].includes(order.status) ? (
-                  canDeleteOrders ? (
+                  canDeleteOrders && !hasRefundHistory(order) ? (
                     <button
                       onClick={() => setConfirmAction({ kind: "delete-order", order })}
                       disabled={busyOrder}
