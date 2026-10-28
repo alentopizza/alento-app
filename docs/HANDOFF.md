@@ -50,8 +50,8 @@ Estado al 2026-10-26:
 - #6 Seguridad de sesiones y rate limiting: completado y validado en producción;
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
 - #8 Audit Log: completado y validado en producción.
-- #9 Observabilidad: implementado en repositorio y CI verde; pendiente de validación productiva.
-- #10 Refund / devoluciones auditables: pendiente y no debe iniciarse antes de cerrar #9.
+- #9 Observabilidad: completado y validado en producción.
+- #10 Refund / devoluciones auditables: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -129,7 +129,7 @@ Estado:
 
 El #9 Observabilidad ya está implementado; falta validarlo en producción antes de iniciar #10.
 
-## Observabilidad #9 en validación
+## Observabilidad #9 completada
 
 Documento canónico: `docs/OBSERVABILITY.md`.
 
@@ -144,13 +144,19 @@ Estado:
 - `GET /api/health` ampliado;
 - pantalla ADMIN `/salud-sistema`;
 - monitoreo de PostgreSQL, Notifier, Web Push, Google Maps, jobs, Push y webhooks;
-- prueba segura **Generar alerta de prueba**;
 - incidentes incluidos en `db:verify-restore`;
 - migración `20261028001500_observability_operational_incidents`;
-- CI inicial: 11 archivos / 54 tests, cero drift y build verde;
-- falta redeploy y prueba end-to-end generar → ver → resolver alerta.
+- CI final `40610330977`: 11 archivos / 54 tests, cero drift y build verde;
+- validación productiva:
+  - Sistema operativo con 0 alertas activas;
+  - alerta segura generada correctamente;
+  - estado cambió a Operativo con alertas;
+  - alerta visible con diagnóstico;
+  - alerta marcada como resuelta;
+  - sistema volvió a 0 advertencias;
+  - alerta visible en resueltas recientemente.
 
-No iniciar #10 Refund / devoluciones auditables antes de cerrar #9.
+El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse sin autorización explícita del usuario.
 
 ## Fuente de verdad
 
