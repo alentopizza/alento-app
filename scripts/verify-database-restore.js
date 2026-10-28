@@ -42,6 +42,7 @@ async function main() {
       clubTransactions,
       workShifts,
       auditLogs,
+      operationalIncidents,
       latestOrder,
       migrations,
     ] = await Promise.all([
@@ -56,6 +57,7 @@ async function main() {
       prisma.clubPointTransaction.count(),
       prisma.workShift.count(),
       prisma.auditLog.count(),
+      prisma.operationalIncident.count(),
       prisma.order.findFirst({
         orderBy: { createdAt: "desc" },
         select: {
@@ -86,6 +88,7 @@ async function main() {
         clubTransactions,
         workShifts,
         auditLogs,
+        operationalIncidents,
       },
       latestOrder: latestOrder
         ? {
