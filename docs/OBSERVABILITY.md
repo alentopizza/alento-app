@@ -188,7 +188,7 @@ El panel muestra plataformas configuradas; las pruebas específicas continúan e
 
 `src/lib/observability.test.ts` valida fingerprint, sanitización, logs, persistencia, agrupación, resolución y reapertura.
 
-Quality CI inicial:
+Quality CI final de implementación:
 
 - migración aplicada;
 - cero drift;
@@ -196,7 +196,7 @@ Quality CI inicial:
 - TypeScript verde;
 - **11 archivos / 54 tests**;
 - build verde;
-- run `40608691947`.
+- run `40609801030`.
 
 ## Validación productiva pendiente
 
