@@ -51,7 +51,8 @@ Estado al 2026-10-26:
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
 - #8 Audit Log: completado y validado en producción.
 - #9 Observabilidad: completado y validado en producción.
-- #10 Refund / devoluciones auditables: siguiente punto pendiente; no iniciar sin autorización explícita del usuario.
+- ajuste previo a #10 — pedidos programados/fecha efectiva de venta: implementado en repositorio y pendiente de validación productiva;
+- #10 Refund / devoluciones auditables: siguiente punto pendiente; no iniciar hasta cerrar el ajuste programado.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -157,6 +158,35 @@ Estado:
   - alerta visible en resueltas recientemente.
 
 El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse sin autorización explícita del usuario.
+
+## Pedidos programados — ajuste previo a #10
+
+Estado: implementado en repositorio, pendiente de validación productiva.
+
+Regla comercial:
+
+```text
+pedido inmediato  → fecha de venta = createdAt
+pedido programado → fecha de venta = scheduledFor
+```
+
+Consecuencias:
+
+- Caja ya no atribuye una venta futura al día en que se creó;
+- la venta aparece en el día programado;
+- el dinero real continúa entrando por `Payment.paidAt`;
+- pagos reales se bloquean si el pedido está programado para otro día;
+- estados/Cocina/reparto se bloquean hasta 30 minutos antes;
+- el pedido permanece visible y puede editarse, reprogramarse, imprimirse o cancelarse.
+
+Pedido de validación sugerido:
+
+- usar el pedido programado real existente;
+- comprobar Caja Hoy;
+- comprobar Caja para su fecha programada;
+- comprobar tarjeta PROGRAMADO y bloqueos de cobro/estado.
+
+No iniciar #10 hasta cerrar esta validación.
 
 ## Fuente de verdad
 
