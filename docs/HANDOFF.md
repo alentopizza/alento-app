@@ -161,7 +161,9 @@ El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse s
 
 ## Pedidos programados — ajuste previo a #10
 
-Estado: implementado en repositorio, pendiente de validación productiva.
+Estado: implementado en repositorio y CI verde; pendiente de validación productiva.
+
+Quality CI: `40614116593` — 11 archivos / 56 tests, cero drift y build verde.
 
 Regla comercial:
 
