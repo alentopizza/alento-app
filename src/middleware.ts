@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logError } from "@/lib/observability";
 
 const STAFF_COOKIE = "alento_staff_session";
 const STAFF_SESSION_MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
@@ -38,6 +39,7 @@ const PAGE_ROLE_RULES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/turnos", roles: ["ADMIN"] },
   { prefix: "/metricas", roles: ["ADMIN"] },
   { prefix: "/auditoria", roles: ["ADMIN"] },
+  { prefix: "/salud-sistema", roles: ["ADMIN"] },
   { prefix: "/clientes", roles: ["ADMIN", "POS"] },
   { prefix: "/pedidos", roles: ["ADMIN", "POS", "CASHIER"] },
 ];
@@ -54,6 +56,7 @@ const PROTECTED_API_PREFIXES = [
   "/api/delivery",
   "/api/discount",
   "/api/audit-logs",
+  "/api/observability",
 ];
 
 function isIndexablePublicPage(pathname: string) {
@@ -101,7 +104,8 @@ function isPublicStaffApiException(pathname: string, method: string) {
     (pathname === "/api/delivery/quote" && method === "POST") ||
     (pathname === "/api/delivery/origin" && method === "GET") ||
     (pathname === "/api/delivery/customer-default-address" &&
-      ["GET", "PUT"].includes(method))
+      ["GET", "PUT"].includes(method)) ||
+    (pathname === "/api/observability/client-error" && method === "POST")
   );
 }
 
@@ -110,6 +114,7 @@ function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/menu-admin")) return ["ADMIN"];
   if (pathname.startsWith("/api/public-home-admin")) return ["ADMIN"];
   if (pathname.startsWith("/api/audit-logs")) return ["ADMIN"];
+  if (pathname.startsWith("/api/observability")) return ["ADMIN"];
 
   if (pathname === "/api/settings") {
     return method === "GET" ? ["ADMIN", "POS", "CASHIER"] : ["ADMIN"];
@@ -314,7 +319,20 @@ export async function middleware(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Staff session validation failed", error);
+    logError(
+      "STAFF_SESSION_VALIDATION_FAILED",
+      error instanceof Error
+        ? error.message
+        : "Falló la validación de la sesión del colaborador.",
+      {
+        requestId,
+        source: "middleware",
+        metadata: {
+          pathname,
+          method: request.method,
+        },
+      },
+    );
     if (pathname.startsWith("/api/")) {
       return withRequestId(
         NextResponse.json(
@@ -339,7 +357,10 @@ export async function middleware(request: NextRequest) {
       session.sessionVersion !== user.sessionVersion)
   ) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+      return withRequestId(
+        NextResponse.json({ error: "No autorizado." }, { status: 401 }),
+        requestId,
+      );
     }
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
@@ -384,9 +405,9 @@ export async function middleware(request: NextRequest) {
       !rule.roles.some((role) => effectiveSession.roles.includes(role))
     ) {
       return withRequestId(
-      NextResponse.redirect(new URL("/sin-acceso", request.url)),
-      requestId,
-    );
+        NextResponse.redirect(new URL("/sin-acceso", request.url)),
+        requestId,
+      );
     }
   }
 
