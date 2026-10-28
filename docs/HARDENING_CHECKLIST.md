@@ -663,7 +663,7 @@ Validación productiva confirmada por el usuario el 2026-10-27. Con esa autoriza
 
 ---
 
-### 10. Refund / devoluciones auditables — 🟡 IMPLEMENTADO / PENDIENTE CI Y VALIDACIÓN PRODUCTIVA
+### 10. Refund / devoluciones auditables — 🟡 IMPLEMENTADO EN `main` / PENDIENTE VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
@@ -685,15 +685,20 @@ Implementado en PR #6:
 - Caja muestra devoluciones separadas de gastos;
 - pruebas unitarias del cálculo financiero neto.
 
+Validación técnica final:
+
+- Quality CI `40615841655`: ✅ success;
+- PR #6 mergeado a `main`;
+- merge commit: `bf542cf622218e0dad9acf3c82ec227abb14678e`.
+
 Pendiente para cerrar #10:
 
-1. Quality CI verde;
-2. deploy de `main`;
-3. validar una devolución parcial;
-4. validar una devolución total;
-5. confirmar Caja y cierre esperado;
-6. confirmar Auditoría;
-7. confirmar cancelación después de devolución total.
+1. redeploy de `main` en EasyPanel;
+2. validar una devolución parcial;
+3. validar una devolución total;
+4. confirmar Caja y cierre esperado;
+5. confirmar Auditoría;
+6. confirmar cancelación después de devolución total.
 
 ---
 
@@ -727,9 +732,9 @@ Estado actual para continuidad:
 - #8 Audit Log: ✅ completado y validado en producción.
 - #9 Observabilidad: ✅ completado y validado en producción.
 - Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: ✅ validado en producción.
-- #10 Refund / devoluciones auditables: 🟡 implementado en PR #6, pendiente CI y validación productiva.
+- #10 Refund / devoluciones auditables: 🟡 implementado en `main`, CI verde, pendiente redeploy y validación productiva.
 
-Una nueva conversación debe continuar desde la validación técnica/productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
+Una nueva conversación debe continuar desde el redeploy/validación productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
