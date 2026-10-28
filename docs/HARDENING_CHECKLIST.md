@@ -691,14 +691,15 @@ Validación técnica final:
 - PR #6 mergeado a `main`;
 - merge commit: `bf542cf622218e0dad9acf3c82ec227abb14678e`.
 
+Redeploy de `main` en EasyPanel: ✅ confirmado por el usuario.
+
 Pendiente para cerrar #10:
 
-1. redeploy de `main` en EasyPanel;
-2. validar una devolución parcial;
-3. validar una devolución total;
-4. confirmar Caja y cierre esperado;
-5. confirmar Auditoría;
-6. confirmar cancelación después de devolución total.
+1. validar una devolución parcial;
+2. validar una devolución total;
+3. confirmar Caja y cierre esperado;
+4. confirmar Auditoría;
+5. confirmar cancelación después de devolución total.
 
 ---
 
@@ -732,9 +733,9 @@ Estado actual para continuidad:
 - #8 Audit Log: ✅ completado y validado en producción.
 - #9 Observabilidad: ✅ completado y validado en producción.
 - Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: ✅ validado en producción.
-- #10 Refund / devoluciones auditables: 🟡 implementado en `main`, CI verde, pendiente redeploy y validación productiva.
+- #10 Refund / devoluciones auditables: 🟡 implementado en `main`, CI verde y redeploy confirmado; pendiente validación productiva.
 
-Una nueva conversación debe continuar desde el redeploy/validación productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
+Una nueva conversación debe continuar desde la validación productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
