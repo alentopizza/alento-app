@@ -1013,4 +1013,6 @@ Pruebas añadidas:
 - detección de pedido programado para otro día;
 - fecha comercial de pedido programado.
 
+Quality CI: `40614116593` — 11 archivos / 56 tests, cero drift y build verde.
+
 Estado: 🟡 pendiente de redeploy y validación con pedido real antes de iniciar #10.
