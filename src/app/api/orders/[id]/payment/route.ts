@@ -9,6 +9,7 @@ import {
   requireIdempotencyKey,
 } from "@/lib/idempotency";
 import { registerOrderPayment } from "@/lib/orderPaymentRegistration";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 import {
   isScheduledForFutureDay,
   scheduledTimeLabel,
@@ -73,22 +74,28 @@ async function replayedPaymentResponse(
     createdAt: Date;
   },
 ) {
-  const [order, paid] = await Promise.all([
-    prisma.order.findUnique({
-      where: { id: orderId },
-      select: { total: true },
-    }),
-    prisma.payment.aggregate({
-      where: { orderId, status: "PAID" },
-      _sum: { amount: true },
-    }),
-  ]);
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      total: true,
+      payments: {
+        where: { status: { not: "CANCELED" } },
+        select: {
+          status: true,
+          amount: true,
+          refunds: {
+            select: { amount: true },
+          },
+        },
+      },
+    },
+  });
 
   if (!order) {
     return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
   }
 
-  const paidTotal = Number(paid._sum.amount ?? 0);
+  const paidTotal = orderNetReceived(order.payments);
   const balance = Math.max(0, Number(order.total) - paidTotal);
 
   return NextResponse.json(
