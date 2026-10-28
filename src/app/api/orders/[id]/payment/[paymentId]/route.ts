@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
 import {
+  isScheduledForFutureDay,
+  scheduledTimeLabel,
+} from "@/lib/orderScheduling";
+import {
   assertCashDateEditable,
   CASH_DATE_CLOSED_ERROR,
   CASH_SESSION_REQUIRED_ERROR,
@@ -41,6 +45,16 @@ export async function DELETE(
       include: { payments: { orderBy: { id: "asc" } } },
     });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
+    if (isScheduledForFutureDay(order.scheduledFor)) {
+      return NextResponse.json(
+        {
+          error: order.scheduledFor
+            ? `Este pedido está programado para ${scheduledTimeLabel(order.scheduledFor)}. Los movimientos de pago se habilitan en la fecha programada.`
+            : "Los movimientos de pago todavía no están disponibles.",
+        },
+        { status: 409 },
+      );
+    }
 
     const payment = order.payments.find((item) => item.id === paymentId);
     if (!payment) return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
