@@ -42,7 +42,12 @@ export async function DELETE(
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { payments: { orderBy: { id: "asc" } } },
+      include: {
+        payments: {
+          include: { refunds: true },
+          orderBy: { id: "asc" },
+        },
+      },
     });
     if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
     if (isScheduledForFutureDay(order.scheduledFor)) {
@@ -58,6 +63,15 @@ export async function DELETE(
 
     const payment = order.payments.find((item) => item.id === paymentId);
     if (!payment) return NextResponse.json({ error: "Pago no encontrado." }, { status: 404 });
+    if (payment.refunds.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pago ya tiene devoluciones registradas y no puede eliminarse. Conserva el historial financiero.",
+        },
+        { status: 409 },
+      );
+    }
 
     if (payment.status === "PAID" && payment.paidAt) {
       await assertCashDateEditable(payment.paidAt);
