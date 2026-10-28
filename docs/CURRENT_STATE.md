@@ -1020,7 +1020,7 @@ Estado: ✅ redeploy y validación productiva confirmados por el usuario; #10 au
 
 ## Devoluciones auditables — hardening #10
 
-Implementado en `main` mediante PR #6. Quality CI `40615841655`: ✅ success. Pendiente redeploy y validación productiva.
+Implementado en `main` mediante PR #6. Quality CI `40615841655`: ✅ success. Redeploy en EasyPanel confirmado. Pendiente validación productiva.
 
 - `PaymentRefund` persiste devoluciones parciales/totales sin borrar el cobro original;
 - endpoint idempotente de refund;
