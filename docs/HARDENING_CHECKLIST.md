@@ -617,7 +617,7 @@ Documento canónico:
 
 ---
 
-### Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+### Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta — ✅ VALIDADO EN PRODUCCIÓN
 
 Motivo:
 
@@ -659,25 +659,41 @@ Validación automatizada:
 - build: verde;
 - Quality CI: `40614116593`.
 
-Pendiente para cerrar este ajuste:
-
-1. redeploy de `main`;
-2. con un pedido real programado futuro, confirmar que no suma en Caja de hoy;
-3. consultar Caja en la fecha programada y confirmar que sí aparece como Venta;
-4. confirmar tarjeta **PROGRAMADO**;
-5. confirmar cobro bloqueado antes de la fecha;
-6. confirmar estados bloqueados hasta la ventana de 30 minutos;
-7. confirmar que editar/reprogramar/cancelar siguen disponibles.
-
-**No iniciar #10 hasta validar este ajuste.**
+Validación productiva confirmada por el usuario el 2026-10-27. Con esa autorización se inició el punto #10.
 
 ---
 
-### 10. Refund / devoluciones auditables — ⬜ PENDIENTE
+### 10. Refund / devoluciones auditables — 🟡 IMPLEMENTADO / PENDIENTE CI Y VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
 cerrar correctamente el ciclo financiero de pagos recibidos y devoluciones, con impacto consistente en Caja y trazabilidad.
+
+Implementado en PR #6:
+
+- modelo `PaymentRefund` + migración versionada;
+- refund parcial/total ligado al pago original;
+- idempotencia obligatoria;
+- motivo, medio, referencia, fecha y responsable;
+- `PAYMENT_REFUNDED` en Audit Log;
+- Caja conserva el cobro por `paidAt` y registra la devolución por `refundedAt`;
+- flujo neto y cierre esperado descuentan devoluciones;
+- saldo/edición/cancelación usan dinero neto recibido;
+- cancelación habilitada solo cuando el neto recibido llega a cero;
+- pagos con devoluciones no pueden eliminarse físicamente;
+- Pedidos muestra devolución e historial;
+- Caja muestra devoluciones separadas de gastos;
+- pruebas unitarias del cálculo financiero neto.
+
+Pendiente para cerrar #10:
+
+1. Quality CI verde;
+2. deploy de `main`;
+3. validar una devolución parcial;
+4. validar una devolución total;
+5. confirmar Caja y cierre esperado;
+6. confirmar Auditoría;
+7. confirmar cancelación después de devolución total.
 
 ---
 
@@ -710,10 +726,10 @@ Estado actual para continuidad:
 - #7 Idempotencia de operaciones críticas: ✅
 - #8 Audit Log: ✅ completado y validado en producción.
 - #9 Observabilidad: ✅ completado y validado en producción.
-- Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: 🟡 implementado, pendiente de validación productiva.
-- #10 Refund / devoluciones auditables: pendiente; no iniciar hasta cerrar el ajuste anterior.
+- Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: ✅ validado en producción.
+- #10 Refund / devoluciones auditables: 🟡 implementado en PR #6, pendiente CI y validación productiva.
 
-Una nueva conversación debe continuar validando el ajuste de pedidos programados; después, con autorización explícita del usuario, iniciar #10.
+Una nueva conversación debe continuar desde la validación técnica/productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
