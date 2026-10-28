@@ -651,7 +651,13 @@ Fuente compartida:
 
 Validación automatizada:
 
-- se añadieron pruebas de fecha Bogotá y fecha comercial programada.
+- se añadieron pruebas de fecha Bogotá y fecha comercial programada;
+- drift: **No difference detected**;
+- lint: verde;
+- TypeScript: verde;
+- **11 archivos / 56 tests**;
+- build: verde;
+- Quality CI: `40614116593`.
 
 Pendiente para cerrar este ajuste:
 
