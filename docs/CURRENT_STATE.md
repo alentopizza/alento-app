@@ -859,7 +859,7 @@ CI final del #8: `40605413080` — 10 archivos / 51 tests, cero drift y build ve
 
 Estado #8: ✅ completado.
 
-El siguiente punto del hardening es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
+El hardening #9 Observabilidad está implementado en repositorio y pendiente de validación productiva.
 
 
 ## Sidebar interno compacto — 2026-10-27
@@ -905,3 +905,67 @@ Corrección:
 - la validación posterior confirmó registros reales en producción.
 
 Estado #8: ✅ completado.
+
+
+## Observabilidad de producción — 2026-10-27
+
+El hardening #9 está implementado en repositorio y pendiente de validación productiva.
+
+Capacidades:
+
+- request ID server-side por solicitud;
+- header `X-Request-Id`;
+- logs JSON estructurados;
+- incidentes operativos agregados por fingerprint;
+- captura de errores frontend;
+- captura de errores backend no controlados;
+- health check con latencia PostgreSQL;
+- pantalla ADMIN `/salud-sistema`;
+- alertas activas/resueltas;
+- resolución manual con reapertura automática;
+- monitoreo de Notifier, Web Push, Google Maps, jobs y webhooks;
+- prueba segura end-to-end desde la UI.
+
+Modelo:
+
+`OperationalIncident`
+
+Migración:
+
+`20261028001500_observability_operational_incidents`
+
+Rutas:
+
+- `GET /api/health`;
+- `GET /api/observability/summary`;
+- `POST /api/observability/test`;
+- `PATCH /api/observability/incidents/[id]`;
+- `POST /api/observability/client-error`.
+
+Privacidad:
+
+- logs/incidentes sanitizan secretos;
+- no se guardan bodies externos completos;
+- frontend no envía stack completo;
+- reportes públicos de navegador tienen rate limiting.
+
+Backups:
+
+`db:verify-restore` incluye ahora `operationalIncidents`.
+
+Quality CI inicial:
+
+- migración aplicada;
+- cero drift;
+- lint/types verdes;
+- **11 archivos / 54 tests**;
+- build verde;
+- run `40608691947`.
+
+Documento canónico:
+
+`docs/OBSERVABILITY.md`.
+
+Estado #9: 🟡 pendiente de redeploy y validación de la alerta segura de prueba.
+
+No iniciar #10 Refund / devoluciones auditables hasta cerrar el #9.
