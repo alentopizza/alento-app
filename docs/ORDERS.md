@@ -237,12 +237,21 @@ Reglas operativas:
 - un pedido sin `scheduledFor` se trata como **Lo antes posible**;
 - la fecha/hora programada debe caer dentro del horario de servicio configurado para ese día en Configuración; la apertura es inclusiva y la hora de cierre marca el fin del servicio;
 - un pedido programado aparece en Pedidos desde el momento en que se crea;
-- las tarjetas y el drawer lo identifican con reloj y acento violeta;
-- el texto visible muestra `PROGRAMADO` y la fecha/hora objetivo;
+- mientras siga fuera de su ventana operativa, la tarjeta se presenta como **PROGRAMADO** en lugar de aparentar que ya está en preparación;
+- las tarjetas y el drawer lo identifican con reloj, acento violeta y fecha/hora objetivo;
+- **fecha comercial de venta**:
+  - pedido inmediato → `createdAt`;
+  - pedido programado → `scheduledFor`;
+- un pedido creado hoy para otro día no cuenta en las Ventas de hoy; aparece en Ventas del día programado;
+- el medio de pago `PENDING` creado junto al pedido sigue siendo solo una intención y nunca representa dinero recibido;
+- si `scheduledFor` corresponde a otro día de Bogotá, registrar/eliminar movimientos reales de pago queda bloqueado hasta la fecha programada;
+- el día programado se puede registrar el cobro, pero la operación de producción sigue protegida por la ventana de Cocina;
 - un pedido programado con preparación de Cocina permanece fuera del tablero hasta 30 minutos antes;
+- estados operativos y asignación de repartidor permanecen bloqueados hasta 30 minutos antes de `scheduledFor`;
 - los pedidos DELIVERY programados tampoco aparecen antes de tiempo en Mapa De Entregas ni a Repartidores;
 - al entrar en la ventana de Cocina se incorpora al tablero y el sistema de alertas locales lo trata como un pedido nuevo;
 - no se permite marcar preparación antes de la ventana;
+- antes de la ventana sigue permitido **consultar, editar, reprogramar, imprimir o cancelar** el pedido, siempre respetando permisos y reglas financieras;
 - si una línea ya comenzó preparación, el pedido no puede reprogramarse para más adelante.
 
 La ventana vigente es de **30 minutos** y su fuente compartida está en:
