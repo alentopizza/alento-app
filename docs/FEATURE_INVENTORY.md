@@ -1,6 +1,6 @@
 # Inventario funcional de Alentó App
 
-Última auditoría: **2026-10-26**
+Última auditoría: **2026-10-27**
 
 Este documento es el índice canónico entre lo que existe en `main` y la documentación funcional del proyecto. Su objetivo es evitar dos fallas:
 
