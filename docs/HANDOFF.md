@@ -52,7 +52,7 @@ Estado al 2026-10-26:
 - #8 Audit Log: completado y validado en producción.
 - #9 Observabilidad: completado y validado en producción.
 - ajuste previo a #10 — pedidos programados/fecha efectiva de venta: validado en producción;
-- #10 Refund / devoluciones auditables: implementado en `main`; CI final verde; pendiente redeploy y validación productiva.
+- #10 Refund / devoluciones auditables: implementado en `main`; CI final verde y redeploy confirmado; pendiente validación productiva.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -157,7 +157,7 @@ Estado:
   - sistema volvió a 0 advertencias;
   - alerta visible en resueltas recientemente.
 
-El usuario autorizó iniciar #10 el 2026-10-27. El PR #6 fue mergeado a `main` con Quality CI `40615841655` en verde. No debe considerarse cerrado hasta redeploy y validación productiva.
+El usuario autorizó iniciar #10 el 2026-10-27. El PR #6 fue mergeado a `main` con Quality CI `40615841655` en verde y el redeploy en EasyPanel fue confirmado por el usuario. No debe considerarse cerrado hasta validar el flujo productivo de devoluciones.
 
 ## Pedidos programados — ajuste previo a #10
 
