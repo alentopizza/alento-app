@@ -516,7 +516,7 @@ Validación técnica final:
 
 ---
 
-### 9. Observabilidad de producción — ⬜ PENDIENTE
+### 9. Observabilidad de producción — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
 
 Objetivo:
 
@@ -526,6 +526,97 @@ Objetivo:
 - alertas;
 - monitoreo de integraciones y jobs;
 - complementar `/api/health`.
+
+Implementado:
+
+- `X-Request-Id` generado server-side por solicitud;
+- request ID propagado a handlers y respuesta;
+- logger JSON estructurado en `src/lib/observability.ts`;
+- sanitización de secretos reutilizada desde Auditoría;
+- modelo agregado `OperationalIncident`;
+- migración `20261028001500_observability_operational_incidents`;
+- fingerprint estable + contador de ocurrencias;
+- primera/última aparición;
+- resolución manual ADMIN;
+- reapertura automática si el problema vuelve;
+- captura global frontend:
+  - `window.error`;
+  - `unhandledrejection`;
+  - error boundary de Next;
+- endpoint frontend rate-limited:
+  - `POST /api/observability/client-error`;
+- captura backend global mediante `src/instrumentation.ts`;
+- `GET /api/health` ampliado con:
+  - request ID;
+  - uptime;
+  - latencia total;
+  - latencia/estado de PostgreSQL;
+  - HTTP 503 si DB falla;
+- nueva pantalla ADMIN `/salud-sistema`;
+- resumen ADMIN `GET /api/observability/summary`;
+- resolución `PATCH /api/observability/incidents/[id]`;
+- prueba segura `POST /api/observability/test`;
+- botón **Generar alerta de prueba**;
+- refresh automático cada 60 s cuando la pestaña está visible.
+
+Monitoreo implementado:
+
+- PostgreSQL;
+- WhatsApp / Notifier;
+- Web Push;
+- Google Maps server-side;
+- NotificationJob:
+  - vencidos;
+  - enviados 24 h;
+  - fallidos 24 h;
+  - job pendiente más antiguo;
+- campañas Push fallidas;
+- sincronización de clientes;
+- tracking externo configurado.
+
+Integraciones instrumentadas:
+
+- `src/lib/notifier.ts`;
+- `src/app/api/internal/notification-jobs/run/route.ts`;
+- `src/app/api/push-campaigns/route.ts`;
+- `src/lib/customerContactWebhook.ts`.
+
+Backups:
+
+- `db:verify-restore` incluye ahora `operationalIncidents`.
+
+Privacidad:
+
+- no persistir cuerpos externos completos;
+- no guardar tokens, passwords, API keys, secretos, teléfonos, direcciones u OTP;
+- el frontend no envía stack completo.
+
+Validación técnica inicial:
+
+- migración Observabilidad aplicada en PostgreSQL efímero;
+- drift: **No difference detected**;
+- lint: verde;
+- TypeScript: verde;
+- **11 archivos / 54 tests**;
+- build: verde;
+- Quality CI inicial: `40608691947`.
+
+Documento canónico:
+
+`docs/OBSERVABILITY.md`
+
+Pendiente para cerrar:
+
+1. redeploy productivo;
+2. confirmar migración + Next `Ready`;
+3. abrir `/api/health` y verificar status/database/latencia/request ID;
+4. abrir `/salud-sistema` como ADMIN;
+5. generar la alerta segura de prueba;
+6. comprobar que aparece activa;
+7. marcarla resuelta;
+8. confirmar que pasa a resueltas recientemente.
+
+**No iniciar el punto #10 hasta cerrar esta validación productiva.**
 
 ---
 
@@ -564,10 +655,11 @@ Estado actual para continuidad:
 - #5 Backups y restauración verificada: ✅
 - #6 Seguridad de sesiones y rate limiting: ✅
 - #7 Idempotencia de operaciones críticas: ✅
-- #8 Audit Log: implementado en repositorio, pendiente de validación productiva.
+- #8 Audit Log: ✅ completado y validado en producción.
+- #9 Observabilidad: 🟡 implementado en repositorio, pendiente de validación productiva.
+- #10 Refund / devoluciones auditables: pendiente.
 
-Una nueva conversación debe continuar validando el #8 en producción; no iniciar #9 hasta cerrarlo.
-
+Una nueva conversación debe continuar validando el #9 en producción; no iniciar #10 hasta cerrarlo.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
