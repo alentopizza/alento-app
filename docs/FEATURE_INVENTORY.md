@@ -41,6 +41,7 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 | `/notificaciones` | ADMIN | Push manual + automatizaciones WhatsApp | `docs/PUSH_NOTIFICATIONS.md` |
 | `/metricas` | ADMIN | Analítica propia e integraciones de medición | `docs/METRICS_AND_TRACKING.md` |
 | `/auditoria` | ADMIN | Historial inmutable de acciones sensibles | `docs/AUDIT_LOG.md` |
+| `/salud-sistema` | ADMIN | Salud técnica, alertas, jobs e integraciones | `docs/OBSERVABILITY.md` |
 | `/configuracion` | ADMIN | Sede, horarios, domicilios, repartidores, clientes y pagos | `docs/CONFIGURATION.md` |
 | `/personalizacion` | ADMIN | Imágenes de Home y hero público | `README.md`, `docs/CURRENT_STATE.md` |
 | `/usuarios` | ADMIN | Usuarios, roles y permisos sensibles | `docs/AUTH_ROLES_AND_PUBLIC_APP.md` |
@@ -122,6 +123,20 @@ Documento: `docs/CLUB_POINTS.md`.
 La presentación visible usa español Colombia mientras los códigos técnicos persistidos conservan compatibilidad.
 
 Documento: `docs/AUDIT_LOG.md`.
+
+### Observabilidad de producción
+
+`/salud-sistema` concentra salud técnica, request IDs, alertas agregadas, estado de PostgreSQL, Notifier, Web Push, Google Maps y trabajos programados.
+
+Endpoints principales:
+
+- `GET /api/health`;
+- `GET /api/observability/summary`;
+- `POST /api/observability/test`;
+- `PATCH /api/observability/incidents/[id]`;
+- `POST /api/observability/client-error` (público con rate limit).
+
+Documento: `docs/OBSERVABILITY.md`.
 
 ### Rendimiento de navegación pública
 
