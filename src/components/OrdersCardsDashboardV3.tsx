@@ -21,6 +21,7 @@ import OrderEditStructuredAdder, {
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import {
+  isInKitchenWindow,
   isScheduledForFutureDay,
   scheduledServiceWindow,
   validateScheduledServiceHours,
@@ -681,15 +682,13 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function openStatusManager(order: Order) {
-    if (isScheduledForFutureDay(order.scheduledFor)) {
+    if (order.scheduledFor && !isInKitchenWindow(order.scheduledFor)) {
       setFeedbackModal({
         tone: "info",
         title: "Pedido programado",
-        message: order.scheduledFor
-          ? `La operación de este pedido permanece bloqueada hasta el ${scheduledDayLabel(order.scheduledFor)}.`
-          : "La operación de este pedido todavía no está disponible.",
+        message: `La operación de este pedido se habilita 30 minutos antes de ${scheduledLabel(order.scheduledFor)}.`,
         detail:
-          "El pedido seguirá visible. Puedes editarlo, reprogramarlo o cancelarlo, pero no adelantar estados ni cobros antes de su fecha.",
+          "El pedido seguirá visible. Puedes editarlo, reprogramarlo o cancelarlo, pero no adelantar estados o reparto antes de su ventana operativa.",
       });
       return;
     }
@@ -1561,10 +1560,13 @@ export default function OrdersCardsDashboardV3() {
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
           const futureScheduled = isScheduledForFutureDay(order.scheduledFor);
+          const operationLocked = Boolean(
+            order.scheduledFor && !isInKitchenWindow(order.scheduledFor),
+          );
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100 hover:border-violet-400" : "border-neutral-200 hover:border-neutral-300"} ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
-            <div className={`${futureScheduled ? "bg-violet-600" : statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
+            <div className={`${operationLocked ? "bg-violet-600" : statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
               <span className="alento-ui-label shrink-0 uppercase tracking-[0.08em]">
-                {futureScheduled ? "Programado" : statusLabel(order.status)}
+                {operationLocked ? "Programado" : statusLabel(order.status)}
               </span>
 
               <div className="flex min-w-0 items-center justify-end gap-1.5">
@@ -1687,7 +1689,7 @@ export default function OrdersCardsDashboardV3() {
                       className="flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-2 text-[10px] font-black text-violet-700"
                       title={
                         order.scheduledFor
-                          ? `Operación habilitada el ${scheduledDayLabel(order.scheduledFor)}`
+                          ? `Estados habilitados 30 minutos antes de ${scheduledLabel(order.scheduledFor)}`
                           : "Pedido programado"
                       }
                     >
@@ -2084,13 +2086,14 @@ export default function OrdersCardsDashboardV3() {
                 >
                   <Icon name="status" />
                 </span>
-              ) : isScheduledForFutureDay(selected.scheduledFor) ? (
+              ) : selected.scheduledFor &&
+                !isInKitchenWindow(selected.scheduledFor) ? (
                 <span
                   className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-violet-200 bg-violet-50 text-violet-600"
                   aria-label="Pedido programado"
                   title={
                     selected.scheduledFor
-                      ? `Estados habilitados el ${scheduledDayLabel(selected.scheduledFor)}`
+                      ? `Estados habilitados 30 minutos antes de ${scheduledLabel(selected.scheduledFor)}`
                       : "Pedido programado"
                   }
                 >
