@@ -145,7 +145,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         return NextResponse.json(
           {
             error:
-              `Este pedido tiene ${receivedAmount.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })} recibido. Antes de cancelarlo debe existir un flujo de devolución para conservar la trazabilidad del dinero.`,
+              `Este pedido tiene ${receivedAmount.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })} neto recibido. Registra primero la devolución correspondiente antes de cancelarlo.`,
           },
           { status: 409 },
         );
