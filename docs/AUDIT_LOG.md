@@ -400,9 +400,9 @@ Quality CI de referencia antes del último refuerzo del sanitizador:
 - drift: cero;
 - ESLint: verde;
 - TypeScript: verde;
-- **9 archivos / 48 tests**;
+- **10 archivos / 51 tests**;
 - build: verde;
-- run: `40600253140`.
+- run: `40605413080`.
 
 El refuerzo final de sanitización y restore verification también quedó verde en CI.
 
@@ -446,6 +446,8 @@ Validación realizada el **27 de octubre de 2026**:
 La inmutabilidad UPDATE/DELETE permanece cubierta por tests contra PostgreSQL y no se prueba manualmente en producción.
 
 **El hardening #8 queda cerrado.**
+
+CI final de cierre: `40605413080` — 10 archivos / 51 tests, cero drift y build verde.
 
 ## Reglas de no regresión
 
