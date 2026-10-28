@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { dispatchReviewNotification } from "@/lib/notifier";
+import {
+  logInfo,
+  reportOperationalIncident,
+  requestIdFromHeaders,
+} from "@/lib/observability";
 
 export async function POST(request: NextRequest) {
+  const requestId = requestIdFromHeaders(request.headers);
   const secret = process.env.NOTIFIER_SHARED_SECRET?.trim();
   if (!secret || request.headers.get("x-alento-notifier-secret") !== secret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -90,6 +96,21 @@ export async function POST(request: NextRequest) {
           lastError: null,
         },
       });
+      logInfo(
+        "NOTIFICATION_JOB_SENT",
+        `Trabajo de notificación #${job.id} enviado correctamente.`,
+        {
+          requestId,
+          source: "api/internal/notification-jobs/run",
+          entityType: "NOTIFICATION_JOB",
+          entityId: job.id,
+          metadata: {
+            kind: job.kind,
+            orderId: job.orderId,
+            attempt: job.attempts + 1,
+          },
+        },
+      );
       results.push({ id: job.id, ok: true });
     } catch (error) {
       const reason = error instanceof Error ? error.message : "Error desconocido";
@@ -104,6 +125,28 @@ export async function POST(request: NextRequest) {
           lastError: reason.slice(0, 1000),
         },
       });
+
+      await reportOperationalIncident({
+        level: attempts >= 5 ? "ERROR" : "WARNING",
+        category: "JOBS",
+        code:
+          attempts >= 5
+            ? "NOTIFICATION_JOB_EXHAUSTED"
+            : "NOTIFICATION_JOB_RETRY",
+        message: reason,
+        requestId,
+        source: "api/internal/notification-jobs/run",
+        entityType: "NOTIFICATION_JOB",
+        entityId: job.id,
+        fingerprintKey: job.kind,
+        metadata: {
+          kind: job.kind,
+          orderId: job.orderId,
+          attempt: attempts,
+          maxAttempts: 5,
+        },
+      });
+
       results.push({ id: job.id, ok: false, reason });
     }
   }
