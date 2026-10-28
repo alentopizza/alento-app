@@ -969,3 +969,48 @@ Documento canónico:
 Estado #9: ✅ completado.
 
 El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse sin autorización explícita del usuario.
+
+
+## Pedidos programados y fecha efectiva de venta — 2026-10-27
+
+Antes de iniciar el hardening #10 se detectó una inconsistencia contable:
+
+- un pedido creado el 27/10 pero programado para el 31/10 aparecía dentro de Ventas del 27/10;
+- esto mezclaba fecha de creación con fecha real de servicio/venta.
+
+Regla implementada:
+
+- pedido inmediato: fecha efectiva = `createdAt`;
+- pedido programado: fecha efectiva = `scheduledFor`.
+
+Caja:
+
+- Ventas usa fecha efectiva de venta;
+- Cobros de ventas sigue usando `Payment.paidAt`;
+- Entradas/Salidas mantienen sus fechas reales;
+- un pedido programado puede aparecer como Venta de una fecha futura sin significar que ya ingresó dinero;
+- el detalle de Ventas muestra la fecha programada y, como referencia secundaria, cuándo fue creado.
+
+Protección operativa:
+
+- el pedido futuro permanece visible en Pedidos;
+- la tarjeta se presenta como **PROGRAMADO** mientras esté fuera de su ventana operativa;
+- cobro real bloqueado antes de la fecha programada;
+- creación y eliminación de movimientos de pago protegidas también en backend;
+- cambios de estado y asignación de repartidor continúan bloqueados hasta 30 minutos antes;
+- Cocina no recibe el pedido antes de esa ventana;
+- consultar, editar, reprogramar, imprimir o cancelar siguen disponibles antes de la ventana.
+
+Analítica de zonas de domicilio también atribuye pedidos programados a `scheduledFor`.
+
+Fuente compartida:
+
+`src/lib/orderScheduling.ts`
+
+Pruebas añadidas:
+
+- fecha Bogotá;
+- detección de pedido programado para otro día;
+- fecha comercial de pedido programado.
+
+Estado: 🟡 pendiente de redeploy y validación con pedido real antes de iniciar #10.
