@@ -716,7 +716,8 @@ Pendiente para cerrar #10:
 4. validar una devolución total;
 5. confirmar Caja y cierre esperado;
 6. confirmar Auditoría;
-7. confirmar cancelación después de devolución total.
+7. confirmar cancelación después de devolución total;
+8. definir y validar la política de Club Alentó para refunds realizados después de que un pedido ya quedó `COMPLETED` (la implementación financiera permite el refund, pero los puntos de compra ya acreditados no se recalculan automáticamente).
 
 ---
 
