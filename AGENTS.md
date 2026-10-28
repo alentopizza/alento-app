@@ -54,6 +54,9 @@ Antes de implementar algo relacionado con estos temas, revisar primero estas fue
 - Campañas manuales PWA: `src/lib/pushCampaigns.ts` + `src/components/PushCampaignManager.tsx` + `/api/push-campaigns`.
 - Repartidor oficial: PWA en `/repartidor`; ubicación vía `navigator.geolocation.watchPosition()` y `/api/repartidor/location`. No crear un camino Android/nativo paralelo.
 - Arquitectura canónica de notificaciones Push: `docs/PUSH_NOTIFICATIONS.md`.
+- Observabilidad de producción: `src/lib/observability.ts` + `src/instrumentation.ts` + `/api/health` + `/salud-sistema`. Documento canónico: `docs/OBSERVABILITY.md`.
+- Errores frontend: `src/lib/clientObservability.ts` + `src/components/ClientObservabilityReporter.tsx`. No crear reportadores paralelos.
+- Nuevas integraciones críticas deben reportar fallos mediante `reportOperationalIncident()` y logs estructurados; no volver a `console.warn/error` aislados cuando el evento requiera seguimiento operativo.
 
 
 Esta lista no reemplaza la búsqueda en el repositorio: es un punto de partida.
