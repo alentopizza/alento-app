@@ -21,6 +21,7 @@ import OrderEditStructuredAdder, {
 import { presentOrderItemConfiguration } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
 import {
+  isScheduledForFutureDay,
   scheduledServiceWindow,
   validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
@@ -109,6 +110,13 @@ const scheduledLabel = (value: string) =>
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  }).format(new Date(value));
+const scheduledDayLabel = (value: string) =>
+  new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   }).format(new Date(value));
 
 function toDateTimeLocalValue(value: Date | string) {
@@ -673,6 +681,19 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function openStatusManager(order: Order) {
+    if (isScheduledForFutureDay(order.scheduledFor)) {
+      setFeedbackModal({
+        tone: "info",
+        title: "Pedido programado",
+        message: order.scheduledFor
+          ? `La operación de este pedido permanece bloqueada hasta el ${scheduledDayLabel(order.scheduledFor)}.`
+          : "La operación de este pedido todavía no está disponible.",
+        detail:
+          "El pedido seguirá visible. Puedes editarlo, reprogramarlo o cancelarlo, pero no adelantar estados ni cobros antes de su fecha.",
+      });
+      return;
+    }
+
     setStatusOrder(order);
     setStatusSelectedDriverId(order.driver?.id ?? null);
 
@@ -956,6 +977,19 @@ export default function OrdersCardsDashboardV3() {
   }
 
   async function openPayment(order: Order) {
+    if (isScheduledForFutureDay(order.scheduledFor)) {
+      setFeedbackModal({
+        tone: "info",
+        title: "Cobro programado",
+        message: order.scheduledFor
+          ? `Este pedido se cobra el ${scheduledDayLabel(order.scheduledFor)}.`
+          : "El cobro todavía no está disponible.",
+        detail:
+          "Puedes consultar, editar, reprogramar o cancelar el pedido mientras tanto. El cobro se habilita en la fecha programada.",
+      });
+      return;
+    }
+
     try {
       const cfg = await loadSettings();
       const hint = paymentHint(order);
@@ -1526,10 +1560,11 @@ export default function OrdersCardsDashboardV3() {
           const busyOrder = busy === order.id;
           const receivedTotal = paidAmount(order);
           const pendingTotal = balance(order);
+          const futureScheduled = isScheduledForFutureDay(order.scheduledFor);
           return <article key={order.id} onClick={() => setSelected(order)} className={`group cursor-pointer overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_32px_rgba(28,23,20,.055)] transition hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(28,23,20,.10)] ${order.scheduledFor ? "border-violet-300 ring-1 ring-violet-100 hover:border-violet-400" : "border-neutral-200 hover:border-neutral-300"} ${order.status === "CANCELED" ? "order-card-canceled" : ""}`}>
-            <div className={`${statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
+            <div className={`${futureScheduled ? "bg-violet-600" : statusTone(order.status)} flex items-center justify-between gap-2 px-3.5 py-2 text-white`}>
               <span className="alento-ui-label shrink-0 uppercase tracking-[0.08em]">
-                {statusLabel(order.status)}
+                {futureScheduled ? "Programado" : statusLabel(order.status)}
               </span>
 
               <div className="flex min-w-0 items-center justify-end gap-1.5">
@@ -1590,12 +1625,21 @@ export default function OrdersCardsDashboardV3() {
               <div className="mt-2 [font-synthesis:none]" onClick={(event) => event.stopPropagation()}>
                 <button
                   type="button"
-                  onClick={() => { if (!fullyPaid) void openPayment(order); }}
-                  disabled={fullyPaid}
+                  onClick={() => { if (!fullyPaid && !futureScheduled) void openPayment(order); }}
+                  disabled={fullyPaid || futureScheduled}
+                  title={
+                    futureScheduled && order.scheduledFor
+                      ? `Cobro habilitado el ${scheduledDayLabel(order.scheduledFor)}`
+                      : undefined
+                  }
                   className={`order-payment-status ${fullyPaid ? "order-payment-status--paid" : "order-payment-status--pending"} block w-full rounded-[11px] border px-3 py-2 text-left transition disabled:cursor-default disabled:opacity-100`}
                 >
-                  <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : "text-rose-700"}`}>
-                    {fullyPaid ? "Pagado" : "Pago pendiente"}
+                  <span className={`block text-[8.5px] font-semibold uppercase tracking-[0.07em] ${fullyPaid ? "text-emerald-700" : futureScheduled ? "text-violet-700" : "text-rose-700"}`}>
+                    {fullyPaid
+                      ? "Pagado"
+                      : futureScheduled
+                        ? `Cobro · ${order.scheduledFor ? scheduledDayLabel(order.scheduledFor) : "programado"}`
+                        : "Pago pendiente"}
                   </span>
                   <b className={`mt-0.5 block text-[15px] font-bold leading-none tabular-nums tracking-[-0.015em] ${fullyPaid ? "text-emerald-900" : "text-rose-900"}`}>
                     {money(fullyPaid ? receivedTotal : pendingTotal)}
@@ -1637,6 +1681,17 @@ export default function OrdersCardsDashboardV3() {
                   {["CANCELED", "COMPLETED"].includes(order.status) ? (
                     <span className="flex h-9 items-center justify-center rounded-lg bg-neutral-100 px-2 text-[10px] font-bold text-neutral-400">
                       CERRADO
+                    </span>
+                  ) : futureScheduled ? (
+                    <span
+                      className="flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-2 text-[10px] font-black text-violet-700"
+                      title={
+                        order.scheduledFor
+                          ? `Operación habilitada el ${scheduledDayLabel(order.scheduledFor)}`
+                          : "Pedido programado"
+                      }
+                    >
+                      PROGRAMADO
                     </span>
                   ) : (
                     <button
@@ -1973,9 +2028,18 @@ export default function OrdersCardsDashboardV3() {
                                     payment,
                                   })
                                 }
-                                disabled={busy === selected.id}
+                                disabled={
+                                  busy === selected.id ||
+                                  isScheduledForFutureDay(selected.scheduledFor)
+                                }
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-[9px] border border-red-100 bg-white text-red-600 disabled:opacity-40"
-                                title={received ? "Eliminar pago" : "Eliminar medio previsto"}
+                                title={
+                                  isScheduledForFutureDay(selected.scheduledFor)
+                                    ? "Los movimientos de pago se habilitan en la fecha programada"
+                                    : received
+                                      ? "Eliminar pago"
+                                      : "Eliminar medio previsto"
+                                }
                               >
                                 <Icon name="trash" />
                               </button>
@@ -2019,6 +2083,18 @@ export default function OrdersCardsDashboardV3() {
                   title="Cerrado"
                 >
                   <Icon name="status" />
+                </span>
+              ) : isScheduledForFutureDay(selected.scheduledFor) ? (
+                <span
+                  className="order-detail-action-button inline-flex h-11 w-11 items-center justify-center rounded-[13px] border border-violet-200 bg-violet-50 text-violet-600"
+                  aria-label="Pedido programado"
+                  title={
+                    selected.scheduledFor
+                      ? `Estados habilitados el ${scheduledDayLabel(selected.scheduledFor)}`
+                      : "Pedido programado"
+                  }
+                >
+                  <Clock3 className="h-[17px] w-[17px]" />
                 </span>
               ) : (
                 <button
