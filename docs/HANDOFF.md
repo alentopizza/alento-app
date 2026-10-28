@@ -52,7 +52,7 @@ Estado al 2026-10-26:
 - #8 Audit Log: completado y validado en producción.
 - #9 Observabilidad: completado y validado en producción.
 - ajuste previo a #10 — pedidos programados/fecha efectiva de venta: validado en producción;
-- #10 Refund / devoluciones auditables: implementado en PR #6; pendiente CI y validación productiva.
+- #10 Refund / devoluciones auditables: implementado en `main`; CI final verde; pendiente redeploy y validación productiva.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -157,7 +157,7 @@ Estado:
   - sistema volvió a 0 advertencias;
   - alerta visible en resueltas recientemente.
 
-El usuario autorizó iniciar #10 el 2026-10-27. El punto está implementado en PR #6 y no debe considerarse cerrado hasta CI verde y validación productiva.
+El usuario autorizó iniciar #10 el 2026-10-27. El PR #6 fue mergeado a `main` con Quality CI `40615841655` en verde. No debe considerarse cerrado hasta redeploy y validación productiva.
 
 ## Pedidos programados — ajuste previo a #10
 
@@ -828,7 +828,7 @@ Estas capacidades pueden existir en el repositorio operativo de Alentó sin conv
 
 ## Refund / devoluciones auditables #10
 
-Estado: implementado en PR #6 (`hardening-10-auditable-refunds`), pendiente de CI final y validación productiva.
+Estado: implementado en `main` mediante PR #6. Quality CI `40615841655`: ✅ success. Merge commit: `bf542cf622218e0dad9acf3c82ec227abb14678e`. Pendiente redeploy y validación productiva.
 
 Reglas clave:
 
