@@ -1052,6 +1052,22 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
       );
     }
 
+    const refundCount = await prisma.paymentRefund.count({
+      where: {
+        payment: { orderId: id },
+      },
+    });
+
+    if (refundCount > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido tiene devoluciones registradas y debe conservarse para mantener la trazabilidad financiera.",
+        },
+        { status: 409 },
+      );
+    }
+
     const deleted = await prisma.$transaction(async (tx) => {
       // ClubPointTransaction usa onDelete: SetNull para preservar historial.
       // En una eliminación definitiva solicitada desde Pedidos sí debemos retirar
