@@ -55,7 +55,27 @@ type CustomerSearchResult = {
   addresses: CustomerAddress[];
 };
 type OrderItem = { id: number; productId: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
-type Payment = { id: number; method: string; amount: number | string; cashReceived: number | string | null; changeDue: number | string | null; status: string; reference?: string | null; paidAt?: string | null; createdAt?: string };
+type PaymentRefund = {
+  id: number;
+  amount: number | string;
+  method: string;
+  reason: string;
+  reference?: string | null;
+  refundedAt: string;
+  createdByName?: string;
+};
+type Payment = {
+  id: number;
+  method: string;
+  amount: number | string;
+  cashReceived: number | string | null;
+  changeDue: number | string | null;
+  status: string;
+  reference?: string | null;
+  paidAt?: string | null;
+  createdAt?: string;
+  refunds?: PaymentRefund[];
+};
 type Order = {
   id: number;
   sequenceNumber: number | null;
@@ -150,8 +170,15 @@ function bogotaLocalInputToIso(value: string) {
   return Number.isFinite(iso.getTime()) ? iso.toISOString() : null;
 }
 const activePayments = (order: Order) => order.payments.filter((payment) => payment.status !== "CANCELED");
+const refundedAmount = (payment: Payment) =>
+  (payment.refunds ?? []).reduce((sum, refund) => sum + Number(refund.amount), 0);
+const refundableAmount = (payment: Payment) =>
+  payment.status === "PAID"
+    ? Math.max(0, Number(payment.amount) - refundedAmount(payment))
+    : 0;
 const paidPayments = (order: Order) => order.payments.filter((payment) => payment.status === "PAID");
-const paidAmount = (order: Order) => paidPayments(order).reduce((sum, payment) => sum + Number(payment.amount), 0);
+const paidAmount = (order: Order) =>
+  order.payments.reduce((sum, payment) => sum + refundableAmount(payment), 0);
 const balance = (order: Order) => Math.max(0, Number(order.total) - paidAmount(order));
 const paidInFull = (order: Order) => balance(order) <= 0 && Number(order.total) > 0;
 const paymentHint = (order: Order) => activePayments(order).find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL")?.method ?? paidPayments(order).at(-1)?.method ?? "Pago";
@@ -336,6 +363,7 @@ export default function OrdersCardsDashboardV3() {
   const [reference, setReference] = useState("");
   const [paymentError, setPaymentError] = useState("");
   const paymentAttemptKeysRef = useRef<Map<number, string>>(new Map());
+  const refundAttemptKeysRef = useRef<Map<number, string>>(new Map());
   const [editing, setEditing] = useState<Order | null>(null);
   const [fulfillment, setFulfillment] = useState<FulfillmentType>("PICKUP");
   const [editScheduleMode, setEditScheduleMode] =
@@ -958,6 +986,90 @@ export default function OrdersCardsDashboardV3() {
       emitLiveDataChange(["orders", "customers", "club", "account"]);
     } catch (actionError) {
       window.alert(actionError instanceof Error ? actionError.message : "No fue posible eliminar el pago.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function refundPayment(order: Order, payment: Payment) {
+    const available = Math.round(refundableAmount(payment));
+    if (available <= 0) {
+      setFeedbackModal({
+        tone: "warning",
+        title: "Pago sin saldo para devolver",
+        message: "Este pago ya fue devuelto completamente.",
+      });
+      return;
+    }
+
+    const amountText = window.prompt(
+      `Valor a devolver (máximo ${money(available)})`,
+      String(available),
+    );
+    if (amountText == null) return;
+
+    const amount = Math.round(Number(amountText.replace(/[^0-9.-]/g, "")));
+    if (!Number.isFinite(amount) || amount <= 0 || amount > available) {
+      setFeedbackModal({
+        tone: "warning",
+        title: "Valor de devolución inválido",
+        message: `Ingresa un valor entre $1 y ${money(available)}.`,
+      });
+      return;
+    }
+
+    const reason = window.prompt(
+      "Motivo de la devolución",
+      "Devolución al cliente",
+    )?.trim();
+    if (!reason) return;
+
+    setBusy(order.id);
+    try {
+      const idempotencyKey =
+        refundAttemptKeysRef.current.get(payment.id) ??
+        createIdempotencyKey();
+      refundAttemptKeysRef.current.set(payment.id, idempotencyKey);
+
+      const response = await fetch(
+        `/api/orders/${order.id}/payment/${payment.id}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify({
+            amount,
+            reason,
+            method: payment.method,
+          }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No fue posible registrar la devolución.");
+      }
+
+      refundAttemptKeysRef.current.delete(payment.id);
+      await load(true);
+      emitLiveDataChange(["orders", "customers", "club", "account"]);
+      setFeedbackModal({
+        tone: "success",
+        title: "Devolución registrada",
+        message: `Se registró una devolución de ${money(amount)}.`,
+        detail:
+          "El pago original se conserva y la salida queda reflejada en Caja y Auditoría.",
+      });
+    } catch (actionError) {
+      setFeedbackModal({
+        tone: "error",
+        title: "No fue posible registrar la devolución",
+        message:
+          actionError instanceof Error
+            ? actionError.message
+            : "No fue posible registrar la devolución.",
+      });
     } finally {
       setBusy(null);
     }
@@ -1990,7 +2102,11 @@ export default function OrdersCardsDashboardV3() {
                   selected.payments
                     .filter((payment) => payment.status !== "CANCELED")
                     .map((payment) => {
-                      const received = payment.status === "PAID";
+                      const received =
+                        payment.status === "PAID" ||
+                        payment.status === "REFUNDED";
+                      const refundable = refundableAmount(payment);
+                      const refunds = payment.refunds ?? [];
                       return (
                         <div
                           key={payment.id}
@@ -2030,12 +2146,45 @@ export default function OrdersCardsDashboardV3() {
                                     : ""}
                                 </p>
                               )}
+                              {refunds.length > 0 && (
+                                <div className="mt-2 space-y-1">
+                                  {refunds.map((refund) => (
+                                    <div
+                                      key={refund.id}
+                                      className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2 text-rose-800"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="alento-ui-micro font-bold uppercase">
+                                          Devuelto · {dateTime(refund.refundedAt)}
+                                        </span>
+                                        <b className="alento-ui-micro">
+                                          - {money(refund.amount)}
+                                        </b>
+                                      </div>
+                                      <p className="alento-ui-micro mt-1 text-rose-700">
+                                        {refund.reason}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex shrink-0 items-center gap-2">
                               <b className="alento-ui-control text-neutral-950">
                                 {money(payment.amount)}
                               </b>
+                              {refundable > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => void refundPayment(selected, payment)}
+                                  disabled={busy === selected.id}
+                                  className="inline-flex h-8 items-center justify-center rounded-[9px] border border-rose-200 bg-rose-50 px-2.5 alento-ui-micro font-bold text-rose-700 disabled:opacity-40"
+                                  title="Registrar devolución real"
+                                >
+                                  Devolver
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 onClick={() =>
@@ -2047,15 +2196,18 @@ export default function OrdersCardsDashboardV3() {
                                 }
                                 disabled={
                                   busy === selected.id ||
-                                  isScheduledForFutureDay(selected.scheduledFor)
+                                  isScheduledForFutureDay(selected.scheduledFor) ||
+                                  refunds.length > 0
                                 }
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-[9px] border border-red-100 bg-white text-red-600 disabled:opacity-40"
                                 title={
                                   isScheduledForFutureDay(selected.scheduledFor)
                                     ? "Los movimientos de pago se habilitan en la fecha programada"
-                                    : received
-                                      ? "Eliminar pago"
-                                      : "Eliminar medio previsto"
+                                    : refunds.length > 0
+                                      ? "El pago tiene devoluciones y debe conservarse"
+                                      : received
+                                        ? "Eliminar pago registrado por error"
+                                        : "Eliminar medio previsto"
                                 }
                               >
                                 <Icon name="trash" />

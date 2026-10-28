@@ -67,7 +67,9 @@ const POS_ORDER_INCLUDE = {
       },
     },
   },
-  payments: true,
+  payments: {
+    include: { refunds: { orderBy: { refundedAt: "asc" } } },
+  },
 } satisfies Prisma.OrderInclude;
 
 type PosCreatedOrder = Prisma.OrderGetPayload<{
@@ -151,7 +153,9 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        payments: true,
+        payments: {
+          include: { refunds: { orderBy: { refundedAt: "asc" } } },
+        },
       },
     });
     return NextResponse.json({ orders });

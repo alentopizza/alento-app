@@ -51,8 +51,8 @@ Estado al 2026-10-26:
 - #7 Idempotencia de operaciones críticas: completado y validado en producción.
 - #8 Audit Log: completado y validado en producción.
 - #9 Observabilidad: completado y validado en producción.
-- ajuste previo a #10 — pedidos programados/fecha efectiva de venta: implementado en repositorio y pendiente de validación productiva;
-- #10 Refund / devoluciones auditables: siguiente punto pendiente; no iniciar hasta cerrar el ajuste programado.
+- ajuste previo a #10 — pedidos programados/fecha efectiva de venta: validado en producción;
+- #10 Refund / devoluciones auditables: implementado en PR #6; pendiente CI y validación productiva.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -157,11 +157,11 @@ Estado:
   - sistema volvió a 0 advertencias;
   - alerta visible en resueltas recientemente.
 
-El siguiente punto es #10 Refund / devoluciones auditables y no debe iniciarse sin autorización explícita del usuario.
+El usuario autorizó iniciar #10 el 2026-10-27. El punto está implementado en PR #6 y no debe considerarse cerrado hasta CI verde y validación productiva.
 
 ## Pedidos programados — ajuste previo a #10
 
-Estado: implementado en repositorio y CI verde; pendiente de validación productiva.
+Estado: implementado, CI verde y validado en producción por el usuario.
 
 Quality CI: `40614116593` — 11 archivos / 56 tests, cero drift y build verde.
 
@@ -824,3 +824,23 @@ No considerar parte del núcleo genérico:
 - integración Chatwoot de la instalación actual.
 
 Estas capacidades pueden existir en el repositorio operativo de Alentó sin convertirse por ello en requisitos de una distribución comercial genérica.
+
+
+## Refund / devoluciones auditables #10
+
+Estado: implementado en PR #6 (`hardening-10-auditable-refunds`), pendiente de CI final y validación productiva.
+
+Reglas clave:
+
+- el cobro original se conserva;
+- `PaymentRefund` registra la salida real por separado;
+- refund parcial y total;
+- idempotencia obligatoria;
+- Caja conserva la entrada en `paidAt` y descuenta la devolución en `refundedAt`;
+- cierre de Caja usa el neto con devoluciones;
+- saldo del pedido usa dinero neto recibido;
+- cancelar un pedido cobrado solo es posible cuando el neto recibido llega a cero;
+- no se permite eliminar físicamente un pago que ya tenga devoluciones;
+- Auditoría registra `PAYMENT_REFUNDED`.
+
+Documento canónico: `docs/PAYMENTS_AND_CASH.md`.

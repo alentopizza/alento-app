@@ -12,6 +12,7 @@ import {
   validateFutureSchedule,
   validateScheduledServiceHours,
 } from "@/lib/orderScheduling";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
@@ -47,7 +48,16 @@ function serializeOrder(order: Awaited<ReturnType<typeof loadOrder>>) {
     ...order,
     subtotal: Number(order.subtotal), deliveryFee: Number(order.deliveryFee), discount: Number(order.discount), total: Number(order.total),
     items: order.items.map((item) => ({ ...item, unitPrice: Number(item.unitPrice), lineTotal: Number(item.lineTotal) })),
-    payments: order.payments.map((payment) => ({ ...payment, amount: Number(payment.amount), cashReceived: payment.cashReceived == null ? null : Number(payment.cashReceived), changeDue: payment.changeDue == null ? null : Number(payment.changeDue) })),
+    payments: order.payments.map((payment) => ({
+      ...payment,
+      amount: Number(payment.amount),
+      cashReceived: payment.cashReceived == null ? null : Number(payment.cashReceived),
+      changeDue: payment.changeDue == null ? null : Number(payment.changeDue),
+      refunds: payment.refunds.map((refund) => ({
+        ...refund,
+        amount: Number(refund.amount),
+      })),
+    })),
   };
 }
 async function currentStaffAccess() {
@@ -83,7 +93,10 @@ function loadOrder(id: number) {
         },
       },
       items: { include: { product: true }, orderBy: { id: "asc" } },
-      payments: { orderBy: { id: "asc" } },
+      payments: {
+        include: { refunds: { orderBy: { refundedAt: "asc" } } },
+        orderBy: { id: "asc" },
+      },
     },
   });
 }
@@ -126,9 +139,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       }
       if (["COMPLETED", "CANCELED"].includes(current.status)) return NextResponse.json({ error: "Este pedido ya no puede cancelarse." }, { status: 409 });
 
-      const receivedAmount = current.payments
-        .filter((payment) => payment.status === "PAID")
-        .reduce((sum, payment) => sum + Number(payment.amount), 0);
+      const receivedAmount = orderNetReceived(current.payments);
 
       if (receivedAmount > 0) {
         return NextResponse.json(
@@ -322,12 +333,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         );
       }
 
-      const paidAmount = current.payments
-        .filter((payment) => payment.status === "PAID")
-        .reduce(
-          (sum, payment) => sum + Number(payment.amount),
-          0,
-        );
+      const paidAmount = orderNetReceived(current.payments);
 
       if (total < paidAmount) {
         return NextResponse.json(
@@ -742,8 +748,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const discount = Math.min(Number(current.discount), eligibleSubtotal);
     const total = Math.max(0, subtotal + deliveryFee - discount);
 
-    const paidPayments = current.payments.filter((payment) => payment.status === "PAID");
-    const alreadyPaid = paidPayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const alreadyPaid = orderNetReceived(current.payments);
     if (total < alreadyPaid) return NextResponse.json({ error: `El nuevo total (${total.toLocaleString("es-CO")}) es menor al dinero ya recibido (${alreadyPaid.toLocaleString("es-CO")}). Registra una devolución antes de reducir el pedido.` }, { status: 409 });
     const outstanding = Math.max(0, total - alreadyPaid);
     const pendingPayment = current.payments.find((payment) => payment.status === "PENDING" || payment.status === "PARTIAL") ?? null;

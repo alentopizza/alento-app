@@ -2,6 +2,7 @@ import type { Payment } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { assertSameIdempotentRequest } from "@/lib/idempotency";
 import { type AuditActor, writeAuditLog } from "@/lib/auditLog";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 
 export type RegisterOrderPaymentInput = {
   orderId: number;
@@ -65,13 +66,17 @@ export async function registerOrderPayment(
 
       const lockedOrder = await tx.order.findUnique({
         where: { id: input.orderId },
-        include: { payments: { orderBy: { id: "asc" } } },
+        include: {
+          payments: {
+            include: { refunds: true },
+            orderBy: { id: "asc" },
+          },
+        },
       });
 
-      const paidTotal =
-        lockedOrder?.payments
-          .filter((payment) => payment.status === "PAID")
-          .reduce((sum, payment) => sum + Number(payment.amount), 0) ?? 0;
+      const paidTotal = lockedOrder
+        ? orderNetReceived(lockedOrder.payments)
+        : 0;
       const balance = lockedOrder
         ? Math.max(0, Number(lockedOrder.total) - paidTotal)
         : 0;
@@ -86,7 +91,12 @@ export async function registerOrderPayment(
 
     const order = await tx.order.findUnique({
       where: { id: input.orderId },
-      include: { payments: { orderBy: { id: "asc" } } },
+      include: {
+        payments: {
+          include: { refunds: true },
+          orderBy: { id: "asc" },
+        },
+      },
     });
 
     if (!order) {
@@ -105,9 +115,7 @@ export async function registerOrderPayment(
       };
     }
 
-    const paidAmount = order.payments
-      .filter((payment) => payment.status === "PAID")
-      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const paidAmount = orderNetReceived(order.payments);
     const outstanding = Math.max(0, Number(order.total) - paidAmount);
 
     if (outstanding <= 0) {

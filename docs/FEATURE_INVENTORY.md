@@ -80,6 +80,21 @@ Implementados en POS, Pedidos, Cocina, impresión, despacho y Repartidor.
 
 Documentos: `docs/POS.md`, `docs/ORDERS.md`, `docs/KITCHEN.md`, `docs/PAYMENTS_AND_CASH.md`.
 
+### Devoluciones auditables
+
+Pedidos y Caja soportan devoluciones parciales y totales sin borrar el cobro original.
+
+- `PaymentRefund` conserva valor, medio, motivo, referencia, fecha y responsable;
+- refund idempotente para evitar duplicados;
+- `PAYMENT_REFUNDED` queda visible en Auditoría;
+- Caja conserva la entrada original por `paidAt` y muestra la devolución por `refundedAt`;
+- el cierre esperado descuenta devoluciones;
+- saldo, edición y cancelación usan dinero neto recibido;
+- un pago con devoluciones queda protegido contra borrado físico;
+- la cancelación de un pedido cobrado requiere devolver primero el saldo neto recibido.
+
+Documento: `docs/PAYMENTS_AND_CASH.md`.
+
 ### Edición estructurada de pedidos
 
 Pedidos puede modificar cantidades, notas, agregar productos configurables y reabrir pizzas existentes, incluidas pizzas de dos sabores. La configuración se normaliza server-side y las líneas históricas sin `productId` mantienen compatibilidad.
