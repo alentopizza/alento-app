@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 import {
   isScheduledForFutureDay,
   scheduledTimeLabel,
@@ -82,9 +83,9 @@ export async function DELETE(
 
       let pendingBalance: number | null = null;
       if (payment.status === "PAID") {
-        const remainingPaid = order.payments
-          .filter((item) => item.id !== payment.id && item.status === "PAID")
-          .reduce((sum, item) => sum + Number(item.amount), 0);
+        const remainingPaid = orderNetReceived(
+          order.payments.filter((item) => item.id !== payment.id),
+        );
         pendingBalance = Math.max(0, Number(order.total) - remainingPaid);
         const pending = order.payments.find(
           (item) => item.id !== payment.id && (item.status === "PENDING" || item.status === "PARTIAL"),
