@@ -2,7 +2,7 @@
 
 Última actualización: **2026-10-27**.
 
-Estado: **IMPLEMENTADO EN REPOSITORIO — pendiente de validación productiva**.
+Estado: **IMPLEMENTADO Y VALIDADO EN PRODUCCIÓN — hardening #9 COMPLETADO**.
 
 ## Objetivo
 
@@ -198,22 +198,46 @@ Quality CI final de implementación:
 - build verde;
 - run `40609801030`.
 
-## Validación productiva pendiente
+## Validación productiva — completada
 
-Para cerrar #9:
+Validación realizada el **27 de octubre de 2026**.
 
-1. redeploy de `main`;
-2. confirmar migración `20261028001500_observability_operational_incidents`;
-3. confirmar Next.js `Ready`;
-4. abrir `/api/health` y comprobar status/database ok, latencia y request ID;
-5. abrir `/salud-sistema` como ADMIN;
-6. confirmar que cargan DB, Notifier, Web Push, Google Maps y Jobs;
-7. pulsar **Generar alerta de prueba**;
-8. confirmar que aparece **Alerta de prueba** con categoría Sistema y diagnóstico técnico;
-9. pulsar **Marcar resuelto**;
-10. confirmar que sale de alertas activas y aparece en resueltas recientemente.
+Resultado inicial de `/salud-sistema`:
 
-No provocar fallos reales en pedidos, pagos, Caja, Google Maps o WhatsApp para validar este punto.
+- estado general: **Sistema operativo**;
+- Base de datos: Operativo;
+- WhatsApp / Notifier: Operativo;
+- Web Push: Operativo;
+- Google Maps: Operativo;
+- Trabajos programados: Operativo;
+- errores activos: 0;
+- advertencias activas: 0;
+- jobs fallidos 24 h: 0;
+- campañas Push fallidas 24 h: 0;
+- contactos pendientes de sincronizar: 0;
+- jobs vencidos pendientes: 0.
+
+Prueba segura extremo a extremo:
+
+1. se pulsó **Generar alerta de prueba**;
+2. el estado general cambió a **Operativo con alertas**;
+3. Advertencias activas pasó de 0 a 1;
+4. apareció una alerta:
+   - nivel: Advertencia;
+   - categoría: Sistema;
+   - mensaje: alerta de prueba sin impacto real;
+   - contador de ocurrencias visible;
+   - diagnóstico técnico disponible;
+5. se pulsó **Marcar resuelto**;
+6. el estado general volvió a **Sistema operativo**;
+7. Advertencias activas regresó a 0;
+8. la alerta pasó a **resueltas recientemente**.
+
+Las integraciones y jobs permanecieron operativos durante la validación.
+
+Quality CI final: `40610330977` — 11 archivos / 54 tests, cero drift y build verde.
+
+**El hardening #9 queda cerrado.**
 
 ## Reglas de no regresión
 
