@@ -617,6 +617,56 @@ Documento canónico:
 
 ---
 
+### Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta — 🟡 IMPLEMENTADO / PENDIENTE VALIDACIÓN PRODUCTIVA
+
+Motivo:
+
+un pedido creado hoy pero programado para una fecha futura estaba aumentando las Ventas del día de creación, aunque comercialmente se prepara y cobra en la fecha programada.
+
+Regla implementada:
+
+- pedido inmediato → fecha de venta = `createdAt`;
+- pedido programado → fecha de venta = `scheduledFor`;
+- Caja atribuye Ventas por esa fecha efectiva;
+- Cobros/Entradas siguen dependiendo de dinero real recibido por `paidAt`;
+- un `Payment PENDING` continúa siendo solo intención de pago;
+- pagos reales de un pedido programado para otro día quedan bloqueados hasta la fecha programada;
+- estados, Cocina y asignación de repartidor permanecen bloqueados hasta 30 minutos antes de `scheduledFor`;
+- el pedido sigue visible antes de tiempo;
+- antes de su ventana sigue permitido consultar, editar, reprogramar, imprimir o cancelar.
+
+Superficies alineadas:
+
+- `/caja`;
+- `/pedidos`;
+- API de pago;
+- API de eliminación de pago;
+- API de estados (protección existente);
+- API de repartidor (protección existente);
+- analítica de zonas de domicilio.
+
+Fuente compartida:
+
+`src/lib/orderScheduling.ts`
+
+Validación automatizada:
+
+- se añadieron pruebas de fecha Bogotá y fecha comercial programada.
+
+Pendiente para cerrar este ajuste:
+
+1. redeploy de `main`;
+2. con un pedido real programado futuro, confirmar que no suma en Caja de hoy;
+3. consultar Caja en la fecha programada y confirmar que sí aparece como Venta;
+4. confirmar tarjeta **PROGRAMADO**;
+5. confirmar cobro bloqueado antes de la fecha;
+6. confirmar estados bloqueados hasta la ventana de 30 minutos;
+7. confirmar que editar/reprogramar/cancelar siguen disponibles.
+
+**No iniciar #10 hasta validar este ajuste.**
+
+---
+
 ### 10. Refund / devoluciones auditables — ⬜ PENDIENTE
 
 Objetivo:
@@ -654,9 +704,10 @@ Estado actual para continuidad:
 - #7 Idempotencia de operaciones críticas: ✅
 - #8 Audit Log: ✅ completado y validado en producción.
 - #9 Observabilidad: ✅ completado y validado en producción.
-- #10 Refund / devoluciones auditables: siguiente punto pendiente.
+- Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: 🟡 implementado, pendiente de validación productiva.
+- #10 Refund / devoluciones auditables: pendiente; no iniciar hasta cerrar el ajuste anterior.
 
-Una nueva conversación debe continuar desde el #10, pero solo con autorización explícita del usuario.
+Una nueva conversación debe continuar validando el ajuste de pedidos programados; después, con autorización explícita del usuario, iniciar #10.
 
 ## Hallazgos de despliegue para seguimiento posterior
 
