@@ -855,6 +855,8 @@ Documento canónico:
 
 `docs/AUDIT_LOG.md`.
 
+CI final del #8: `40605413080` — 10 archivos / 51 tests, cero drift y build verde.
+
 Estado #8: ✅ completado.
 
 El siguiente punto del hardening es #9 Observabilidad y no debe iniciarse sin autorización explícita del usuario.
