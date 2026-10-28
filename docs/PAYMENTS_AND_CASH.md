@@ -212,6 +212,12 @@ neto recibido > 0 → bloquear cancelación y exigir devolución primero
 
 Esto permite conservar simultáneamente la venta/cobro histórico, la salida por devolución y el estado final cancelado del pedido.
 
+### Refund después de un pedido finalizado
+
+El movimiento financiero de devolución puede registrarse sobre un pago histórico. Sin embargo, si el pedido ya alcanzó `COMPLETED`, Club Alentó pudo haber acreditado puntos de compra previamente.
+
+La política de reversión de esos puntos todavía debe definirse explícitamente antes de cerrar el hardening #10. No inferir una reversión proporcional sin una regla comercial aprobada, porque `PaymentRefund.amount` no identifica qué líneas del pedido (producto, domicilio o componente no elegible) fueron objeto de la devolución.
+
 
 ## Salidas de Caja
 
