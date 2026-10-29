@@ -764,19 +764,14 @@ function KitchenItem({
                   return (
                     <div
                       key={`${group.label}-${index}`}
-                      className="rounded-xl border border-amber-100 bg-amber-50/35 p-2.5"
+                      className="flex flex-wrap items-center gap-2"
                     >
-                      <p className="mb-2 text-[11px] font-black uppercase tracking-[0.08em] text-amber-800">
-                        {group.label}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {group.values.map((value, valueIndex) => (
-                          <KitchenAntojoBadge
-                            key={`${value}-${valueIndex}`}
-                            value={value}
-                          />
-                        ))}
-                      </div>
+                      {group.values.map((value, valueIndex) => (
+                        <KitchenAntojoBadge
+                          key={`${value}-${valueIndex}`}
+                          value={value}
+                        />
+                      ))}
                     </div>
                   );
                 }
