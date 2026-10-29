@@ -1,0 +1,119 @@
+/*
+ * Refinamiento final de acciones del checkout.
+ * Mantiene el texto real en el DOM para accesibilidad, pero presenta Cerrar como icono.
+ */
+
+/* Cerrar: botón cuadrado, sin texto visible. */
+.checkout-header > button {
+  position: relative;
+  display: inline-flex !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  flex: 0 0 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255,255,255,.17) !important;
+  border-radius: 12px !important;
+  padding: 0 !important;
+  background: rgba(255,255,255,.08) !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  box-shadow: 0 5px 14px rgba(0,0,0,.12);
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.checkout-header > button::before {
+  content: "×";
+  display: block;
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 350;
+  transform: translateY(-1px);
+}
+
+.checkout-header > button:hover:not(:disabled) {
+  border-color: rgba(255,255,255,.28) !important;
+  background: rgba(255,255,255,.14) !important;
+  transform: translateY(-1px);
+}
+
+/* Footer: jerarquía más fuerte y botones claramente legibles. */
+.checkout-footer {
+  min-height: 82px !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+}
+
+.checkout-footer > p {
+  max-width: 520px;
+  color: #817970 !important;
+  font-size: 10px !important;
+  line-height: 14px !important;
+  font-weight: 500;
+}
+
+.checkout-footer > div {
+  gap: 10px !important;
+}
+
+.checkout-footer button {
+  min-height: 50px !important;
+  border-radius: 12px !important;
+  padding: 0 24px !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  letter-spacing: -.01em !important;
+  box-shadow: 0 4px 12px rgba(31,27,24,.045);
+}
+
+.checkout-footer button:not(.primary) {
+  min-width: 112px !important;
+  border-color: #c9c2bb !important;
+  color: #292521 !important;
+  background: #fff !important;
+}
+
+.checkout-footer button.primary {
+  min-width: 190px !important;
+  border-color: var(--brand-red) !important;
+  background: var(--brand-red) !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 720 !important;
+  box-shadow: 0 8px 18px rgba(229,28,17,.16) !important;
+}
+
+.checkout-footer button.primary:hover:not(:disabled) {
+  background: var(--brand-red-dark) !important;
+  border-color: var(--brand-red-dark) !important;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 720px) {
+  .checkout-header > button {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    flex-basis: 40px !important;
+  }
+
+  .checkout-footer {
+    min-height: 0 !important;
+  }
+
+  .checkout-footer button,
+  .checkout-footer button.primary,
+  .checkout-footer button:not(.primary) {
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+}

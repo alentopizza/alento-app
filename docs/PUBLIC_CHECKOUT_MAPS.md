@@ -1,0 +1,322 @@
+# Checkout público + Google Maps Platform
+
+Estado: **IMPLEMENTADO Y OPERATIVO — VALIDACIÓN CONTINUA**
+
+Este documento define cómo Alentó App resuelve dirección, geolocalización, cobertura y tarifa de domicilio en el checkout público.
+
+Regla central: **el navegador nunca decide la distancia ni la tarifa oficial del domicilio**. El cliente selecciona o comparte una ubicación; el servidor valida esa ubicación, calcula la ruta y aplica las bandas configuradas en Alentó.
+
+## Objetivo
+
+Flujo vigente:
+
+1. Carrito → Continuar pedido.
+2. Elegir Domicilio o Recoger.
+3. Para Domicilio: buscar dirección o usar ubicación actual.
+4. Confirmar el punto de entrega en mapa.
+5. Calcular ruta real desde Alentó.
+6. Aplicar cobertura/tarifa server-side.
+7. Mostrar cupones públicos aplicables junto al resumen de totales.
+8. Continuar a datos del cliente y forma de pago.
+9. Recalcular líneas, cupón y domicilio server-side.
+10. Crear el pedido WEB y entregar seguimiento.
+
+## Google Maps Platform
+
+Servicios previstos:
+
+- Maps JavaScript API: mapa y pin de confirmación.
+- Places API (New): autocompletado de direcciones.
+- Geocoding API: convertir coordenadas GPS en una dirección legible.
+- Routes API: calcular distancia real de ruta desde Alentó hasta el cliente.
+
+No usar distancia en línea recta para cobrar domicilio.
+
+## Variables de entorno
+
+Clave pública del navegador:
+
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=""
+
+Uso: Maps JavaScript API + Places. Debe restringirse por HTTP referrer a alentopizza.com.
+
+Clave privada del servidor:
+
+    GOOGLE_MAPS_SERVER_API_KEY=""
+
+Uso: Routes/Geocoding. Nunca debe enviarse al navegador ni guardarse en Git.
+
+## Ubicación oficial de Alentó
+
+La sede debe tener una ubicación canónica en configuración del sistema:
+
+- nombre de sede;
+- dirección;
+- latitude;
+- longitude;
+- Google Place ID cuando esté disponible.
+
+No escribir esas coordenadas de forma rígida en el componente del carrito.
+
+## Flujo de dirección
+
+### Buscar dirección
+
+- campo con Google Places Autocomplete;
+- priorizar Bogotá/zona de servicio;
+- exigir selección de una dirección válida;
+- conservar placeId, dirección formateada y coordenadas.
+
+### Usar mi ubicación
+
+Solo solicitar geolocalización cuando el cliente toque **Usar mi ubicación**.
+
+Si acepta:
+
+1. obtener latitude/longitude;
+2. resolver dirección legible;
+3. mostrar pin;
+4. permitir confirmación/corrección.
+
+Si rechaza el permiso, el flujo de búsqueda de dirección debe seguir funcionando.
+
+### Confirmar punto
+
+La experiencia de domicilio usa un layout compacto orientado a móvil:
+
+- el checkout inicia por defecto en **Recoger en tienda**;
+- al elegir **Domicilio**, solo se precarga una dirección si pertenece al cliente autenticado y está guardada en su perfil;
+- la consulta de dirección guardada ocurre en segundo plano y nunca reemplaza ni bloquea el campo manual de Google Places;
+- si el cliente no está autenticado, no hay dirección guardada o la consulta tarda/falla, el buscador sigue disponible inmediatamente;
+- una dirección temporal de un checkout anterior no se reutiliza automáticamente;
+- antes de seleccionar dirección se muestra el buscador y el acceso **Mi ubicación**;
+- al cambiar desde **Recoger en tienda** hacia **Domicilio**, el autocompletado se inicializa únicamente cuando su contenedor editable ya está renderizado;
+- no se muestra ningún mapa hasta que exista un destino validado, evitando mapas de origen/fallback que puedan confundir al cliente;
+- cuando Google valida una dirección, el buscador se colapsa automáticamente;
+- la dirección confirmada queda en una tarjeta compacta con acción de lápiz para editarla;
+- el mapa pasa a ser el elemento visual principal en formato 3:4 y se inicializa únicamente cuando su contenedor ya está montado;
+- la ruta Alentó → cliente se dibuja sobre el mapa;
+- Ruta, Domicilio y Tiempo se integran como una cabecera flotante dentro de la parte superior del mapa;
+- cuando la ruta está fuera de cobertura, una alerta flotante dentro del mapa ocupa el centro visual y ofrece dos salidas directas: **Editar dirección** o **Recoger en tienda**;
+- la alerta fuera de cobertura no se relega debajo del mapa, porque en móvil puede quedar oculta por el resumen/footer;
+- al entrar en modo edición se bloquea la confirmación hasta validar de nuevo la dirección.
+
+Más adelante este bloque se complementará con barrio, apartamento/casa/local y nota de entrega antes de crear el pedido.
+
+## Cotización segura
+
+El contrato público de domicilio no debe recibir distanceMeters como verdad.
+
+El backend debe:
+
+1. validar placeId/coordenadas;
+2. tomar la ubicación oficial de Alentó;
+3. consultar Routes API;
+4. obtener distanceMeters;
+5. buscar la banda activa en pos_settings.deliveryBands;
+6. devolver covered, distanceMeters y deliveryFee.
+
+El endpoint actual /api/delivery/quote podrá evolucionar para recibir ubicación en vez de distancia calculada por el navegador.
+
+## Datos de dirección
+
+CustomerAddress ya conserva en producción:
+
+- placeId;
+- formattedAddress;
+- latitude;
+- longitude;
+- postalCode opcional;
+- locationSource (GOOGLE_PLACE / DEVICE_GPS / MANUAL_CONFIRMED).
+
+Los campos actuales address, neighborhood, city y notes se mantienen.
+
+Los campos `placeId`, `formattedAddress`, `latitude` y `longitude` ya forman parte del schema vigente. La sincronización de Prisma se rige por `docs/DEPLOYMENT.md`.
+
+## Seguridad
+
+- recalcular ruta y tarifa al crear el pedido;
+- no aceptar deliveryFee ni distanceMeters enviados por el navegador;
+- restringir las dos API keys;
+- validar coordenadas en servidor;
+- aplicar rate limiting razonable;
+- no pedir GPS sin acción explícita del usuario.
+
+## Fases de implementación
+
+### Fase A — Google Cloud
+
+1. Crear/seleccionar proyecto.
+2. Habilitar facturación.
+3. Habilitar Maps JavaScript API.
+4. Habilitar Places API (New).
+5. Habilitar Geocoding API.
+6. Habilitar Routes API.
+7. Crear clave pública restringida.
+8. Crear clave privada de servidor.
+9. Agregar ambas variables en EasyPanel.
+
+### Fase B — Configuración de sede
+
+La sede usa el mismo patrón de búsqueda de dirección que los clientes:
+
+1. buscar con Google Places Autocomplete;
+2. seleccionar un resultado válido;
+3. guardar dirección formateada, Place ID y coordenadas;
+4. ajustar el pin en el mapa solo si la entrada exacta necesita corrección;
+5. guardar Configuración.
+
+No usar campos libres de enlace de Google Maps ni reintroducir el flujo manual de escribir dirección y luego geocodificarla por separado.
+
+### Fase C — Persistencia de direcciones
+
+Ampliar CustomerAddress, ejecutar prisma db push y mantener compatibilidad con direcciones históricas.
+
+### Fase D — Selector de dirección
+
+Autocomplete, botón Usar mi ubicación, reverse geocoding, mapa/pin y guardado de dirección.
+
+### Fase E — Cotización
+
+Routes API → distanceMeters → bandas actuales → cobertura/tarifa.
+
+### Fase F — Checkout
+
+Estado: **IMPLEMENTADA EN V1**.
+
+Flujo actual:
+
+Modalidad → dirección/cobertura → cupón/totales → datos del cliente → pago → creación `Order.source=WEB` → seguimiento.
+
+Reglas actuales:
+
+- login opcional;
+- invitado permitido;
+- nombre y teléfono obligatorios;
+- sesión de cliente autocompleta datos;
+- recuperación de datos existentes requiere OTP por WhatsApp;
+- no se revelan datos privados por búsqueda pública de teléfono;
+- productos se vuelven a normalizar server-side;
+- domicilio se vuelve a calcular server-side;
+- pago inicial se crea como `PENDING`;
+- cupones públicos se recalculan en servidor y no descuentan domicilio;
+- productos promocionales/no elegibles quedan fuera de la base del cupón;
+- se usa el mismo consecutivo global que POS.
+
+## Criterios de aceptación
+
+- dirección Google queda geolocalizada;
+- GPS requiere consentimiento explícito;
+- rechazar GPS no bloquea checkout;
+- mapa confirma el punto;
+- Routes calcula la ruta real;
+- Alentó decide la tarifa con sus bandas actuales;
+- fuera de cobertura no puede finalizar Domicilio;
+- manipular requests del navegador no reduce tarifa;
+- direcciones confirmadas pueden reutilizarse;
+- PICKUP no consulta Routes ni agrega domicilio;
+- funciona en móvil, PWA, tablet y escritorio.
+
+## Avance implementado
+
+- Fase A: Google Cloud y claves configuradas por operación.
+- Fase B: sede seleccionada con Google Places y persistida en `pos_settings` con dirección formateada, Place ID y coordenadas. El mismo buscador compartido se reutiliza para clientes y sede; el reverse geocoding queda reservado para ajustes manuales del pin.
+- Fase D: checkout público ya puede buscar direcciones con Place Autocomplete (New) o solicitar GPS explícitamente.
+- El checkout inicia en Recoger en tienda, no reutiliza direcciones temporales de compras anteriores y solo precarga la dirección guardada de un cliente autenticado.
+- El checkout colapsa la dirección confirmada, permite editarla con acción de lápiz y usa un mapa 3:4 como elemento principal, con Ruta / Domicilio / Tiempo integrados en la parte superior.
+- El Map ID `Alento Delivery Map` usa el estilo cloud `Alento Delivery Light`.
+- Fase E: `POST /api/delivery/quote` calcula ruta real con Routes API, expone la geometría de la ruta y aplica las bandas activas del sistema.
+- El mapa dibuja la ruta Alentó → cliente y resume Ruta / Domicilio / Tiempo en una sola fila.
+- El carrito ya habilita **Continuar pedido**, conserva la modalidad/domicilio seleccionado y muestra domicilio + total provisional.
+
+## Checkout como flujo de página
+
+El checkout público ya no debe crecer como una cadena de modales.
+
+Flujo vigente dentro de `/cart`:
+
+`Carrito → Entrega + cupones/totales → Datos y pago → Confirmación`
+
+Reglas:
+
+- Entrega se renderiza como contenido de página, no como overlay;
+- la selección de cupón, cuando aplica, vive en Entrega junto al resumen económico;
+- Datos y pago también usa modo de página completa y no repite la selección/descuento del cupón;
+- el header público permanece visible;
+- cada paso conserva navegación de regreso al anterior;
+- mapa y selector de direcciones aprovechan el ancho disponible;
+- no reintroducir contenedores centrados de 680px para este flujo salvo una necesidad puntual.
+
+## Dirección única del cliente
+
+La experiencia pública usa **una sola dirección operativa por cliente**.
+
+Reglas:
+
+- si el cliente autenticado tiene una dirección con `formattedAddress`, `placeId`, `latitude` y `longitude`, se usa automáticamente;
+- no se muestra selector entre varias direcciones;
+- una dirección antigua que solo tenga texto se considera **no validada**;
+- si la dirección no está validada, el checkout muestra **Actualizar dirección** y obliga a seleccionarla nuevamente con Google Maps;
+- al seleccionar una dirección válida de Google, se guarda como la única dirección del cliente autenticado;
+- cualquier dirección adicional heredada se elimina cuando la dirección única se actualiza;
+- invitados pueden cotizar domicilio sin guardar dirección permanente;
+- el botón **Ajustar punto de entrega** permite volver a seleccionar la ubicación.
+
+No reintroducir lógica de Casa/Trabajo/múltiples direcciones en el checkout público.
+
+## Mejora continua
+
+El flujo carrito → creación `WEB` → seguimiento y la persistencia enriquecida de `CustomerAddress` ya están implementados.
+
+Pendientes actuales:
+
+- mantener pruebas productivas periódicas para invitado y cliente autenticado;
+- seguir mejorando selección/edición de la dirección única;
+- vigilar consumo/errores de Google Places y Routes;
+- conservar la validación server-side de cobertura y tarifa;
+- no duplicar lógica de dirección entre POS y checkout público.
+
+No pegar las claves en chats, commits ni capturas públicas.
+
+
+### Protección de dirección para invitados
+
+Un checkout invitado puede asociarse al `Customer` operativo por teléfono, pero conocer un teléfono no autoriza a sustituir su dirección privada guardada.
+
+Regla vigente:
+
+- con sesión verificada del cliente, la dirección confirmada puede actualizar la dirección operativa guardada;
+- sin sesión, si el teléfono coincide con un cliente existente, la dirección del nuevo pedido no reemplaza ni se convierte en principal sobre la dirección privada previa;
+- si coincide exactamente el Place ID/coordenadas se puede reutilizar;
+- de lo contrario se crea una dirección de entrega no principal para asociarla únicamente al pedido.
+
+Esto evita que un tercero que conozca un teléfono pueda modificar datos privados persistidos.
+
+
+## Cupones en el checkout público — 2026-10-26
+
+Documento canónico: `docs/COUPONS.md`.
+
+Reglas de esta superficie:
+
+- `GET /api/public-checkout` expone únicamente cupones `active + visibleInCart`;
+- `POST /api/public-checkout/eligibility` calcula la base elegible con `normalizeOrderLine`;
+- la lista de cupones y la elegibilidad se solicitan en paralelo para evitar que la UI espere innecesariamente;
+- cada cupón ocupa el ancho completo en móvil;
+- si la base elegible es cero porque toda la compra está en promoción, se ocultan tarjetas de cupón y se explica que la compra no aplica;
+- si existen productos promocionales mezclados con productos elegibles, se aclara que el cupón solo afecta la base elegible;
+- la selección se conserva al volver desde Datos/Pago;
+- `POST /api/public-checkout` vuelve a validar el cupón y recalcula el descuento antes de persistir.
+
+## Rendimiento de Carrito — 2026-10-26
+
+Entrar a `/cart` no debe cargar de inmediato Google Maps ni todo el formulario de checkout.
+
+`src/app/cart/page.tsx` usa carga dinámica para:
+
+- `PublicCheckoutDelivery`;
+- `PublicCheckoutCustomer`.
+
+Esos bundles se descargan cuando el flujo realmente entra a los pasos de checkout. `src/app/cart/loading.tsx` da feedback inmediato durante navegación de ruta.
+
+No volver a importar estáticamente estos componentes en la página principal del carrito salvo una razón de rendimiento medida.

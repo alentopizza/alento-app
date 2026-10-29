@@ -1,0 +1,478 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createDeliveryMapPinElement,
+  createDriverMapPinElement,
+} from "@/lib/alentoMapMarker";
+import {
+  deliveryTravelModeColor,
+  deliveryTravelModeLabel,
+  type DeliveryTravelMode,
+} from "@/lib/deliveryTravelMode";
+
+const MAP_ID = "b0bfaae2809a720a6204509b";
+
+type LivePayload = {
+  status: string;
+  travelMode: DeliveryTravelMode;
+  driver: { name: string; phone: string | null } | null;
+  location: {
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+    updatedAt: string | null;
+    stale: boolean;
+  } | null;
+  destination: {
+    formattedAddress: string;
+    latitude: number;
+    longitude: number;
+  } | null;
+  route: {
+    distanceMeters: number;
+    durationSeconds: number | null;
+    encodedPolyline: string;
+    requestedTravelMode?: DeliveryTravelMode;
+    routeTravelMode?: DeliveryTravelMode;
+    fallbackToVehicle?: boolean;
+  } | null;
+};
+
+type GoogleMapInstance = {
+  fitBounds: (
+    bounds: unknown,
+    padding?:
+      | number
+      | { top: number; right: number; bottom: number; left: number },
+  ) => void;
+};
+
+type GoogleAdvancedMarkerInstance = {
+  map: GoogleMapInstance | null;
+  position?: { lat: number; lng: number };
+};
+
+type GoogleMarkerLibrary = {
+  AdvancedMarkerElement: new (options: {
+    map: GoogleMapInstance;
+    position: { lat: number; lng: number };
+    title?: string;
+    content?: Node;
+    zIndex?: number;
+  }) => GoogleAdvancedMarkerInstance;
+};
+
+type GooglePolylineInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+};
+
+type GoogleLatLngBoundsInstance = {
+  extend: (point: { lat: number; lng: number }) => void;
+};
+
+type GoogleMapsRuntime = {
+  maps: {
+    importLibrary: (library: string) => Promise<unknown>;
+    Map: new (
+      element: HTMLElement,
+      options: Record<string, unknown>,
+    ) => GoogleMapInstance;
+    Marker: new (options: Record<string, unknown>) => {
+      setMap: (map: GoogleMapInstance | null) => void;
+    };
+    Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
+    LatLngBounds: new () => GoogleLatLngBoundsInstance;
+    geometry?: {
+      encoding?: {
+        decodePath: (
+          encoded: string,
+        ) => Array<{ lat: () => number; lng: () => number }>;
+      };
+    };
+  };
+};
+
+function getGoogleWindow() {
+  return window as typeof window & { google?: GoogleMapsRuntime };
+}
+
+function installGoogleMapsBootstrap(key: string) {
+  if (getGoogleWindow().google?.maps?.importLibrary) return;
+
+  const bootstrapId = "alento-google-maps-bootstrap";
+  if (document.getElementById(bootstrapId)) return;
+
+  const script = document.createElement("script");
+  script.id = bootstrapId;
+  script.textContent = `
+    (g=>{
+      var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",
+        q="__ib__",m=document,b=window;
+      b=b[c]||(b[c]={});
+      var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,
+        u=()=>h||(h=new Promise(async(f,n)=>{
+          await (a=m.createElement("script"));
+          e.set("libraries",[...r]+"");
+          for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);
+          e.set("callback",c+".maps."+q);
+          a.src="https://maps."+c+"apis.com/maps/api/js?"+e;
+          d[q]=f;
+          a.onerror=()=>h=n(Error(p+" could not load."));
+          a.nonce=m.querySelector("script[nonce]")?.nonce||"";
+          m.head.append(a)
+        }));
+      d[l]
+        ? console.warn(p+" only loads once. Ignoring:",g)
+        : d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))
+    })({
+      key: "__ALENTO_MAPS_KEY__",
+      v: "weekly",
+      language: "es",
+      region: "CO"
+    });
+  `;
+  script.textContent = script.textContent.replace(
+    '"__ALENTO_MAPS_KEY__"',
+    JSON.stringify(key),
+  );
+  document.head.appendChild(script);
+}
+
+async function loadGoogleMaps() {
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim();
+  if (!key) throw new Error("Google Maps no está configurado.");
+
+  installGoogleMapsBootstrap(key);
+
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const runtime = getGoogleWindow().google;
+    if (runtime?.maps?.importLibrary) return runtime;
+    await new Promise((resolve) => window.setTimeout(resolve, 100));
+  }
+
+  throw new Error("No fue posible iniciar Google Maps.");
+}
+
+function formatDistance(meters?: number | null) {
+  if (meters == null) return "—";
+  if (meters < 1000) return `${Math.max(1, Math.round(meters))} m`;
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+function formatDuration(seconds?: number | null) {
+  if (!seconds) return "—";
+  return `${Math.max(1, Math.round(seconds / 60))} min`;
+}
+
+
+export default function CustomerDeliveryLiveMap({
+  token,
+  orderCode,
+}: {
+  token: string;
+  orderCode: string;
+}) {
+  const mapHostRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const driverMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
+  const destinationMarkerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
+  const routeRef = useRef<GooglePolylineInstance | null>(null);
+  const routeDataRef = useRef<LivePayload["route"]>(null);
+
+  const [data, setData] = useState<LivePayload | null>(null);
+  const [routeData, setRouteData] = useState<LivePayload["route"]>(null);
+  const [error, setError] = useState("");
+
+  const drawMap = useCallback(
+    async (
+      next: LivePayload,
+      route: LivePayload["route"],
+      fit = false,
+    ) => {
+      if (!mapHostRef.current || !next.location || !next.destination) return;
+
+      const google = await loadGoogleMaps();
+      await google.maps.importLibrary("maps");
+      await google.maps.importLibrary("geometry");
+      const { AdvancedMarkerElement } =
+        (await google.maps.importLibrary("marker")) as GoogleMarkerLibrary;
+
+      const driverPoint = {
+        lat: next.location.latitude,
+        lng: next.location.longitude,
+      };
+      const destinationPoint = {
+        lat: next.destination.latitude,
+        lng: next.destination.longitude,
+      };
+
+      if (!mapRef.current) {
+        mapRef.current = new google.maps.Map(mapHostRef.current, {
+          center: driverPoint,
+          zoom: 16,
+          mapId: MAP_ID,
+          disableDefaultUI: true,
+          gestureHandling: "cooperative",
+        });
+        fit = true;
+      }
+
+      if (!driverMarkerRef.current) {
+        driverMarkerRef.current = new AdvancedMarkerElement({
+          map: mapRef.current,
+          position: driverPoint,
+          title: "Tu repartidor",
+          content: createDriverMapPinElement(),
+          zIndex: 30,
+        });
+      } else {
+        driverMarkerRef.current.position = driverPoint;
+      }
+
+      if (!destinationMarkerRef.current) {
+        destinationMarkerRef.current = new AdvancedMarkerElement({
+          map: mapRef.current,
+          position: destinationPoint,
+          title: `Tu pedido ${orderCode}`,
+          content: createDeliveryMapPinElement(orderCode),
+          zIndex: 25,
+        });
+      } else {
+        destinationMarkerRef.current.position = destinationPoint;
+      }
+
+      if (route?.encodedPolyline && google.maps.geometry?.encoding?.decodePath) {
+        routeRef.current?.setMap(null);
+        const path = google.maps.geometry.encoding.decodePath(
+          route.encodedPolyline,
+        );
+        routeRef.current = new google.maps.Polyline({
+          map: mapRef.current,
+          path,
+          strokeColor: deliveryTravelModeColor(next.travelMode),
+          strokeOpacity: 0.96,
+          strokeWeight: 5,
+          geodesic: true,
+        });
+
+        if (fit) {
+          const bounds = new google.maps.LatLngBounds();
+          path.forEach((point) =>
+            bounds.extend({ lat: point.lat(), lng: point.lng() }),
+          );
+          bounds.extend(driverPoint);
+          bounds.extend(destinationPoint);
+          mapRef.current.fitBounds(bounds, {
+            top: 90,
+            right: 42,
+            bottom: 58,
+            left: 42,
+          });
+        }
+      } else if (fit) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(driverPoint);
+        bounds.extend(destinationPoint);
+        mapRef.current.fitBounds(bounds, {
+          top: 90,
+          right: 42,
+          bottom: 58,
+          left: 42,
+        });
+      }
+    },
+    [orderCode],
+  );
+
+  const fetchLive = useCallback(
+    async (withRoute: boolean) => {
+      const response = await fetch(
+        `/api/seguimiento/${encodeURIComponent(token)}/delivery-live${withRoute ? "?route=1" : ""}`,
+        { cache: "no-store" },
+      );
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error || "No fue posible actualizar el domicilio.",
+        );
+      }
+
+      const next = payload as LivePayload;
+      setData(next);
+
+      if (next.route) {
+        routeDataRef.current = next.route;
+        setRouteData(next.route);
+      }
+
+      await drawMap(
+        next,
+        next.route ?? routeDataRef.current,
+        Boolean(next.route),
+      );
+    },
+    [drawMap, token],
+  );
+
+  useEffect(() => {
+    let disposed = false;
+
+    async function start() {
+      try {
+        await fetchLive(true);
+        if (!disposed) setError("");
+      } catch (err) {
+        if (!disposed) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "No fue posible cargar el seguimiento en vivo.",
+          );
+        }
+      }
+    }
+
+    void start();
+
+    const locationTimer = window.setInterval(() => {
+      void fetchLive(false).catch(() => undefined);
+    }, 5000);
+
+    const routeTimer = window.setInterval(() => {
+      void fetchLive(true).catch(() => undefined);
+    }, 15000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(locationTimer);
+      window.clearInterval(routeTimer);
+      driverMarkerRef.current && (driverMarkerRef.current.map = null);
+      if (destinationMarkerRef.current) destinationMarkerRef.current.map = null;
+      routeRef.current?.setMap(null);
+      mapRef.current = null;
+    };
+  }, [fetchLive]);
+
+  const driverName = data?.driver?.name || "Tu repartidor";
+  const driverPhone = data?.driver?.phone?.replace(/[^\d+]/g, "") || null;
+  const locationReady = Boolean(data?.location && data?.destination);
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-[22px] border border-white/10 bg-[#111] text-white shadow-[0_18px_46px_rgba(0,0,0,.28)]">
+      <div className="relative aspect-square min-h-[250px] overflow-hidden bg-[#080808]">
+        <div ref={mapHostRef} className="absolute inset-0" />
+
+        <div className="pointer-events-none absolute left-2 right-2 top-2 z-20">
+          <div className="flex items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-[#111]/92 p-1.5 shadow-lg backdrop-blur-xl">
+            <div className="min-w-0 flex-1 px-1.5">
+              <p className="text-[6.5px] font-black uppercase tracking-[0.1em] text-[#ff454b]">
+                Repartidor
+              </p>
+              <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                <h3 className="min-w-0 truncate text-[12px] font-black uppercase leading-4">
+                  {driverName}
+                </h3>
+                {data?.travelMode && (
+                  <span
+                    className="shrink-0 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase"
+                    style={{
+                      borderColor:
+                        deliveryTravelModeColor(data.travelMode) + "55",
+                      color: deliveryTravelModeColor(data.travelMode),
+                      backgroundColor:
+                        deliveryTravelModeColor(data.travelMode) + "12",
+                    }}
+                  >
+                    {deliveryTravelModeLabel(data.travelMode)}
+                  </span>
+                )}
+                {driverPhone && (
+                  <a
+                    href={`tel:${driverPhone}`}
+                    aria-label={`Llamar a ${driverName}`}
+                    title={`Llamar a ${driverName}`}
+                    className="pointer-events-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_6px_14px_rgba(16,185,129,.25)] transition active:scale-95"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.18 2 2 0 0 1 4.07 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.7a16 16 0 0 0 6.3 6.3l1.24-1.24a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z" />
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-2 divide-x divide-white/10 overflow-hidden rounded-[11px] border border-white/[0.07] bg-white/[0.055]">
+              <div className="min-w-[62px] px-2 py-1.5 text-center">
+                <span className="block text-[6px] font-black uppercase tracking-[.06em] text-white/35">
+                  Distancia
+                </span>
+                <b className="mt-0.5 block text-[11px] leading-4">
+                  {formatDistance(routeData?.distanceMeters)}
+                </b>
+              </div>
+              <div className="min-w-[58px] px-2 py-1.5 text-center">
+                <span className="block text-[6px] font-black uppercase tracking-[.06em] text-white/35">
+                  Tiempo
+                </span>
+                <b className="mt-0.5 block text-[11px] leading-4">
+                  {formatDuration(routeData?.durationSeconds)}
+                </b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {!locationReady && (
+          <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+            <div>
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#e21a22]/12 text-xl">
+                🛵
+              </div>
+              <b className="mt-3 block text-[12px]">
+                Ubicando a tu repartidor
+              </b>
+              <p className="mt-1 text-[10px] leading-4 text-white/45">
+                La ubicación aparecerá aquí apenas recibamos una señal reciente.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {routeData?.fallbackToVehicle && (
+          <div className="absolute bottom-12 left-2 right-2 rounded-[12px] border border-amber-300/20 bg-[#211708]/94 px-2.5 py-1.5 text-center text-[8px] font-semibold leading-4 text-amber-100 backdrop-blur-md">
+            Ruta de moto aproximada con vía vehicular.
+          </div>
+        )}
+
+        {data?.location?.stale && (
+          <div className="absolute bottom-2 left-2 right-2 rounded-[12px] border border-white/10 bg-[#111]/90 px-2.5 py-1.5 text-center text-[8px] font-semibold text-white/50 backdrop-blur-md">
+            Actualizando ubicación…
+          </div>
+        )}
+      </div>
+
+      {data?.travelMode && data.travelMode !== "VEHICLE" && (
+        <div className="border-t border-white/10 bg-white/[0.035] px-4 py-2 text-center text-[8px] font-semibold leading-4 text-white/38">
+          La ruta mostrada es orientativa según el modo de entrega elegido por el repartidor.
+        </div>
+      )}
+
+      {error && (
+        <div className="border-t border-[#e21a22]/15 bg-[#e21a22]/[0.07] px-4 py-2.5 text-[9px] font-semibold text-[#ff8b8f]">
+          {error}
+        </div>
+      )}
+    </section>
+  );
+}

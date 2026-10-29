@@ -1,0 +1,211 @@
+/* Typography refinement for /pedidos order cards only.
+ * Scope is intentionally tied to the Pedidos search input so these rules do not affect POS, Cocina or Caja.
+ */
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) article.group {
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Current status */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:first-child > span:first-child {
+  font-size: 10.5px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.065em !important;
+}
+
+/* Fulfillment badge */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:first-child > span:last-child {
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.045em !important;
+  padding: 5px 11px !important;
+}
+
+/* Date */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:first-child > div:first-child > p:first-child {
+  font-size: 11px !important;
+  line-height: 15px !important;
+  font-weight: 500 !important;
+  color: #8a8580 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Commercial order number */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:first-child h2 {
+  margin-top: 2px !important;
+  font-size: 23px !important;
+  line-height: 26px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  color: #111214 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Product count */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:first-child > div:first-child > p:last-child {
+  margin-top: 3px !important;
+  font-size: 11.5px !important;
+  line-height: 15px !important;
+  font-weight: 500 !important;
+  color: #9a9590 !important;
+}
+
+/* Total label and amount */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:first-child > div:last-child > p {
+  font-size: 9.5px !important;
+  line-height: 13px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.09em !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:first-child > div:last-child > b {
+  display: block;
+  margin-top: 2px;
+  font-size: 19px !important;
+  line-height: 23px !important;
+  font-weight: 780 !important;
+  letter-spacing: -0.02em !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Modern customer information card */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-card {
+  min-height: 100px;
+  padding: 16px !important;
+  gap: 14px !important;
+  border: 1px solid #e3ddd7 !important;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, #fbfaf8 0%, #f7f4f0 100%) !important;
+  box-shadow: 0 8px 24px rgba(32, 28, 24, 0.045);
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-avatar {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 16px !important;
+  border-color: #e7e1db !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 760 !important;
+  color: #171717;
+  box-shadow: 0 5px 14px rgba(32, 28, 24, 0.07) !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-name {
+  font-size: 17px !important;
+  line-height: 21px !important;
+  font-weight: 730 !important;
+  letter-spacing: -0.015em !important;
+  color: #151515 !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-meta {
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-line {
+  position: relative;
+  margin: 0;
+  padding-left: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px !important;
+  line-height: 18px !important;
+  font-weight: 480 !important;
+  color: #615c57 !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-line::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #aaa39c;
+}
+
+/* Customer block inside detail drawer */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-detail {
+  padding: 20px !important;
+  border-color: #e2dcd6 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 22px rgba(32, 28, 24, 0.045);
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-detail-name {
+  font-size: 20px !important;
+  line-height: 25px !important;
+  font-weight: 730 !important;
+  letter-spacing: -0.018em !important;
+  color: #151515 !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-detail-meta {
+  display: grid;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-detail-meta p {
+  position: relative;
+  margin: 0;
+  padding-left: 13px;
+  font-size: 13.5px !important;
+  line-height: 19px !important;
+  font-weight: 480 !important;
+  color: #625d58 !important;
+}
+
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"]) .order-customer-detail-meta p::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #aaa39c;
+}
+
+/* Payment / balance pill */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:nth-child(3) > button {
+  font-size: 12px !important;
+  line-height: 16px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* Payment method hint */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:nth-child(3) > span {
+  font-size: 11px !important;
+  line-height: 15px !important;
+  font-weight: 550 !important;
+  color: #88827d !important;
+}
+
+/* Main workflow action */
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:nth-child(4) > div:last-child > a,
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:nth-child(4) > div:last-child > button,
+main:has(input[placeholder="Buscar pedido, cliente, teléfono, pago o estado"])
+  article.group > div:nth-child(2) > div:nth-child(4) > div:last-child > span {
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.02em !important;
+}

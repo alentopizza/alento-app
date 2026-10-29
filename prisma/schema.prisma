@@ -1,0 +1,970 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  PREPARING
+
+  // PREPARED es el nombre técnico persistido para la etapa visible "Horneando".
+  // Al entrar aquí, el pedido ya no pertenece al tablero de Cocina.
+  // El hornero/operación lo cambia luego a READY cuando sale del horno.
+  // No renombrar ni sustituir por HORNEANDO sin una migración deliberada.
+  PREPARED
+
+  READY
+  OUT_FOR_DELIVERY
+  ARRIVED
+  DELIVERED
+  COMPLETED
+  CANCELED
+}
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+  STORE
+}
+
+enum OrderSource {
+  POS
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+  WEB
+  RAPPI
+  DIDI
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  REFUNDED
+  CANCELED
+}
+
+enum ProductType {
+  STANDARD
+  PIZZA_SINGLE
+  PIZZA_TWO_FLAVORS
+  PIZZA_CUSTOM
+  COMBO
+  MODIFIER
+  INTERNAL
+}
+
+enum CouponType {
+  FIXED
+  PERCENTAGE
+}
+
+enum UserRole {
+  ADMIN
+  POS
+  KITCHEN
+  CASHIER
+  DRIVER
+  DISPATCH
+}
+
+enum UserPermission {
+  CANCEL_ORDERS
+  DELETE_ORDERS
+}
+
+model Customer {
+  id          Int               @id @default(autoincrement())
+  name        String
+  countryCode String            @default("+57")
+  phone       String?           @unique
+  email       String?           @unique
+  notes       String?
+  contactWebhookPending Boolean @default(false)
+  contactWebhookSentAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  addresses   CustomerAddress[]
+  orders      Order[]
+  account     CustomerAccount?
+  clubPoints  ClubPointTransaction[]
+  appInstalls CustomerAppInstallation[]
+  pushSubscriptions DriverPushSubscription[]
+  legacyPushSubscriptions CustomerPushSubscription[]
+}
+
+model User {
+  id                  Int              @id @default(autoincrement())
+  name                String
+  email               String           @unique
+  passwordHash        String
+  whatsappCountryCode String           @default("+57")
+  whatsappPhone       String?
+  roles               UserRole[]       @default([])
+  permissions         UserPermission[] @default([])
+  active              Boolean          @default(true)
+  sessionVersion      Int              @default(1)
+  lastLoginAt              DateTime?
+  driverAvailable         Boolean          @default(false)
+  driverLatitude          Float?
+  driverLongitude         Float?
+  driverLocationAccuracy  Float?
+  driverLocationUpdatedAt DateTime?
+  driverLocationSource    String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  assignedOrders           Order[]          @relation("OrderDriver")
+  driverCashExpenses       CashExpense[]     @relation("DriverCashExpenses")
+  pushSubscriptions        DriverPushSubscription[]
+  nativePushDevices        NativePushDevice[]
+  doughPreparations DoughPreparation[]
+  workShifts WorkShift[]
+  cashLoans CashLoan[]
+  payrollPayments PayrollPayment[]
+
+  @@index([active])
+  @@index([whatsappPhone])
+  @@index([driverAvailable])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  occurredAt  DateTime @default(now())
+  actorType   String
+  actorUserId Int?
+  actorName   String?
+  actorEmail  String?
+  action      String
+  entityType  String
+  entityId    String?
+  summary     String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  source      String?
+
+  @@index([occurredAt])
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([action, occurredAt])
+}
+
+model OperationalIncident {
+  id               String    @id @default(cuid())
+  fingerprint      String    @unique
+  level            String
+  category         String
+  code             String
+  message          String
+  source           String?
+  entityType       String?
+  entityId         String?
+  firstSeenAt      DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
+  occurrenceCount  Int       @default(1)
+  lastRequestId    String?
+  metadata         Json?
+  resolvedAt       DateTime?
+  resolvedByUserId Int?
+  resolvedByName   String?
+
+  @@index([level, lastSeenAt])
+  @@index([category, lastSeenAt])
+  @@index([resolvedAt, lastSeenAt])
+  @@index([lastRequestId])
+}
+
+model SecurityRateLimit {
+  scope           String
+  keyHash         String
+  windowStartedAt DateTime
+  count           Int      @default(0)
+  blockedUntil    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@id([scope, keyHash])
+  @@index([updatedAt])
+  @@index([blockedUntil])
+}
+
+model DriverPushSubscription {
+  id            String    @id @default(cuid())
+  userId        Int?
+  customerId    Int?
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  lastSuccessAt DateTime?
+  staffOptIn    Boolean   @default(false)
+  customerOptIn Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([updatedAt])
+}
+
+model CustomerPushSubscription {
+  id            String    @id @default(cuid())
+  customerId    Int?
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  lastSuccessAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([updatedAt])
+}
+
+model NativePushDevice {
+  id            String   @id @default(cuid())
+  userId        Int
+  deviceKey     String   @unique
+  fcmToken      String   @unique
+  platform      String   @default("ANDROID")
+  appVersion    String?
+  active        Boolean  @default(true)
+  lastSeenAt    DateTime @default(now())
+  lastSuccessAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@index([lastSeenAt])
+}
+
+model PushCampaign {
+  id                   String   @id @default(cuid())
+  title                String
+  subtitle             String?
+  body                 String
+  imageUrl             String?
+  audience             String
+  channels             String[] @default([])
+  actionType           String   @default("APP")
+  actionValue          String?
+  status               String   @default("DRAFT")
+  createdById          Int?
+  createdByName        String
+  webTargetCount       Int      @default(0)
+  nativeTargetCount    Int      @default(0)
+  webDeliveredCount    Int      @default(0)
+  nativeDeliveredCount Int      @default(0)
+  failedCount          Int      @default(0)
+  openedCount          Int      @default(0)
+  sentAt               DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  opens                 PushCampaignOpen[]
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model PushCampaignOpen {
+  id           String       @id @default(cuid())
+  campaignId   String
+  userId       Int?
+  channel      String
+  recipientKey String
+  openedAt     DateTime     @default(now())
+  campaign     PushCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, channel, recipientKey])
+  @@index([campaignId, openedAt])
+}
+
+model CustomerAccount {
+  id              Int       @id @default(autoincrement())
+  customerId      Int       @unique
+  phoneE164       String    @unique
+  phoneVerifiedAt DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model CustomerAppInstallation {
+  id              Int      @id @default(autoincrement())
+  customerId      Int
+  deviceKey       String
+  platform        String
+  firstDetectedAt DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, deviceKey])
+  @@index([customerId, lastSeenAt])
+}
+
+model CustomerAuthCode {
+  id          String    @id @default(cuid())
+  phoneE164   String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([phoneE164, createdAt])
+  @@index([expiresAt])
+}
+
+model CustomerAddress {
+  id               Int      @id @default(autoincrement())
+  customerId       Int
+  label            String?
+  address          String
+  formattedAddress String?
+  placeId          String?
+  latitude         Float?
+  longitude        Float?
+  neighborhood     String?
+  city             String?  @default("Bogotá")
+  notes            String?
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  customer         Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders           Order[]
+
+  @@index([customerId])
+}
+
+model Category {
+  id           Int       @id @default(autoincrement())
+  name         String
+  slug         String    @unique
+  imageUrl     String?
+  active       Boolean   @default(true)
+  visibleInPos Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+}
+
+model Product {
+  id                  Int                      @id @default(autoincrement())
+  categoryId          Int
+  name                String
+  description         String?
+  imageUrl            String?
+  imageUrl2           String?
+  type                ProductType              @default(STANDARD)
+  basePrice           Decimal?                 @db.Decimal(12, 2)
+  comboDiscount       Decimal?                 @db.Decimal(12, 2)
+  couponEligible      Boolean                  @default(true)
+  active              Boolean                  @default(true)
+  visibleInPos        Boolean                  @default(true)
+  featured            Boolean                  @default(false)
+  sortOrder           Int                      @default(0)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  category            Category                 @relation(fields: [categoryId], references: [id])
+  variants            ProductVariant[]
+  orderItems          OrderItem[]
+  comboGroups         ComboGroup[]             @relation("ComboProductGroups")
+  comboOptions        ComboOption[]            @relation("ComboOptionProduct")
+  comboPizzaRules     ComboPizzaRule[]         @relation("ComboPizzaProduct")
+  comboFlavorOptions  ComboPizzaFlavorOption[] @relation("ComboFlavorProduct")
+  storedImages        ProductImage[]
+  ingredientGroupId   Int?
+  ingredientGroup     IngredientGroup?         @relation(fields: [ingredientGroupId], references: [id], onDelete: SetNull)
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@index([ingredientGroupId])
+  @@index([type])
+  @@index([visibleInPos, active])
+}
+
+model IngredientGroup {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  active    Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@index([active, sortOrder])
+}
+
+model ProductVariant {
+  id         Int         @id @default(autoincrement())
+  productId  Int
+  name       String
+  sku        String?     @unique
+  price      Decimal     @db.Decimal(12, 2)
+  active     Boolean     @default(true)
+  sortOrder  Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+model PizzaSize {
+  id               Int                    @id @default(autoincrement())
+  name             String                 @unique
+  diameterCm       Int
+  basePrice        Decimal                @db.Decimal(12, 2)
+  active           Boolean                @default(true)
+  sortOrder        Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  crustPrices      PizzaCrustPrice[]
+  comboSizeOptions ComboPizzaSizeOption[]
+}
+
+model PizzaCrust {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  active    Boolean           @default(true)
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  prices    PizzaCrustPrice[]
+}
+
+model PizzaCrustPrice {
+  id        Int        @id @default(autoincrement())
+  crustId   Int
+  sizeId    Int
+  price     Decimal    @db.Decimal(12, 2)
+  crust     PizzaCrust @relation(fields: [crustId], references: [id], onDelete: Cascade)
+  size      PizzaSize  @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@unique([crustId, sizeId])
+  @@index([sizeId])
+}
+
+model ComboPizzaRule {
+  id             Int                      @id @default(autoincrement())
+  comboProductId Int
+  quantity       Int                      @default(1)
+  sortOrder      Int                      @default(0)
+  comboProduct   Product                  @relation("ComboPizzaProduct", fields: [comboProductId], references: [id], onDelete: Cascade)
+  sizes          ComboPizzaSizeOption[]
+  flavors        ComboPizzaFlavorOption[]
+
+  @@index([comboProductId])
+}
+
+model ComboPizzaSizeOption {
+  id     Int            @id @default(autoincrement())
+  ruleId Int
+  sizeId Int
+  rule   ComboPizzaRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  size   PizzaSize      @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, sizeId])
+  @@index([sizeId])
+}
+
+model ComboPizzaFlavorOption {
+  id        Int            @id @default(autoincrement())
+  ruleId    Int
+  productId Int
+  rule      ComboPizzaRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  product   Product        @relation("ComboFlavorProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, productId])
+  @@index([productId])
+}
+
+model ComboGroup {
+  id             Int           @id @default(autoincrement())
+  comboProductId Int
+  kind           String        @default("CUSTOM")
+  name           String
+  minSelections  Int           @default(1)
+  maxSelections  Int           @default(1)
+  sortOrder      Int           @default(0)
+  comboProduct   Product       @relation("ComboProductGroups", fields: [comboProductId], references: [id], onDelete: Cascade)
+  options        ComboOption[]
+
+  @@index([comboProductId])
+}
+
+model ComboOption {
+  id         Int        @id @default(autoincrement())
+  groupId    Int
+  productId  Int
+  quantity   Int        @default(1)
+  priceDelta Decimal    @default(0) @db.Decimal(12, 2)
+  sortOrder  Int        @default(0)
+  group      ComboGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  product    Product    @relation("ComboOptionProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, productId])
+  @@index([productId])
+}
+
+model Coupon {
+  id            Int        @id @default(autoincrement())
+  name          String     @unique
+  type          CouponType
+  value         Decimal    @db.Decimal(12, 2)
+  active        Boolean    @default(true)
+  visibleInPos  Boolean    @default(true)
+  visibleInCart Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  orders        Order[]
+}
+
+model OrderSequence {
+  id        Int      @id @default(1)
+  current   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id               Int               @id @default(autoincrement())
+  sequenceNumber   Int?              @unique
+  idempotencyKey   String?           @unique
+  idempotencyHash  String?
+  customerId       Int?
+  addressId        Int?
+  couponId         Int?
+  driverId         Int?
+  couponName       String?
+  deliveryZoneId   String?
+  deliveryZoneName String?
+  deliveryDistanceMeters Int?
+  deliveryTravelMode String?
+  discountSource   String            @default("NONE")
+  status           OrderStatus       @default(DRAFT)
+  fulfillmentType  FulfillmentType   @default(DELIVERY)
+  source           OrderSource       @default(POS)
+  subtotal         Decimal           @default(0) @db.Decimal(12, 2)
+  deliveryFee      Decimal           @default(0) @db.Decimal(12, 2)
+  discount         Decimal           @default(0) @db.Decimal(12, 2)
+  total            Decimal           @default(0) @db.Decimal(12, 2)
+  notes            String?
+  scheduledFor     DateTime?
+  driverAssignedAt       DateTime?
+  deliveredAt            DateTime?
+  driverEarningAmount    Decimal?          @db.Decimal(12, 2)
+  driverEarningBase      Decimal?          @db.Decimal(12, 2)
+  driverEarningRatePercent Decimal?        @db.Decimal(5, 2)
+  driverEarningKind      String?
+  driverEarningCreditedAt DateTime?
+  driverLatitude         Float?
+  driverLongitude        Float?
+  driverLocationAccuracy Float?
+  driverLocationUpdatedAt DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  address          CustomerAddress?  @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  driver           User?             @relation("OrderDriver", fields: [driverId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+  payments         Payment[]
+  clubPoint        ClubPointTransaction?
+  notificationJobs NotificationJob[]
+
+  @@index([customerId])
+  @@index([addressId])
+  @@index([couponId])
+  @@index([driverId])
+  @@index([driverId, driverEarningCreditedAt])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@index([fulfillmentType, createdAt])
+  @@index([deliveryZoneId, createdAt])
+}
+
+model OrderItem {
+  id               Int             @id @default(autoincrement())
+  orderId          Int
+  productId        Int?
+  variantId        Int?
+  productName      String
+  variantName      String?
+  unitPrice        Decimal         @db.Decimal(12, 2)
+  quantity         Int             @default(1)
+  preparedQuantity       Int             @default(0)
+  driverVerifiedAt      DateTime?
+  driverVerifiedDriverId Int?
+  lineTotal              Decimal         @db.Decimal(12, 2)
+  configuration    Json?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant          ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model Payment {
+  id              Int             @id @default(autoincrement())
+  idempotencyKey  String?         @unique
+  idempotencyHash String?
+  orderId         Int
+  method          String
+  amount          Decimal         @db.Decimal(12, 2)
+  cashReceived    Decimal?        @db.Decimal(12, 2)
+  changeDue       Decimal?        @db.Decimal(12, 2)
+  status          PaymentStatus   @default(PENDING)
+  reference       String?
+  paidAt          DateTime?
+  createdAt       DateTime        @default(now())
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds         PaymentRefund[]
+
+  @@index([orderId])
+  @@index([status, paidAt])
+}
+
+model PaymentRefund {
+  id              Int      @id @default(autoincrement())
+  idempotencyKey  String   @unique
+  idempotencyHash String
+  paymentId       Int
+  amount          Decimal  @db.Decimal(12, 2)
+  method          String
+  reason          String
+  reference       String?
+  refundedAt      DateTime
+  createdByName   String
+  createdAt       DateTime @default(now())
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId, refundedAt])
+  @@index([refundedAt])
+}
+
+model CashExpense {
+  id            Int      @id @default(autoincrement())
+  driverId      Int?
+  category      String
+  subcategory   String?
+  note          String?
+  amount        Decimal  @db.Decimal(12, 2)
+  occurredAt    DateTime
+  source        String   @default("MANUAL")
+  planningType  String   @default("AUTO")
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  driver        User?    @relation("DriverCashExpenses", fields: [driverId], references: [id], onDelete: SetNull)
+  payrollPayment PayrollPayment?
+
+  @@index([driverId, occurredAt])
+  @@index([occurredAt])
+  @@index([category, occurredAt])
+}
+
+model CashExpenseCustomType {
+  id            Int      @id @default(autoincrement())
+  key           String   @unique
+  category      String
+  subcategory   String?
+  active        Boolean  @default(true)
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category, active])
+}
+
+model CashIncome {
+  id            Int      @id @default(autoincrement())
+  category      String
+  note          String?
+  amount        Decimal  @db.Decimal(12, 2)
+  occurredAt    DateTime
+  source        String   @default("MANUAL")
+  createdByName String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([occurredAt])
+  @@index([category, occurredAt])
+}
+
+model CashRegisterSession {
+  id                     Int      @id @default(autoincrement())
+  businessDate           String   @unique
+  status                 String   @default("OPEN")
+  openingBalance         Decimal  @db.Decimal(14, 2)
+  openingControlledBalance Decimal? @db.Decimal(14, 2)
+  openingLoanReceivable  Decimal? @db.Decimal(14, 2)
+  openedAt               DateTime @default(now())
+  openedByName           String
+  netMovement            Decimal? @db.Decimal(14, 2)
+  expectedClosingBalance Decimal? @db.Decimal(14, 2)
+  closingCash            Decimal? @db.Decimal(14, 2)
+  closingNequi           Decimal? @db.Decimal(14, 2)
+  closingDaviplata       Decimal? @db.Decimal(14, 2)
+  closingCard            Decimal? @db.Decimal(14, 2)
+  closingDavivienda      Decimal? @db.Decimal(14, 2)
+  closingDenominations   Json?
+  closingDraft           Json?
+  closingDraftUpdatedAt  DateTime?
+  closingLoanReceivable  Decimal? @db.Decimal(14, 2)
+  actualClosingBalance   Decimal? @db.Decimal(14, 2)
+  difference             Decimal? @db.Decimal(14, 2)
+  closeNote              String?
+  closedAt               DateTime?
+  closedByName           String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([status, businessDate])
+}
+
+model CashLoan {
+  id                              Int                 @id @default(autoincrement())
+  workerId                        Int?
+  workerName                      String
+  note                            String?
+  principal                       Decimal             @db.Decimal(12, 2)
+  issuedAt                        DateTime
+  payrollMonth                    String?
+  status                          String              @default("OPEN")
+  source                          String              @default("MANUAL")
+  createdByName                   String
+  historicalPaidWithoutRepayment Boolean             @default(false)
+  createdAt                       DateTime            @default(now())
+  updatedAt                       DateTime            @updatedAt
+  repayments                      CashLoanRepayment[]
+  worker                          User?               @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@index([workerId, issuedAt])
+  @@index([payrollMonth])
+  @@index([issuedAt])
+  @@index([status, issuedAt])
+  @@index([workerName, issuedAt])
+}
+
+model CashLoanRepayment {
+  id               Int             @id @default(autoincrement())
+  loanId           Int
+  payrollPaymentId Int?
+  amount           Decimal         @db.Decimal(12, 2)
+  paidAt           DateTime
+  method           String          @default("PAGO")
+  note             String?
+  source           String          @default("MANUAL")
+  createdByName    String
+  createdAt        DateTime        @default(now())
+  loan             CashLoan        @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  payrollPayment   PayrollPayment? @relation(fields: [payrollPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([loanId, paidAt])
+  @@index([paidAt])
+  @@index([payrollPaymentId])
+}
+
+
+model ClubPointTransaction {
+  id              Int      @id @default(autoincrement())
+  customerId      Int
+  orderId         Int?     @unique
+  points          Int
+  ratePerThousand Int?
+  amountBase      Decimal? @db.Decimal(12, 2)
+  reason          String   @default("PURCHASE")
+  createdAt       DateTime @default(now())
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+}
+
+model NotificationJob {
+  id             Int      @id @default(autoincrement())
+  kind           String
+  orderId        Int
+  runAt          DateTime
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  lastError      String?
+  sentAt         DateTime?
+  lockedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, orderId])
+  @@index([status, runAt])
+}
+
+model NotificationImage {
+  id          String   @id @default(cuid())
+  filename    String
+  contentType String
+  data        Bytes
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  productId   Int
+  slot        String
+  filename    String
+  contentType String
+  data        Bytes
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, slot])
+  @@index([createdAt])
+}
+
+
+model CatalogAnalyticsEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  eventType   String
+  visitorId   String
+  sessionId   String
+  cartId      String?
+  productId   Int?
+  productName String?
+  path        String?
+  referrer    String?
+  source      String?
+  medium      String?
+  campaign    String?
+  value       Decimal? @db.Decimal(14, 2)
+  quantity    Int?
+  itemCount   Int?
+  orderId     Int?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([visitorId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([cartId, createdAt])
+  @@index([productId, eventType, createdAt])
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DoughPreparation {
+  id               Int      @id @default(autoincrement())
+  createdById      Int?
+  createdByName    String
+  personalCount    Int      @default(0)
+  mediumCount      Int      @default(0)
+  largeCount       Int      @default(0)
+  extraLargeCount  Int      @default(0)
+  totalBalls       Int
+  totalWeightGrams Int
+  hydrationPct     Decimal  @db.Decimal(5, 2)
+  adnPct           Decimal  @db.Decimal(5, 2)
+  sugarPct         Decimal  @db.Decimal(5, 2)
+  saltPct          Decimal  @db.Decimal(5, 2)
+  yeastPct         Decimal  @db.Decimal(5, 2)
+  flourGrams       Decimal  @db.Decimal(14, 3)
+  waterGrams       Decimal  @db.Decimal(14, 3)
+  adnGrams         Decimal  @db.Decimal(14, 3)
+  sugarGrams       Decimal  @db.Decimal(14, 3)
+  saltGrams        Decimal  @db.Decimal(14, 3)
+  yeastGrams       Decimal  @db.Decimal(14, 3)
+  createdAt        DateTime @default(now())
+  createdBy        User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([createdById])
+}
+
+
+model WorkShift {
+  id                 Int                  @id @default(autoincrement())
+  userId             Int
+  startsAt           DateTime
+  endsAt             DateTime
+  amount             Decimal              @db.Decimal(12, 2)
+  status             String               @default("PENDING")
+  paidAt             DateTime?
+  notes              String?
+  createdById        Int?
+  createdByName      String
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  payrollPaymentItem PayrollPaymentShift?
+
+  @@index([userId, startsAt])
+  @@index([status, startsAt])
+  @@index([startsAt])
+}
+
+model PayrollPayment {
+  id            Int                   @id @default(autoincrement())
+  workerId      Int
+  workerName    String
+  grossAmount   Decimal               @db.Decimal(12, 2)
+  loanDeduction Decimal               @default(0) @db.Decimal(12, 2)
+  netAmount     Decimal               @db.Decimal(12, 2)
+  occurredAt    DateTime
+  note          String?
+  source        String                @default("CASH")
+  createdById   Int?
+  createdByName String
+  cashExpenseId Int                   @unique
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  worker        User                  @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  cashExpense   CashExpense           @relation(fields: [cashExpenseId], references: [id], onDelete: Restrict)
+  shifts        PayrollPaymentShift[]
+  loanRepayments CashLoanRepayment[]
+
+  @@index([workerId, occurredAt])
+  @@index([occurredAt])
+}
+
+model PayrollPaymentShift {
+  id               Int            @id @default(autoincrement())
+  payrollPaymentId Int
+  shiftId          Int            @unique
+  amount           Decimal        @db.Decimal(12, 2)
+  createdAt        DateTime       @default(now())
+  payrollPayment   PayrollPayment @relation(fields: [payrollPaymentId], references: [id], onDelete: Cascade)
+  shift            WorkShift      @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@index([payrollPaymentId])
+}

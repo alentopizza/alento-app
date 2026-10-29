@@ -1,0 +1,131 @@
+/*
+ * Pulido visual de configuradores de producto del POS.
+ * Se carga después de pos-polish.css para mantener estas reglas aisladas.
+ * Aplica a modales de producto (z-50); el modal de cliente usa z-70 y no se modifica.
+ */
+
+.fixed.inset-0.z-50 > .alento-card {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  color: #171717;
+}
+
+/* Encabezado del configurador. */
+.fixed.inset-0.z-50 > .alento-card > div:first-child p {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.09em !important;
+  color: #96918b !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child h2 {
+  margin-top: 2px !important;
+  font-size: 1.4rem !important;
+  line-height: 1.55rem !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child > button {
+  font-weight: 500 !important;
+  color: #34312e !important;
+}
+
+/*
+ * Cada bloque funcional debe leerse como una sección independiente.
+ * El borde y la sombra son deliberadamente suaves para no convertir el modal
+ * en una colección de cajas pesadas.
+ */
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll > section.rounded-2xl {
+  border: 1px solid #d8d3cd !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf8 100%) !important;
+  box-shadow: 0 7px 18px rgba(35, 31, 27, 0.055) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll > section.rounded-2xl:hover {
+  border-color: #cec8c1 !important;
+}
+
+/* Títulos de sección: más finos, legibles y consistentes. */
+.fixed.inset-0.z-50 > .alento-card section h3 {
+  font-size: 0.98rem !important;
+  line-height: 1.2rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.012em !important;
+  color: #201e1c;
+}
+
+.fixed.inset-0.z-50 > .alento-card section p.text-\[11px\].font-bold.uppercase {
+  font-weight: 650 !important;
+  letter-spacing: 0.075em !important;
+  color: #8b857e !important;
+}
+
+/* Textos auxiliares y chips. */
+.fixed.inset-0.z-50 > .alento-card section span.text-neutral-400,
+.fixed.inset-0.z-50 > .alento-card section span.text-neutral-500 {
+  font-weight: 450 !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section span.rounded-full {
+  border: 1px solid #ece8e3;
+  box-shadow: 0 2px 7px rgba(25, 22, 18, 0.035);
+}
+
+/* Opciones: contorno más claro y tipografía menos pesada. */
+.fixed.inset-0.z-50 > .alento-card section button {
+  border-color: #ccc7c1 !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.006em;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button:hover:not(:disabled) {
+  border-color: #a9a39c !important;
+  box-shadow: 0 4px 12px rgba(30, 27, 24, 0.05);
+}
+
+.fixed.inset-0.z-50 > .alento-card section button b {
+  font-size: 0.84rem !important;
+  line-height: 1.08rem !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.012em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button span {
+  font-weight: 450 !important;
+}
+
+/*
+ * Mantener seleccionados con contraste fuerte. Tailwind usa bg-black en tamaño,
+ * sabores y opciones de combo; aquí reforzamos borde y sombra sin cambiar lógica.
+ */
+.fixed.inset-0.z-50 > .alento-card section button.bg-black {
+  border-color: #050505 !important;
+  box-shadow: 0 5px 13px rgba(0, 0, 0, 0.11) !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button.bg-red-50 {
+  border-color: rgba(229, 28, 17, 0.72) !important;
+  box-shadow: 0 5px 13px rgba(229, 28, 17, 0.09) !important;
+}
+
+/* Precio y acción final: misma familia, menos peso bruto. */
+.fixed.inset-0.z-50 > .alento-card > div:last-child > b,
+.fixed.inset-0.z-50 > .alento-card > div:last-child > div > b {
+  font-weight: 720 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child > button {
+  font-weight: 650 !important;
+  letter-spacing: -0.012em !important;
+}
+
+@media (max-width: 640px) {
+  .fixed.inset-0.z-50 > .alento-card > .alento-scroll > section.rounded-2xl {
+    border-radius: 15px !important;
+  }
+
+  .fixed.inset-0.z-50 > .alento-card section h3 {
+    font-size: 0.94rem !important;
+  }
+}

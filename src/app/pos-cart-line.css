@@ -1,0 +1,227 @@
+/* Structured cart lines inside the docked POS drawer. */
+
+.pos-cart-line {
+  position: relative;
+  margin: 0 !important;
+  padding: 10px 11px 9px !important;
+  border: 1px solid #ddd7d1 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 3px 9px rgba(30, 27, 24, 0.035) !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.pos-cart-line-editable {
+  cursor: pointer;
+}
+
+.pos-cart-line-editable:hover {
+  border-color: #c7bfb7 !important;
+  box-shadow: 0 6px 15px rgba(30, 27, 24, 0.07) !important;
+  transform: translateY(-1px);
+}
+
+.pos-cart-line-editable:focus-visible {
+  outline: 2px solid rgba(229, 28, 17, 0.28);
+  outline-offset: 2px;
+}
+
+.pos-cart-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+
+.pos-cart-line-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #171513;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pos-cart-line-price {
+  flex: 0 0 auto;
+  color: #171513;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+}
+
+.pos-cart-edit-hint {
+  flex: 0 0 auto;
+  border: 1px solid rgba(229, 28, 17, 0.18);
+  border-radius: 999px;
+  background: #fff3f1;
+  padding: 2px 6px;
+  color: #c91d14;
+  font-size: 8px;
+  line-height: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pos-cart-structured {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid #eee9e4;
+}
+
+.pos-cart-spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px 12px;
+}
+
+.pos-cart-spec {
+  min-width: 0;
+}
+
+.pos-cart-spec > span {
+  display: block;
+  margin-bottom: 2px;
+  color: #746d66;
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.pos-cart-spec > b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #302c28;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 600;
+}
+
+.pos-cart-extras {
+  margin-top: 8px;
+}
+
+.pos-cart-extras-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #746d66;
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.pos-cart-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pos-cart-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  border: 1px solid rgba(229, 28, 17, 0.15);
+  border-radius: 999px;
+  background: #fff3f1;
+  padding: 3px 7px;
+  color: #a8221a;
+  font-size: 9px;
+  line-height: 11px;
+  font-weight: 650;
+}
+
+.pos-cart-tag-neutral {
+  border-color: #e2ddd7;
+  background: #f7f5f2;
+  color: #554f49;
+}
+
+.pos-cart-combo-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 9px;
+  color: #746d66;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.pos-cart-combo-row b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #302c28;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pos-cart-standard-detail {
+  margin-top: 5px;
+  color: #726b65;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.pos-cart-line-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pos-cart-line-footer-compact {
+  justify-content: flex-end;
+}
+
+.pos-cart-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid #e7e2dc;
+  border-radius: 8px;
+  background: #f7f5f2;
+  padding: 2px;
+}
+
+.pos-cart-qty button {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #302c28;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(28, 25, 22, 0.045);
+}
+
+.pos-cart-qty button:hover {
+  background: #efebe7;
+}
+
+.pos-cart-qty b {
+  min-width: 20px;
+  text-align: center;
+  color: #211e1b;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+}

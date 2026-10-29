@@ -1,0 +1,1436 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f4f4f2;
+  --foreground: #151515;
+  --surface: #ffffff;
+  --surface-soft: #faf9f7;
+  --border: #e5e2de;
+  --muted: #6f6b66;
+  --brand-red: #e51c11;
+  --brand-red-dark: #b8140c;
+  --brand-black: #0b0b0c;
+
+  /* Escala tipográfica operativa Alentó.
+     Evitar textos funcionales menores a 10px. */
+  --ui-text-micro: 10px;
+  --ui-text-label: 11px;
+  --ui-text-control: 13px;
+  --ui-text-body: 14px;
+  --ui-text-status: 16px;
+  --ui-text-title: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(229, 28, 17, 0.055), transparent 28%),
+    var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+::selection {
+  background: rgba(229, 28, 17, 0.16);
+}
+
+/* Tipografía operativa reutilizable.
+   Micro = ayudas secundarias, Label = rótulos, Control = inputs/botones,
+   Status = estados y acciones principales. */
+.alento-ui-micro {
+  font-size: var(--ui-text-micro);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.alento-ui-label {
+  font-size: var(--ui-text-label);
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+.alento-ui-control {
+  font-size: var(--ui-text-control);
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.alento-ui-body {
+  font-size: var(--ui-text-body);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.alento-ui-status {
+  font-size: var(--ui-text-status);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.alento-ui-title {
+  font-size: var(--ui-text-title);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Roles aprobados para headers operativos compactos y cifras destacadas. */
+.alento-ui-hero-title {
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.alento-ui-hero-subtitle {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+.alento-ui-metric {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
+  .alento-ui-hero-title {
+    font-size: 36px;
+  }
+}
+
+/* Compatibilidad global con microtipografía heredada.
+   Esto garantiza que componentes antiguos respeten la escala operativa sin
+   depender de migrar inmediatamente cada archivo. La impresión térmica queda
+   excluida porque tiene requisitos físicos distintos. */
+body :where([class*="text-[7px]"], [class*="text-[8px]"]):not(.thermal-page *) {
+  font-size: var(--ui-text-micro) !important;
+}
+
+body :where([class*="text-[9px]"]):not(.thermal-page *) {
+  font-size: var(--ui-text-label) !important;
+  line-height: 1.3 !important;
+}
+
+body :where([class*="text-[10px]"]):not(.thermal-page *) {
+  font-size: var(--ui-text-micro) !important;
+  line-height: 1.35 !important;
+}
+
+body :where([class*="text-[11px]"]):not(.thermal-page *) {
+  font-size: var(--ui-text-label) !important;
+  line-height: 1.3 !important;
+}
+
+body :where([class*="text-[12px]"]):not(.thermal-page *) {
+  font-size: var(--ui-text-control) !important;
+  line-height: 1.25 !important;
+}
+
+body :where(.font-black[class*="text-[7px]"], .font-black[class*="text-[8px]"], .font-black[class*="text-[9px]"], .font-black[class*="text-[10px]"], .font-black[class*="text-[11px]"], .font-black[class*="text-[12px]"]):not(.thermal-page *) {
+  font-weight: 700 !important;
+}
+
+.alento-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 55px rgba(22, 20, 18, 0.06);
+}
+
+.alento-card-soft {
+  background: linear-gradient(180deg, #fff 0%, #fbfaf8 100%);
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 40px rgba(22, 20, 18, 0.05);
+}
+
+.alento-dark {
+  background:
+    radial-gradient(circle at 86% 16%, rgba(229, 28, 17, 0.28), transparent 22%),
+    linear-gradient(135deg, #0b0b0c 0%, #171719 100%);
+  color: white;
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.22);
+}
+
+.alento-red-glow {
+  box-shadow: 0 10px 28px rgba(229, 28, 17, 0.22);
+}
+
+.alento-input {
+  border: 1px solid var(--border);
+  background: #fff;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.alento-input:focus {
+  border-color: rgba(229, 28, 17, 0.55);
+  box-shadow: 0 0 0 4px rgba(229, 28, 17, 0.08);
+}
+
+.alento-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.alento-scroll::-webkit-scrollbar-thumb {
+  background: #d3d0cc;
+  border-radius: 999px;
+}
+
+/* Catálogo POS: compacto, imagen 1:1 y sin recortes. */
+div:has(> article.alento-card-soft) {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+article.alento-card-soft {
+  border-radius: 22px !important;
+}
+
+article.alento-card-soft > div:first-child {
+  aspect-ratio: 1 / 1 !important;
+  background: #f7f6f3 !important;
+}
+
+article.alento-card-soft > div:first-child img {
+  object-fit: contain !important;
+  padding: 6px;
+}
+
+article.alento-card-soft > div:last-child {
+  padding: 15px !important;
+}
+
+article.alento-card-soft h3 {
+  font-size: 1rem !important;
+  line-height: 1.2rem !important;
+}
+
+article.alento-card-soft p {
+  font-size: 0.78rem;
+  line-height: 1.1rem;
+}
+
+/* Configuradores de producto del POS: más densos y rápidos de recorrer. */
+.fixed.inset-0.z-50 > .alento-card {
+  border-radius: 24px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child {
+  padding: 14px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:first-child h2 {
+  font-size: 1.35rem !important;
+  line-height: 1.55rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll {
+  padding: 16px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > .alento-scroll > div {
+  gap: 16px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section h3 {
+  margin-bottom: 8px !important;
+  font-size: 0.98rem !important;
+  line-height: 1.2rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section .grid,
+.fixed.inset-0.z-50 > .alento-card section .flex.flex-wrap {
+  gap: 6px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button {
+  border-radius: 12px !important;
+  padding: 9px 11px !important;
+  min-height: 48px;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button b {
+  font-size: 0.9rem !important;
+  line-height: 1.05rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card section button span {
+  font-size: 0.68rem !important;
+  line-height: 0.95rem !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child {
+  padding: 12px 20px !important;
+}
+
+.fixed.inset-0.z-50 > .alento-card > div:last-child p.text-3xl {
+  font-size: 1.7rem !important;
+  line-height: 2rem !important;
+}
+
+/* POS final: jerarquía más limpia y controles principales siempre a mano. */
+main:has(> div > header.alento-dark) > div {
+  gap: 14px !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark {
+  border-radius: 22px !important;
+  padding: 12px 22px !important;
+  min-height: 72px;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark h1 {
+  font-size: 1.55rem !important;
+  line-height: 1.8rem !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:first-child {
+  font-size: 9px !important;
+  letter-spacing: 0.2em !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:last-child {
+  font-size: 0 !important;
+  margin-top: 2px !important;
+}
+
+main:has(> div > header.alento-dark) > div > header.alento-dark p:last-child::after {
+  content: "Toma pedidos y confirma ventas desde una sola pantalla.";
+  font-size: 11px;
+  line-height: 15px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+/* Ocultar indicadores técnicos: la estructura sigue existiendo, pero no forma parte de la UI operativa. */
+main:has(> div > header.alento-dark) section.alento-card > div:first-child > span.text-emerald-600,
+main:has(> div > header.alento-dark) aside.alento-card span.bg-emerald-50.text-emerald-700 {
+  display: none !important;
+}
+
+/* Bloque tipo/cliente: selector moderno y tarjeta de cliente más limpia. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card {
+  border-radius: 22px !important;
+  padding: 13px 15px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:first-child {
+  margin-bottom: 9px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card h2 {
+  font-size: 1.08rem !important;
+  line-height: 1.3rem !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) {
+  gap: 12px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > p,
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child > p {
+  margin-bottom: 6px !important;
+  font-size: 11px !important;
+}
+
+/* Selector Domicilio / Recoger / Local. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid {
+  gap: 4px !important;
+  padding: 4px;
+  border: 1px solid #e8e5e1;
+  border-radius: 14px;
+  background: #f6f5f2;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-width: 1px !important;
+  border-color: transparent !important;
+  border-radius: 10px !important;
+  padding: 0 10px !important;
+  background: transparent;
+  text-align: center !important;
+  box-shadow: none;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button.bg-red-50 {
+  border-color: rgba(229, 28, 17, 0.72) !important;
+  background: #fff !important;
+  box-shadow: 0 5px 14px rgba(229, 28, 17, 0.1);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button > span {
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button > b {
+  margin-top: 0 !important;
+  font-size: 12px !important;
+  line-height: 1rem !important;
+  white-space: nowrap;
+}
+
+/* En operación usamos el nombre corto “Recoger”. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b {
+  font-size: 0 !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button:nth-child(2) > b::after {
+  content: "Recoger";
+  font-size: 12px;
+  line-height: 1rem;
+}
+
+/* Cliente: sin divisor fuerte, con tarjeta compacta. */
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) {
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-radius: 14px;
+  padding: 9px 10px !important;
+  background: #faf9f7;
+  box-shadow: inset 0 0 0 1px #ebe8e4;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child {
+  margin-bottom: 6px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:first-child > button {
+  border: 1px solid rgba(229, 28, 17, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  padding: 5px 9px;
+  font-size: 10px !important;
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:first-child {
+  border-color: #e9e6e1 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  padding: 8px 10px !important;
+  box-shadow: 0 4px 14px rgba(25, 22, 18, 0.035);
+}
+
+main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) button.rounded-xl.border.bg-white {
+  border-color: #dfdcd7 !important;
+  border-radius: 9px !important;
+  padding: 6px 9px !important;
+  font-size: 10px !important;
+}
+
+/* El carrito tiene su propio scroll y el cierre queda siempre visible. */
+main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
+  position: relative;
+  z-index: 4;
+  margin-top: auto !important;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -12px 28px rgba(20, 18, 16, 0.055);
+}
+
+.thermal-page {
+  width: min(80mm, 100%);
+}
+
+.thermal-print-job,
+.thermal-sheet,
+.thermal-receipt {
+  width: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  text-rendering: geometricPrecision;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.delivery-command {
+  break-before: page;
+  page-break-before: always;
+  padding-top: 4mm;
+}
+
+.driver-head {
+  text-align: center;
+}
+
+.driver-head img {
+  display: block;
+  width: 13mm;
+  height: 13mm;
+  margin: 0 auto;
+  object-fit: contain;
+  filter: grayscale(1);
+}
+
+.driver-kicker {
+  margin: 3px 0 0;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.driver-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 21px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.driver-order {
+  margin: 5px 0 0;
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 900;
+  text-align: center;
+}
+
+.driver-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.driver-block {
+  margin-top: 9px;
+  border: 2px solid #000;
+  padding: 8px;
+  text-align: center;
+}
+
+.driver-block-soft {
+  margin-top: 7px;
+  border: 1.5px solid #000;
+  padding: 7px 8px;
+  text-align: center;
+}
+
+.driver-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-align: center;
+}
+
+.driver-value {
+  margin: 0;
+  font-size: 14px;
+  line-height: 17px;
+  font-weight: 900;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.driver-value-sm {
+  margin: 0;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.driver-payment {
+  margin-top: 11px;
+  border: 3px solid #000;
+  padding: 9px;
+  text-align: center;
+}
+
+.driver-payment-title {
+  margin: 0 0 5px;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.driver-payment-state {
+  margin: 0;
+  font-size: 18px;
+  line-height: 21px;
+  font-weight: 900;
+}
+
+.driver-payment-divider {
+  margin: 7px 0 5px;
+  border-top: 1.5px solid #000;
+}
+
+.driver-payment-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.driver-payment-row strong {
+  text-align: right;
+}
+
+.driver-digital {
+  margin-top: 11px;
+  border: 2px solid #000;
+  padding: 8px;
+  text-align: center;
+}
+
+.driver-digital-badge {
+  display: inline-block;
+  margin-bottom: 6px;
+  border: 1.5px solid #000;
+  padding: 3px 7px;
+  font-size: 9px;
+  line-height: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.driver-digital-title {
+  margin: 0 0 5px;
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.driver-digital-value {
+  margin: 2px 0;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 900;
+}
+
+.driver-digital-note {
+  margin: 6px 0 0;
+  font-size: 9px;
+  line-height: 12px;
+  font-weight: 700;
+}
+
+.thermal-rule {
+  border-top: 2px dashed #000;
+}
+
+@media (min-width: 768px) {
+  .fixed.inset-0.z-50 > .alento-card section .md\:grid-cols-3 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) {
+    grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr) !important;
+    align-items: center;
+  }
+}
+
+@media (min-width: 1280px) {
+  main:has(> div > header.alento-dark) aside.alento-card {
+    position: sticky !important;
+    top: 14px !important;
+    height: calc(100dvh - 13.25rem) !important;
+    max-height: 760px;
+    min-height: 540px;
+    align-self: start;
+    padding: 14px !important;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > .alento-scroll {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding-right: 3px;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > div:last-child {
+    flex-shrink: 0;
+    padding-top: 11px;
+  }
+
+  main:has(> div > header.alento-dark) aside.alento-card > div:last-child button:last-of-type {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  div:has(> article.alento-card-soft) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  article.alento-card-soft > div:last-child {
+    padding: 12px !important;
+  }
+
+  .fixed.inset-0.z-50 > .alento-card > div:first-child,
+  .fixed.inset-0.z-50 > .alento-card > .alento-scroll,
+  .fixed.inset-0.z-50 > .alento-card > div:last-child {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:first-child > div.grid > button {
+    min-height: 44px;
+    padding: 0 7px !important;
+  }
+
+  main:has(> div > header.alento-dark) > div > section.grid > div:first-child > section.alento-card > div:nth-child(2) > div:nth-child(2) {
+    margin-top: 2px;
+  }
+}
+
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .thermal-page,
+  .thermal-page * {
+    visibility: visible !important;
+  }
+
+  .thermal-page {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 4mm 5mm 6mm !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .thermal-print-job,
+  .thermal-sheet,
+  .thermal-receipt {
+    width: 70mm !important;
+  }
+
+  .thermal-sheet {
+    margin: 0 auto !important;
+  }
+
+  .delivery-command {
+    break-before: page !important;
+    page-break-before: always !important;
+    padding-top: 4mm !important;
+  }
+}
+
+/* Ajustes finales del layout POS de dos columnas. */
+@media screen {
+  main > div > section.grid > div:first-child > header.alento-dark {
+    width: 100%;
+    max-width: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child {
+    position: relative;
+    padding: 12px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child {
+    margin-bottom: 8px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child h2 {
+    display: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:first-child p {
+    font-size: 9px !important;
+    letter-spacing: 0.17em !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 6;
+    display: inline-flex !important;
+    width: 72px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(229, 28, 17, 0.22) !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    padding: 0 9px !important;
+    color: var(--brand-red) !important;
+    font-size: 0 !important;
+    box-shadow: 0 5px 14px rgba(229, 28, 17, 0.06);
+    white-space: nowrap;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:first-child > button::after {
+    content: "+ Nuevo";
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:not(:has(input[placeholder="Nombre, teléfono o correo"])) > div:first-child > button {
+    display: none !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.flex {
+    padding-right: 80px;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child:has(input[placeholder="Nombre, teléfono o correo"]) > div:nth-child(2) > div:nth-child(2) > div.mt-2.overflow-hidden {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: calc(100% + 5px);
+    z-index: 30;
+    margin-top: 0 !important;
+    box-shadow: 0 14px 35px rgba(20, 18, 16, 0.14);
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) {
+    gap: 10px !important;
+  }
+
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:first-child > p,
+  main > div > section.grid > aside.alento-card > div:first-child > div:nth-child(2) > div:nth-child(2) > p {
+    margin-bottom: 5px !important;
+  }
+}
+
+
+/* Portada pública: CTA deslizante más luminoso y con una señal clara de arrastre. */
+.landing-menu-slider {
+  isolation: isolate;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.95) 100%);
+  border-color: rgba(255, 255, 255, 0.96) !important;
+  animation: landing-menu-glow-strong 2.2s ease-in-out infinite;
+}
+
+.landing-menu-slider::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(255, 199, 68, 0.24), transparent 30%),
+    radial-gradient(circle at 82% 50%, rgba(229, 28, 17, 0.20), transparent 32%);
+  opacity: 0.95;
+}
+
+.landing-menu-slider::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+  top: -45%;
+  bottom: -45%;
+  left: -46%;
+  width: 44%;
+  transform: skewX(-18deg);
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.20) 20%,
+    rgba(255, 255, 255, 0.92) 45%,
+    rgba(255, 229, 146, 0.72) 56%,
+    rgba(255, 255, 255, 0.28) 72%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  filter: blur(1px);
+  animation: landing-menu-shine-strong 2.55s ease-in-out infinite;
+}
+
+.landing-menu-slider-text {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: landing-menu-text-pulse 2.1s ease-in-out infinite;
+}
+
+.landing-menu-slider-knob {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.36),
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 18px rgba(255, 193, 54, 0.24);
+  animation: landing-menu-knob-glow-strong 1.75s ease-in-out infinite;
+}
+
+.landing-menu-slider-knob-idle {
+  animation:
+    landing-menu-knob-glow-strong 1.75s ease-in-out infinite,
+    landing-menu-knob-nudge 1.65s ease-in-out infinite;
+}
+
+.landing-menu-slider-arrow {
+  animation: landing-menu-arrow-move 1.05s ease-in-out infinite;
+}
+
+@keyframes landing-menu-glow-strong {
+  0%,
+  100% {
+    box-shadow:
+      0 16px 44px rgba(0, 0, 0, 0.20),
+      0 0 0 1px rgba(255, 255, 255, 0.42),
+      0 0 20px rgba(229, 28, 17, 0.20),
+      0 0 32px rgba(255, 191, 73, 0.20),
+      0 0 44px rgba(255, 255, 255, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 20px 50px rgba(0, 0, 0, 0.25),
+      0 0 0 2px rgba(255, 255, 255, 0.68),
+      0 0 34px rgba(229, 28, 17, 0.34),
+      0 0 50px rgba(255, 191, 73, 0.34),
+      0 0 66px rgba(255, 255, 255, 0.34);
+  }
+}
+
+@keyframes landing-menu-shine-strong {
+  0%,
+  8% {
+    left: -46%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  56% {
+    left: 118%;
+    opacity: 1;
+  }
+  64%,
+  100% {
+    left: 118%;
+    opacity: 0;
+  }
+}
+
+@keyframes landing-menu-text-pulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.018);
+  }
+}
+
+@keyframes landing-menu-knob-glow-strong {
+  0%,
+  100% {
+    box-shadow:
+      0 10px 24px rgba(0, 0, 0, 0.34),
+      0 0 0 0 rgba(229, 28, 17, 0),
+      0 0 14px rgba(255, 193, 54, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 12px 28px rgba(0, 0, 0, 0.42),
+      0 0 0 7px rgba(229, 28, 17, 0.15),
+      0 0 28px rgba(255, 193, 54, 0.38);
+  }
+}
+
+@keyframes landing-menu-knob-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  28% {
+    transform: translateX(7px);
+  }
+  46% {
+    transform: translateX(2px);
+  }
+  68% {
+    transform: translateX(10px);
+  }
+  82% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes landing-menu-arrow-move {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-menu-slider,
+  .landing-menu-slider::after,
+  .landing-menu-slider-text,
+  .landing-menu-slider-knob,
+  .landing-menu-slider-knob-idle,
+  .landing-menu-slider-arrow {
+    animation: none !important;
+  }
+}
+
+
+/* Checkout público a pantalla completa: ocultar la navegación inferior
+   para liberar espacio durante Entrega y Datos/Pago. */
+.alento-checkout-flow .alento-public-mobile-nav {
+  display: none !important;
+}
+
+
+/* Progreso operativo compartido: Menú, Carrito y Seguimiento */
+@keyframes alentoProgressRunner {
+  0% {
+    transform: scaleX(0.08);
+    opacity: 0.45;
+  }
+  68% {
+    transform: scaleX(0.82);
+    opacity: 1;
+  }
+  86% {
+    transform: scaleX(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.96);
+    opacity: 0;
+  }
+}
+
+@keyframes alentoProgressPulse {
+  0%,
+  100% {
+    transform: scale(0.88);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.alento-progress-runner {
+  animation: alentoProgressRunner 2.4s ease-in-out infinite;
+}
+
+.alento-progress-pulse {
+  animation: alentoProgressPulse 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alento-progress-runner,
+  .alento-progress-pulse {
+    animation: none;
+  }
+
+  .alento-progress-runner {
+    transform: scaleX(0.55);
+    opacity: 0.85;
+  }
+}
+
+
+/* Tarjeta canónica de producto.
+   Fuente visual: menú público del cliente.
+   POS y Menú administrativo reutilizan esta misma superficie. */
+.alento-product-card {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: #151515;
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(28, 23, 20, 0.10);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.alento-product-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(215, 25, 32, 0.70);
+  box-shadow: 0 18px 36px rgba(28, 23, 20, 0.16);
+}
+
+.alento-product-card-media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #101010;
+}
+
+.alento-product-card-image {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: transform 300ms ease;
+}
+
+.alento-product-card:hover .alento-product-card-image {
+  transform: scale(1.02);
+}
+
+.alento-product-card-body {
+  padding: 8px 12px 10px;
+  background: #151515;
+  color: #fff;
+}
+
+.alento-product-card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: #fff;
+}
+
+.alento-product-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.alento-product-card-price {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: #ff3439;
+}
+
+.alento-product-card-action {
+  display: inline-flex;
+  height: 34px;
+  width: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e21a22;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(226, 26, 34, 0.24);
+  transition:
+    transform 160ms ease,
+    filter 160ms ease;
+}
+
+.alento-product-card-action:hover {
+  transform: scale(1.06);
+  filter: brightness(1.08);
+}
+
+@media (min-width: 1024px) {
+  .alento-product-card-body {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .alento-product-card-title {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .alento-product-card-price {
+    font-size: 17px;
+  }
+
+  .alento-product-card-action {
+    height: 36px;
+    width: 36px;
+  }
+}
+
+
+/* Microinteracciones de deseo y recompensa en el menú público.
+   Se mantienen sutiles, de una sola pasada y respetan reduced-motion. */
+@keyframes alentoProductReveal {
+  from {
+    opacity: 0.35;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes alentoFoodShine {
+  from {
+    transform: translateX(-170%) skewX(-18deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.45;
+  }
+  55% {
+    opacity: 0.2;
+  }
+  to {
+    transform: translateX(190%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes alentoFeaturedInvite {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  48% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes alentoUpsellAdded {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.975);
+  }
+  72% {
+    transform: scale(1.025);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes alentoSpotlightOpen {
+  from {
+    transform: scale(1.035);
+    filter: saturate(0.92) brightness(0.92);
+  }
+  to {
+    transform: scale(1);
+    filter: saturate(1) brightness(1);
+  }
+}
+
+.alento-public-menu .alento-product-card.alento-card-visible {
+  animation: alentoProductReveal 460ms cubic-bezier(.2,.82,.24,1)
+    var(--alento-card-delay, 0ms) backwards;
+}
+
+.alento-public-menu .alento-product-card-media::after,
+.alento-product-spotlight-media::after,
+.alento-upsell-media::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: -12% auto -12% -38%;
+  width: 28%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 22%,
+    rgba(255, 244, 218, 0.30) 50%,
+    rgba(255, 255, 255, 0.06) 76%,
+    transparent 100%
+  );
+  transform: translateX(-170%) skewX(-18deg);
+  mix-blend-mode: screen;
+}
+
+.alento-public-menu
+  .alento-product-card.alento-card-visible
+  .alento-product-card-media::after {
+  animation: alentoFoodShine 900ms ease-out
+    calc(var(--alento-card-delay, 0ms) + 130ms) both;
+}
+
+.alento-public-menu .alento-product-card:active {
+  transform: scale(0.985);
+}
+
+.alento-public-menu .alento-product-card:active .alento-product-card-image {
+  transform: scale(1.035);
+}
+
+.alento-public-menu .alento-product-card-featured {
+  border-color: rgba(226, 26, 34, 0.26);
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.24),
+    0 0 28px rgba(226, 26, 34, 0.07);
+}
+
+.alento-public-menu
+  .alento-product-card-featured.alento-card-visible:nth-child(-n + 2)
+  .alento-product-card-action {
+  animation: alentoFeaturedInvite 520ms cubic-bezier(.2,.8,.2,1)
+    calc(var(--alento-card-delay, 0ms) + 720ms) 1;
+}
+
+.alento-product-card-badge {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.72);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--ui-text-micro);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.alento-product-spotlight-media::after {
+  animation: alentoFoodShine 1050ms ease-out 120ms both;
+}
+
+.alento-product-spotlight-image {
+  animation: alentoSpotlightOpen 520ms cubic-bezier(.2,.82,.24,1) both;
+}
+
+.alento-upsell-card {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.alento-upsell-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(226, 26, 34, 0.30);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+.alento-upsell-card:active {
+  transform: scale(0.985);
+}
+
+.alento-upsell-image {
+  transition:
+    transform 260ms ease,
+    filter 260ms ease;
+}
+
+.alento-upsell-card:hover .alento-upsell-image,
+.alento-upsell-card:active .alento-upsell-image {
+  transform: scale(1.035);
+  filter: saturate(1.05) brightness(1.03);
+}
+
+.alento-upsell-media::after {
+  animation: alentoFoodShine 920ms ease-out 180ms both;
+}
+
+.alento-upsell-added {
+  animation: alentoUpsellAdded 420ms cubic-bezier(.2,.8,.2,1);
+  border-color: rgba(52, 211, 153, 0.28) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alento-public-menu .alento-product-card.alento-card-visible,
+  .alento-public-menu
+    .alento-product-card-featured.alento-card-visible:nth-child(-n + 2)
+    .alento-product-card-action,
+  .alento-product-spotlight-image,
+  .alento-upsell-added {
+    animation: none !important;
+  }
+
+  .alento-public-menu .alento-product-card-media::after,
+  .alento-product-spotlight-media::after,
+  .alento-upsell-media::after {
+    animation: none !important;
+    display: none;
+  }
+
+  .alento-public-menu .alento-product-card,
+  .alento-public-menu .alento-product-card-image,
+  .alento-upsell-card,
+  .alento-upsell-image {
+    transition: none !important;
+  }
+}

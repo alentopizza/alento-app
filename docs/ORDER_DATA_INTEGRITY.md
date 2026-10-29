@@ -1,0 +1,408 @@
+# Integridad de datos de pedidos para inventario y costos
+
+Este documento define una regla estructural crítica de Alentó App: **cada pedido debe conservar exactamente qué producto se vendió y cómo fue configurado**, porque esa información será la base futura para inventarios, consumo de insumos, recetas y costos reales.
+
+## Principio rector
+
+El detalle visible para una persona no es suficiente como fuente operativa.
+
+Ejemplo legible:
+
+```text
+Pizza Mediana Chicharrona · Borde Cheddar · + Pepperoni
+```
+
+Ese texto puede servir para Cocina o impresión, pero **no debe ser la fuente para inventario**.
+
+La fuente válida debe guardar identificadores estructurados y snapshots de cada selección.
+
+## Regla obligatoria para órdenes nuevas
+
+Toda línea configurable debe persistir una configuración estructurada con IDs reales del catálogo.
+
+No se deben crear nuevas órdenes de pizza o combo basadas únicamente en `POS_SNAPSHOT` o texto libre.
+
+`POS_SNAPSHOT` queda permitido únicamente como compatibilidad histórica para órdenes creadas antes de completar este refactor.
+
+## Pizza de un sabor
+
+Una pizza debe conservar al menos:
+
+```ts
+{
+  kind: "PIZZA",
+  productId: number,
+  size: {
+    id: number,
+    name: string,
+    diameterCm: number
+  },
+  flavors: [
+    {
+      productId: number,
+      name: string,
+      portion: 1
+    }
+  ],
+  crust: {
+    id: number,
+    name: string
+  } | null,
+  modifiers: [
+    {
+      productId: number,
+      name: string,
+      quantity: number
+    }
+  ]
+}
+```
+
+La propiedad `portion` es importante para el futuro motor de inventario.
+
+## Pizza de dos sabores
+
+Debe guardar ambos sabores por separado:
+
+```ts
+flavors: [
+  {
+    productId: 12,
+    name: "Chicharrona",
+    portion: 0.5
+  },
+  {
+    productId: 18,
+    name: "Pollo & Champiñones",
+    portion: 0.5
+  }
+]
+```
+
+No basta guardar el texto `½ Chicharrona + ½ Pollo & Champiñones`.
+
+El factor `0.5` permitirá que una futura receta descuente solo media porción de los ingredientes correspondientes a cada sabor.
+
+## Arma Tu Pizza
+
+`PIZZA_CUSTOM` tiene una configuración propia porque sus ingredientes pueden pertenecer a toda la pizza o a una mitad concreta.
+
+Debe conservar conceptualmente:
+
+```ts
+{
+  kind: "PIZZA_CUSTOM",
+  productId: number,
+  size: { id, name, diameterCm, basePrice },
+  crust: { id, name, price },
+  mode: "WHOLE" | "HALF_HALF",
+  wholeIngredients: [
+    { productId, name, unitPrice }
+  ],
+  firstHalfIngredients: [
+    { productId, name, unitPrice }
+  ],
+  secondHalfIngredients: [
+    { productId, name, unitPrice }
+  ],
+  billableIngredientCount: number,
+  ingredientCharge: number
+}
+```
+
+Regla comercial:
+
+- `WHOLE`: `billableIngredientCount = wholeIngredients.length`;
+- `HALF_HALF`: `billableIngredientCount = max(firstHalfIngredients.length, secondHalfIngredients.length)`.
+
+La selección enviada por navegador es solo una intención. `normalizeOrderLine()` vuelve a consultar tamaño, borde e ingredientes activos con el `basePrice` real de cada ingrediente antes de persistir `unitPrice`, `lineTotal`, `ingredientCharge` y el snapshot final.
+
+Para inventario futuro, cada ingrediente conserva su `productId` y su ubicación lógica (completa, mitad 1 o mitad 2). No inferir esa información desde el texto visible.
+
+### Presentación customer-safe de PIZZA_CUSTOM
+
+Las superficies públicas del cliente **no deben exponer** `ingredientCharge`, `billableIngredientCount` como regla de cobro ni textos como `Ingredientes cobrados`.
+
+`presentCustomerOrderItemConfiguration()` es la salida canónica para:
+
+- `/cuenta` → historial de pedidos;
+- `/seguimiento/[token]` → seguimiento del pedido.
+
+La presentación conserva tamaño, borde, forma e ingredientes seleccionados, pero el resumen final muestra únicamente:
+
+```text
+Ingredientes: N
+```
+
+Para `WHOLE`, `N` es la cantidad de ingredientes únicos de la pizza completa.
+
+Para `HALF_HALF`, `N` es la unión de ingredientes únicos entre ambas mitades. Si Piña aparece en Mitad 1 y Mitad 2, cuenta una sola vez.
+
+La lógica interna de cobro permanece exclusivamente en la configuración persistida y en el normalizador server-side.
+
+## Tamaño
+
+El tamaño debe guardarse por ID y snapshot de nombre/diámetro.
+
+El inventario futuro podrá usar `PizzaSize.id` para determinar consumos dependientes del tamaño, por ejemplo:
+
+- peso de la bola de masa;
+- cantidad de salsa;
+- cantidad base de queso;
+- cantidad de ingredientes por receta;
+- empaque utilizado.
+
+Nunca inferir tamaño a partir del nombre impreso.
+
+## Borde
+
+El borde debe conservar `PizzaCrust.id` y su nombre snapshot.
+
+Esto permitirá asociar posteriormente recetas específicas, por ejemplo:
+
+- tradicional;
+- mozzarella;
+- cheddar;
+- salchiborde;
+- bocadillo.
+
+El inventario consumirá la receta vinculada al ID del borde, no el texto del ticket.
+
+## Modificadores / ingredientes extra
+
+Cada adicional debe guardar:
+
+- `productId` o identificador estable del modificador;
+- nombre snapshot;
+- cantidad seleccionada.
+
+Ejemplo:
+
+```ts
+modifiers: [
+  { productId: 44, name: "Pepperoni", quantity: 1 },
+  { productId: 51, name: "Queso Mozzarella", quantity: 2 }
+]
+```
+
+La cantidad es obligatoria para poder multiplicar consumos posteriormente.
+
+## Combos
+
+Un combo debe conservar el producto padre y cada elemento escogido dentro de él.
+
+Ejemplo conceptual:
+
+```ts
+{
+  kind: "COMBO",
+  comboProductId: 80,
+  comboName: "Combo Inseparable",
+  pizzas: [
+    {
+      sizeId: 2,
+      flavorProductId: 15,
+      portion: 1
+    }
+  ],
+  groups: [
+    {
+      groupId: 7,
+      name: "Antojo",
+      selections: [
+        { productId: 90, name: "Palitos con queso", quantity: 1 }
+      ]
+    },
+    {
+      groupId: 8,
+      name: "Bebida",
+      selections: [
+        { productId: 102, name: "Coca Cola 1.5LT", quantity: 1 }
+      ]
+    }
+  ]
+}
+```
+
+El combo no debe convertirse en un producto opaco para inventario. Deben conservarse sus componentes reales.
+
+
+### Compatibilidad de sabores en pizzas dentro de combos
+
+La estructura de combos evolucionó para permitir pizzas de dos sabores.
+
+Los pedidos históricos pueden contener una pizza del combo con un único objeto:
+
+`pizza.flavor`
+
+Los pedidos nuevos pueden contener:
+
+`pizza.flavors`
+
+con uno o dos sabores y su porción correspondiente. Mientras existan pedidos históricos, cualquier pantalla que lea configuraciones de combo debe soportar ambas formas.
+
+La presentación visible no debe leer directamente `pizza.flavor`. Debe utilizar `src/lib/orderPresentation.ts`, que normaliza el formato histórico y el actual. Para dos sabores debe mostrarse de forma explícita, por ejemplo:
+
+`½ Hawaiana + ½ Pepperoni`
+
+Esto aplica a seguimiento del cliente, POS, checkout, Pedidos, Cocina, impresión, Repartidor y cualquier nueva superficie que muestre el contenido de una orden.
+
+## Producto estándar
+
+Bebidas, antojos u otros productos simples deben conservar al menos:
+
+- `productId`;
+- nombre snapshot;
+- cantidad;
+- precio unitario snapshot.
+
+## IDs + snapshots
+
+La orden debe guardar ambas cosas:
+
+1. **ID estable** para enlazar con recetas, inventario y costos.
+2. **Snapshot legible** para conservar el histórico aunque el catálogo cambie después.
+
+Ejemplo: si el producto `Chicharrona` se renombra dentro de seis meses, una orden histórica debe seguir mostrando el nombre vendido en su momento, pero el ID debe conservar la relación lógica con la entidad original mientras exista.
+
+## Nota operativa por producto
+
+`OrderItem.notes` se utiliza para instrucciones breves de preparación que no cambian la identidad estructurada ni el precio del producto.
+
+Ejemplos:
+
+- `Ligera en salsa`;
+- `Bien tostada`;
+- `Sin cortar`.
+
+Para pizzas, el POS y la edición de Pedidos permiten guardar una nota de máximo 120 caracteres. La nota viaja junto a la línea, se muestra en el carrito, detalle del pedido, Cocina y comprobante térmico.
+
+Una nota no sustituye tamaño, sabores, borde ni modificadores estructurados. Tampoco debe usarse para representar ingredientes cobrables o cambios de receta que requieran IDs del catálogo.
+
+Si una nota de una pizza ya preparada cambia desde Pedidos, la línea vuelve a requerir preparación para que Cocina vea y aplique la nueva instrucción.
+
+## Precio y receta son conceptos diferentes
+
+`unitPrice` y `lineTotal` son snapshots comerciales.
+
+La configuración estructurada describe qué se vendió.
+
+El costo futuro no debe inferirse desde el precio de venta. Se calculará utilizando recetas e inventario asociados a los IDs guardados.
+
+## Motor de inventario futuro
+
+La arquitectura prevista es:
+
+```text
+Order
+  ↓
+OrderItem
+  ↓
+Configuración estructurada
+  ↓
+IDs de tamaño / sabores / borde / modificadores / componentes de combo
+  ↓
+Recetas vigentes o snapshot de receta según la política futura
+  ↓
+Consumo de insumos
+  ↓
+Costo teórico del pedido
+```
+
+Ejemplo futuro para una pizza dos sabores:
+
+```text
+Tamaño Grande
+→ masa Grande × 1
+→ salsa Grande × 1
+→ queso base Grande × 1
+
+½ Hawaiana
+→ receta Hawaiana Grande × 0.5
+
+½ Chicharrona
+→ receta Chicharrona Grande × 0.5
+
+Borde Cheddar
+→ receta Borde Cheddar Grande × 1
+
+Extra Pepperoni
+→ receta Extra Pepperoni Grande × 1
+```
+
+## Reglas de creación del pedido
+
+`POST /api/orders` debe evolucionar para:
+
+1. recibir `CartItem.configuration` estructurada;
+2. validar todos los IDs contra PostgreSQL;
+3. comprobar que tamaño/sabores/borde/opciones pertenecen a combinaciones permitidas;
+4. recalcular precio desde datos reales del servidor;
+5. rechazar configuraciones incompletas o manipuladas;
+6. guardar configuración estructurada como snapshot inmutable de la venta.
+
+## Regla de presentación
+
+Pedidos, Cocina y comprobante térmico deben leer la configuración estructurada y producir el texto visible.
+
+Nunca usar el proceso inverso para órdenes nuevas:
+
+```text
+texto → intentar adivinar IDs
+```
+
+El parser de `POS_SNAPSHOT` existe únicamente para compatibilidad con órdenes históricas.
+
+## Regla para edición
+
+Si una orden `CONFIRMED` se modifica:
+
+- cualquier nueva pizza o combo debe guardarse estructuradamente;
+- una reconfiguración debe sustituir explícitamente los IDs de tamaño/sabores/borde/modificadores correspondientes;
+- los totales deben recalcularse desde el servidor;
+- no se debe editar el texto descriptivo manualmente para representar un cambio de producto.
+
+## Prioridad antes de Cocina e Inventario
+
+Antes de avanzar con un motor de inventario real, y preferiblemente antes de consolidar Cocina, se debe completar el refactor del carrito para eliminar `POS_SNAPSHOT` en órdenes nuevas de pizzas y combos.
+
+La integridad de configuración del pedido es una dependencia de:
+
+- Cocina;
+- impresión confiable;
+- edición completa;
+- inventario;
+- costos teóricos;
+- consumo de insumos;
+- análisis de rentabilidad por producto;
+- futuras órdenes desde Chatwoot o app de clientes.
+
+## Regla de no regresión
+
+A partir de que el refactor estructurado quede activo:
+
+- no introducir nuevos flujos que creen pizzas o combos sin IDs estructurados;
+- no usar nombres como claves de negocio;
+- no calcular inventario a partir de textos del ticket;
+- no permitir que un canal externo omita la configuración necesaria.
+
+Este documento debe tratarse como requisito de arquitectura, no como mejora opcional.
+
+## Idempotencia de creación de pedidos
+
+Las rutas que crean pedidos ya no dependen únicamente del estado visual del botón.
+
+`POST /api/orders` y `POST /api/public-checkout` exigen `Idempotency-Key`.
+
+`Order` conserva:
+
+- `idempotencyKey` único;
+- `idempotencyHash` del request canónico.
+
+La misma clave y el mismo request devuelven el pedido existente; una clave reutilizada con contenido diferente es conflicto.
+
+La transacción adquiere un advisory lock PostgreSQL por clave antes de las escrituras finales. Esto evita duplicar pedidos incluso cuando dos solicitudes idénticas llegan simultáneamente.
+
+Los replays no vuelven a disparar notificaciones/push/webhook de creación.
+
+Referencia canónica: `docs/IDEMPOTENCY.md`.
