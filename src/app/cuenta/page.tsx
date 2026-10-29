@@ -12,7 +12,7 @@ import {
 } from "@/lib/orderPresentation";
 
 function money(value: unknown) {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(value ?? 0));
 }
 
 function staffHome(roles: string[]) {
