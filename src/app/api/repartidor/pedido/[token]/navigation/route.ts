@@ -145,7 +145,7 @@ export async function POST(
     );
   }
 
-  let route;
+  let route: Awaited<ReturnType<typeof computeDeliveryRoute>>;
   try {
     route = await computeDeliveryRoute(
       {
