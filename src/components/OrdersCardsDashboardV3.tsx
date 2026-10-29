@@ -54,7 +54,17 @@ type CustomerSearchResult = {
   email?: string | null;
   addresses: CustomerAddress[];
 };
-type OrderItem = { id: number; productId: number; productName: string; quantity: number; unitPrice: number | string; lineTotal: number | string; configuration: unknown; notes?: string | null };
+type OrderItem = {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number | string;
+  lineTotal: number | string;
+  configuration: unknown;
+  notes?: string | null;
+  product?: { type: string; couponEligible: boolean } | null;
+};
 type PaymentRefund = {
   id: number;
   amount: number | string;
@@ -87,6 +97,8 @@ type Order = {
   discount: number | string;
   total: number | string;
   couponName: string | null;
+  couponId?: number | null;
+  discountSource?: string;
   deliveryZoneId?: string | null;
   deliveryZoneName: string | null;
   createdAt: string;
@@ -105,7 +117,7 @@ type Settings = {
     serviceHours?: ServiceHour[];
   };
 };
-type CatalogProduct = { id: number; name: string; type: string; basePrice: number | null };
+type CatalogProduct = { id: number; name: string; type: string; basePrice: number | null; couponEligible?: boolean };
 type CatalogCategory = {
   id?: number;
   name?: string;
@@ -113,6 +125,13 @@ type CatalogCategory = {
   products: CatalogProduct[];
 };
 type CatalogResponse = { categories: CatalogCategory[] };
+type EditCoupon = {
+  id: number;
+  name: string;
+  type: "FIXED" | "PERCENTAGE";
+  value: number;
+};
+type EditDiscountMode = "KEEP" | "NONE" | "COUPON" | "MANUAL";
 type Filter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELED";
 type ConfirmAction =
   | { kind: "cancel-order"; order: Order }
@@ -371,6 +390,11 @@ export default function OrdersCardsDashboardV3() {
   const [editScheduleMode, setEditScheduleMode] =
     useState<"ASAP" | "SCHEDULED">("ASAP");
   const [editScheduledForInput, setEditScheduledForInput] = useState("");
+  const [editDiscountMode, setEditDiscountMode] =
+    useState<EditDiscountMode>("NONE");
+  const [editCoupons, setEditCoupons] = useState<EditCoupon[]>([]);
+  const [editCouponId, setEditCouponId] = useState<number | null>(null);
+  const [editManualDiscountInput, setEditManualDiscountInput] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [itemNotes, setItemNotes] = useState<Record<number, string>>({});
   const [additions, setAdditions] = useState<Record<number, number>>({});
@@ -620,7 +644,12 @@ export default function OrdersCardsDashboardV3() {
 
   const editPreview = useMemo(() => {
     if (!editing) {
-      return { itemCount: 0, addedCount: 0, productsSubtotal: 0 };
+      return {
+        itemCount: 0,
+        addedCount: 0,
+        productsSubtotal: 0,
+        eligibleSubtotal: 0,
+      };
     }
 
     const current = editing.items.reduce(
@@ -633,29 +662,54 @@ export default function OrdersCardsDashboardV3() {
         const editedUnitPrice =
           existingPizzaEdits[item.id]?.estimatedUnitPrice ??
           Number(item.unitPrice);
-        summary.productsSubtotal += editedUnitPrice * quantity;
+        const lineTotal = editedUnitPrice * quantity;
+        summary.productsSubtotal += lineTotal;
+        if (
+          item.product &&
+          item.product.type !== "COMBO" &&
+          item.product.couponEligible
+        ) {
+          summary.eligibleSubtotal += lineTotal;
+        }
         return summary;
       },
-      { itemCount: 0, productsSubtotal: 0 },
+      { itemCount: 0, productsSubtotal: 0, eligibleSubtotal: 0 },
     );
 
     const simpleAdded = simpleProducts.reduce(
       (summary, product) => {
         const quantity = Math.max(0, additions[product.id] ?? 0);
+        const lineTotal = Number(product.basePrice ?? 0) * quantity;
         summary.addedCount += quantity;
-        summary.productsSubtotal += Number(product.basePrice ?? 0) * quantity;
+        summary.productsSubtotal += lineTotal;
+        if (product.type !== "COMBO" && product.couponEligible) {
+          summary.eligibleSubtotal += lineTotal;
+        }
         return summary;
       },
-      { addedCount: 0, productsSubtotal: 0 },
+      { addedCount: 0, productsSubtotal: 0, eligibleSubtotal: 0 },
     );
 
+    const allCatalogProducts =
+      catalog?.categories.flatMap((category) => category.products) ?? [];
     const structuredAdded = structuredAdditions.reduce(
       (summary, item) => {
+        const lineTotal = item.estimatedUnitPrice * item.quantity;
+        const product = allCatalogProducts.find(
+          (candidate) => candidate.id === item.productId,
+        );
         summary.addedCount += item.quantity;
-        summary.productsSubtotal += item.estimatedUnitPrice * item.quantity;
+        summary.productsSubtotal += lineTotal;
+        if (
+          product &&
+          product.type !== "COMBO" &&
+          product.couponEligible
+        ) {
+          summary.eligibleSubtotal += lineTotal;
+        }
         return summary;
       },
-      { addedCount: 0, productsSubtotal: 0 },
+      { addedCount: 0, productsSubtotal: 0, eligibleSubtotal: 0 },
     );
 
     return {
@@ -665,15 +719,46 @@ export default function OrdersCardsDashboardV3() {
         current.productsSubtotal +
         simpleAdded.productsSubtotal +
         structuredAdded.productsSubtotal,
+      eligibleSubtotal:
+        current.eligibleSubtotal +
+        simpleAdded.eligibleSubtotal +
+        structuredAdded.eligibleSubtotal,
     };
   }, [
     additions,
+    catalog,
     editing,
     existingPizzaEdits,
     quantities,
     simpleProducts,
     structuredAdditions,
   ]);
+
+  const selectedEditCoupon =
+    editCoupons.find((coupon) => coupon.id === editCouponId) ?? null;
+  const editManualDiscountRaw = Number(editManualDiscountInput || 0);
+  const editManualDiscount =
+    Number.isFinite(editManualDiscountRaw) && editManualDiscountRaw > 0
+      ? Math.floor(editManualDiscountRaw)
+      : 0;
+  const editCouponDiscount = selectedEditCoupon
+    ? selectedEditCoupon.type === "PERCENTAGE"
+      ? Math.round(
+          editPreview.eligibleSubtotal * (selectedEditCoupon.value / 100),
+        )
+      : Math.min(
+          selectedEditCoupon.value,
+          editPreview.eligibleSubtotal,
+        )
+    : 0;
+  const editDiscount =
+    editDiscountMode === "KEEP"
+      ? Math.min(Number(editing?.discount ?? 0), editPreview.eligibleSubtotal)
+      : editDiscountMode === "COUPON"
+        ? editCouponDiscount
+        : editDiscountMode === "MANUAL"
+          ? editManualDiscount
+          : 0;
 
   async function unassignDriver(order: Order) {
     if (!order.driver || busy === order.id) return;
@@ -1174,11 +1259,20 @@ export default function OrdersCardsDashboardV3() {
 
   async function openEdit(order: Order) {
     try {
-      const [orderResponse, settingsResponse, catalogResponse] = await Promise.all([
-        fetch(`/api/orders/${order.id}`, { cache: "no-store" }),
-        fetch("/api/settings", { cache: "no-store" }),
-        fetch("/api/catalog", { cache: "no-store" }),
-      ]);
+      const couponsRequest = fetch("/api/coupons?active=1", {
+        cache: "no-store",
+      })
+        .then(async (response) =>
+          response.ok ? response.json() : { coupons: [] },
+        )
+        .catch(() => ({ coupons: [] }));
+      const [orderResponse, settingsResponse, catalogResponse, couponsData] =
+        await Promise.all([
+          fetch(`/api/orders/${order.id}`, { cache: "no-store" }),
+          fetch("/api/settings", { cache: "no-store" }),
+          fetch("/api/catalog", { cache: "no-store" }),
+          couponsRequest,
+        ]);
       const orderData = await orderResponse.json();
       const settingsData = await settingsResponse.json();
       const catalogData = await catalogResponse.json();
@@ -1188,6 +1282,12 @@ export default function OrdersCardsDashboardV3() {
       setCatalog(catalogData);
       setEditing(full);
       setFulfillment(full.fulfillmentType);
+      setEditCoupons(
+        Array.isArray(couponsData?.coupons) ? couponsData.coupons : [],
+      );
+      setEditDiscountMode(Number(full.discount ?? 0) > 0 ? "KEEP" : "NONE");
+      setEditCouponId(null);
+      setEditManualDiscountInput("");
       setEditScheduleMode(full.scheduledFor ? "SCHEDULED" : "ASAP");
       setEditScheduledForInput(
         full.scheduledFor ? toDateTimeLocalValue(full.scheduledFor) : "",
@@ -1242,6 +1342,33 @@ export default function OrdersCardsDashboardV3() {
       }
     }
 
+    if (
+      editDiscountMode === "COUPON" &&
+      !selectedEditCoupon
+    ) {
+      setEditError("Selecciona un cupón para aplicar el descuento.");
+      setSaving(false);
+      return;
+    }
+    if (
+      (editDiscountMode === "COUPON" || editDiscountMode === "MANUAL") &&
+      editPreview.eligibleSubtotal <= 0
+    ) {
+      setEditError("Este pedido no tiene productos elegibles para descuento.");
+      setSaving(false);
+      return;
+    }
+    if (
+      editDiscountMode === "MANUAL" &&
+      editManualDiscount > editPreview.eligibleSubtotal
+    ) {
+      setEditError(
+        `El descuento manual no puede superar la base elegible de ${money(editPreview.eligibleSubtotal)}.`,
+      );
+      setSaving(false);
+      return;
+    }
+
     try {
       const response = await fetch(`/api/orders/${editing.id}`, {
         method: "PATCH",
@@ -1250,6 +1377,15 @@ export default function OrdersCardsDashboardV3() {
           fulfillmentType: fulfillment,
           scheduledFor,
           addressId: fulfillment === "DELIVERY" ? editing.address?.id ?? editing.customer?.addresses?.[0]?.id ?? null : null,
+          ...(editDiscountMode === "KEEP"
+            ? {}
+            : {
+                discountMode: editDiscountMode,
+                couponId:
+                  editDiscountMode === "COUPON" ? editCouponId : null,
+                manualDiscount:
+                  editDiscountMode === "MANUAL" ? editManualDiscount : 0,
+              }),
           items: editing.items.map((item) => {
             const structuredEdit = existingPizzaEdits[item.id];
             return {
@@ -3094,6 +3230,163 @@ export default function OrdersCardsDashboardV3() {
                     </p>
                   </div>
                 )}
+              </section>
+
+              <section className="mt-4 rounded-[22px] border border-emerald-200 bg-[linear-gradient(145deg,#ffffff,#f5fbf7)] p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="alento-ui-label uppercase tracking-[.12em] text-emerald-700">
+                      Descuento
+                    </p>
+                    <h4 className="mt-1 text-[17px] font-black tracking-[-0.02em] text-neutral-950">
+                      Aplicar descuento
+                    </h4>
+                  </div>
+                  <div className="text-right">
+                    <span className="block alento-ui-label uppercase text-neutral-400">
+                      Base elegible
+                    </span>
+                    <b className="mt-1 block text-[13px] text-neutral-900">
+                      {money(editPreview.eligibleSubtotal)}
+                    </b>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {Number(editing.discount) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditDiscountMode("KEEP");
+                        setEditCouponId(null);
+                        setEditManualDiscountInput("");
+                        setEditError("");
+                      }}
+                      className={`min-h-10 rounded-xl border px-3 text-[10px] font-black transition ${
+                        editDiscountMode === "KEEP"
+                          ? "border-emerald-600 bg-emerald-50 text-emerald-800"
+                          : "border-neutral-200 bg-white text-neutral-600"
+                      }`}
+                    >
+                      Conservar actual
+                    </button>
+                  )}
+                  {([
+                    { mode: "NONE" as const, label: "Sin descuento" },
+                    { mode: "COUPON" as const, label: "Cupón" },
+                    { mode: "MANUAL" as const, label: "Manual" },
+                  ]).map((option) => (
+                    <button
+                      key={option.mode}
+                      type="button"
+                      onClick={() => {
+                        setEditDiscountMode(option.mode);
+                        if (option.mode !== "COUPON") setEditCouponId(null);
+                        if (option.mode !== "MANUAL") {
+                          setEditManualDiscountInput("");
+                        }
+                        setEditError("");
+                      }}
+                      className={`min-h-10 rounded-xl border px-3 text-[10px] font-black transition ${
+                        editDiscountMode === option.mode
+                          ? "border-neutral-950 bg-neutral-950 text-white"
+                          : "border-neutral-200 bg-white text-neutral-600"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                {editDiscountMode === "KEEP" && (
+                  <p className="mt-3 rounded-xl border border-emerald-100 bg-white px-3 py-2 text-[10px] leading-4 text-emerald-800">
+                    Se conserva el descuento actual
+                    {editing.couponName ? ` · ${editing.couponName}` : ""}.
+                    {Number(editing.discount) > editPreview.eligibleSubtotal
+                      ? " Se ajustará al valor máximo de los productos elegibles."
+                      : ""}
+                  </p>
+                )}
+
+                {editDiscountMode === "COUPON" && (
+                  <div className="mt-3 grid gap-2">
+                    {editCoupons.length ? (
+                      editCoupons.map((coupon) => {
+                        const active = editCouponId === coupon.id;
+                        return (
+                          <button
+                            key={coupon.id}
+                            type="button"
+                            disabled={editPreview.eligibleSubtotal <= 0}
+                            onClick={() => {
+                              setEditCouponId(coupon.id);
+                              setEditError("");
+                            }}
+                            className={`flex min-h-11 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                              active
+                                ? "border-emerald-600 bg-emerald-50"
+                                : "border-neutral-200 bg-white hover:border-neutral-300"
+                            }`}
+                          >
+                            <b className="text-[11px] text-neutral-900">
+                              {coupon.name}
+                            </b>
+                            <span className="shrink-0 text-[10px] font-black text-emerald-700">
+                              {coupon.type === "PERCENTAGE"
+                                ? `${coupon.value}%`
+                                : money(coupon.value)}
+                            </span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="rounded-xl border border-neutral-200 bg-white px-3 py-3 text-[10px] text-neutral-500">
+                        No hay cupones activos disponibles para POS.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {editDiscountMode === "MANUAL" && (
+                  <label className="mt-3 block">
+                    <span className="alento-ui-label mb-1.5 block uppercase tracking-[.08em] text-neutral-500">
+                      Valor del descuento
+                    </span>
+                    <div className="flex items-center rounded-xl border border-neutral-200 bg-white px-3">
+                      <span className="text-sm font-black text-neutral-400">$</span>
+                      <input
+                        value={editManualDiscountInput}
+                        onChange={(event) => {
+                          setEditManualDiscountInput(
+                            event.target.value.replace(/\D/g, ""),
+                          );
+                          setEditError("");
+                        }}
+                        inputMode="numeric"
+                        disabled={editPreview.eligibleSubtotal <= 0}
+                        placeholder="0"
+                        className="h-11 w-full bg-transparent px-2 text-[13px] font-bold text-neutral-900 outline-none disabled:opacity-40"
+                      />
+                    </div>
+                  </label>
+                )}
+
+                {editPreview.productsSubtotal > editPreview.eligibleSubtotal && (
+                  <p className="mt-2 text-[9px] leading-4 text-neutral-500">
+                    Productos no acumulables: {money(
+                      editPreview.productsSubtotal - editPreview.eligibleSubtotal,
+                    )}. El descuento solo aplica sobre la base elegible.
+                  </p>
+                )}
+
+                <div className="mt-3 flex items-center justify-between rounded-xl bg-neutral-950 px-3.5 py-3 text-white">
+                  <span className="text-[10px] font-bold text-white/60">
+                    Descuento estimado
+                  </span>
+                  <b className="text-[14px] tabular-nums">
+                    − {money(editDiscount)}
+                  </b>
+                </div>
               </section>
 
               <section className="mt-4 rounded-[22px] border border-neutral-200 bg-white p-4 shadow-[0_10px_26px_rgba(28,23,20,.045)]">

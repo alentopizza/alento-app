@@ -103,6 +103,7 @@ export async function GET() {
       imageUrl2: product.imageUrl2,
       type: product.type,
       basePrice: product.basePrice == null ? null : Number(product.basePrice),
+      couponEligible: product.couponEligible,
       featured: product.featured,
       comboDiscount: product.comboDiscount == null ? 0 : Number(product.comboDiscount),
       comboPizzaRules: product.comboPizzaRules.map((rule) => ({
