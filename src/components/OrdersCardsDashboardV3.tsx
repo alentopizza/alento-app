@@ -120,7 +120,7 @@ type ConfirmAction =
   | { kind: "delete-payment"; order: Order; payment: Payment }
   | null;
 
-const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
+const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0,, maximumFractionDigits: 0 }).format(Number(value ?? 0));
 const dateTime = (value: string) => new Date(value).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
 const displayOrderCode = (order: Order) => orderCode(order.sequenceNumber ?? order.id, order.source);
 const scheduledLabel = (value: string) =>

@@ -85,7 +85,7 @@ type ComboState = {
 
 function formatCOP(value: number | null | undefined) {
   if (value == null) return "Sin precio";
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0,, maximumFractionDigits: 0 }).format(value);
 }
 
 function toggleId(values: number[], id: number) {

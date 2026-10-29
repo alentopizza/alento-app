@@ -19,7 +19,7 @@ type CatalogProduct = { id: number; name: string; type: string; basePrice: numbe
 type CatalogResponse = { categories: { products: CatalogProduct[] }[] };
 type Filter = "ALL" | "ACTIVE" | "COMPLETED" | "CANCELED";
 
-const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(value ?? 0));
+const money = (value: number | string | null | undefined) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0,, maximumFractionDigits: 0 }).format(Number(value ?? 0));
 const code = (id: number) => `ALT-${String(id).padStart(6, "0")}`;
 const dateTime = (value: string) => new Date(value).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", year: "numeric", hour: "numeric", minute: "2-digit" });
 const paidAmount = (order: Order) => order.payments.filter((p) => p.status === "PAID").reduce((sum, p) => sum + Number(p.amount), 0);
