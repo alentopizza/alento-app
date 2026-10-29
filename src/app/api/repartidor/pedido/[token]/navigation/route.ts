@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readDriverOrderToken } from "@/lib/driverTracking";
 import { computeDeliveryRoute } from "@/lib/deliveryRoute";
+import { GoogleRouteUnavailableError } from "@/lib/googleMapsServer";
 import {
   normalizeDeliveryTravelMode,
   type DeliveryTravelMode,
@@ -144,16 +145,32 @@ export async function POST(
     );
   }
 
-  const route = await computeDeliveryRoute(
-    {
-      origin: { latitude, longitude },
-      destination: {
-        latitude: destinationLatitude,
-        longitude: destinationLongitude,
+  let route: Awaited<ReturnType<typeof computeDeliveryRoute>>;
+  try {
+    route = await computeDeliveryRoute(
+      {
+        origin: { latitude, longitude },
+        destination: {
+          latitude: destinationLatitude,
+          longitude: destinationLongitude,
+        },
       },
-    },
-    travelMode,
-  );
+      travelMode,
+    );
+  } catch (error) {
+    if (error instanceof GoogleRouteUnavailableError) {
+      return NextResponse.json(
+        {
+          code: "ROUTE_NOT_FOUND",
+          error:
+            "Google Maps no encontró una ruta válida para este trayecto. Verifica el punto de entrega o abre Google Maps para continuar.",
+        },
+        { status: 422 },
+      );
+    }
+
+    throw error;
+  }
 
   return NextResponse.json({
     driver: {

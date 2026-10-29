@@ -155,6 +155,13 @@ export async function reverseGeocode(
   };
 }
 
+export class GoogleRouteUnavailableError extends Error {
+  constructor() {
+    super("Google Routes no devolvió una ruta válida.");
+    this.name = "GoogleRouteUnavailableError";
+  }
+}
+
 export type GoogleRouteTravelMode =
   | "DRIVE"
   | "WALK"
@@ -252,7 +259,7 @@ export async function computeRoute(
   const distanceMeters = Number(route?.distanceMeters);
 
   if (!Number.isFinite(distanceMeters) || distanceMeters < 0) {
-    throw new Error("Google Routes no devolvió una ruta válida.");
+    throw new GoogleRouteUnavailableError();
   }
 
   return {

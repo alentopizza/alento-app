@@ -829,6 +829,10 @@ export default function DriverDestinationActions({
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.code === "ROUTE_NOT_FOUND") {
+          // No insistir cada 8 s si Google confirma que no existe una ruta.
+          lastRouteAtRef.current = Date.now() + 20_000;
+        }
         throw new Error(data.error || "No fue posible calcular la ruta.");
       }
 
