@@ -650,14 +650,21 @@ export default function DriverHome({
   }, [stopGps]);
 
   const refreshState = useCallback(async () => {
-    const response = await fetch("/api/repartidor/state", {
-      cache: "no-store",
-    });
-    const data = await response.json();
+    let data: { driver?: DriverState };
 
-    if (!response.ok) return;
+    try {
+      const response = await fetch("/api/repartidor/state", {
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      data = await response.json();
+    } catch {
+      // La conexión puede fallar temporalmente; el siguiente sondeo reintenta.
+      return;
+    }
 
-    const next = data.driver as DriverState;
+    if (!data.driver) return;
+    const next = data.driver;
     setDriver(next);
 
     if (!next.driverAvailable && watchRef.current != null) {
@@ -672,12 +679,23 @@ export default function DriverHome({
   }, [startGps, stopGps]);
 
   const refreshOrders = useCallback(async () => {
-    const response = await fetch("/api/repartidor/requests", {
-      cache: "no-store",
-    });
-    const data = await response.json();
+    let data: {
+      orders?: DriverRequest[];
+      store?: unknown;
+      acceptanceZone?: unknown;
+      serviceCoverageRadiusMeters?: unknown;
+    };
 
-    if (!response.ok) return;
+    try {
+      const response = await fetch("/api/repartidor/requests", {
+        cache: "no-store",
+      });
+      if (!response.ok) return;
+      data = await response.json();
+    } catch {
+      // Conserva la última lista válida y vuelve a intentar en el próximo sondeo.
+      return;
+    }
 
     const next = (data.orders ?? []) as DriverRequest[];
     const nextIds = new Set(next.map((order) => order.id));
