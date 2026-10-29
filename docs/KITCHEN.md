@@ -247,6 +247,27 @@ Dos sabores:
 
 En Cocina se elimina visualmente el prefijo `½`; la proporción estructurada sigue existiendo en `OrderItem.configuration`.
 
+## Antojos e ingredientes
+
+Los antojos incluidos en combos se muestran como tarjetas de lectura rápida, con icono, nombre en mayúscula y color estable según el producto. Las opciones que no correspondan a antojos conservan su presentación compacta.
+
+Los ingredientes de `PIZZA_CUSTOM` y los extras de pizza usan una paleta por ingrediente para reconocerlos más rápido:
+
+- Albahaca y orégano → verde.
+- Tomate → rojo.
+- Cebolla → violeta.
+- Pimentón y ají → verde lima.
+- Champiñón, chicharrón y carnes → piedra/oscuro.
+- Quesos → ámbar.
+- Jamón y tocineta → rosa.
+- Pepperoni, chorizo y salchicha → naranja.
+- Pollo → teal.
+- Aceitunas y anchoas → gris.
+- Piña, maíz y plátano maduro → amarillo.
+- Ingredientes nuevos sin regla explícita → violeta como fallback.
+
+El texto del ingrediente siempre permanece visible en mayúscula y con contraste alto: el color ayuda a reconocerlo, pero no reemplaza el nombre.
+
 ## Arma Tu Pizza
 
 `PIZZA_CUSTOM` se trata como pizza de prioridad alta en Cocina.

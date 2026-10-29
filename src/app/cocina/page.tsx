@@ -323,6 +323,160 @@ function flavorTone(value: string) {
   };
 }
 
+function ingredientTone(value: string) {
+  const normalized = normalizeKitchenFlavor(value);
+
+  if (normalized.includes("albahaca") || normalized.includes("oregano")) {
+    return "border-emerald-300 bg-emerald-50 text-emerald-950";
+  }
+  if (normalized.includes("tomate")) {
+    return "border-red-300 bg-red-50 text-red-950";
+  }
+  if (normalized.includes("cebolla")) {
+    return "border-violet-300 bg-violet-50 text-violet-950";
+  }
+  if (
+    normalized.includes("pimenton") ||
+    normalized.includes("pimiento") ||
+    normalized.includes("jalapeno") ||
+    normalized.includes("aji")
+  ) {
+    return "border-lime-300 bg-lime-50 text-lime-950";
+  }
+  if (
+    normalized.includes("champinon") ||
+    normalized.includes("hongo") ||
+    normalized.includes("chicharron") ||
+    normalized.includes("carne")
+  ) {
+    return "border-stone-300 bg-stone-100 text-stone-950";
+  }
+  if (
+    normalized.includes("queso") ||
+    normalized.includes("mozzarella") ||
+    normalized.includes("cheddar")
+  ) {
+    return "border-amber-300 bg-amber-50 text-amber-950";
+  }
+  if (
+    normalized.includes("jamon") ||
+    normalized.includes("tocineta") ||
+    normalized.includes("bacon") ||
+    normalized.includes("salami")
+  ) {
+    return "border-pink-300 bg-pink-50 text-pink-950";
+  }
+  if (
+    normalized.includes("pepperoni") ||
+    normalized.includes("chorizo") ||
+    normalized.includes("salchicha")
+  ) {
+    return "border-orange-300 bg-orange-50 text-orange-950";
+  }
+  if (normalized.includes("pollo")) {
+    return "border-teal-300 bg-teal-50 text-teal-950";
+  }
+  if (
+    normalized.includes("aceituna") ||
+    normalized.includes("oliva") ||
+    normalized.includes("anchoa")
+  ) {
+    return "border-neutral-300 bg-neutral-100 text-neutral-900";
+  }
+  if (
+    normalized.includes("pina") ||
+    normalized.includes("maiz") ||
+    normalized.includes("platano") ||
+    normalized.includes("maduro")
+  ) {
+    return "border-yellow-300 bg-yellow-50 text-yellow-950";
+  }
+  if (normalized.includes("bbq") || normalized.includes("salsa")) {
+    return "border-orange-200 bg-orange-50 text-orange-950";
+  }
+
+  return "border-violet-200 bg-violet-50 text-violet-950";
+}
+
+function antojoTone(value: string) {
+  const normalized = normalizeKitchenFlavor(value);
+
+  if (normalized.includes("palito") || normalized.includes("queso")) {
+    return {
+      shell: "border-amber-300 bg-amber-50 text-amber-950",
+      icon: "bg-amber-500 text-white",
+      label: "text-amber-700",
+    };
+  }
+  if (normalized.includes("alita") || normalized.includes("bbq")) {
+    return {
+      shell: "border-rose-300 bg-rose-50 text-rose-950",
+      icon: "bg-rose-600 text-white",
+      label: "text-rose-700",
+    };
+  }
+  if (normalized.includes("aro") || normalized.includes("cebolla")) {
+    return {
+      shell: "border-violet-300 bg-violet-50 text-violet-950",
+      icon: "bg-violet-600 text-white",
+      label: "text-violet-700",
+    };
+  }
+  if (normalized.includes("papa") || normalized.includes("frita")) {
+    return {
+      shell: "border-sky-300 bg-sky-50 text-sky-950",
+      icon: "bg-sky-600 text-white",
+      label: "text-sky-700",
+    };
+  }
+  if (normalized.includes("empanada")) {
+    return {
+      shell: "border-emerald-300 bg-emerald-50 text-emerald-950",
+      icon: "bg-emerald-600 text-white",
+      label: "text-emerald-700",
+    };
+  }
+  if (normalized.includes("tender") || normalized.includes("pollo")) {
+    return {
+      shell: "border-orange-300 bg-orange-50 text-orange-950",
+      icon: "bg-orange-600 text-white",
+      label: "text-orange-700",
+    };
+  }
+
+  return {
+    shell: "border-amber-200 bg-amber-50 text-amber-950",
+    icon: "bg-amber-500 text-white",
+    label: "text-amber-700",
+  };
+}
+
+function KitchenAntojoBadge({ value }: { value: string }) {
+  const tone = antojoTone(value);
+
+  return (
+    <div
+      className={`inline-flex min-h-[52px] min-w-[150px] max-w-full items-center gap-2.5 rounded-[14px] border px-3 py-2 shadow-[0_4px_12px_rgba(28,23,20,.06)] ${tone.shell}`}
+    >
+      <span
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${tone.icon}`}
+      >
+        <CookingPot className="h-4 w-4" strokeWidth={2.3} />
+      </span>
+      <span className="min-w-0">
+        <span
+          className={`block text-[10px] font-black uppercase tracking-[0.12em] ${tone.label}`}
+        >
+          Antojo
+        </span>
+        <b className="mt-0.5 block text-[13px] font-black uppercase leading-4 tracking-[-0.01em]">
+          {value}
+        </b>
+      </span>
+    </div>
+  );
+}
+
 function KitchenFlavorBadge({
   value,
   label = "Sabor",
@@ -465,7 +619,7 @@ function KitchenIngredientBlock({
           ingredients.map((ingredient, index) => (
             <span
               key={`${ingredient}-${index}`}
-              className="inline-flex min-h-9 items-center rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 text-[12.5px] font-black uppercase leading-4 tracking-[0.015em] text-neutral-950 shadow-[0_2px_6px_rgba(28,23,20,.05)]"
+              className={`inline-flex min-h-9 items-center rounded-[10px] border px-3 py-1.5 text-[12.5px] font-black uppercase leading-4 tracking-[0.015em] shadow-[0_2px_6px_rgba(28,23,20,.05)] ${ingredientTone(ingredient)}`}
             >
               {ingredient}
             </span>
@@ -600,24 +754,47 @@ function KitchenItem({
                 </div>
               ))}
 
-              {comboPresentation.groups.map((group, index) => (
-                <div
-                  key={`${group.label}-${index}`}
-                  className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/55 px-2.5 py-2"
-                >
-                  <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-amber-700/65">
-                    {group.label}
-                  </span>
-                  {group.values.map((value, valueIndex) => (
-                    <span
-                      key={`${value}-${valueIndex}`}
-                      className="inline-flex min-h-6 items-center rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.02em] text-amber-900"
+              {comboPresentation.groups.map((group, index) => {
+                const normalizedGroup = normalizeKitchenFlavor(
+                  `${group.kind} ${group.label}`,
+                );
+                const isAntojo = normalizedGroup.includes("antojo");
+
+                if (isAntojo) {
+                  return (
+                    <div
+                      key={`${group.label}-${index}`}
+                      className="flex flex-wrap items-center gap-2"
                     >
-                      {value}
+                      {group.values.map((value, valueIndex) => (
+                        <KitchenAntojoBadge
+                          key={`${value}-${valueIndex}`}
+                          value={value}
+                        />
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`${group.label}-${index}`}
+                    className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/55 px-2.5 py-2"
+                  >
+                    <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-amber-700/65">
+                      {group.label}
                     </span>
-                  ))}
-                </div>
-              ))}
+                    {group.values.map((value, valueIndex) => (
+                      <span
+                        key={`${value}-${valueIndex}`}
+                        className="inline-flex min-h-6 items-center rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.02em] text-amber-900"
+                      >
+                        {value}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -689,7 +866,7 @@ function KitchenItem({
               {extraDetails.map((detail, index) => (
                 <span
                   key={`${detail.value}-${index}`}
-                  className="inline-flex min-h-6 items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.02em] text-[var(--brand-red)]"
+                  className={`inline-flex min-h-7 items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.02em] ${ingredientTone(detail.value)}`}
                 >
                   + {detail.value}
                 </span>
