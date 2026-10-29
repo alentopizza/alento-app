@@ -1,5 +1,0 @@
-ALTER TABLE "DriverPushSubscription"
-ADD COLUMN IF NOT EXISTS "staffOptIn" BOOLEAN NOT NULL DEFAULT true;
-
-ALTER TABLE "DriverPushSubscription"
-ADD COLUMN IF NOT EXISTS "customerOptIn" BOOLEAN NOT NULL DEFAULT false;

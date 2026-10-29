@@ -715,14 +715,16 @@ export default function OrdersCardsDashboardV3() {
     return {
       itemCount: current.itemCount,
       addedCount: simpleAdded.addedCount + structuredAdded.addedCount,
-      productsSubtotal:
+      productsSubtotal: Math.round(
         current.productsSubtotal +
-        simpleAdded.productsSubtotal +
-        structuredAdded.productsSubtotal,
-      eligibleSubtotal:
+          simpleAdded.productsSubtotal +
+          structuredAdded.productsSubtotal,
+      ),
+      eligibleSubtotal: Math.round(
         current.eligibleSubtotal +
-        simpleAdded.eligibleSubtotal +
-        structuredAdded.eligibleSubtotal,
+          simpleAdded.eligibleSubtotal +
+          structuredAdded.eligibleSubtotal,
+      ),
     };
   }, [
     additions,
@@ -747,7 +749,7 @@ export default function OrdersCardsDashboardV3() {
           editPreview.eligibleSubtotal * (selectedEditCoupon.value / 100),
         )
       : Math.min(
-          selectedEditCoupon.value,
+          Math.round(selectedEditCoupon.value),
           editPreview.eligibleSubtotal,
         )
     : 0;
@@ -3378,6 +3380,10 @@ export default function OrdersCardsDashboardV3() {
                     )}. El descuento solo aplica sobre la base elegible.
                   </p>
                 )}
+
+                <p className="mt-2 text-[9px] leading-4 text-neutral-500">
+                  Si ya hay dinero recibido, el total no puede quedar por debajo de ese valor; primero debe registrarse la devolución correspondiente.
+                </p>
 
                 <div className="mt-3 flex items-center justify-between rounded-xl bg-neutral-950 px-3.5 py-3 text-white">
                   <span className="text-[10px] font-bold text-white/60">
