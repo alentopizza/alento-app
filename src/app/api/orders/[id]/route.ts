@@ -14,6 +14,10 @@ import {
 } from "@/lib/orderScheduling";
 import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 import {
+  calculateOrderDiscount,
+  type OrderDiscountMode,
+} from "@/lib/orderDiscount";
+import {
   deliveryPricingHttpStatus,
   resolveDeliveryPricing,
   type DeliveryPricingSettings,
@@ -745,7 +749,90 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       .filter((addition) => addition.eligible)
       .reduce((sum, addition) => sum + addition.lineTotal, 0);
     const eligibleSubtotal = money(existingEligible + additionsEligible);
-    const discount = Math.min(Number(current.discount), eligibleSubtotal);
+    let discount = Math.min(Number(current.discount), eligibleSubtotal);
+    let couponId = current.couponId;
+    let couponName = current.couponName;
+    let discountSource = current.discountSource;
+
+    if (Object.prototype.hasOwnProperty.call(body, "discountMode")) {
+      const rawDiscountMode = String(body.discountMode);
+      if (!["NONE", "COUPON", "MANUAL"].includes(rawDiscountMode)) {
+        return NextResponse.json(
+          { error: "Selecciona un tipo de descuento válido." },
+          { status: 400 },
+        );
+      }
+
+      const discountMode = rawDiscountMode as OrderDiscountMode;
+      let selectedCoupon: {
+        id: number;
+        name: string;
+        type: "FIXED" | "PERCENTAGE";
+        value: number;
+      } | null = null;
+
+      if (discountMode === "COUPON") {
+        const requestedCouponId = Number(body.couponId);
+        if (!Number.isInteger(requestedCouponId) || requestedCouponId <= 0) {
+          return NextResponse.json(
+            { error: "Selecciona un cupón válido." },
+            { status: 400 },
+          );
+        }
+
+        const coupon = await prisma.coupon.findFirst({
+          where: {
+            id: requestedCouponId,
+            active: true,
+            visibleInPos: true,
+          },
+          select: { id: true, name: true, type: true, value: true },
+        });
+
+        if (!coupon) {
+          return NextResponse.json(
+            { error: "El cupón seleccionado ya no está activo." },
+            { status: 400 },
+          );
+        }
+
+        selectedCoupon = {
+          id: coupon.id,
+          name: coupon.name,
+          type: coupon.type,
+          value: Number(coupon.value),
+        };
+      }
+
+      try {
+        discount = calculateOrderDiscount({
+          mode: discountMode,
+          eligibleSubtotal,
+          manualDiscount: body.manualDiscount,
+          coupon: selectedCoupon,
+        });
+      } catch (discountError) {
+        return NextResponse.json(
+          {
+            error:
+              discountError instanceof Error
+                ? discountError.message
+                : "No fue posible calcular el descuento.",
+          },
+          { status: 400 },
+        );
+      }
+
+      couponId = selectedCoupon?.id ?? null;
+      couponName = selectedCoupon?.name ?? null;
+      discountSource = discountMode;
+    }
+
+    const discountChanged =
+      discount !== Number(current.discount) ||
+      couponId !== current.couponId ||
+      couponName !== current.couponName ||
+      discountSource !== current.discountSource;
     const total = Math.max(0, subtotal + deliveryFee - discount);
 
     const alreadyPaid = orderNetReceived(current.payments);
@@ -889,6 +976,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           deliveryFee,
           subtotal,
           discount,
+          couponId,
+          couponName,
+          discountSource,
           total,
           scheduledFor,
           status: nextStatus,
@@ -905,6 +995,38 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         await tx.payment.update({ where: { id: pendingPayment.id }, data: { amount: 0, status: "CANCELED", cashReceived: null, changeDue: null } });
       }
 
+      if (discountChanged) {
+        await writeAuditLog(tx, {
+          actor: staffAuditActor(access.session),
+          action: "ORDER_DISCOUNT_UPDATED",
+          entityType: "ORDER",
+          entityId: current.id,
+          summary: discount > 0
+            ? `Descuento de ${discount.toLocaleString("es-CO")} actualizado en el pedido #${current.sequenceNumber ?? current.id}.`
+            : `Descuento retirado del pedido #${current.sequenceNumber ?? current.id}.`,
+          before: {
+            discount: Number(current.discount),
+            discountSource: current.discountSource,
+            couponId: current.couponId,
+            couponName: current.couponName,
+          },
+          after: {
+            discount,
+            discountSource,
+            couponId,
+            couponName,
+          },
+          metadata: {
+            sequenceNumber: current.sequenceNumber,
+            source: current.source,
+            eligibleSubtotal,
+            paidAmount: alreadyPaid,
+            outstanding,
+          },
+          source: "api/orders/[id]",
+        });
+      }
+
       await writeAuditLog(tx, {
         actor: staffAuditActor(access.session),
         action: "ORDER_UPDATED",
@@ -917,6 +1039,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           subtotal: Number(current.subtotal),
           deliveryFee: Number(current.deliveryFee),
           discount: Number(current.discount),
+          discountSource: current.discountSource,
+          couponId: current.couponId,
+          couponName: current.couponName,
           total: Number(current.total),
           scheduledFor: current.scheduledFor,
           items: current.items.map((item) => ({
@@ -934,6 +1059,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
           subtotal,
           deliveryFee,
           discount,
+          discountSource,
+          couponId,
+          couponName,
           total,
           scheduledFor,
           itemCount:
