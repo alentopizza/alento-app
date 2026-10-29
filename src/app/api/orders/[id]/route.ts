@@ -145,7 +145,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         return NextResponse.json(
           {
             error:
-              `Este pedido tiene ${receivedAmount.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })} recibido. Antes de cancelarlo debe existir un flujo de devolución para conservar la trazabilidad del dinero.`,
+              `Este pedido tiene ${receivedAmount.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })} neto recibido. Registra primero la devolución correspondiente antes de cancelarlo.`,
           },
           { status: 409 },
         );
@@ -1048,6 +1048,22 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
     if (!["CANCELED", "COMPLETED"].includes(order.status)) {
       return NextResponse.json(
         { error: "Solo puedes eliminar pedidos cancelados o finalizados." },
+        { status: 409 },
+      );
+    }
+
+    const refundCount = await prisma.paymentRefund.count({
+      where: {
+        payment: { orderId: id },
+      },
+    });
+
+    if (refundCount > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pedido tiene devoluciones registradas y debe conservarse para mantener la trazabilidad financiera.",
+        },
         { status: 409 },
       );
     }

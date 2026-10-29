@@ -7,6 +7,7 @@ import {
 } from "@/lib/deliveryPricing";
 import { directDistanceMeters } from "@/lib/deliveryDistance";
 import { orderCode } from "@/lib/orderCode";
+import { orderNetReceived } from "@/lib/orderPaymentFinancials";
 
 const SETTINGS_KEY = "pos_settings";
 
@@ -127,8 +128,14 @@ export async function GET(request: NextRequest) {
             },
           },
           payments: {
-            where: { status: "PAID" },
-            select: { amount: true },
+            where: { status: { not: "CANCELED" } },
+            select: {
+              status: true,
+              amount: true,
+              refunds: {
+                select: { amount: true },
+              },
+            },
           },
         },
       }),
@@ -217,10 +224,7 @@ export async function GET(request: NextRequest) {
     for (const order of orders) {
       const latitude = coordinate(order.address?.latitude);
       const longitude = coordinate(order.address?.longitude);
-      const paidAmount = order.payments.reduce(
-        (sum, payment) => sum + Number(payment.amount),
-        0,
-      );
+      const paidAmount = orderNetReceived(order.payments);
       const orderValue = Number(order.total);
       const deliveryRevenue = Number(order.deliveryFee);
 

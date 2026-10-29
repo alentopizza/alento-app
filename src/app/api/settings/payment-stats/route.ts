@@ -64,9 +64,8 @@ export async function GET(request: NextRequest) {
     const rows = await prisma.payment.groupBy({
       by: ["method"],
       where: {
-        status: "PAID",
+        status: { in: ["PAID", "REFUNDED"] },
         paidAt: { gte: start, lt: endExclusive },
-        order: { status: { not: "CANCELED" } },
       },
       _count: { id: true },
       _sum: { amount: true },

@@ -691,15 +691,33 @@ Validación técnica final:
 - PR #6 mergeado a `main`;
 - merge commit: `bf542cf622218e0dad9acf3c82ec227abb14678e`.
 
-Redeploy de `main` en EasyPanel: ✅ confirmado por el usuario.
+Redeploy inicial de `main` en EasyPanel: ✅ confirmado por el usuario.
+
+Revisión integral previa a pruebas productivas:
+
+- se releyó arquitectura, schema, Pagos/Caja, Pedidos, estados, Club, middleware, backups, commits recientes y superficies operativas;
+- se detectó que Caja resumen podía ocultar el cobro histórico después de devolución total + cancelación;
+- se alineó el cierre de Caja con la misma fuente de verdad;
+- se corrigió acceso CASHIER al endpoint de devolución;
+- finalizar pedidos ahora valida dinero neto recibido después de refunds;
+- recálculos/replays de pagos usan `orderNetReceived()`;
+- pedidos con historial de devolución quedan protegidos contra eliminación definitiva;
+- estadísticas de medios conservan cobros históricos aunque después sean devueltos/cancelados;
+- `db:verify-restore` incluye `PaymentRefund`;
+- documentación histórica de pagos, arquitectura y roadmap fue alineada.
+
+Estas correcciones viven en PR #7 y requieren CI verde + merge + nuevo redeploy antes de ejecutar la prueba final del #10.
 
 Pendiente para cerrar #10:
 
-1. validar una devolución parcial;
-2. validar una devolución total;
-3. confirmar Caja y cierre esperado;
-4. confirmar Auditoría;
-5. confirmar cancelación después de devolución total.
+1. cerrar CI/merge del hotfix PR #7;
+2. redeploy de `main` con el hotfix;
+3. validar una devolución parcial;
+4. validar una devolución total;
+5. confirmar Caja y cierre esperado;
+6. confirmar Auditoría;
+7. confirmar cancelación después de devolución total;
+8. definir y validar la política de Club Alentó para refunds realizados después de que un pedido ya quedó `COMPLETED` (la implementación financiera permite el refund, pero los puntos de compra ya acreditados no se recalculan automáticamente).
 
 ---
 
@@ -733,7 +751,7 @@ Estado actual para continuidad:
 - #8 Audit Log: ✅ completado y validado en producción.
 - #9 Observabilidad: ✅ completado y validado en producción.
 - Ajuste previo a #10 — Pedidos programados / fecha efectiva de venta: ✅ validado en producción.
-- #10 Refund / devoluciones auditables: 🟡 implementado en `main`, CI verde y redeploy confirmado; pendiente validación productiva.
+- #10 Refund / devoluciones auditables: 🟡 implementación base desplegada; revisión integral detectó hotfix PR #7 pendiente de CI/merge/redeploy antes de validación productiva.
 
 Una nueva conversación debe continuar desde la validación productiva del #10 y no iniciar trabajo posterior hasta cerrarlo.
 

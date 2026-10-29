@@ -3,6 +3,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireStaffSession } from "@/lib/auth";
 import { staffAuditActor, writeAuditLog } from "@/lib/auditLog";
+import {
+  cashReceivedPaymentWhere,
+  cashRefundWhere,
+} from "@/lib/cashMovementScope";
 
 const DENOMINATIONS = [
   50,
@@ -154,14 +158,11 @@ async function movementBetween(start: Date, endExclusive: Date) {
     loanPortfolio,
   ] = await prisma.$transaction([
       prisma.payment.aggregate({
-        where: {
-          status: { in: ["PAID", "REFUNDED"] },
-          paidAt: { gte: start, lt: endExclusive },
-        },
+        where: cashReceivedPaymentWhere(start, endExclusive),
         _sum: { amount: true },
       }),
       prisma.paymentRefund.aggregate({
-        where: { refundedAt: { gte: start, lt: endExclusive } },
+        where: cashRefundWhere(start, endExclusive),
         _sum: { amount: true },
       }),
       prisma.cashIncome.aggregate({

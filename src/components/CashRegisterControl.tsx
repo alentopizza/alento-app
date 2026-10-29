@@ -1702,6 +1702,9 @@ export default function CashRegisterControl({
                         <SummaryLine label="Ventas cobradas" value={money(effectiveMovement.received)} />
                         <SummaryLine label="Otros ingresos" value={money(effectiveMovement.otherIncome)} />
                         <SummaryLine label="Abonos de préstamos" value={money(effectiveMovement.recovered)} />
+                        {effectiveMovement.refundsTotal > 0 && (
+                          <SummaryLine label="Devoluciones" value={"- " + money(effectiveMovement.refundsTotal)} />
+                        )}
                         <SummaryLine label="Salidas" value={"- " + money(effectiveMovement.expensesTotal)} />
                         <SummaryLine label="Préstamos entregados" value={"- " + money(effectiveMovement.loansTotal)} />
                       </div>

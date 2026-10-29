@@ -115,13 +115,13 @@ El cambio se calcula únicamente contra el monto de ese movimiento, no contra el
 
 ## Saldo
 
-El saldo de una orden se calcula siempre como:
+El saldo de una orden se calcula sobre dinero **neto** todavía recibido:
 
 ```text
-Order.total - suma(Payment.amount donde status = PAID)
+Order.total - suma(cobros PAID - devoluciones asociadas)
 ```
 
-Los registros `PENDING`, `PARTIAL`, `CANCELED` o `REFUNDED` no se cuentan como ingreso recibido.
+Un pago totalmente devuelto pasa a `REFUNDED` y aporta cero al neto. Los registros `PENDING`, `PARTIAL` y `CANCELED` tampoco se cuentan como dinero recibido.
 
 ## Medio previsto después de un abono
 
@@ -144,7 +144,7 @@ Si se elimina un `PAID`:
 - el saldo del pedido aumenta;
 - si existe una referencia `PENDING`, su monto se recalcula al nuevo saldo.
 
-Eliminar un pago real por error es distinto a una futura devolución/reembolso. Las devoluciones deberán conservar trazabilidad y usar un flujo específico.
+Eliminar un pago real por error es distinto a una devolución/reembolso. Las devoluciones usan `PaymentRefund`, conservan el cobro original y no permiten eliminar físicamente ese pago después.
 
 ## Edición del pedido y pagos
 
@@ -157,17 +157,13 @@ Si una orden aumenta de valor:
 - un `PENDING` se ajusta al nuevo saldo;
 - un antiguo `Paga con` que ya no cubra el total se limpia.
 
-Si una edición deja el total por debajo de la suma ya recibida en `PAID`, la edición se bloquea hasta implementar el flujo de devolución.
+Si una edición deja el total por debajo del dinero neto todavía recibido, la edición se bloquea hasta registrar una devolución suficiente.
 
 ## Caja
 
-`/api/caja/summary` solo consulta pagos:
+`/api/caja/summary` conserva el cobro histórico por `paidAt` para pagos `PAID` o totalmente `REFUNDED`, y registra las devoluciones por separado mediante `PaymentRefund.refundedAt`.
 
-```text
-status = PAID
-```
-
-Por ello un pedido puede aportar varios movimientos a Caja y varios medios de pago sin duplicar el total del pedido.
+Por ello un pedido puede aportar varios movimientos a Caja y varios medios de pago sin duplicar el total del pedido, mientras una devolución queda visible como salida financiera independiente.
 
 ## Archivos principales
 

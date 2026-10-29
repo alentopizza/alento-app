@@ -52,7 +52,7 @@ Estado al 2026-10-26:
 - #8 Audit Log: completado y validado en producción.
 - #9 Observabilidad: completado y validado en producción.
 - ajuste previo a #10 — pedidos programados/fecha efectiva de venta: validado en producción;
-- #10 Refund / devoluciones auditables: implementado en `main`; CI final verde y redeploy confirmado; pendiente validación productiva.
+- #10 Refund / devoluciones auditables: implementación base desplegada; revisión integral previa a pruebas detectó correcciones de consistencia agrupadas en PR #7, pendiente CI/merge/redeploy antes de validación productiva.
 
 Si se retoma el proyecto en una nueva conversación, continuar desde el primer punto no completado del checklist.
 
@@ -844,3 +844,21 @@ Reglas clave:
 - Auditoría registra `PAYMENT_REFUNDED`.
 
 Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
+
+## Revisión integral #10 antes de pruebas productivas
+
+Antes de ejecutar pruebas reales se auditó la propagación de refunds por Pedidos, estados, Caja, cierre, middleware, analítica de medios, eliminación y restore.
+
+PR #7 (`hotfix-10-refund-canceled-cash-history`) corrige:
+
+- conservación del cobro histórico después de refund total + cancelación;
+- alcance de Caja y cierre con fuente compartida;
+- acceso CASHIER al endpoint refund;
+- validación de COMPLETED por dinero neto recibido;
+- replays y recálculos de saldo conscientes de refunds;
+- bloqueo explícito de eliminación definitiva si existen devoluciones;
+- preservación del historial en estadísticas de medios;
+- verificación de `PaymentRefund` en restore;
+- documentación canónica desactualizada.
+
+No ejecutar la validación productiva final del #10 hasta mergear PR #7, obtener CI verde en `main` y hacer redeploy en EasyPanel.

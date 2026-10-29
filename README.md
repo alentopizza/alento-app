@@ -57,7 +57,7 @@ Fechas operativas usan Bogotá (`America/Bogota`) y los valores monetarios visib
 
 Estos módulos pueden recibir correcciones de bugs y ajustes menores, pero no deben reabrirse como fase de diseño salvo solicitud explícita.
 
-La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push y Métricas ya están implementados; continúan pendientes hardening, refund y otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
+La primera versión de Autenticación y Roles ya está implementada: colaboradores usan correo + contraseña y clientes disponen de acceso opcional por teléfono + OTP de WhatsApp. La app pública, checkout WEB, seguimiento, reparto GPS, Turnos/Nómina, Push, Métricas y el flujo auditable de devoluciones ya están implementados; el hardening #10 está en validación productiva final y continúan otras mejoras estratégicas. Las integraciones de marketplace/proveedores externos no forman parte del código operativo.
 
 La hoja de ruta vigente está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -93,7 +93,8 @@ Ya están implementados, entre otros:
 - Turnos integrados con pago de Nómina desde Caja y descuentos de préstamos;
 - Centro Push con campañas manuales y métricas de entrega/apertura;
 - módulo `/metricas` con analítica interna, mapa de calor día/hora, embudo, productos, fuentes de tráfico e integraciones externas guiadas;
-- eliminación física controlada de pedidos y pagos;
+- eliminación física controlada de pedidos y pagos erróneos sin historial de devolución;
+- devoluciones parciales/totales auditables con conservación del cobro original;
 - consecutivo comercial global independiente del `Order.id`;
 - códigos visibles como `POS-0001` y `WEB-0002` compartiendo la misma secuencia.
 

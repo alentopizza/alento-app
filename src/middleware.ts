@@ -134,7 +134,12 @@ function apiRoles(pathname: string, method: string): string[] | null {
   if (pathname.startsWith("/api/orders/")) {
     if (pathname.endsWith("/history-import")) return ["ADMIN"];
     if (pathname.includes("/items/") && pathname.endsWith("/prepared")) return ["ADMIN", "KITCHEN"];
-    if (pathname.endsWith("/payment") || /\/payment\/\d+$/.test(pathname)) return ["ADMIN", "POS", "CASHIER"];
+    if (
+      pathname.endsWith("/payment") ||
+      /\/payment\/\d+(?:\/refund)?$/.test(pathname)
+    ) {
+      return ["ADMIN", "POS", "CASHIER"];
+    }
     if (pathname.endsWith("/driver")) return ["ADMIN", "POS", "CASHIER"];
     if (pathname.endsWith("/delivery-address")) return ["ADMIN", "POS", "CASHIER"];
     if (pathname.endsWith("/edit")) return ["ADMIN", "POS", "CASHIER"];

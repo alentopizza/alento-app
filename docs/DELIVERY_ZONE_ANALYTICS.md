@@ -48,7 +48,7 @@ Endpoint:
 
 `GET /api/analytics/delivery-zones?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`
 
-Las fechas representan días calendario de Bogotá (`America/Bogota`) y filtran por `Order.createdAt`.
+Las fechas representan días calendario de Bogotá (`America/Bogota`) y usan la fecha comercial del pedido: `createdAt` para pedidos inmediatos y `scheduledFor` para pedidos programados.
 
 Se incluyen pedidos:
 
@@ -63,7 +63,7 @@ Por zona:
 - cantidad de pedidos;
 - participación sobre pedidos clasificados;
 - valor total de pedidos;
-- dinero recibido mediante pagos `PAID`;
+- dinero neto recibido después de devoluciones;
 - valor cobrado por domicilios;
 - ticket promedio;
 - último pedido;
@@ -75,7 +75,7 @@ Resumen:
 - pedidos clasificados;
 - zona con más pedidos;
 - ventas;
-- dinero recibido;
+- dinero neto recibido;
 - domicilios cobrados;
 - ticket promedio;
 - pedidos reconstruidos;

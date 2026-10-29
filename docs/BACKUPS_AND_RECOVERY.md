@@ -27,7 +27,7 @@ Servicio productivo:
 PostgreSQL contiene, entre otros:
 
 - pedidos;
-- pagos;
+- pagos y devoluciones auditables;
 - clientes;
 - catálogo;
 - Caja;
@@ -197,6 +197,8 @@ Database schema is up to date!
 
 El script `db:verify-restore` es de solo lectura y debe poder consultar correctamente modelos críticos.
 
+Desde el hardening #10 la verificación incluye también el conteo de `PaymentRefund`, porque una restauración que recupere pedidos/pagos pero pierda devoluciones no es financieramente válida.
+
 Nunca ejecutar este comando con una URL escrita en documentación o Git.
 
 ## Verificación funcional mínima
@@ -207,6 +209,7 @@ Sobre la copia restaurada, confirmar como mínimo:
 - existen clientes;
 - existen productos;
 - pagos son consultables;
+- devoluciones `PaymentRefund` son consultables;
 - configuración es consultable;
 - usuarios son consultables;
 - el último pedido puede leerse con su código/consecutivo;

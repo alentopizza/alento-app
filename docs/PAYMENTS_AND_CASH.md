@@ -47,9 +47,9 @@ Consecuencias:
 - deja de contar inmediatamente en Caja;
 - deja de formar parte del total pagado de la orden;
 - el pedido vuelve a mostrar ese valor como saldo pendiente;
-- después de eliminar los pagos de una orden, esa orden puede eliminarse definitivamente si así lo decide el operador.
+- después de eliminar pagos erróneos sin devoluciones, una orden cerrada puede eliminarse definitivamente si las reglas del módulo lo permiten.
 
-Esta acción es distinta a una devolución real al cliente. Si un pago ya tiene una devolución asociada, no puede eliminarse físicamente porque debe conservarse el historial financiero.
+Esta acción es distinta a una devolución real al cliente. Si un pago ya tiene una devolución asociada, no puede eliminarse físicamente y el pedido tampoco puede eliminarse definitivamente: ambos deben conservarse para mantener el historial financiero.
 
 ## Pagos posteriores a una edición
 
@@ -75,7 +75,7 @@ Son decisiones distintas:
 - **Eliminar pedido**: borra físicamente la orden. Sus `OrderItem` y `Payment` relacionados se eliminan por `onDelete: Cascade`.
 - **Cancelar pedido**: conserva la orden y la marca `CANCELED` para mantener historial.
 
-Para borrar una orden que tiene pagos registrados, primero se eliminan físicamente esos pagos y luego se elimina la orden.
+Para borrar una orden cerrada con pagos registrados por error, primero deben poder eliminarse físicamente esos pagos. Si existe cualquier `PaymentRefund`, la eliminación definitiva del pedido queda bloqueada y solo puede conservarse como cancelado/finalizado.
 
 ## Caja
 
@@ -211,6 +211,12 @@ neto recibido > 0 → bloquear cancelación y exigir devolución primero
 ```
 
 Esto permite conservar simultáneamente la venta/cobro histórico, la salida por devolución y el estado final cancelado del pedido.
+
+### Refund después de un pedido finalizado
+
+El movimiento financiero de devolución puede registrarse sobre un pago histórico. Sin embargo, si el pedido ya alcanzó `COMPLETED`, Club Alentó pudo haber acreditado puntos de compra previamente.
+
+La política de reversión de esos puntos todavía debe definirse explícitamente antes de cerrar el hardening #10. No inferir una reversión proporcional sin una regla comercial aprobada, porque `PaymentRefund.amount` no identifica qué líneas del pedido (producto, domicilio o componente no elegible) fueron objeto de la devolución.
 
 
 ## Salidas de Caja
