@@ -664,6 +664,9 @@ function KitchenItem({
     : null;
 
   const customPizzaPresentation = readCustomPizzaPresentation(item);
+  const standaloneAntojo =
+    item.product?.category?.slug === "antojos" &&
+    item.product?.type !== "COMBO";
 
   const details = comboPresentation || customPizzaPresentation
     ? []
@@ -795,6 +798,12 @@ function KitchenItem({
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {standaloneAntojo && (
+            <div className="mt-2">
+              <KitchenAntojoBadge value={item.productName} />
             </div>
           )}
 
