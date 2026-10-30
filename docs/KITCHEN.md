@@ -249,7 +249,7 @@ En Cocina se elimina visualmente el prefijo `½`; la proporción estructurada si
 
 ## Antojos e ingredientes
 
-Los antojos incluidos en combos se muestran como tarjetas de lectura rápida, con icono, nombre en mayúscula y color estable según el producto. Las opciones que no correspondan a antojos conservan su presentación compacta.
+Todos los productos de categoría `antojos`, tanto facturados por separado como incluidos en combos, se muestran como tarjetas de lectura rápida con icono, etiqueta `ANTOJO`, nombre en mayúscula y color estable según el producto. La misma tarjeta se reutiliza en ambos contextos para mantener una lectura consistente. Las opciones de combos que no correspondan a antojos conservan su presentación compacta.
 
 Los ingredientes de `PIZZA_CUSTOM` y los extras de pizza usan una paleta por ingrediente para reconocerlos más rápido:
 
