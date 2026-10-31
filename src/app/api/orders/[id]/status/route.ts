@@ -272,24 +272,36 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         }
 
         if (reviewTemplate) {
-          const delayMinutes = reviewTemplate.delayMinutes ?? 60;
-          await tx.notificationJob.upsert({
-            where: { kind_orderId: { kind: "GOOGLE_REVIEW", orderId: order.id } },
-            create: {
-              kind: "GOOGLE_REVIEW",
-              orderId: order.id,
-              runAt: new Date(Date.now() + delayMinutes * 60_000),
-              status: "PENDING",
-            },
-            update: {
-              runAt: new Date(Date.now() + delayMinutes * 60_000),
-              status: "PENDING",
-              attempts: 0,
-              lastError: null,
-              sentAt: null,
-              lockedAt: null,
+          // La reseña es exclusivamente para la primera compra del cliente.
+          // Se excluyen pedidos cancelados del historial válido.
+          const previousValidOrders = await tx.order.count({
+            where: {
+              customerId: order.customerId,
+              id: { not: order.id },
+              status: { not: "CANCELED" },
             },
           });
+
+          if (previousValidOrders === 0) {
+            const delayMinutes = reviewTemplate.delayMinutes ?? 60;
+            await tx.notificationJob.upsert({
+              where: { kind_orderId: { kind: "GOOGLE_REVIEW", orderId: order.id } },
+              create: {
+                kind: "GOOGLE_REVIEW",
+                orderId: order.id,
+                runAt: new Date(Date.now() + delayMinutes * 60_000),
+                status: "PENDING",
+              },
+              update: {
+                runAt: new Date(Date.now() + delayMinutes * 60_000),
+                status: "PENDING",
+                attempts: 0,
+                lastError: null,
+                sentAt: null,
+                lockedAt: null,
+              },
+            });
+          }
         }
       }
 
