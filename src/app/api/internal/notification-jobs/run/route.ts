@@ -74,6 +74,29 @@ export async function POST(request: NextRequest) {
         throw new Error("El pedido no tiene cliente con teléfono.");
       }
 
+      // Segunda barrera: si el cliente volvió a comprar durante la hora de espera,
+      // no enviamos una solicitud de reseña por el pedido anterior.
+      const otherValidOrders = await prisma.order.count({
+        where: {
+          customerId: order.customerId,
+          id: { not: order.id },
+          status: { not: "CANCELED" },
+        },
+      });
+
+      if (otherValidOrders > 0) {
+        await prisma.notificationJob.update({
+          where: { id: job.id },
+          data: {
+            status: "CANCELLED",
+            lockedAt: null,
+            lastError: "Envío omitido: el cliente ya tiene otra compra registrada.",
+          },
+        });
+        results.push({ id: job.id, ok: false, reason: "El cliente ya tiene otra compra; no corresponde enviar la reseña." });
+        continue;
+      }
+
       const notification = await dispatchReviewNotification({
         orderId: order.id,
         customerId: order.customerId,
