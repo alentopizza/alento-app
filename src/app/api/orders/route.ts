@@ -21,7 +21,8 @@ import {
 } from "@/lib/deliveryPricing";
 import {
   isInKitchenWindow,
-  ORDER_KITCHEN_LEAD_MS,
+  ORDER_KITCHEN_LEAD_MINUTES,
+  kitchenLeadMilliseconds,
   parseScheduledFor,
   scheduleStatusForKitchen,
   validateFutureSchedule,
@@ -114,8 +115,18 @@ export async function GET(request: NextRequest) {
   try {
     const kitchenScope =
       request.nextUrl.searchParams.get("scope") === "kitchen";
+    const kitchenLeadSetting = await prisma.appSetting.findUnique({
+      where: { key: "kitchen_preparation_settings" },
+      select: { value: true },
+    });
+    const rawKitchenLead = kitchenLeadSetting?.value && typeof kitchenLeadSetting.value === "object"
+      ? Number((kitchenLeadSetting.value as { leadMinutes?: unknown }).leadMinutes)
+      : ORDER_KITCHEN_LEAD_MINUTES;
+    const kitchenLeadMinutes = [15, 20, 25, 30, 35, 40, 45, 50, 60].includes(rawKitchenLead)
+      ? rawKitchenLead
+      : ORDER_KITCHEN_LEAD_MINUTES;
     const kitchenScheduleCutoff = new Date(
-      Date.now() + ORDER_KITCHEN_LEAD_MS,
+      Date.now() + kitchenLeadMilliseconds(kitchenLeadMinutes),
     );
 
     const kitchenWhere: Prisma.OrderWhereInput | undefined =
@@ -233,6 +244,16 @@ export async function POST(request: NextRequest) {
 
     const settingsRow = await prisma.appSetting.findUnique({ where: { key: SETTINGS_KEY } });
     const settings = parseSettings(settingsRow?.value ?? null);
+    const kitchenLeadSetting = await prisma.appSetting.findUnique({
+      where: { key: "kitchen_preparation_settings" },
+      select: { value: true },
+    });
+    const rawKitchenLead = kitchenLeadSetting?.value && typeof kitchenLeadSetting.value === "object"
+      ? Number((kitchenLeadSetting.value as { leadMinutes?: unknown }).leadMinutes)
+      : ORDER_KITCHEN_LEAD_MINUTES;
+    const kitchenLeadMinutes = [15, 20, 25, 30, 35, 40, 45, 50, 60].includes(rawKitchenLead)
+      ? rawKitchenLead
+      : ORDER_KITCHEN_LEAD_MINUTES;
 
     try {
       validateScheduledServiceHours(
@@ -395,6 +416,8 @@ export async function POST(request: NextRequest) {
           status: scheduleStatusForKitchen(
             hasKitchenPreparation,
             scheduledFor,
+            new Date(),
+            kitchenLeadMinutes,
           ),
           fulfillmentType,
           source: "POS",
