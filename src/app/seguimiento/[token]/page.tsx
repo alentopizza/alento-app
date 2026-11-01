@@ -5,7 +5,7 @@ import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import CustomerDeliveryLiveMap from "@/components/CustomerDeliveryLiveMap";
 import { presentCustomerOrderItemConfiguration } from "@/lib/orderPresentation";
-import { isInKitchenWindow, kitchenWindowStartsAt } from "@/lib/orderScheduling";
+import { isInKitchenWindow } from "@/lib/orderScheduling";
 
 export const dynamic = "force-dynamic";
 
@@ -154,9 +154,6 @@ export default async function TrackingPage({
     !isInKitchenWindow(order.scheduledFor) &&
     !["CANCELED", "COMPLETED", "DELIVERED"].includes(order.status);
   const trackingStatus = waitingForSchedule ? "WAITING_SCHEDULED" : order.status;
-  const preparationStartsAt = order.scheduledFor
-    ? kitchenWindowStartsAt(order.scheduledFor)
-    : null;
   const { stages, current } = trackingStages(
     order.fulfillmentType,
     trackingStatus,
