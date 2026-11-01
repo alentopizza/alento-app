@@ -25,12 +25,6 @@ const FACTOR =
   RECIPE.salt +
   RECIPE.yeast;
 
-type PreparationMode = "NORMAL" | "QUICK";
-
-function normalizePreparationMode(value: unknown): PreparationMode {
-  return value === "QUICK" ? "QUICK" : "NORMAL";
-}
-
 function normalizeCount(value: unknown) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 0;
@@ -77,7 +71,6 @@ function serialize(item: {
   id: number;
   createdAt: Date;
   createdByName: string;
-  mode: string;
   personalCount: number;
   mediumCount: number;
   largeCount: number;
@@ -100,7 +93,6 @@ function serialize(item: {
     id: item.id,
     createdAt: item.createdAt.toISOString(),
     createdByName: item.createdByName,
-    mode: item.mode === "QUICK" ? "QUICK" : "NORMAL",
     counts: {
       personal: item.personalCount,
       mediana: item.mediumCount,
@@ -158,7 +150,6 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireStaffSession(["ADMIN", "KITCHEN"]);
     const body = await request.json();
-    const mode = normalizePreparationMode(body?.mode);
 
     const {
       personal,
@@ -186,7 +177,6 @@ export async function POST(request: NextRequest) {
       data: {
         createdById: session.userId,
         createdByName: session.name,
-        mode,
         personalCount: personal,
         mediumCount: mediana,
         largeCount: grande,
@@ -242,7 +232,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const mode = normalizePreparationMode(body?.mode);
     const {
       personal,
       mediana,
@@ -268,7 +257,6 @@ export async function PATCH(request: NextRequest) {
     const updated = await prisma.doughPreparation.update({
       where: { id },
       data: {
-        mode,
         personalCount: personal,
         mediumCount: mediana,
         largeCount: grande,
