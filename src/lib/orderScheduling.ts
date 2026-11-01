@@ -10,6 +10,11 @@ export const ORDER_KITCHEN_LEAD_MINUTES = 30;
 export const ORDER_KITCHEN_LEAD_MS =
   ORDER_KITCHEN_LEAD_MINUTES * 60 * 1000;
 
+export function kitchenLeadMilliseconds(minutes = ORDER_KITCHEN_LEAD_MINUTES) {
+  const safeMinutes = Number.isFinite(minutes) ? Math.min(60, Math.max(15, minutes)) : ORDER_KITCHEN_LEAD_MINUTES;
+  return safeMinutes * 60 * 1000;
+}
+
 export function bogotaDateKey(value: Date | string) {
   const date = new Date(value);
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -66,26 +71,29 @@ export function validateFutureSchedule(
 
 export function kitchenWindowStartsAt(
   scheduledFor: Date | string,
+  leadMinutes = ORDER_KITCHEN_LEAD_MINUTES,
 ) {
   const scheduled = new Date(scheduledFor);
-  return new Date(scheduled.getTime() - ORDER_KITCHEN_LEAD_MS);
+  return new Date(scheduled.getTime() - kitchenLeadMilliseconds(leadMinutes));
 }
 
 export function isInKitchenWindow(
   scheduledFor: Date | string | null | undefined,
   now = new Date(),
+  leadMinutes = ORDER_KITCHEN_LEAD_MINUTES,
 ) {
   if (!scheduledFor) return true;
-  return kitchenWindowStartsAt(scheduledFor).getTime() <= now.getTime();
+  return kitchenWindowStartsAt(scheduledFor, leadMinutes).getTime() <= now.getTime();
 }
 
 export function scheduleStatusForKitchen(
   hasKitchenPreparation: boolean,
   scheduledFor: Date | null,
   now = new Date(),
+  leadMinutes = ORDER_KITCHEN_LEAD_MINUTES,
 ) {
   if (!hasKitchenPreparation) return "READY" as const;
-  if (scheduledFor && !isInKitchenWindow(scheduledFor, now)) {
+  if (scheduledFor && !isInKitchenWindow(scheduledFor, now, leadMinutes)) {
     return "CONFIRMED" as const;
   }
   return "PREPARING" as const;
