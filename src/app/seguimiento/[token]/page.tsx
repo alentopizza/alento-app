@@ -163,8 +163,8 @@ export default async function TrackingPage({
     waitingForSchedule,
   );
   const activeLabel = STATUS_LABEL[trackingStatus] ?? trackingStatus;
-  const activeCopy = waitingForSchedule && preparationStartsAt
-    ? `Tu pedido está reservado para las ${dateTime(order.scheduledFor!)}. Comenzaremos a prepararlo aproximadamente a las ${dateTime(preparationStartsAt)}.`
+  const activeCopy = waitingForSchedule
+    ? "Lo prepararemos cuando se acerque la hora que elegiste."
     : STATUS_COPY[trackingStatus] ?? "Estamos actualizando tu pedido.";
   const deliveryMapVisible =
     order.fulfillmentType === "DELIVERY" &&
@@ -287,33 +287,18 @@ export default async function TrackingPage({
           </div>
 
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
-            {waitingForSchedule && order.scheduledFor && preparationStartsAt && (
-              <section className="mb-4 overflow-hidden rounded-[20px] border border-amber-400/25 bg-[linear-gradient(135deg,rgba(245,158,11,.13),rgba(245,158,11,.045))] p-4 sm:p-5">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-amber-300/20 bg-amber-300/10 text-xl" aria-hidden="true">◷</span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-amber-300">
-                      Pedido programado
-                    </p>
-                    <h3 className="mt-1 text-[15px] font-black text-white sm:text-base">
-                      Tu pedido está en espera
-                    </h3>
-                    <p className="mt-1 text-[11px] leading-5 text-white/65">
-                      No te preocupes, todavía no lo estamos preparando. Lo tenemos reservado para la hora que elegiste.
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="rounded-[12px] border border-white/10 bg-black/20 px-3 py-2">
-                        <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-white/45">Hora del pedido</span>
-                        <b className="mt-1 block text-[11px] text-white">{dateTime(order.scheduledFor)}</b>
-                      </div>
-                      <div className="rounded-[12px] border border-white/10 bg-black/20 px-3 py-2">
-                        <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-white/45">Empezamos a preparar</span>
-                        <b className="mt-1 block text-[11px] text-amber-300">{dateTime(preparationStartsAt)}</b>
-                      </div>
-                    </div>
-                  </div>
+            {waitingForSchedule && order.scheduledFor && (
+              <div className="mb-4 flex items-center gap-3 rounded-[16px] border border-amber-400/20 bg-amber-300/[0.07] px-4 py-3">
+                <span className="text-lg text-amber-300" aria-hidden="true">◷</span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-amber-300">
+                    Pedido programado
+                  </p>
+                  <p className="mt-0.5 text-[12px] font-semibold text-white">
+                    Lo prepararemos para las {new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "numeric", minute: "2-digit" }).format(new Date(order.scheduledFor))}
+                  </p>
                 </div>
-              </section>
+              </div>
             )}
             {deliveryMapVisible && (
               <CustomerDeliveryLiveMap token={token} orderCode={code} />
