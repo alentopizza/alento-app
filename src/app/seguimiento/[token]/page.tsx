@@ -80,16 +80,10 @@ function trackingStages(
   ];
 
   const stages = fulfillmentType === "DELIVERY" ? delivery : pickup;
-  const visibleStages = waitingForSchedule
-    ? [
-        { label: "En espera", statuses: ["WAITING_SCHEDULED"] },
-        ...stages,
-      ]
-    : stages;
-  let current = visibleStages.findIndex((stage) => stage.statuses.includes(status));
-  if (current < 0) current = status === "CANCELED" ? 0 : visibleStages.length - 1;
+  let current = stages.findIndex((stage) => stage.statuses.includes(status));
+  if (current < 0) current = status === "CANCELED" ? 0 : stages.length - 1;
 
-  return { stages: visibleStages, current };
+  return { stages, current };
 }
 
 export default async function TrackingPage({
@@ -223,7 +217,9 @@ export default async function TrackingPage({
                 {stages.slice(0, -1).map((_, index) => {
                   const completed = index < current;
                   const activeSegment =
-                    index === current && current < stages.length - 1;
+                    !waitingForSchedule &&
+                    index === current &&
+                    current < stages.length - 1;
 
                   return (
                     <div
@@ -267,7 +263,7 @@ export default async function TrackingPage({
                               : "border-white/20 bg-[#111] text-white/30")
                         }
                       >
-                        {active && current < stages.length - 1 && (
+                        {active && !waitingForSchedule && current < stages.length - 1 && (
                           <span className="alento-progress-pulse absolute inset-[-5px] rounded-full border border-[#ff454b]/30" />
                         )}
                         <span className="relative z-10">
