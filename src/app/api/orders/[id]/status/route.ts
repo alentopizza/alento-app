@@ -129,7 +129,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       ? rawKitchenLead
       : 30;
 
+    // La ventana programada controla cuándo puede comenzar la preparación.
+    // Una vez que el pedido está en Cocina, debe poder avanzar a Horneando/Listo
+    // aunque todavía no haya llegado la hora originalmente programada.
     if (
+      requested === "PREPARING" &&
+      current === "CONFIRMED" &&
       order.scheduledFor &&
       !isInKitchenWindow(order.scheduledFor, new Date(), kitchenLeadMinutes)
     ) {
