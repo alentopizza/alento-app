@@ -49,7 +49,21 @@ export async function PATCH(
       });
       if (!order) throw new Error("ORDER_NOT_FOUND");
       if (!["CONFIRMED", "PREPARING"].includes(order.status)) throw new Error("ORDER_NOT_IN_KITCHEN");
-      if (order.scheduledFor && !isInKitchenWindow(order.scheduledFor)) {
+      const kitchenLeadSetting = await tx.appSetting.findUnique({
+        where: { key: "kitchen_preparation_settings" },
+        select: { value: true },
+      });
+      const rawKitchenLead = kitchenLeadSetting?.value && typeof kitchenLeadSetting.value === "object"
+        ? Number((kitchenLeadSetting.value as { leadMinutes?: unknown }).leadMinutes)
+        : 30;
+      const kitchenLeadMinutes = [15, 20, 25, 30, 35, 40, 45, 50, 60].includes(rawKitchenLead)
+        ? rawKitchenLead
+        : 30;
+
+      if (
+        order.scheduledFor &&
+        !isInKitchenWindow(order.scheduledFor, new Date(), kitchenLeadMinutes)
+      ) {
         throw new Error("ORDER_NOT_IN_KITCHEN_WINDOW");
       }
 
