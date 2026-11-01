@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 type PizzaKey = "personal" | "mediana" | "grande" | "extra";
 
 type DoughCounts = Record<PizzaKey, number>;
+type PreparationMode = "NORMAL" | "QUICK";
 
 type DoughIngredients = {
   flour: number;
@@ -19,6 +20,7 @@ type DoughPreparation = {
   id: number;
   createdAt: string;
   createdByName: string;
+  mode: PreparationMode;
   counts: DoughCounts;
   totalBalls: number;
   totalWeightGrams: number;
@@ -140,6 +142,7 @@ function IngredientTile({
 
 export default function PreparationPage() {
   const [counts, setCounts] = useState<DoughCounts>(EMPTY_COUNTS);
+  const [preparationMode, setPreparationMode] = useState<PreparationMode>("NORMAL");
   const [preparations, setPreparations] = useState<DoughPreparation[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -227,6 +230,7 @@ export default function PreparationPage() {
 
   function openNewPreparation() {
     setEditingPreparation(null);
+    setPreparationMode("NORMAL");
     setCounts({ ...EMPTY_COUNTS });
     setError("");
     setFormOpen(true);
@@ -234,6 +238,7 @@ export default function PreparationPage() {
 
   function openEditPreparation(preparation: DoughPreparation) {
     setEditingPreparation(preparation);
+    setPreparationMode(preparation.mode ?? "NORMAL");
     setCounts({ ...preparation.counts });
     setError("");
     setFormOpen(true);
@@ -243,6 +248,7 @@ export default function PreparationPage() {
     if (saving) return;
     setFormOpen(false);
     setEditingPreparation(null);
+    setPreparationMode("NORMAL");
     setCounts({ ...EMPTY_COUNTS });
     setError("");
   }
@@ -266,7 +272,7 @@ export default function PreparationPage() {
         {
           method: editingPreparation ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(counts),
+          body: JSON.stringify({ ...counts, mode: preparationMode }),
         },
       );
       const data = await response.json();
@@ -283,6 +289,7 @@ export default function PreparationPage() {
           : [data.preparation, ...current],
       );
       setCounts({ ...EMPTY_COUNTS });
+      setPreparationMode("NORMAL");
       setEditingPreparation(null);
       setFormOpen(false);
     } catch (err) {
@@ -437,7 +444,14 @@ export default function PreparationPage() {
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] ${
+                            preparation.mode === "QUICK"
+                              ? "border-amber-300/25 bg-amber-400/15 text-amber-100"
+                              : "border-white/15 bg-white/[0.07] text-white/75"
+                          }`}>
+                            {preparation.mode === "QUICK" ? "Rápida · 4–6 h" : "Normal"}
+                          </span>
                           <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-red-100">
                             {preparation.totalBalls} bolas
                           </span>
@@ -506,7 +520,7 @@ export default function PreparationPage() {
                         />
                         <IngredientTile
                           icon="🧪"
-                          name="Levadura seca activa"
+                          name="Levadura seca instantánea"
                           percentage="0.5%"
                           grams={preparation.ingredients.yeast}
                           accent
@@ -563,7 +577,7 @@ export default function PreparationPage() {
                   Cantidad de bolas y receta
                 </h2>
                 <p className="mt-1 text-sm text-neutral-500">
-                  La hidratación y los porcentajes de la receta son fijos.
+                  Elige el proceso de fermentación. La fórmula base se mantiene.
                 </p>
               </div>
               <button
@@ -577,6 +591,43 @@ export default function PreparationPage() {
             </div>
 
             <div className="max-h-[68vh] space-y-4 overflow-y-auto p-5 md:p-6">
+              <section className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  aria-pressed={preparationMode === "NORMAL"}
+                  onClick={() => setPreparationMode("NORMAL")}
+                  className={`rounded-[20px] border p-4 text-left transition ${
+                    preparationMode === "NORMAL"
+                      ? "border-neutral-950 bg-neutral-50 ring-1 ring-neutral-950"
+                      : "border-neutral-200 bg-white hover:bg-neutral-50"
+                  }`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-neutral-400">Maduración habitual</span>
+                  <span className="mt-1 block text-lg font-black text-neutral-950">Normal</span>
+                  <span className="mt-1 block text-xs leading-5 text-neutral-500">Receta original para la producción que se utilizará al día siguiente.</span>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={preparationMode === "QUICK"}
+                  onClick={() => setPreparationMode("QUICK")}
+                  className={`rounded-[20px] border p-4 text-left transition ${
+                    preparationMode === "QUICK"
+                      ? "border-amber-400 bg-amber-50 ring-1 ring-amber-300"
+                      : "border-neutral-200 bg-white hover:bg-neutral-50"
+                  }`}
+                >
+                  <span className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-700">Producción para el mismo día</span>
+                  <span className="mt-1 block text-lg font-black text-neutral-950">Rápida · 4–6 horas</span>
+                  <span className="mt-1 block text-xs leading-5 text-neutral-600">Tanda pequeña: formar las bolas y mantenerlas refrigeradas hasta su uso.</span>
+                </button>
+              </section>
+
+              {preparationMode === "QUICK" && (
+                <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-900">
+                  <b>Primera prueba:</b> se conserva el 0.5% de levadura de la receta base. A 2 °C la fermentación se ralentiza, así que las 4–6 horas son una referencia: antes de usar, verifica que las bolas estén relajadas y se puedan estirar sin encogerse. Si siguen tensas, déjalas atemperar un poco.
+                </div>
+              )}
+
               {PIZZA_SIZES.map((size) => (
                 <div
                   key={size.key}
@@ -683,7 +734,7 @@ export default function PreparationPage() {
                   />
                   <IngredientTile
                     icon="🧪"
-                    name="Levadura seca activa"
+                    name="Levadura seca instantánea"
                     percentage="0.5%"
                     grams={liveIngredients.yeast}
                     accent
@@ -703,7 +754,7 @@ export default function PreparationPage() {
               </section>
 
               <div className="rounded-[18px] border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-800">
-                Fórmula fija: 58% agua · 5% ADN · 2% azúcar · 1% sal · 0.5% levadura.
+                Fórmula base para ambas modalidades: 58% agua · 5% ADN · 2% azúcar · 1% sal · 0.5% levadura.
               </div>
 
               {error && (

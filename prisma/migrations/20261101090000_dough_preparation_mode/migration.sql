@@ -1,0 +1,2 @@
+ALTER TABLE "DoughPreparation"
+ADD COLUMN "mode" TEXT NOT NULL DEFAULT 'NORMAL';
