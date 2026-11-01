@@ -149,9 +149,20 @@ export default async function TrackingPage({
     redirect(`/menu?pedidoFinalizado=${encodeURIComponent(code)}`);
   }
 
+  const kitchenLeadSetting = await prisma.appSetting.findUnique({
+    where: { key: "kitchen_preparation_settings" },
+    select: { value: true },
+  });
+  const rawKitchenLead = kitchenLeadSetting?.value && typeof kitchenLeadSetting.value === "object"
+    ? Number((kitchenLeadSetting.value as { leadMinutes?: unknown }).leadMinutes)
+    : 30;
+  const kitchenLeadMinutes = [15, 20, 25, 30, 35, 40, 45, 50, 60].includes(rawKitchenLead)
+    ? rawKitchenLead
+    : 30;
+
   const waitingForSchedule =
     Boolean(order.scheduledFor) &&
-    !isInKitchenWindow(order.scheduledFor) &&
+    !isInKitchenWindow(order.scheduledFor, new Date(), kitchenLeadMinutes) &&
     !["CANCELED", "COMPLETED", "DELIVERED"].includes(order.status);
   const trackingStatus = waitingForSchedule ? "WAITING_SCHEDULED" : order.status;
   const { stages, current } = trackingStages(
