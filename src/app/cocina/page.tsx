@@ -915,6 +915,7 @@ export default function KitchenPage() {
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [leadMinutes, setLeadMinutes] = useState(ORDER_KITCHEN_LEAD_MINUTES);
+  const [draftLeadMinutes, setDraftLeadMinutes] = useState(ORDER_KITCHEN_LEAD_MINUTES);
   const [leadEditorOpen, setLeadEditorOpen] = useState(false);
   const [savingLead, setSavingLead] = useState(false);
   const [leadMessage, setLeadMessage] = useState("");
@@ -1023,7 +1024,7 @@ export default function KitchenPage() {
 
               <button
                 type="button"
-                onClick={() => { setLeadMessage(""); setLeadEditorOpen(true); }}
+                onClick={() => { setLeadMessage(""); setDraftLeadMinutes(leadMinutes); setLeadEditorOpen(true); }}
                 title="Configurar anticipación de pedidos programados"
                 className="inline-flex h-[56px] items-center gap-2 rounded-[16px] border border-white/15 bg-white/[0.08] px-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-white/[0.13]"
               >
@@ -1071,7 +1072,7 @@ export default function KitchenPage() {
               </div>
               <div className="mt-5 grid grid-cols-3 gap-2">
                 {[15, 20, 25, 30, 35, 40, 45, 50, 60].map((value) => (
-                  <button key={value} type="button" onClick={() => setLeadMinutes(value)} className={`rounded-xl border px-3 py-3 text-sm font-black transition ${leadMinutes === value ? "border-red-600 bg-red-600 text-white shadow-md" : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-red-300"}`}>
+                  <button key={value} type="button" onClick={() => setDraftLeadMinutes(value)} className={`rounded-xl border px-3 py-3 text-sm font-black transition ${draftLeadMinutes === value ? "border-red-600 bg-red-600 text-white shadow-md" : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-red-300"}`}>
                     {value} min
                   </button>
                 ))}
@@ -1086,7 +1087,7 @@ export default function KitchenPage() {
                     const response = await fetch("/api/kitchen-preparation-settings", {
                       method: "PUT",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ leadMinutes }),
+                      body: JSON.stringify({ leadMinutes: draftLeadMinutes }),
                     });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || "No se pudo guardar el tiempo.");
