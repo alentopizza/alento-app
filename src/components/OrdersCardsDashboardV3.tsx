@@ -374,6 +374,7 @@ export default function OrdersCardsDashboardV3() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("ACTIVE");
   const [selected, setSelected] = useState<Order | null>(null);
+  const [printChoiceOrder, setPrintChoiceOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -1002,12 +1003,20 @@ export default function OrdersCardsDashboardV3() {
     }
   }
 
-  function print(order: Order) {
+  function openPrint(order: Order, documentType: "invoice" | "driver" = "invoice") {
     const frame = document.createElement("iframe");
     Object.assign(frame.style, { position: "fixed", width: "1px", height: "1px", opacity: "0", pointerEvents: "none" });
-    frame.src = `/pedidos/${order.id}/imprimir?autoprint=1&embedded=1`;
+    frame.src = `/pedidos/${order.id}/imprimir?autoprint=1&embedded=1&document=${documentType}`;
     document.body.appendChild(frame);
     window.setTimeout(() => frame.remove(), 30000);
+  }
+
+  function print(order: Order) {
+    if (order.fulfillmentType === "DELIVERY") {
+      setPrintChoiceOrder(order);
+      return;
+    }
+    openPrint(order, "invoice");
   }
 
   function downloadReceiptImage(order: Order) {
@@ -2416,6 +2425,50 @@ export default function OrdersCardsDashboardV3() {
             </div>
           </footer>
         </aside>
+      </div>
+    )}
+
+    {printChoiceOrder && (
+      <div
+        className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-3 backdrop-blur-[3px]"
+        onClick={() => setPrintChoiceOrder(null)}
+      >
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="print-choice-title"
+          onClick={(event) => event.stopPropagation()}
+          className="w-full max-w-[360px] overflow-hidden rounded-[22px] bg-white shadow-2xl"
+        >
+          <div className="border-b border-neutral-100 px-5 pb-4 pt-5">
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-neutral-400">Pedido a domicilio</p>
+            <h3 id="print-choice-title" className="mt-1 text-lg font-black text-neutral-900">¿Qué deseas imprimir?</h3>
+            <p className="mt-1 text-xs text-neutral-500">Elige solo el comprobante que necesitas.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            <button
+              type="button"
+              onClick={() => { const order = printChoiceOrder; setPrintChoiceOrder(null); openPrint(order, "invoice"); }}
+              className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-4 text-neutral-800 transition hover:border-neutral-400 hover:bg-neutral-50"
+            >
+              <span className="text-2xl">🧾</span>
+              <span className="text-sm font-black">Factura</span>
+              <span className="text-[10px] text-neutral-500">Cliente y pedido</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { const order = printChoiceOrder; setPrintChoiceOrder(null); openPrint(order, "driver"); }}
+              className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-4 text-neutral-800 transition hover:border-neutral-400 hover:bg-neutral-50"
+            >
+              <span className="text-2xl">🛵</span>
+              <span className="text-sm font-black">Comanda de reparto</span>
+              <span className="text-[10px] text-neutral-500">Datos para el repartidor</span>
+            </button>
+          </div>
+          <div className="px-4 pb-4">
+            <button type="button" onClick={() => setPrintChoiceOrder(null)} className="h-10 w-full rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-600 hover:bg-neutral-50">Cancelar</button>
+          </div>
+        </section>
       </div>
     )}
 
