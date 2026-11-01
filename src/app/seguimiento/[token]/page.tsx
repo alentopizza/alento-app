@@ -5,10 +5,12 @@ import { readOrderTrackingToken } from "@/lib/orderTracking";
 import LivePageRefresh from "@/components/LivePageRefresh";
 import CustomerDeliveryLiveMap from "@/components/CustomerDeliveryLiveMap";
 import { presentCustomerOrderItemConfiguration } from "@/lib/orderPresentation";
+import { isInKitchenWindow, kitchenWindowStartsAt } from "@/lib/orderScheduling";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
+  WAITING_SCHEDULED: "En espera de preparación",
   DRAFT: "Pedido recibido",
   CONFIRMED: "Pedido confirmado",
   PREPARING: "Estamos preparando tu pedido",
@@ -22,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COPY: Record<string, string> = {
+  WAITING_SCHEDULED: "Tu pedido está programado. Lo comenzaremos a preparar cuando se acerque la hora que elegiste.",
   DRAFT: "Recibimos la información de tu pedido.",
   CONFIRMED: "Tu pedido fue confirmado.",
   PREPARING: "Nuestro equipo ya está trabajando en tu pedido.",
@@ -57,7 +60,11 @@ function orderItemDetails(configuration: unknown) {
   );
 }
 
-function trackingStages(fulfillmentType: string, status: string) {
+function trackingStages(
+  fulfillmentType: string,
+  status: string,
+  waitingForSchedule = false,
+) {
   const delivery = [
     { label: "Preparando", statuses: ["DRAFT", "CONFIRMED", "PREPARING"] },
     { label: "Horneando", statuses: ["PREPARED"] },
@@ -73,10 +80,16 @@ function trackingStages(fulfillmentType: string, status: string) {
   ];
 
   const stages = fulfillmentType === "DELIVERY" ? delivery : pickup;
-  let current = stages.findIndex((stage) => stage.statuses.includes(status));
-  if (current < 0) current = status === "CANCELED" ? 0 : stages.length - 1;
+  const visibleStages = waitingForSchedule
+    ? [
+        { label: "En espera", statuses: ["WAITING_SCHEDULED"] },
+        ...stages,
+      ]
+    : stages;
+  let current = visibleStages.findIndex((stage) => stage.statuses.includes(status));
+  if (current < 0) current = status === "CANCELED" ? 0 : visibleStages.length - 1;
 
-  return { stages, current };
+  return { stages: visibleStages, current };
 }
 
 export default async function TrackingPage({
@@ -95,6 +108,7 @@ export default async function TrackingPage({
       sequenceNumber: true,
       source: true,
       status: true,
+      scheduledFor: true,
       fulfillmentType: true,
       subtotal: true,
       deliveryFee: true,
@@ -135,9 +149,23 @@ export default async function TrackingPage({
     redirect(`/menu?pedidoFinalizado=${encodeURIComponent(code)}`);
   }
 
-  const { stages, current } = trackingStages(order.fulfillmentType, order.status);
-  const activeLabel = STATUS_LABEL[order.status] ?? order.status;
-  const activeCopy = STATUS_COPY[order.status] ?? "Estamos actualizando tu pedido.";
+  const waitingForSchedule =
+    Boolean(order.scheduledFor) &&
+    !isInKitchenWindow(order.scheduledFor) &&
+    !["CANCELED", "COMPLETED", "DELIVERED"].includes(order.status);
+  const trackingStatus = waitingForSchedule ? "WAITING_SCHEDULED" : order.status;
+  const preparationStartsAt = order.scheduledFor
+    ? kitchenWindowStartsAt(order.scheduledFor)
+    : null;
+  const { stages, current } = trackingStages(
+    order.fulfillmentType,
+    trackingStatus,
+    waitingForSchedule,
+  );
+  const activeLabel = STATUS_LABEL[trackingStatus] ?? trackingStatus;
+  const activeCopy = waitingForSchedule && preparationStartsAt
+    ? `Tu pedido está reservado para las ${dateTime(order.scheduledFor!)}. Comenzaremos a prepararlo aproximadamente a las ${dateTime(preparationStartsAt)}.`
+    : STATUS_COPY[trackingStatus] ?? "Estamos actualizando tu pedido.";
   const deliveryMapVisible =
     order.fulfillmentType === "DELIVERY" &&
     ["OUT_FOR_DELIVERY", "ARRIVED"].includes(order.status);
@@ -259,6 +287,34 @@ export default async function TrackingPage({
           </div>
 
           <div className="bg-[#0e0e0e] p-4 sm:p-6">
+            {waitingForSchedule && order.scheduledFor && preparationStartsAt && (
+              <section className="mb-4 overflow-hidden rounded-[20px] border border-amber-400/25 bg-[linear-gradient(135deg,rgba(245,158,11,.13),rgba(245,158,11,.045))] p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-amber-300/20 bg-amber-300/10 text-xl" aria-hidden="true">◷</span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-amber-300">
+                      Pedido programado
+                    </p>
+                    <h3 className="mt-1 text-[15px] font-black text-white sm:text-base">
+                      Tu pedido está en espera
+                    </h3>
+                    <p className="mt-1 text-[11px] leading-5 text-white/65">
+                      No te preocupes, todavía no lo estamos preparando. Lo tenemos reservado para la hora que elegiste.
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-[12px] border border-white/10 bg-black/20 px-3 py-2">
+                        <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-white/45">Hora del pedido</span>
+                        <b className="mt-1 block text-[11px] text-white">{dateTime(order.scheduledFor)}</b>
+                      </div>
+                      <div className="rounded-[12px] border border-white/10 bg-black/20 px-3 py-2">
+                        <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-white/45">Empezamos a preparar</span>
+                        <b className="mt-1 block text-[11px] text-amber-300">{dateTime(preparationStartsAt)}</b>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
             {deliveryMapVisible && (
               <CustomerDeliveryLiveMap token={token} orderCode={code} />
             )}
