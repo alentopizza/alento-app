@@ -887,6 +887,7 @@ model DoughPreparation {
   id               Int      @id @default(autoincrement())
   createdById      Int?
   createdByName    String
+  mode             String   @default("NORMAL")
   personalCount    Int      @default(0)
   mediumCount      Int      @default(0)
   largeCount       Int      @default(0)
