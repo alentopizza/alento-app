@@ -2438,36 +2438,52 @@ export default function OrdersCardsDashboardV3() {
           aria-modal="true"
           aria-labelledby="print-choice-title"
           onClick={(event) => event.stopPropagation()}
-          className="w-full max-w-[360px] overflow-hidden rounded-[22px] bg-white shadow-2xl"
+          className="w-full max-w-[390px] overflow-hidden rounded-[24px] border border-neutral-200/80 bg-white shadow-[0_24px_80px_rgba(0,0,0,.28)]"
         >
-          <div className="border-b border-neutral-100 px-5 pb-4 pt-5">
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-neutral-400">Pedido a domicilio</p>
-            <h3 id="print-choice-title" className="mt-1 text-lg font-black text-neutral-900">¿Qué deseas imprimir?</h3>
-            <p className="mt-1 text-xs text-neutral-500">Elige solo el comprobante que necesitas.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 p-4">
+          <header className="relative overflow-hidden bg-neutral-950 px-5 pb-5 pt-5 text-white">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full border-[22px] border-white/[0.04]" />
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-base">🖨️</span>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[.16em] text-white/55">Impresión de pedido</p>
+                </div>
+                <h3 id="print-choice-title" className="mt-3 text-[21px] font-black leading-tight tracking-tight">¿Qué deseas imprimir?</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-white/60">Pedido a domicilio · Selecciona un documento</p>
+              </div>
+              <button type="button" aria-label="Cerrar" onClick={() => setPrintChoiceOrder(null)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg text-white/75 transition hover:bg-white/20 hover:text-white">×</button>
+            </div>
+          </header>
+          <div className="space-y-2.5 p-4">
             <button
               type="button"
               onClick={() => { const order = printChoiceOrder; setPrintChoiceOrder(null); openPrint(order, "invoice"); }}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-4 text-neutral-800 transition hover:border-neutral-400 hover:bg-neutral-50"
+              className="group flex w-full items-center gap-3.5 rounded-2xl border border-neutral-200 bg-white p-3.5 text-left transition duration-150 hover:border-neutral-400 hover:bg-neutral-50 hover:shadow-sm active:scale-[.99]"
             >
-              <span className="text-2xl">🧾</span>
-              <span className="text-sm font-black">Factura</span>
-              <span className="text-[10px] text-neutral-500">Cliente y pedido</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-[23px] transition group-hover:bg-neutral-200">🧾</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold text-neutral-900">Factura</span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-neutral-500">Comprobante para el cliente con el detalle del pedido</span>
+              </span>
+              <span className="text-xl font-light text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-600">›</span>
             </button>
             <button
               type="button"
               onClick={() => { const order = printChoiceOrder; setPrintChoiceOrder(null); openPrint(order, "driver"); }}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-3 py-4 text-neutral-800 transition hover:border-neutral-400 hover:bg-neutral-50"
+              className="group flex w-full items-center gap-3.5 rounded-2xl border border-neutral-200 bg-white p-3.5 text-left transition duration-150 hover:border-neutral-400 hover:bg-neutral-50 hover:shadow-sm active:scale-[.99]"
             >
-              <span className="text-2xl">🛵</span>
-              <span className="text-sm font-black">Comanda de reparto</span>
-              <span className="text-[10px] text-neutral-500">Datos para el repartidor</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-[23px] transition group-hover:bg-amber-100">🛵</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-extrabold text-neutral-900">Comanda de reparto</span>
+                <span className="mt-0.5 block text-[11px] leading-relaxed text-neutral-500">Dirección, contacto y datos útiles para el repartidor</span>
+              </span>
+              <span className="text-xl font-light text-neutral-300 transition group-hover:translate-x-0.5 group-hover:text-neutral-600">›</span>
             </button>
           </div>
-          <div className="px-4 pb-4">
-            <button type="button" onClick={() => setPrintChoiceOrder(null)} className="h-10 w-full rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-600 hover:bg-neutral-50">Cancelar</button>
-          </div>
+          <footer className="flex items-center justify-between border-t border-neutral-100 bg-neutral-50/80 px-5 py-3">
+            <span className="text-[10px] font-medium text-neutral-400">Se imprimirá solo la opción elegida</span>
+            <button type="button" onClick={() => setPrintChoiceOrder(null)} className="rounded-xl px-3 py-2 text-xs font-bold text-neutral-500 transition hover:bg-neutral-200/70 hover:text-neutral-800">Cancelar</button>
+          </footer>
         </section>
       </div>
     )}
