@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import KitchenOrderAlerts from "@/components/KitchenOrderAlerts";
-import { Circle, CircleCheck, Clock3, CookingPot, Pizza, Ruler, Sparkles } from "lucide-react";
+import { Circle, CircleCheck, Clock3, CookingPot, Pizza, Ruler, Settings2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   presentComboOrderConfiguration,
   presentOrderItemConfiguration,
 } from "@/lib/orderPresentation";
 import { orderCode } from "@/lib/orderCode";
-import { ORDER_KITCHEN_LEAD_MS } from "@/lib/orderScheduling";
+import { ORDER_KITCHEN_LEAD_MINUTES, kitchenLeadMilliseconds } from "@/lib/orderScheduling";
 import { fulfillmentLabel, statusLabel, type FulfillmentType, type OrderStatus } from "@/lib/orderWorkflow";
 
 type KitchenOrderItem = {
@@ -42,16 +42,16 @@ function displayOrderCode(order: KitchenOrder) {
   return orderCode(order.sequenceNumber ?? order.id, order.source);
 }
 
-function kitchenEntryTime(order: KitchenOrder) {
+function kitchenEntryTime(order: KitchenOrder, leadMinutes: number) {
   return order.scheduledFor
-    ? new Date(order.scheduledFor).getTime() - ORDER_KITCHEN_LEAD_MS
+    ? new Date(order.scheduledFor).getTime() - kitchenLeadMilliseconds(leadMinutes)
     : new Date(order.createdAt).getTime();
 }
 
-function ageMinutes(order: KitchenOrder) {
+function ageMinutes(order: KitchenOrder, leadMinutes: number) {
   return Math.max(
     0,
-    Math.floor((Date.now() - kitchenEntryTime(order)) / 60000),
+    Math.floor((Date.now() - kitchenEntryTime(order, leadMinutes)) / 60000),
   );
 }
 
@@ -914,6 +914,10 @@ export default function KitchenPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [leadMinutes, setLeadMinutes] = useState(ORDER_KITCHEN_LEAD_MINUTES);
+  const [leadEditorOpen, setLeadEditorOpen] = useState(false);
+  const [savingLead, setSavingLead] = useState(false);
+  const [leadMessage, setLeadMessage] = useState("");
 
   const loadOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -932,6 +936,12 @@ export default function KitchenPage() {
 
   useEffect(() => {
     void loadOrders();
+    void fetch("/api/kitchen-preparation-settings", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (Number.isInteger(data.leadMinutes)) setLeadMinutes(data.leadMinutes);
+      })
+      .catch(() => undefined);
     const timer = window.setInterval(
       () => void loadOrders(true),
       5000,
@@ -950,14 +960,14 @@ export default function KitchenPage() {
       .filter(
         (order) =>
           !order.scheduledFor ||
-          kitchenEntryTime(order) <= Date.now(),
+          kitchenEntryTime(order, leadMinutes) <= Date.now(),
       )
       .sort(
         (a, b) =>
-          kitchenEntryTime(a) - kitchenEntryTime(b) ||
+          kitchenEntryTime(a, leadMinutes) - kitchenEntryTime(b, leadMinutes) ||
           a.id - b.id,
       ),
-    [orders],
+    [orders, leadMinutes],
   );
 
   async function changePrepared(order: KitchenOrder, item: KitchenOrderItem, preparedQuantity: number) {
@@ -1011,6 +1021,19 @@ export default function KitchenPage() {
                 onIncomingPush={handleIncomingPush}
               />
 
+              <button
+                type="button"
+                onClick={() => { setLeadMessage(""); setLeadEditorOpen(true); }}
+                title="Configurar anticipación de pedidos programados"
+                className="inline-flex h-[56px] items-center gap-2 rounded-[16px] border border-white/15 bg-white/[0.08] px-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-white/[0.13]"
+              >
+                <Settings2 className="h-4 w-4 text-white/70" />
+                <span className="text-left">
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">Anticipación</span>
+                  <b className="block text-[13px]">{leadMinutes} min</b>
+                </span>
+              </button>
+
               <Link
                 href="/masa"
                 aria-label="Abrir preparaciones"
@@ -1034,6 +1057,54 @@ export default function KitchenPage() {
             </div>
           </div>
         </section>
+
+        {leadEditorOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
+            <section className="w-full max-w-[420px] rounded-[24px] border border-neutral-200 bg-white p-5 shadow-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-600">Configuración de cocina</p>
+                  <h2 className="mt-1 text-xl font-black text-neutral-950">Anticipación de programados</h2>
+                  <p className="mt-1 text-sm text-neutral-500">Define cuántos minutos antes de la hora solicitada deben entrar los pedidos a Cocina.</p>
+                </div>
+                <button type="button" onClick={() => setLeadEditorOpen(false)} className="rounded-full bg-neutral-100 px-3 py-1 text-lg text-neutral-600" aria-label="Cerrar">×</button>
+              </div>
+              <div className="mt-5 grid grid-cols-3 gap-2">
+                {[15, 20, 25, 30, 35, 40, 45, 50, 60].map((value) => (
+                  <button key={value} type="button" onClick={() => setLeadMinutes(value)} className={`rounded-xl border px-3 py-3 text-sm font-black transition ${leadMinutes === value ? "border-red-600 bg-red-600 text-white shadow-md" : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-red-300"}`}>
+                    {value} min
+                  </button>
+                ))}
+              </div>
+              {leadMessage && <p className="mt-3 text-sm font-semibold text-red-600">{leadMessage}</p>}
+              <div className="mt-5 flex gap-2">
+                <button type="button" onClick={() => setLeadEditorOpen(false)} className="flex-1 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-bold text-neutral-600">Cancelar</button>
+                <button type="button" disabled={savingLead} onClick={async () => {
+                  setSavingLead(true);
+                  setLeadMessage("");
+                  try {
+                    const response = await fetch("/api/kitchen-preparation-settings", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ leadMinutes }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "No se pudo guardar el tiempo.");
+                    setLeadMinutes(data.leadMinutes);
+                    setLeadEditorOpen(false);
+                    await loadOrders(true);
+                  } catch (saveError) {
+                    setLeadMessage(saveError instanceof Error ? saveError.message : "No se pudo guardar el tiempo.");
+                  } finally {
+                    setSavingLead(false);
+                  }
+                }} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white disabled:opacity-60">
+                  {savingLead ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>}
 
@@ -1067,7 +1138,7 @@ export default function KitchenPage() {
         ) : (
           <div className="grid items-start gap-4 lg:grid-cols-2">
             {kitchenOrders.map((order, orderIndex) => {
-              const minutes = ageMinutes(order);
+              const minutes = ageMinutes(order, leadMinutes);
               const kitchenItems = kitchenItemsFor(order);
 
               return (
