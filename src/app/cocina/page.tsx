@@ -1025,14 +1025,11 @@ export default function KitchenPage() {
               <button
                 type="button"
                 onClick={() => { setLeadMessage(""); setDraftLeadMinutes(leadMinutes); setLeadEditorOpen(true); }}
-                title="Configurar anticipación de pedidos programados"
-                className="inline-flex h-[56px] items-center gap-2 rounded-[16px] border border-white/15 bg-white/[0.08] px-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-white/[0.13]"
+                title={`Anticipación de pedidos programados: ${leadMinutes} minutos`}
+                aria-label={`Configurar anticipación de pedidos programados. Actual: ${leadMinutes} minutos`}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/75 transition hover:border-white/20 hover:bg-white/[0.12] hover:text-white"
               >
-                <Settings2 className="h-4 w-4 text-white/70" />
-                <span className="text-left">
-                  <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-white/50">Anticipación</span>
-                  <b className="block text-[13px]">{leadMinutes} min</b>
-                </span>
+                <Settings2 className="h-5 w-5" />
               </button>
 
               <Link
