@@ -161,8 +161,7 @@ export default async function TrackingPage({
   const trackingStatus = waitingForSchedule ? "WAITING_SCHEDULED" : order.status;
   const { stages, current } = trackingStages(
     order.fulfillmentType,
-    trackingStatus,
-    waitingForSchedule,
+    order.status,
   );
   const activeLabel = STATUS_LABEL[trackingStatus] ?? trackingStatus;
   const activeCopy = waitingForSchedule
