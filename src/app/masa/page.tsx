@@ -283,7 +283,7 @@ export default function PreparationPage() {
           : [data.preparation, ...current],
       );
       setCounts({ ...EMPTY_COUNTS });
-        setEditingPreparation(null);
+      setEditingPreparation(null);
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible guardar la preparación.");
