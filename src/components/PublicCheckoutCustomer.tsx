@@ -95,6 +95,12 @@ export default function PublicCheckoutCustomer({
   const [verifyNotice, setVerifyNotice] = useState("");
   const orderAttemptKeyRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (!error) return;
+    const timeoutId = window.setTimeout(() => setError(""), 4500);
+    return () => window.clearTimeout(timeoutId);
+  }, [error]);
+
   const subtotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0),
     [cart],
@@ -647,11 +653,7 @@ export default function PublicCheckoutCustomer({
             </div>
           )}
 
-          {error && (
-            <div className="mt-4 rounded-[15px] border border-red-500/25 bg-red-500/10 p-3 text-[10px] font-semibold leading-5 text-red-100">
-              {error}
-            </div>
-          )}
+
         </div>
 
         <footer
@@ -680,6 +682,25 @@ export default function PublicCheckoutCustomer({
           </button>
         </footer>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+112px)] z-[180] mx-auto flex max-w-[520px] items-center gap-3 rounded-[16px] border border-red-400/30 bg-[#351719] px-4 py-3 text-[12px] font-semibold leading-5 text-red-50 shadow-[0_12px_36px_rgba(0,0,0,.45)]"
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-[15px] text-red-200">!</span>
+          <span className="min-w-0 flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white/65"
+            aria-label="Cerrar notificación"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {verifyOpen && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
