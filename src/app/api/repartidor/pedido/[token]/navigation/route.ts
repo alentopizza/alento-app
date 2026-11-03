@@ -4,6 +4,10 @@ import { readDriverOrderToken } from "@/lib/driverTracking";
 import { computeDeliveryRoute } from "@/lib/deliveryRoute";
 import { GoogleRouteUnavailableError } from "@/lib/googleMapsServer";
 import {
+  reportOperationalIncident,
+  requestIdFromHeaders,
+} from "@/lib/observability";
+import {
   normalizeDeliveryTravelMode,
   type DeliveryTravelMode,
 } from "@/lib/deliveryTravelMode";
@@ -17,6 +21,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ token: string }> },
 ) {
+  const requestId = requestIdFromHeaders(request.headers);
   const { token } = await context.params;
   const parsed = readDriverOrderToken(token);
 
@@ -169,7 +174,30 @@ export async function POST(
       );
     }
 
-    throw error;
+    await reportOperationalIncident({
+      level: "WARNING",
+      category: "INTEGRATION",
+      code: "GOOGLE_ROUTES_REQUEST_FAILED",
+      message:
+        error instanceof Error
+          ? error.message
+          : "No fue posible consultar Google Routes.",
+      requestId,
+      source: "api/repartidor/pedido/navigation",
+      entityType: "ORDER",
+      entityId: order.id,
+      fingerprintKey: "google-routes-request",
+      metadata: { travelMode },
+    });
+
+    return NextResponse.json(
+      {
+        code: "ROUTE_SERVICE_UNAVAILABLE",
+        error:
+          "No fue posible calcular la ruta en este momento. Puedes abrir Google Maps y continuar con la dirección de entrega.",
+      },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({
