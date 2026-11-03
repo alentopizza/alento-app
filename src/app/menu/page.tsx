@@ -137,28 +137,40 @@ export default function PublicMenuPage() {
     }
 
     async function loadFresh() {
-      try {
-        const [catalogResponse, homeResponse] = await Promise.all([
-          fetch("/api/catalog"),
-          fetch("/api/public-home"),
-        ]);
+      const results = await Promise.allSettled([
+        fetch("/api/catalog", { cache: "no-store" }),
+        fetch("/api/public-home", { cache: "no-store" }),
+      ]);
 
-        if (catalogResponse.ok) {
-          const catalogData = (await catalogResponse.json()) as CatalogResponse;
-          applyCatalog(catalogData);
-          writePublicCache("catalog", catalogData);
+      const [catalogResult, homeResult] = results;
+
+      if (catalogResult.status === "fulfilled" && catalogResult.value.ok) {
+        try {
+          const catalogData = (await catalogResult.value.json()) as CatalogResponse;
+          if (catalogData && Array.isArray(catalogData.categories)) {
+            applyCatalog(catalogData);
+            writePublicCache("catalog", catalogData);
+          }
+        } catch {
+          // Mantener el catálogo en memoria o caché si la respuesta llega incompleta.
         }
+      }
 
-        if (homeResponse.ok) {
-          const homeData = await homeResponse.json();
+      if (homeResult.status === "fulfilled" && homeResult.value.ok) {
+        try {
+          const homeData = await homeResult.value.json();
           const settings = (homeData?.settings ?? null) as PublicHomeSettings | null;
           setHome(settings);
           if (settings) writePublicCache("home", settings);
+        } catch {
+          // La configuración visual es opcional; conservar la última versión válida.
         }
-      } finally {
-        setHomeLoaded(true);
-        setLoading(false);
       }
+
+      // Un endpoint puede fallar sin impedir que el otro actualice sus datos.
+      // Si existe caché, se mantiene visible mientras se recupera la conexión.
+      setHomeLoaded(true);
+      setLoading(false);
     }
 
     void loadFresh();
