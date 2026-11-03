@@ -52,14 +52,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const normalizedMessage = message.toLowerCase();
+  const transientNetworkFailure =
+    /failed to fetch|load failed|network error|network request failed|fetch failed/.test(
+      normalizedMessage,
+    );
+
   await reportOperationalIncident({
-    level: "ERROR",
+    level: transientNetworkFailure ? "WARNING" : "ERROR",
     category: "FRONTEND",
-    code: "CLIENT_RUNTIME_ERROR",
-    message,
+    code: transientNetworkFailure
+      ? "CLIENT_NETWORK_TRANSIENT"
+      : "CLIENT_RUNTIME_ERROR",
+    message: transientNetworkFailure
+      ? "Una petición del navegador no pudo completarse por un fallo de red."
+      : message,
     requestId,
     source: `frontend:${path}`,
-    fingerprintKey: [name, digest || ""].join(":"),
+    fingerprintKey: transientNetworkFailure
+      ? "transient-network"
+      : [name, digest || ""].join(":"),
     metadata: {
       name,
       path,
