@@ -463,3 +463,9 @@ El carrito permite volver a abrir una `PIZZA_CUSTOM` y modificar su configuraci�
 
 El backend recalcula el precio en `src/lib/orderLineNormalizer.ts`; nunca confiar en el subtotal enviado por el navegador.
 
+
+## Borrador persistente y acceso rápido a WhatsApp
+
+El POS conserva el pedido en construcción y el contexto visual al cambiar a otros módulos y regresar a `/interno`. Incluye carrito, cliente, modalidad, configuradores abiertos, formulario de cliente, categoría/búsqueda y posición de scroll. Al crear el pedido se limpia el borrador. El detalle técnico y límites de almacenamiento están en `docs/POS_DRAFT_AND_WHATSAPP.md`.
+
+La navegación interna dispone además de un acceso flotante a WhatsApp Web, que abre una ventana independiente para escanear QR e iniciar sesión. La implementación actual no incrusta WhatsApp en la ventana de Alentó porque el proyecto es una PWA/Next.js sin contenedor Electron.
