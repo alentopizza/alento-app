@@ -200,9 +200,6 @@ export default function StructuredPosPageV2() {
           if (typeof draft.email === "string") setEmail(draft.email);
           if (typeof draft.notes === "string") setNotes(draft.notes);
           if (draft.addressEditor) setAddressEditor(draft.addressEditor);
-          if (typeof draft.scrollY === "number") {
-
-          }
         }
       }
     } catch {
