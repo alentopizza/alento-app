@@ -12,7 +12,6 @@ import {
   ChefHat,
   ChevronLeft,
   ChevronRight,
-  Globe2,
   ClipboardList,
   History,
   HeartPulse,
@@ -30,7 +29,6 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
-import PosWebViewer from "@/components/PosWebViewer";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -181,8 +179,6 @@ export default function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [webViewerOpen, setWebViewerOpen] = useState(false);
-  const [webViewerExpanded, setWebViewerExpanded] = useState(false);
 
   const publicNavActive = useMemo(() => {
     if (pathname.startsWith("/menu")) return "menu" as const;
@@ -248,8 +244,6 @@ export default function AppShell({
 
   useEffect(() => {
     setMobileMenuOpen(false);
-    setWebViewerOpen(pathname === "/interno");
-    setWebViewerExpanded(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -410,19 +404,7 @@ export default function AppShell({
 
   return (
     <div
-      className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${
-        webViewerOpen && pathname === "/interno"
-          ? webViewerExpanded
-            ? sidebarCollapsed
-              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(560px,44vw)]"
-              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(560px,44vw)]"
-            : sidebarCollapsed
-              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(460px,38vw)]"
-              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(460px,38vw)]"
-          : sidebarCollapsed
-            ? "lg:grid-cols-[84px_1fr]"
-            : "lg:grid-cols-[212px_1fr]"
-      }`}
+      className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${sidebarCollapsed ? "lg:grid-cols-[84px_1fr]" : "lg:grid-cols-[212px_1fr]"}`}
     >
       <header className="sticky top-0 z-[145] flex h-[66px] items-center justify-between border-b border-white/10 bg-[#0b0b0c]/96 px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,.22)] backdrop-blur-xl lg:hidden">
         <button
@@ -937,28 +919,6 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      {pathname === "/interno" && webViewerOpen && (
-        <PosWebViewer
-          expanded={webViewerExpanded}
-          onExpand={() => setWebViewerExpanded((current) => !current)}
-          onClose={() => {
-            setWebViewerOpen(false);
-            setWebViewerExpanded(false);
-          }}
-        />
-      )}
-      {pathname === "/interno" && !webViewerOpen && (
-        <button
-          type="button"
-          onClick={() => setWebViewerOpen(true)}
-          title="Abrir visor web"
-          aria-label="Abrir visor web"
-          className="fixed bottom-5 z-[180] flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-[#17181b] text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] transition hover:bg-black"
-          style={{ left: sidebarCollapsed ? 18 : 146 }}
-        >
-          <Globe2 size={22} />
-        </button>
-      )}
       <StaffStoreStatus
         sidebarCollapsed={sidebarCollapsed}
         mobileMenuOpen={mobileMenuOpen}
