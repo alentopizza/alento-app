@@ -90,6 +90,7 @@ type Props = {
   subtotal: number;
   deliveryFeeOverride?: number | null;
   onClose: () => void;
+  onCreated?: (order: CreatedOrder) => void;
   onValidated?: (result: CheckoutResult) => void;
 };
 
@@ -314,7 +315,7 @@ function CheckoutProductLine({ item, excluded }: { item: CartItem; excluded: boo
   );
 }
 
-export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, deliveryFeeOverride = null, onClose }: Props) {
+export default function OrderCheckoutModal({ open, fulfillmentType, customer, cart, subtotal, deliveryFeeOverride = null, onClose, onCreated }: Props) {
   const [settings, setSettings] = useState<PosSettings | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [eligibility, setEligibility] = useState<Eligibility>({ eligibleSubtotal: 0, excludedSubtotal: 0, eligibleProductIds: [], excludedProductIds: [] });
@@ -639,6 +640,7 @@ export default function OrderCheckoutModal({ open, fulfillmentType, customer, ca
       if (!response.ok) throw new Error(data.error || "No fue posible crear el pedido.");
       orderAttemptKeyRef.current = null;
       setCreatedOrder(data.order);
+      onCreated?.(data.order);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "No fue posible crear el pedido.");
     } finally {
