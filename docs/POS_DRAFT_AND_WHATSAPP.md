@@ -22,7 +22,21 @@ Al confirmar la creación del pedido, el POS limpia el borrador y reinicia el fo
 
 La persistencia es local al navegador/perfil de Windows donde se usa la aplicación. No es un borrador compartido entre diferentes equipos o perfiles. Los datos de pedido siguen sin ser un pedido real hasta que el usuario confirma el checkout; la autoridad de precios y validaciones continúa siendo el servidor.
 
-## Acceso rápido a WhatsApp
+## Bandeja de WhatsApp dentro de Alentó
+
+El módulo interno `/mensajes` presenta las conversaciones de la bandeja de WhatsApp configurada en Chatwoot, sin abrir una ventana externa. La lista se consulta por estados (abiertas, pendientes y resueltas), permite buscar conversaciones, consultar mensajes y responder texto desde Alentó.
+
+La integración usa el API de Chatwoot desde el servidor. El token de acceso nunca se expone al navegador y cada endpoint exige una sesión interna con rol ADMIN, POS o CASHIER. Las conversaciones se validan contra el inbox de WhatsApp configurado antes de leer o enviar mensajes.
+
+Variables de servidor requeridas:
+- `CHATWOOT_BASE_URL`
+- `CHATWOOT_ACCOUNT_ID`
+- `CHATWOOT_WHATSAPP_INBOX_ID`
+- `CHATWOOT_API_ACCESS_TOKEN`
+
+**Alcance actual:** esta es una bandeja nativa de Alentó conectada al canal de WhatsApp administrado por Chatwoot; no es WhatsApp Web embebido. En esta primera versión se soportan consulta y envío de texto. Adjuntos se identifican en el historial, pero todavía no se implementa la carga/descarga de archivos, notas de voz, llamadas, asignación de agentes, etiquetas ni acciones de estado desde la conversación. La sincronización de la bandeja usa actualización periódica.
+
+No se altera el flujo de pedidos ni la integración de contexto comercial que Chatwoot ya utiliza.
 
 WhatsAppQuickAccess se muestra como acceso flotante en las superficies internas autenticadas. Permite minimizar u ocultar el acceso, y conserva esa preferencia local al navegar entre módulos.
 
