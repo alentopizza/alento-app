@@ -29,7 +29,7 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 
 | Ruta | Acceso | Función | Documento canónico |
 | --- | --- | --- | --- |
-| `/interno` | ADMIN / POS / CASHIER | Punto de venta con borrador local persistente y acceso flotante a WhatsApp Web | `docs/POS.md`, `docs/POS_DRAFT_AND_WHATSAPP.md` |
+| `/interno` | ADMIN / POS / CASHIER | Punto de venta con borrador local persistente | `docs/POS.md`, `docs/POS_DRAFT_AND_WHATSAPP.md` |\n| `/mensajes` | ADMIN / POS / CASHIER | Bandeja interna de conversaciones del inbox de WhatsApp de Chatwoot | `docs/POS_DRAFT_AND_WHATSAPP.md` |
 | `/pedidos` | ADMIN / POS / CASHIER | Operación y edición de pedidos | `docs/ORDERS.md` |
 | `/cocina` | ADMIN / KITCHEN | Producción | `docs/KITCHEN.md` |
 | `/clientes` | ADMIN / POS | CRM operativo | `docs/CUSTOMERS.md` |
