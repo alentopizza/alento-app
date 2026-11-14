@@ -29,6 +29,7 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
+import WhatsAppQuickAccess from "@/components/WhatsAppQuickAccess";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -926,6 +927,7 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
+      <WhatsAppQuickAccess />
       <StaffStoreStatus
         sidebarCollapsed={sidebarCollapsed}
         mobileMenuOpen={mobileMenuOpen}
