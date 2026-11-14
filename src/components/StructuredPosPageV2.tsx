@@ -880,6 +880,7 @@ export default function StructuredPosPageV2() {
 
   function handleOrderCreated() {
     try { window.localStorage.removeItem(POS_DRAFT_STORAGE_KEY); } catch {}
+    setDraftHydrated(false);
     setCart([]);
     setSelectedCustomer(null);
     setQuery("");
@@ -1454,7 +1455,7 @@ export default function StructuredPosPageV2() {
         cart={cart}
         subtotal={subtotal}
         deliveryFeeOverride={deliveryFeeOverride}
-        onClose={() => setCheckoutOpen(false)}
+        onClose={() => { setCheckoutOpen(false); setDraftHydrated(true); }}
         onCreated={handleOrderCreated}
       />
 
