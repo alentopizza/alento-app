@@ -40,3 +40,8 @@ También se puede ejecutar el workflow **Build Alento Desktop for Windows** desd
 La vista principal conserva `contextIsolation`, `nodeIntegration: false` y `sandbox: true`. El preload solo expone tres acciones limitadas para posicionar, mostrar u ocultar y recargar el panel de WhatsApp. Los enlaces externos HTTPS se abren en el navegador predeterminado.
 
 Esta aplicación de escritorio es un contenedor del sitio alojado; el backend, la base de datos y la autenticación de Alentó siguen funcionando en el servidor. La PWA del navegador no puede mostrar WhatsApp Web integrado y continúa funcionando como sitio web.
+
+
+## Visor web del Punto de venta
+
+En la ruta `/interno`, el wrapper coloca un visor web nativo en la columna derecha, junto al catálogo y el panel de nuevo pedido. Puede navegar a WhatsApp Web, Chatwoot y otras URLs HTTPS. La vista se oculta fuera de POS y conserva su partición persistente `persist:alento-whatsapp`. No altera el proceso de pedidos.
