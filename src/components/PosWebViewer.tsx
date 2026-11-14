@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import {
   ArrowRight,
   ChevronDown,
@@ -96,7 +97,7 @@ export default function PosWebViewer({ expanded, onExpand, onClose }: Props) {
     } catch {}
   }
 
-  function submitAddress(event: React.FormEvent<HTMLFormElement>) {
+  function submitAddress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     navigate(addressDraft);
   }
