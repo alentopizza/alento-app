@@ -29,7 +29,7 @@ Ante una discrepancia, revisar primero el código vigente, corregir el documento
 
 | Ruta | Acceso | Función | Documento canónico |
 | --- | --- | --- | --- |
-| `/interno` | ADMIN / POS / CASHIER | Punto de venta con borrador local persistente y acceso flotante a WhatsApp Web | `docs/POS.md`, `docs/POS_DRAFT_AND_WHATSAPP.md` |
+| `/interno` | ADMIN / POS / CASHIER | Punto de venta con borrador local persistente y visor web integrado en tercera columna (PWA) | `docs/POS.md`, `docs/POS_DRAFT_AND_WHATSAPP.md`, `docs/POS_WEB_VIEWER.md` |
 | `/pedidos` | ADMIN / POS / CASHIER | Operación y edición de pedidos | `docs/ORDERS.md` |
 | `/cocina` | ADMIN / KITCHEN | Producción | `docs/KITCHEN.md` |
 | `/clientes` | ADMIN / POS | CRM operativo | `docs/CUSTOMERS.md` |
@@ -211,6 +211,4 @@ Todo cambio funcional debe incluir, en el mismo trabajo:
 
 No considerar una función terminada si falta su actualización documental.
 
-| Aplicación de escritorio Windows | Contenedor Electron con POS web y WhatsApp Web integrado mediante WebContentsView | `desktop/`, `docs/DESKTOP_WHATSAPP.md` |
-
-| Visor web integrado del POS | Columna derecha con WhatsApp Web, Chatwoot y URLs HTTPS personalizadas (solo Electron) | `docs/POS_WEB_VIEWER.md` |
+| Visor web integrado del POS | Columna derecha en la PWA con páginas HTTPS incrustables, selector Chatwoot/WhatsApp y fallback de WhatsApp a pestaña externa | `src/components/PosWebViewer.tsx`, `docs/POS_WEB_VIEWER.md` |
