@@ -61,6 +61,40 @@ type ComboConfig = {
   groupSelections: Record<number, number[]>;
 };
 
+const POS_DRAFT_STORAGE_KEY = "alento-pos-active-draft-v1";
+type PosDraftSnapshot = {
+  version: 1;
+  savedAt: number;
+  scrollY: number;
+  activeCategory: string;
+  productQuery: string;
+  fulfillmentType: FulfillmentType | null;
+  orderTypeOpen: boolean;
+  selectedCustomer: Customer | null;
+  query: string;
+  cart: CartItem[];
+  pizzaConfig: PizzaConfig | null;
+  customPizzaConfig: { product: CatalogProduct; configuration?: CustomPizzaOrderConfiguration | null } | null;
+  comboConfig: ComboConfig | null;
+  editingCartKey: string | null;
+  configError: string;
+  checkoutOpen: boolean;
+  deliveryFeeOverrideInput: string | null;
+  showCustomerModal: boolean;
+  customerModalSection: "PERSONAL" | "LOCATION";
+  editingCustomer: Customer | null;
+  name: string;
+  countryCode: string;
+  phone: string;
+  email: string;
+  notes: string;
+  addressEditor: {
+    id: number | null; label: string; address: string; neighborhood: string; city: string;
+    notes: string; isDefault: boolean; formattedAddress: string; placeId: string;
+    latitude: number | null; longitude: number | null;
+  } | null;
+};
+
 const fulfillmentOptions = [
   { type: "DELIVERY" as const, icon: Bike, title: "Domicilio", shortTitle: "Domicilio" },
   { type: "PICKUP" as const, icon: ShoppingBag, title: "Recoger en tienda", shortTitle: "Recoger" },
@@ -132,6 +166,117 @@ export default function StructuredPosPageV2() {
     latitude: number | null;
     longitude: number | null;
   } | null>(null);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+
+
+  // El POS puede desmontarse al navegar a Pedidos, Cocina u otro módulo.
+  // Restauramos el borrador antes de habilitar el guardado para no sobrescribirlo.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(POS_DRAFT_STORAGE_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<PosDraftSnapshot>;
+        if (draft.version === 1) {
+          if (typeof draft.activeCategory === "string") setActiveCategory(draft.activeCategory);
+          if (typeof draft.productQuery === "string") setProductQuery(draft.productQuery);
+          if (draft.fulfillmentType === null || ["DELIVERY", "PICKUP", "STORE"].includes(String(draft.fulfillmentType))) setFulfillmentType(draft.fulfillmentType as FulfillmentType | null);
+          if (typeof draft.orderTypeOpen === "boolean") setOrderTypeOpen(draft.orderTypeOpen);
+          if (draft.selectedCustomer) setSelectedCustomer(draft.selectedCustomer);
+          if (typeof draft.query === "string") setQuery(draft.query);
+          if (Array.isArray(draft.cart)) setCart(draft.cart);
+          if (draft.pizzaConfig) setPizzaConfig(draft.pizzaConfig);
+          if (draft.customPizzaConfig) setCustomPizzaConfig(draft.customPizzaConfig);
+          if (draft.comboConfig) setComboConfig(draft.comboConfig);
+          if (typeof draft.editingCartKey === "string" || draft.editingCartKey === null) setEditingCartKey(draft.editingCartKey ?? null);
+          if (typeof draft.configError === "string") setConfigError(draft.configError);
+          if (typeof draft.checkoutOpen === "boolean") setCheckoutOpen(draft.checkoutOpen);
+          if (typeof draft.deliveryFeeOverrideInput === "string" || draft.deliveryFeeOverrideInput === null) setDeliveryFeeOverrideInput(draft.deliveryFeeOverrideInput ?? null);
+          if (typeof draft.showCustomerModal === "boolean") setShowCustomerModal(draft.showCustomerModal);
+          if (draft.customerModalSection === "PERSONAL" || draft.customerModalSection === "LOCATION") setCustomerModalSection(draft.customerModalSection);
+          if (draft.editingCustomer) setEditingCustomer(draft.editingCustomer);
+          if (typeof draft.name === "string") setName(draft.name);
+          if (typeof draft.countryCode === "string") setCountryCode(draft.countryCode);
+          if (typeof draft.phone === "string") setPhone(draft.phone);
+          if (typeof draft.email === "string") setEmail(draft.email);
+          if (typeof draft.notes === "string") setNotes(draft.notes);
+          if (draft.addressEditor) setAddressEditor(draft.addressEditor);
+        }
+      }
+    } catch {
+      // Un borrador corrupto no debe impedir abrir el punto de venta.
+      try { window.localStorage.removeItem(POS_DRAFT_STORAGE_KEY); } catch {}
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated || !catalog) return;
+    try {
+      const raw = window.localStorage.getItem(POS_DRAFT_STORAGE_KEY);
+      const draft = raw ? JSON.parse(raw) as Partial<PosDraftSnapshot> : null;
+      if (draft?.version === 1 && typeof draft.scrollY === "number") {
+        requestAnimationFrame(() => window.scrollTo(0, draft.scrollY!));
+      }
+    } catch {}
+  }, [draftHydrated, catalog]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const draft: PosDraftSnapshot = {
+      version: 1,
+      savedAt: Date.now(),
+      scrollY: window.scrollY,
+      activeCategory,
+      productQuery,
+      fulfillmentType,
+      orderTypeOpen,
+      selectedCustomer,
+      query,
+      cart,
+      pizzaConfig,
+      customPizzaConfig,
+      comboConfig,
+      editingCartKey,
+      configError,
+      checkoutOpen,
+      deliveryFeeOverrideInput,
+      showCustomerModal,
+      customerModalSection,
+      editingCustomer,
+      name,
+      countryCode,
+      phone,
+      email,
+      notes,
+      addressEditor,
+    };
+    try { window.localStorage.setItem(POS_DRAFT_STORAGE_KEY, JSON.stringify(draft)); } catch {}
+  }, [
+    draftHydrated, activeCategory, productQuery, fulfillmentType, orderTypeOpen,
+    selectedCustomer, query, cart, pizzaConfig, customPizzaConfig, comboConfig,
+    editingCartKey, configError, checkoutOpen, deliveryFeeOverrideInput,
+    showCustomerModal, customerModalSection, editingCustomer, name, countryCode,
+    phone, email, notes, addressEditor,
+  ]);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const saveScroll = () => {
+      try {
+        const raw = window.localStorage.getItem(POS_DRAFT_STORAGE_KEY);
+        const draft = raw ? JSON.parse(raw) as PosDraftSnapshot : null;
+        if (draft?.version === 1) {
+          window.localStorage.setItem(POS_DRAFT_STORAGE_KEY, JSON.stringify({ ...draft, scrollY: window.scrollY, savedAt: Date.now() }));
+        }
+      } catch {}
+    };
+    window.addEventListener("pagehide", saveScroll);
+    return () => {
+      saveScroll();
+      window.removeEventListener("pagehide", saveScroll);
+    };
+  }, [draftHydrated]);
 
   useEffect(() => {
     async function loadCatalog() {
@@ -141,7 +286,7 @@ export default function StructuredPosPageV2() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "No fue posible cargar el catálogo.");
         setCatalog(data);
-        if (data.categories?.length) setActiveCategory(data.categories[0].slug);
+        if (data.categories?.length) setActiveCategory((current) => current || data.categories[0].slug);
       } catch (error) {
         setCatalogError(error instanceof Error ? error.message : "No fue posible cargar el catálogo.");
       } finally {
@@ -733,6 +878,26 @@ export default function StructuredPosPageV2() {
     setCart((current) => current.map((item) => item.key === key ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   }
 
+  function handleOrderCreated() {
+    try { window.localStorage.removeItem(POS_DRAFT_STORAGE_KEY); } catch {}
+    setDraftHydrated(false);
+    setCart([]);
+    setSelectedCustomer(null);
+    setQuery("");
+    setCustomers([]);
+    setSearchMessage("");
+    setFulfillmentType(null);
+    setOrderTypeOpen(true);
+    setPizzaConfig(null);
+    setCustomPizzaConfig(null);
+    setComboConfig(null);
+    setEditingCartKey(null);
+    setConfigError("");
+    setDeliveryFeeOverrideInput(null);
+    setShowCustomerModal(false);
+    setEditingCustomer(null);
+  }
+
   return (
     <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
@@ -1290,7 +1455,8 @@ export default function StructuredPosPageV2() {
         cart={cart}
         subtotal={subtotal}
         deliveryFeeOverride={deliveryFeeOverride}
-        onClose={() => setCheckoutOpen(false)}
+        onClose={() => { setCheckoutOpen(false); setDraftHydrated(true); }}
+        onCreated={handleOrderCreated}
       />
 
       {showCustomerModal && (
