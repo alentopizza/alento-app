@@ -45,6 +45,19 @@ export default function DesktopWebViewer({ expanded, onExpand, onClose }: Props)
   const [addressError, setAddressError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("alento-pos-web-viewer-v1");
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as { label?: string; url?: string };
+      const safeUrl = parsed.url ? normalizeHttpsUrl(parsed.url) : null;
+      if (!safeUrl) return;
+      setSelectedPage(parsed.label || "Página personalizada");
+      setAddress(safeUrl);
+      setAddressDraft(safeUrl);
+    } catch {}
+  }, []);
+
   const measure = useCallback(() => {
     const slot = slotRef.current;
     if (!slot || !window.alentoDesktop?.isDesktop) return;
@@ -89,6 +102,9 @@ export default function DesktopWebViewer({ expanded, onExpand, onClose }: Props)
     setAddress(safeUrl);
     setAddressDraft(safeUrl);
     setSelectedPage(label);
+    try {
+      window.localStorage.setItem("alento-pos-web-viewer-v1", JSON.stringify({ label, url: safeUrl }));
+    } catch {}
     window.alentoDesktop?.navigateWebView(safeUrl);
     setMenuOpen(false);
   }
