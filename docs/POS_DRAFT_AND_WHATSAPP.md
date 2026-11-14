@@ -31,3 +31,8 @@ El botón abre WhatsApp Web (https://web.whatsapp.com/) en una ventana independi
 **Límite de la implementación actual:** Alentó App se ejecuta como Next.js/PWA y el repositorio no contiene una capa Electron ni un contenedor de escritorio nativo. Por eso esta entrega no incrusta WhatsApp dentro del DOM de Alentó ni comparte cookies/sesión con la aplicación; abre WhatsApp Web en una ventana separada. WhatsApp bloquea la incrustación en iframes en sus superficies web. Una integración verdaderamente embebida requeriría desarrollar y distribuir un shell de escritorio Electron (con ventana WebContentsView independiente), además de mantener su instalador de Windows.
 
 No se altera el flujo de pedidos, la integración Chatwoot existente ni los datos de clientes.
+
+
+## Cambio de enfoque: WhatsApp Web integrado en escritorio
+
+La integración objetivo ya no es una bandeja Chatwoot ni una ventana emergente. Se construye un wrapper Electron para Windows que muestra WhatsApp Web en un panel derecho mediante WebContentsView, con sesión persistente local y controles de ampliar/cerrar/recargar. La PWA web no puede incrustar WhatsApp Web; se necesita instalar el nuevo ejecutable de escritorio. Ver `docs/DESKTOP_WHATSAPP.md`.
