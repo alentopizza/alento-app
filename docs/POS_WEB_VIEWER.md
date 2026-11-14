@@ -2,28 +2,36 @@
 
 ## Objetivo visual
 
-La sección POS de escritorio se distribuye en tres áreas: catálogo a la izquierda, panel de creación del pedido en el centro y visor web a la derecha. El visor forma parte del layout, no es un modal superpuesto.
+En la PWA, el POS se organiza en tres columnas: catálogo a la izquierda, creación del pedido en el centro y visor web a la derecha. El visor forma parte del layout; no es un modal superpuesto.
 
 ## Uso
 
-El visor aparece únicamente al abrir `/interno` dentro del contenedor Electron de Windows. Incluye:
-- Selector rápido de WhatsApp Web y Chatwoot.
-- Campo de dirección para cualquier página HTTPS.
-- Acciones para navegar, recargar, ampliar/reducir y ocultar.
-- Botón flotante para volver a mostrarlo cuando se oculta.
+El visor se muestra únicamente en la ruta `/interno`:
+- Selector rápido de Chatwoot y WhatsApp Web.
+- Campo de dirección para cualquier URL HTTPS.
+- Navegación, recarga, ampliar/reducir y ocultar.
+- Acceso flotante para volver a mostrarlo.
+- Recuerda la última URL y etiqueta en localStorage del mismo navegador/perfil.
 
-La última URL y etiqueta se guardan en localStorage del perfil de Alentó. La vista nativa conserva las cookies en la partición persistente `persist:alento-whatsapp`, por lo que WhatsApp puede conservar su sesión tras ocultar el panel o cambiar de sección.
+## Compatibilidad web
 
-## Arquitectura y seguridad
+El visor utiliza un `iframe` normal del navegador. Puede mostrar sitios que permitan ser incrustados por dominios externos. El servidor del sitio de destino controla esto mediante `Content-Security-Policy: frame-ancestors` o `X-Frame-Options`.
 
-El wrapper Electron renderiza las páginas externas mediante `WebContentsView`, no iframe. El preload solo expone acciones acotadas para actualizar límites, mostrar/ocultar, navegar y recargar. La navegación se restringe a HTTPS; ventanas emergentes HTTPS se abren en el navegador externo y esquemas como `file:`, `javascript:` o `data:` se bloquean.
+**WhatsApp Web no permite incrustar su aplicación en una página externa.** Al seleccionar WhatsApp Web se muestra una explicación y un botón para abrirlo en una pestaña nueva. La pestaña nueva conserva el POS abierto, por lo que el borrador local del pedido no se pierde.
 
-La PWA/web normal no muestra el visor ni modifica su layout. El panel se monta solo si `window.alentoDesktop.isDesktop` es verdadero y la ruta es exactamente `/interno`.
+Chatwoot puede incrustarse solo si la configuración de su servidor permite el origen de Alentó. El visor usa por defecto `https://chat.operadoranordecolombia.com`; si la instalación tiene una ruta de inbox específica, se puede introducir en la barra de direcciones. Si Chatwoot bloquea el iframe, debe habilitarse el origen de Alentó en su política de framing o abrirse externamente.
+
+Solo se aceptan direcciones HTTPS. La PWA no puede saltarse las políticas de framing del sitio de destino ni acceder a sus cookies, almacenamiento o contenido cross-origin.
 
 ## Protección del POS
 
-No se modifica `StructuredPosPageV2`, sus estados, persistencia de borrador, cálculo de precios, checkout, endpoints, reglas de pedidos ni base de datos. El cambio se limita al shell de escritorio y al wrapper Electron. Al navegar fuera de POS el visor se oculta; al volver, el pedido mantiene su flujo habitual.
+El cambio se limita al shell visual de la ruta `/interno` y al nuevo componente `PosWebViewer`. No modifica `StructuredPosPageV2`, persistencia del borrador, cálculos, checkout, endpoints, reglas de pedidos ni base de datos. En las demás rutas el visor no se monta y el layout habitual se conserva.
 
-## Validación pendiente
+## Validación
 
-La rama debe pasar lint, typecheck, pruebas y build. Luego validar en Windows: primer QR, sesión persistente, Chatwoot, URL HTTPS personalizada, resize, ocultar/mostrar, cambio de ruta y pedidos con carrito en curso.
+Después de pasar CI, probar en Chrome/PWA:
+- abrir/cerrar/ampliar el visor;
+- Chatwoot según la política de framing del dominio;
+- WhatsApp abre una pestaña externa con el POS conservado;
+- URL HTTPS personalizada;
+- cambio de módulo y regreso al POS con carrito en curso.
