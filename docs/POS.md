@@ -468,4 +468,4 @@ El backend recalcula el precio en `src/lib/orderLineNormalizer.ts`; nunca confia
 
 El POS conserva el pedido en construcción y el contexto visual al cambiar a otros módulos y regresar a `/interno`. Incluye carrito, cliente, modalidad, configuradores abiertos, formulario de cliente, categoría/búsqueda y posición de scroll. Al crear el pedido se limpia el borrador. El detalle técnico y límites de almacenamiento están en `docs/POS_DRAFT_AND_WHATSAPP.md`.
 
-La navegación interna dispone además de un acceso flotante a WhatsApp Web, que abre una ventana independiente para escanear QR e iniciar sesión. La implementación actual no incrusta WhatsApp en la ventana de Alentó porque el proyecto es una PWA/Next.js sin contenedor Electron.
+La navegación interna incluye el módulo **Mensajes** (`/mensajes`), que muestra dentro de Alentó las conversaciones del inbox de WhatsApp gestionado por Chatwoot y permite responder mensajes de texto. La integración se realiza mediante API de servidor; no abre WhatsApp Web ni expone el token de Chatwoot al navegador. Alcance y variables: `docs/POS_DRAFT_AND_WHATSAPP.md`.
