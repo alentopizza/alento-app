@@ -1043,7 +1043,10 @@ Antes de ejecutar la validación productiva final del hardening #10 se revisó e
 Las correcciones están agrupadas en PR #7 e incluyen Caja/cierre, permisos CASHIER, finalización de pedidos, recálculos y replays de pagos, eliminación definitiva, estadísticas de medios y verificación de restore. La validación real del #10 debe hacerse únicamente después de merge/redeploy de ese hotfix.
 
 
-## Borrador POS y acceso WhatsApp — 2026-11-14
+## Borrador POS y visor web — 2026-11-14
+
+El POS conserva localmente el pedido en construcción, sus configuraciones y el contexto de pantalla al navegar entre módulos; limpia el borrador al crear el pedido. La PWA incorpora un visor web en tercera columna dentro de `/interno`. Permite páginas HTTPS que admitan iframe; WhatsApp Web bloquea la incrustación y se abre en pestaña externa. Chatwoot requiere permitir el origen de Alentó en su política CSP/X-Frame-Options. El visor no cambia la lógica de pedidos. Ver `docs/POS_DRAFT_AND_WHATSAPP.md` y `docs/POS_WEB_VIEWER.md`.
+
 
 El POS conserva localmente el pedido en construcción, sus configuraciones y el contexto de pantalla al navegar entre módulos; limpia el borrador al crear el pedido. Las superficies internas incluyen un acceso flotante a WhatsApp Web que abre una ventana independiente para autenticación por QR. Alcance y limitaciones: `docs/POS_DRAFT_AND_WHATSAPP.md`.
 
