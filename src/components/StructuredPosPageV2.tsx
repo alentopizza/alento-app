@@ -895,7 +895,6 @@ export default function StructuredPosPageV2() {
     setComboConfig(null);
     setEditingCartKey(null);
     setConfigError("");
-    setCheckoutOpen(false);
     setDeliveryFeeOverrideInput(null);
     setShowCustomerModal(false);
     setEditingCustomer(null);
