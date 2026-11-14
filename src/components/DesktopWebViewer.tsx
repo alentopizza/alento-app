@@ -55,6 +55,7 @@ export default function DesktopWebViewer({ expanded, onExpand, onClose }: Props)
       setSelectedPage(parsed.label || "Página personalizada");
       setAddress(safeUrl);
       setAddressDraft(safeUrl);
+      window.alentoDesktop?.navigateWebView(safeUrl);
     } catch {}
   }, []);
 
