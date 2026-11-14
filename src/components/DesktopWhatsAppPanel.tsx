@@ -67,7 +67,7 @@ export default function DesktopWhatsAppPanel({ expanded, onExpand, onClose }: Pr
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-[15px] font-black tracking-tight">WhatsApp Web</h2>
-              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-bold text-emerald-300">Sesión guardada</span>
+              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[9px] font-bold text-emerald-300">Inicio por QR</span>
             </div>
             <p className="mt-0.5 text-[10px] text-white/40">Mensajes de Alentó Pizza</p>
           </div>
