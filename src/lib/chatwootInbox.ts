@@ -97,7 +97,15 @@ export async function listInboxConversations(status: "open" | "pending" | "resol
   }).filter((item: InboxConversation) => Number.isInteger(item.id) && item.id > 0);
 }
 
-export async function assertInboxConversation(conversationId: number) {\n  const settings = config();\n  if (!settings) throw new Error("Falta configurar la conexión de Chatwoot para la bandeja de WhatsApp.");\n  const body = await request<any>(`/api/v1/accounts/${settings.accountId}/conversations/${conversationId}`);\n  const conversation = body?.id ? body : body?.data;\n  if (Number(conversation?.inbox_id) !== settings.inboxId) throw new Error("La conversación no pertenece a la bandeja de WhatsApp de Alentó.");\n}\n\nexport async function getInboxMessages(conversationId: number): Promise<InboxMessage[]> {
+export async function assertInboxConversation(conversationId: number) {
+  const settings = config();
+  if (!settings) throw new Error("Falta configurar la conexión de Chatwoot para la bandeja de WhatsApp.");
+  const body = await request<any>(`/api/v1/accounts/${settings.accountId}/conversations/${conversationId}`);
+  const conversation = body?.id ? body : body?.data;
+  if (Number(conversation?.inbox_id) !== settings.inboxId) throw new Error("La conversación no pertenece a la bandeja de WhatsApp de Alentó.");
+}
+
+export async function getInboxMessages(conversationId: number): Promise<InboxMessage[]> {
   const settings = config();
   if (!settings) throw new Error("Falta configurar la conexión de Chatwoot para la bandeja de WhatsApp.");
   const body = await request<any>(`/api/v1/accounts/${settings.accountId}/conversations/${conversationId}/messages`);
