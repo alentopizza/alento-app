@@ -2,6 +2,10 @@ name: Build Alento Desktop for Windows
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "desktop/**"
+      - ".github/workflows/build-desktop.yml"
   push:
     branches:
       - main
@@ -29,8 +33,6 @@ jobs:
       - name: Build Windows installer
         working-directory: desktop
         run: npm run dist:win
-        env:
-          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: "true"
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
