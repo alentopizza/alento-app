@@ -201,7 +201,7 @@ export default function StructuredPosPageV2() {
           if (typeof draft.notes === "string") setNotes(draft.notes);
           if (draft.addressEditor) setAddressEditor(draft.addressEditor);
           if (typeof draft.scrollY === "number") {
-            requestAnimationFrame(() => window.scrollTo({ top: draft.scrollY, behavior: "instant" }));
+
           }
         }
       }
@@ -212,6 +212,17 @@ export default function StructuredPosPageV2() {
       setDraftHydrated(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!draftHydrated || !catalog) return;
+    try {
+      const raw = window.localStorage.getItem(POS_DRAFT_STORAGE_KEY);
+      const draft = raw ? JSON.parse(raw) as Partial<PosDraftSnapshot> : null;
+      if (draft?.version === 1 && typeof draft.scrollY === "number") {
+        requestAnimationFrame(() => window.scrollTo(0, draft.scrollY!));
+      }
+    } catch {}
+  }, [draftHydrated, catalog]);
 
   useEffect(() => {
     if (!draftHydrated) return;
@@ -278,7 +289,7 @@ export default function StructuredPosPageV2() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "No fue posible cargar el catálogo.");
         setCatalog(data);
-        if (data.categories?.length) setActiveCategory(data.categories[0].slug);
+        if (data.categories?.length) setActiveCategory((current) => current || data.categories[0].slug);
       } catch (error) {
         setCatalogError(error instanceof Error ? error.message : "No fue posible cargar el catálogo.");
       } finally {
