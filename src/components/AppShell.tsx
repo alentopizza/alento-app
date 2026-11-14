@@ -229,7 +229,6 @@ export default function AppShell({
     } catch {
       setSidebarCollapsed(false);
     }
-    setWebViewerOpen(pathname === "/interno");
   }, []);
 
   function toggleSidebar() {
