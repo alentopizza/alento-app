@@ -210,3 +210,5 @@ Todo cambio funcional debe incluir, en el mismo trabajo:
 5. `docs/DEPLOYMENT.md` si cambia infraestructura, variables o schema.
 
 No considerar una función terminada si falta su actualización documental.
+
+| Aplicación de escritorio Windows | Contenedor Electron con POS web y WhatsApp Web integrado mediante WebContentsView | `desktop/`, `docs/DESKTOP_WHATSAPP.md` |

@@ -1046,3 +1046,8 @@ Las correcciones están agrupadas en PR #7 e incluyen Caja/cierre, permisos CASH
 ## Borrador POS y acceso WhatsApp — 2026-11-14
 
 El POS conserva localmente el pedido en construcción, sus configuraciones y el contexto de pantalla al navegar entre módulos; limpia el borrador al crear el pedido. Las superficies internas incluyen un acceso flotante a WhatsApp Web que abre una ventana independiente para autenticación por QR. Alcance y limitaciones: `docs/POS_DRAFT_AND_WHATSAPP.md`.
+
+
+## Aplicación de escritorio y WhatsApp integrado — 2026-11-14
+
+Se inicia implementación de wrapper Electron Windows para reproducir la distribución de referencia: POS a la izquierda/centro y WhatsApp Web en panel derecho dentro de la misma ventana. WhatsApp se aloja en WebContentsView con partición persistente local `persist:alento-whatsapp`; la primera sesión requiere QR. Se añade workflow para construir instalador Windows como artefacto. El wrapper carga el sitio alojado, por lo que el usuario deberá instalar el nuevo .exe; la PWA antigua no puede obtener esta capacidad solo con despliegue web. Ver `docs/DESKTOP_WHATSAPP.md`.

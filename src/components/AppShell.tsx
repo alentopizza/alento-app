@@ -17,6 +17,7 @@ import {
   HeartPulse,
   LogOut,
   Menu,
+  MessageCircle,
   Settings,
   ShieldCheck,
   Star,
@@ -29,7 +30,7 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
-import WhatsAppQuickAccess from "@/components/WhatsAppQuickAccess";
+import DesktopWhatsAppPanel from "@/components/DesktopWhatsAppPanel";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -180,6 +181,9 @@ export default function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [desktopWhatsAppEnabled, setDesktopWhatsAppEnabled] = useState(false);
+  const [whatsAppOpen, setWhatsAppOpen] = useState(false);
+  const [whatsAppExpanded, setWhatsAppExpanded] = useState(false);
 
   const publicNavActive = useMemo(() => {
     if (pathname.startsWith("/menu")) return "menu" as const;
@@ -221,13 +225,16 @@ export default function AppShell({
 
   useEffect(() => {
     try {
-      setSidebarCollapsed(
-        window.localStorage.getItem(
-          "alento-admin-sidebar-collapsed",
-        ) === "1",
-      );
+      const savedSidebar = window.localStorage.getItem("alento-admin-sidebar-collapsed");
+      const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
+      setDesktopWhatsAppEnabled(isDesktopApp);
+      setWhatsAppOpen(isDesktopApp);
+      setSidebarCollapsed(savedSidebar == null ? isDesktopApp : savedSidebar === "1");
     } catch {
-      setSidebarCollapsed(false);
+      const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
+      setDesktopWhatsAppEnabled(isDesktopApp);
+      setWhatsAppOpen(isDesktopApp);
+      setSidebarCollapsed(isDesktopApp);
     }
   }, []);
 
@@ -409,9 +416,17 @@ export default function AppShell({
   return (
     <div
       className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${
-        sidebarCollapsed
-          ? "lg:grid-cols-[84px_1fr]"
-          : "lg:grid-cols-[212px_1fr]"
+        whatsAppOpen && desktopWhatsAppEnabled
+          ? whatsAppExpanded
+            ? sidebarCollapsed
+              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(520px,44vw)]"
+              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(520px,44vw)]"
+            : sidebarCollapsed
+              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(460px,36vw)]"
+              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(460px,36vw)]"
+          : sidebarCollapsed
+            ? "lg:grid-cols-[84px_1fr]"
+            : "lg:grid-cols-[212px_1fr]"
       }`}
     >
       <header className="sticky top-0 z-[145] flex h-[66px] items-center justify-between border-b border-white/10 bg-[#0b0b0c]/96 px-3 text-white shadow-[0_8px_24px_rgba(0,0,0,.22)] backdrop-blur-xl lg:hidden">
@@ -927,7 +942,18 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      <WhatsAppQuickAccess />
+      {desktopWhatsAppEnabled && whatsAppOpen && (
+        <DesktopWhatsAppPanel
+          expanded={whatsAppExpanded}
+          onExpand={() => setWhatsAppExpanded((current) => !current)}
+          onClose={() => { setWhatsAppOpen(false); setWhatsAppExpanded(false); }}
+        />
+      )}
+      {desktopWhatsAppEnabled && !whatsAppOpen && (
+        <button type="button" onClick={() => setWhatsAppOpen(true)} title="Abrir WhatsApp integrado" aria-label="Abrir WhatsApp integrado"
+          className="fixed bottom-5 z-[180] flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-300/40 bg-[#075e54] text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] transition hover:bg-[#087666]"
+          style={{ left: sidebarCollapsed ? 18 : 146 }}><MessageCircle size={23} /></button>
+      )}
       <StaffStoreStatus
         sidebarCollapsed={sidebarCollapsed}
         mobileMenuOpen={mobileMenuOpen}
