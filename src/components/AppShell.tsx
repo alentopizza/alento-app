@@ -17,6 +17,7 @@ import {
   HeartPulse,
   LogOut,
   Menu,
+  MessageCircle,
   Settings,
   ShieldCheck,
   Star,
@@ -29,7 +30,6 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
-import WhatsAppQuickAccess from "@/components/WhatsAppQuickAccess";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -44,6 +44,12 @@ const items = [
     href: "/interno",
     label: "Punto de venta",
     icon: Store,
+    roles: ["ADMIN", "POS", "CASHIER"],
+  },
+  {
+    href: "/mensajes",
+    label: "Mensajes",
+    icon: MessageCircle,
     roles: ["ADMIN", "POS", "CASHIER"],
   },
   {
@@ -927,7 +933,6 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      <WhatsAppQuickAccess />
       <StaffStoreStatus
         sidebarCollapsed={sidebarCollapsed}
         mobileMenuOpen={mobileMenuOpen}
