@@ -212,3 +212,5 @@ Todo cambio funcional debe incluir, en el mismo trabajo:
 No considerar una función terminada si falta su actualización documental.
 
 | Aplicación de escritorio Windows | Contenedor Electron con POS web y WhatsApp Web integrado mediante WebContentsView | `desktop/`, `docs/DESKTOP_WHATSAPP.md` |
+
+| Visor web integrado del POS | Columna derecha con WhatsApp Web, Chatwoot y URLs HTTPS personalizadas (solo Electron) | `docs/POS_WEB_VIEWER.md` |

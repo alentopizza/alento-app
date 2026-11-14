@@ -4,14 +4,15 @@ declare global {
   interface Window {
     alentoDesktop?: {
       isDesktop: true;
-      setWhatsAppBounds: (bounds: {
+      setWebViewBounds: (bounds: {
         x: number;
         y: number;
         width: number;
         height: number;
       }) => void;
-      setWhatsAppVisible: (visible: boolean) => void;
-      reloadWhatsApp: () => void;
+      setWebViewVisible: (visible: boolean) => void;
+      navigateWebView: (url: string) => void;
+      reloadWebView: () => void;
     };
   }
 }

@@ -1051,3 +1051,8 @@ El POS conserva localmente el pedido en construcción, sus configuraciones y el 
 ## Aplicación de escritorio y WhatsApp integrado — 2026-11-14
 
 Se inicia implementación de wrapper Electron Windows para reproducir la distribución de referencia: POS a la izquierda/centro y WhatsApp Web en panel derecho dentro de la misma ventana. WhatsApp se aloja en WebContentsView con partición persistente local `persist:alento-whatsapp`; la primera sesión requiere QR. Se añade workflow para construir instalador Windows como artefacto. El wrapper carga el sitio alojado, por lo que el usuario deberá instalar el nuevo .exe; la PWA antigua no puede obtener esta capacidad solo con despliegue web. Ver `docs/DESKTOP_WHATSAPP.md`.
+
+
+## Visor web integrado en POS — 2026-11-14
+
+Se reemplaza el panel fijo de WhatsApp de la ventana Electron por un visor web reutilizable que solo se muestra en `/interno`, a la derecha del catálogo y del panel Nuevo pedido. Incluye selector de WhatsApp Web/Chatwoot, dirección HTTPS personalizada, recarga, ampliar/reducir y ocultar/mostrar. La PWA y las rutas ajenas a POS no cambian. El visor usa WebContentsView y perfil persistente local. Documentación: `docs/POS_WEB_VIEWER.md`.

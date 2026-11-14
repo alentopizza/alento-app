@@ -28,3 +28,8 @@ El instalador Windows se construye con el workflow `.github/workflows/build-desk
 La vista principal usa preload limitado, aislamiento de contexto, Node Integration desactivado y sandbox. El sitio de Alentó no recibe acceso a cookies o credenciales de WhatsApp. El contenedor no automatiza mensajes ni elude el inicio de sesión: utiliza WhatsApp Web y su QR normal.
 
 La integración depende de que WhatsApp Web permita la sesión en Chromium de Electron. La sesión se guarda localmente en el perfil de la aplicación y debe mantenerse protegida por el usuario del sistema operativo.
+
+
+## Evolución: visor web reutilizable en el POS
+
+El panel de WhatsApp ahora es un visor web general: solo aparece en la ruta POS dentro del escritorio Electron, admite WhatsApp Web, Chatwoot y URLs HTTPS, y permite recargar, ampliar y ocultar. La sesión de WhatsApp conserva el perfil persistente. Ver `docs/POS_WEB_VIEWER.md`.

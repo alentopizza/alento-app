@@ -12,12 +12,12 @@ import {
   ChefHat,
   ChevronLeft,
   ChevronRight,
+  Globe2,
   ClipboardList,
   History,
   HeartPulse,
   LogOut,
   Menu,
-  MessageCircle,
   Settings,
   ShieldCheck,
   Star,
@@ -30,7 +30,7 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
-import DesktopWhatsAppPanel from "@/components/DesktopWhatsAppPanel";
+import DesktopWebViewer from "@/components/DesktopWebViewer";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -181,9 +181,9 @@ export default function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [desktopWhatsAppEnabled, setDesktopWhatsAppEnabled] = useState(false);
-  const [whatsAppOpen, setWhatsAppOpen] = useState(false);
-  const [whatsAppExpanded, setWhatsAppExpanded] = useState(false);
+  const [desktopWebViewerEnabled, setDesktopWebViewerEnabled] = useState(false);
+  const [webViewerOpen, setWebViewerOpen] = useState(false);
+  const [webViewerExpanded, setWebViewerExpanded] = useState(false);
 
   const publicNavActive = useMemo(() => {
     if (pathname.startsWith("/menu")) return "menu" as const;
@@ -227,13 +227,13 @@ export default function AppShell({
     try {
       const savedSidebar = window.localStorage.getItem("alento-admin-sidebar-collapsed");
       const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
-      setDesktopWhatsAppEnabled(isDesktopApp);
-      setWhatsAppOpen(isDesktopApp);
+      setDesktopWebViewerEnabled(isDesktopApp);
+      setWebViewerOpen(isDesktopApp && pathname === "/interno");
       setSidebarCollapsed(savedSidebar == null ? isDesktopApp : savedSidebar === "1");
     } catch {
       const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
-      setDesktopWhatsAppEnabled(isDesktopApp);
-      setWhatsAppOpen(isDesktopApp);
+      setDesktopWebViewerEnabled(isDesktopApp);
+      setWebViewerOpen(isDesktopApp && pathname === "/interno");
       setSidebarCollapsed(isDesktopApp);
     }
   }, []);
@@ -255,7 +255,11 @@ export default function AppShell({
 
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [pathname]);
+    if (desktopWebViewerEnabled) {
+      setWebViewerOpen(pathname === "/interno");
+      setWebViewerExpanded(false);
+    }
+  }, [pathname, desktopWebViewerEnabled]);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -416,14 +420,14 @@ export default function AppShell({
   return (
     <div
       className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${
-        whatsAppOpen && desktopWhatsAppEnabled
-          ? whatsAppExpanded
+        webViewerOpen && desktopWebViewerEnabled && pathname === "/interno"
+          ? webViewerExpanded
             ? sidebarCollapsed
-              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(520px,44vw)]"
-              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(520px,44vw)]"
+              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(560px,44vw)]"
+              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(560px,44vw)]"
             : sidebarCollapsed
-              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(460px,36vw)]"
-              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(460px,36vw)]"
+              ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(460px,38vw)]"
+              : "lg:grid-cols-[212px_minmax(0,1fr)_minmax(460px,38vw)]"
           : sidebarCollapsed
             ? "lg:grid-cols-[84px_1fr]"
             : "lg:grid-cols-[212px_1fr]"
@@ -942,17 +946,27 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      {desktopWhatsAppEnabled && whatsAppOpen && (
-        <DesktopWhatsAppPanel
-          expanded={whatsAppExpanded}
-          onExpand={() => setWhatsAppExpanded((current) => !current)}
-          onClose={() => { setWhatsAppOpen(false); setWhatsAppExpanded(false); }}
+      {desktopWebViewerEnabled && pathname === "/interno" && webViewerOpen && (
+        <DesktopWebViewer
+          expanded={webViewerExpanded}
+          onExpand={() => setWebViewerExpanded((current) => !current)}
+          onClose={() => {
+            setWebViewerOpen(false);
+            setWebViewerExpanded(false);
+          }}
         />
       )}
-      {desktopWhatsAppEnabled && !whatsAppOpen && (
-        <button type="button" onClick={() => setWhatsAppOpen(true)} title="Abrir WhatsApp integrado" aria-label="Abrir WhatsApp integrado"
-          className="fixed bottom-5 z-[180] flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-300/40 bg-[#075e54] text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] transition hover:bg-[#087666]"
-          style={{ left: sidebarCollapsed ? 18 : 146 }}><MessageCircle size={23} /></button>
+      {desktopWebViewerEnabled && pathname === "/interno" && !webViewerOpen && (
+        <button
+          type="button"
+          onClick={() => setWebViewerOpen(true)}
+          title="Abrir visor web"
+          aria-label="Abrir visor web"
+          className="fixed bottom-5 z-[180] flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-[#17181b] text-white shadow-[0_10px_30px_rgba(0,0,0,.35)] transition hover:bg-black"
+          style={{ left: sidebarCollapsed ? 18 : 146 }}
+        >
+          <Globe2 size={22} />
+        </button>
       )}
       <StaffStoreStatus
         sidebarCollapsed={sidebarCollapsed}
