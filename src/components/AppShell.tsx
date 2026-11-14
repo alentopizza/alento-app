@@ -30,7 +30,7 @@ import PublicMobileNav from "@/components/PublicMobileNav";
 import PublicStoreClosedNotice from "@/components/PublicStoreClosedNotice";
 import PublicTracking from "@/components/PublicTracking";
 import StaffStoreStatus from "@/components/StaffStoreStatus";
-import DesktopWebViewer from "@/components/DesktopWebViewer";
+import PosWebViewer from "@/components/PosWebViewer";
 import {
   PUBLIC_CART_STORAGE_KEY,
   type PublicCartItem,
@@ -181,7 +181,6 @@ export default function AppShell({
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [desktopWebViewerEnabled, setDesktopWebViewerEnabled] = useState(false);
   const [webViewerOpen, setWebViewerOpen] = useState(false);
   const [webViewerExpanded, setWebViewerExpanded] = useState(false);
 
@@ -226,16 +225,11 @@ export default function AppShell({
   useEffect(() => {
     try {
       const savedSidebar = window.localStorage.getItem("alento-admin-sidebar-collapsed");
-      const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
-      setDesktopWebViewerEnabled(isDesktopApp);
-      setWebViewerOpen(isDesktopApp && pathname === "/interno");
-      setSidebarCollapsed(savedSidebar == null ? isDesktopApp : savedSidebar === "1");
+      setSidebarCollapsed(savedSidebar === "1");
     } catch {
-      const isDesktopApp = Boolean(window.alentoDesktop?.isDesktop);
-      setDesktopWebViewerEnabled(isDesktopApp);
-      setWebViewerOpen(isDesktopApp && pathname === "/interno");
-      setSidebarCollapsed(isDesktopApp);
+      setSidebarCollapsed(false);
     }
+    setWebViewerOpen(pathname === "/interno");
   }, []);
 
   function toggleSidebar() {
@@ -255,11 +249,9 @@ export default function AppShell({
 
   useEffect(() => {
     setMobileMenuOpen(false);
-    if (desktopWebViewerEnabled) {
-      setWebViewerOpen(pathname === "/interno");
-      setWebViewerExpanded(false);
-    }
-  }, [pathname, desktopWebViewerEnabled]);
+    setWebViewerOpen(pathname === "/interno");
+    setWebViewerExpanded(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -420,7 +412,7 @@ export default function AppShell({
   return (
     <div
       className={`min-h-screen bg-[var(--background)] lg:grid lg:transition-[grid-template-columns] lg:duration-300 lg:ease-out ${
-        webViewerOpen && desktopWebViewerEnabled && pathname === "/interno"
+        webViewerOpen && pathname === "/interno"
           ? webViewerExpanded
             ? sidebarCollapsed
               ? "lg:grid-cols-[84px_minmax(0,1fr)_minmax(560px,44vw)]"
@@ -946,8 +938,8 @@ export default function AppShell({
       </aside>
 
       <div className="min-w-0">{children}</div>
-      {desktopWebViewerEnabled && pathname === "/interno" && webViewerOpen && (
-        <DesktopWebViewer
+      {pathname === "/interno" && webViewerOpen && (
+        <PosWebViewer
           expanded={webViewerExpanded}
           onExpand={() => setWebViewerExpanded((current) => !current)}
           onClose={() => {
@@ -956,7 +948,7 @@ export default function AppShell({
           }}
         />
       )}
-      {desktopWebViewerEnabled && pathname === "/interno" && !webViewerOpen && (
+      {pathname === "/interno" && !webViewerOpen && (
         <button
           type="button"
           onClick={() => setWebViewerOpen(true)}
