@@ -870,6 +870,26 @@ export default function StructuredPosPageV2() {
     setCart((current) => current.map((item) => item.key === key ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
   }
 
+  function handleOrderCreated() {
+    try { window.localStorage.removeItem(POS_DRAFT_STORAGE_KEY); } catch {}
+    setCart([]);
+    setSelectedCustomer(null);
+    setQuery("");
+    setCustomers([]);
+    setSearchMessage("");
+    setFulfillmentType(null);
+    setOrderTypeOpen(true);
+    setPizzaConfig(null);
+    setCustomPizzaConfig(null);
+    setComboConfig(null);
+    setEditingCartKey(null);
+    setConfigError("");
+    setCheckoutOpen(false);
+    setDeliveryFeeOverrideInput(null);
+    setShowCustomerModal(false);
+    setEditingCustomer(null);
+  }
+
   return (
     <main className="min-h-screen w-full p-3 md:p-5 xl:p-6">
       <div className="w-full space-y-5">
@@ -1428,6 +1448,7 @@ export default function StructuredPosPageV2() {
         subtotal={subtotal}
         deliveryFeeOverride={deliveryFeeOverride}
         onClose={() => setCheckoutOpen(false)}
+        onCreated={handleOrderCreated}
       />
 
       {showCustomerModal && (
