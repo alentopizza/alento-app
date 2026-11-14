@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { MessageCircle, Search, Send, RefreshCw, CheckCheck, Clock3, Inbox, AlertCircle } from "lucide-react";
 
 type Conversation = {
