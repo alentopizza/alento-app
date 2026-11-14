@@ -2,13 +2,23 @@ const { app, BrowserWindow, WebContentsView, ipcMain, shell, session } = require
 const path = require("node:path");
 
 const APP_URL = process.env.ALENTO_APP_URL || "https://alentopizza.com";
-const WHATSAPP_URL = "https://web.whatsapp.com/";
-const WHATSAPP_PARTITION = "persist:alento-whatsapp";
-const PANEL_MIN_WIDTH = 360;
+const DEFAULT_WEB_URL = "https://web.whatsapp.com/";
+const WEB_PARTITION = "persist:alento-whatsapp";
+const VIEW_MIN_WIDTH = 360;
 let mainWindow;
-let whatsappView;
-let whatsappVisible = true;
-let whatsappBounds = null;
+let webView;
+let webViewVisible = false;
+let webViewBounds = null;
+
+function isSafeHttpsUrl(value) {
+  if (typeof value !== "string" || value.length > 2048) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
 
 function safeBounds(value) {
   if (!value || typeof value !== "object") return null;
@@ -17,52 +27,48 @@ function safeBounds(value) {
   const width = Number(value.width);
   const height = Number(value.height);
   if (![x, y, width, height].every(Number.isFinite)) return null;
-  if (x < 0 || y < 0 || width < PANEL_MIN_WIDTH || height < 240) return null;
+  if (x < 0 || y < 0 || width < VIEW_MIN_WIDTH || height < 240) return null;
   return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
 }
 
-function applyWhatsAppBounds() {
-  if (!mainWindow || mainWindow.isDestroyed() || !whatsappView || !whatsappBounds) return;
+function applyWebViewBounds() {
+  if (!mainWindow || mainWindow.isDestroyed() || !webView || !webViewBounds) return;
   const { width: contentWidth, height: contentHeight } = mainWindow.getContentBounds();
-  const bounded = safeBounds(whatsappBounds);
-  if (!bounded) return;
-  const x = Math.min(bounded.x, Math.max(0, contentWidth - PANEL_MIN_WIDTH));
-  const width = Math.min(bounded.width, contentWidth - x);
-  const height = Math.min(bounded.height, contentHeight - bounded.y);
-  if (width < PANEL_MIN_WIDTH || height < 240) {
-    whatsappView.setVisible(false);
+  const bounds = safeBounds(webViewBounds);
+  if (!bounds) return;
+  const x = Math.min(bounds.x, Math.max(0, contentWidth - VIEW_MIN_WIDTH));
+  const y = Math.min(bounds.y, Math.max(0, contentHeight - 240));
+  const width = Math.min(bounds.width, contentWidth - x);
+  const height = Math.min(bounds.height, contentHeight - y);
+  if (width < VIEW_MIN_WIDTH || height < 240) {
+    webView.setVisible(false);
     return;
   }
-  whatsappView.setBounds({ x, y: bounded.y, width, height });
-  whatsappView.setVisible(whatsappVisible);
+  webView.setBounds({ x, y, width, height });
+  webView.setVisible(webViewVisible);
 }
 
-function createWhatsAppView() {
-  if (whatsappView) return whatsappView;
-  const whatsappSession = session.fromPartition(WHATSAPP_PARTITION);
-  whatsappView = new WebContentsView({
+function createWebView() {
+  if (webView) return webView;
+  webView = new WebContentsView({
     webPreferences: {
-      partition: WHATSAPP_PARTITION,
+      partition: WEB_PARTITION,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
     }
   });
-  mainWindow.contentView.addChildView(whatsappView);
-  whatsappView.setVisible(false);
-  whatsappView.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://")) void shell.openExternal(url);
+  mainWindow.contentView.addChildView(webView);
+  webView.setVisible(false);
+  webView.webContents.setWindowOpenHandler(({ url }) => {
+    if (isSafeHttpsUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
-  whatsappView.webContents.on("will-navigate", (event, url) => {
-    if (!url.startsWith("https://web.whatsapp.com/") && !url.startsWith("https://www.whatsapp.com/")) {
-      event.preventDefault();
-      void shell.openExternal(url);
-    }
+  webView.webContents.on("will-navigate", (event, url) => {
+    if (!isSafeHttpsUrl(url)) event.preventDefault();
   });
-  whatsappView.webContents.loadURL(WHATSAPP_URL);
-  void whatsappSession;
-  return whatsappView;
+  webView.webContents.loadURL(DEFAULT_WEB_URL);
+  return webView;
 }
 
 function createMainWindow() {
@@ -83,49 +89,48 @@ function createMainWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("https://")) void shell.openExternal(url);
+    if (isSafeHttpsUrl(url)) void shell.openExternal(url);
     return { action: "deny" };
   });
 
-  mainWindow.webContents.on("did-finish-load", () => {
-    createWhatsAppView();
-    applyWhatsAppBounds();
-  });
-
-  mainWindow.on("resize", applyWhatsAppBounds);
-  mainWindow.on("maximize", applyWhatsAppBounds);
-  mainWindow.on("unmaximize", applyWhatsAppBounds);
+  mainWindow.on("resize", applyWebViewBounds);
+  mainWindow.on("maximize", applyWebViewBounds);
+  mainWindow.on("unmaximize", applyWebViewBounds);
   mainWindow.on("closed", () => {
     mainWindow = null;
-    whatsappView = null;
+    webView = null;
   });
-
   mainWindow.loadURL(APP_URL);
 }
 
-ipcMain.on("alento:whatsapp-bounds", (event, bounds) => {
+ipcMain.on("alento:web-view-bounds", (event, bounds) => {
   if (!mainWindow || event.sender !== mainWindow.webContents) return;
   const next = safeBounds(bounds);
   if (!next) return;
-  whatsappBounds = next;
-  if (!whatsappView) createWhatsAppView();
-  applyWhatsAppBounds();
+  webViewBounds = next;
+  if (!webView) createWebView();
+  applyWebViewBounds();
 });
 
-ipcMain.on("alento:whatsapp-visible", (event, visible) => {
+ipcMain.on("alento:web-view-visible", (event, visible) => {
   if (!mainWindow || event.sender !== mainWindow.webContents) return;
-  whatsappVisible = Boolean(visible);
-  if (whatsappVisible) {
-    createWhatsAppView();
-    applyWhatsAppBounds();
-  } else if (whatsappView) {
-    whatsappView.setVisible(false);
+  webViewVisible = Boolean(visible);
+  if (webViewVisible) {
+    createWebView();
+    applyWebViewBounds();
+  } else if (webView) {
+    webView.setVisible(false);
   }
 });
 
-ipcMain.on("alento:whatsapp-reload", (event) => {
-  if (!mainWindow || event.sender !== mainWindow.webContents || !whatsappView) return;
-  whatsappView.webContents.reload();
+ipcMain.on("alento:web-view-navigate", (event, url) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || !isSafeHttpsUrl(url)) return;
+  createWebView().webContents.loadURL(url);
+});
+
+ipcMain.on("alento:web-view-reload", (event) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || !webView) return;
+  webView.webContents.reload();
 });
 
 app.whenReady().then(() => {
