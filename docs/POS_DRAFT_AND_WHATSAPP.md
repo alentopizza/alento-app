@@ -22,7 +22,13 @@ Al confirmar la creación del pedido, el POS limpia el borrador y reinicia el fo
 
 La persistencia es local al navegador/perfil de Windows donde se usa la aplicación. No es un borrador compartido entre diferentes equipos o perfiles. Los datos de pedido siguen sin ser un pedido real hasta que el usuario confirma el checkout; la autoridad de precios y validaciones continúa siendo el servidor.
 
-## Acceso rápido a WhatsApp
+## Visor web integrado en POS
+
+La aplicación de escritorio muestra un visor web como tercera columna únicamente en la ruta `/interno`: catálogo a la izquierda, panel de pedido al centro y visor a la derecha. Permite abrir WhatsApp Web, Chatwoot y cualquier dirección HTTPS, recargar, ampliar/reducir y ocultar/mostrar el panel. La URL elegida se recuerda en el perfil local y las cookies del navegador nativo se conservan en la partición persistente de Electron.
+
+El visor no se muestra en la PWA ni en las demás secciones internas. No cambia el DOM ni la lógica del formulario de pedidos. Arquitectura y pruebas: `docs/POS_WEB_VIEWER.md`.
+
+La integración usa `WebContentsView` y restringe la navegación a HTTPS. Las páginas que prohíben iframes pueden mostrarse dentro del contenedor Electron. La primera sesión de WhatsApp requiere escanear el QR desde el teléfono vinculado.
 
 WhatsAppQuickAccess se muestra como acceso flotante en las superficies internas autenticadas. Permite minimizar u ocultar el acceso, y conserva esa preferencia local al navegar entre módulos.
 
