@@ -1041,3 +1041,8 @@ Documento canónico: `docs/PAYMENTS_AND_CASH.md`.
 Antes de ejecutar la validación productiva final del hardening #10 se revisó el sistema de extremo a extremo. La implementación base ya estaba desplegada, pero se encontraron consumidores heredados que todavía trataban `PAID` como dinero bruto sin considerar devoluciones o filtraban el historial según el estado posterior del pedido.
 
 Las correcciones están agrupadas en PR #7 e incluyen Caja/cierre, permisos CASHIER, finalización de pedidos, recálculos y replays de pagos, eliminación definitiva, estadísticas de medios y verificación de restore. La validación real del #10 debe hacerse únicamente después de merge/redeploy de ese hotfix.
+
+
+## Borrador POS y acceso WhatsApp — 2026-11-14
+
+El POS conserva localmente el pedido en construcción, sus configuraciones y el contexto de pantalla al navegar entre módulos; limpia el borrador al crear el pedido. Las superficies internas incluyen un acceso flotante a WhatsApp Web que abre una ventana independiente para autenticación por QR. Alcance y limitaciones: `docs/POS_DRAFT_AND_WHATSAPP.md`.
