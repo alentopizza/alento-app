@@ -69,7 +69,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1720,
     height: 960,
-    minWidth: 1100,
+    minWidth: 1400,
     minHeight: 720,
     title: "ALENTÓ PIZZA | Pizzería en Kennedy, Bogotá",
     backgroundColor: "#0b0b0c",
