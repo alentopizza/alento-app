@@ -3,17 +3,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { Maximize2, Minimize2, MessageCircle, RefreshCw, X } from "lucide-react";
 
-declare global {
-  interface Window {
-    alentoDesktop?: {
-      isDesktop: true;
-      setWhatsAppBounds: (bounds: { x: number; y: number; width: number; height: number }) => void;
-      setWhatsAppVisible: (visible: boolean) => void;
-      reloadWhatsApp: () => void;
-    };
-  }
-}
-
 type Props = {
   expanded: boolean;
   onExpand: () => void;
