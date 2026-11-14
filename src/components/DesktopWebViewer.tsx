@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   ExternalLink,
   Globe2,
@@ -65,7 +66,6 @@ export default function DesktopWebViewer({ expanded, onExpand, onClose }: Props)
     if (!window.alentoDesktop?.isDesktop) return;
     const slot = slotRef.current;
     if (!slot) return;
-    window.alentoDesktop.navigateWebView(PAGES[0].url);
     window.alentoDesktop.setWebViewVisible(true);
     const observer = new ResizeObserver(measure);
     observer.observe(slot);
