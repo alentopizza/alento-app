@@ -305,7 +305,8 @@ Documentos principales:
 - [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md): pagos reales y Caja.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel y Prisma.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): continuidad del proyecto.
-- [`docs/INSTALLATION_AND_RECOVERY.md`](docs/INSTALLATION_AND_RECOVERY.md): instalación en otra VPS, variables, PostgreSQL, Google Drive, Push, notifier y Chatwoot.
+- [`docs/INSTALLATION_AND_RECOVERY.md`](docs/INSTALLATION_AND_RECOVERY.md): instalación y recuperación técnica de servicios.
+- [`docs/MASTER_MIGRATION_GUIDE.md`](docs/MASTER_MIGRATION_GUIDE.md): orden maestro para clonar la infraestructura actual en otra VPS conservando dominios, Chatwoot, WhatsApp, Make, datos y secretos.
 
 ## Prisma en producción
 
@@ -422,6 +423,8 @@ Rutas de menú:
 
 
 ## Operación y despliegue
+
+Para migrar la infraestructura completa a otra VPS, seguir primero y en orden `docs/MASTER_MIGRATION_GUIDE.md`. No iniciar el corte DNS hasta superar sus fases de inventario y validación.
 
 Antes de un despliegue relevante o cambio de infraestructura leer:
 
