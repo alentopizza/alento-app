@@ -317,15 +317,18 @@ El checkout y domicilio usan Google Places/Routes. Las dos claves cumplen funcio
 - [ ] Backups horario/diario en Google Drive con restore mensual.
 - [ ] Logs, `/salud-sistema` y alertas sin errores críticos.
 
-## 12. Datos que siguen pendientes de inventario externo
+## 12. Datos externos que deben inventariarse antes de la migración
 
-No están presentes en el repositorio principal y deben documentarse desde sus consolas/servicios sin copiar secretos:
-- configuración interna y despliegue exacto de `alento-notifier`;
-- cron/frecuencia real que invoca `/api/internal/notification-jobs/run`;
-- stack y variables completas de Chatwoot productivo;
-- configuración y credenciales de escenarios Make;
+La configuración actual de Alentó Notifier sí está documentada en este repositorio y en `services/notifier/README.md`, incluida su ruta de monorepo, variables conocidas, puerto, endpoints y polling. La captura de EasyPanel confirma Nixpacks 1.41.0, rama `main`, ruta `/services/notifier` y `npm start`.
+
+Siguen requiriendo inspección directa del servicio/proveedor actual:
+- topología exacta de Chatwoot (servicios, versiones, DB, Redis si aplica, volúmenes/adjuntos, variables, SMTP, storage y procedimiento de backup/restauración);
+- export seguro del único escenario Make y confirmación del contrato JSON/headers que recibe;
 - restricciones, APIs y proyecto Google Cloud de Maps;
 - credenciales OAuth del proveedor Google Drive en EasyPanel;
-- hostname/usuario reales de PostgreSQL y nombres de servicios de la nueva VPS.
+- hostname/usuario reales de PostgreSQL y hostnames privados que asigne EasyPanel en la nueva VPS;
+- inventario final de dominios, DNS, SSL, volúmenes y recursos de los servicios actuales.
+
+WhatsApp/Meta y las plantillas permanecen dentro de la instancia Chatwoot que se migra; no se debe crear una integración nueva. Make conserva el escenario y webhook actuales; solo se valida que el nuevo emisor mantenga el mismo contrato.
 
 No declarar una instalación 100% replicable hasta completar esos inventarios y ejecutar una restauración integral de prueba.
