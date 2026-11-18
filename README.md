@@ -305,6 +305,7 @@ Documentos principales:
 - [`docs/PAYMENTS_AND_CASH.md`](docs/PAYMENTS_AND_CASH.md): pagos reales y Caja.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): EasyPanel y Prisma.
 - [`docs/HANDOFF.md`](docs/HANDOFF.md): continuidad del proyecto.
+- [`docs/INSTALLATION_AND_RECOVERY.md`](docs/INSTALLATION_AND_RECOVERY.md): instalación en otra VPS, variables, PostgreSQL, Google Drive, Push, notifier y Chatwoot.
 
 ## Prisma en producción
 
