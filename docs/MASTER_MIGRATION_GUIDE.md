@@ -84,7 +84,30 @@ Crear un inventario privado fuera de GitHub con el nombre de cada variable, su s
 - Documentar el escenario único de Make: nombre, módulos, URL webhook, payload esperado, headers, autenticación y respuesta. No duplicar ni recrear.
 - Verificar que el escenario no dependa de una IP de la VPS antigua.
 
-## 5. Fase 1 — Crear la nueva VPS y EasyPanel
+## 5. Fase 1 — Crear el nuevo repositorio GitHub
+
+Esta fase ocurre antes de conectar EasyPanel a la nueva fuente.
+
+1. Crear un repositorio privado nuevo en la organización/cuenta GitHub destino.
+2. Confirmar nombre, propietario y permisos de acceso del equipo.
+3. Desde un entorno seguro, clonar el repositorio actual conservando todo el historial:
+
+```bash
+git clone --mirror git@github.com:alentopizza/alento-app.git
+cd alento-app.git
+git push --mirror git@github.com:<ORGANIZACION_DESTINO>/<REPOSITORIO_DESTINO>.git
+```
+
+4. Verificar ramas, tags, historial y último commit en el destino.
+5. Configurar reglas de rama principal, protección de `main`, pull requests y permisos equivalentes.
+6. Confirmar que GitHub Actions y sus workflows se copiaron; ejecutar Quality CI en el repositorio nuevo.
+7. Configurar los secretos/variables de GitHub Actions que realmente requieran los workflows. No copiar secretos de EasyPanel a GitHub Actions si el workflow no los necesita.
+8. Mantener el repositorio original intacto como rollback; no archivarlo ni borrarlo durante la migración.
+9. Registrar la URL Git destino y el commit exacto que se va a desplegar.
+
+No copiar `.env`, dumps, tokens, claves privadas, credenciales OAuth ni backups al repositorio. Los recursos binarios externos al Git deben inventariarse y trasladarse por su mecanismo seguro.
+
+## 6. Fase 2 — Crear la nueva VPS y EasyPanel
 
 1. Crear VPS con capacidad igual o superior a la actual, espacio suficiente para DB, Chatwoot, adjuntos y backups temporales.
 2. Instalar EasyPanel y asegurar acceso administrativo.
