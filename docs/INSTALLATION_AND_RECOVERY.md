@@ -228,6 +228,21 @@ Configurar en EasyPanel → `app_alento` → `alento-notifier` → Entorno. Los 
 
 No requiere `DATABASE_URL`, Redis ni almacenamiento persistente propio. Plantillas, variables, imágenes y reglas se administran desde Alentó App y se envían en cada evento; el notifier consulta las definiciones aprobadas de plantillas en Chatwoot y mantiene una caché en memoria de 5 minutos.
 
+### Variables adicionales observadas en el entorno EasyPanel
+
+En la captura del entorno productivo también aparecen estas variables:
+
+| Variable | Valor/configuración observada | Estado según el código actual |
+|---|---|---|
+| `CHATWOOT_ORDER_CREATED_TEMPLATE_NAME` | `nuevo_pedido_v2` | No se lee en `services/notifier/server.mjs`. |
+| `CHATWOOT_ORDER_CREATED_TEMPLATE_LANGUAGE` | `es` | No se lee en `services/notifier/server.mjs`. |
+| `CHATWOOT_ORDER_CREATED_TEMPLATE_CATEGORY` | `MARKETING` | No se lee en `services/notifier/server.mjs`. |
+| `CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL` | URL de imagen alojada en Google Cloud Storage | No se lee en `services/notifier/server.mjs`. |
+
+**Importante para una reinstalación:** estas cuatro variables están presentes en el entorno actual de EasyPanel, pero la versión del código inspeccionada no las consume. El flujo vigente recibe la plantilla, idioma, categoría, variables e imagen dentro del payload que envía Alentó App; la definición se administra en el módulo Notificaciones y se valida contra la plantilla sincronizada en Chatwoot. Por tanto, no depender de estas cuatro variables para reconstruir el servicio ni asumir que cambiar sus valores modifica el envío actual.
+
+Se documentan aquí para conservar el inventario fiel del entorno productivo y facilitar una futura limpieza controlada. No eliminarlas de producción hasta comprobar en una prueba controlada que ningún flujo externo o versión desplegada las necesita. Los valores secretos siguen siendo exclusivamente los tokens y secretos; la URL de imagen no es una credencial, aunque conviene mantenerla administrada desde la configuración oficial de la app.
+
 ### Endpoints y comportamiento
 
 - `GET /health`: responde JSON con `ok`, `service: alento-notifier` y si está habilitado el polling de jobs.
