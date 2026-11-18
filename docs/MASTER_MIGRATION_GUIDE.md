@@ -117,7 +117,7 @@ No copiar `.env`, dumps, tokens, claves privadas, credenciales OAuth ni backups 
 6. No cambiar DNS público todavía.
 7. Mantener la VPS anterior encendida y disponible para rollback.
 
-## 6. Fase 2 — Restaurar PostgreSQL de Alentó
+## 7. Fase 3 — Restaurar PostgreSQL de Alentó
 
 La política existente está documentada en `docs/BACKUPS_AND_RECOVERY.md`.
 
@@ -140,7 +140,7 @@ Pasos:
 
 No ejecutar `prisma migrate reset`, `db push` ni Restore sobre la base original.
 
-## 7. Fase 3 — Desplegar Alentó App
+## 8. Fase 4 — Desplegar Alentó App
 
 ### Configuración EasyPanel observada
 - Proyecto: `app_alento`.
@@ -174,7 +174,7 @@ Procedimiento:
 6. Confirmar migraciones sin cambios destructivos y `GET /api/health`.
 7. No crear otro administrador ni ejecutar bootstrap: se restaura la base con usuarios existentes.
 
-## 8. Fase 4 — Desplegar Alentó Notifier
+## 9. Fase 5 — Desplegar Alentó Notifier
 
 Código:
 - Repo: `alentopizza/alento-app`.
@@ -216,7 +216,7 @@ Pasos:
 
 El notifier no tiene DB propia ni requiere volumen persistente según el código actual.
 
-## 9. Fase 5 — Migrar Chatwoot existente
+## 10. Fase 6 — Migrar Chatwoot existente
 
 Chatwoot es un servicio de otro proyecto que comparte la VPS. Debe trasladarse como instancia existente, no recrearse desde cero.
 
@@ -233,7 +233,7 @@ Chatwoot es un servicio de otro proyecto que comparte la VPS. Debe trasladarse c
 
 **Pendiente de completar con evidencia del proyecto Chatwoot actual:** nombres de servicios, versiones, variables, volúmenes, Redis, DB y comandos reales. No hay datos suficientes en el repositorio Alentó para inventariarlos.
 
-## 10. Fase 6 — Mantener Make y las integraciones
+## 11. Fase 7 — Mantener Make y las integraciones
 
 No crear escenarios nuevos.
 
@@ -247,7 +247,7 @@ No crear escenarios nuevos.
 
 La conexión WhatsApp/Meta vive en Chatwoot o en la configuración externa existente; esta migración no debe recrear dicha conexión.
 
-## 11. Fase 7 — Validación integral antes del corte
+## 12. Fase 8 — Validación integral antes del corte
 
 ### Infraestructura
 - Todos los servicios tienen logs limpios y healthchecks correctos.
@@ -279,7 +279,7 @@ La conexión WhatsApp/Meta vive en Chatwoot o en la configuración externa exist
 
 No marcar una fase como verificada solo porque el contenedor esté iniciado.
 
-## 12. Fase 8 — Corte definitivo
+## 13. Fase 9 — Corte definitivo
 
 1. Elegir ventana de bajo tráfico.
 2. Comunicar congelamiento operativo.
@@ -303,7 +303,7 @@ Si falla una prueba crítica:
 - reconciliar datos antes de reabrir operación;
 - registrar incidente y causa.
 
-## 13. Fase 9 — Cierre y operación posterior
+## 14. Fase 10 — Cierre y operación posterior
 
 - Ejecutar backup remoto desde la nueva VPS y confirmar archivo en Google Drive.
 - Ejecutar una restauración de prueba en DB temporal.
@@ -312,7 +312,7 @@ Si falla una prueba crítica:
 - Actualizar documentación con versiones, fechas, endpoints, recursos y resultados reales.
 - Retirar la VPS antigua solo después del periodo de observación y autorización explícita.
 
-## 14. Registro de ejecución
+## 15. Registro de ejecución
 
 Mantener este checklist actualizado. El estado inicial de todas las fases es **PENDIENTE** hasta que exista evidencia.
 
@@ -329,7 +329,7 @@ Mantener este checklist actualizado. El estado inicial de todas las fases es **P
 | 8. Corte DNS | PENDIENTE | DNS/SSL y smoke tests correctos |
 | 9. Cierre | PENDIENTE | Backup nuevo, restore test y documentación final |
 
-## 15. Orden de lectura para ejecutar la migración
+## 16. Orden de lectura para ejecutar la migración
 
 1. `AGENTS.md` — reglas obligatorias del proyecto.
 2. `README.md` — visión, arquitectura y estado funcional.
@@ -343,7 +343,7 @@ Mantener este checklist actualizado. El estado inicial de todas las fases es **P
 10. `.env.example` — nombres de variables de Alentó App.
 11. `prisma/schema.prisma` y `prisma/migrations/` — estructura de datos.
 
-## 16. Criterio de éxito
+## 17. Criterio de éxito
 
 La migración solo se considera completada cuando:
 - la nueva VPS opera con las mismas URL y comportamiento;
