@@ -10,28 +10,29 @@ Leer en este orden:
 
 1. `AGENTS.md`
 2. `README.md`
-3. `docs/INSTALLATION_AND_RECOVERY.md` — inventario de infraestructura, variables, instalación y recuperación en otra VPS.
-4. `docs/HARDENING_CHECKLIST.md`
-5. `docs/CURRENT_STATE.md`
-6. `docs/FEATURE_INVENTORY.md`
-7. `docs/PRODUCTION_READINESS.md` como baseline histórico
-8. `docs/ALENTO_EXCLUSIVE_MODULES.md`
-9. `docs/ROADMAP.md`
-10. documento canónico del módulo a modificar
-11. `docs/ARCHITECTURE.md`
-12. `docs/ORDER_DATA_INTEGRITY.md`
-13. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
-14. `docs/CONFIGURATION.md`
-15. `docs/DRIVERS.md`
-16. `docs/PAYMENTS_AND_CASH.md`
-17. `docs/METRICS_AND_TRACKING.md`
-18. `docs/PUSH_NOTIFICATIONS.md`
-19. `docs/MAPS_VISUAL_SYSTEM.md`
-20. `docs/COUPONS.md`
-21. `docs/CLUB_POINTS.md`
-22. `docs/DEPLOYMENT.md`
-23. `prisma/schema.prisma`
-24. archivos del módulo que se vaya a modificar.
+3. `docs/MASTER_MIGRATION_GUIDE.md` cuando el objetivo sea trasladar la infraestructura a otra VPS; define alcance, dependencias y orden obligatorio.
+4. `docs/INSTALLATION_AND_RECOVERY.md` — inventario de infraestructura, variables, instalación y recuperación en otra VPS.
+5. `docs/HARDENING_CHECKLIST.md`
+6. `docs/CURRENT_STATE.md`
+7. `docs/FEATURE_INVENTORY.md`
+8. `docs/PRODUCTION_READINESS.md` como baseline histórico
+9. `docs/ALENTO_EXCLUSIVE_MODULES.md`
+10. `docs/ROADMAP.md`
+11. documento canónico del módulo a modificar
+12. `docs/ARCHITECTURE.md`
+13. `docs/ORDER_DATA_INTEGRITY.md`
+14. `docs/AUTH_ROLES_AND_PUBLIC_APP.md`
+15. `docs/CONFIGURATION.md`
+16. `docs/DRIVERS.md`
+17. `docs/PAYMENTS_AND_CASH.md`
+18. `docs/METRICS_AND_TRACKING.md`
+19. `docs/PUSH_NOTIFICATIONS.md`
+20. `docs/MAPS_VISUAL_SYSTEM.md`
+21. `docs/COUPONS.md`
+22. `docs/CLUB_POINTS.md`
+23. `docs/DEPLOYMENT.md`
+24. `prisma/schema.prisma`
+25. archivos del módulo que se vaya a modificar.
 
 Después revisar commits recientes de `main`.
 
