@@ -200,9 +200,71 @@ Integración de Alentó App:
 
 La app envía POST JSON al webhook notifier con evento y datos de destinatario/plantilla; timeout HTTP 10 segundos. Eventos implementados incluyen pedido creado, estados seleccionados, repartidor asignado y reseña. Si el notifier no está configurado o falla, la app registra estado/incidente; el núcleo de pedidos no debe quedar bloqueado por la integración.
 
-IMPORTANTE: en el inventario de repositorios accesibles no se encontró un repositorio independiente llamado `alento-notifier`. La captura de EasyPanel confirma el servicio `alento-notifier`, pero no expone imagen, Dockerfile, código, puerto, ruta de health ni variables internas. Por tanto no se inventa un procedimiento de reconstrucción del contenedor notifier. Para completar su instalación exacta en otra VPS se necesita exportar/documentar desde EasyPanel: imagen o repositorio/branch, Dockerfile/command, puerto interno, variables requeridas (nombres sin valores), volúmenes, red, healthcheck, scheduler y logs. El endpoint de health que la app consulta se deriva de `NOTIFIER_WEBHOOK_URL` sustituyendo `/events` por `/health`; confirmar que el servicio realmente lo expone.
+IMPORTANTE: `alento-notifier` SÍ vive dentro del mismo repositorio `alentopizza/alento-app`, en `services/notifier/`. No es un repositorio Git separado. La captura de EasyPanel confirma que el servicio apunta a:
+- repositorio: `alentopizza/alento-app`;
+- rama: `main`;
+- ruta de compilación: `/services/notifier`;
+- builder: Nixpacks 1.41.0;
+- comando de inicio configurado: `npm start`.
 
-El cron/scheduler de `NotificationJob` debe invocar periódicamente el endpoint interno con POST y header `x-alento-notifier-secret`. El intervalo exacto productivo no está confirmado en el código/documentación consultados: recuperarlo de la tarea programada actual antes de replicar.
+Código verificado:
+- `services/notifier/package.json`: paquete privado ESM `alento-notifier`, versión 1.0.0, script `start: node server.mjs`, Node >=20.
+- `services/notifier/server.mjs`: servidor HTTP nativo de Node; no usa framework externo ni base de datos propia.
+- `services/notifier/README.md`: documentación de endpoints y variables.
+
+### Variables propias del servicio alento-notifier
+
+Configurar en EasyPanel → `app_alento` → `alento-notifier` → Entorno. Los valores secretos no deben copiarse a Git:
+
+| Variable | Uso |
+|---|---|
+| `PORT` | Puerto HTTP interno. El código usa 3000 por defecto. Configurar el puerto de servicio en EasyPanel como 3000. |
+| `NOTIFIER_SHARED_SECRET` | Secreto compartido con `alento-app`; debe coincidir exactamente con `NOTIFIER_SHARED_SECRET` de la aplicación. Se valida en `POST /events` y para consultar los jobs internos. |
+| `CHATWOOT_BASE_URL` | URL base de Chatwoot, actualmente `https://chat.operadoranordecolombia.com`. |
+| `CHATWOOT_ACCOUNT_ID` | ID numérico de la cuenta Chatwoot; README actual documenta `1`. Verificar en la instancia real. |
+| `CHATWOOT_WHATSAPP_INBOX_ID` | ID del inbox de WhatsApp de Chatwoot; README actual documenta `13`. Verificar en la instancia real. |
+| `CHATWOOT_API_ACCESS_TOKEN` | Token API de Chatwoot con permisos para buscar/crear contactos, consultar conversaciones/plantillas y enviar mensajes. Secreto. |
+| `ALENTO_APP_BASE_URL` | URL pública de Alentó, actualmente `https://alentopizza.com`. Se usa para invocar jobs programados y convertir rutas de imágenes administradas por Alentó en URLs públicas. |
+
+No requiere `DATABASE_URL`, Redis ni almacenamiento persistente propio. Plantillas, variables, imágenes y reglas se administran desde Alentó App y se envían en cada evento; el notifier consulta las definiciones aprobadas de plantillas en Chatwoot y mantiene una caché en memoria de 5 minutos.
+
+### Endpoints y comportamiento
+
+- `GET /health`: responde JSON con `ok`, `service: alento-notifier` y si está habilitado el polling de jobs.
+- `POST /events`: recibe evento JSON de Alentó; exige header `x-alento-notifier-secret`. Valida que exista `event` y `data.template`, resuelve contacto y conversación en el inbox configurado y envía la plantilla WhatsApp por API de Chatwoot.
+- Escucha en `0.0.0.0:PORT`.
+- La app principal usa `NOTIFIER_WEBHOOK_URL` apuntando a este servicio, normalmente `http://<hostname-privado-del-servicio>:3000/events`. La URL exacta debe copiarse de la red privada/hostname asignado por EasyPanel; no inventar el hostname.
+- La app deriva el health probe reemplazando `/events` por `/health`.
+
+### Scheduler de reseñas y trabajos programados
+
+El propio proceso notifier ejecuta el scheduler, no hace falta un cron externo adicional:
+- espera 15 segundos después de iniciar;
+- luego hace polling cada 60 segundos;
+- llama `POST {ALENTO_APP_BASE_URL}/api/internal/notification-jobs/run`;
+- incluye `x-alento-notifier-secret`;
+- evita polling simultáneo dentro del mismo proceso.
+La app consulta hasta 10 trabajos pendientes por ejecución, aplica locks y reintentos hasta 5 veces. El job de reseña usa la configuración de plantilla persistida en Alentó App.
+
+### Instalación en una VPS nueva
+
+1. Crear servicio APP en EasyPanel dentro del proyecto y red privada de Alentó.
+2. Fuente GitHub: `alentopizza/alento-app`, rama `main`.
+3. Ruta de compilación: `/services/notifier`.
+4. Builder: Nixpacks, versión 1.41.0 (según la configuración productiva mostrada).
+5. Comando de instalación y build: dejar vacíos; `package.json` no declara dependencias ni scripts de build.
+6. Comando de inicio: `npm start`.
+7. Configurar `PORT=3000` y el resto de variables descritas arriba.
+8. Configurar el puerto interno/target 3000 en EasyPanel y permitir tráfico privado desde `alento-app`.
+9. En `alento-app`, configurar `NOTIFIER_WEBHOOK_URL=http://<hostname-privado>:3000/events` y el mismo `NOTIFIER_SHARED_SECRET`.
+10. En Chatwoot, generar/copiar un API access token válido y confirmar Account ID e Inbox ID de WhatsApp.
+11. Deploy del notifier; revisar logs para `Alento notifier listening on :3000` y `Scheduled notification polling enabled`.
+12. Probar `GET /health` desde la red privada y desde el health check de la app.
+13. Probar un evento controlado desde el módulo Notificaciones de Alentó App con plantilla WhatsApp aprobada y destinatario de prueba.
+14. Validar contacto/conversación/mensaje en Chatwoot y confirmar entrega en WhatsApp.
+15. Confirmar en `/salud-sistema` que WhatsApp / Notifier está operativo.
+
+No agregar volúmenes ni base de datos al notifier salvo que una versión futura del código los requiera.
 
 ## 9. Chatwoot — integración Dashboard App
 
