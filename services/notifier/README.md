@@ -23,6 +23,8 @@ ALENTO_APP_BASE_URL=https://alentopizza.com
 
 Las plantillas, imágenes, variables y reglas ya no se configuran como variables de entorno del notifier. Se administran desde Alentó App.
 
+Nota de inventario: en el entorno EasyPanel productivo se observaron también `CHATWOOT_ORDER_CREATED_TEMPLATE_NAME`, `CHATWOOT_ORDER_CREATED_TEMPLATE_LANGUAGE`, `CHATWOOT_ORDER_CREATED_TEMPLATE_CATEGORY` y `CHATWOOT_ORDER_CREATED_TEMPLATE_HEADER_IMAGE_URL`. La versión actual de `server.mjs` no lee esas cuatro variables; la plantilla activa y sus parámetros llegan en el payload desde Alentó App. Se conservan documentadas como variables heredadas observadas, no como requisitos funcionales del servicio.
+
 `ALENTO_APP_BASE_URL` debe apuntar al dominio oficial de producción: `https://alentopizza.com`. Se usa para consultar trabajos programados y convertir las imágenes administradas por Alentó en URLs públicas para WhatsApp.
 
 No usa JSON ni placeholders en variables de entorno.
