@@ -1,0 +1,254 @@
+# Instalación, infraestructura y recuperación de Alentó App
+
+Última auditoría documental: 2026-11-17.
+Alcance: instalación reproducible de la aplicación principal y mapa de dependencias externas conocidas. Este documento describe lo comprobado en el repositorio; no sustituye secretos, acceso a proveedores ni validación en EasyPanel.
+
+## 1. Topología productiva conocida
+
+Proyecto EasyPanel principal: `app_alento`.
+
+Servicios visibles en el proyecto (confirmados por el usuario):
+- `alento-app`: aplicación web/PWA.
+- `alento-db`: PostgreSQL.
+- `alento-notifier`: servicio independiente de notificaciones.
+
+Aplicación:
+- Repositorio: `alentopizza/alento-app` (privado), rama `main`.
+- Dominio canónico: `https://alentopizza.com`.
+- Puerto interno: `3000`.
+- Runtime: Node.js 22.
+- Next.js 15.5.24, React 19.1.9, TypeScript 5.9.2, Prisma 6.15.0.
+- PostgreSQL productivo: servicio EasyPanel `alento-db`, base `alento`.
+- Red interna DB documentada en `.env.example`: hostname `app_alento_alento-db`, puerto 5432, schema `public`. Confirmar el hostname real en EasyPanel antes de restaurar o conectar una VPS nueva.
+
+El estado visual verde de EasyPanel indica que el servicio está iniciado/saludable según su indicador; no demuestra por sí solo que todas las integraciones externas funcionen.
+
+## 2. Fuente de verdad y orden de lectura para una nueva IA
+
+Leer antes de cualquier cambio o instalación:
+1. `AGENTS.md`.
+2. `README.md`.
+3. Este documento.
+4. `docs/HANDOFF.md`.
+5. `docs/CURRENT_STATE.md`, `docs/FEATURE_INVENTORY.md` y `docs/ROADMAP.md`.
+6. `docs/DEPLOYMENT.md`, `docs/CONFIGURATION.md`, `docs/OBSERVABILITY.md`.
+7. `docs/PUSH_NOTIFICATIONS.md`, `docs/ALENTO_EXCLUSIVE_MODULES.md`.
+8. `docs/BACKUPS_AND_RECOVERY.md`.
+9. `.env.example`, `package.json`, `prisma/schema.prisma`, `prisma/migrations/`.
+10. Código de las integraciones que se vayan a operar.
+
+Si el código y un documento discrepan, el comportamiento real del código y el schema actual prevalecen; documentar la discrepancia y corregirla. No completar huecos con suposiciones.
+
+## 3. Variables de entorno de la aplicación
+
+El archivo de referencia completo y versionado es `.env.example`. Los valores reales deben vivir exclusivamente en EasyPanel → servicio `alento-app` → Environment. Nunca copiar valores reales a Git, documentación, capturas, tickets ni prompts.
+
+| Variable | Uso y configuración |
+|---|---|
+| `DATABASE_URL` | Obligatoria. URL PostgreSQL de la base `alento`. En EasyPanel usar hostname privado del servicio DB, puerto 5432, usuario/contraseña y `?schema=public`. No usar localhost entre contenedores. |
+| `NEXT_PUBLIC_APP_NAME` | Nombre visible de la aplicación; valor de referencia `Alentó POS`. |
+| `NEXT_PUBLIC_APP_URL` | URL pública canónica; actualmente `https://alentopizza.com`. Debe coincidir con dominio y HTTPS reales. |
+| `GOOGLE_SITE_VERIFICATION` | Token de verificación de Google Search Console; opcional. Pegar solo el token. |
+| `BING_SITE_VERIFICATION` | Token de verificación de Bing; opcional. |
+| `AUTH_SESSION_SECRET` | Secreto criptográfico de sesiones. Generar aleatorio, largo (mínimo 32 caracteres), único por instalación. Cambiarlo invalida sesiones existentes. |
+| `AUTH_BOOTSTRAP_KEY` | Clave temporal fuerte para crear el primer ADMIN cuando no existe ningún usuario. Después del bootstrap, retirarla/rotarla según el flujo de autenticación vigente; no compartirla. |
+| `MAKE_WHATSAPP_OTP_WEBHOOK_URL` | Webhook privado de Make que entrega OTP de clientes por WhatsApp. Opcional para núcleo; sin él, login OTP no funcionará. La configuración Meta/WhatsApp reside en Make, no en este repo. |
+| `CUSTOMER_CREATED_WEBHOOK_URL` | Webhook privado de Make para sincronizar clientes nuevos con Google Contacts. Opcional. |
+| `CHATWOOT_DASHBOARD_KEY` | Clave compartida para autenticar la Dashboard App de Chatwoot contra la API de Alentó. Debe ser idéntica en la configuración de la app de Chatwoot y en EasyPanel. |
+| `NOTIFIER_WEBHOOK_URL` | URL interna/privada del endpoint de eventos del microservicio notifier. En el ejemplo de entorno termina en `/events`. Usar hostname de red privada EasyPanel cuando ambos servicios compartan proyecto/red; confirmar URL/puerto reales en el servicio notifier. |
+| `NOTIFIER_SHARED_SECRET` | Secreto compartido entre Alentó App y notifier. La app envía header `x-alento-notifier-secret`. El notifier debe validar el mismo secreto. Generar un valor aleatorio fuerte y configurarlo en ambos lados. |
+| `ORDER_TRACKING_SECRET` | Secreto independiente para firmar tokens/enlaces públicos de seguimiento. Generar aleatorio fuerte (mínimo 32 caracteres). No reutilizar AUTH_SESSION_SECRET ni NOTIFIER_SHARED_SECRET. |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Clave Google Maps para navegador. Restringir por HTTP referrer al dominio público real y habilitar solo APIs necesarias para la UI. Es pública por diseño; nunca usarla para operaciones server-side privadas. |
+| `GOOGLE_MAPS_SERVER_API_KEY` | Clave privada de servidor para Routes/Geocoding. Restringir por APIs y, si es viable en el proveedor, por IP de salida del servidor. Nunca usar prefijo NEXT_PUBLIC ni exponer en cliente. |
+| `WEB_PUSH_VAPID_SUBJECT` | Identidad/contacto VAPID; ejemplo `mailto:admin@alentopizza.com`. |
+| `WEB_PUSH_VAPID_PUBLIC_KEY` | Clave pública VAPID, usada por cliente para suscribirse y servidor para enviar. |
+| `WEB_PUSH_VAPID_PRIVATE_KEY` | Clave privada VAPID, solo servidor. Nunca exponer al navegador ni registrar en logs. |
+
+### Generación de secretos y claves
+
+- Secretos genéricos: generar con un generador criptográfico del sistema, por ejemplo `openssl rand -base64 48`. Generar un valor distinto para sesión, bootstrap, seguimiento y notifier.
+- VAPID: desde el repositorio ejecutar `npm run push:keys` (equivale a `web-push generate-vapid-keys`). Copiar public/private en sus variables correspondientes y conservarlas en un gestor seguro.
+- No generar claves VAPID nuevas en cada redeploy. Si se cambia el par, las suscripciones existentes pueden dejar de recibir Push y los usuarios tendrán que volver a suscribirse.
+- Google Maps: crear claves en Google Cloud Console, habilitar APIs que el código use, configurar facturación/cuotas y restricciones distintas para navegador y servidor.
+- Make: crear/duplicar los escenarios de OTP y alta de clientes; copiar las URLs webhook de cada escenario a EasyPanel. Las credenciales de Meta y Google Contacts se configuran dentro de Make.
+- Chatwoot: crear una clave aleatoria para Dashboard App y compartirla únicamente entre Chatwoot y `CHATWOOT_DASHBOARD_KEY`.
+
+### Variables opcionales para desarrollo
+
+`WHATSAPP_DEV_LOG_OTP=1` permite escribir OTP en logs solo en desarrollo. Nunca habilitar en producción.
+
+El CI usa valores ficticios aislados del runner; no copiar secretos del workflow a producción.
+
+## 4. Arranque, dependencias y despliegue de alento-app
+
+Dependencias reproducibles:
+- Usar Node 22 y npm compatible con el lockfile.
+- Instalar con `npm ci`; no usar `npm install` como rutina de despliegue.
+- `postinstall` ejecuta `prisma generate`.
+- Scripts: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- Puerto interno 3000.
+- Health check: `GET /api/health`.
+
+Arranque vigente documentado:
+```bash
+prisma migrate deploy && next start -p 3000
+```
+
+Importante: el README y DEPLOYMENT deben mantenerse sincronizados. El flujo vigente es Prisma Migrate con baseline `20261026190500_baseline`; toda modificación de `prisma/schema.prisma` debe incluir una migración nueva versionada. No usar `prisma db push` como mecanismo normal de producción, ni ejecutar `migrate reset` en producción.
+
+EasyPanel, instalación nueva:
+1. Crear proyecto y red privada con nombre definido.
+2. Crear PostgreSQL y base `alento`; definir usuario y contraseña fuertes.
+3. Crear servicio de aplicación desde `alentopizza/alento-app`, rama `main`.
+4. Configurar build con instalación limpia y build del proyecto; start según `package.json` (`npm run start`).
+5. Configurar variables de entorno revisadas en la sección 3. No inventar valores de integraciones opcionales.
+6. Configurar `DATABASE_URL` usando el hostname privado real que EasyPanel asignó a PostgreSQL.
+7. Configurar dominio, HTTPS, puerto interno 3000 y health check `/api/health`.
+8. Antes del primer arranque, confirmar que la DB destino es vacía o que se está siguiendo el procedimiento formal de restauración/baseline correcto. Nunca aplicar una baseline a ciegas sobre datos existentes.
+9. Hacer deploy; revisar logs de instalación, Prisma y Next.
+10. Validar health, login, creación/lectura de un pedido de prueba controlado, catálogo, permisos y módulos críticos.
+11. Configurar integraciones externas una a una y validar cada una.
+12. Habilitar backups remotos antes de considerar la instalación lista.
+
+CI actual: GitHub Actions ejecuta Node 22, PostgreSQL 16 efímero, `npm ci`, validación Prisma, migraciones, drift check, lint, typecheck, tests y build. Nunca debe conectarse a producción.
+
+## 5. PostgreSQL: datos, esquema y restauración
+
+Servicio actual: EasyPanel `alento-db`; DB `alento`; schema `public`.
+
+PostgreSQL guarda pedidos, pagos, devoluciones, clientes, catálogo, imágenes de productos, Caja, préstamos, nómina/turnos, Club, configuración, usuarios, auditoría, métricas, notificaciones y suscripciones Push. Por eso una restauración solo de archivos de la app no reconstruye el negocio.
+
+El schema fuente es `prisma/schema.prisma`; migraciones activas en `prisma/migrations/`. La baseline activa es `20261026190500_baseline`. Los históricos anteriores están en `prisma/legacy-migrations/`.
+
+Restaurar base existente:
+1. Identificar el backup y su fecha.
+2. Crear un PostgreSQL temporal separado en EasyPanel (nunca usar `alento-db` como entorno de prueba).
+3. Restaurar el dump al servicio temporal.
+4. Configurar local/runner seguro con `DATABASE_URL` apuntando exclusivamente al temporal.
+5. Ejecutar `npx prisma migrate status`.
+6. Ejecutar `npm run db:verify-restore`.
+7. Comparar conteos y datos representativos; comprobar pedidos, pagos, PaymentRefund, clientes, productos, usuarios, AppSetting, Caja, Club, turnos, auditoría e incidentes.
+8. Validar lectura funcional sin crear/modificar datos.
+9. Solo después planificar la recuperación productiva con ventana de mantenimiento, backup del estado actual y aprobación del responsable.
+10. Destruir el temporal al finalizar.
+
+El script `scripts/verify-database-restore.js` es de solo lectura. Nunca ejecutar con la URL de producción durante una prueba de restauración.
+
+## 6. Backups externos en Google Drive (EasyPanel)
+
+Documento operativo canónico y evidencia: `docs/BACKUPS_AND_RECOVERY.md`.
+
+Configuración verificada documentada:
+- Storage Provider: `Alentó Pizza Backups` (Google Drive).
+- Backup horario: cron `15 * * * *`; retención 48; ruta `alento/production/postgres/hourly`.
+- Backup diario: cron `30 8 * * *` en servidor UTC (aprox. 03:30 Bogotá); retención 30; ruta `alento/production/postgres/daily`.
+- Objetivo RPO: 1 hora. RTO: 2 horas.
+- Restauración real validada el 2026-10-26 en PostgreSQL temporal, desde Google Drive, con `prisma migrate status` y `npm run db:verify-restore` correctos.
+
+Para crear en otra VPS:
+1. En EasyPanel → Settings → Storage Providers, conectar Google Drive con una cuenta autorizada.
+2. Validar permisos de listar, escribir, leer y eliminar objetos.
+3. En servicio PostgreSQL → Backups, crear tarea horaria con cron y retención anteriores, apuntando a la ruta horaria.
+4. Ejecutar Manual Run y confirmar archivo remoto y log exitoso.
+5. Crear una segunda tarea diaria, ruta distinta y retención independiente.
+6. Ejecutar Manual Run y verificar archivo.
+7. Programar revisión semanal de logs y restore de prueba mensual.
+8. Nunca compartir las rutas de horario/diario porque la limpieza por retención puede borrar archivos de la otra política.
+9. No usar almacenamiento local del mismo VPS como única copia.
+
+No versionar credenciales OAuth/refresh tokens de Google Drive. La conexión al proveedor se configura desde EasyPanel.
+
+## 7. Web Push PWA (independiente de WhatsApp/Notifier)
+
+Web Push usa VAPID y el service worker de la PWA; no es el mismo canal que WhatsApp ni depende del microservicio notifier.
+
+Fuente canónica: `docs/PUSH_NOTIFICATIONS.md`.
+
+Componentes:
+- Cliente: `src/lib/webPushClient.ts`.
+- Endpoint único: `/api/push?scope=customer` o `/api/push?scope=staff`.
+- Envío server-side: `src/lib/driverPush.ts`.
+- Service worker: `public/sw.js`.
+- Suscripciones: modelo Prisma `DriverPushSubscription` (el nombre es histórico; almacena Staff y clientes).
+- Campañas: `src/lib/pushCampaigns.ts`, `src/components/PushCampaignManager.tsx`, `/api/push-campaigns`.
+- Notificaciones transaccionales de pedidos: `src/lib/customerOrderPush.ts`.
+
+Un mismo endpoint de suscripción no debe duplicarse. Staff y cliente son scopes separados; la sesión interna no debe usarse para inferir la audiencia. Las notificaciones transaccionales se envían solo al cliente dueño del pedido, nunca a todos los clientes.
+
+Instalación:
+1. Definir `WEB_PUSH_VAPID_SUBJECT`.
+2. Generar par VAPID una sola vez con `npm run push:keys`.
+3. Guardar public/private key en el gestor seguro y configurar las variables en EasyPanel.
+4. Confirmar HTTPS y service worker accesible en `/sw.js`.
+5. Redeploy y validar permiso/suscripción desde un navegador real.
+6. Activar Push de cliente y Staff en dispositivos de prueba; enviar notificación de prueba.
+7. Verificar estado en `/salud-sistema` y campañas en `/notificaciones`.
+8. En migración de VPS conservar las claves VAPID para mantener las suscripciones ya guardadas en la DB.
+
+Las campañas pueden dirigir a aplicación, sección, web o ningún destino. Las imágenes de campañas se almacenan en PostgreSQL (`NotificationImage`). Las notificaciones de estado de pedido generan tracking firmado.
+
+## 8. Notifier / WhatsApp / Meta
+
+Integración de Alentó App:
+- Cliente HTTP: `src/lib/notifier.ts`.
+- Plantillas: `src/lib/notificationTemplates.ts`, persistidas en `AppSetting` bajo `notification_templates`.
+- Endpoint interno de jobs: `POST /api/internal/notification-jobs/run`.
+- Autenticación de eventos: header `x-alento-notifier-secret`.
+- Variables: `NOTIFIER_WEBHOOK_URL`, `NOTIFIER_SHARED_SECRET`.
+- Make OTP: `MAKE_WHATSAPP_OTP_WEBHOOK_URL`.
+- Jobs de reseñas Google: tabla `NotificationJob`; el endpoint requiere el mismo secreto compartido, procesa hasta 10 jobs por ejecución, reintenta con límite de 5 y usa lock para evitar concurrencia.
+
+La app envía POST JSON al webhook notifier con evento y datos de destinatario/plantilla; timeout HTTP 10 segundos. Eventos implementados incluyen pedido creado, estados seleccionados, repartidor asignado y reseña. Si el notifier no está configurado o falla, la app registra estado/incidente; el núcleo de pedidos no debe quedar bloqueado por la integración.
+
+IMPORTANTE: en el inventario de repositorios accesibles no se encontró un repositorio independiente llamado `alento-notifier`. La captura de EasyPanel confirma el servicio `alento-notifier`, pero no expone imagen, Dockerfile, código, puerto, ruta de health ni variables internas. Por tanto no se inventa un procedimiento de reconstrucción del contenedor notifier. Para completar su instalación exacta en otra VPS se necesita exportar/documentar desde EasyPanel: imagen o repositorio/branch, Dockerfile/command, puerto interno, variables requeridas (nombres sin valores), volúmenes, red, healthcheck, scheduler y logs. El endpoint de health que la app consulta se deriva de `NOTIFIER_WEBHOOK_URL` sustituyendo `/events` por `/health`; confirmar que el servicio realmente lo expone.
+
+El cron/scheduler de `NotificationJob` debe invocar periódicamente el endpoint interno con POST y header `x-alento-notifier-secret`. El intervalo exacto productivo no está confirmado en el código/documentación consultados: recuperarlo de la tarea programada actual antes de replicar.
+
+## 9. Chatwoot — integración Dashboard App
+
+La app Alentó contiene:
+- Página: `/integraciones/chatwoot`.
+- API: `GET /api/integrations/chatwoot/customer?phone=...`.
+- Autenticación: header `x-alento-chatwoot-key`, comparado en tiempo constante con `CHATWOOT_DASHBOARD_KEY`.
+- Origen Chatwoot codificado en la página: `https://chat.operadoranordecolombia.com`.
+- Mensaje postMessage esperado: `chatwoot-dashboard-app:fetch-info` y evento `appContext`.
+
+La Dashboard App muestra datos del cliente, señal comercial, puntos Club, métricas, dirección/ruta y compras recientes. La clave compartida debe configurarse en EasyPanel y en el Dashboard App de Chatwoot. Restringir CORS/origen y permisos conforme a la implementación; nunca colocar la clave en URL ni en código público.
+
+La instalación Chatwoot es un servicio externo independiente de `alento-app`. El repositorio accesible `alentopizza/chatwoot` contiene documentación de una plataforma Norde CX y no constituye evidencia suficiente para reconstruir la instancia Chatwoot de Alentó. La URL productiva observada en el código es `https://chat.operadoranordecolombia.com`; no se han verificado aquí sus servicios EasyPanel, versiones, variables, volúmenes, base Chatwoot ni Redis. Para migrar Chatwoot se requiere inventario de su stack real: Chatwoot web, Sidekiq, PostgreSQL, Redis, storage `/app/storage`, dominio/SMTP, claves secretas, credenciales Meta/WhatsApp, Facebook e Instagram, y backups de DB + almacenamiento. No reutilizar ni confundir la DB `alento` con la DB interna de Chatwoot.
+
+## 10. Google Maps
+
+El checkout y domicilio usan Google Places/Routes. Las dos claves cumplen funciones diferentes: navegador (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`) y servidor (`GOOGLE_MAPS_SERVER_API_KEY`). Configurar APIs y facturación en Google Cloud, restricciones de referrer/IP y cuotas. Validar búsqueda de dirección, geocoding, rutas y tarifa server-side desde una compra de prueba.
+
+## 11. Lista de validación tras migrar a otra VPS
+
+- [ ] Repo y rama correctos; Node 22; `npm ci`.
+- [ ] Servicio PostgreSQL correcto, red privada, DB `alento`.
+- [ ] Restore de backup probado en DB temporal antes de recuperar producción.
+- [ ] `DATABASE_URL` validada sin publicar credenciales.
+- [ ] Variables requeridas y opcionales revisadas en EasyPanel.
+- [ ] Secrets nuevos generados; secretos de tracking/sesión/notifier independientes.
+- [ ] Dominio, HTTPS, puerto 3000 y `/api/health`.
+- [ ] Prisma migrations aplicadas y status correcto.
+- [ ] Login ADMIN, roles y permisos.
+- [ ] POS, pedido WEB, Cocina, Caja y seguimiento.
+- [ ] Google Maps Places/Routes.
+- [ ] VAPID estable y Push Staff/Cliente.
+- [ ] Notifier / WhatsApp / Make probado; health notifier.
+- [ ] Chatwoot Dashboard App y clave compartida.
+- [ ] Backups horario/diario en Google Drive con restore mensual.
+- [ ] Logs, `/salud-sistema` y alertas sin errores críticos.
+
+## 12. Datos que siguen pendientes de inventario externo
+
+No están presentes en el repositorio principal y deben documentarse desde sus consolas/servicios sin copiar secretos:
+- configuración interna y despliegue exacto de `alento-notifier`;
+- cron/frecuencia real que invoca `/api/internal/notification-jobs/run`;
+- stack y variables completas de Chatwoot productivo;
+- configuración y credenciales de escenarios Make;
+- restricciones, APIs y proyecto Google Cloud de Maps;
+- credenciales OAuth del proveedor Google Drive en EasyPanel;
+- hostname/usuario reales de PostgreSQL y nombres de servicios de la nueva VPS.
+
+No declarar una instalación 100% replicable hasta completar esos inventarios y ejecutar una restauración integral de prueba.
